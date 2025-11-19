@@ -212,6 +212,286 @@ export function registerModificationTools(server: McpServer): void {
     }
   );
 
+  // Delete Multiple Nodes Tool
+  server.tool(
+    "delete_multiple_nodes",
+    "Delete multiple nodes from Figma at once",
+    {
+      nodeIds: z.array(z.string()).describe("Array of node IDs to delete")
+    },
+    async ({ nodeIds }) => {
+      try {
+        const result = await sendCommandToFigma("delete_multiple_nodes", { nodeIds });
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(result)
+            }
+          ]
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error deleting multiple nodes: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    }
+  );
+
+  // Set Layout Mode Tool
+  server.tool(
+    "set_layout_mode",
+    "Set the layout mode and wrap behavior of a frame in Figma",
+    {
+      nodeId: z.string().describe("The ID of the frame to modify"),
+      layoutMode: z.enum(["NONE", "HORIZONTAL", "VERTICAL"])
+        .describe("Layout mode for the frame"),
+      layoutWrap: z.enum(["NO_WRAP", "WRAP"])
+        .optional()
+        .describe("Whether the auto-layout frame wraps its children")
+    },
+    async ({ nodeId, layoutMode, layoutWrap }) => {
+      try {
+        const result = await sendCommandToFigma("set_layout_mode", {
+          nodeId,
+          layoutMode,
+          layoutWrap: layoutWrap || "NO_WRAP"
+        });
+        const typedResult = result as { name: string };
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Set layout mode of frame "${typedResult.name}" to ${layoutMode}`
+            }
+          ]
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error setting layout mode: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    }
+  );
+
+  // Set Padding Tool
+  server.tool(
+    "set_padding",
+    "Set padding values for an auto-layout frame in Figma",
+    {
+      nodeId: z.string().describe("The ID of the frame to modify"),
+      paddingTop: z.number().optional().describe("Top padding value"),
+      paddingRight: z.number().optional().describe("Right padding value"),
+      paddingBottom: z.number().optional().describe("Bottom padding value"),
+      paddingLeft: z.number().optional().describe("Left padding value")
+    },
+    async ({ nodeId, paddingTop, paddingRight, paddingBottom, paddingLeft }) => {
+      try {
+        const result = await sendCommandToFigma("set_padding", {
+          nodeId,
+          paddingTop,
+          paddingRight,
+          paddingBottom,
+          paddingLeft
+        });
+        const typedResult = result as { name: string };
+
+        const paddingMessages = [];
+        if (paddingTop !== undefined) paddingMessages.push(`top: ${paddingTop}`);
+        if (paddingRight !== undefined) paddingMessages.push(`right: ${paddingRight}`);
+        if (paddingBottom !== undefined) paddingMessages.push(`bottom: ${paddingBottom}`);
+        if (paddingLeft !== undefined) paddingMessages.push(`left: ${paddingLeft}`);
+
+        const paddingText = paddingMessages.length > 0
+          ? `padding (${paddingMessages.join(', ')})`
+          : "padding";
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Set ${paddingText} for frame "${typedResult.name}"`
+            }
+          ]
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error setting padding: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    }
+  );
+
+  // Set Axis Align Tool
+  server.tool(
+    "set_axis_align",
+    "Set primary and counter axis alignment for an auto-layout frame",
+    {
+      nodeId: z.string().describe("The ID of the frame to modify"),
+      primaryAxisAlignItems: z.enum(["MIN", "MAX", "CENTER", "SPACE_BETWEEN"])
+        .optional()
+        .describe("Primary axis alignment"),
+      counterAxisAlignItems: z.enum(["MIN", "MAX", "CENTER", "BASELINE"])
+        .optional()
+        .describe("Counter axis alignment")
+    },
+    async ({ nodeId, primaryAxisAlignItems, counterAxisAlignItems }) => {
+      try {
+        const result = await sendCommandToFigma("set_axis_align", {
+          nodeId,
+          primaryAxisAlignItems,
+          counterAxisAlignItems
+        });
+        const typedResult = result as { name: string };
+
+        const alignMessages = [];
+        if (primaryAxisAlignItems !== undefined)
+          alignMessages.push(`primary: ${primaryAxisAlignItems}`);
+        if (counterAxisAlignItems !== undefined)
+          alignMessages.push(`counter: ${counterAxisAlignItems}`);
+
+        const alignText = alignMessages.length > 0
+          ? `axis alignment (${alignMessages.join(', ')})`
+          : "axis alignment";
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Set ${alignText} for frame "${typedResult.name}"`
+            }
+          ]
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error setting axis alignment: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    }
+  );
+
+  // Set Layout Sizing Tool
+  server.tool(
+    "set_layout_sizing",
+    "Set horizontal and vertical sizing modes for an auto-layout frame",
+    {
+      nodeId: z.string().describe("The ID of the frame to modify"),
+      layoutSizingHorizontal: z.enum(["FIXED", "HUG", "FILL"])
+        .optional()
+        .describe("Horizontal sizing mode"),
+      layoutSizingVertical: z.enum(["FIXED", "HUG", "FILL"])
+        .optional()
+        .describe("Vertical sizing mode")
+    },
+    async ({ nodeId, layoutSizingHorizontal, layoutSizingVertical }) => {
+      try {
+        const result = await sendCommandToFigma("set_layout_sizing", {
+          nodeId,
+          layoutSizingHorizontal,
+          layoutSizingVertical
+        });
+        const typedResult = result as { name: string };
+
+        const sizingMessages = [];
+        if (layoutSizingHorizontal !== undefined)
+          sizingMessages.push(`horizontal: ${layoutSizingHorizontal}`);
+        if (layoutSizingVertical !== undefined)
+          sizingMessages.push(`vertical: ${layoutSizingVertical}`);
+
+        const sizingText = sizingMessages.length > 0
+          ? `layout sizing (${sizingMessages.join(', ')})`
+          : "layout sizing";
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Set ${sizingText} for frame "${typedResult.name}"`
+            }
+          ]
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error setting layout sizing: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    }
+  );
+
+  // Set Item Spacing Tool
+  server.tool(
+    "set_item_spacing",
+    "Set distance between children in an auto-layout frame",
+    {
+      nodeId: z.string().describe("The ID of the frame to modify"),
+      itemSpacing: z.number().optional()
+        .describe("Distance between children"),
+      counterAxisSpacing: z.number().optional()
+        .describe("Distance between wrapped rows/columns")
+    },
+    async ({ nodeId, itemSpacing, counterAxisSpacing }) => {
+      try {
+        const params: any = { nodeId };
+        if (itemSpacing !== undefined) params.itemSpacing = itemSpacing;
+        if (counterAxisSpacing !== undefined) params.counterAxisSpacing = counterAxisSpacing;
+
+        const result = await sendCommandToFigma("set_item_spacing", params);
+        const typedResult = result as {
+          name: string;
+          itemSpacing?: number;
+          counterAxisSpacing?: number
+        };
+
+        let message = `Updated spacing for frame "${typedResult.name}":`;
+        if (itemSpacing !== undefined) message += ` itemSpacing=${itemSpacing}`;
+        if (counterAxisSpacing !== undefined) message += ` counterAxisSpacing=${counterAxisSpacing}`;
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: message
+            }
+          ]
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error setting item spacing: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    }
+  );
+
   // Set Corner Radius Tool
   server.tool(
     "set_corner_radius",

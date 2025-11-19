@@ -249,23 +249,24 @@ const server = Bun.serve({
             return;
           }
 
-          // Broadcast to all clients in the channel
+          // Broadcast to all OTHER clients in the channel (not the sender)
           try {
             let broadcastCount = 0;
             channelClients.forEach((client) => {
-              if (client.readyState === WebSocket.OPEN) {
-                logger.debug(`Broadcasting message to client in channel ${channelName}`);
+              // Only send to other clients, not back to the sender
+              if (client !== ws && client.readyState === WebSocket.OPEN) {
+                logger.debug(`Broadcasting message to peer in channel ${channelName}`);
                 client.send(JSON.stringify({
                   type: "broadcast",
                   message: data.message,
-                  sender: client === ws ? "You" : "User",
+                  sender: "User",
                   channel: channelName
                 }));
                 stats.messagesSent++;
                 broadcastCount++;
               }
             });
-            logger.info(`Broadcasted message to ${broadcastCount} clients in channel ${channelName}`);
+            logger.info(`Broadcasted message to ${broadcastCount} peer(s) in channel ${channelName}`);
           } catch (error) {
             logger.error(`Error broadcasting message to channel ${channelName}:`, error);
             stats.errors++;

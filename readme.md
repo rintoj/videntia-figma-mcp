@@ -100,10 +100,19 @@ Claude Desktop ↔ MCP Server ↔ WebSocket Server ↔ Figma Plugin
 |---------|---------|-------------|
 | `get_document_info` | Document analysis | Get project overview |
 | `get_selection` | Current selection | What's selected now |
+| `read_my_design` | Detailed selection info | Deep inspection of selection |
 | `get_node_info` | Element details | Inspect specific component |
 | `get_nodes_info` | Multiple elements info | Batch element inspection |
+| `set_focus` | Focus on node | Scroll viewport to element |
+| `set_selections` | Select multiple nodes | Batch selection |
 | `scan_text_nodes` | Find all text | Text audit and updates |
+| `scan_nodes_by_types` | Find nodes by type | Filter by FRAME, COMPONENT, etc. |
 | `get_styles` | Document styles | Color/text style audit |
+| `get_variables` | Get all variables | Design token inspection |
+| `get_bound_variables` | Get variable bindings | Check variable usage |
+| `get_annotations` | Get annotations | Review design annotations |
+| `set_annotation` | Create annotation | Add design notes |
+| `set_multiple_annotations` | Batch annotations | Multi-element annotations |
 | `join_channel` | Connect to Figma | Establish communication |
 | `export_node_as_image` | Asset export | Generate design assets |
 
@@ -130,10 +139,18 @@ Claude Desktop ↔ MCP Server ↔ WebSocket Server ↔ Figma Plugin
 | `move_node` | Positioning | Layout adjustments |
 | `resize_node` | Size changes | Responsive scaling |
 | `delete_node` | Remove elements | Clean up designs |
+| `delete_multiple_nodes` | Batch delete | Remove multiple elements |
 | `set_corner_radius` | Rounded corners | Modern UI styling |
 | `set_auto_layout` | Flexbox-like layout | Component spacing |
+| `set_layout_mode` | Layout direction | Set HORIZONTAL/VERTICAL |
+| `set_padding` | Frame padding | Auto-layout spacing |
+| `set_axis_align` | Axis alignment | Primary/counter alignment |
+| `set_layout_sizing` | Sizing mode | HUG/FILL/FIXED |
+| `set_item_spacing` | Item spacing | Gap between children |
 | `set_effects` | Shadows/blurs | Visual polish |
 | `set_effect_style_id` | Apply effect styles | Consistent shadow styles |
+| `bind_variable` | Bind variable | Connect design tokens |
+| `unbind_variable` | Unbind variable | Remove token binding |
 | `rename_node` | Rename elements | Organize layer names |
 
 ### 📝 Text Tools
@@ -161,6 +178,15 @@ Claude Desktop ↔ MCP Server ↔ WebSocket Server ↔ Figma Plugin
 | `create_component` | Convert to component | Create reusable elements |
 | `create_component_set` | Create variants | Build component systems |
 | `detach_instance` | Detach instance | Convert to editable frame |
+| `get_instance_overrides` | Get overrides | Inspect instance changes |
+| `set_instance_overrides` | Apply overrides | Copy overrides to instances |
+
+### 🔗 Prototyping Tools
+| Command | Purpose | Example Use |
+|---------|---------|-------------|
+| `get_reactions` | Get prototype reactions | Inspect interactions |
+| `set_default_connector` | Set connector style | Default connection style |
+| `create_connections` | Create connections | Link nodes with connectors |
 
 ---
 
@@ -285,7 +311,16 @@ src/
 
 ## 📋 Version History
 
-### Current: 0.6.2
+### Current: 0.7.0
+- **🆕 18 New Tools**: Added comprehensive set of tools from cursor-talk-to-figma-mcp
+  - **Document Tools**: `read_my_design`, `set_focus`, `set_selections`, `get_annotations`, `set_annotation`, `set_multiple_annotations`, `scan_nodes_by_types`
+  - **Layout Tools**: `set_layout_mode`, `set_padding`, `set_axis_align`, `set_layout_sizing`, `set_item_spacing`, `delete_multiple_nodes`
+  - **Prototyping Tools**: `get_reactions`, `set_default_connector`, `create_connections`
+  - **Component Tools**: `get_instance_overrides`, `set_instance_overrides`
+- **🔧 WebSocket Fix**: Fixed broadcast logic to prevent message routing issues
+- **🧪 Test Coverage**: Added comprehensive tests for all new tools (168 total tests)
+
+### Previous: 0.6.2
 - **🎨 Component Management**: New tools for component workflow - `create_component`, `create_component_set`, `detach_instance`
 - **✏️ Rename Tool**: New `rename_node` tool for organizing layer names
 - **🔧 Dependency Update**: Updated Zod to 3.25.x for MCP SDK compatibility

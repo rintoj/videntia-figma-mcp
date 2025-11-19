@@ -43,6 +43,9 @@ export type FigmaCommand =
   | "get_document_info"
   | "get_selection"
   | "get_node_info"
+  | "read_my_design"
+  | "set_focus"
+  | "set_selections"
   | "create_rectangle"
   | "create_frame"
   | "create_text"
@@ -56,6 +59,7 @@ export type FigmaCommand =
   | "move_node"
   | "resize_node"
   | "delete_node"
+  | "delete_multiple_nodes"
   | "get_styles"
   | "get_local_components"
   | "get_team_components"
@@ -68,6 +72,11 @@ export type FigmaCommand =
   | "scan_text_nodes"
   | "set_multiple_text_contents"
   | "set_auto_layout"
+  | "set_layout_mode"
+  | "set_padding"
+  | "set_axis_align"
+  | "set_layout_sizing"
+  | "set_item_spacing"
   | "set_font_name"
   | "set_font_size"
   | "set_font_weight"
@@ -92,7 +101,16 @@ export type FigmaCommand =
   | "detach_instance"
   | "create_component"
   | "create_component_set"
-  | "rename_node";
+  | "rename_node"
+  | "get_annotations"
+  | "set_annotation"
+  | "set_multiple_annotations"
+  | "scan_nodes_by_types"
+  | "get_reactions"
+  | "set_default_connector"
+  | "create_connections"
+  | "get_instance_overrides"
+  | "set_instance_overrides";
 
 // Variable-related interfaces
 export type VariableType = "COLOR" | "FLOAT" | "STRING" | "BOOLEAN";
