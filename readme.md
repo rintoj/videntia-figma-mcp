@@ -134,6 +134,7 @@ Claude Desktop ↔ MCP Server ↔ WebSocket Server ↔ Figma Plugin
 | `set_auto_layout` | Flexbox-like layout | Component spacing |
 | `set_effects` | Shadows/blurs | Visual polish |
 | `set_effect_style_id` | Apply effect styles | Consistent shadow styles |
+| `rename_node` | Rename elements | Organize layer names |
 
 ### 📝 Text Tools
 | Command | Purpose | Example Use |
@@ -157,6 +158,9 @@ Claude Desktop ↔ MCP Server ↔ WebSocket Server ↔ Figma Plugin
 | `get_local_components` | Project components | Design system audit |
 | `get_remote_components` | Team libraries | Shared component access |
 | `create_component_instance` | Use components | Consistent UI elements |
+| `create_component` | Convert to component | Create reusable elements |
+| `create_component_set` | Create variants | Build component systems |
+| `detach_instance` | Detach instance | Convert to editable frame |
 
 ---
 
@@ -281,7 +285,12 @@ src/
 
 ## 📋 Version History
 
-### Current: 0.6.1
+### Current: 0.6.2
+- **🎨 Component Management**: New tools for component workflow - `create_component`, `create_component_set`, `detach_instance`
+- **✏️ Rename Tool**: New `rename_node` tool for organizing layer names
+- **🔧 Dependency Update**: Updated Zod to 3.25.x for MCP SDK compatibility
+
+### Previous: 0.6.1
 - **🔧 Tool Fix**: The `set_stroke_color` tool now correctly accepts a `strokeWeight` of `0` for creating invisible strokes.
 
 ### Previous: 0.6.0
