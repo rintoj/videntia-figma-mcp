@@ -405,4 +405,97 @@ export function registerModificationTools(server: McpServer): void {
       }
     }
   );
+
+  // Bind Variable Tool
+  server.tool(
+    "bind_variable",
+    "Bind a variable to a node property in Figma (e.g., fill color, stroke weight, opacity)",
+    {
+      nodeId: z.string().describe("The ID of the node to modify"),
+      variableId: z.string().describe("The ID of the variable to bind"),
+      field: z.string().describe(
+        'Property field path to bind to. Examples: "fills/0/color" for fill color, "strokes/0/color" for stroke color, "opacity", "width", "height", "strokeWeight", "cornerRadius", "topLeftRadius", "topRightRadius", "bottomLeftRadius", "bottomRightRadius", "paddingLeft", "paddingRight", "paddingTop", "paddingBottom", "itemSpacing", "counterAxisSpacing"'
+      )
+    },
+    async ({ nodeId, variableId, field }) => {
+      try {
+        const result = await sendCommandToFigma("bind_variable", {
+          nodeId,
+          variableId,
+          field
+        });
+
+        const typedResult = result as {
+          nodeId: string;
+          nodeName: string;
+          field: string;
+          variableId: string;
+          variableName: string;
+          variableType: string;
+        };
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Successfully bound variable "${typedResult.variableName}" (${typedResult.variableType}) to "${typedResult.field}" on node "${typedResult.nodeName}"`
+            }
+          ]
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error binding variable: ${error instanceof Error ? error.message : String(error)}`
+            }
+          ]
+        };
+      }
+    }
+  );
+
+  // Unbind Variable Tool
+  server.tool(
+    "unbind_variable",
+    "Remove a variable binding from a node property in Figma",
+    {
+      nodeId: z.string().describe("The ID of the node to modify"),
+      field: z.string().describe(
+        'Property field path to unbind. Examples: "fills/0/color" for fill color, "strokes/0/color" for stroke color, "opacity", "strokeWeight", etc.'
+      )
+    },
+    async ({ nodeId, field }) => {
+      try {
+        const result = await sendCommandToFigma("unbind_variable", {
+          nodeId,
+          field
+        });
+
+        const typedResult = result as {
+          nodeId: string;
+          nodeName: string;
+          field: string;
+        };
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Successfully removed variable binding from "${typedResult.field}" on node "${typedResult.nodeName}"`
+            }
+          ]
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error unbinding variable: ${error instanceof Error ? error.message : String(error)}`
+            }
+          ]
+        };
+      }
+    }
+  );
 }

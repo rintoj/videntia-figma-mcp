@@ -301,7 +301,7 @@ export function registerDocumentTools(server: McpServer): void {
     "join_channel",
     "Join a specific channel to communicate with Figma",
     {
-      channel: z.string().describe("The name of the channel to join").default(""),
+      channel: z.string().describe("The name of the channel to join"),
     },
     async ({ channel }) => {
       try {
@@ -383,6 +383,66 @@ export function registerDocumentTools(server: McpServer): void {
               text: `Error exporting node as image: ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
+        };
+      }
+    }
+  );
+
+  // Get Variables Tool
+  server.tool(
+    "get_variables",
+    "Get all variables and variable collections from the current Figma document",
+    {},
+    async () => {
+      try {
+        const result = await sendCommandToFigma("get_variables");
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(result, null, 2)
+            }
+          ]
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error getting variables: ${error instanceof Error ? error.message : String(error)}`
+            }
+          ]
+        };
+      }
+    }
+  );
+
+  // Get Bound Variables Tool
+  server.tool(
+    "get_bound_variables",
+    "Get all variable bindings for a specific node in Figma",
+    {
+      nodeId: z.string().describe("The ID of the node to check for variable bindings")
+    },
+    async ({ nodeId }) => {
+      try {
+        const result = await sendCommandToFigma("get_bound_variables", { nodeId });
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(result, null, 2)
+            }
+          ]
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error getting bound variables: ${error instanceof Error ? error.message : String(error)}`
+            }
+          ]
         };
       }
     }

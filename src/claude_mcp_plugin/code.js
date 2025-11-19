@@ -189,6 +189,14 @@ async function handleCommand(command, params) {
       return await createVector(params);
     case "create_line":
       return await createLine(params);
+    case "get_variables":
+      return await getVariables();
+    case "get_bound_variables":
+      return await getBoundVariables(params);
+    case "bind_variable":
+      return await bindVariable(params);
+    case "unbind_variable":
+      return await unbindVariable(params);
     default:
       throw new Error(`Unknown command: ${command}`);
   }
@@ -3291,5 +3299,235 @@ async function createLine(params) {
     strokes: line.strokes,
     vectorPaths: line.vectorPaths,
     parentId: line.parent ? line.parent.id : undefined
+  };
+}
+
+// Variable-related functions
+
+async function getVariables() {
+  const variables = await figma.variables.getLocalVariablesAsync();
+  const collections = await figma.variables.getLocalVariableCollectionsAsync();
+
+  return {
+    variables: variables.map(v => ({
+      id: v.id,
+      name: v.name,
+      key: v.key,
+      type: v.resolvedType,
+      description: v.description || "",
+      collectionId: v.variableCollectionId,
+      values: Object.entries(v.valuesByMode).map(([modeId, value]) => ({
+        modeId,
+        value: formatVariableValue(value, v.resolvedType)
+      }))
+    })),
+    collections: collections.map(c => ({
+      id: c.id,
+      name: c.name,
+      variableIds: c.variableIds,
+      modes: c.modes.map(m => ({ id: m.modeId, name: m.name }))
+    }))
+  };
+}
+
+function formatVariableValue(value, type) {
+  if (type === "COLOR" && value && typeof value === "object") {
+    return {
+      r: value.r,
+      g: value.g,
+      b: value.b,
+      a: value.a !== undefined ? value.a : 1
+    };
+  }
+  return value;
+}
+
+async function getBoundVariables(params) {
+  const { nodeId } = params;
+
+  if (!nodeId) {
+    throw new Error("nodeId is required");
+  }
+
+  const node = await figma.getNodeByIdAsync(nodeId);
+  if (!node) {
+    throw new Error(`Node not found: ${nodeId}`);
+  }
+
+  const bindings = [];
+  const variables = await figma.variables.getLocalVariablesAsync();
+  const variableMap = new Map(variables.map(v => [v.id, v]));
+
+  // Check if node has boundVariables property
+  if (node.boundVariables) {
+    for (const [field, binding] of Object.entries(node.boundVariables)) {
+      if (binding) {
+        // Handle both single bindings and array bindings (like fills)
+        const processBinding = (b, fieldPath) => {
+          if (b && b.id) {
+            const variable = variableMap.get(b.id);
+            bindings.push({
+              field: fieldPath,
+              variableId: b.id,
+              variableName: variable ? variable.name : "Unknown",
+              variableType: variable ? variable.resolvedType : "Unknown"
+            });
+          }
+        };
+
+        if (Array.isArray(binding)) {
+          binding.forEach((b, index) => {
+            processBinding(b, `${field}/${index}`);
+          });
+        } else {
+          processBinding(binding, field);
+        }
+      }
+    }
+  }
+
+  return {
+    nodeId: node.id,
+    nodeName: node.name,
+    nodeType: node.type,
+    bindings
+  };
+}
+
+async function bindVariable(params) {
+  const { nodeId, variableId, field } = params;
+
+  if (!nodeId || !variableId || !field) {
+    throw new Error("nodeId, variableId, and field are required");
+  }
+
+  const node = await figma.getNodeByIdAsync(nodeId);
+  if (!node) {
+    throw new Error(`Node not found: ${nodeId}`);
+  }
+
+  // Get the variable
+  const variable = await figma.variables.getVariableByIdAsync(variableId);
+  if (!variable) {
+    throw new Error(`Variable not found: ${variableId}`);
+  }
+
+  // Parse the field path (e.g., "fills/0/color" -> ["fills", 0, "color"])
+  const fieldParts = field.split("/");
+
+  // Handle different field types
+  try {
+    if (fieldParts[0] === "fills" && fieldParts.length >= 2) {
+      // Binding to fill color
+      const fillIndex = parseInt(fieldParts[1]);
+      if (isNaN(fillIndex)) {
+        throw new Error(`Invalid fill index: ${fieldParts[1]}`);
+      }
+
+      // Get current fills or create default
+      let fills = node.fills ? [...node.fills] : [];
+      if (fills.length <= fillIndex) {
+        // Create a default solid fill if needed
+        while (fills.length <= fillIndex) {
+          fills.push({ type: "SOLID", color: { r: 0, g: 0, b: 0 } });
+        }
+        node.fills = fills;
+      }
+
+      // Bind the variable to the fill paint using the correct API
+      const fillsCopy = [...node.fills];
+      fillsCopy[fillIndex] = figma.variables.setBoundVariableForPaint(
+        fillsCopy[fillIndex],
+        "color",
+        variable
+      );
+      node.fills = fillsCopy;
+
+    } else if (fieldParts[0] === "strokes" && fieldParts.length >= 2) {
+      // Binding to stroke color
+      const strokeIndex = parseInt(fieldParts[1]);
+      if (isNaN(strokeIndex)) {
+        throw new Error(`Invalid stroke index: ${fieldParts[1]}`);
+      }
+
+      // Get current strokes or create default
+      let strokes = node.strokes ? [...node.strokes] : [];
+      if (strokes.length <= strokeIndex) {
+        while (strokes.length <= strokeIndex) {
+          strokes.push({ type: "SOLID", color: { r: 0, g: 0, b: 0 } });
+        }
+        node.strokes = strokes;
+      }
+
+      // Bind the variable to the stroke paint using the correct API
+      const strokesCopy = [...node.strokes];
+      strokesCopy[strokeIndex] = figma.variables.setBoundVariableForPaint(
+        strokesCopy[strokeIndex],
+        "color",
+        variable
+      );
+      node.strokes = strokesCopy;
+
+    } else {
+      // Direct property binding (opacity, width, height, etc.)
+      const propertyName = fieldParts[0];
+      node.setBoundVariable(propertyName, variable);
+    }
+  } catch (err) {
+    throw new Error(`Failed to bind variable: ${err.message}. Make sure the variable type (${variable.resolvedType}) is compatible with the field "${field}"`);
+  }
+
+  return {
+    nodeId: node.id,
+    nodeName: node.name,
+    field,
+    variableId: variable.id,
+    variableName: variable.name,
+    variableType: variable.resolvedType
+  };
+}
+
+async function unbindVariable(params) {
+  const { nodeId, field } = params;
+
+  if (!nodeId || !field) {
+    throw new Error("nodeId and field are required");
+  }
+
+  const node = await figma.getNodeByIdAsync(nodeId);
+  if (!node) {
+    throw new Error(`Node not found: ${nodeId}`);
+  }
+
+  // Parse the field path
+  const fieldParts = field.split("/");
+
+  try {
+    if (fieldParts[0] === "fills" && fieldParts.length >= 2) {
+      const fillIndex = parseInt(fieldParts[1]);
+      if (isNaN(fillIndex)) {
+        throw new Error(`Invalid fill index: ${fieldParts[1]}`);
+      }
+      node.setBoundVariable("fills", null, fillIndex);
+
+    } else if (fieldParts[0] === "strokes" && fieldParts.length >= 2) {
+      const strokeIndex = parseInt(fieldParts[1]);
+      if (isNaN(strokeIndex)) {
+        throw new Error(`Invalid stroke index: ${fieldParts[1]}`);
+      }
+      node.setBoundVariable("strokes", null, strokeIndex);
+
+    } else {
+      const propertyName = fieldParts[0];
+      node.setBoundVariable(propertyName, null);
+    }
+  } catch (err) {
+    throw new Error(`Failed to unbind variable: ${err.message}`);
+  }
+
+  return {
+    nodeId: node.id,
+    nodeName: node.name,
+    field
   };
 }

@@ -84,4 +84,51 @@ export type FigmaCommand =
   | "group_nodes"
   | "ungroup_nodes"
   | "flatten_node"
-  | "insert_child";
+  | "insert_child"
+  | "get_variables"
+  | "get_bound_variables"
+  | "bind_variable"
+  | "unbind_variable";
+
+// Variable-related interfaces
+export type VariableType = "COLOR" | "FLOAT" | "STRING" | "BOOLEAN";
+
+export interface VariableValue {
+  modeId: string;
+  value: any;
+}
+
+export interface Variable {
+  id: string;
+  name: string;
+  key: string;
+  type: VariableType;
+  description?: string;
+  collectionId?: string;
+  values: VariableValue[];
+}
+
+export interface VariableCollection {
+  id: string;
+  name: string;
+  variableIds: string[];
+  modes: { id: string; name: string }[];
+}
+
+export interface VariableBinding {
+  fieldName: string;
+  variableId: string;
+  variableName: string;
+  variableType: VariableType;
+}
+
+export interface BoundVariablesResponse {
+  nodeId: string;
+  nodeName: string;
+  bindings: VariableBinding[];
+}
+
+export interface VariablesResponse {
+  variables: Variable[];
+  collections: VariableCollection[];
+}

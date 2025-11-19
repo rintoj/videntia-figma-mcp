@@ -86,7 +86,7 @@ const server = Bun.serve({
   port: 3055,
   // uncomment this to allow connections in windows wsl
   // hostname: "0.0.0.0",
-  fetch(req: Request, server: Server) {
+  fetch(req: Request, server: Server<any>) {
     const url = new URL(req.url);
     
     // Log incoming requests
