@@ -177,6 +177,12 @@ async function handleCommand(command, params) {
       return await ungroupNodes(params);
     case "flatten_node":
       return await flattenNode(params);
+    case "detach_instance":
+      return await detachInstance(params);
+    case "create_component":
+      return await createComponent(params);
+    case "create_component_set":
+      return await createComponentSet(params);
     case "insert_child":
       return await insertChild(params);
     case "create_ellipse":
@@ -197,6 +203,8 @@ async function handleCommand(command, params) {
       return await bindVariable(params);
     case "unbind_variable":
       return await unbindVariable(params);
+    case "rename_node":
+      return await renameNode(params);
     default:
       throw new Error(`Unknown command: ${command}`);
   }
@@ -2790,18 +2798,163 @@ async function flattenNode(params) {
   }
 }
 
+// Function to detach a component instance from its main component
+async function detachInstance(params) {
+  const { nodeId } = params || {};
+
+  if (!nodeId) {
+    throw new Error("Missing nodeId parameter");
+  }
+
+  try {
+    const node = await figma.getNodeByIdAsync(nodeId);
+    if (!node) {
+      throw new Error(`Node not found with ID: ${nodeId}`);
+    }
+
+    // Verify that the node is an instance
+    if (node.type !== "INSTANCE") {
+      throw new Error(`Node with ID ${nodeId} is not an INSTANCE. Only component instances can be detached.`);
+    }
+
+    // Detach the instance
+    const detached = node.detachInstance();
+
+    return {
+      id: detached.id,
+      name: detached.name,
+      type: detached.type
+    };
+  } catch (error) {
+    throw new Error(`Error detaching instance: ${error.message}`);
+  }
+}
+
+// Function to create a component from a frame or group
+async function createComponent(params) {
+  const { nodeId } = params || {};
+
+  if (!nodeId) {
+    throw new Error("Missing nodeId parameter");
+  }
+
+  try {
+    const node = await figma.getNodeByIdAsync(nodeId);
+    if (!node) {
+      throw new Error(`Node not found with ID: ${nodeId}`);
+    }
+
+    // Verify that the node can be converted to a component
+    if (node.type !== "FRAME" && node.type !== "GROUP" && node.type !== "RECTANGLE" && node.type !== "ELLIPSE" && node.type !== "POLYGON" && node.type !== "STAR" && node.type !== "VECTOR" && node.type !== "TEXT" && node.type !== "LINE") {
+      throw new Error(`Node with ID ${nodeId} is of type ${node.type} and cannot be converted to a component. Only FRAME, GROUP, and shape nodes can be converted.`);
+    }
+
+    // Create component from the node
+    const component = figma.createComponentFromNode(node);
+
+    return {
+      id: component.id,
+      name: component.name,
+      key: component.key
+    };
+  } catch (error) {
+    throw new Error(`Error creating component: ${error.message}`);
+  }
+}
+
+// Function to create a component set from multiple components
+async function createComponentSet(params) {
+  const { nodeIds, name } = params || {};
+
+  if (!nodeIds || !Array.isArray(nodeIds) || nodeIds.length < 1) {
+    throw new Error("Must provide at least one nodeId to create a component set");
+  }
+
+  try {
+    // Get all nodes and convert them to components if needed
+    const components = [];
+    for (const nodeId of nodeIds) {
+      const node = await figma.getNodeByIdAsync(nodeId);
+      if (!node) {
+        throw new Error(`Node not found with ID: ${nodeId}`);
+      }
+
+      // If the node is already a component, use it directly
+      if (node.type === "COMPONENT") {
+        components.push(node);
+      } else if (node.type === "FRAME" || node.type === "GROUP") {
+        // Convert frame/group to component first
+        const component = figma.createComponentFromNode(node);
+        components.push(component);
+      } else {
+        throw new Error(`Node with ID ${nodeId} is of type ${node.type}. Only COMPONENT, FRAME, or GROUP nodes can be used in a component set.`);
+      }
+    }
+
+    // Get the parent of the first component
+    const parent = components[0].parent;
+
+    // Combine components as variants
+    const componentSet = figma.combineAsVariants(components, parent);
+
+    // Optionally set the name
+    if (name) {
+      componentSet.name = name;
+    }
+
+    return {
+      id: componentSet.id,
+      name: componentSet.name,
+      variantCount: components.length
+    };
+  } catch (error) {
+    throw new Error(`Error creating component set: ${error.message}`);
+  }
+}
+
+// Function to rename a node
+async function renameNode(params) {
+  const { nodeId, name } = params || {};
+
+  if (!nodeId) {
+    throw new Error("Missing nodeId parameter");
+  }
+
+  if (!name) {
+    throw new Error("Missing name parameter");
+  }
+
+  try {
+    const node = await figma.getNodeByIdAsync(nodeId);
+    if (!node) {
+      throw new Error(`Node not found with ID: ${nodeId}`);
+    }
+
+    const oldName = node.name;
+    node.name = name;
+
+    return {
+      id: node.id,
+      oldName: oldName,
+      newName: node.name
+    };
+  } catch (error) {
+    throw new Error(`Error renaming node: ${error.message}`);
+  }
+}
+
 // Function to insert a child into a parent node
 async function insertChild(params) {
   const { parentId, childId, index } = params || {};
-  
+
   if (!parentId) {
     throw new Error("Missing parentId parameter");
   }
-  
+
   if (!childId) {
     throw new Error("Missing childId parameter");
   }
-  
+
   try {
     // Get the parent and child nodes
     const parent = await figma.getNodeByIdAsync(parentId);

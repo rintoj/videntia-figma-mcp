@@ -88,7 +88,11 @@ export type FigmaCommand =
   | "get_variables"
   | "get_bound_variables"
   | "bind_variable"
-  | "unbind_variable";
+  | "unbind_variable"
+  | "detach_instance"
+  | "create_component"
+  | "create_component_set"
+  | "rename_node";
 
 // Variable-related interfaces
 export type VariableType = "COLOR" | "FLOAT" | "STRING" | "BOOLEAN";

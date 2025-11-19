@@ -498,4 +498,46 @@ export function registerModificationTools(server: McpServer): void {
       }
     }
   );
+
+  // Rename Node Tool
+  server.tool(
+    "rename_node",
+    "Rename a node in Figma",
+    {
+      nodeId: z.string().describe("The ID of the node to rename"),
+      name: z.string().describe("The new name for the node")
+    },
+    async ({ nodeId, name }) => {
+      try {
+        const result = await sendCommandToFigma("rename_node", {
+          nodeId,
+          name
+        });
+
+        const typedResult = result as {
+          id: string;
+          oldName: string;
+          newName: string;
+        };
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Renamed node from "${typedResult.oldName}" to "${typedResult.newName}" (ID: ${typedResult.id})`
+            }
+          ]
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error renaming node: ${error instanceof Error ? error.message : String(error)}`
+            }
+          ]
+        };
+      }
+    }
+  );
 }
