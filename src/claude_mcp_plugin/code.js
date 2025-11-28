@@ -122,6 +122,8 @@ async function handleCommand(command, params) {
       return await resizeNode(params);
     case "delete_node":
       return await deleteNode(params);
+    case "delete_multiple_nodes":
+      return await deleteMultipleNodes(params);
     case "get_styles":
       return await getStyles();
     case "get_local_components":
@@ -165,6 +167,12 @@ async function handleCommand(command, params) {
       return await getStyledTextSegments(params);
     case "load_font_async":
       return await loadFontAsyncWrapper(params);
+    case "create_text_style":
+      return await createTextStyle(params);
+    case "create_text_style_from_properties":
+      return await createTextStyleFromProperties(params);
+    case "apply_text_style":
+      return await applyTextStyle(params);
     case "get_remote_components":
       return await getRemoteComponents(params);
     case "set_effects":
@@ -205,6 +213,102 @@ async function handleCommand(command, params) {
       return await unbindVariable(params);
     case "rename_node":
       return await renameNode(params);
+    // New variable management tools
+    case "get_variable_collections":
+      return await getVariableCollections();
+    case "create_variable_collection":
+      return await createVariableCollection(params);
+    case "get_collection_info":
+      return await getCollectionInfo(params);
+    case "create_variable":
+      return await createVariable(params);
+    case "create_variables_batch":
+      return await createVariablesBatch(params);
+    case "update_variable_value":
+      return await updateVariableValue(params);
+    case "rename_variable":
+      return await renameVariable(params);
+    case "delete_variable":
+      return await deleteVariable(params);
+    case "delete_variables_batch":
+      return await deleteVariablesBatch(params);
+    case "audit_collection":
+      return await auditCollection(params);
+    case "validate_color_contrast":
+      return await validateColorContrast(params);
+    case "suggest_missing_variables":
+      return await suggestMissingVariables(params);
+    case "apply_default_theme":
+      return await applyDefaultTheme(params);
+    case "create_color_scale_set":
+      return await createColorScaleSet(params);
+    case "apply_custom_palette":
+      return await applyCustomPalette(params);
+    case "reorder_variables":
+      return await reorderVariables(params);
+    case "generate_audit_report":
+      return await generateAuditReport(params);
+    case "export_collection_schema":
+      return await exportCollectionSchema(params);
+    case "import_collection_schema":
+      return await importCollectionSchema(params);
+    case "create_all_scales":
+      return await createAllScales(params);
+    case "fix_collection_to_standard":
+      return await fixCollectionToStandard(params);
+    case "add_chart_colors":
+      return await addChartColors(params);
+    // Mode management tools
+    case "add_mode_to_collection":
+      return await addModeToCollection(params);
+    case "rename_mode":
+      return await renameMode(params);
+    case "delete_mode":
+      return await deleteMode(params);
+    case "duplicate_mode_values":
+      return await duplicateModeValues(params);
+    // Design system preset commands
+    case "create_spacing_system":
+      return await createSpacingSystem(params);
+    case "create_typography_system":
+      return await createTypographySystem(params);
+    case "create_radius_system":
+      return await createRadiusSystem(params);
+    // Auto layout individual commands
+    case "set_layout_mode":
+      return await setLayoutMode(params);
+    case "set_padding":
+      return await setPadding(params);
+    case "set_item_spacing":
+      return await setItemSpacing(params);
+    case "set_axis_align":
+      return await setAxisAlign(params);
+    case "set_layout_sizing":
+      return await setLayoutSizing(params);
+    // Selection and focus commands
+    case "set_focus":
+      return await setFocus(params);
+    case "set_selections":
+      return await setSelections(params);
+    case "read_my_design":
+      return await readMyDesign();
+    // Scan commands
+    case "scan_nodes_by_types":
+      return await scanNodesByTypes(params);
+    // Annotation commands
+    case "get_annotations":
+      return await getAnnotations(params);
+    case "set_annotation":
+      return await setAnnotation(params);
+    case "set_multiple_annotations":
+      return await setMultipleAnnotations(params);
+    // Prototyping commands
+    case "get_reactions":
+      return await getReactions(params);
+    case "set_default_connector":
+      return await setDefaultConnector(params);
+    case "create_connections":
+      return await createConnections(params);
     default:
       throw new Error(`Unknown command: ${command}`);
   }
@@ -726,6 +830,50 @@ async function deleteNode(params) {
   return nodeInfo;
 }
 
+async function deleteMultipleNodes(params) {
+  const { nodeIds } = params || {};
+
+  if (!nodeIds || !Array.isArray(nodeIds)) {
+    throw new Error("Missing or invalid nodeIds parameter - must be an array");
+  }
+
+  if (nodeIds.length === 0) {
+    throw new Error("nodeIds array is empty");
+  }
+
+  const deletedNodes = [];
+  const errors = [];
+
+  for (const nodeId of nodeIds) {
+    try {
+      const node = await figma.getNodeByIdAsync(nodeId);
+      if (!node) {
+        errors.push({ nodeId, error: `Node not found with ID: ${nodeId}` });
+        continue;
+      }
+
+      // Save node info before deleting
+      const nodeInfo = {
+        id: node.id,
+        name: node.name,
+        type: node.type,
+      };
+
+      node.remove();
+      deletedNodes.push(nodeInfo);
+    } catch (error) {
+      errors.push({ nodeId, error: error.message });
+    }
+  }
+
+  return {
+    deletedNodes,
+    deletedCount: deletedNodes.length,
+    errors: errors.length > 0 ? errors : undefined,
+    totalRequested: nodeIds.length,
+  };
+}
+
 async function getStyles() {
   const styles = {
     colors: await figma.getLocalPaintStylesAsync(),
@@ -798,31 +946,21 @@ async function getLocalComponents() {
 // }
 
 async function createComponentInstance(params) {
-  const { componentKey, x = 0, y = 0 } = params || {};
+  const { componentKey, x = 0, y = 0, parentId } = params || {};
 
   if (!componentKey) {
     throw new Error("Missing componentKey parameter");
   }
 
   try {
-    // Set up a manual timeout to detect long operations
-    let timeoutId;
-    const timeoutPromise = new Promise((_, reject) => {
-      timeoutId = setTimeout(() => {
-        reject(new Error("Timeout while creating component instance (10s). The component may be too complex or unavailable."));
-      }, 10000); // 10 seconds timeout
-    });
-    
     console.log(`Starting component import for key: ${componentKey}...`);
-    
-    // Execute the import with a timeout
-    const importPromise = figma.importComponentByKeyAsync(componentKey);
-    
-    // Use Promise.race to implement the timeout
-    const component = await Promise.race([importPromise, timeoutPromise])
-      .finally(() => {
-        clearTimeout(timeoutId); // Clear the timeout to prevent memory leaks
-      });
+
+    // Import component with extended timeout
+    const component = await figma.importComponentByKeyAsync(componentKey);
+
+    if (!component) {
+      throw new Error(`Failed to import component with key: ${componentKey}`);
+    }
 
     // Add progress logging
     console.log(`Component imported successfully, creating instance...`);
@@ -833,9 +971,22 @@ async function createComponentInstance(params) {
       instance.x = x;
       instance.y = y;
 
-      figma.currentPage.appendChild(instance);
-      
-      console.log(`Component instance created and added to page successfully`);
+      // Add to parent or current page
+      if (parentId) {
+        const parent = await figma.getNodeByIdAsync(parentId);
+        if (!parent) {
+          throw new Error(`Parent node with ID ${parentId} not found`);
+        }
+        if ('appendChild' in parent) {
+          parent.appendChild(instance);
+        } else {
+          throw new Error(`Parent node "${parent.name}" cannot contain children (type: ${parent.type})`);
+        }
+      } else {
+        figma.currentPage.appendChild(instance);
+      }
+
+      console.log(`Component instance created and added successfully`);
 
       return {
         id: instance.id,
@@ -845,6 +996,7 @@ async function createComponentInstance(params) {
         width: instance.width,
         height: instance.height,
         componentId: instance.componentId,
+        parentId: parentId || figma.currentPage.id
       };
     } catch (instanceError) {
       console.error(`Error creating component instance: ${instanceError.message}`);
@@ -853,16 +1005,17 @@ async function createComponentInstance(params) {
   } catch (error) {
     console.error(`Detailed error creating component instance: ${error.message || "Unknown error"}`);
     console.error(`Stack trace: ${error.stack || "Not available"}`);
-    
+
     // Provide more helpful error messages for common failure scenarios
-    if (error.message.includes("timeout") || error.message.includes("Timeout")) {
+    const errorMessage = error.message || "";
+    if (errorMessage.includes("timeout") || errorMessage.includes("Timeout")) {
       throw new Error(`The component import timed out after 10 seconds. This usually happens with complex remote components or network issues. Try again later or use a simpler component.`);
-    } else if (error.message.includes("not found") || error.message.includes("Not found")) {
+    } else if (errorMessage.includes("not found") || errorMessage.includes("Not found")) {
       throw new Error(`Component with key "${componentKey}" not found. Make sure the component exists and is accessible in your document or team libraries.`);
-    } else if (error.message.includes("permission") || error.message.includes("Permission")) {
+    } else if (errorMessage.includes("permission") || errorMessage.includes("Permission")) {
       throw new Error(`You don't have permission to use this component. Make sure you have access to the team library containing this component.`);
     } else {
-      throw new Error(`Error creating component instance: ${error.message}`);
+      throw new Error(`Error creating component instance: ${error.message || "Unknown error"}`);
     }
   }
 }
@@ -2424,7 +2577,7 @@ async function loadFontAsyncWrapper(params) {
   if (!family) {
     throw new Error("Missing font family");
   }
-  
+
   try {
     await figma.loadFontAsync({ family, style });
     return {
@@ -2435,6 +2588,150 @@ async function loadFontAsyncWrapper(params) {
     };
   } catch (error) {
     throw new Error(`Error loading font: ${error.message}`);
+  }
+}
+
+async function createTextStyle(params) {
+  const { nodeId, name, description } = params || {};
+
+  if (!nodeId || !name) {
+    throw new Error("Missing nodeId or name parameter");
+  }
+
+  try {
+    const node = await figma.getNodeByIdAsync(nodeId);
+    if (!node || node.type !== "TEXT") {
+      throw new Error("Node is not a text node");
+    }
+
+    // Load the font to ensure it's available
+    await figma.loadFontAsync(node.fontName);
+
+    // Create the text style
+    const textStyle = figma.createTextStyle();
+    textStyle.name = name;
+    if (description) {
+      textStyle.description = description;
+    }
+
+    // Copy properties from the text node
+    textStyle.fontSize = node.fontSize;
+    textStyle.fontName = node.fontName;
+    textStyle.letterSpacing = node.letterSpacing;
+    textStyle.lineHeight = node.lineHeight;
+    textStyle.paragraphIndent = node.paragraphIndent;
+    textStyle.paragraphSpacing = node.paragraphSpacing;
+    textStyle.textCase = node.textCase;
+    textStyle.textDecoration = node.textDecoration;
+
+    return {
+      id: textStyle.id,
+      name: textStyle.name,
+      key: textStyle.key
+    };
+  } catch (error) {
+    throw new Error(`Error creating text style: ${error.message}`);
+  }
+}
+
+async function createTextStyleFromProperties(params) {
+  const {
+    name,
+    fontSize,
+    fontFamily,
+    fontStyle = "Regular",
+    fontWeight,
+    lineHeight,
+    letterSpacing,
+    textCase,
+    textDecoration,
+    description
+  } = params || {};
+
+  if (!name || !fontSize || !fontFamily) {
+    throw new Error("Missing required parameters: name, fontSize, or fontFamily");
+  }
+
+  try {
+    // Determine font style from weight if provided
+    let actualFontStyle = fontStyle;
+    if (fontWeight && !fontStyle) {
+      if (fontWeight >= 700) actualFontStyle = "Bold";
+      else if (fontWeight >= 600) actualFontStyle = "SemiBold";
+      else if (fontWeight >= 500) actualFontStyle = "Medium";
+      else actualFontStyle = "Regular";
+    }
+
+    // Load the font
+    await figma.loadFontAsync({ family: fontFamily, style: actualFontStyle });
+
+    // Create the text style
+    const textStyle = figma.createTextStyle();
+    textStyle.name = name;
+    if (description) {
+      textStyle.description = description;
+    }
+
+    // Set properties
+    textStyle.fontSize = fontSize;
+    textStyle.fontName = { family: fontFamily, style: actualFontStyle };
+
+    if (lineHeight) {
+      textStyle.lineHeight = lineHeight;
+    }
+
+    if (letterSpacing) {
+      textStyle.letterSpacing = letterSpacing;
+    }
+
+    if (textCase) {
+      textStyle.textCase = textCase;
+    }
+
+    if (textDecoration) {
+      textStyle.textDecoration = textDecoration;
+    }
+
+    return {
+      id: textStyle.id,
+      name: textStyle.name,
+      key: textStyle.key
+    };
+  } catch (error) {
+    throw new Error(`Error creating text style from properties: ${error.message}`);
+  }
+}
+
+async function applyTextStyle(params) {
+  const { nodeId, styleId } = params || {};
+
+  if (!nodeId || !styleId) {
+    throw new Error("Missing nodeId or styleId parameter");
+  }
+
+  try {
+    const node = await figma.getNodeByIdAsync(nodeId);
+    if (!node || node.type !== "TEXT") {
+      throw new Error("Node is not a text node");
+    }
+
+    const style = await figma.getStyleByIdAsync(styleId);
+    if (!style || style.type !== "TEXT") {
+      throw new Error("Style not found or is not a text style");
+    }
+
+    // Load font before applying
+    await figma.loadFontAsync(node.fontName);
+
+    // Apply the style
+    await node.setTextStyleIdAsync(styleId);
+
+    return {
+      nodeName: node.name,
+      styleName: style.name
+    };
+  } catch (error) {
+    throw new Error(`Error applying text style: ${error.message}`);
   }
 }
 
@@ -3657,30 +3954,1919 @@ async function unbindVariable(params) {
 
   try {
     if (fieldParts[0] === "fills" && fieldParts.length >= 2) {
+      // For fills/strokes, we need to unbind the specific paint
       const fillIndex = parseInt(fieldParts[1]);
       if (isNaN(fillIndex)) {
         throw new Error(`Invalid fill index: ${fieldParts[1]}`);
       }
-      node.setBoundVariable("fills", null, fillIndex);
+
+      // Get current fills
+      if ('fills' in node && node.fills !== figma.mixed && Array.isArray(node.fills)) {
+        const fills = [...node.fills];
+        if (fills[fillIndex] && fills[fillIndex].boundVariables) {
+          // Remove variable binding by setting fills without bound variables
+          const newFill = Object.assign({}, fills[fillIndex]);
+          delete newFill.boundVariables;
+          fills[fillIndex] = newFill;
+          node.fills = fills;
+        }
+      }
 
     } else if (fieldParts[0] === "strokes" && fieldParts.length >= 2) {
       const strokeIndex = parseInt(fieldParts[1]);
       if (isNaN(strokeIndex)) {
         throw new Error(`Invalid stroke index: ${fieldParts[1]}`);
       }
-      node.setBoundVariable("strokes", null, strokeIndex);
+
+      // Get current strokes
+      if ('strokes' in node && node.strokes !== figma.mixed && Array.isArray(node.strokes)) {
+        const strokes = [...node.strokes];
+        if (strokes[strokeIndex] && strokes[strokeIndex].boundVariables) {
+          const newStroke = Object.assign({}, strokes[strokeIndex]);
+          delete newStroke.boundVariables;
+          strokes[strokeIndex] = newStroke;
+          node.strokes = strokes;
+        }
+      }
 
     } else {
+      // For other properties, use setBoundVariable directly
       const propertyName = fieldParts[0];
       node.setBoundVariable(propertyName, null);
     }
+
+    return {
+      nodeId: node.id,
+      nodeName: node.name,
+      field,
+      success: true
+    };
   } catch (err) {
     throw new Error(`Failed to unbind variable: ${err.message}`);
+  }
+}
+// Helper: Find collection by ID or name
+async function findCollection(collectionIdOrName) {
+  const collections = await figma.variables.getLocalVariableCollectionsAsync();
+
+  // Try to find by ID first
+  let collection = collections.find(c => c.id === collectionIdOrName);
+
+  // If not found, try by name
+  if (!collection) {
+    collection = collections.find(c => c.name === collectionIdOrName);
+  }
+
+  if (!collection) {
+    throw new Error(`Collection not found: ${collectionIdOrName}`);
+  }
+
+  return collection;
+}
+
+// Helper: Find variable by ID or name in collection
+async function findVariable(variableIdOrName, collectionId) {
+  const variables = await figma.variables.getLocalVariablesAsync();
+
+  // Try to find by ID first
+  let variable = variables.find(v => v.id === variableIdOrName);
+
+  // If not found and collectionId provided, try by name in collection
+  if (!variable && collectionId) {
+    const collection = await findCollection(collectionId);
+    variable = variables.find(v =>
+      v.name === variableIdOrName && v.variableCollectionId === collection.id
+    );
+  }
+
+  if (!variable) {
+    throw new Error(`Variable not found: ${variableIdOrName}`);
+  }
+
+  return variable;
+}
+
+// Helper: Calculate color scale
+function calculateColorScaleFigma(baseColor, backgroundColor) {
+  const mixPercentages = {
+    50: 0.05, 100: 0.10, 200: 0.20, 300: 0.30, 400: 0.40,
+    500: 0.50, 600: 0.60, 700: 0.70, 800: 0.80, 900: 0.90
+  };
+
+  const scale = {};
+  for (const [level, mix] of Object.entries(mixPercentages)) {
+    const invMix = 1 - mix;
+    scale[level] = {
+      r: baseColor.r * mix + backgroundColor.r * invMix,
+      g: baseColor.g * mix + backgroundColor.g * invMix,
+      b: baseColor.b * mix + backgroundColor.b * invMix,
+      a: 1.0
+    };
+  }
+
+  return scale;
+}
+
+// Helper: Get standard schema
+function getStandardSchemaFigma(includeChartColors = false) {
+  const baseVariables = [
+    // Surfaces
+    'background', 'foreground', 'card', 'card-foreground', 'popover', 'popover-foreground',
+    // Brand
+    'primary', 'primary-foreground', 'secondary', 'secondary-foreground',
+    'tertiary', 'tertiary-foreground', 'accent', 'accent-foreground',
+    // States
+    'success', 'success-foreground', 'info', 'info-foreground',
+    'warning', 'warning-foreground', 'destructive', 'destructive-foreground',
+    // Interactive
+    'link', 'link-hover',
+    // Feedback
+    'overlay', 'tooltip', 'tooltip-foreground', 'placeholder', 'placeholder-foreground',
+    // Utility
+    'muted', 'muted-foreground', 'selected', 'selected-foreground', 'border', 'input', 'ring'
+  ];
+
+  // Add scale variables
+  const scaleColors = ['primary', 'secondary', 'accent', 'success', 'info', 'warning', 'destructive'];
+  const levels = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900];
+  const scaleVariables = [];
+  for (const color of scaleColors) {
+    for (const level of levels) {
+      scaleVariables.push(`${color}-${level}`);
+    }
+  }
+
+  let allVariables = [...baseVariables, ...scaleVariables];
+
+  if (includeChartColors) {
+    allVariables.push('chart-1', 'chart-2', 'chart-3', 'chart-4', 'chart-5', 'chart-6', 'chart-7', 'chart-8');
+  }
+
+  return allVariables;
+}
+
+// Helper: Get default dark theme colors
+function getDefaultDarkTheme() {
+  return {
+    // Surfaces
+    'background': { r: 0.059, g: 0.063, b: 0.067, a: 1.0 },
+    'foreground': { r: 0.980, g: 0.980, b: 0.980, a: 1.0 },
+    'card': { r: 0.059, g: 0.063, b: 0.067, a: 1.0 },
+    'card-foreground': { r: 0.980, g: 0.980, b: 0.980, a: 1.0 },
+    'popover': { r: 0.059, g: 0.063, b: 0.067, a: 1.0 },
+    'popover-foreground': { r: 0.980, g: 0.980, b: 0.980, a: 1.0 },
+    // Brand colors
+    'primary': { r: 0.639, g: 0.902, b: 0.208, a: 1.0 },
+    'primary-foreground': { r: 0.090, g: 0.102, b: 0.067, a: 1.0 },
+    'secondary': { r: 0.149, g: 0.153, b: 0.153, a: 1.0 },
+    'secondary-foreground': { r: 0.980, g: 0.980, b: 0.980, a: 1.0 },
+    'tertiary': { r: 0.059, g: 0.063, b: 0.067, a: 1.0 },
+    'tertiary-foreground': { r: 0.980, g: 0.980, b: 0.980, a: 1.0 },
+    'accent': { r: 0.149, g: 0.153, b: 0.153, a: 1.0 },
+    'accent-foreground': { r: 0.980, g: 0.980, b: 0.980, a: 1.0 },
+    // State colors
+    'success': { r: 0.078, g: 0.325, b: 0.176, a: 1.0 },
+    'success-foreground': { r: 0.576, g: 0.773, b: 0.655, a: 1.0 },
+    'info': { r: 0.118, g: 0.251, b: 0.686, a: 1.0 },
+    'info-foreground': { r: 0.576, g: 0.773, b: 0.992, a: 1.0 },
+    'warning': { r: 0.863, g: 0.696, b: 0.149, a: 1.0 },
+    'warning-foreground': { r: 0.090, g: 0.102, b: 0.067, a: 1.0 },
+    'destructive': { r: 0.863, g: 0.149, b: 0.149, a: 1.0 },
+    'destructive-foreground': { r: 0.980, g: 0.980, b: 0.980, a: 1.0 },
+    // Interactive
+    'link': { r: 0.576, g: 0.773, b: 0.992, a: 1.0 },
+    'link-hover': { r: 0.384, g: 0.608, b: 0.929, a: 1.0 },
+    // Feedback
+    'overlay': { r: 0.000, g: 0.000, b: 0.000, a: 0.8 },
+    'tooltip': { r: 0.059, g: 0.063, b: 0.067, a: 1.0 },
+    'tooltip-foreground': { r: 0.980, g: 0.980, b: 0.980, a: 1.0 },
+    'placeholder': { r: 0.450, g: 0.450, b: 0.450, a: 1.0 },
+    'placeholder-foreground': { r: 0.980, g: 0.980, b: 0.980, a: 1.0 },
+    // Utility
+    'muted': { r: 0.149, g: 0.153, b: 0.153, a: 1.0 },
+    'muted-foreground': { r: 0.639, g: 0.647, b: 0.655, a: 1.0 },
+    'selected': { r: 0.149, g: 0.153, b: 0.153, a: 1.0 },
+    'selected-foreground': { r: 0.980, g: 0.980, b: 0.980, a: 1.0 },
+    'border': { r: 0.149, g: 0.153, b: 0.153, a: 1.0 },
+    'input': { r: 0.149, g: 0.153, b: 0.153, a: 1.0 },
+    'ring': { r: 0.639, g: 0.902, b: 0.208, a: 1.0 }
+  };
+}
+
+// 1. get_variable_collections
+async function getVariableCollections() {
+  const collections = await figma.variables.getLocalVariableCollectionsAsync();
+  const variables = await figma.variables.getLocalVariablesAsync();
+
+  return {
+    collections: collections.map(c => {
+      const collectionVariables = variables.filter(v => v.variableCollectionId === c.id);
+      return {
+        id: c.id,
+        name: c.name,
+        modes: c.modes.map(m => m.name),
+        variableCount: collectionVariables.length,
+        defaultMode: (c.modes[0] && c.modes[0].name) || 'Mode 1'
+      };
+    })
+  };
+}
+
+// 2. create_variable_collection
+async function createVariableCollection(params) {
+  const { name, defaultMode } = params;
+
+  const collection = figma.variables.createVariableCollection(name);
+  const mode = collection.modes[0];
+  collection.renameMode(mode.modeId, defaultMode || 'dark');
+
+  return {
+    collectionId: collection.id,
+    name: collection.name,
+    defaultMode: defaultMode || 'dark',
+    success: true
+  };
+}
+
+// 3. get_collection_info
+async function getCollectionInfo(params) {
+  const { collectionId } = params;
+  const collection = await findCollection(collectionId);
+  const allVariables = await figma.variables.getLocalVariablesAsync();
+  const collectionVariables = allVariables.filter(v => v.variableCollectionId === collection.id);
+
+  // Categorize variables
+  const standardSchema = getStandardSchemaFigma(true);
+  const baseCount = collectionVariables.filter(v => !v.name.match(/-\d+$/) && !v.name.startsWith('chart-')).length;
+  const scaleCount = collectionVariables.filter(v => v.name.match(/-(50|100|200|300|400|500|600|700|800|900)$/)).length;
+  const chartCount = collectionVariables.filter(v => v.name.startsWith('chart-')).length;
+
+  return {
+    id: collection.id,
+    name: collection.name,
+    modes: collection.modes.map(m => m.name),
+    defaultMode: (collection.modes[0] && collection.modes[0].name) || 'Mode 1',
+    variableCount: collectionVariables.length,
+    variablesByCategory: {
+      base: baseCount,
+      scales: scaleCount,
+      chart: chartCount
+    }
+  };
+}
+
+// 4. create_variable
+async function createVariable(params) {
+  const { collectionId, name, type, value, mode } = params;
+  const collection = await findCollection(collectionId);
+
+  // Default to COLOR for backward compatibility
+  const variableType = type || 'COLOR';
+
+  const variable = figma.variables.createVariable(name, collection, variableType);
+  const targetMode = mode ? collection.modes.find(m => m.name === mode) : null;
+  const modeId = targetMode ? targetMode.modeId : collection.modes[0].modeId;
+
+  if (!modeId) {
+    throw new Error(`Mode not found: ${mode}`);
+  }
+
+  // Set value based on type
+  let variableValue;
+  if (variableType === 'COLOR') {
+    variableValue = {
+      r: value.r,
+      g: value.g,
+      b: value.b,
+      a: value.a !== undefined ? value.a : 1.0
+    };
+  } else {
+    // FLOAT, STRING, BOOLEAN - use value directly
+    variableValue = value;
+  }
+
+  variable.setValueForMode(modeId, variableValue);
+
+  return {
+    variableId: variable.id,
+    name: variable.name,
+    type: variable.resolvedType,
+    success: true
+  };
+}
+
+// 5. create_variables_batch
+async function createVariablesBatch(params) {
+  const { collectionId, variables, mode } = params;
+  const collection = await findCollection(collectionId);
+  const targetMode = mode ? collection.modes.find(m => m.name === mode) : null;
+  const modeId = targetMode ? targetMode.modeId : collection.modes[0].modeId;
+
+  if (!modeId) {
+    throw new Error(`Mode not found: ${mode}`);
+  }
+
+  const created = [];
+  const failed = [];
+  const variableIds = [];
+  const errors = [];
+
+  for (const varDef of variables) {
+    try {
+      const variableType = varDef.type || 'COLOR';
+      const variable = figma.variables.createVariable(varDef.name, collection, variableType);
+
+      // Set value based on type
+      let variableValue;
+      if (variableType === 'COLOR') {
+        variableValue = {
+          r: varDef.value.r,
+          g: varDef.value.g,
+          b: varDef.value.b,
+          a: varDef.value.a !== undefined ? varDef.value.a : 1.0
+        };
+      } else {
+        // FLOAT, STRING, BOOLEAN - use value directly
+        variableValue = varDef.value;
+      }
+
+      variable.setValueForMode(modeId, variableValue);
+      created.push(varDef.name);
+      variableIds.push(variable.id);
+    } catch (error) {
+      failed.push(varDef.name);
+      errors.push({ name: varDef.name, error: error.message });
+    }
+  }
+
+  return {
+    created: created.length,
+    failed: failed.length,
+    variableIds,
+    errors
+  };
+}
+
+// 6. update_variable_value
+async function updateVariableValue(params) {
+  const { variableId, collectionId, value, mode } = params;
+  const variable = await findVariable(variableId, collectionId);
+  const collection = await figma.variables.getVariableCollectionByIdAsync(variable.variableCollectionId);
+
+  if (!collection) {
+    throw new Error(`Variable collection not found for variable ${variable.name}`);
+  }
+
+  const targetMode = mode ? collection.modes.find(m => m.name === mode) : null;
+  const modeId = targetMode ? targetMode.modeId : collection.modes[0].modeId;
+
+  if (!modeId) {
+    throw new Error(`Mode not found: ${mode}`);
+  }
+
+  variable.setValueForMode(modeId, {
+    r: value.r,
+    g: value.g,
+    b: value.b,
+    a: value.a !== undefined ? value.a : 1.0
+  });
+
+  return {
+    variableId: variable.id,
+    name: variable.name,
+    updated: true
+  };
+}
+
+// 7. rename_variable
+async function renameVariable(params) {
+  const { variableId, collectionId, newName } = params;
+  const variable = await findVariable(variableId, collectionId);
+  const oldName = variable.name;
+
+  variable.name = newName;
+
+  return {
+    variableId: variable.id,
+    oldName,
+    newName: variable.name,
+    success: true
+  };
+}
+
+// 8. delete_variable
+async function deleteVariable(params) {
+  const { variableId, collectionId } = params;
+  const variable = await findVariable(variableId, collectionId);
+  const name = variable.name;
+  const id = variable.id;
+
+  variable.remove();
+
+  return {
+    variableId: id,
+    name,
+    deleted: true
+  };
+}
+
+// 9. delete_variables_batch
+async function deleteVariablesBatch(params) {
+  const { variableIds, collectionId } = params;
+
+  let deleted = 0;
+  let failed = 0;
+  const errors = [];
+
+  for (const varId of variableIds) {
+    try {
+      const variable = await findVariable(varId, collectionId);
+      variable.remove();
+      deleted++;
+    } catch (error) {
+      failed++;
+      errors.push({ variableId: varId, error: error.message });
+    }
+  }
+
+  return {
+    deleted,
+    failed,
+    errors
+  };
+}
+
+// 10. audit_collection
+async function auditCollection(params) {
+  const { collectionId, includeChartColors, customSchema } = params;
+  const collection = await findCollection(collectionId);
+  const allVariables = await figma.variables.getLocalVariablesAsync();
+  const collectionVariables = allVariables.filter(v => v.variableCollectionId === collection.id);
+
+  const standardVariables = customSchema || getStandardSchemaFigma(includeChartColors);
+  const existingNames = collectionVariables.map(v => v.name);
+  const expectedCount = includeChartColors ? 110 : 102;
+
+  // Find missing variables
+  const missing = standardVariables.filter(name => !existingNames.includes(name));
+
+  // Find non-standard variables
+  const nonStandard = existingNames.filter(name => !standardVariables.includes(name));
+
+  const compliancePercentage = ((existingNames.length - nonStandard.length) / expectedCount * 100).toFixed(1);
+
+  return {
+    status: missing.length === 0 && nonStandard.length === 0 ? 'Complete' : 'Incomplete',
+    totalVariables: existingNames.length,
+    expectedVariables: expectedCount,
+    compliancePercentage: parseFloat(compliancePercentage),
+    missing: {
+      count: missing.length,
+      variables: missing
+    },
+    nonStandard: {
+      count: nonStandard.length,
+      variables: nonStandard.map(name => ({
+        name,
+        recommendation: 'Review if needed or remove if not in standard schema',
+        action: 'review'
+      }))
+    },
+    existing: {
+      count: existingNames.length,
+      variables: existingNames
+    }
+  };
+}
+
+// 11. validate_color_contrast
+async function validateColorContrast(params) {
+  const { collectionId, mode, standard } = params;
+  const collection = await findCollection(collectionId);
+  const allVariables = await figma.variables.getLocalVariablesAsync();
+  const collectionVariables = allVariables.filter(v => v.variableCollectionId === collection.id);
+
+  const targetMode = mode ? collection.modes.find(m => m.name === mode) : null;
+  const modeId = targetMode ? targetMode.modeId : collection.modes[0].modeId;
+
+  if (!modeId) {
+    throw new Error(`Mode not found: ${mode}`);
+  }
+
+  // Helper to calculate contrast ratio
+  function getLuminance(color) {
+    const linearize = (val) => val <= 0.03928 ? val / 12.92 : Math.pow((val + 0.055) / 1.055, 2.4);
+    const r = linearize(color.r);
+    const g = linearize(color.g);
+    const b = linearize(color.b);
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  }
+
+  function getContrastRatio(fg, bg) {
+    const lum1 = getLuminance(fg);
+    const lum2 = getLuminance(bg);
+    const lighter = Math.max(lum1, lum2);
+    const darker = Math.min(lum1, lum2);
+    return (lighter + 0.05) / (darker + 0.05);
+  }
+
+  // Find foreground/background pairs
+  const pairs = [];
+  const fgSuffix = '-foreground';
+
+  for (const variable of collectionVariables) {
+    if (variable.name.endsWith(fgSuffix)) {
+      const baseName = variable.name.slice(0, -fgSuffix.length);
+      const baseVariable = collectionVariables.find(v => v.name === baseName);
+
+      if (baseVariable) {
+        const fgValue = variable.valuesByMode[modeId];
+        const bgValue = baseVariable.valuesByMode[modeId];
+
+        if (fgValue && bgValue && typeof fgValue === 'object' && typeof bgValue === 'object') {
+          const ratio = getContrastRatio(fgValue, bgValue);
+          const minRatio = standard === 'AAA' ? 7.0 : 4.5;
+          const pass = ratio >= minRatio;
+
+          pairs.push({
+            foreground: variable.name,
+            background: baseVariable.name,
+            ratio: parseFloat(ratio.toFixed(2)),
+            pass,
+            level: standard || 'AA',
+            recommendation: pass ? `Meets ${standard} standards` : `Increase contrast - needs ${minRatio}:1 for ${standard} normal text`
+          });
+        }
+      }
+    }
+  }
+
+  const passed = pairs.filter(p => p.pass).length;
+  const failed = pairs.filter(p => !p.pass).length;
+
+  return {
+    totalPairs: pairs.length,
+    passed,
+    failed,
+    pairs
+  };
+}
+
+// 12. suggest_missing_variables
+async function suggestMissingVariables(params) {
+  const { collectionId, useDefaults } = params;
+  const collection = await findCollection(collectionId);
+  const allVariables = await figma.variables.getLocalVariablesAsync();
+  const collectionVariables = allVariables.filter(v => v.variableCollectionId === collection.id);
+
+  const standardVariables = getStandardSchemaFigma(false);
+  const existingNames = collectionVariables.map(v => v.name);
+  const missing = standardVariables.filter(name => !existingNames.includes(name));
+
+  const defaultTheme = getDefaultDarkTheme();
+  const backgroundColor = defaultTheme['background'];
+
+  const suggestions = missing.map(name => {
+    let suggestedValue = useDefaults !== false ? defaultTheme[name] : null;
+
+    // If it's a scale variable and useDefaults is true, calculate it
+    if (useDefaults !== false && !suggestedValue && name.match(/-(50|100|200|300|400|500|600|700|800|900)$/)) {
+      const baseName = name.split('-')[0];
+      const level = name.split('-')[1];
+      const baseColor = defaultTheme[baseName];
+
+      if (baseColor) {
+        const scale = calculateColorScaleFigma(baseColor, backgroundColor);
+        suggestedValue = scale[level];
+      }
+    }
+
+    return {
+      name,
+      category: getCategoryForVariable(name),
+      suggestedValue,
+      description: getDescriptionForVariable(name)
+    };
+  });
+
+  return {
+    missingCount: missing.length,
+    suggestions
+  };
+}
+
+function getCategoryForVariable(name) {
+  if (name.match(/^(background|foreground|card|popover)/)) return 'surfaces';
+  if (name.match(/^(primary|secondary|tertiary|accent)/)) return 'brand';
+  if (name.match(/^(success|info|warning|destructive)/)) return 'states';
+  if (name.match(/^(link)/)) return 'interactive';
+  if (name.match(/^(overlay|tooltip|placeholder)/)) return 'feedback';
+  if (name.match(/^(muted|selected|border|input|ring)/)) return 'utility';
+  if (name.match(/^chart-/)) return 'chart';
+  return 'unknown';
+}
+
+function getDescriptionForVariable(name) {
+  const descriptions = {
+    'background': 'Background color',
+    'foreground': 'Foreground text color',
+    'primary': 'Primary brand color',
+    'success': 'Success state color',
+    'info': 'Info state color',
+    'warning': 'Warning state color',
+    'destructive': 'Destructive/error state color'
+  };
+
+  if (name.endsWith('-foreground')) {
+    const base = name.slice(0, -11);
+    return `Text/icons for ${base}`;
+  }
+
+  if (name.match(/-\d+$/)) {
+    return 'Color scale variant';
+  }
+
+  return descriptions[name] || 'Theme variable';
+}
+
+// 13. apply_default_theme
+async function applyDefaultTheme(params) {
+  const { collectionId, overwriteExisting, includeChartColors } = params;
+  const collection = await findCollection(collectionId);
+  const allVariables = await figma.variables.getLocalVariablesAsync();
+  const collectionVariables = allVariables.filter(v => v.variableCollectionId === collection.id);
+  const existingNames = new Set(collectionVariables.map(v => v.name));
+
+  const defaultTheme = getDefaultDarkTheme();
+  const backgroundColor = defaultTheme['background'];
+  const modeId = collection.modes[0].modeId;
+
+  let created = 0;
+  let updated = 0;
+  let skipped = 0;
+
+  // Create base variables
+  for (const [name, value] of Object.entries(defaultTheme)) {
+    if (existingNames.has(name)) {
+      if (overwriteExisting) {
+        const variable = collectionVariables.find(v => v.name === name);
+        variable.setValueForMode(modeId, value);
+        updated++;
+      } else {
+        skipped++;
+      }
+    } else {
+      const variable = figma.variables.createVariable(name, collection, 'COLOR');
+      variable.setValueForMode(modeId, value);
+      created++;
+    }
+  }
+
+  // Create scale variables
+  const scaleColors = ['primary', 'secondary', 'accent', 'success', 'info', 'warning', 'destructive'];
+  for (const colorName of scaleColors) {
+    const baseColor = defaultTheme[colorName];
+    if (baseColor) {
+      const scale = calculateColorScaleFigma(baseColor, backgroundColor);
+
+      for (const [level, value] of Object.entries(scale)) {
+        const varName = `${colorName}-${level}`;
+
+        if (existingNames.has(varName)) {
+          if (overwriteExisting) {
+            const variable = collectionVariables.find(v => v.name === varName);
+            variable.setValueForMode(modeId, value);
+            updated++;
+          } else {
+            skipped++;
+          }
+        } else {
+          const variable = figma.variables.createVariable(varName, collection, 'COLOR');
+          variable.setValueForMode(modeId, value);
+          created++;
+        }
+      }
+    }
+  }
+
+  // Add chart colors if requested
+  if (includeChartColors) {
+    const chartColors = [
+      { r: 0.639, g: 0.902, b: 0.208, a: 1.0 },
+      { r: 0.118, g: 0.251, b: 0.686, a: 1.0 },
+      { r: 0.863, g: 0.696, b: 0.149, a: 1.0 },
+      { r: 0.863, g: 0.149, b: 0.149, a: 1.0 },
+      { r: 0.576, g: 0.773, b: 0.992, a: 1.0 },
+      { r: 0.078, g: 0.325, b: 0.176, a: 1.0 },
+      { r: 0.980, g: 0.588, b: 0.118, a: 1.0 },
+      { r: 0.639, g: 0.384, b: 0.863, a: 1.0 }
+    ];
+
+    for (let i = 0; i < chartColors.length; i++) {
+      const varName = `chart-${i + 1}`;
+
+      if (existingNames.has(varName)) {
+        if (overwriteExisting) {
+          const variable = collectionVariables.find(v => v.name === varName);
+          variable.setValueForMode(modeId, chartColors[i]);
+          updated++;
+        } else {
+          skipped++;
+        }
+      } else {
+        const variable = figma.variables.createVariable(varName, collection, 'COLOR');
+        variable.setValueForMode(modeId, chartColors[i]);
+        created++;
+      }
+    }
+  }
+
+  const totalVariables = created + updated + skipped;
+
+  return {
+    created,
+    updated,
+    skipped,
+    success: true,
+    message: `Applied default ${includeChartColors ? 'dark theme with chart colors' : 'dark theme'} - ${created + updated} variables`
+  };
+}
+
+// 14. create_color_scale_set
+async function createColorScaleSet(params) {
+  const { collectionId, colorName, baseColor, foregroundColor, backgroundColor, mode } = params;
+  const collection = await findCollection(collectionId);
+  const targetMode = mode ? collection.modes.find(m => m.name === mode) : null;
+  const modeId = targetMode ? targetMode.modeId : collection.modes[0].modeId;
+
+  if (!modeId) {
+    throw new Error(`Mode not found: ${mode}`);
+  }
+
+  const created = [];
+
+  // Create base color
+  const baseVar = figma.variables.createVariable(colorName, collection, 'COLOR');
+  baseVar.setValueForMode(modeId, baseColor);
+  created.push(colorName);
+
+  // Create foreground color
+  const fgVar = figma.variables.createVariable(`${colorName}-foreground`, collection, 'COLOR');
+  fgVar.setValueForMode(modeId, foregroundColor);
+  created.push(`${colorName}-foreground`);
+
+  // Create scale
+  const scale = calculateColorScaleFigma(baseColor, backgroundColor);
+  const scaleVars = [];
+
+  for (const [level, value] of Object.entries(scale)) {
+    const varName = `${colorName}-${level}`;
+    const variable = figma.variables.createVariable(varName, collection, 'COLOR');
+    variable.setValueForMode(modeId, value);
+    created.push(varName);
+    scaleVars.push(varName);
+  }
+
+  return {
+    created: created.length,
+    variables: {
+      base: colorName,
+      foreground: `${colorName}-foreground`,
+      scale: scaleVars
+    },
+    success: true
+  };
+}
+
+// 15. apply_custom_palette
+async function applyCustomPalette(params) {
+  const { collectionId, palette, backgroundColor, regenerateScales } = params;
+  const collection = await findCollection(collectionId);
+  const allVariables = await figma.variables.getLocalVariablesAsync();
+  const collectionVariables = allVariables.filter(v => v.variableCollectionId === collection.id);
+  const modeId = collection.modes[0].modeId;
+
+  let baseColorsUpdated = 0;
+  let foregroundsUpdated = 0;
+  let scalesRegenerated = 0;
+
+  for (const [colorName, colors] of Object.entries(palette)) {
+    // Update or create base color
+    let baseVar = collectionVariables.find(v => v.name === colorName);
+    if (!baseVar) {
+      baseVar = figma.variables.createVariable(colorName, collection, 'COLOR');
+    }
+    baseVar.setValueForMode(modeId, colors.base);
+    baseColorsUpdated++;
+
+    // Update or create foreground color
+    let fgVar = collectionVariables.find(v => v.name === `${colorName}-foreground`);
+    if (!fgVar) {
+      fgVar = figma.variables.createVariable(`${colorName}-foreground`, collection, 'COLOR');
+    }
+    fgVar.setValueForMode(modeId, colors.foreground);
+    foregroundsUpdated++;
+
+    // Regenerate scales if requested
+    if (regenerateScales !== false) {
+      const scale = calculateColorScaleFigma(colors.base, backgroundColor);
+
+      for (const [level, value] of Object.entries(scale)) {
+        const varName = `${colorName}-${level}`;
+        let scaleVar = collectionVariables.find(v => v.name === varName);
+
+        if (!scaleVar) {
+          scaleVar = figma.variables.createVariable(varName, collection, 'COLOR');
+        }
+        scaleVar.setValueForMode(modeId, value);
+        scalesRegenerated++;
+      }
+    }
+  }
+
+  return {
+    baseColorsUpdated,
+    foregroundsUpdated,
+    scalesRegenerated,
+    success: true
+  };
+}
+
+// 16. reorder_variables
+async function reorderVariables(params) {
+  const { collectionId, order } = params;
+  const collection = await findCollection(collectionId);
+
+  // Note: Figma Plugin API doesn't directly support reordering variables
+  // This is a limitation of the current API
+  // We'll return success but note the limitation
+
+  return {
+    reordered: 0,
+    success: true,
+    message: 'Variable reordering is not supported by Figma Plugin API. Variables are ordered alphabetically by Figma.'
+  };
+}
+
+// 17. generate_audit_report
+async function generateAuditReport(params) {
+  const { collectionId, includeChartColors, format } = params;
+
+  // Get audit data
+  const auditData = await auditCollection({ collectionId, includeChartColors });
+
+  if (format === 'json') {
+    return auditData;
+  }
+
+  // Generate markdown report
+  const lines = [];
+  lines.push('=== THEME COLLECTION AUDIT REPORT ===');
+  lines.push('');
+  lines.push(`Status: ${auditData.status}`);
+  lines.push(`Total Variables: ${auditData.totalVariables} / ${auditData.expectedVariables} expected`);
+  lines.push(`Compliance: ${auditData.compliancePercentage}%`);
+  lines.push('');
+
+  if (auditData.missing.count > 0) {
+    lines.push(`MISSING VARIABLES (${auditData.missing.count}):`);
+    auditData.missing.variables.forEach(name => {
+      lines.push(`  - ${name}`);
+    });
+    lines.push('');
+  }
+
+  if (auditData.nonStandard.count > 0) {
+    lines.push(`NON-STANDARD VARIABLES (${auditData.nonStandard.count}):`);
+    auditData.nonStandard.variables.forEach(item => {
+      lines.push(`  - ${item.name} (${item.recommendation})`);
+    });
+    lines.push('');
+  }
+
+  lines.push('RECOMMENDATIONS:');
+  if (auditData.missing.count > 0) {
+    lines.push(`1. Add ${auditData.missing.count} missing variables to reach ${auditData.expectedVariables}-variable standard`);
+  }
+  if (auditData.nonStandard.count > 0) {
+    lines.push(`2. Review ${auditData.nonStandard.count} non-standard variables (rename/remove)`);
+  }
+  lines.push('3. Validate color contrast for all foreground variants');
+
+  return lines.join('\n');
+}
+
+// 18. export_collection_schema
+async function exportCollectionSchema(params) {
+  const { collectionId, mode, includeMetadata } = params;
+  const collection = await findCollection(collectionId);
+  const allVariables = await figma.variables.getLocalVariablesAsync();
+  const collectionVariables = allVariables.filter(v => v.variableCollectionId === collection.id);
+
+  const targetMode = mode ? collection.modes.find(m => m.name === mode) : null;
+  const modeId = targetMode ? targetMode.modeId : collection.modes[0].modeId;
+
+  if (!modeId) {
+    throw new Error(`Mode not found: ${mode}`);
+  }
+
+  const schema = {
+    schema_version: '1.2',
+    variables: {}
+  };
+
+  if (includeMetadata !== false) {
+    schema.collection = {
+      name: collection.name,
+      modes: collection.modes.map(m => m.name),
+      exportedMode: mode || collection.modes[0].name,
+      variableCount: collectionVariables.length
+    };
+  }
+
+  for (const variable of collectionVariables) {
+    const value = variable.valuesByMode[modeId];
+
+    if (value && typeof value === 'object') {
+      schema.variables[variable.name] = {
+        type: 'COLOR',
+        value,
+        category: getCategoryForVariable(variable.name)
+      };
+    }
+  }
+
+  return schema;
+}
+
+// 19. import_collection_schema
+async function importCollectionSchema(params) {
+  const { collectionId, schema, mode, overwriteExisting } = params;
+  const collection = await findCollection(collectionId);
+  const allVariables = await figma.variables.getLocalVariablesAsync();
+  const collectionVariables = allVariables.filter(v => v.variableCollectionId === collection.id);
+  const existingNames = new Set(collectionVariables.map(v => v.name));
+
+  const targetMode = mode ? collection.modes.find(m => m.name === mode) : null;
+  const modeId = targetMode ? targetMode.modeId : collection.modes[0].modeId;
+
+  if (!modeId) {
+    throw new Error(`Mode not found: ${mode}`);
+  }
+
+  let imported = 0;
+  let updated = 0;
+  let skipped = 0;
+  let failed = 0;
+  const errors = [];
+
+  for (const [name, varData] of Object.entries(schema.variables)) {
+    try {
+      if (existingNames.has(name)) {
+        if (overwriteExisting) {
+          const variable = collectionVariables.find(v => v.name === name);
+          variable.setValueForMode(modeId, varData.value);
+          updated++;
+        } else {
+          skipped++;
+        }
+      } else {
+        const variable = figma.variables.createVariable(name, collection, 'COLOR');
+        variable.setValueForMode(modeId, varData.value);
+        imported++;
+      }
+    } catch (error) {
+      failed++;
+      errors.push({ name, error: error.message });
+    }
+  }
+
+  return {
+    imported,
+    updated,
+    skipped,
+    failed,
+    errors
+  };
+}
+
+// 20. create_all_scales
+async function createAllScales(params) {
+  const { collectionId, baseColors, backgroundColor } = params;
+  const collection = await findCollection(collectionId);
+  const modeId = collection.modes[0].modeId;
+
+  let created = 0;
+  const scales = {};
+
+  for (const [colorName, baseColor] of Object.entries(baseColors)) {
+    const scale = calculateColorScaleFigma(baseColor, backgroundColor);
+    let scaleCount = 0;
+
+    for (const [level, value] of Object.entries(scale)) {
+      const varName = `${colorName}-${level}`;
+      const variable = figma.variables.createVariable(varName, collection, 'COLOR');
+      variable.setValueForMode(modeId, value);
+      scaleCount++;
+      created++;
+    }
+
+    scales[colorName] = scaleCount;
+  }
+
+  return {
+    created,
+    scales,
+    success: true
+  };
+}
+
+// 21. fix_collection_to_standard
+async function fixCollectionToStandard(params) {
+  const { collectionId, preserveCustom, addChartColors, useDefaultValues, dryRun } = params;
+
+  // Get current state
+  const auditResult = await auditCollection({ collectionId, includeChartColors: addChartColors });
+
+  const analysis = {
+    missingBefore: auditResult.missing.count,
+    nonStandardBefore: auditResult.nonStandard.count,
+    totalBefore: auditResult.totalVariables
+  };
+
+  if (dryRun) {
+    return {
+      analysis,
+      actions: {
+        variablesAdded: auditResult.missing.count,
+        variablesRenamed: 0,
+        variablesRemoved: preserveCustom ? 0 : auditResult.nonStandard.count,
+        variablesPreserved: preserveCustom ? auditResult.nonStandard.count : 0
+      },
+      result: {
+        totalVariables: auditResult.totalVariables + auditResult.missing.count - (preserveCustom ? 0 : auditResult.nonStandard.count),
+        compliance: '100%',
+        status: 'Complete (Dry Run)'
+      },
+      dryRun: true
+    };
+  }
+
+  // Apply fixes
+  let variablesAdded = 0;
+  let variablesRemoved = 0;
+
+  // Add missing variables
+  if (useDefaultValues !== false && auditResult.missing.count > 0) {
+    const result = await applyDefaultTheme({
+      collectionId,
+      overwriteExisting: false,
+      includeChartColors: addChartColors
+    });
+    variablesAdded = result.created;
+  }
+
+  // Remove non-standard variables
+  if (!preserveCustom && auditResult.nonStandard.count > 0) {
+    const result = await deleteVariablesBatch({
+      variableIds: auditResult.nonStandard.variables.map(v => v.name),
+      collectionId
+    });
+    variablesRemoved = result.deleted;
+  }
+
+  const finalAudit = await auditCollection({ collectionId, includeChartColors: addChartColors });
+
+  return {
+    analysis,
+    actions: {
+      variablesAdded,
+      variablesRenamed: 0,
+      variablesRemoved,
+      variablesPreserved: preserveCustom ? auditResult.nonStandard.count : 0
+    },
+    result: {
+      totalVariables: finalAudit.totalVariables,
+      compliance: `${finalAudit.compliancePercentage}%`,
+      status: finalAudit.status
+    },
+    success: true
+  };
+}
+
+// 22. add_chart_colors
+async function addChartColors(params) {
+  const { collectionId, chartColors } = params;
+  const collection = await findCollection(collectionId);
+  const modeId = collection.modes[0].modeId;
+
+  const defaultChartColors = [
+    { r: 0.639, g: 0.902, b: 0.208, a: 1.0 },
+    { r: 0.118, g: 0.251, b: 0.686, a: 1.0 },
+    { r: 0.863, g: 0.696, b: 0.149, a: 1.0 },
+    { r: 0.863, g: 0.149, b: 0.149, a: 1.0 },
+    { r: 0.576, g: 0.773, b: 0.992, a: 1.0 },
+    { r: 0.078, g: 0.325, b: 0.176, a: 1.0 },
+    { r: 0.980, g: 0.588, b: 0.118, a: 1.0 },
+    { r: 0.639, g: 0.384, b: 0.863, a: 1.0 }
+  ];
+
+  const colors = chartColors || defaultChartColors;
+  const created = [];
+
+  for (let i = 0; i < Math.min(colors.length, 8); i++) {
+    const varName = `chart-${i + 1}`;
+    const variable = figma.variables.createVariable(varName, collection, 'COLOR');
+    variable.setValueForMode(modeId, colors[i]);
+    created.push(varName);
+  }
+
+  return {
+    created: created.length,
+    chartColors: created,
+    success: true
+  };
+}
+
+// ========================================
+// MODE MANAGEMENT FUNCTIONS
+// ========================================
+
+async function addModeToCollection(params) {
+  const { collectionId, modeName } = params;
+  const collection = await findCollection(collectionId);
+
+  // Add new mode to collection
+  const newModeId = collection.addMode(modeName);
+
+  // Find the newly created mode
+  const newMode = collection.modes.find(m => m.modeId === newModeId);
+
+  return {
+    collectionId: collection.id,
+    collectionName: collection.name,
+    modeId: newModeId,
+    modeName: newMode ? newMode.name : modeName,
+    totalModes: collection.modes.length,
+    success: true
+  };
+}
+
+async function renameMode(params) {
+  const { collectionId, oldModeName, newModeName } = params;
+  const collection = await findCollection(collectionId);
+
+  // Find mode by name
+  const mode = collection.modes.find(m => m.name === oldModeName);
+  if (!mode) {
+    throw new Error(`Mode "${oldModeName}" not found in collection`);
+  }
+
+  // Rename the mode
+  collection.renameMode(mode.modeId, newModeName);
+
+  return {
+    collectionId: collection.id,
+    collectionName: collection.name,
+    modeId: mode.modeId,
+    oldName: oldModeName,
+    newName: newModeName,
+    success: true
+  };
+}
+
+async function deleteMode(params) {
+  const { collectionId, modeName } = params;
+  const collection = await findCollection(collectionId);
+
+  // Cannot delete if only one mode
+  if (collection.modes.length <= 1) {
+    throw new Error('Cannot delete the last mode in a collection');
+  }
+
+  // Find mode by name
+  const mode = collection.modes.find(m => m.name === modeName);
+  if (!mode) {
+    throw new Error(`Mode "${modeName}" not found in collection`);
+  }
+
+  // Delete the mode
+  collection.removeMode(mode.modeId);
+
+  return {
+    collectionId: collection.id,
+    collectionName: collection.name,
+    deletedMode: modeName,
+    remainingModes: collection.modes.map(m => m.name),
+    success: true
+  };
+}
+
+async function duplicateModeValues(params) {
+  const { collectionId, sourceMode, targetMode, transformColors } = params;
+  const collection = await findCollection(collectionId);
+
+  // Find source and target modes
+  const sourceModeObj = collection.modes.find(m => m.name === sourceMode);
+  const targetModeObj = collection.modes.find(m => m.name === targetMode);
+
+  if (!sourceModeObj) {
+    throw new Error(`Source mode "${sourceMode}" not found`);
+  }
+  if (!targetModeObj) {
+    throw new Error(`Target mode "${targetMode}" not found`);
+  }
+
+  const sourceModeId = sourceModeObj.modeId;
+  const targetModeId = targetModeObj.modeId;
+
+  // Get all variables in the collection
+  const allVariables = await figma.variables.getLocalVariablesAsync();
+  const collectionVariables = allVariables.filter(v => v.variableCollectionId === collection.id);
+
+  let copied = 0;
+  let transformed = 0;
+
+  for (const variable of collectionVariables) {
+    try {
+      // Get value from source mode
+      const sourceValue = variable.valuesByMode[sourceModeId];
+
+      if (sourceValue === undefined) {
+        continue; // Skip if no value in source mode
+      }
+
+      let targetValue = sourceValue;
+
+      // Apply color transformations if specified
+      if (transformColors && variable.resolvedType === 'COLOR' && typeof sourceValue === 'object') {
+        const brightnessAdj = transformColors.brightness_adjustment || 0;
+
+        if (brightnessAdj !== 0) {
+          // Apply brightness adjustment
+          targetValue = {
+            r: Math.max(0, Math.min(1, sourceValue.r + brightnessAdj)),
+            g: Math.max(0, Math.min(1, sourceValue.g + brightnessAdj)),
+            b: Math.max(0, Math.min(1, sourceValue.b + brightnessAdj)),
+            a: sourceValue.a !== undefined ? sourceValue.a : 1
+          };
+          transformed++;
+        }
+      }
+
+      // Set value for target mode
+      variable.setValueForMode(targetModeId, targetValue);
+      copied++;
+    } catch (error) {
+      console.error(`Error copying variable ${variable.name}:`, error);
+    }
+  }
+
+  return {
+    collectionId: collection.id,
+    collectionName: collection.name,
+    sourceMode,
+    targetMode,
+    variablesCopied: copied,
+    variablesTransformed: transformed,
+    success: true
+  };
+}
+
+// ============================================================
+// DESIGN SYSTEM PRESET HANDLERS
+// ============================================================
+
+async function createSpacingSystem(params) {
+  const { collection_id, preset, include_semantic } = params;
+  const collection = await findCollection(collection_id);
+
+  // Spacing presets
+  const presets = {
+    "8pt": { 0: 0, 1: 4, 2: 8, 3: 12, 4: 16, 5: 20, 6: 24, 7: 28, 8: 32, 10: 40, 12: 48, 16: 64, 20: 80, 24: 96, 32: 128, 40: 160, 48: 192, 56: 224, 64: 256 },
+    "4pt": { 0: 0, 1: 4, 2: 8, 3: 12, 4: 16, 5: 20, 6: 24, 7: 28, 8: 32, 9: 36, 10: 40, 11: 44, 12: 48, 14: 56, 16: 64, 20: 80, 24: 96, 28: 112, 32: 128 },
+    "tailwind": { 0: 0, 1: 4, 2: 8, 3: 12, 4: 16, 5: 20, 6: 24, 8: 32, 10: 40, 12: 48, 16: 64, 20: 80, 24: 96, 32: 128, 40: 160, 48: 192, 64: 256 },
+    "material": { 0: 0, 1: 4, 2: 8, 3: 12, 4: 16, 5: 20, 6: 24, 8: 32, 10: 40, 12: 48, 16: 64, 20: 80, 24: 96 }
+  };
+
+  const spacingValues = presets[preset] || presets["8pt"];
+  const variables = [];
+
+  for (const [key, value] of Object.entries(spacingValues)) {
+    const variable = figma.variables.createVariable(`spacing/${key}`, collection, "FLOAT");
+    const mode = collection.modes[0];
+    variable.setValueForMode(mode.modeId, value);
+    variables.push(`spacing/${key}`);
+  }
+
+  return {
+    success: true,
+    primitiveCount: variables.length,
+    primitiveVariables: variables,
+    preset: preset
+  };
+}
+
+async function createTypographySystem(params) {
+  const { collection_id, scale_preset, base_size, include_weights, include_line_heights, include_semantic } = params;
+  const collection = await findCollection(collection_id);
+
+  const ratios = {
+    "minor-third": 1.200,
+    "major-third": 1.250,
+    "perfect-fourth": 1.333
+  };
+
+  const ratio = ratios[scale_preset] || 1.250;
+  const base = base_size || 16;
+  const variables = [];
+
+  // Font sizes
+  const sizes = {
+    xs: base / (ratio * ratio),
+    sm: base / ratio,
+    base: base,
+    lg: base * ratio,
+    xl: base * ratio * ratio,
+    "2xl": base * ratio * ratio * ratio,
+    "3xl": base * ratio * ratio * ratio * ratio,
+    "4xl": base * ratio * ratio * ratio * ratio * ratio,
+    "5xl": base * ratio * ratio * ratio * ratio * ratio * ratio
+  };
+
+  const mode = collection.modes[0];
+
+  for (const [key, value] of Object.entries(sizes)) {
+    const variable = figma.variables.createVariable(`font.size.${key}`, collection, "FLOAT");
+    variable.setValueForMode(mode.modeId, Math.round(value));
+    variables.push(`font.size.${key}`);
+  }
+
+  // Font weights
+  if (include_weights) {
+    const weights = { thin: 100, extralight: 200, light: 300, normal: 400, medium: 500, semibold: 600, bold: 700, extrabold: 800, black: 900 };
+    for (const [key, value] of Object.entries(weights)) {
+      const variable = figma.variables.createVariable(`font.weight.${key}`, collection, "FLOAT");
+      variable.setValueForMode(mode.modeId, value);
+      variables.push(`font.weight.${key}`);
+    }
+  }
+
+  // Line heights
+  if (include_line_heights) {
+    const lineHeights = { none: 1, tight: 1.25, snug: 1.375, normal: 1.5, relaxed: 1.625, loose: 2 };
+    for (const [key, value] of Object.entries(lineHeights)) {
+      const variable = figma.variables.createVariable(`font.lineHeight.${key}`, collection, "FLOAT");
+      variable.setValueForMode(mode.modeId, value);
+      variables.push(`font.lineHeight.${key}`);
+    }
+  }
+
+  return {
+    success: true,
+    totalVariables: variables.length,
+    variables: variables,
+    preset: scale_preset
+  };
+}
+
+async function createRadiusSystem(params) {
+  const { collection_id, preset } = params;
+  const collection = await findCollection(collection_id);
+
+  const presets = {
+    "standard": { none: 0, sm: 4, md: 8, lg: 12, xl: 16, "2xl": 24, "3xl": 32, full: 9999 },
+    "subtle": { none: 0, sm: 2, md: 4, lg: 6, xl: 8, "2xl": 12, "3xl": 16, full: 9999 },
+    "bold": { none: 0, sm: 8, md: 16, lg: 24, xl: 32, "2xl": 48, "3xl": 64, full: 9999 }
+  };
+
+  const radiusValues = presets[preset] || presets["standard"];
+  const variables = [];
+  const mode = collection.modes[0];
+
+  for (const [key, value] of Object.entries(radiusValues)) {
+    const variable = figma.variables.createVariable(`radius/${key}`, collection, "FLOAT");
+    variable.setValueForMode(mode.modeId, value);
+    variables.push(`radius/${key}`);
+  }
+
+  return {
+    success: true,
+    totalVariables: variables.length,
+    variables: variables,
+    preset: preset
+  };
+}
+
+// ============================================================
+// NEW COMMAND IMPLEMENTATIONS
+// ============================================================
+
+// AUTO LAYOUT INDIVIDUAL COMMANDS
+
+async function setLayoutMode(params) {
+  const { nodeId, layoutMode, layoutWrap } = params;
+  const node = await figma.getNodeByIdAsync(nodeId);
+
+  if (!node) {
+    throw new Error(`Node with ID ${nodeId} not found`);
+  }
+
+  if (node.type !== 'FRAME' && node.type !== 'COMPONENT' && node.type !== 'INSTANCE' && node.type !== 'COMPONENT_SET') {
+    throw new Error(`Node "${node.name}" does not support auto layout (type: ${node.type})`);
+  }
+
+  node.layoutMode = layoutMode;
+  if (layoutWrap !== undefined) {
+    node.layoutWrap = layoutWrap;
   }
 
   return {
     nodeId: node.id,
     nodeName: node.name,
-    field
+    layoutMode: node.layoutMode,
+    layoutWrap: node.layoutWrap,
+    success: true
+  };
+}
+
+async function setPadding(params) {
+  const { nodeId, paddingTop, paddingRight, paddingBottom, paddingLeft } = params;
+  const node = await figma.getNodeByIdAsync(nodeId);
+
+  if (!node) {
+    throw new Error(`Node with ID ${nodeId} not found`);
+  }
+
+  if (node.type !== 'FRAME' && node.type !== 'COMPONENT' && node.type !== 'INSTANCE' && node.type !== 'COMPONENT_SET') {
+    throw new Error(`Node "${node.name}" does not support padding (type: ${node.type})`);
+  }
+
+  if (paddingTop !== undefined) node.paddingTop = paddingTop;
+  if (paddingRight !== undefined) node.paddingRight = paddingRight;
+  if (paddingBottom !== undefined) node.paddingBottom = paddingBottom;
+  if (paddingLeft !== undefined) node.paddingLeft = paddingLeft;
+
+  return {
+    nodeId: node.id,
+    nodeName: node.name,
+    paddingTop: node.paddingTop,
+    paddingRight: node.paddingRight,
+    paddingBottom: node.paddingBottom,
+    paddingLeft: node.paddingLeft,
+    success: true
+  };
+}
+
+async function setItemSpacing(params) {
+  const { nodeId, itemSpacing, counterAxisSpacing } = params;
+  const node = await figma.getNodeByIdAsync(nodeId);
+
+  if (!node) {
+    throw new Error(`Node with ID ${nodeId} not found`);
+  }
+
+  if (node.type !== 'FRAME' && node.type !== 'COMPONENT' && node.type !== 'INSTANCE' && node.type !== 'COMPONENT_SET') {
+    throw new Error(`Node "${node.name}" does not support item spacing (type: ${node.type})`);
+  }
+
+  if (itemSpacing !== undefined) node.itemSpacing = itemSpacing;
+  if (counterAxisSpacing !== undefined) node.counterAxisSpacing = counterAxisSpacing;
+
+  return {
+    nodeId: node.id,
+    nodeName: node.name,
+    itemSpacing: node.itemSpacing,
+    counterAxisSpacing: node.counterAxisSpacing,
+    success: true
+  };
+}
+
+async function setAxisAlign(params) {
+  const { nodeId, primaryAxisAlignItems, counterAxisAlignItems } = params;
+  const node = await figma.getNodeByIdAsync(nodeId);
+
+  if (!node) {
+    throw new Error(`Node with ID ${nodeId} not found`);
+  }
+
+  if (node.type !== 'FRAME' && node.type !== 'COMPONENT' && node.type !== 'INSTANCE' && node.type !== 'COMPONENT_SET') {
+    throw new Error(`Node "${node.name}" does not support axis alignment (type: ${node.type})`);
+  }
+
+  if (primaryAxisAlignItems !== undefined) node.primaryAxisAlignItems = primaryAxisAlignItems;
+  if (counterAxisAlignItems !== undefined) node.counterAxisAlignItems = counterAxisAlignItems;
+
+  return {
+    nodeId: node.id,
+    nodeName: node.name,
+    primaryAxisAlignItems: node.primaryAxisAlignItems,
+    counterAxisAlignItems: node.counterAxisAlignItems,
+    success: true
+  };
+}
+
+async function setLayoutSizing(params) {
+  const { nodeId, layoutSizingHorizontal, layoutSizingVertical } = params;
+  const node = await figma.getNodeByIdAsync(nodeId);
+
+  if (!node) {
+    throw new Error(`Node with ID ${nodeId} not found`);
+  }
+
+  if (node.type !== 'FRAME' && node.type !== 'COMPONENT' && node.type !== 'INSTANCE' && node.type !== 'COMPONENT_SET') {
+    throw new Error(`Node "${node.name}" does not support layout sizing (type: ${node.type})`);
+  }
+
+  if (layoutSizingHorizontal !== undefined) node.layoutSizingHorizontal = layoutSizingHorizontal;
+  if (layoutSizingVertical !== undefined) node.layoutSizingVertical = layoutSizingVertical;
+
+  return {
+    nodeId: node.id,
+    nodeName: node.name,
+    layoutSizingHorizontal: node.layoutSizingHorizontal,
+    layoutSizingVertical: node.layoutSizingVertical,
+    success: true
+  };
+}
+
+// SELECTION AND FOCUS COMMANDS
+
+async function setFocus(params) {
+  const { nodeId } = params;
+  const node = await figma.getNodeByIdAsync(nodeId);
+
+  if (!node) {
+    throw new Error(`Node with ID ${nodeId} not found`);
+  }
+
+  // Set selection and zoom to node
+  figma.currentPage.selection = [node];
+  figma.viewport.scrollAndZoomIntoView([node]);
+
+  return {
+    nodeId: node.id,
+    nodeName: node.name,
+    nodeType: node.type,
+    focused: true,
+    success: true
+  };
+}
+
+async function setSelections(params) {
+  const { nodeIds } = params;
+
+  if (!Array.isArray(nodeIds) || nodeIds.length === 0) {
+    throw new Error('nodeIds must be a non-empty array');
+  }
+
+  const nodes = [];
+  for (const id of nodeIds) {
+    const node = await figma.getNodeByIdAsync(id);
+    if (node) {
+      nodes.push(node);
+    }
+  }
+
+  if (nodes.length === 0) {
+    throw new Error('No valid nodes found with provided IDs');
+  }
+
+  figma.currentPage.selection = nodes;
+  figma.viewport.scrollAndZoomIntoView(nodes);
+
+  return {
+    selectedCount: nodes.length,
+    selectedNodes: nodes.map(n => ({
+      id: n.id,
+      name: n.name,
+      type: n.type
+    })),
+    success: true
+  };
+}
+
+async function readMyDesign() {
+  const selection = figma.currentPage.selection;
+
+  if (selection.length === 0) {
+    throw new Error('No nodes selected. Please select nodes in Figma first.');
+  }
+
+  const processNode = async (node) => {
+    const baseInfo = {
+      id: node.id,
+      name: node.name,
+      type: node.type,
+      visible: node.visible
+    };
+
+    // Add position and size if available
+    if ('x' in node && 'y' in node && 'width' in node && 'height' in node) {
+      baseInfo.x = node.x;
+      baseInfo.y = node.y;
+      baseInfo.width = node.width;
+      baseInfo.height = node.height;
+    }
+
+    // Add fill information
+    if ('fills' in node && node.fills !== figma.mixed) {
+      baseInfo.fills = node.fills.map(fill => {
+        const fillInfo = {
+          type: fill.type,
+          visible: fill.visible
+        };
+        if (fill.type === 'SOLID' && fill.color) {
+          fillInfo.color = `#${Math.round(fill.color.r * 255).toString(16).padStart(2, '0')}${Math.round(fill.color.g * 255).toString(16).padStart(2, '0')}${Math.round(fill.color.b * 255).toString(16).padStart(2, '0')}`;
+          fillInfo.opacity = fill.opacity;
+        }
+        return fillInfo;
+      });
+    }
+
+    // Add text content for text nodes
+    if (node.type === 'TEXT') {
+      baseInfo.characters = node.characters;
+      baseInfo.fontSize = node.fontSize;
+      baseInfo.fontName = node.fontName;
+    }
+
+    // Add children if it's a container
+    if ('children' in node && node.children.length > 0) {
+      baseInfo.children = [];
+      for (const child of node.children) {
+        baseInfo.children.push(await processNode(child));
+      }
+    }
+
+    return baseInfo;
+  };
+
+  const result = [];
+  for (const node of selection) {
+    result.push(await processNode(node));
+  }
+
+  return {
+    selectionCount: selection.length,
+    selection: result
+  };
+}
+
+// SCAN COMMANDS
+
+async function scanNodesByTypes(params) {
+  const { nodeId, types } = params;
+
+  if (!Array.isArray(types) || types.length === 0) {
+    throw new Error('types must be a non-empty array');
+  }
+
+  const node = await figma.getNodeByIdAsync(nodeId);
+  if (!node) {
+    throw new Error(`Node with ID ${nodeId} not found`);
+  }
+
+  const results = [];
+
+  const scanNode = (n, depth = 0) => {
+    if (types.includes(n.type)) {
+      const nodeInfo = {
+        id: n.id,
+        name: n.name,
+        type: n.type,
+        depth: depth
+      };
+      if (n.x !== undefined) nodeInfo.x = n.x;
+      if (n.y !== undefined) nodeInfo.y = n.y;
+      if (n.width !== undefined) nodeInfo.width = n.width;
+      if (n.height !== undefined) nodeInfo.height = n.height;
+      results.push(nodeInfo);
+    }
+
+    // Recursively scan children
+    if ('children' in n) {
+      for (const child of n.children) {
+        scanNode(child, depth + 1);
+      }
+    }
+  };
+
+  scanNode(node);
+
+  return {
+    rootNodeId: nodeId,
+    rootNodeName: node.name,
+    types: types,
+    foundCount: results.length,
+    nodes: results
+  };
+}
+
+// ANNOTATION COMMANDS
+
+async function getAnnotations(params) {
+  const { nodeId, includeCategories } = params;
+
+  let targetNode = figma.currentPage;
+  if (nodeId) {
+    targetNode = await figma.getNodeByIdAsync(nodeId);
+    if (!targetNode) {
+      throw new Error(`Node with ID ${nodeId} not found`);
+    }
+  }
+
+  // Get dev resources (annotations are stored as dev resources)
+  const annotations = [];
+
+  // Note: Figma plugin API doesn't directly expose dev annotations yet
+  // This is a placeholder that would work once the API is available
+
+  return {
+    nodeId: targetNode.id,
+    nodeName: targetNode.name,
+    annotationCount: 0,
+    annotations: [],
+    message: 'Annotation API not yet fully available in Figma Plugin API'
+  };
+}
+
+async function setAnnotation(params) {
+  const { nodeId, labelMarkdown, categoryId, properties, annotationId } = params;
+
+  const node = await figma.getNodeByIdAsync(nodeId);
+  if (!node) {
+    throw new Error(`Node with ID ${nodeId} not found`);
+  }
+
+  // Note: Figma plugin API doesn't directly expose dev annotations yet
+  // This is a placeholder for future implementation
+
+  return {
+    nodeId: node.id,
+    nodeName: node.name,
+    message: 'Annotation API not yet fully available in Figma Plugin API. Use Figma UI to add annotations.',
+    success: false
+  };
+}
+
+async function setMultipleAnnotations(params) {
+  const { nodeId, annotations } = params;
+
+  if (!Array.isArray(annotations)) {
+    throw new Error('annotations must be an array');
+  }
+
+  const node = await figma.getNodeByIdAsync(nodeId);
+  if (!node) {
+    throw new Error(`Node with ID ${nodeId} not found`);
+  }
+
+  return {
+    nodeId: node.id,
+    nodeName: node.name,
+    annotationCount: annotations.length,
+    message: 'Annotation API not yet fully available in Figma Plugin API. Use Figma UI to add annotations.',
+    success: false
+  };
+}
+
+// PROTOTYPING COMMANDS
+
+async function getReactions(params) {
+  const { nodeIds } = params;
+
+  if (!Array.isArray(nodeIds)) {
+    throw new Error('nodeIds must be an array');
+  }
+
+  const results = [];
+
+  for (const id of nodeIds) {
+    const node = await figma.getNodeByIdAsync(id);
+    if (!node) continue;
+
+    if ('reactions' in node) {
+      results.push({
+        nodeId: node.id,
+        nodeName: node.name,
+        reactionCount: node.reactions.length,
+        reactions: node.reactions.map(reaction => ({
+          trigger: reaction.trigger ? {
+            type: reaction.trigger.type
+          } : null,
+          actions: reaction.actions.map(action => {
+            const actionInfo = {
+              type: action.type
+            };
+            if (action.type === 'NODE' && action.destinationId) {
+              actionInfo.destinationId = action.destinationId;
+            }
+            return actionInfo;
+          })
+        }))
+      });
+    }
+  }
+
+  return {
+    nodeCount: nodeIds.length,
+    nodesWithReactions: results.length,
+    reactions: results
+  };
+}
+
+async function setDefaultConnector(params) {
+  const { connectorId } = params;
+
+  const connector = await figma.getNodeByIdAsync(connectorId);
+  if (!connector) {
+    throw new Error(`Connector node with ID ${connectorId} not found`);
+  }
+
+  if (connector.type !== 'CONNECTOR') {
+    throw new Error(`Node "${connector.name}" is not a connector (type: ${connector.type})`);
+  }
+
+  // Note: Setting default connector is not directly supported in plugin API
+  // This would require UI interaction
+
+  return {
+    connectorId: connector.id,
+    connectorName: connector.name,
+    message: 'Default connector setting is not available in Figma Plugin API. Use Figma UI.',
+    success: false
+  };
+}
+
+async function createConnections(params) {
+  const { connections } = params;
+
+  if (!Array.isArray(connections)) {
+    throw new Error('connections must be an array');
+  }
+
+  const results = [];
+
+  for (const conn of connections) {
+    const { startNodeId, endNodeId, text } = conn;
+
+    const startNode = await figma.getNodeByIdAsync(startNodeId);
+    const endNode = await figma.getNodeByIdAsync(endNodeId);
+
+    if (!startNode || !endNode) {
+      results.push({
+        startNodeId,
+        endNodeId,
+        success: false,
+        error: 'One or both nodes not found'
+      });
+      continue;
+    }
+
+    try {
+      // Create connector
+      const connector = figma.createConnector();
+      connector.connectorStart = {
+        endpointNodeId: startNode.id,
+        magnet: 'AUTO'
+      };
+      connector.connectorEnd = {
+        endpointNodeId: endNode.id,
+        magnet: 'AUTO'
+      };
+
+      // Add text label if provided
+      if (text) {
+        connector.connectorLineType = 'ELBOWED';
+        connector.textBackground = {
+          cornerRadius: 4,
+          fills: [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }]
+        };
+      }
+
+      figma.currentPage.appendChild(connector);
+
+      results.push({
+        startNodeId,
+        endNodeId,
+        connectorId: connector.id,
+        success: true
+      });
+    } catch (error) {
+      results.push({
+        startNodeId,
+        endNodeId,
+        success: false,
+        error: error.message
+      });
+    }
+  }
+
+  return {
+    totalRequested: connections.length,
+    successCount: results.filter(r => r.success).length,
+    failedCount: results.filter(r => !r.success).length,
+    connections: results
   };
 }

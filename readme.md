@@ -72,6 +72,7 @@ Claude Desktop ↔ MCP Server ↔ WebSocket Server ↔ Figma Plugin
 - **Smart Modifications**: Colors, effects, auto-layout, responsive design
 - **Text Mastery**: Advanced typography, font loading, text scanning
 - **Component Integration**: Local and team library components
+- **Design Systems**: Complete token management - colors, spacing, typography, border radius with Light/Dark modes
 
 ---
 
@@ -91,6 +92,31 @@ Claude Desktop ↔ MCP Server ↔ WebSocket Server ↔ Figma Plugin
 ❌ Avoid: "Make it look nice" (too vague)
 ```
 
+### Design System Quick Start
+Initialize a complete design system in one command:
+```
+"Initialize a design system with 8pt spacing, major-third typography scale, and standard border radius. Include Light and Dark modes."
+```
+
+This creates:
+- 🎨 **Colors**: Full primitive palette with Light/Dark modes
+- 📏 **Spacing**: spacing.0, spacing.1, spacing.2... (8pt grid)
+- 📝 **Typography**: Font sizes, weights, line heights, letter spacing
+- 🔲 **Border Radius**: radius.none, radius.sm, radius.md, radius.lg...
+
+Or create individual token systems:
+```
+"Add spacing tokens using the Tailwind 4pt grid"
+"Create a perfect-fourth typography scale"
+"Add bold border radius tokens"
+```
+
+Manage modes easily:
+```
+"Add a 'Brand' mode to the design tokens collection"
+"Copy Light mode values to Dark mode with -20% brightness"
+```
+
 ---
 
 ## 📚 Command Reference
@@ -101,8 +127,8 @@ Claude Desktop ↔ MCP Server ↔ WebSocket Server ↔ Figma Plugin
 | `get_document_info` | Document analysis | Get project overview |
 | `get_selection` | Current selection | What's selected now |
 | `read_my_design` | Detailed selection info | Deep inspection of selection |
-| `get_node_info` | Element details | Inspect specific component |
-| `get_nodes_info` | Multiple elements info | Batch element inspection |
+| `get_node_info` | Element details (with optional `fields` param) | Inspect specific component |
+| `get_nodes_info` | Multiple elements info (with optional `fields` param) | Batch element inspection |
 | `set_focus` | Focus on node | Scroll viewport to element |
 | `set_selections` | Select multiple nodes | Batch selection |
 | `scan_text_nodes` | Find all text | Text audit and updates |
@@ -115,6 +141,16 @@ Claude Desktop ↔ MCP Server ↔ WebSocket Server ↔ Figma Plugin
 | `set_multiple_annotations` | Batch annotations | Multi-element annotations |
 | `join_channel` | Connect to Figma | Establish communication |
 | `export_node_as_image` | Asset export | Generate design assets |
+
+#### `get_node_info` / `get_nodes_info` Fields Parameter
+
+These tools support an optional `fields` parameter to reduce response size by selecting only needed properties:
+
+**Default fields** (when `fields` not specified): `id`, `name`, `type`, `fills`, `strokes`, `cornerRadius`, `absoluteBoundingBox`, `characters`, `style`
+
+**Available fields**: `id`, `name`, `type`, `fills`, `strokes`, `cornerRadius`, `absoluteBoundingBox`, `characters`, `style`, `children`, `effects`, `opacity`, `blendMode`, `constraints`, `layoutMode`, `padding`, `itemSpacing`, `componentProperties`
+
+**Example**: `get_node_info({ nodeId: "123", fields: ["id", "name", "type"] })` - returns minimal response
 
 ### 🔧 Creation Tools
 | Command | Purpose | Example Use |
@@ -168,6 +204,9 @@ Claude Desktop ↔ MCP Server ↔ WebSocket Server ↔ Figma Plugin
 | `set_text_decoration` | Text styling | Underline/strikethrough |
 | `get_styled_text_segments` | Text analysis | Rich text inspection |
 | `load_font_async` | Font loading | Custom font access |
+| `create_text_style` | Create text style from node | Build typography system |
+| `create_text_style_from_properties` | Create text style from properties | Define typography manually |
+| `apply_text_style` | Apply text style to node | Consistent typography |
 
 ### 🎨 Component Tools
 | Command | Purpose | Example Use |
@@ -187,6 +226,79 @@ Claude Desktop ↔ MCP Server ↔ WebSocket Server ↔ Figma Plugin
 | `get_reactions` | Get prototype reactions | Inspect interactions |
 | `set_default_connector` | Set connector style | Default connection style |
 | `create_connections` | Create connections | Link nodes with connectors |
+
+### 🎨 Design System & Variable Tools
+
+#### Collection Management
+| Command | Purpose | Example Use |
+|---------|---------|-------------|
+| `get_variable_collections` | List all collections | Audit design tokens |
+| `create_variable_collection` | Create new collection | Set up theme system |
+| `get_collection_info` | Get collection metadata | Inspect collection details |
+
+#### Variable CRUD
+| Command | Purpose | Example Use |
+|---------|---------|-------------|
+| `create_variable` | Create single variable | Add token (COLOR/FLOAT/STRING/BOOLEAN) |
+| `create_variables_batch` | Bulk variable creation | Set up multiple tokens |
+| `update_variable_value` | Update variable value | Change token value |
+| `rename_variable` | Rename variable | Refactor token names |
+| `delete_variable` | Delete single variable | Remove unused token |
+| `delete_variables_batch` | Bulk variable deletion | Clean up tokens |
+
+#### Mode Management
+| Command | Purpose | Example Use |
+|---------|---------|-------------|
+| `add_mode_to_collection` | Add new mode | Create Light/Dark/Brand modes |
+| `rename_mode` | Rename mode | Update mode names |
+| `delete_mode` | Delete mode | Remove unused modes |
+| `duplicate_mode_values` | Copy mode values | Auto-generate dark mode |
+
+#### Token Systems
+| Command | Purpose | Example Use |
+|---------|---------|-------------|
+| `create_spacing_system` | Create spacing tokens | 8pt/4pt grid systems |
+| `create_typography_system` | Create typography tokens | Font sizes, weights, line heights |
+| `create_radius_system` | Create radius tokens | Border radius scales |
+| `create_complete_design_system` | Initialize full design system | Complete tokens in one command |
+
+#### Color Calculations (Server-side)
+| Command | Purpose | Example Use |
+|---------|---------|-------------|
+| `calculate_color_scale` | Generate 10-level color scale | Create color variants |
+| `calculate_composite_color` | Color compositing | Blend colors |
+| `convert_color_format` | Format conversion | hex/rgb/normalized |
+| `calculate_contrast_ratio` | WCAG contrast check | Accessibility validation |
+
+#### Schema & Validation
+| Command | Purpose | Example Use |
+|---------|---------|-------------|
+| `audit_collection` | Compare against standard | Validate token structure |
+| `validate_color_contrast` | WCAG AA/AAA validation | Check accessibility |
+| `get_schema_definition` | Get standard schema | Reference theme structure |
+| `suggest_missing_variables` | Get recommendations | Find missing tokens |
+
+#### Templates & Presets
+| Command | Purpose | Example Use |
+|---------|---------|-------------|
+| `apply_default_theme` | Apply reference theme | Quick theme setup |
+| `create_color_scale_set` | Create color family | Build color system |
+| `apply_custom_palette` | Apply brand colors | Customize theme |
+
+#### Organization & Export
+| Command | Purpose | Example Use |
+|---------|---------|-------------|
+| `reorder_variables` | Organize variables | Standard ordering |
+| `generate_audit_report` | Generate report | Markdown/JSON export |
+| `export_collection_schema` | Export as JSON | Backup/share tokens |
+| `import_collection_schema` | Import from JSON | Restore/import tokens |
+
+#### Bulk Operations
+| Command | Purpose | Example Use |
+|---------|---------|-------------|
+| `create_all_scales` | Create all 7 color scales | Full color system |
+| `fix_collection_to_standard` | Auto-fix compliance | Bring to 102-variable standard |
+| `add_chart_colors` | Add 8 chart colors | Data visualization palette |
 
 ---
 
@@ -311,7 +423,22 @@ src/
 
 ## 📋 Version History
 
-### Current: 0.7.0
+### Current: 0.8.0
+- **🔍 Node Info Optimization**: Added `fields` parameter to `get_node_info` and `get_nodes_info` tools
+  - Significantly reduces response size by selecting only needed properties
+  - Default fields: `id`, `name`, `type`, `fills`, `strokes`, `cornerRadius`, `absoluteBoundingBox`, `characters`, `style`
+  - Additional fields available: `children`, `effects`, `opacity`, `blendMode`, `constraints`, `layoutMode`, `padding`, `itemSpacing`, `componentProperties`
+- **🎨 27 Variable Management Tools**: Complete theme variable system
+  - Collection management: `get_variable_collections`, `create_variable_collection`, `get_collection_info`
+  - Variable CRUD: `create_variable`, `create_variables_batch`, `update_variable_value`, `rename_variable`, `delete_variable`, `delete_variables_batch`
+  - Color calculations (server-side): `calculate_color_scale`, `calculate_composite_color`, `convert_color_format`, `calculate_contrast_ratio`
+  - Schema validation: `audit_collection`, `validate_color_contrast`, `get_schema_definition`, `suggest_missing_variables`
+  - Templates: `apply_default_theme`, `create_color_scale_set`, `apply_custom_palette`
+  - Organization: `reorder_variables`, `generate_audit_report`, `export_collection_schema`, `import_collection_schema`
+  - Bulk operations: `create_all_scales`, `fix_collection_to_standard`, `add_chart_colors`
+- **📚 Documentation**: Updated command reference with all tools
+
+### Previous: 0.7.0
 - **🆕 18 New Tools**: Added comprehensive set of tools from cursor-talk-to-figma-mcp
   - **Document Tools**: `read_my_design`, `set_focus`, `set_selections`, `get_annotations`, `set_annotation`, `set_multiple_annotations`, `scan_nodes_by_types`
   - **Layout Tools**: `set_layout_mode`, `set_padding`, `set_axis_align`, `set_layout_sizing`, `set_item_spacing`, `delete_multiple_nodes`

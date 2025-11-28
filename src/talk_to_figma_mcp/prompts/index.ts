@@ -175,7 +175,7 @@ clone_node(nodeId: "selected-node-id", x: [new-x], y: [new-y])
 
 // Replace text chunk by chunk
 set_multiple_text_contents(
-  nodeId: "parent-node-id", 
+  nodeId: "parent-node-id",
   text: [
     { nodeId: "node-id-1", text: "New text 1" },
     // More nodes in this chunk...
@@ -257,6 +257,218 @@ Remember that text is never just text—it's a core design element that must wor
           },
         ],
         description: "Systematic approach for replacing text in Figma designs",
+      };
+    }
+  );
+
+  // Theme Variables Instructions Prompt
+  server.prompt(
+    "theme_variables_instructions",
+    "Complete instructions for creating or fixing Figma theme variable collections",
+    (extra) => {
+      return {
+        messages: [
+          {
+            role: "assistant",
+            content: {
+              type: "text",
+              text: `# Instructions: Create or Fix Figma Theme Variable Collection
+
+Use these instructions to create a complete theme variable collection in Figma with proper color organization and color scales, or to audit and fix an existing collection.
+
+---
+
+## Task Overview
+
+**Option A - Create New Collection:**
+Create a Figma variable collection named "Theme" with a "dark" mode containing all base semantic colors, their foreground variants, and complete color scales for brand and state colors.
+
+**Option B - Fix Existing Collection:**
+Audit an existing "Theme" collection, identify missing variables, add them, and flag any non-standard variables that fall outside the expected schema.
+
+---
+
+## Step 1: Create Base Collection
+
+Create a variable collection with:
+- **Collection Name**: \`Theme\`
+- **Mode**: \`dark\` (default mode)
+- **Variable Type**: Color
+
+---
+
+## Step 2: Create Base Semantic Colors (32 variables)
+
+Create the following base color variables (100% opacity):
+
+### Background & Surface Colors
+- \`background\` - Main app background
+- \`foreground\` - Primary text color
+- \`card\` - Card/elevated surface backgrounds
+- \`card-foreground\` - Text on card surfaces
+- \`popover\` - Popover/modal backgrounds
+- \`popover-foreground\` - Text on popover surfaces
+
+### Brand & Hierarchy Colors
+- \`primary\` - Primary brand/accent color
+- \`primary-foreground\` - Text on primary color
+- \`secondary\` - Secondary brand color
+- \`secondary-foreground\` - Text on secondary color
+- \`tertiary\` - Tertiary hierarchy color
+- \`tertiary-foreground\` - Text on tertiary color
+- \`accent\` - Additional accent color
+- \`accent-foreground\` - Text on accent color
+
+### State Colors
+- \`success\` - Success state background
+- \`success-foreground\` - Success text/icons
+- \`info\` - Info state background
+- \`info-foreground\` - Info text/icons
+- \`warning\` - Warning state background
+- \`warning-foreground\` - Warning text/icons
+- \`destructive\` - Error/destructive state background
+- \`destructive-foreground\` - Error text/icons
+
+### Interactive Colors
+- \`link\` - Link/hyperlink color
+- \`link-hover\` - Link hover state color
+
+### Overlay & Feedback Colors
+- \`overlay\` - Modal/dialog backdrop (semi-transparent)
+- \`tooltip\` - Tooltip background
+- \`tooltip-foreground\` - Tooltip text
+- \`placeholder\` - Placeholder/skeleton backgrounds
+- \`placeholder-foreground\` - Placeholder text
+
+### Utility Colors
+- \`muted\` - Muted/disabled backgrounds
+- \`muted-foreground\` - Muted/disabled text
+- \`selected\` - Selected state background
+- \`selected-foreground\` - Selected state text
+- \`border\` - Border color
+- \`input\` - Input field border/background
+- \`ring\` - Focus ring color
+
+---
+
+## Step 3: Create Color Scales (70 variables)
+
+For each of these 7 colors, create a complete scale from -50 to -900:
+1. \`primary\`
+2. \`secondary\`
+3. \`accent\`
+4. \`success\`
+5. \`info\`
+6. \`warning\`
+7. \`destructive\`
+
+### Color Scale Pattern (Solid Colors, Not Opacity)
+
+**IMPORTANT:** These are **solid colors** (alpha = 1.0), NOT transparent colors. Each variant is computed by compositing the base color over the \`background\` variable.
+
+**Compositing Formula:**
+\`\`\`
+resultant RGB = (base color RGB × mix%) + (background RGB × (1 - mix%))
+\`\`\`
+
+| Variable Name | Mix % | Usage |
+|---------------|-------|--------|
+| \`{color}-50\` | 5% | Extremely subtle backgrounds |
+| \`{color}-100\` | 10% | Very light backgrounds, subtle hover |
+| \`{color}-200\` | 20% | Light backgrounds, gentle emphasis |
+| \`{color}-300\` | 30% | Subtle overlays, secondary emphasis |
+| \`{color}-400\` | 40% | Medium-light overlays |
+| \`{color}-500\` | 50% | Medium overlays, balanced mix |
+| \`{color}-600\` | 60% | Medium-strong overlays, hover states |
+| \`{color}-700\` | 70% | Strong emphasis, active states |
+| \`{color}-800\` | 80% | Very strong emphasis |
+| \`{color}-900\` | 90% | Near-full color, maximum emphasis |
+
+**Example:** For \`primary-300\`:
+\`\`\`
+R = (primary.r × 0.30) + (background.r × 0.70)
+G = (primary.g × 0.30) + (background.g × 0.70)
+B = (primary.b × 0.30) + (background.b × 0.70)
+\`\`\`
+
+---
+
+## Step 4: Optional Chart Colors (8 variables)
+
+**Add these ONLY when explicitly requested by the user:**
+- \`chart-1\` through \`chart-8\`
+
+---
+
+## Standard Variable Count
+
+**Total: 102 variables** (110 with chart colors)
+- 32 base semantic colors
+- 70 color scale variants (7 colors × 10 levels)
+- 8 optional chart colors
+
+---
+
+## Using MCP Tools
+
+### Create New Collection
+1. Use \`create_variable_collection(name: "Theme", default_mode: "dark")\`
+2. Use \`apply_default_theme(collection_id: "Theme")\` to apply default values
+3. Or use \`create_variables_batch()\` to create custom values
+
+### Audit Existing Collection
+1. Use \`audit_collection(collection_id: "Theme")\` to check compliance
+2. Use \`generate_audit_report(collection_id: "Theme")\` for detailed report
+3. Use \`suggest_missing_variables(collection_id: "Theme")\` for recommendations
+
+### Fix Existing Collection
+1. Use \`fix_collection_to_standard(collection_id: "Theme")\` for one-click fix
+2. Or manually add missing variables with \`create_variables_batch()\`
+3. Use \`validate_color_contrast(collection_id: "Theme")\` for WCAG compliance
+
+### Color Scale Operations
+1. Use \`calculate_color_scale(base_color, background_color)\` to preview scales
+2. Use \`create_color_scale_set()\` to create complete scale for one color
+3. Use \`create_all_scales()\` to create all 7 scales at once
+
+### Organization
+1. Use \`reorder_variables(collection_id: "Theme", order: "standard")\`
+2. Use \`export_collection_schema()\` to save configuration
+3. Use \`import_collection_schema()\` to restore configuration
+
+---
+
+## Validation Checklist
+
+After creation, verify:
+- [ ] Collection named "Theme" with "dark" mode exists
+- [ ] All 32 base semantic colors created
+- [ ] All 7 color categories have complete -50 to -900 scales
+- [ ] Each scale variant is a solid color (alpha = 1.0), not transparent
+- [ ] Each variant correctly composited: (base × mix%) + (background × (1 - mix%))
+- [ ] Total of 102 variables (110 with chart colors)
+- [ ] Variables organized logically
+- [ ] WCAG contrast validation passed for foreground colors
+
+---
+
+## Important Notes
+
+1. **Solid Colors**: All scale variants are solid colors with alpha = 1.0
+2. **No Transparency**: Scale variants use color compositing, not opacity
+3. **Mix Percentages**: Suffix indicates mix %: -50 = 5%, -100 = 10%, -200 = 20%, etc.
+4. **Naming**: Use lowercase with hyphens (e.g., \`primary-100\` not \`Primary100\`)
+5. **WCAG Compliance**: Ensure foreground colors meet AA standards (4.5:1 contrast)
+
+---
+
+**For complete details, examples, and reference values, see:**
+- Full documentation: docs/figma-theme-variables-guide.md
+- MCP tools spec: docs/figma-theme-variables-mcp-tools.md`,
+            },
+          },
+        ],
+        description: "Complete instructions for creating or fixing Figma theme variable collections",
       };
     }
   );

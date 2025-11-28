@@ -387,15 +387,23 @@ export function registerDocumentTools(server: McpServer): void {
     "Get detailed information about a specific node in Figma",
     {
       nodeId: z.string().describe("The ID of the node to get information about"),
+      fields: z.array(z.enum([
+        "id", "name", "type", "fills", "strokes", "cornerRadius",
+        "absoluteBoundingBox", "characters", "style", "children",
+        "effects", "opacity", "blendMode", "constraints", "layoutMode",
+        "padding", "itemSpacing", "componentProperties"
+      ])).optional().describe(
+        "Optional array of fields to include in the response. If not specified, returns: id, name, type, fills, strokes, cornerRadius, absoluteBoundingBox, characters, style. Available fields: id, name, type, fills, strokes, cornerRadius, absoluteBoundingBox, characters, style, children, effects, opacity, blendMode, constraints, layoutMode, padding, itemSpacing, componentProperties"
+      ),
     },
-    async ({ nodeId }) => {
+    async ({ nodeId, fields }) => {
       try {
         const result = await sendCommandToFigma("get_node_info", { nodeId });
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(filterFigmaNode(result))
+              text: JSON.stringify(filterFigmaNode(result, fields))
             }
           ]
         };
@@ -417,9 +425,17 @@ export function registerDocumentTools(server: McpServer): void {
     "get_nodes_info",
     "Get detailed information about multiple nodes in Figma",
     {
-      nodeIds: z.array(z.string()).describe("Array of node IDs to get information about")
+      nodeIds: z.array(z.string()).describe("Array of node IDs to get information about"),
+      fields: z.array(z.enum([
+        "id", "name", "type", "fills", "strokes", "cornerRadius",
+        "absoluteBoundingBox", "characters", "style", "children",
+        "effects", "opacity", "blendMode", "constraints", "layoutMode",
+        "padding", "itemSpacing", "componentProperties"
+      ])).optional().describe(
+        "Optional array of fields to include in the response. If not specified, returns: id, name, type, fills, strokes, cornerRadius, absoluteBoundingBox, characters, style. Available fields: id, name, type, fills, strokes, cornerRadius, absoluteBoundingBox, characters, style, children, effects, opacity, blendMode, constraints, layoutMode, padding, itemSpacing, componentProperties"
+      ),
     },
-    async ({ nodeIds }) => {
+    async ({ nodeIds, fields }) => {
       try {
         const results = await Promise.all(
           nodeIds.map(async (nodeId) => {
@@ -431,7 +447,7 @@ export function registerDocumentTools(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: JSON.stringify(results.map((result) => filterFigmaNode(result.info)))
+              text: JSON.stringify(results.map((result) => filterFigmaNode(result.info, fields)))
             }
           ]
         };

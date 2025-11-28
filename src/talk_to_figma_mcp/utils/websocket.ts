@@ -106,8 +106,7 @@ export function connectToFigma(port: number = defaultPort) {
         // Handle response to a request
         if (
           myResponse.id &&
-          pendingRequests.has(myResponse.id) &&
-          myResponse.result
+          pendingRequests.has(myResponse.id)
         ) {
           const request = pendingRequests.get(myResponse.id)!;
           clearTimeout(request.timeout);
@@ -115,10 +114,10 @@ export function connectToFigma(port: number = defaultPort) {
           if (myResponse.error) {
             logger.error(`Error from Figma: ${myResponse.error}`);
             request.reject(new Error(myResponse.error));
+          } else if (myResponse.result) {
+            request.resolve(myResponse.result);
           } else {
-            if (myResponse.result) {
-              request.resolve(myResponse.result);
-            }
+            logger.warn(`Received response without result or error for request ${myResponse.id}`);
           }
 
           pendingRequests.delete(myResponse.id);

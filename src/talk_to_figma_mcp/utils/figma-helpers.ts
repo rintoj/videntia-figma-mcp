@@ -17,24 +17,54 @@ export function rgbaToHex(color: any): string {
 }
 
 /**
+ * Default fields to include when no specific fields are requested.
+ * This provides a good balance between useful information and response size.
+ */
+export const DEFAULT_NODE_FIELDS = [
+  "id", "name", "type", "fills", "strokes", "cornerRadius",
+  "absoluteBoundingBox", "characters", "style"
+] as const;
+
+/**
+ * All available fields that can be requested from a Figma node.
+ */
+export type NodeField =
+  | "id" | "name" | "type" | "fills" | "strokes" | "cornerRadius"
+  | "absoluteBoundingBox" | "characters" | "style" | "children"
+  | "effects" | "opacity" | "blendMode" | "constraints" | "layoutMode"
+  | "padding" | "itemSpacing" | "componentProperties";
+
+/**
  * Filtra un nodo de Figma para reducir su complejidad y tamaño.
  * Convierte colores a formato hexadecimal y elimina datos innecesarios.
  * @param node - El nodo de Figma a filtrar
+ * @param fields - Optional array of fields to include. If not specified, uses DEFAULT_NODE_FIELDS
  * @returns El nodo filtrado o null si debe ser ignorado
  */
-export function filterFigmaNode(node: any) {
+export function filterFigmaNode(node: any, fields?: NodeField[]): any {
   // Skip VECTOR type nodes
   if (node.type === "VECTOR") {
     return null;
   }
 
-  const filtered: any = {
-    id: node.id,
-    name: node.name,
-    type: node.type,
-  };
+  // Use provided fields or default fields
+  const requestedFields = fields || DEFAULT_NODE_FIELDS as unknown as NodeField[];
+  const fieldSet = new Set(requestedFields);
 
-  if (node.fills && node.fills.length > 0) {
+  const filtered: any = {};
+
+  // Always include id, name, type as base fields (unless explicitly excluded by providing fields without them)
+  if (fieldSet.has("id")) {
+    filtered.id = node.id;
+  }
+  if (fieldSet.has("name")) {
+    filtered.name = node.name;
+  }
+  if (fieldSet.has("type")) {
+    filtered.type = node.type;
+  }
+
+  if (fieldSet.has("fills") && node.fills && node.fills.length > 0) {
     filtered.fills = node.fills.map((fill: any) => {
       const processedFill = { ...fill };
 
@@ -65,7 +95,7 @@ export function filterFigmaNode(node: any) {
     });
   }
 
-  if (node.strokes && node.strokes.length > 0) {
+  if (fieldSet.has("strokes") && node.strokes && node.strokes.length > 0) {
     filtered.strokes = node.strokes.map((stroke: any) => {
       const processedStroke = { ...stroke };
       // Remove boundVariables
@@ -78,19 +108,19 @@ export function filterFigmaNode(node: any) {
     });
   }
 
-  if (node.cornerRadius !== undefined) {
+  if (fieldSet.has("cornerRadius") && node.cornerRadius !== undefined) {
     filtered.cornerRadius = node.cornerRadius;
   }
 
-  if (node.absoluteBoundingBox) {
+  if (fieldSet.has("absoluteBoundingBox") && node.absoluteBoundingBox) {
     filtered.absoluteBoundingBox = node.absoluteBoundingBox;
   }
 
-  if (node.characters) {
+  if (fieldSet.has("characters") && node.characters) {
     filtered.characters = node.characters;
   }
 
-  if (node.style) {
+  if (fieldSet.has("style") && node.style) {
     filtered.style = {
       fontFamily: node.style.fontFamily,
       fontStyle: node.style.fontStyle,
@@ -102,9 +132,46 @@ export function filterFigmaNode(node: any) {
     };
   }
 
-  if (node.children) {
+  // Additional optional fields
+  if (fieldSet.has("effects") && node.effects) {
+    filtered.effects = node.effects;
+  }
+
+  if (fieldSet.has("opacity") && node.opacity !== undefined) {
+    filtered.opacity = node.opacity;
+  }
+
+  if (fieldSet.has("blendMode") && node.blendMode) {
+    filtered.blendMode = node.blendMode;
+  }
+
+  if (fieldSet.has("constraints") && node.constraints) {
+    filtered.constraints = node.constraints;
+  }
+
+  if (fieldSet.has("layoutMode") && node.layoutMode) {
+    filtered.layoutMode = node.layoutMode;
+  }
+
+  if (fieldSet.has("padding")) {
+    if (node.paddingLeft !== undefined) filtered.paddingLeft = node.paddingLeft;
+    if (node.paddingRight !== undefined) filtered.paddingRight = node.paddingRight;
+    if (node.paddingTop !== undefined) filtered.paddingTop = node.paddingTop;
+    if (node.paddingBottom !== undefined) filtered.paddingBottom = node.paddingBottom;
+  }
+
+  if (fieldSet.has("itemSpacing") && node.itemSpacing !== undefined) {
+    filtered.itemSpacing = node.itemSpacing;
+  }
+
+  if (fieldSet.has("componentProperties") && node.componentProperties) {
+    filtered.componentProperties = node.componentProperties;
+  }
+
+  // Children is special - recursively filter with the same fields
+  if (fieldSet.has("children") && node.children) {
     filtered.children = node.children
-      .map((child: any) => filterFigmaNode(child))
+      .map((child: any) => filterFigmaNode(child, fields))
       .filter((child: any) => child !== null); // Remove null children (VECTOR nodes)
   }
 

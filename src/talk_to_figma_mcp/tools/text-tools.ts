@@ -528,4 +528,136 @@ export function registerTextTools(server: McpServer): void {
       }
     }
   );
+
+  // Create Text Style Tool
+  server.tool(
+    "create_text_style",
+    "Create a text style from a text node in Figma",
+    {
+      nodeId: z.string().describe("The ID of the text node to create a style from"),
+      name: z.string().describe("Name for the text style (e.g., 'Heading/H1', 'Body/Large')"),
+      description: z.string().optional().describe("Optional description for the text style"),
+    },
+    async ({ nodeId, name, description }) => {
+      try {
+        const result = await sendCommandToFigma("create_text_style", {
+          nodeId,
+          name,
+          description
+        });
+        const typedResult = result as { id: string, name: string, key: string };
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Created text style "${typedResult.name}" (ID: ${typedResult.id})`
+            }
+          ]
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error creating text style: ${error instanceof Error ? error.message : String(error)}`
+            }
+          ]
+        };
+      }
+    }
+  );
+
+  // Create Text Style from Properties Tool
+  server.tool(
+    "create_text_style_from_properties",
+    "Create a text style from specified properties without needing an existing node",
+    {
+      name: z.string().describe("Name for the text style (e.g., 'Heading/H1')"),
+      fontSize: z.number().describe("Font size in pixels"),
+      fontFamily: z.string().describe("Font family name"),
+      fontStyle: z.string().optional().describe("Font style (e.g., 'Regular', 'Bold')"),
+      fontWeight: z.number().optional().describe("Font weight (100-900)"),
+      lineHeight: z.object({
+        value: z.number(),
+        unit: z.enum(["PIXELS", "PERCENT", "AUTO"])
+      }).optional().describe("Line height settings"),
+      letterSpacing: z.object({
+        value: z.number(),
+        unit: z.enum(["PIXELS", "PERCENT"])
+      }).optional().describe("Letter spacing settings"),
+      textCase: z.enum(["ORIGINAL", "UPPER", "LOWER", "TITLE"]).optional().describe("Text case"),
+      textDecoration: z.enum(["NONE", "UNDERLINE", "STRIKETHROUGH"]).optional().describe("Text decoration"),
+      description: z.string().optional().describe("Optional description"),
+    },
+    async ({ name, fontSize, fontFamily, fontStyle, fontWeight, lineHeight, letterSpacing, textCase, textDecoration, description }) => {
+      try {
+        const result = await sendCommandToFigma("create_text_style_from_properties", {
+          name,
+          fontSize,
+          fontFamily,
+          fontStyle,
+          fontWeight,
+          lineHeight,
+          letterSpacing,
+          textCase,
+          textDecoration,
+          description
+        });
+        const typedResult = result as { id: string, name: string, key: string };
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Created text style "${typedResult.name}" (ID: ${typedResult.id})`
+            }
+          ]
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error creating text style from properties: ${error instanceof Error ? error.message : String(error)}`
+            }
+          ]
+        };
+      }
+    }
+  );
+
+  // Apply Text Style Tool
+  server.tool(
+    "apply_text_style",
+    "Apply a text style to a text node",
+    {
+      nodeId: z.string().describe("The ID of the text node"),
+      styleId: z.string().describe("The ID of the text style to apply"),
+    },
+    async ({ nodeId, styleId }) => {
+      try {
+        const result = await sendCommandToFigma("apply_text_style", {
+          nodeId,
+          styleId
+        });
+        const typedResult = result as { nodeName: string, styleName: string };
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Applied text style "${typedResult.styleName}" to node "${typedResult.nodeName}"`
+            }
+          ]
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error applying text style: ${error instanceof Error ? error.message : String(error)}`
+            }
+          ]
+        };
+      }
+    }
+  );
 }

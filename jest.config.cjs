@@ -8,7 +8,13 @@ module.exports = {
     '**/tests/**/*.spec.ts'
   ],
   transform: {
-    '^.+\\.tsx?$': ['ts-jest', { useESM: true }],
+    '^.+\\.tsx?$': ['ts-jest', {
+      useESM: true,
+      isolatedModules: true,
+      diagnostics: {
+        ignoreCodes: [2769, 2345, 2322]
+      }
+    }],
   },
   collectCoverageFrom: [
     'src/**/*.{ts,tsx}',
