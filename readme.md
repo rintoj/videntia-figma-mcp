@@ -73,13 +73,13 @@ bun socket
 
 The server runs on port 3055. You can verify it's working at `http://localhost:3055/status`.
 
-### Step 5: Connect and Use
+### Step 5: Connect to Figma
 
 1. In Figma, run the plugin: **Plugins → Development → Claude MCP Plugin**
-2. Copy the **Channel ID** shown in the plugin
-3. In your AI client, say: "Connect to Figma channel {YOUR-CHANNEL-ID}"
+2. The plugin will display a **Channel ID**
+3. Ask Claude to connect using this channel ID (e.g., "Connect to Figma channel abc123")
 
-✅ **Success**: Your AI should confirm connection and you can start designing!
+✅ **Success**: Claude will confirm the connection and you can start designing!
 
 ---
 
