@@ -482,4 +482,199 @@ describe("new modification tools integration", () => {
       expect(response.content[0].text).toContain("Not an auto-layout frame");
     });
   });
+
+  describe("set_image_fill", () => {
+    beforeEach(() => {
+      mockSendCommand.mockResolvedValue({
+        id: "rect-123",
+        name: "Image Rectangle",
+        imageHash: "abc123def456",
+        imageSize: { width: 800, height: 600 },
+        scaleMode: "FILL"
+      });
+    });
+
+    it("successfully sets image fill from URL", async () => {
+      const response = await callTool("set_image_fill", {
+        nodeId: "rect-123",
+        imageUrl: "https://picsum.photos/800/600"
+      });
+
+      expect(mockSendCommand).toHaveBeenCalledTimes(1);
+      expect(mockSendCommand).toHaveBeenCalledWith("set_image_fill", {
+        nodeId: "rect-123",
+        imageUrl: "https://picsum.photos/800/600",
+        scaleMode: "FILL",
+        rotation: undefined,
+        exposure: undefined,
+        contrast: undefined,
+        saturation: undefined,
+        temperature: undefined,
+        tint: undefined,
+        highlights: undefined,
+        shadows: undefined
+      });
+      expect(response.content[0].text).toContain("Set image fill");
+      expect(response.content[0].text).toContain("Image Rectangle");
+      expect(response.content[0].text).toContain("800x600");
+      expect(response.content[0].text).toContain("FILL");
+    });
+
+    it("successfully sets image fill with FIT scale mode", async () => {
+      mockSendCommand.mockResolvedValue({
+        id: "rect-123",
+        name: "Image Rectangle",
+        imageHash: "abc123def456",
+        imageSize: { width: 800, height: 600 },
+        scaleMode: "FIT"
+      });
+
+      const response = await callTool("set_image_fill", {
+        nodeId: "rect-123",
+        imageUrl: "https://picsum.photos/800/600",
+        scaleMode: "FIT"
+      });
+
+      expect(mockSendCommand).toHaveBeenCalledWith("set_image_fill", expect.objectContaining({
+        nodeId: "rect-123",
+        imageUrl: "https://picsum.photos/800/600",
+        scaleMode: "FIT"
+      }));
+      expect(response.content[0].text).toContain("FIT");
+    });
+
+    it("successfully sets image fill with CROP scale mode", async () => {
+      mockSendCommand.mockResolvedValue({
+        id: "rect-123",
+        name: "Image Rectangle",
+        imageHash: "abc123def456",
+        imageSize: { width: 800, height: 600 },
+        scaleMode: "CROP"
+      });
+
+      const response = await callTool("set_image_fill", {
+        nodeId: "rect-123",
+        imageUrl: "https://picsum.photos/800/600",
+        scaleMode: "CROP"
+      });
+
+      expect(mockSendCommand).toHaveBeenCalledWith("set_image_fill", expect.objectContaining({
+        scaleMode: "CROP"
+      }));
+    });
+
+    it("successfully sets image fill with TILE scale mode", async () => {
+      mockSendCommand.mockResolvedValue({
+        id: "rect-123",
+        name: "Image Rectangle",
+        imageHash: "abc123def456",
+        imageSize: { width: 800, height: 600 },
+        scaleMode: "TILE"
+      });
+
+      const response = await callTool("set_image_fill", {
+        nodeId: "rect-123",
+        imageUrl: "https://picsum.photos/800/600",
+        scaleMode: "TILE"
+      });
+
+      expect(mockSendCommand).toHaveBeenCalledWith("set_image_fill", expect.objectContaining({
+        scaleMode: "TILE"
+      }));
+    });
+
+    it("successfully sets image fill with filters", async () => {
+      const response = await callTool("set_image_fill", {
+        nodeId: "rect-123",
+        imageUrl: "https://picsum.photos/800/600",
+        exposure: 0.2,
+        contrast: 0.1,
+        saturation: -0.3
+      });
+
+      expect(mockSendCommand).toHaveBeenCalledWith("set_image_fill", expect.objectContaining({
+        nodeId: "rect-123",
+        imageUrl: "https://picsum.photos/800/600",
+        exposure: 0.2,
+        contrast: 0.1,
+        saturation: -0.3
+      }));
+    });
+
+    it("requires nodeId parameter", async () => {
+      await expect(callTool("set_image_fill", {
+        imageUrl: "https://picsum.photos/800/600"
+      })).rejects.toThrow();
+      expect(mockSendCommand).not.toHaveBeenCalled();
+    });
+
+    it("requires imageUrl parameter", async () => {
+      await expect(callTool("set_image_fill", {
+        nodeId: "rect-123"
+      })).rejects.toThrow();
+      expect(mockSendCommand).not.toHaveBeenCalled();
+    });
+
+    it("requires valid URL for imageUrl", async () => {
+      await expect(callTool("set_image_fill", {
+        nodeId: "rect-123",
+        imageUrl: "not-a-valid-url"
+      })).rejects.toThrow();
+      expect(mockSendCommand).not.toHaveBeenCalled();
+    });
+
+    it("rejects invalid scaleMode values", async () => {
+      await expect(callTool("set_image_fill", {
+        nodeId: "rect-123",
+        imageUrl: "https://picsum.photos/800/600",
+        scaleMode: "INVALID"
+      })).rejects.toThrow();
+      expect(mockSendCommand).not.toHaveBeenCalled();
+    });
+
+    it("rejects filter values outside valid range", async () => {
+      await expect(callTool("set_image_fill", {
+        nodeId: "rect-123",
+        imageUrl: "https://picsum.photos/800/600",
+        exposure: 2.0  // Must be between -1 and 1
+      })).rejects.toThrow();
+      expect(mockSendCommand).not.toHaveBeenCalled();
+    });
+
+    it("handles CORS/network errors gracefully", async () => {
+      mockSendCommand.mockRejectedValue(new Error("Failed to fetch image from URL. This may be due to CORS restrictions"));
+
+      const response = await callTool("set_image_fill", {
+        nodeId: "rect-123",
+        imageUrl: "https://blocked-domain.com/image.png"
+      });
+
+      expect(response.content[0].text).toContain("Error setting image fill");
+      expect(response.content[0].text).toContain("CORS");
+    });
+
+    it("handles node not found errors gracefully", async () => {
+      mockSendCommand.mockRejectedValue(new Error("Node not found with ID: invalid-123"));
+
+      const response = await callTool("set_image_fill", {
+        nodeId: "invalid-123",
+        imageUrl: "https://picsum.photos/800/600"
+      });
+
+      expect(response.content[0].text).toContain("Error setting image fill");
+      expect(response.content[0].text).toContain("Node not found");
+    });
+
+    it("handles unsupported node type errors gracefully", async () => {
+      mockSendCommand.mockRejectedValue(new Error("Node does not support fills"));
+
+      const response = await callTool("set_image_fill", {
+        nodeId: "text-123",
+        imageUrl: "https://picsum.photos/800/600"
+      });
+
+      expect(response.content[0].text).toContain("Error setting image fill");
+      expect(response.content[0].text).toContain("does not support fills");
+    });
+  });
 });

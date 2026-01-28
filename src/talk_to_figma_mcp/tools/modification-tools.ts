@@ -820,4 +820,64 @@ export function registerModificationTools(server: McpServer): void {
       }
     }
   );
+
+  // Set Image Fill Tool
+  server.tool(
+    "set_image_fill",
+    "Set an image fill on a node from a URL. Supports PNG, JPEG, and GIF images up to 4096x4096 pixels.",
+    {
+      nodeId: z.string().describe("The ID of the node to modify"),
+      imageUrl: z.string().url().describe("URL of the image (PNG, JPEG, or GIF)"),
+      scaleMode: z.enum(["FILL", "FIT", "CROP", "TILE"]).optional().describe("How the image scales within the node (default: FILL)"),
+      rotation: z.number().optional().describe("Image rotation in degrees (increments of 90, only for FILL/FIT/TILE)"),
+      exposure: z.number().min(-1).max(1).optional().describe("Exposure adjustment (-1 to 1, default: 0)"),
+      contrast: z.number().min(-1).max(1).optional().describe("Contrast adjustment (-1 to 1, default: 0)"),
+      saturation: z.number().min(-1).max(1).optional().describe("Saturation adjustment (-1 to 1, default: 0)"),
+      temperature: z.number().min(-1).max(1).optional().describe("Temperature adjustment (-1 to 1, default: 0)"),
+      tint: z.number().min(-1).max(1).optional().describe("Tint adjustment (-1 to 1, default: 0)"),
+      highlights: z.number().min(-1).max(1).optional().describe("Highlights adjustment (-1 to 1, default: 0)"),
+      shadows: z.number().min(-1).max(1).optional().describe("Shadows adjustment (-1 to 1, default: 0)"),
+    },
+    async ({ nodeId, imageUrl, scaleMode, rotation, exposure, contrast, saturation, temperature, tint, highlights, shadows }) => {
+      try {
+        const result = await sendCommandToFigma("set_image_fill", {
+          nodeId,
+          imageUrl,
+          scaleMode: scaleMode || "FILL",
+          rotation,
+          exposure,
+          contrast,
+          saturation,
+          temperature,
+          tint,
+          highlights,
+          shadows,
+        });
+        const typedResult = result as {
+          id: string;
+          name: string;
+          imageHash: string;
+          imageSize: { width: number; height: number };
+          scaleMode: string;
+        };
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Set image fill on "${typedResult.name}" (${typedResult.imageSize.width}x${typedResult.imageSize.height}px, scaleMode: ${typedResult.scaleMode})`,
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error setting image fill: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    }
+  );
 }

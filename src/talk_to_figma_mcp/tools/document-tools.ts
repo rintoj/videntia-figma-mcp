@@ -2,6 +2,7 @@ import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { sendCommandToFigma, joinChannel } from "../utils/websocket.js";
 import { filterFigmaNode } from "../utils/figma-helpers.js";
+import { figmaAccessToken, FIGMA_API_BASE_URL } from "../config/config.js";
 
 /**
  * Register document-related tools to the MCP server
@@ -395,10 +396,13 @@ export function registerDocumentTools(server: McpServer): void {
       ])).optional().describe(
         "Optional array of fields to include in the response. If not specified, returns: id, name, type, fills, strokes, cornerRadius, absoluteBoundingBox, characters, style. Available fields: id, name, type, fills, strokes, cornerRadius, absoluteBoundingBox, characters, style, children, effects, opacity, blendMode, constraints, layoutMode, padding, itemSpacing, componentProperties"
       ),
+      stripImages: z.boolean().optional().default(true).describe(
+        "Whether to strip image data (imageRef, imageBytes) from the response to reduce size. Defaults to true."
+      ),
     },
-    async ({ nodeId, fields }) => {
+    async ({ nodeId, fields, stripImages }) => {
       try {
-        const result = await sendCommandToFigma("get_node_info", { nodeId });
+        const result = await sendCommandToFigma("get_node_info", { nodeId, stripImages });
         return {
           content: [
             {
@@ -434,12 +438,15 @@ export function registerDocumentTools(server: McpServer): void {
       ])).optional().describe(
         "Optional array of fields to include in the response. If not specified, returns: id, name, type, fills, strokes, cornerRadius, absoluteBoundingBox, characters, style. Available fields: id, name, type, fills, strokes, cornerRadius, absoluteBoundingBox, characters, style, children, effects, opacity, blendMode, constraints, layoutMode, padding, itemSpacing, componentProperties"
       ),
+      stripImages: z.boolean().optional().default(true).describe(
+        "Whether to strip image data (imageRef, imageBytes) from the response to reduce size. Defaults to true."
+      ),
     },
-    async ({ nodeIds, fields }) => {
+    async ({ nodeIds, fields, stripImages }) => {
       try {
         const results = await Promise.all(
           nodeIds.map(async (nodeId) => {
-            const result = await sendCommandToFigma('get_node_info', { nodeId });
+            const result = await sendCommandToFigma('get_node_info', { nodeId, stripImages });
             return { nodeId, info: result };
           })
         );
@@ -679,7 +686,7 @@ export function registerDocumentTools(server: McpServer): void {
   // Export Node as Image Tool
   server.tool(
     "export_node_as_image",
-    "Export a node as an image from Figma",
+    "Export a node as a base64 image from Figma. For large images (>4000px), consider using export_node_as_image_url instead which returns a CDN URL.",
     {
       nodeId: z.string().describe("The ID of the node to export"),
       format: z
@@ -695,14 +702,188 @@ export function registerDocumentTools(server: McpServer): void {
           format: format || "PNG",
           scale: scale || 1,
         });
-        const typedResult = result as { imageData: string; mimeType: string };
+        const typedResult = result as {
+          imageData: string;
+          mimeType: string;
+          requestedScale: number;
+          actualScale: number;
+          originalWidth: number;
+          originalHeight: number;
+          exportedWidth: number;
+          exportedHeight: number;
+        };
+
+        const content: Array<{ type: string; text?: string; data?: string; mimeType?: string }> = [];
+
+        // Add warning if scale was auto-reduced or image is large
+        const wasScaleReduced = typedResult.actualScale < typedResult.requestedScale;
+        const isLargeImage = typedResult.exportedWidth > 4000 || typedResult.exportedHeight > 4000;
+
+        if (wasScaleReduced) {
+          content.push({
+            type: "text",
+            text: `⚠️ Image was auto-scaled from ${typedResult.requestedScale}x to ${typedResult.actualScale.toFixed(2)}x to fit within size limits. Original: ${typedResult.originalWidth}x${typedResult.originalHeight}px, Exported: ${typedResult.exportedWidth}x${typedResult.exportedHeight}px. For full resolution, use export_node_as_image_url (requires FIGMA_ACCESS_TOKEN).`,
+          });
+        } else if (isLargeImage) {
+          content.push({
+            type: "text",
+            text: `ℹ️ Large image exported (${typedResult.exportedWidth}x${typedResult.exportedHeight}px). For better performance with large images, consider using export_node_as_image_url.`,
+          });
+        }
+
+        content.push({
+          type: "image",
+          data: typedResult.imageData,
+          mimeType: typedResult.mimeType || "image/png",
+        });
+
+        return { content };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error exporting node as image: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    }
+  );
+
+  // Export Node as Image URL Tool (using Figma REST API)
+  server.tool(
+    "export_node_as_image_url",
+    "Export a node as an image URL using Figma REST API. Returns a CDN URL instead of base64 data. Requires FIGMA_ACCESS_TOKEN environment variable or --figma-token CLI argument.",
+    {
+      nodeId: z.string().describe("The ID of the node to export"),
+      format: z
+        .enum(["png", "jpg", "svg", "pdf"])
+        .optional()
+        .default("png")
+        .describe("Export format (lowercase)"),
+      scale: z
+        .number()
+        .positive()
+        .min(0.01)
+        .max(4)
+        .optional()
+        .default(1)
+        .describe("Export scale (0.01 to 4)"),
+      fileKey: z
+        .string()
+        .optional()
+        .describe("Figma file key. If not provided, will be fetched from the plugin."),
+    },
+    async ({ nodeId, format, scale, fileKey }) => {
+      try {
+        // Check if token is configured
+        if (!figmaAccessToken) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: "Error: Figma access token not configured. Set FIGMA_ACCESS_TOKEN environment variable or use --figma-token=<token> CLI argument.",
+              },
+            ],
+          };
+        }
+
+        // Get file key from plugin if not provided
+        let resolvedFileKey = fileKey;
+        if (!resolvedFileKey) {
+          const fileKeyResult = await sendCommandToFigma("get_file_key", {});
+          const typedResult = fileKeyResult as { fileKey: string; fileName: string };
+          resolvedFileKey = typedResult.fileKey;
+        }
+
+        if (!resolvedFileKey) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: "Error: Could not determine file key. Please provide it as a parameter or ensure the Figma file is saved.",
+              },
+            ],
+          };
+        }
+
+        // Build the Figma REST API URL
+        // Node IDs in Figma use ":" separator, but REST API expects "-" separator
+        const encodedNodeId = encodeURIComponent(nodeId.replace(/:/g, "-"));
+        const apiUrl = `${FIGMA_API_BASE_URL}/images/${resolvedFileKey}?ids=${encodedNodeId}&format=${format}&scale=${scale}`;
+
+        // Make the API request
+        const response = await fetch(apiUrl, {
+          method: "GET",
+          headers: {
+            "X-Figma-Token": figmaAccessToken,
+          },
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          let errorMessage = `Figma API error (${response.status})`;
+          try {
+            const errorJson = JSON.parse(errorText);
+            errorMessage = errorJson.err || errorJson.message || errorMessage;
+          } catch {
+            errorMessage = errorText || errorMessage;
+          }
+          return {
+            content: [
+              {
+                type: "text",
+                text: `Error from Figma API: ${errorMessage}`,
+              },
+            ],
+          };
+        }
+
+        const data = await response.json() as {
+          err?: string;
+          images?: Record<string, string | null>;
+        };
+
+        if (data.err) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: `Figma API error: ${data.err}`,
+              },
+            ],
+          };
+        }
+
+        // Extract the image URL from response
+        const images = data.images || {};
+        const imageUrl = Object.values(images)[0];
+
+        if (!imageUrl) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: `No image generated for node ${nodeId}. The node may be empty, invisible, or not exportable.`,
+              },
+            ],
+          };
+        }
 
         return {
           content: [
             {
-              type: "image",
-              data: typedResult.imageData,
-              mimeType: typedResult.mimeType || "image/png",
+              type: "text",
+              text: JSON.stringify({
+                success: true,
+                nodeId,
+                fileKey: resolvedFileKey,
+                format,
+                scale,
+                imageUrl,
+                expiresIn: "30 days (Figma CDN URLs are temporary)",
+              }, null, 2),
             },
           ],
         };
@@ -711,7 +892,7 @@ export function registerDocumentTools(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: `Error exporting node as image: ${error instanceof Error ? error.message : String(error)}`,
+              text: `Error exporting node as image URL: ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };

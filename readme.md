@@ -161,6 +161,7 @@ These tools support an optional `fields` parameter to reduce response size by se
 | `create_ellipse` | Circles/ovals | Profile pics, icons |
 | `create_polygon` | Multi-sided shapes | Custom geometric elements |
 | `create_star` | Star shapes | Decorative elements |
+| `create_svg` | Insert SVG markup | Icons, vector graphics |
 | `clone_node` | Duplicate elements | Copy existing designs |
 | `group_nodes` | Organize elements | Component grouping |
 | `ungroup_nodes` | Separate groups | Break apart components |
@@ -188,6 +189,7 @@ These tools support an optional `fields` parameter to reduce response size by se
 | `bind_variable` | Bind variable | Connect design tokens |
 | `unbind_variable` | Unbind variable | Remove token binding |
 | `rename_node` | Rename elements | Organize layer names |
+| `set_image_fill` | Set image from URL | Fill shapes with images from URLs (see [allowed domains](#image-fill-domains)) |
 
 ### 📝 Text Tools
 | Command | Purpose | Example Use |
@@ -219,6 +221,11 @@ These tools support an optional `fields` parameter to reduce response size by se
 | `detach_instance` | Detach instance | Convert to editable frame |
 | `get_instance_overrides` | Get overrides | Inspect instance changes |
 | `set_instance_overrides` | Apply overrides | Copy overrides to instances |
+| `add_component_property` | Add property | Create boolean/text/instance swap properties |
+| `edit_component_property` | Edit property | Update name, default value |
+| `delete_component_property` | Delete property | Remove component properties |
+| `set_component_property_references` | Link property to node | Control visibility with boolean properties |
+| `get_component_properties` | Get all properties | Inspect component property definitions |
 
 ### 🔗 Prototyping Tools
 | Command | Purpose | Example Use |
@@ -352,6 +359,14 @@ bun run test:integration  # Guided end-to-end testing
 - **"Permission denied"**: Ensure you have edit access to the Figma document
 - **"Timeout errors"**: Complex operations may need retry
 
+### Image Fill Domains
+
+The `set_image_fill` tool can only load images from allowed domains due to Figma plugin CORS restrictions. Currently supported domains:
+- `images.unsplash.com`
+- `picsum.photos`
+
+If you need to use images from other sources, download them first and host on an allowed domain, or modify the plugin's `manifest.json` to add your domain to `networkAccess.allowedDomains`.
+
 ### Performance Issues
 - **Slow responses**: Large documents may require more processing time
 - **Memory usage**: Close unused Figma tabs, restart if necessary
@@ -423,7 +438,21 @@ src/
 
 ## 📋 Version History
 
-### Current: 0.8.0
+### Current: 0.9.0
+- **🎨 Component Properties**: 5 new tools for managing component properties
+  - `add_component_property`: Create BOOLEAN, TEXT, INSTANCE_SWAP, or VARIANT properties
+  - `edit_component_property`: Update property name, default value, or preferred values
+  - `delete_component_property`: Remove component properties
+  - `set_component_property_references`: Link properties to child nodes (visibility, text, instance swap)
+  - `get_component_properties`: Inspect all component property definitions
+- **🖼️ Image Fill**: New `set_image_fill` tool to set image fills from URLs (PNG, JPEG, GIF)
+  - Supports scale modes: FILL, FIT, CROP, TILE
+  - Image filters: exposure, contrast, saturation, temperature, tint, highlights, shadows
+- **🐛 Bug Fixes**:
+  - Fixed `apply_text_style` timeout when text nodes have mixed fonts
+  - Improved error handling with detailed logging
+
+### Previous: 0.8.0
 - **🔍 Node Info Optimization**: Added `fields` parameter to `get_node_info` and `get_nodes_info` tools
   - Significantly reduces response size by selecting only needed properties
   - Default fields: `id`, `name`, `type`, `fills`, `strokes`, `cornerRadius`, `absoluteBoundingBox`, `characters`, `style`

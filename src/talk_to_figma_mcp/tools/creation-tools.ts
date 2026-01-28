@@ -580,6 +580,60 @@ export function registerCreationTools(server: McpServer): void {
     }
   );
 
+  // Create SVG Tool
+  server.tool(
+    "create_svg",
+    "Create a node from an SVG string in Figma. Useful for inserting SVG icons. The SVG is parsed and converted to Figma vector nodes.",
+    {
+      svgString: z.string().describe("The SVG markup string (must start with <svg or <?xml)"),
+      x: z.number().optional().describe("X position (default: 0)"),
+      y: z.number().optional().describe("Y position (default: 0)"),
+      name: z.string().optional().describe("Name for the created node"),
+      parentId: z.string().optional().describe("Parent node ID to insert the SVG into"),
+      flatten: z.boolean().optional().describe("Flatten all paths into a single vector node (default: false)"),
+    },
+    async ({ svgString, x, y, name, parentId, flatten }) => {
+      try {
+        const result = await sendCommandToFigma("create_svg", {
+          svgString,
+          x: x ?? 0,
+          y: y ?? 0,
+          name,
+          parentId,
+          flatten: flatten ?? false,
+        });
+        const typedResult = result as {
+          id: string;
+          name: string;
+          type: string;
+          x: number;
+          y: number;
+          width: number;
+          height: number;
+          childCount: number;
+          parentId?: string;
+        };
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Created SVG node "${typedResult.name}" (ID: ${typedResult.id}, ${typedResult.width}x${typedResult.height}px, ${typedResult.childCount} children)${typedResult.parentId ? ` inside parent ${typedResult.parentId}` : ""}`,
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error creating SVG: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    }
+  );
+
   // Flatten Node Tool
   server.tool(
     "flatten_node",

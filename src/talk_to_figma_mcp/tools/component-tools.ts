@@ -11,9 +11,9 @@ export function registerComponentTools(server: McpServer): void {
   // Create Component Instance Tool
   server.tool(
     "create_component_instance",
-    "Create an instance of a component in Figma",
+    "Create an instance of a component in Figma. For local components, use the node ID (e.g., '123:456') from get_local_components. For library components, use the component key.",
     {
-      componentKey: z.string().describe("Key of the component to instantiate"),
+      componentKey: z.string().describe("Component node ID (for local, e.g., '123:456') or component key (for library components)"),
       x: z.number().describe("X position"),
       y: z.number().describe("Y position"),
     },
@@ -351,6 +351,222 @@ export function registerComponentTools(server: McpServer): void {
             {
               type: "text",
               text: `Error setting instance overrides: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    }
+  );
+
+  // Add Component Property Tool
+  server.tool(
+    "add_component_property",
+    "Add a new component property (BOOLEAN, TEXT, INSTANCE_SWAP, or VARIANT) to a component. Boolean properties can control layer visibility.",
+    {
+      nodeId: z.string().describe("The ID of the component or component set"),
+      propertyName: z.string().describe("Name for the property (e.g., 'Show Icon', 'Label Text')"),
+      type: z.enum(["BOOLEAN", "TEXT", "INSTANCE_SWAP", "VARIANT"]).describe("Type of property to create"),
+      defaultValue: z.union([z.boolean(), z.string()]).optional().describe("Default value (boolean for BOOLEAN type, string for TEXT/VARIANT, required component key for INSTANCE_SWAP)"),
+    },
+    async ({ nodeId, propertyName, type, defaultValue }) => {
+      try {
+        const result = await sendCommandToFigma("add_component_property", {
+          nodeId,
+          propertyName,
+          type,
+          defaultValue,
+        });
+        const typedResult = result as {
+          nodeId: string;
+          nodeName: string;
+          propertyName: string;
+          type: string;
+          defaultValue: boolean | string;
+        };
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Added ${typedResult.type} property "${typedResult.propertyName}" to "${typedResult.nodeName}" with default value: ${typedResult.defaultValue}`,
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error adding component property: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    }
+  );
+
+  // Edit Component Property Tool
+  server.tool(
+    "edit_component_property",
+    "Edit an existing component property's name, default value, or preferred values",
+    {
+      nodeId: z.string().describe("The ID of the component or component set"),
+      propertyName: z.string().describe("The full property name including the #ID suffix (e.g., 'Show Icon#123:456')"),
+      newName: z.string().optional().describe("New name for the property"),
+      newDefaultValue: z.union([z.boolean(), z.string()]).optional().describe("New default value"),
+      preferredValues: z.array(z.object({
+        type: z.enum(["COMPONENT", "COMPONENT_SET"]),
+        key: z.string(),
+      })).optional().describe("Preferred values for INSTANCE_SWAP properties"),
+    },
+    async ({ nodeId, propertyName, newName, newDefaultValue, preferredValues }) => {
+      try {
+        const result = await sendCommandToFigma("edit_component_property", {
+          nodeId,
+          propertyName,
+          newName,
+          newDefaultValue,
+          preferredValues,
+        });
+        const typedResult = result as {
+          nodeId: string;
+          nodeName: string;
+          oldPropertyName: string;
+          newPropertyName: string;
+          updates: object;
+        };
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Updated property "${typedResult.oldPropertyName}" on "${typedResult.nodeName}". New name: "${typedResult.newPropertyName}"`,
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error editing component property: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    }
+  );
+
+  // Delete Component Property Tool
+  server.tool(
+    "delete_component_property",
+    "Delete a component property from a component. Only supports BOOLEAN, TEXT, and INSTANCE_SWAP types.",
+    {
+      nodeId: z.string().describe("The ID of the component or component set"),
+      propertyName: z.string().describe("The full property name including the #ID suffix (e.g., 'Show Icon#123:456')"),
+    },
+    async ({ nodeId, propertyName }) => {
+      try {
+        const result = await sendCommandToFigma("delete_component_property", {
+          nodeId,
+          propertyName,
+        });
+        const typedResult = result as {
+          nodeId: string;
+          nodeName: string;
+          deletedPropertyName: string;
+        };
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Deleted property "${typedResult.deletedPropertyName}" from "${typedResult.nodeName}"`,
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error deleting component property: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    }
+  );
+
+  // Set Component Property References Tool
+  server.tool(
+    "set_component_property_references",
+    "Link a component property to a child node. Use 'visible' to control visibility with a boolean property, 'characters' for text content, or 'mainComponent' for instance swap.",
+    {
+      nodeId: z.string().describe("The ID of the child node within the component"),
+      references: z.record(z.string()).describe("Object mapping property types to property names. E.g., { visible: 'ShowIcon#123:456' } for boolean visibility"),
+    },
+    async ({ nodeId, references }) => {
+      try {
+        const result = await sendCommandToFigma("set_component_property_references", {
+          nodeId,
+          references,
+        });
+        const typedResult = result as {
+          nodeId: string;
+          nodeName: string;
+          references: Record<string, string>;
+        };
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Set property references on "${typedResult.nodeName}": ${JSON.stringify(typedResult.references)}`,
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error setting component property references: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    }
+  );
+
+  // Get Component Properties Tool
+  server.tool(
+    "get_component_properties",
+    "Get all component property definitions from a component or component set",
+    {
+      nodeId: z.string().describe("The ID of the component or component set"),
+    },
+    async ({ nodeId }) => {
+      try {
+        const result = await sendCommandToFigma("get_component_properties", {
+          nodeId,
+        });
+        const typedResult = result as {
+          nodeId: string;
+          nodeName: string;
+          nodeType: string;
+          properties: Record<string, object>;
+        };
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(typedResult, null, 2),
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error getting component properties: ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };
