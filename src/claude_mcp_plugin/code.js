@@ -2867,13 +2867,18 @@ async function createTextStyleFromProperties(params) {
     throw new Error("Missing required parameters: name, fontSize, or fontFamily");
   }
 
-  // Determine font style from weight if provided
+  // Determine font style from weight if provided (100-900 scale)
   let actualFontStyle = fontStyle;
   if (fontWeight && !fontStyle) {
-    if (fontWeight >= 700) actualFontStyle = "Bold";
+    if (fontWeight >= 900) actualFontStyle = "Black";
+    else if (fontWeight >= 800) actualFontStyle = "ExtraBold";
+    else if (fontWeight >= 700) actualFontStyle = "Bold";
     else if (fontWeight >= 600) actualFontStyle = "SemiBold";
     else if (fontWeight >= 500) actualFontStyle = "Medium";
-    else actualFontStyle = "Regular";
+    else if (fontWeight >= 400) actualFontStyle = "Regular";
+    else if (fontWeight >= 300) actualFontStyle = "Light";
+    else if (fontWeight >= 200) actualFontStyle = "ExtraLight";
+    else actualFontStyle = "Thin";
   }
 
   // Load the font FIRST - fail early before creating the style
