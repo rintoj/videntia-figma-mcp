@@ -660,4 +660,146 @@ export function registerTextTools(server: McpServer): void {
       }
     }
   );
+
+  // Get Text Styles Tool
+  server.tool(
+    "get_text_styles",
+    "Get all local text styles in the document with their full properties",
+    {},
+    async () => {
+      try {
+        const result = await sendCommandToFigma("get_text_styles", {});
+        const typedResult = result as {
+          count: number;
+          styles: Array<{
+            id: string;
+            name: string;
+            key: string;
+            description: string;
+            fontSize: number;
+            fontName: { family: string; style: string };
+            letterSpacing: { value: number; unit: string };
+            lineHeight: { value: number; unit: string } | { unit: "AUTO" };
+            paragraphIndent: number;
+            paragraphSpacing: number;
+            textCase: string;
+            textDecoration: string;
+          }>;
+        };
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(typedResult, null, 2)
+            }
+          ]
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error getting text styles: ${error instanceof Error ? error.message : String(error)}`
+            }
+          ]
+        };
+      }
+    }
+  );
+
+  // Delete Text Style Tool
+  server.tool(
+    "delete_text_style",
+    "Delete a text style from the document",
+    {
+      styleId: z.string().describe("The ID of the text style to delete"),
+    },
+    async ({ styleId }) => {
+      try {
+        const result = await sendCommandToFigma("delete_text_style", {
+          styleId
+        });
+        const typedResult = result as { name: string, id: string };
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Deleted text style "${typedResult.name}" (ID: ${typedResult.id})`
+            }
+          ]
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error deleting text style: ${error instanceof Error ? error.message : String(error)}`
+            }
+          ]
+        };
+      }
+    }
+  );
+
+  // Update Text Style Tool
+  server.tool(
+    "update_text_style",
+    "Update an existing text style's properties",
+    {
+      styleId: z.string().describe("The ID of the text style to update"),
+      name: z.string().optional().describe("New name for the text style"),
+      description: z.string().optional().describe("New description for the text style"),
+      fontSize: z.number().optional().describe("New font size in pixels"),
+      fontFamily: z.string().optional().describe("New font family name"),
+      fontStyle: z.string().optional().describe("New font style (e.g., 'Regular', 'Bold')"),
+      lineHeight: z.object({
+        value: z.number(),
+        unit: z.enum(["PIXELS", "PERCENT", "AUTO"])
+      }).optional().describe("New line height settings"),
+      letterSpacing: z.object({
+        value: z.number(),
+        unit: z.enum(["PIXELS", "PERCENT"])
+      }).optional().describe("New letter spacing settings"),
+      textCase: z.enum(["ORIGINAL", "UPPER", "LOWER", "TITLE"]).optional().describe("New text case"),
+      textDecoration: z.enum(["NONE", "UNDERLINE", "STRIKETHROUGH"]).optional().describe("New text decoration"),
+      paragraphSpacing: z.number().optional().describe("New paragraph spacing in pixels"),
+      paragraphIndent: z.number().optional().describe("New paragraph indent in pixels"),
+    },
+    async ({ styleId, name, description, fontSize, fontFamily, fontStyle, lineHeight, letterSpacing, textCase, textDecoration, paragraphSpacing, paragraphIndent }) => {
+      try {
+        const result = await sendCommandToFigma("update_text_style", {
+          styleId,
+          name,
+          description,
+          fontSize,
+          fontFamily,
+          fontStyle,
+          lineHeight,
+          letterSpacing,
+          textCase,
+          textDecoration,
+          paragraphSpacing,
+          paragraphIndent
+        });
+        const typedResult = result as { id: string, name: string, updatedProperties: string[] };
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Updated text style "${typedResult.name}" (ID: ${typedResult.id}). Modified: ${typedResult.updatedProperties.join(", ")}`
+            }
+          ]
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error updating text style: ${error instanceof Error ? error.message : String(error)}`
+            }
+          ]
+        };
+      }
+    }
+  );
 }
