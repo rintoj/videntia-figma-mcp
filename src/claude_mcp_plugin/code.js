@@ -2878,7 +2878,8 @@ async function createTextStyleFromProperties(params) {
     else if (fontWeight >= 400) actualFontStyle = "Regular";
     else if (fontWeight >= 300) actualFontStyle = "Light";
     else if (fontWeight >= 200) actualFontStyle = "ExtraLight";
-    else actualFontStyle = "Thin";
+    else if (fontWeight >= 100) actualFontStyle = "Thin";
+    else actualFontStyle = "Regular";
   }
 
   // Load the font FIRST - fail early before creating the style
