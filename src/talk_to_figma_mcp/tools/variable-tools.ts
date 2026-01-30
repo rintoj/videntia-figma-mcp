@@ -151,6 +151,78 @@ export function registerVariableTools(server: McpServer): void {
     }
   );
 
+  /**
+   * rename_variable_collection - Rename a variable collection
+   */
+  server.tool(
+    "rename_variable_collection",
+    "Rename a variable collection",
+    {
+      collection_id: z.string().describe("Collection ID or name"),
+      new_name: z.string().describe("New name for the collection")
+    },
+    async ({ collection_id, new_name }) => {
+      try {
+        const result = await sendCommandToFigma("rename_variable_collection", {
+          collectionId: collection_id,
+          newName: new_name
+        });
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(result, null, 2)
+            }
+          ]
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error renaming variable collection: ${error instanceof Error ? error.message : String(error)}`
+            }
+          ]
+        };
+      }
+    }
+  );
+
+  /**
+   * delete_variable_collection - Delete a variable collection and all its variables
+   */
+  server.tool(
+    "delete_variable_collection",
+    "Delete a variable collection and all its variables (cannot be undone)",
+    {
+      collection_id: z.string().describe("Collection ID or name")
+    },
+    async ({ collection_id }) => {
+      try {
+        const result = await sendCommandToFigma("delete_variable_collection", {
+          collectionId: collection_id
+        });
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(result, null, 2)
+            }
+          ]
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error deleting variable collection: ${error instanceof Error ? error.message : String(error)}`
+            }
+          ]
+        };
+      }
+    }
+  );
+
   // ========================================
   // 2. VARIABLE CRUD TOOLS (6 tools)
   // ========================================
@@ -247,16 +319,21 @@ export function registerVariableTools(server: McpServer): void {
   );
 
   /**
-   * update_variable_value - Update a variable's color value
+   * update_variable_value - Update a variable's value (supports all types)
    */
   server.tool(
     "update_variable_value",
-    "Update a variable's color value",
+    "Update a variable's value (supports COLOR, FLOAT, STRING, BOOLEAN types)",
     {
       variable_id: z.string().describe("Variable ID or name"),
       collection_id: z.string().optional().describe("Collection ID (required if using variable name)"),
-      value: RGBAColorSchema.describe("New color value"),
-      mode: z.string().optional().describe("Mode to update (default: current mode)")
+      value: z.union([
+        RGBAColorSchema,
+        z.number(),
+        z.string(),
+        z.boolean()
+      ]).describe("New value (type must match variable type)"),
+      mode: z.string().optional().describe("Mode to update (default: first mode)")
     },
     async ({ variable_id, collection_id, value, mode }) => {
       try {

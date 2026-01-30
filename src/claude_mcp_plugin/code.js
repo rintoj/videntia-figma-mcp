@@ -254,6 +254,10 @@ async function handleCommand(command, params) {
       return await createVariableCollection(params);
     case "get_collection_info":
       return await getCollectionInfo(params);
+    case "rename_variable_collection":
+      return await renameVariableCollection(params);
+    case "delete_variable_collection":
+      return await deleteVariableCollection(params);
     case "create_variable":
       return await createVariable(params);
     case "create_variables_batch":
@@ -2813,15 +2817,19 @@ async function createTextStyle(params) {
     throw new Error("Missing nodeId or name parameter");
   }
 
+  const node = await figma.getNodeByIdAsync(nodeId);
+  if (!node || node.type !== "TEXT") {
+    throw new Error("Node is not a text node");
+  }
+
+  // Load the font to ensure it's available - with specific error handling
   try {
-    const node = await figma.getNodeByIdAsync(nodeId);
-    if (!node || node.type !== "TEXT") {
-      throw new Error("Node is not a text node");
-    }
-
-    // Load the font to ensure it's available
     await figma.loadFontAsync(node.fontName);
+  } catch (error) {
+    throw new Error(`Font "${node.fontName.family} ${node.fontName.style}" is not available. Please ensure the font is installed.`);
+  }
 
+  try {
     // Create the text style
     const textStyle = figma.createTextStyle();
     textStyle.name = name;
@@ -2842,7 +2850,9 @@ async function createTextStyle(params) {
     return {
       id: textStyle.id,
       name: textStyle.name,
-      key: textStyle.key
+      key: textStyle.key,
+      fontName: textStyle.fontName,
+      fontSize: textStyle.fontSize
     };
   } catch (error) {
     throw new Error(`Error creating text style: ${error.message}`);
@@ -2854,7 +2864,7 @@ async function createTextStyleFromProperties(params) {
     name,
     fontSize,
     fontFamily,
-    fontStyle = "Regular",
+    fontStyle,
     fontWeight,
     lineHeight,
     letterSpacing,
@@ -2867,19 +2877,22 @@ async function createTextStyleFromProperties(params) {
     throw new Error("Missing required parameters: name, fontSize, or fontFamily");
   }
 
-  // Determine font style from weight if provided (100-900 scale)
+  // Determine font style: prefer explicit fontStyle, then derive from fontWeight, then default to "Regular"
+  // Note: Figma uses spaced names like "Semi Bold", "Extra Bold", "Extra Light"
   let actualFontStyle = fontStyle;
-  if (fontWeight && !fontStyle) {
+  if (!fontStyle && fontWeight) {
     if (fontWeight >= 900) actualFontStyle = "Black";
-    else if (fontWeight >= 800) actualFontStyle = "ExtraBold";
+    else if (fontWeight >= 800) actualFontStyle = "Extra Bold";
     else if (fontWeight >= 700) actualFontStyle = "Bold";
-    else if (fontWeight >= 600) actualFontStyle = "SemiBold";
+    else if (fontWeight >= 600) actualFontStyle = "Semi Bold";
     else if (fontWeight >= 500) actualFontStyle = "Medium";
     else if (fontWeight >= 400) actualFontStyle = "Regular";
     else if (fontWeight >= 300) actualFontStyle = "Light";
-    else if (fontWeight >= 200) actualFontStyle = "ExtraLight";
+    else if (fontWeight >= 200) actualFontStyle = "Extra Light";
     else if (fontWeight >= 100) actualFontStyle = "Thin";
     else actualFontStyle = "Regular";
+  } else if (!fontStyle) {
+    actualFontStyle = "Regular";
   }
 
   // Load the font FIRST - fail early before creating the style
@@ -2920,7 +2933,9 @@ async function createTextStyleFromProperties(params) {
     return {
       id: textStyle.id,
       name: textStyle.name,
-      key: textStyle.key
+      key: textStyle.key,
+      fontName: textStyle.fontName,
+      fontSize: textStyle.fontSize
     };
   } catch (error) {
     throw new Error(`Error creating text style from properties: ${error.message}`);
@@ -3022,6 +3037,7 @@ async function updateTextStyle(params) {
     fontSize,
     fontFamily,
     fontStyle,
+    fontWeight,
     lineHeight,
     letterSpacing,
     textCase,
@@ -3055,10 +3071,32 @@ async function updateTextStyle(params) {
     }
 
     // If font properties are being updated, we need to load the font first
-    if (fontFamily !== undefined || fontStyle !== undefined) {
+    if (fontFamily !== undefined || fontStyle !== undefined || fontWeight !== undefined) {
       const newFontFamily = fontFamily || style.fontName.family;
-      const newFontStyle = fontStyle || style.fontName.style;
-      await figma.loadFontAsync({ family: newFontFamily, style: newFontStyle });
+
+      // Determine font style: prefer explicit fontStyle, then derive from fontWeight
+      let newFontStyle = fontStyle;
+      if (!fontStyle && fontWeight !== undefined) {
+        // Convert fontWeight to fontStyle (Figma uses spaced names)
+        if (fontWeight >= 900) newFontStyle = "Black";
+        else if (fontWeight >= 800) newFontStyle = "Extra Bold";
+        else if (fontWeight >= 700) newFontStyle = "Bold";
+        else if (fontWeight >= 600) newFontStyle = "Semi Bold";
+        else if (fontWeight >= 500) newFontStyle = "Medium";
+        else if (fontWeight >= 400) newFontStyle = "Regular";
+        else if (fontWeight >= 300) newFontStyle = "Light";
+        else if (fontWeight >= 200) newFontStyle = "Extra Light";
+        else if (fontWeight >= 100) newFontStyle = "Thin";
+        else newFontStyle = "Regular";
+      } else if (!fontStyle) {
+        newFontStyle = style.fontName.style;
+      }
+
+      try {
+        await figma.loadFontAsync({ family: newFontFamily, style: newFontStyle });
+      } catch (error) {
+        throw new Error(`Font "${newFontFamily} ${newFontStyle}" is not available. Please ensure the font is installed or use a different font.`);
+      }
       style.fontName = { family: newFontFamily, style: newFontStyle };
       updatedProperties.push("fontName");
     }
@@ -4891,6 +4929,49 @@ async function getCollectionInfo(params) {
   };
 }
 
+// 3b. rename_variable_collection
+async function renameVariableCollection(params) {
+  const { collectionId, newName } = params;
+
+  if (!newName) {
+    throw new Error("Missing newName parameter");
+  }
+
+  const collection = await findCollection(collectionId);
+  const oldName = collection.name;
+  collection.name = newName;
+
+  return {
+    id: collection.id,
+    oldName: oldName,
+    newName: collection.name,
+    success: true
+  };
+}
+
+// 3c. delete_variable_collection
+async function deleteVariableCollection(params) {
+  const { collectionId } = params;
+
+  const collection = await findCollection(collectionId);
+  const collectionName = collection.name;
+  const collectionIdValue = collection.id;
+
+  // Get count of variables that will be deleted
+  const allVariables = await figma.variables.getLocalVariablesAsync();
+  const variableCount = allVariables.filter(v => v.variableCollectionId === collection.id).length;
+
+  // Remove the collection (this also removes all variables in it)
+  collection.remove();
+
+  return {
+    id: collectionIdValue,
+    name: collectionName,
+    variablesDeleted: variableCount,
+    success: true
+  };
+}
+
 // 4. create_variable
 async function createVariable(params) {
   const { collectionId, name, type, value, mode } = params;
@@ -5000,16 +5081,49 @@ async function updateVariableValue(params) {
     throw new Error(`Mode not found: ${mode}`);
   }
 
-  variable.setValueForMode(modeId, {
-    r: value.r,
-    g: value.g,
-    b: value.b,
-    a: value.a !== undefined ? value.a : 1.0
-  });
+  // Set value based on variable type
+  let variableValue;
+  const variableType = variable.resolvedType;
+
+  if (variableType === 'COLOR') {
+    // Handle color value
+    if (typeof value !== 'object' || value.r === undefined) {
+      throw new Error(`Expected color value with r, g, b properties for COLOR variable "${variable.name}"`);
+    }
+    variableValue = {
+      r: value.r,
+      g: value.g,
+      b: value.b,
+      a: value.a !== undefined ? value.a : 1.0
+    };
+  } else if (variableType === 'FLOAT') {
+    // Handle number value
+    if (typeof value !== 'number') {
+      throw new Error(`Expected number value for FLOAT variable "${variable.name}", got ${typeof value}`);
+    }
+    variableValue = value;
+  } else if (variableType === 'STRING') {
+    // Handle string value
+    if (typeof value !== 'string') {
+      throw new Error(`Expected string value for STRING variable "${variable.name}", got ${typeof value}`);
+    }
+    variableValue = value;
+  } else if (variableType === 'BOOLEAN') {
+    // Handle boolean value
+    if (typeof value !== 'boolean') {
+      throw new Error(`Expected boolean value for BOOLEAN variable "${variable.name}", got ${typeof value}`);
+    }
+    variableValue = value;
+  } else {
+    throw new Error(`Unsupported variable type: ${variableType}`);
+  }
+
+  variable.setValueForMode(modeId, variableValue);
 
   return {
     variableId: variable.id,
     name: variable.name,
+    type: variableType,
     updated: true
   };
 }

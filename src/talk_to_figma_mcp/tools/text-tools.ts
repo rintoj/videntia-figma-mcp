@@ -752,6 +752,7 @@ export function registerTextTools(server: McpServer): void {
       fontSize: z.number().optional().describe("New font size in pixels"),
       fontFamily: z.string().optional().describe("New font family name"),
       fontStyle: z.string().optional().describe("New font style (e.g., 'Regular', 'Bold')"),
+      fontWeight: z.number().optional().describe("Font weight (100-900). Ignored if fontStyle is provided."),
       lineHeight: z.object({
         value: z.number(),
         unit: z.enum(["PIXELS", "PERCENT", "AUTO"])
@@ -765,7 +766,7 @@ export function registerTextTools(server: McpServer): void {
       paragraphSpacing: z.number().optional().describe("New paragraph spacing in pixels"),
       paragraphIndent: z.number().optional().describe("New paragraph indent in pixels"),
     },
-    async ({ styleId, name, description, fontSize, fontFamily, fontStyle, lineHeight, letterSpacing, textCase, textDecoration, paragraphSpacing, paragraphIndent }) => {
+    async ({ styleId, name, description, fontSize, fontFamily, fontStyle, fontWeight, lineHeight, letterSpacing, textCase, textDecoration, paragraphSpacing, paragraphIndent }) => {
       try {
         const result = await sendCommandToFigma("update_text_style", {
           styleId,
@@ -774,6 +775,7 @@ export function registerTextTools(server: McpServer): void {
           fontSize,
           fontFamily,
           fontStyle,
+          fontWeight,
           lineHeight,
           letterSpacing,
           textCase,

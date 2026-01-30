@@ -128,6 +128,8 @@ export type FigmaCommand =
   | "get_variable_collections"
   | "create_variable_collection"
   | "get_collection_info"
+  | "rename_variable_collection"
+  | "delete_variable_collection"
   | "create_variable"
   | "create_variables_batch"
   | "update_variable_value"
