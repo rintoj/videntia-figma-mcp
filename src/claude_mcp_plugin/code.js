@@ -189,6 +189,10 @@ async function handleCommand(command, params) {
       return await createTextStyleFromProperties(params);
     case "apply_text_style":
       return await applyTextStyle(params);
+    case "delete_text_style":
+      return await deleteTextStyle(params);
+    case "update_text_style":
+      return await updateTextStyle(params);
     case "get_remote_components":
       return await getRemoteComponents(params);
     case "set_effects":
@@ -2941,6 +2945,135 @@ async function applyTextStyle(params) {
     };
   } catch (error) {
     throw new Error(`Error applying text style: ${error.message}`);
+  }
+}
+
+async function deleteTextStyle(params) {
+  const { styleId } = params || {};
+
+  if (!styleId) {
+    throw new Error("Missing styleId parameter");
+  }
+
+  try {
+    const style = await figma.getStyleByIdAsync(styleId);
+    if (!style || style.type !== "TEXT") {
+      throw new Error("Style not found or is not a text style");
+    }
+
+    const styleName = style.name;
+    const styleIdCopy = style.id;
+
+    // Remove the style
+    style.remove();
+
+    return {
+      name: styleName,
+      id: styleIdCopy
+    };
+  } catch (error) {
+    throw new Error(`Error deleting text style: ${error.message}`);
+  }
+}
+
+async function updateTextStyle(params) {
+  const {
+    styleId,
+    name,
+    description,
+    fontSize,
+    fontFamily,
+    fontStyle,
+    lineHeight,
+    letterSpacing,
+    textCase,
+    textDecoration,
+    paragraphSpacing,
+    paragraphIndent
+  } = params || {};
+
+  if (!styleId) {
+    throw new Error("Missing styleId parameter");
+  }
+
+  try {
+    const style = await figma.getStyleByIdAsync(styleId);
+    if (!style || style.type !== "TEXT") {
+      throw new Error("Style not found or is not a text style");
+    }
+
+    const updatedProperties = [];
+
+    // Update name if provided
+    if (name !== undefined) {
+      style.name = name;
+      updatedProperties.push("name");
+    }
+
+    // Update description if provided
+    if (description !== undefined) {
+      style.description = description;
+      updatedProperties.push("description");
+    }
+
+    // If font properties are being updated, we need to load the font first
+    if (fontFamily !== undefined || fontStyle !== undefined) {
+      const newFontFamily = fontFamily || style.fontName.family;
+      const newFontStyle = fontStyle || style.fontName.style;
+      await figma.loadFontAsync({ family: newFontFamily, style: newFontStyle });
+      style.fontName = { family: newFontFamily, style: newFontStyle };
+      updatedProperties.push("fontName");
+    }
+
+    // Update fontSize if provided
+    if (fontSize !== undefined) {
+      style.fontSize = fontSize;
+      updatedProperties.push("fontSize");
+    }
+
+    // Update lineHeight if provided
+    if (lineHeight !== undefined) {
+      style.lineHeight = lineHeight;
+      updatedProperties.push("lineHeight");
+    }
+
+    // Update letterSpacing if provided
+    if (letterSpacing !== undefined) {
+      style.letterSpacing = letterSpacing;
+      updatedProperties.push("letterSpacing");
+    }
+
+    // Update textCase if provided
+    if (textCase !== undefined) {
+      style.textCase = textCase;
+      updatedProperties.push("textCase");
+    }
+
+    // Update textDecoration if provided
+    if (textDecoration !== undefined) {
+      style.textDecoration = textDecoration;
+      updatedProperties.push("textDecoration");
+    }
+
+    // Update paragraphSpacing if provided
+    if (paragraphSpacing !== undefined) {
+      style.paragraphSpacing = paragraphSpacing;
+      updatedProperties.push("paragraphSpacing");
+    }
+
+    // Update paragraphIndent if provided
+    if (paragraphIndent !== undefined) {
+      style.paragraphIndent = paragraphIndent;
+      updatedProperties.push("paragraphIndent");
+    }
+
+    return {
+      id: style.id,
+      name: style.name,
+      updatedProperties
+    };
+  } catch (error) {
+    throw new Error(`Error updating text style: ${error.message}`);
   }
 }
 

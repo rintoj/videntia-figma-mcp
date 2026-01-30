@@ -93,6 +93,8 @@ export type FigmaCommand =
   | "create_text_style"
   | "create_text_style_from_properties"
   | "apply_text_style"
+  | "delete_text_style"
+  | "update_text_style"
   | "get_remote_components"
   | "set_effects"
   | "set_effect_style_id"
