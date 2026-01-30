@@ -669,7 +669,23 @@ export function registerTextTools(server: McpServer): void {
     async () => {
       try {
         const result = await sendCommandToFigma("get_text_styles", {});
-        const typedResult = result as { count: number, styles: Array<{ id: string, name: string }> };
+        const typedResult = result as {
+          count: number;
+          styles: Array<{
+            id: string;
+            name: string;
+            key: string;
+            description: string;
+            fontSize: number;
+            fontName: { family: string; style: string };
+            letterSpacing: { value: number; unit: string };
+            lineHeight: { value: number; unit: string } | { unit: "AUTO" };
+            paragraphIndent: number;
+            paragraphSpacing: number;
+            textCase: string;
+            textDecoration: string;
+          }>;
+        };
         return {
           content: [
             {
