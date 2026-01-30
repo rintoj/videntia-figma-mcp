@@ -661,6 +661,36 @@ export function registerTextTools(server: McpServer): void {
     }
   );
 
+  // Get Text Styles Tool
+  server.tool(
+    "get_text_styles",
+    "Get all local text styles in the document with their full properties",
+    {},
+    async () => {
+      try {
+        const result = await sendCommandToFigma("get_text_styles", {});
+        const typedResult = result as { count: number, styles: Array<{ id: string, name: string }> };
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(typedResult, null, 2)
+            }
+          ]
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error getting text styles: ${error instanceof Error ? error.message : String(error)}`
+            }
+          ]
+        };
+      }
+    }
+  );
+
   // Delete Text Style Tool
   server.tool(
     "delete_text_style",

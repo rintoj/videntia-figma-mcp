@@ -189,6 +189,8 @@ async function handleCommand(command, params) {
       return await createTextStyleFromProperties(params);
     case "apply_text_style":
       return await applyTextStyle(params);
+    case "get_text_styles":
+      return await getTextStyles();
     case "delete_text_style":
       return await deleteTextStyle(params);
     case "update_text_style":
@@ -2945,6 +2947,32 @@ async function applyTextStyle(params) {
     };
   } catch (error) {
     throw new Error(`Error applying text style: ${error.message}`);
+  }
+}
+
+async function getTextStyles() {
+  try {
+    const textStyles = await figma.getLocalTextStylesAsync();
+
+    return {
+      count: textStyles.length,
+      styles: textStyles.map((style) => ({
+        id: style.id,
+        name: style.name,
+        key: style.key,
+        description: style.description || "",
+        fontSize: style.fontSize,
+        fontName: style.fontName,
+        letterSpacing: style.letterSpacing,
+        lineHeight: style.lineHeight,
+        paragraphIndent: style.paragraphIndent,
+        paragraphSpacing: style.paragraphSpacing,
+        textCase: style.textCase,
+        textDecoration: style.textDecoration
+      }))
+    };
+  } catch (error) {
+    throw new Error(`Error getting text styles: ${error.message}`);
   }
 }
 
