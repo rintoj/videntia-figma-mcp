@@ -2867,20 +2867,24 @@ async function createTextStyleFromProperties(params) {
     throw new Error("Missing required parameters: name, fontSize, or fontFamily");
   }
 
+  // Determine font style from weight if provided
+  let actualFontStyle = fontStyle;
+  if (fontWeight && !fontStyle) {
+    if (fontWeight >= 700) actualFontStyle = "Bold";
+    else if (fontWeight >= 600) actualFontStyle = "SemiBold";
+    else if (fontWeight >= 500) actualFontStyle = "Medium";
+    else actualFontStyle = "Regular";
+  }
+
+  // Load the font FIRST - fail early before creating the style
   try {
-    // Determine font style from weight if provided
-    let actualFontStyle = fontStyle;
-    if (fontWeight && !fontStyle) {
-      if (fontWeight >= 700) actualFontStyle = "Bold";
-      else if (fontWeight >= 600) actualFontStyle = "SemiBold";
-      else if (fontWeight >= 500) actualFontStyle = "Medium";
-      else actualFontStyle = "Regular";
-    }
-
-    // Load the font
     await figma.loadFontAsync({ family: fontFamily, style: actualFontStyle });
+  } catch (error) {
+    throw new Error(`Font "${fontFamily} ${actualFontStyle}" is not available. Please ensure the font is installed or use a different font.`);
+  }
 
-    // Create the text style
+  try {
+    // Create the text style only after font is confirmed available
     const textStyle = figma.createTextStyle();
     textStyle.name = name;
     if (description) {
