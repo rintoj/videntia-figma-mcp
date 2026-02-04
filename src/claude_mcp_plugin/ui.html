@@ -166,10 +166,9 @@
       /* Operation status bar */
       .operation-status {
         margin-top: auto;
-        padding: 6px 10px;
+        padding: 0;
         border-radius: 4px;
         font-size: 11px;
-        background-color: #2d2d2d;
         color: #cccccc;
         transition: opacity 0.3s;
         overflow: hidden;
@@ -177,15 +176,12 @@
         text-overflow: ellipsis;
       }
       .operation-status.success {
-        background-color: #1a472a;
         color: #4ade80;
       }
       .operation-status.error {
-        background-color: #471a1a;
         color: #ff9999;
       }
       .operation-status.running {
-        background-color: #1a3147;
         color: #66b3ff;
       }
     </style>
@@ -219,7 +215,7 @@
         Disconnected from Claude Code
       </div>
 
-      <div id="operation-status" class="operation-status">Idle</div>
+      <div id="operation-status" class="operation-status hidden"></div>
     </div>
 
     <script>
@@ -533,8 +529,8 @@
       // Reset operation status to idle after delay
       function hideOperationStatusAfter(ms) {
         operationHideTimer = setTimeout(() => {
-          operationStatus.textContent = "Idle";
-          operationStatus.className = "operation-status";
+          operationStatus.textContent = "";
+          operationStatus.className = "operation-status hidden";
         }, ms);
       }
 
