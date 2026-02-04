@@ -46,7 +46,7 @@ function sendProgressUpdate(commandId, commandType, status, progress, totalItems
 }
 
 // Show UI
-figma.showUI(__html__, { width: 350, height: 450 });
+figma.showUI(__html__, { width: 220, height: 200 });
 
 // Plugin commands from UI
 figma.ui.onmessage = async (msg) => {
@@ -68,12 +68,14 @@ figma.ui.onmessage = async (msg) => {
         figma.ui.postMessage({
           type: "command-result",
           id: msg.id,
+          command: msg.command,
           result,
         });
       } catch (error) {
         figma.ui.postMessage({
           type: "command-error",
           id: msg.id,
+          command: msg.command,
           error: error.message || "Error executing command",
         });
       }
