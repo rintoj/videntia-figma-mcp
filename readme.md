@@ -73,6 +73,49 @@ bun socket
 
 The server runs on port 3055. You can verify it's working at `http://localhost:3055/status`.
 
+#### Auto-start on macOS (Optional)
+
+To avoid running `bun socket` manually every time, you can install it as a launchd service that starts automatically on login:
+
+```bash
+./scripts/setup.sh
+```
+
+When prompted, choose to install the launchd service. This will:
+- Copy the plist to `~/Library/LaunchAgents/`
+- Start the service immediately
+- Auto-start on future logins
+
+**Manual installation:**
+
+```bash
+# Copy and configure the plist (auto-detects paths)
+sed -e "s|\$PROJECT_PATH|$(pwd)|g" \
+    -e "s|\$HOME|$HOME|g" \
+    -e "s|\$BUN_PATH|$(which bun)|g" \
+    scripts/com.claude-talk-to-figma.socket.plist \
+    > ~/Library/LaunchAgents/com.claude-talk-to-figma.socket.plist
+
+# Load the service
+launchctl load ~/Library/LaunchAgents/com.claude-talk-to-figma.socket.plist
+```
+
+**Managing the service:**
+
+```bash
+# Check status
+launchctl list | grep claude-talk-to-figma
+
+# Stop the service
+launchctl unload ~/Library/LaunchAgents/com.claude-talk-to-figma.socket.plist
+
+# Start the service
+launchctl load ~/Library/LaunchAgents/com.claude-talk-to-figma.socket.plist
+
+# View logs
+tail -f ~/Library/Logs/claude-talk-to-figma-socket.log
+```
+
 ### Step 5: Connect to Figma
 
 1. In Figma, run the plugin: **Plugins → Development → Claude MCP Plugin**
