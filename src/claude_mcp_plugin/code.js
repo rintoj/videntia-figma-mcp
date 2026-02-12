@@ -83,9 +83,6 @@ figma.ui.onmessage = async (msg) => {
   }
 };
 
-// Listen for plugin commands from menu
-figma.on("run", ({ command }) => {
-});
 
 // Update plugin settings
 function updateSettings(settings) {
