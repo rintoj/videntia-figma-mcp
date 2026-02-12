@@ -1,6 +1,6 @@
 {
-  "name": "Figma Studio",
-  "id": "figma-studio-mcp-plugin",
+  "name": "Claude Figma MCP",
+  "id": "claude-figma-mcp-plugin",
   "api": "1.0.0",
   "main": "code.js",
   "ui": "ui.html",
