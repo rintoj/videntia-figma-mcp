@@ -1,18 +1,18 @@
 {
   "dxt_version": "0.1",
-  "name": "claude-talk-to-figma-mcp",
-  "display_name": "Claude Talk to Figma",
-  "description": "A Model Context Protocol (MCP) plugin that allows Claude Desktop and other AI tools to interact directly with Figma, enabling powerful AI-assisted design capabilities.",
+  "name": "figma-studio-mcp",
+  "display_name": "Figma Studio MCP",
+  "description": "AI-powered design tool for Figma - enables Claude and other AI tools to interact directly with Figma for AI-assisted design capabilities.",
   "version": "0.6.0",
   "author": {
     "name": "Xúlio Zé",
     "url": "https://github.com/arinspunk"
   },
   "license": "MIT",
-  "homepage": "https://github.com/arinspunk/claude-talk-to-figma-mcp",
+  "homepage": "https://github.com/rintoj/figma-studio-mcp",
   "repository": {
     "type": "git",
-    "url": "https://github.com/arinspunk/claude-talk-to-figma-mcp.git"
+    "url": "https://github.com/rintoj/figma-studio-mcp.git"
   },
   "icon": "images/claude-talk-to-figma.png",
   "compatibility": {

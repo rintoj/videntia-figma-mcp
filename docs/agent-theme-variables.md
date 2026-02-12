@@ -1,8 +1,8 @@
 # Agent Instructions: Create or Fix Figma Theme Variables Using MCP
 
 **For**: Claude Code Agent
-**Purpose**: Use ClaudeTalkToFigma MCP plugin to create or fix theme variable collections in Figma
-**MCP Server**: ClaudeTalkToFigma (port 3000)
+**Purpose**: Use FigmaStudioMCP MCP plugin to create or fix theme variable collections in Figma
+**MCP Server**: FigmaStudioMCP (port 3000)
 
 ---
 
@@ -23,43 +23,43 @@ When the user asks you to create or fix theme variables in Figma, follow this wo
 You have access to these powerful MCP tools:
 
 ### Collection Management
-- `mcp__ClaudeTalkToFigma__get_variable_collections()` - List all collections
-- `mcp__ClaudeTalkToFigma__create_variable_collection({name, default_mode})` - Create new collection
-- `mcp__ClaudeTalkToFigma__get_collection_info({collection_id})` - Get collection details
+- `mcp__FigmaStudioMCP__get_variable_collections()` - List all collections
+- `mcp__FigmaStudioMCP__create_variable_collection({name, default_mode})` - Create new collection
+- `mcp__FigmaStudioMCP__get_collection_info({collection_id})` - Get collection details
 
 ### Variable Creation & Management
-- `mcp__ClaudeTalkToFigma__create_variable({collection_id, name, value})` - Create single variable
-- `mcp__ClaudeTalkToFigma__create_variables_batch({collection_id, variables})` - Bulk creation
-- `mcp__ClaudeTalkToFigma__update_variable_value({variable_id, value})` - Update values
-- `mcp__ClaudeTalkToFigma__rename_variable({variable_id, new_name})` - Rename
-- `mcp__ClaudeTalkToFigma__delete_variable({variable_id})` - Delete single
-- `mcp__ClaudeTalkToFigma__delete_variables_batch({variable_ids})` - Bulk delete
+- `mcp__FigmaStudioMCP__create_variable({collection_id, name, value})` - Create single variable
+- `mcp__FigmaStudioMCP__create_variables_batch({collection_id, variables})` - Bulk creation
+- `mcp__FigmaStudioMCP__update_variable_value({variable_id, value})` - Update values
+- `mcp__FigmaStudioMCP__rename_variable({variable_id, new_name})` - Rename
+- `mcp__FigmaStudioMCP__delete_variable({variable_id})` - Delete single
+- `mcp__FigmaStudioMCP__delete_variables_batch({variable_ids})` - Bulk delete
 
 ### Color Calculations (Server-Side)
-- `mcp__ClaudeTalkToFigma__calculate_color_scale({base_color, background_color})` - Generate 10 scale levels
-- `mcp__ClaudeTalkToFigma__calculate_composite_color({base_color, background_color, mix_percentage})` - Single composite
-- `mcp__ClaudeTalkToFigma__convert_color_format({color, from_format, to_format})` - Convert formats
-- `mcp__ClaudeTalkToFigma__calculate_contrast_ratio({foreground, background})` - WCAG validation
+- `mcp__FigmaStudioMCP__calculate_color_scale({base_color, background_color})` - Generate 10 scale levels
+- `mcp__FigmaStudioMCP__calculate_composite_color({base_color, background_color, mix_percentage})` - Single composite
+- `mcp__FigmaStudioMCP__convert_color_format({color, from_format, to_format})` - Convert formats
+- `mcp__FigmaStudioMCP__calculate_contrast_ratio({foreground, background})` - WCAG validation
 
 ### Schema Validation & Auditing
-- `mcp__ClaudeTalkToFigma__audit_collection({collection_id})` - Compare against standard
-- `mcp__ClaudeTalkToFigma__validate_color_contrast({collection_id, mode, standard})` - WCAG checks
-- `mcp__ClaudeTalkToFigma__get_schema_definition()` - Get standard schema
-- `mcp__ClaudeTalkToFigma__suggest_missing_variables({collection_id})` - Get recommendations
+- `mcp__FigmaStudioMCP__audit_collection({collection_id})` - Compare against standard
+- `mcp__FigmaStudioMCP__validate_color_contrast({collection_id, mode, standard})` - WCAG checks
+- `mcp__FigmaStudioMCP__get_schema_definition()` - Get standard schema
+- `mcp__FigmaStudioMCP__suggest_missing_variables({collection_id})` - Get recommendations
 
 ### Bulk Operations & Automation
-- `mcp__ClaudeTalkToFigma__apply_default_theme({collection_id})` - Apply reference dark theme
-- `mcp__ClaudeTalkToFigma__create_color_scale_set({collection_id, color_name, base_color, foreground_color, background_color})` - Create complete scale
-- `mcp__ClaudeTalkToFigma__apply_custom_palette({collection_id, palette, background_color})` - Apply brand colors
-- `mcp__ClaudeTalkToFigma__create_all_scales({collection_id, base_colors, background_color})` - Create all 7 scales
-- `mcp__ClaudeTalkToFigma__fix_collection_to_standard({collection_id})` - **One-click fix!**
-- `mcp__ClaudeTalkToFigma__add_chart_colors({collection_id})` - Add 8 chart colors
+- `mcp__FigmaStudioMCP__apply_default_theme({collection_id})` - Apply reference dark theme
+- `mcp__FigmaStudioMCP__create_color_scale_set({collection_id, color_name, base_color, foreground_color, background_color})` - Create complete scale
+- `mcp__FigmaStudioMCP__apply_custom_palette({collection_id, palette, background_color})` - Apply brand colors
+- `mcp__FigmaStudioMCP__create_all_scales({collection_id, base_colors, background_color})` - Create all 7 scales
+- `mcp__FigmaStudioMCP__fix_collection_to_standard({collection_id})` - **One-click fix!**
+- `mcp__FigmaStudioMCP__add_chart_colors({collection_id})` - Add 8 chart colors
 
 ### Organization & Export
-- `mcp__ClaudeTalkToFigma__reorder_variables({collection_id, order})` - Organize variables
-- `mcp__ClaudeTalkToFigma__generate_audit_report({collection_id, format})` - Generate markdown/JSON report
-- `mcp__ClaudeTalkToFigma__export_collection_schema({collection_id})` - Export as JSON
-- `mcp__ClaudeTalkToFigma__import_collection_schema({collection_id, schema})` - Import from JSON
+- `mcp__FigmaStudioMCP__reorder_variables({collection_id, order})` - Organize variables
+- `mcp__FigmaStudioMCP__generate_audit_report({collection_id, format})` - Generate markdown/JSON report
+- `mcp__FigmaStudioMCP__export_collection_schema({collection_id})` - Export as JSON
+- `mcp__FigmaStudioMCP__import_collection_schema({collection_id, schema})` - Import from JSON
 
 ---
 
@@ -68,7 +68,7 @@ You have access to these powerful MCP tools:
 ### 1.1 Get All Variable Collections
 
 ```typescript
-const collections = await mcp__ClaudeTalkToFigma__get_variable_collections();
+const collections = await mcp__FigmaStudioMCP__get_variable_collections();
 ```
 
 This returns:
@@ -86,7 +86,7 @@ Look for collection named "Theme" (case-insensitive):
 If Theme collection exists:
 
 ```typescript
-const audit = await mcp__ClaudeTalkToFigma__audit_collection({
+const audit = await mcp__FigmaStudioMCP__audit_collection({
   collection_id: "Theme"  // Can use name or ID
 });
 ```
@@ -264,20 +264,20 @@ AskUserQuestion({
 
 ```typescript
 // Step 1: Create collection
-await mcp__ClaudeTalkToFigma__create_variable_collection({
+await mcp__FigmaStudioMCP__create_variable_collection({
   name: "Theme",
   default_mode: "dark"
 });
 
 // Step 2: Apply complete default theme
-await mcp__ClaudeTalkToFigma__apply_default_theme({
+await mcp__FigmaStudioMCP__apply_default_theme({
   collection_id: "Theme",
   include_chart_colors: false,  // Set true if user wants chart colors
   overwrite_existing: false
 });
 
 // Step 3: Validate
-await mcp__ClaudeTalkToFigma__audit_collection({
+await mcp__FigmaStudioMCP__audit_collection({
   collection_id: "Theme"
 });
 ```
@@ -294,13 +294,13 @@ If user wants custom brand colors:
 
 ```typescript
 // Step 1: Create collection
-await mcp__ClaudeTalkToFigma__create_variable_collection({
+await mcp__FigmaStudioMCP__create_variable_collection({
   name: "Theme",
   default_mode: "dark"
 });
 
 // Step 2: Apply custom palette
-await mcp__ClaudeTalkToFigma__apply_custom_palette({
+await mcp__FigmaStudioMCP__apply_custom_palette({
   collection_id: "Theme",
   palette: {
     primary: {
@@ -324,13 +324,13 @@ If you need fine control:
 
 ```typescript
 // Step 1: Create collection
-await mcp__ClaudeTalkToFigma__create_variable_collection({
+await mcp__FigmaStudioMCP__create_variable_collection({
   name: "Theme",
   default_mode: "dark"
 });
 
 // Step 2: Create base colors in batches
-await mcp__ClaudeTalkToFigma__create_variables_batch({
+await mcp__FigmaStudioMCP__create_variables_batch({
   collection_id: "Theme",
   mode: "dark",
   variables: [
@@ -342,7 +342,7 @@ await mcp__ClaudeTalkToFigma__create_variables_batch({
 });
 
 // Step 3: Create color scales
-await mcp__ClaudeTalkToFigma__create_all_scales({
+await mcp__FigmaStudioMCP__create_all_scales({
   collection_id: "Theme",
   base_colors: {
     primary: {r: 0.639, g: 0.902, b: 0.208},
@@ -357,7 +357,7 @@ await mcp__ClaudeTalkToFigma__create_all_scales({
 });
 
 // Step 4: Organize variables
-await mcp__ClaudeTalkToFigma__reorder_variables({
+await mcp__FigmaStudioMCP__reorder_variables({
   collection_id: "Theme",
   order: "standard"  // Uses standard organization
 });
@@ -372,7 +372,7 @@ await mcp__ClaudeTalkToFigma__reorder_variables({
 **Best approach** - Let the tool handle everything:
 
 ```typescript
-const result = await mcp__ClaudeTalkToFigma__fix_collection_to_standard({
+const result = await mcp__FigmaStudioMCP__fix_collection_to_standard({
   collection_id: "Theme",
   dry_run: false,  // Set true to preview changes first
   use_default_values: true,  // Use reference theme colors for missing variables
@@ -394,25 +394,25 @@ If you need control over the process:
 
 ```typescript
 // Step 1: Audit existing collection
-const audit = await mcp__ClaudeTalkToFigma__audit_collection({
+const audit = await mcp__FigmaStudioMCP__audit_collection({
   collection_id: "Theme"
 });
 
 // Step 2: Get missing variable suggestions
-const suggestions = await mcp__ClaudeTalkToFigma__suggest_missing_variables({
+const suggestions = await mcp__FigmaStudioMCP__suggest_missing_variables({
   collection_id: "Theme",
   use_defaults: true
 });
 
 // Step 3: Create missing base colors
-await mcp__ClaudeTalkToFigma__create_variables_batch({
+await mcp__FigmaStudioMCP__create_variables_batch({
   collection_id: "Theme",
   variables: suggestions.missing_base_colors
 });
 
 // Step 4: Create missing color scales
 for (const color of suggestions.missing_scales) {
-  await mcp__ClaudeTalkToFigma__create_color_scale_set({
+  await mcp__FigmaStudioMCP__create_color_scale_set({
     collection_id: "Theme",
     color_name: color.name,  // e.g., "primary"
     base_color: color.base,
@@ -422,7 +422,7 @@ for (const color of suggestions.missing_scales) {
 }
 
 // Step 5: Organize
-await mcp__ClaudeTalkToFigma__reorder_variables({
+await mcp__FigmaStudioMCP__reorder_variables({
   collection_id: "Theme",
   order: "standard"
 });
@@ -435,7 +435,7 @@ await mcp__ClaudeTalkToFigma__reorder_variables({
 ### 6.1 Audit Collection
 
 ```typescript
-const audit = await mcp__ClaudeTalkToFigma__audit_collection({
+const audit = await mcp__FigmaStudioMCP__audit_collection({
   collection_id: "Theme",
   include_chart_colors: false  // Set based on user's request
 });
@@ -444,7 +444,7 @@ const audit = await mcp__ClaudeTalkToFigma__audit_collection({
 ### 6.2 Validate WCAG Contrast
 
 ```typescript
-const contrastReport = await mcp__ClaudeTalkToFigma__validate_color_contrast({
+const contrastReport = await mcp__FigmaStudioMCP__validate_color_contrast({
   collection_id: "Theme",
   mode: "dark",
   standard: "AA"  // or "AAA"
@@ -459,7 +459,7 @@ This checks:
 ### 6.3 Generate Audit Report
 
 ```typescript
-const report = await mcp__ClaudeTalkToFigma__generate_audit_report({
+const report = await mcp__FigmaStudioMCP__generate_audit_report({
   collection_id: "Theme",
   format: "markdown",  // or "json"
   include_chart_colors: false
@@ -475,7 +475,7 @@ const report = await mcp__ClaudeTalkToFigma__generate_audit_report({
 When user requests theme variable creation/fixing:
 
 ```markdown
-I'll help you create/fix the Theme variable collection in Figma using the ClaudeTalkToFigma MCP plugin.
+I'll help you create/fix the Theme variable collection in Figma using the FigmaStudioMCP MCP plugin.
 
 First, let me audit your current variable collections to see what exists.
 ```
@@ -587,7 +587,7 @@ The MCP plugin calculates color scales **server-side**, which means:
 ### Example: Calculate Single Color Scale
 
 ```typescript
-const scale = await mcp__ClaudeTalkToFigma__calculate_color_scale({
+const scale = await mcp__FigmaStudioMCP__calculate_color_scale({
   base_color: {r: 0.639, g: 0.902, b: 0.208},  // primary
   background_color: {r: 0.059, g: 0.063, b: 0.067},
   input_format: "normalized"  // or "rgb255"
@@ -607,7 +607,7 @@ Returns:
 ### Example: Calculate Single Composite Color
 
 ```typescript
-const color = await mcp__ClaudeTalkToFigma__calculate_composite_color({
+const color = await mcp__FigmaStudioMCP__calculate_composite_color({
   base_color: {r: 163, g: 230, b: 53},
   background_color: {r: 15, g: 16, b: 17},
   mix_percentage: 0.30,  // 30% for primary-300
@@ -632,7 +632,7 @@ Returns:
 ### 9.1 Add Chart Colors
 
 ```typescript
-await mcp__ClaudeTalkToFigma__add_chart_colors({
+await mcp__FigmaStudioMCP__add_chart_colors({
   collection_id: "Theme",
   chart_colors: [
     {r: 0.4, g: 0.6, b: 0.9},  // chart-1: blue
@@ -646,7 +646,7 @@ await mcp__ClaudeTalkToFigma__add_chart_colors({
 ### 9.2 Export Collection Schema
 
 ```typescript
-const schema = await mcp__ClaudeTalkToFigma__export_collection_schema({
+const schema = await mcp__FigmaStudioMCP__export_collection_schema({
   collection_id: "Theme",
   mode: "dark",
   include_metadata: true
@@ -658,7 +658,7 @@ const schema = await mcp__ClaudeTalkToFigma__export_collection_schema({
 ### 9.3 Import Collection Schema
 
 ```typescript
-await mcp__ClaudeTalkToFigma__import_collection_schema({
+await mcp__FigmaStudioMCP__import_collection_schema({
   collection_id: "Theme",
   schema: importedSchema,
   overwrite_existing: false
@@ -668,7 +668,7 @@ await mcp__ClaudeTalkToFigma__import_collection_schema({
 ### 9.4 Calculate Contrast Ratio
 
 ```typescript
-const ratio = await mcp__ClaudeTalkToFigma__calculate_contrast_ratio({
+const ratio = await mcp__FigmaStudioMCP__calculate_contrast_ratio({
   foreground: {r: 0.980, g: 0.980, b: 0.980},  // foreground
   background: {r: 0.639, g: 0.902, b: 0.208},  // primary
   input_format: "normalized"
@@ -868,7 +868,7 @@ For `apply_default_theme` or when user asks for recommended colors:
 Always validate after creating foreground variants:
 
 ```typescript
-const validation = await mcp__ClaudeTalkToFigma__validate_color_contrast({
+const validation = await mcp__FigmaStudioMCP__validate_color_contrast({
   collection_id: "Theme",
   mode: "dark",
   standard: "AA"
@@ -886,21 +886,21 @@ if (validation.failures.length > 0) {
 
 ### Create New Theme (One Command)
 ```typescript
-await mcp__ClaudeTalkToFigma__apply_default_theme({
+await mcp__FigmaStudioMCP__apply_default_theme({
   collection_id: "Theme"  // Creates if doesn't exist
 });
 ```
 
 ### Fix Existing Theme (One Command)
 ```typescript
-await mcp__ClaudeTalkToFigma__fix_collection_to_standard({
+await mcp__FigmaStudioMCP__fix_collection_to_standard({
   collection_id: "Theme"
 });
 ```
 
 ### Audit Only (No Changes)
 ```typescript
-await mcp__ClaudeTalkToFigma__generate_audit_report({
+await mcp__FigmaStudioMCP__generate_audit_report({
   collection_id: "Theme",
   format: "markdown"
 });
@@ -908,7 +908,7 @@ await mcp__ClaudeTalkToFigma__generate_audit_report({
 
 ### Add Chart Colors
 ```typescript
-await mcp__ClaudeTalkToFigma__add_chart_colors({
+await mcp__FigmaStudioMCP__add_chart_colors({
   collection_id: "Theme"
 });
 ```
@@ -947,8 +947,8 @@ Total: 102 variables (110 with chart colors)
 
 **Version**: 2.0 (Agent Instructions)
 **Updated**: 2025-11-20
-**For**: Claude Code Agent using ClaudeTalkToFigma MCP
-**Plugin**: ClaudeTalkToFigma (WebSocket port 3000)
+**For**: Claude Code Agent using FigmaStudioMCP MCP
+**Plugin**: FigmaStudioMCP (WebSocket port 3000)
 
 **Key Capabilities**:
 - ✅ Fully automated variable creation

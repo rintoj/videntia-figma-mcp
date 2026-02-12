@@ -25,7 +25,7 @@ export const FIGMA_API_BASE_URL = 'https://api.figma.com/v1';
 
 // Configuración del servidor MCP
 export const SERVER_CONFIG = {
-  name: "ClaudeTalkToFigmaMCP",
-  description: "Claude MCP Plugin for Figma",
+  name: "FigmaStudioMCP",
+  description: "Figma Studio MCP - AI-powered design tool for Figma",
   version: "0.4.0",
 };

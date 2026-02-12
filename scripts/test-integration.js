@@ -133,10 +133,10 @@ async function checkClaudeConfig() {
     }
     
     const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-    if (config.mcpServers && config.mcpServers['ClaudeTalkToFigma']) {
-      log.success('ClaudeTalkToFigma configuration found in Claude Desktop');
+    if (config.mcpServers && config.mcpServers['FigmaStudioMCP']) {
+      log.success('FigmaStudioMCP configuration found in Claude Desktop');
     } else {
-      log.warning('ClaudeTalkToFigma is not configured in Claude Desktop');
+      log.warning('FigmaStudioMCP is not configured in Claude Desktop');
       const shouldConfigure = await askQuestion('Do you want to configure Claude Desktop now? (y/n)');
       
       if (shouldConfigure.toLowerCase() === 'y') {
@@ -248,11 +248,11 @@ async function checkFigmaPlugin() {
   log.step('Verifying Figma plugin access');
   
   try {
-    log.info('This project uses a custom Claude MCP Plugin for Figma');
+    log.info('This project uses a custom Figma Studio for Figma');
     log.info('The plugin code is located in the src/claude_mcp_plugin directory');
     
     // Ask if the user has already installed the plugin
-    const isPluginInstalled = await askQuestion('Have you installed the Claude MCP Plugin as a development plugin in Figma? (y/n)');
+    const isPluginInstalled = await askQuestion('Have you installed the Figma Studio as a development plugin in Figma? (y/n)');
     if (isPluginInstalled.toLowerCase() !== 'y') {
       log.warning('Please install the plugin before continuing with tests');
       log.info('1. Open Figma');
@@ -266,7 +266,7 @@ async function checkFigmaPlugin() {
     
     log.info('\nTo use the plugin in Figma:');
     log.info('1. Open Figma');
-    log.info('2. Go to Plugins > Development > Claude MCP Plugin');
+    log.info('2. Go to Plugins > Development > Figma Studio');
     log.info('3. Enter port 3055 and connect to the WebSocket server');
     
     return true;
@@ -278,7 +278,7 @@ async function checkFigmaPlugin() {
 
 // Run integration tests
 async function runIntegrationTests() {
-  log.title('CLAUDE-FIGMA INTEGRATION TESTS');
+  log.title('FIGMA STUDIO MCP INTEGRATION TESTS');
   
   // Check dependencies
   await checkDependencies();
@@ -304,8 +304,8 @@ async function runIntegrationTests() {
   
   log.info('\nTo complete integration tests, follow these steps:');
   log.info('1. Open Claude Desktop');
-  log.info('2. Select "ClaudeTalkToFigma" in the MCP selector');
-  log.info('3. Open Figma and run the Claude MCP Plugin from your Development plugins');
+  log.info('2. Select "FigmaStudioMCP" in the MCP selector');
+  log.info('3. Open Figma and run the Figma Studio from your Development plugins');
   log.info('4. In the plugin, connect to WebSocket server (port 3055)');
   log.info('5. Test these commands in Claude:');
   log.info('   - "Connect to Figma using the default channel"');

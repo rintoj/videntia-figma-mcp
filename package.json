@@ -1,12 +1,12 @@
 {
-  "name": "claude-talk-to-figma-mcp",
-  "description": "Claude Desktop Talk to Figma MCP",
+  "name": "figma-studio-mcp",
+  "description": "Figma Studio MCP - AI-powered design tool for Figma",
   "version": "0.9.0",
   "module": "dist/talk_to_figma_mcp/server.js",
   "main": "dist/talk_to_figma_mcp/server.js",
   "bin": {
-    "claude-talk-to-figma-mcp": "dist/talk_to_figma_mcp/server.js",
-    "claude-talk-to-figma-mcp-socket": "dist/socket.js"
+    "figma-studio-mcp": "dist/talk_to_figma_mcp/server.js",
+    "figma-studio-mcp-socket": "dist/socket.js"
   },
   "files": [
     "dist",
@@ -63,10 +63,10 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/arinspunk/claude-talk-to-figma-mcp.git"
+    "url": "git+https://github.com/rintoj/figma-studio-mcp.git"
   },
   "bugs": {
-    "url": "https://github.com/arinspunk/claude-talk-to-figma-mcp/issues"
+    "url": "https://github.com/rintoj/figma-studio-mcp/issues"
   },
-  "homepage": "https://github.com/arinspunk/claude-talk-to-figma-mcp#readme"
+  "homepage": "https://github.com/rintoj/figma-studio-mcp#readme"
 }

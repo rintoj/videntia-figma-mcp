@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>com.claude-talk-to-figma.socket</string>
+    <string>com.figma-studio-mcp.socket</string>
 
     <key>ProgramArguments</key>
     <array>
@@ -22,10 +22,10 @@
     <true/>
 
     <key>StandardOutPath</key>
-    <string>$HOME/Library/Logs/claude-talk-to-figma-socket.log</string>
+    <string>$HOME/Library/Logs/figma-studio-mcp-socket.log</string>
 
     <key>StandardErrorPath</key>
-    <string>$HOME/Library/Logs/claude-talk-to-figma-socket.error.log</string>
+    <string>$HOME/Library/Logs/figma-studio-mcp-socket.error.log</string>
 
     <key>EnvironmentVariables</key>
     <dict>

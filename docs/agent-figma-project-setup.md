@@ -2,7 +2,7 @@
 
 **For**: Claude Code Agent (Orchestrator)
 **Purpose**: Coordinate complete Figma project setup by delegating to specialized agents
-**MCP Server**: ClaudeTalkToFigma (port 3000)
+**MCP Server**: FigmaStudioMCP (port 3000)
 
 ---
 
@@ -146,13 +146,13 @@ Run final validation checks across both systems:
 
 ```typescript
 // 1. Validate theme variables
-mcp__ClaudeTalkToFigma__generate_audit_report({
+mcp__FigmaStudioMCP__generate_audit_report({
   collection_id: "Theme",
   format: "markdown"
 })
 
 // 2. Validate text styles
-mcp__ClaudeTalkToFigma__get_styles()
+mcp__FigmaStudioMCP__get_styles()
 ```
 
 **Check for:**
@@ -165,7 +165,7 @@ mcp__ClaudeTalkToFigma__get_styles()
 Export for version control and sharing:
 
 ```typescript
-mcp__ClaudeTalkToFigma__export_collection_schema({
+mcp__FigmaStudioMCP__export_collection_schema({
   collection_id: "Theme",
   mode: "dark",
   include_metadata: true

@@ -1,10 +1,10 @@
-<img src="images/claude-talk-to-figma.png" alt="Claude Talk to Figma collage" />
+<img src="images/figma-studio-mcp.png" alt="Figma Studio MCP collage" />
 
-# Claude Talk to Figma MCP
+# Figma Studio MCP
 
-A Model Context Protocol (MCP) plugin that allows Claude Desktop and other AI tools (GitHub Copilot, Cursor, etc.) to interact directly with Figma, enabling powerful AI-assisted design capabilities.
+AI-powered design tool that enables Claude Desktop and other AI tools (GitHub Copilot, Cursor, etc.) to interact directly with Figma, enabling powerful AI-assisted design capabilities.
 
-> **Important**: This project is based on [cursor-talk-to-figma-mcp](https://github.com/sonnylazuardi/cursor-talk-to-figma-mcp) by Sonny Lazuardi. It has been adapted to work with Claude Desktop and expanded with additional tools. Original credit belongs to Sonny Lazuardi ❤️
+> **Important**: This project is based on [cursor-talk-to-figma-mcp](https://github.com/sonnylazuardi/cursor-talk-to-figma-mcp) by Sonny Lazuardi and [figma-studio-mcp](https://github.com/arinspunk/figma-studio-mcp) by Xúlio Zé. Original credit belongs to them.
 
 ## Installation
 
@@ -27,16 +27,16 @@ No need to clone or build - just configure your AI client to use npx:
 
 **Claude Code**:
 ```bash
-claude mcp add claude-talk-to-figma -s user -- npx -y claude-talk-to-figma-mcp
+claude mcp add figma-studio-mcp -s user -- npx -y figma-studio-mcp
 ```
 
 **Claude Desktop** (macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`):
 ```json
 {
   "mcpServers": {
-    "ClaudeTalkToFigma": {
+    "FigmaStudioMCP": {
       "command": "npx",
-      "args": ["-y", "claude-talk-to-figma-mcp"]
+      "args": ["-y", "figma-studio-mcp"]
     }
   }
 }
@@ -46,9 +46,9 @@ claude mcp add claude-talk-to-figma -s user -- npx -y claude-talk-to-figma-mcp
 ```json
 {
   "mcpServers": {
-    "ClaudeTalkToFigma": {
+    "FigmaStudioMCP": {
       "command": "npx",
-      "args": ["-y", "claude-talk-to-figma-mcp"]
+      "args": ["-y", "figma-studio-mcp"]
     }
   }
 }
@@ -59,24 +59,24 @@ claude mcp add claude-talk-to-figma -s user -- npx -y claude-talk-to-figma-mcp
 Clone and build the project, then point to the local build:
 
 ```bash
-git clone https://github.com/rintoj/claude-talk-to-figma-mcp.git
-cd claude-talk-to-figma-mcp
+git clone https://github.com/rintoj/figma-studio-mcp.git
+cd figma-studio-mcp
 bun install
 bun run build
 ```
 
 **Claude Code**:
 ```bash
-claude mcp add claude-talk-to-figma -s user -- node /ABSOLUTE/PATH/TO/claude-talk-to-figma-mcp/dist/talk_to_figma_mcp/server.js
+claude mcp add figma-studio-mcp -s user -- node /ABSOLUTE/PATH/TO/figma-studio-mcp/dist/talk_to_figma_mcp/server.js
 ```
 
 **Claude Desktop / Cursor**:
 ```json
 {
   "mcpServers": {
-    "ClaudeTalkToFigma": {
+    "FigmaStudioMCP": {
       "command": "node",
-      "args": ["/ABSOLUTE/PATH/TO/claude-talk-to-figma-mcp/dist/talk_to_figma_mcp/server.js"]
+      "args": ["/ABSOLUTE/PATH/TO/figma-studio-mcp/dist/talk_to_figma_mcp/server.js"]
     }
   }
 }
@@ -95,11 +95,11 @@ Install as a launchd service so the socket server starts automatically on login:
 sed -e "s|\$PROJECT_PATH|$(pwd)|g" \
     -e "s|\$HOME|$HOME|g" \
     -e "s|\$BUN_PATH|$(which bun)|g" \
-    scripts/com.claude-talk-to-figma.socket.plist \
-    > ~/Library/LaunchAgents/com.claude-talk-to-figma.socket.plist
+    scripts/com.figma-studio-mcp.socket.plist \
+    > ~/Library/LaunchAgents/com.figma-studio-mcp.socket.plist
 
 # Load and start the service
-launchctl load ~/Library/LaunchAgents/com.claude-talk-to-figma.socket.plist
+launchctl load ~/Library/LaunchAgents/com.figma-studio-mcp.socket.plist
 ```
 
 #### Option B: Run Manually
@@ -110,7 +110,7 @@ bun run socket
 
 ### Step 4: Connect to Figma
 
-1. In Figma, run the plugin: **Plugins → Development → Claude MCP Plugin**
+1. In Figma, run the plugin: **Plugins → Development → Figma Studio**
 2. The plugin will display a **Channel ID**
 3. Ask Claude to connect using this channel ID (e.g., "Connect to Figma channel abc123")
 
@@ -120,17 +120,17 @@ The socket server runs on port 3055. Verify it's working at `http://localhost:30
 
 ```bash
 # Check status
-launchctl list | grep claude-talk-to-figma
+launchctl list | grep figma-studio-mcp
 
 # Stop the service
-launchctl unload ~/Library/LaunchAgents/com.claude-talk-to-figma.socket.plist
+launchctl unload ~/Library/LaunchAgents/com.figma-studio-mcp.socket.plist
 
 # Restart the service
-launchctl unload ~/Library/LaunchAgents/com.claude-talk-to-figma.socket.plist
-launchctl load ~/Library/LaunchAgents/com.claude-talk-to-figma.socket.plist
+launchctl unload ~/Library/LaunchAgents/com.figma-studio-mcp.socket.plist
+launchctl load ~/Library/LaunchAgents/com.figma-studio-mcp.socket.plist
 
 # View logs
-tail -f ~/Library/Logs/claude-talk-to-figma-socket.log
+tail -f ~/Library/Logs/figma-studio-mcp-socket.log
 ```
 
 ---
@@ -394,7 +394,7 @@ To create your own DXT package:
 ```bash
 npm run build:dxt    # Builds TypeScript and packages DXT
 ```
-This creates `claude-talk-to-figma-mcp.dxt` ready for distribution.
+This creates `figma-studio-mcp.dxt` ready for distribution.
 
 ---
 
@@ -415,7 +415,7 @@ bun run test:integration  # Guided end-to-end testing
 ### Manual Verification Checklist
 - [ ] WebSocket server starts on port 3055
 - [ ] Figma plugin connects and generates channel ID
-- [ ] AI tool recognizes "ClaudeTalkToFigma" MCP (Claude Desktop, Cursor, etc.)
+- [ ] AI tool recognizes "FigmaStudioMCP" MCP (Claude Desktop, Cursor, etc.)
 - [ ] Basic commands execute (create rectangle, change color)
 - [ ] Error handling works (invalid commands, timeouts)
 - [ ] Channel communication works between AI tool and Figma
@@ -510,8 +510,8 @@ src/
 5. **Pull Request**: Clear description of changes
 
 #### Recent Contributors
-- **[Taylor Smits](https://github.com/smitstay)** - DXT Package Support implementation, automated CI/CD workflows, testing improvements, and bug fixes ([PR #17](https://github.com/arinspunk/claude-talk-to-figma-mcp/pull/17), [PR #16](https://github.com/arinspunk/claude-talk-to-figma-mcp/pull/16), [PR #13](https://github.com/arinspunk/claude-talk-to-figma-mcp/pull/13), [PR #14](https://github.com/arinspunk/claude-talk-to-figma-mcp/pull/14))
-- **[easyhak](https://github.com/easyhak)** - Fixed build script not working on Windows OS ([PR #10](https://github.com/arinspunk/claude-talk-to-figma-mcp/pull/10))
+- **[Taylor Smits](https://github.com/smitstay)** - DXT Package Support implementation, automated CI/CD workflows, testing improvements, and bug fixes ([PR #17](https://github.com/arinspunk/figma-studio-mcp/pull/17), [PR #16](https://github.com/arinspunk/figma-studio-mcp/pull/16), [PR #13](https://github.com/arinspunk/figma-studio-mcp/pull/13), [PR #14](https://github.com/arinspunk/figma-studio-mcp/pull/14))
+- **[easyhak](https://github.com/easyhak)** - Fixed build script not working on Windows OS ([PR #10](https://github.com/arinspunk/figma-studio-mcp/pull/10))
 
 ---
 
@@ -564,7 +564,7 @@ src/
 - **🔧 Tool Fix**: The `set_stroke_color` tool now correctly accepts a `strokeWeight` of `0` for creating invisible strokes.
 
 ### Previous: 0.6.0
-- **🚀 DXT Package Support**: one-click installation via Claude Desktop's extension manager (Thanks to [Taylor Smits](https://github.com/smitstay) - [PR #17](https://github.com/arinspunk/claude-talk-to-figma-mcp/pull/17))
+- **🚀 DXT Package Support**: one-click installation via Claude Desktop's extension manager (Thanks to [Taylor Smits](https://github.com/smitstay) - [PR #17](https://github.com/arinspunk/figma-studio-mcp/pull/17))
 - **📦 Automated Distribution**: GitHub Actions workflow for automatic DXT package generation and release uploads
 - **⚡ Enhanced UX**: Installation time reduced from 15-30 minutes to 2-5 minutes for end users
 - **🔧 Developer Tools**: New build scripts for DXT packaging (`npm run build:dxt`, `npm run pack`)

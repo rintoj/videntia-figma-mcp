@@ -2,7 +2,7 @@
 
 set -e
 
-echo "=== Claude Talk to Figma MCP Setup ==="
+echo "=== Figma Studio MCP Setup ==="
 echo ""
 
 # Detect package manager
@@ -49,8 +49,8 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
         read -p "Would you like to install the socket server as a launchd service (auto-starts on login)? [y/N] " -n 1 -r
         echo
         if [[ $REPLY =~ ^[Yy]$ ]]; then
-            PLIST_SRC="scripts/com.claude-talk-to-figma.socket.plist"
-            PLIST_DEST="$HOME/Library/LaunchAgents/com.claude-talk-to-figma.socket.plist"
+            PLIST_SRC="scripts/com.figma-studio-mcp.socket.plist"
+            PLIST_DEST="$HOME/Library/LaunchAgents/com.figma-studio-mcp.socket.plist"
             PROJECT_PATH="$(pwd)"
 
             # Create plist with actual paths
@@ -66,7 +66,7 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
             echo ""
             echo "✓ Launchd service installed and started!"
             echo "  The socket server will auto-start on login."
-            echo "  Logs: ~/Library/Logs/claude-talk-to-figma-socket.log"
+            echo "  Logs: ~/Library/Logs/figma-studio-mcp-socket.log"
         fi
     else
         echo ""

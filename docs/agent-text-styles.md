@@ -1,7 +1,7 @@
 # Agent Instructions: Create or Fix Figma Text Styles Using MCP
 
-**For**: Claude Code Agent **Purpose**: Use ClaudeTalkToFigma MCP plugin to create or fix text
-styles in Figma **MCP Server**: ClaudeTalkToFigma (port 3000)
+**For**: Claude Code Agent **Purpose**: Use FigmaStudioMCP MCP plugin to create or fix text
+styles in Figma **MCP Server**: FigmaStudioMCP (port 3000)
 
 ---
 
@@ -24,7 +24,7 @@ When the user asks you to create or fix text styles in Figma, follow this workfl
 Use the MCP tool to retrieve all text styles:
 
 ```typescript
-mcp__ClaudeTalkToFigma__get_styles()
+mcp__FigmaStudioMCP__get_styles()
 ```
 
 ### Analyze Response
@@ -695,7 +695,7 @@ AskUserQuestion({
 
 ### 5.3 Inform Figma Plugin Limitation
 
-**IMPORTANT**: Currently, the ClaudeTalkToFigma MCP plugin does not have direct tools for creating
+**IMPORTANT**: Currently, the FigmaStudioMCP MCP plugin does not have direct tools for creating
 text style definitions. You can only modify text properties of existing nodes.
 
 When creating text styles, you must:
@@ -742,7 +742,7 @@ Copy these exact specifications:
 
 After creating styles, ask me to verify them using:
 
-- Get all styles: `mcp__ClaudeTalkToFigma__get_styles()`
+- Get all styles: `mcp__FigmaStudioMCP__get_styles()`
 - I'll check all 36 styles were created correctly
 ```
 
@@ -753,7 +753,7 @@ After creating styles, ask me to verify them using:
 ### 6.1 Get All Styles
 
 ```typescript
-const styles = await mcp__ClaudeTalkToFigma__get_styles()
+const styles = await mcp__FigmaStudioMCP__get_styles()
 ```
 
 ### 6.2 Check Completeness
@@ -794,7 +794,7 @@ All text styles are correctly configured! ✨
 ### 7.1 Audit Current Styles
 
 ```typescript
-const styles = await mcp__ClaudeTalkToFigma__get_styles()
+const styles = await mcp__FigmaStudioMCP__get_styles()
 ```
 
 ### 7.2 Categorize Issues
@@ -963,7 +963,7 @@ input/lg (20px) → input/lg (18px)
 When user requests text style creation/fixing:
 
 ```markdown
-I'll help you create/fix text styles in Figma using the ClaudeTalkToFigma MCP plugin.
+I'll help you create/fix text styles in Figma using the FigmaStudioMCP MCP plugin.
 
 First, let me audit your current text styles to understand what needs to be done.
 ```
@@ -996,7 +996,7 @@ Would you like me to:
 ### 9.3 Plugin Limitation Notice
 
 ```markdown
-**Note**: The ClaudeTalkToFigma MCP plugin currently doesn't have direct tools for creating text
+**Note**: The FigmaStudioMCP MCP plugin currently doesn't have direct tools for creating text
 style definitions in Figma. I can:
 
 ✅ Audit existing styles ✅ Provide complete specifications ✅ Generate checklists for manual
@@ -1162,4 +1162,4 @@ Always validate these requirements:
 ---
 
 **Version**: 2.0 (Agent Instructions) **Updated**: 2025-11-20 **For**: Claude Code Agent using
-ClaudeTalkToFigma MCP **Plugin**: ClaudeTalkToFigma (WebSocket port 3000)
+FigmaStudioMCP MCP **Plugin**: FigmaStudioMCP (WebSocket port 3000)
