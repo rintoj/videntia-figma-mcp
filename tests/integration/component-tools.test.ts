@@ -168,11 +168,12 @@ describe("component tools integration", () => {
       expect(mockSendCommand).not.toHaveBeenCalled();
     });
 
-    it("requires nodeIds to be an array", async () => {
-      await expect(callTool("create_component_set", {
+    it("coerces string nodeIds into an array", async () => {
+      mockSendCommand.mockResolvedValue({ id: "set-1", name: "Component Set", variantCount: 1 });
+      const response = await callTool("create_component_set", {
         nodeIds: "comp-1"
-      })).rejects.toThrow();
-      expect(mockSendCommand).not.toHaveBeenCalled();
+      });
+      expect(mockSendCommand).toHaveBeenCalledWith("create_component_set", { nodeIds: ["comp-1"], name: undefined });
     });
 
     it("handles errors gracefully", async () => {

@@ -142,11 +142,15 @@ describe("new document tools integration", () => {
       expect(mockSendCommand).not.toHaveBeenCalled();
     });
 
-    it("requires nodeIds to be an array", async () => {
-      await expect(callTool("set_selections", {
+    it("coerces string nodeIds into an array", async () => {
+      mockSendCommand.mockResolvedValue({
+        selectedNodes: [{ name: "Frame 1", id: "frame-1" }],
+        count: 1
+      });
+      const response = await callTool("set_selections", {
         nodeIds: "frame-1"
-      })).rejects.toThrow();
-      expect(mockSendCommand).not.toHaveBeenCalled();
+      });
+      expect(mockSendCommand).toHaveBeenCalledWith("set_selections", { nodeIds: ["frame-1"] });
     });
 
     it("handles errors gracefully", async () => {
@@ -388,12 +392,18 @@ describe("new document tools integration", () => {
       expect(mockSendCommand).not.toHaveBeenCalled();
     });
 
-    it("requires types to be an array", async () => {
-      await expect(callTool("scan_nodes_by_types", {
+    it("coerces string types into an array", async () => {
+      mockSendCommand.mockResolvedValue({
+        success: true,
+        count: 1,
+        matchingNodes: [{ id: "node-1" }],
+        searchedTypes: ["FRAME"]
+      });
+      const response = await callTool("scan_nodes_by_types", {
         nodeId: "parent-123",
         types: "FRAME"
-      })).rejects.toThrow();
-      expect(mockSendCommand).not.toHaveBeenCalled();
+      });
+      expect(mockSendCommand).toHaveBeenCalledWith("scan_nodes_by_types", { nodeId: "parent-123", types: ["FRAME"] });
     });
 
     it("handles non-standard result format", async () => {
