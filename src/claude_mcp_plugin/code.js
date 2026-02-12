@@ -6565,7 +6565,7 @@ async function setAnnotation(params) {
   const existingAnnotations = (node.annotations || []).map(a => {
     const copy = { labelMarkdown: a.labelMarkdown || "" };
     if (a.categoryId) copy.categoryId = a.categoryId;
-    if (a.properties) copy.properties = a.properties.map(p => ({ ...p }));
+    if (a.properties) copy.properties = a.properties.map(p => Object.assign({}, p));
     return copy;
   });
 
