@@ -1,4 +1,4 @@
-# Claude Talk to Figma MCP - Project Guide
+# Claude Figma MCP - Project Guide
 
 ## Overview
 
@@ -36,7 +36,7 @@ bun run socket           # Start WebSocket server
 
 ```
 src/
-├── talk_to_figma_mcp/
+├── claude_figma_mcp/
 │   ├── server.ts                    # MCP server entry point
 │   ├── tools/
 │   │   ├── variable-tools.ts        # Variable management (24 tools)
@@ -149,7 +149,7 @@ Built-in accessibility validation:
 
 ### Adding New MCP Tools
 
-1. **Define tool in appropriate file** (`src/talk_to_figma_mcp/tools/*.ts`)
+1. **Define tool in appropriate file** (`src/claude_figma_mcp/tools/*.ts`)
 ```typescript
 server.tool(
   "tool_name",
@@ -172,7 +172,7 @@ case "tool_name":
   return await toolNameHandler(params);
 ```
 
-3. **Update type definitions** (`src/talk_to_figma_mcp/types/index.ts`)
+3. **Update type definitions** (`src/claude_figma_mcp/types/index.ts`)
 ```typescript
 export type FigmaCommand =
   | "existing_command"

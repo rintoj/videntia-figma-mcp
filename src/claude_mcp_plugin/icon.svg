@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#6D28D9"/>
+      <stop offset="100%" stop-color="#2563EB"/>
+    </linearGradient>
+  </defs>
+  <!-- Background -->
+  <rect width="32" height="32" rx="7" fill="url(#bg)"/>
+  <!-- Pen cursor / vector tool pointing down-left -->
+  <polygon points="8,24 10,14 14,18" fill="white" opacity="0.95"/>
+  <polygon points="10,14 22,6 14,18" fill="white" opacity="0.75"/>
+  <line x1="8" y1="24" x2="10.5" y2="21.5" stroke="white" stroke-width="1.5" stroke-linecap="round" opacity="0.95"/>
+  <!-- AI sparkle - top right -->
+  <path d="M24 10 L25 13 L28 14 L25 15 L24 18 L23 15 L20 14 L23 13 Z" fill="white" opacity="0.9"/>
+  <!-- Small sparkle accent -->
+  <path d="M17 23 L17.5 24.5 L19 25 L17.5 25.5 L17 27 L16.5 25.5 L15 25 L16.5 24.5 Z" fill="white" opacity="0.55"/>
+</svg>

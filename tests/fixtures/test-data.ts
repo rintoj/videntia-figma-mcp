@@ -1,4 +1,4 @@
-import { Color, ColorWithDefaults } from '../../src/talk_to_figma_mcp/types/color';
+import { Color, ColorWithDefaults } from '../../src/claude_figma_mcp/types/color';
 
 export const testColors: Record<string, Color> = {
   fullyTransparent: { r: 1, g: 0, b: 0, a: 0 },

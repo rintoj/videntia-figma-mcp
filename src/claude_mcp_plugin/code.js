@@ -1,4 +1,4 @@
-// This is the main code file for the Claude MCP Figma plugin
+// This is the main code file for the Claude Figma MCP plugin
 // It handles Figma API commands
 
 // Plugin state
@@ -83,10 +83,6 @@ figma.ui.onmessage = async (msg) => {
   }
 };
 
-// Listen for plugin commands from menu
-figma.on("run", ({ command }) => {
-  figma.ui.postMessage({ type: "auto-connect" });
-});
 
 // Update plugin settings
 function updateSettings(settings) {

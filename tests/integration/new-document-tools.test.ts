@@ -1,8 +1,8 @@
 import { z } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { registerDocumentTools } from '../../src/talk_to_figma_mcp/tools/document-tools';
+import { registerDocumentTools } from '../../src/claude_figma_mcp/tools/document-tools';
 
-jest.mock('../../src/talk_to_figma_mcp/utils/websocket', () => ({
+jest.mock('../../src/claude_figma_mcp/utils/websocket', () => ({
   sendCommandToFigma: jest.fn(),
   joinChannel: jest.fn()
 }));
@@ -19,7 +19,7 @@ describe("new document tools integration", () => {
       { capabilities: { tools: {} } }
     );
 
-    mockSendCommand = require('../../src/talk_to_figma_mcp/utils/websocket').sendCommandToFigma;
+    mockSendCommand = require('../../src/claude_figma_mcp/utils/websocket').sendCommandToFigma;
     mockSendCommand.mockClear();
 
     toolHandlers = new Map();

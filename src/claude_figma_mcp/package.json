@@ -1,5 +1,5 @@
 {
-  "name": "talk-to-figma-mcp",
+  "name": "claude-figma-mcp",
   "version": "0.5.1",
   "description": "MCP server for Figma integration",
   "main": "server.ts",

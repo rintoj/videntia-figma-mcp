@@ -8,7 +8,7 @@ import {
   getScaleVariableNames,
   isStandardVariable,
   getStandardVariableOrder
-} from '../../../src/talk_to_figma_mcp/utils/theme-schema';
+} from '../../../src/claude_figma_mcp/utils/theme-schema';
 
 describe('Theme Schema', () => {
   describe('getStandardSchema', () => {
