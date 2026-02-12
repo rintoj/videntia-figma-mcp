@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { sendCommandToFigma } from "../utils/websocket";
+import { coerceArray } from "../utils/coerce-array.js";
 
 /**
  * Register component-related tools to the MCP server
@@ -115,7 +116,7 @@ export function registerComponentTools(server: McpServer): void {
     "create_component_set",
     "Combine multiple components into a component set (variants) in Figma",
     {
-      nodeIds: z.array(z.string()).describe("Array of component node IDs to combine into a component set"),
+      nodeIds: coerceArray(z.array(z.string())).describe("Array of component node IDs to combine into a component set"),
       name: z.string().optional().describe("Optional name for the component set"),
     },
     async ({ nodeIds, name }) => {
@@ -148,7 +149,7 @@ export function registerComponentTools(server: McpServer): void {
     "get_reactions",
     "Get Figma Prototyping Reactions from multiple nodes",
     {
-      nodeIds: z.array(z.string())
+      nodeIds: coerceArray(z.array(z.string()))
         .describe("Array of node IDs to get reactions from")
     },
     async ({ nodeIds }) => {
@@ -215,12 +216,12 @@ export function registerComponentTools(server: McpServer): void {
     "create_connections",
     "Create connections between nodes using the default connector style",
     {
-      connections: z.array(z.object({
+      connections: coerceArray(z.array(z.object({
         startNodeId: z.string().describe("ID of the starting node"),
         endNodeId: z.string().describe("ID of the ending node"),
         text: z.string().optional()
           .describe("Optional text to display on the connector")
-      })).describe("Array of node connections to create")
+      }))).describe("Array of node connections to create")
     },
     async ({ connections }) => {
       try {
@@ -308,7 +309,7 @@ export function registerComponentTools(server: McpServer): void {
     {
       sourceInstanceId: z.string()
         .describe("ID of the source component instance"),
-      targetNodeIds: z.array(z.string())
+      targetNodeIds: coerceArray(z.array(z.string()))
         .describe("Array of target instance IDs")
     },
     async ({ sourceInstanceId, targetNodeIds }) => {
@@ -413,10 +414,10 @@ export function registerComponentTools(server: McpServer): void {
       propertyName: z.string().describe("The full property name including the #ID suffix (e.g., 'Show Icon#123:456')"),
       newName: z.string().optional().describe("New name for the property"),
       newDefaultValue: z.union([z.boolean(), z.string()]).optional().describe("New default value"),
-      preferredValues: z.array(z.object({
+      preferredValues: coerceArray(z.array(z.object({
         type: z.enum(["COMPONENT", "COMPONENT_SET"]),
         key: z.string(),
-      })).optional().describe("Preferred values for INSTANCE_SWAP properties"),
+      }))).optional().describe("Preferred values for INSTANCE_SWAP properties"),
     },
     async ({ nodeId, propertyName, newName, newDefaultValue, preferredValues }) => {
       try {

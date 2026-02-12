@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { sendCommandToFigma } from "../utils/websocket.js";
+import { coerceArray } from "../utils/coerce-array.js";
 import {
   calculateColorScale,
   calculateCompositeColor,
@@ -283,11 +284,11 @@ export function registerVariableTools(server: McpServer): void {
     "Create multiple variables at once (more efficient than individual calls, supports all types)",
     {
       collection_id: z.string().describe("Collection ID or name"),
-      variables: z.array(z.object({
+      variables: coerceArray(z.array(z.object({
         name: z.string(),
         type: z.enum(["COLOR", "FLOAT", "STRING", "BOOLEAN"]),
         value: z.union([RGBAColorSchema, z.number(), z.string(), z.boolean()])
-      })).describe("Array of variable definitions"),
+      }))).describe("Array of variable definitions"),
       mode: z.string().optional().describe("Mode to set values for")
     },
     async ({ collection_id, variables, mode }) => {
@@ -447,7 +448,7 @@ export function registerVariableTools(server: McpServer): void {
     "delete_variables_batch",
     "Delete multiple variables at once",
     {
-      variable_ids: z.array(z.string()).describe("Array of variable IDs or names"),
+      variable_ids: coerceArray(z.array(z.string())).describe("Array of variable IDs or names"),
       collection_id: z.string().optional().describe("Collection ID (required if using names)")
     },
     async ({ variable_ids, collection_id }) => {
@@ -960,7 +961,7 @@ export function registerVariableTools(server: McpServer): void {
     "Reorder variables to match standard organization",
     {
       collection_id: z.string().describe("Collection ID or name"),
-      order: z.union([z.literal("standard"), z.array(z.string())]).optional().describe("'standard' or custom order array")
+      order: z.union([z.literal("standard"), coerceArray(z.array(z.string()))]).optional().describe("'standard' or custom order array")
     },
     async ({ collection_id, order }) => {
       try {
@@ -1202,7 +1203,7 @@ export function registerVariableTools(server: McpServer): void {
     "Add 8 chart colors to collection",
     {
       collection_id: z.string().describe("Collection ID or name"),
-      chart_colors: z.array(RGBAColorSchema).optional().describe("Custom chart colors (default: use standard palette)")
+      chart_colors: coerceArray(z.array(RGBAColorSchema)).optional().describe("Custom chart colors (default: use standard palette)")
     },
     async ({ collection_id, chart_colors }) => {
       try {
@@ -1611,7 +1612,7 @@ export function registerVariableTools(server: McpServer): void {
     "Initialize a complete design system with colors, spacing, typography, and radius in one command",
     {
       collection_name: z.string().optional().default("Design Tokens").describe("Name for the collection"),
-      modes: z.array(z.string()).optional().default(["Light", "Dark"]).describe("Modes to create (e.g., ['Light', 'Dark'])"),
+      modes: coerceArray(z.array(z.string())).optional().default(["Light", "Dark"]).describe("Modes to create (e.g., ['Light', 'Dark'])"),
       color_preset: z.enum(["default", "custom"]).optional().default("default").describe("Color preset to use"),
       custom_colors: z.any().optional().describe("Custom color values (if color_preset is 'custom')"),
       spacing_preset: z.enum(["8pt", "4pt", "tailwind", "material"]).optional().default("8pt").describe("Spacing system preset"),
