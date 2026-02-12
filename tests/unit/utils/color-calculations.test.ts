@@ -9,7 +9,7 @@ import {
   hexToRgba,
   getWCAGCompliance,
   getContrastRecommendation
-} from '../../../src/talk_to_figma_mcp/utils/color-calculations';
+} from '../../../src/claude_figma_mcp/utils/color-calculations';
 
 describe('Color Calculations', () => {
   describe('calculateCompositeColor', () => {

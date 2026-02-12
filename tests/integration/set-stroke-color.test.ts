@@ -1,8 +1,8 @@
 import { z } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { registerModificationTools } from '../../src/talk_to_figma_mcp/tools/modification-tools';
+import { registerModificationTools } from '../../src/claude_figma_mcp/tools/modification-tools';
 
-jest.mock('../../src/talk_to_figma_mcp/utils/websocket', () => ({
+jest.mock('../../src/claude_figma_mcp/utils/websocket', () => ({
   sendCommandToFigma: jest.fn().mockResolvedValue({ name: "MockNode" })
 }));
 
@@ -18,7 +18,7 @@ describe("set_stroke_color tool integration", () => {
       { capabilities: { tools: {} } }
     );
     
-    mockSendCommand = require('../../src/talk_to_figma_mcp/utils/websocket').sendCommandToFigma;
+    mockSendCommand = require('../../src/claude_figma_mcp/utils/websocket').sendCommandToFigma;
     mockSendCommand.mockClear();
     
     const originalTool = server.tool.bind(server);

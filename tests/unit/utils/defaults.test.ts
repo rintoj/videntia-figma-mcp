@@ -1,4 +1,4 @@
-import { applyDefault, applyColorDefaults, FIGMA_DEFAULTS } from '../../../src/talk_to_figma_mcp/utils/defaults';
+import { applyDefault, applyColorDefaults, FIGMA_DEFAULTS } from '../../../src/claude_figma_mcp/utils/defaults';
 import { testColors, expectedColorWithDefaults } from '../../fixtures/test-data';
 
 describe('defaults utilities', () => {

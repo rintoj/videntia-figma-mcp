@@ -2,7 +2,7 @@
   "lockfileVersion": 1,
   "workspaces": {
     "": {
-      "name": "talk-to-figma-mcp",
+      "name": "claude-figma-mcp",
       "dependencies": {
         "@modelcontextprotocol/sdk": "^1.4.0",
         "uuid": "^9.0.1",

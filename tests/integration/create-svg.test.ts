@@ -1,8 +1,8 @@
 import { z } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { registerCreationTools } from '../../src/talk_to_figma_mcp/tools/creation-tools';
+import { registerCreationTools } from '../../src/claude_figma_mcp/tools/creation-tools';
 
-jest.mock('../../src/talk_to_figma_mcp/utils/websocket', () => ({
+jest.mock('../../src/claude_figma_mcp/utils/websocket', () => ({
   sendCommandToFigma: jest.fn()
 }));
 
@@ -18,7 +18,7 @@ describe("create_svg tool", () => {
       { capabilities: { tools: {} } }
     );
 
-    mockSendCommand = require('../../src/talk_to_figma_mcp/utils/websocket').sendCommandToFigma;
+    mockSendCommand = require('../../src/claude_figma_mcp/utils/websocket').sendCommandToFigma;
     mockSendCommand.mockClear();
 
     toolHandlers = new Map();
