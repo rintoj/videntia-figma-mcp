@@ -1,12 +1,12 @@
 {
-  "name": "figma-studio-mcp",
-  "description": "Figma Studio MCP - AI-powered design tool for Figma",
+  "name": "claude-figma-mcp",
+  "description": "Claude Figma MCP - AI-powered design tool for Figma",
   "version": "0.9.0",
-  "module": "dist/talk_to_figma_mcp/server.js",
-  "main": "dist/talk_to_figma_mcp/server.js",
+  "module": "dist/claude_figma_mcp/server.js",
+  "main": "dist/claude_figma_mcp/server.js",
   "bin": {
-    "figma-studio-mcp": "dist/talk_to_figma_mcp/server.js",
-    "figma-studio-mcp-socket": "dist/socket.js"
+    "claude-figma-mcp": "dist/claude_figma_mcp/server.js",
+    "claude-figma-mcp-socket": "dist/socket.js"
   },
   "files": [
     "dist",
@@ -17,10 +17,10 @@
   ],
   "type": "module",
   "scripts": {
-    "start": "bun run dist/talk_to_figma_mcp/server.js",
+    "start": "bun run dist/claude_figma_mcp/server.js",
     "socket": "bun run dist/socket.js",
     "setup": "./scripts/setup.sh",
-    "build": "tsup && chmod +x dist/talk_to_figma_mcp/server.js dist/socket.js",
+    "build": "tsup && chmod +x dist/claude_figma_mcp/server.js dist/socket.js",
     "build:win": "tsup",
     "build:watch": "tsup --watch",
     "dev": "bun run build:watch",
@@ -59,14 +59,14 @@
     "design",
     "automation"
   ],
-  "author": "Xúlio Zé",
+  "author": "rintoj",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/rintoj/figma-studio-mcp.git"
+    "url": "git+https://github.com/rintoj/claude-figma-mcp.git"
   },
   "bugs": {
-    "url": "https://github.com/rintoj/figma-studio-mcp/issues"
+    "url": "https://github.com/rintoj/claude-figma-mcp/issues"
   },
-  "homepage": "https://github.com/rintoj/figma-studio-mcp#readme"
+  "homepage": "https://github.com/rintoj/claude-figma-mcp#readme"
 }

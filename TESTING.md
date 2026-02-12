@@ -1,6 +1,6 @@
-# Testing Guide for Figma Studio MCP
+# Testing Guide for Claude Figma MCP
 
-This document provides a detailed guide for testing the Figma Studio MCP project, including both automated tests and manual integration tests.
+This document provides a detailed guide for testing the Claude Figma MCP project, including both automated tests and manual integration tests.
 
 ## Testing Approaches
 
@@ -105,7 +105,7 @@ This script will guide you through the complete testing process.
 To test if the Figma plugin is correctly communicating with the Claude MCP server:
 
 1. Start the WebSocket server
-2. Open Figma and run the Figma Studio from your Development plugins
+2. Open Figma and run the Claude Figma MCP plugin from your Development plugins
 3. Connect to the WebSocket server 
 4. Open Claude Desktop and select the "FigmaStudioMCP" MCP
 5. Test a simple command in Claude like: "Can you show me information about my current Figma document?"

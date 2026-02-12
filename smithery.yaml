@@ -21,6 +21,6 @@ startCommand:
 
       return {
         command: isBunAvailable ? 'bunx' : 'npx',
-        args: ['figma-studio-mcp@latest']
+        args: ['claude-figma-mcp@latest']
       };
     }

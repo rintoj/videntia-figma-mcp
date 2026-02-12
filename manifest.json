@@ -1,20 +1,20 @@
 {
   "dxt_version": "0.1",
-  "name": "figma-studio-mcp",
-  "display_name": "Figma Studio MCP",
+  "name": "claude-figma-mcp",
+  "display_name": "Claude Figma MCP",
   "description": "AI-powered design tool for Figma - enables Claude and other AI tools to interact directly with Figma for AI-assisted design capabilities.",
   "version": "0.6.0",
   "author": {
-    "name": "Xúlio Zé",
-    "url": "https://github.com/arinspunk"
+    "name": "rintoj",
+    "url": "https://github.com/rintoj"
   },
   "license": "MIT",
-  "homepage": "https://github.com/rintoj/figma-studio-mcp",
+  "homepage": "https://github.com/rintoj/claude-figma-mcp",
   "repository": {
     "type": "git",
-    "url": "https://github.com/rintoj/figma-studio-mcp.git"
+    "url": "https://github.com/rintoj/claude-figma-mcp.git"
   },
-  "icon": "images/claude-talk-to-figma.png",
+  "icon": "images/claude-figma-mcp-icon.png",
   "compatibility": {
     "platforms": [
       "darwin",
@@ -24,11 +24,11 @@
   },
   "server": {
     "type": "node",
-    "entry_point": "dist/talk_to_figma_mcp/server.cjs",
+    "entry_point": "dist/claude_figma_mcp/server.cjs",
     "mcp_config": {
       "command": "node",
       "args": [
-        "${__dirname}/dist/talk_to_figma_mcp/server.cjs"
+        "${__dirname}/dist/claude_figma_mcp/server.cjs"
       ],
       "env": {
         "NODE_ENV": "production"

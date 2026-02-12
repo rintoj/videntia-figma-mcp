@@ -1,0 +1,3 @@
+#!/bin/bash
+cd "$BUN_PROJECT_PATH"
+exec "$BUN_EXEC_PATH" run dist/socket.js

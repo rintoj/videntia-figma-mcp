@@ -1,4 +1,4 @@
-// This is the main code file for the Claude MCP Figma plugin
+// This is the main code file for the Claude Figma MCP plugin
 // It handles Figma API commands
 
 // Plugin state

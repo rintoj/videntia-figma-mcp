@@ -3,13 +3,11 @@
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>com.figma-studio-mcp.socket</string>
+    <string>com.claude-figma-mcp.socket</string>
 
     <key>ProgramArguments</key>
     <array>
-        <string>$BUN_PATH</string>
-        <string>run</string>
-        <string>dist/socket.js</string>
+        <string>$PROJECT_PATH/scripts/Claude Figma MCP.app/Contents/MacOS/Claude Figma MCP</string>
     </array>
 
     <key>WorkingDirectory</key>
@@ -22,15 +20,19 @@
     <true/>
 
     <key>StandardOutPath</key>
-    <string>$HOME/Library/Logs/figma-studio-mcp-socket.log</string>
+    <string>$HOME/Library/Logs/claude-figma-mcp-socket.log</string>
 
     <key>StandardErrorPath</key>
-    <string>$HOME/Library/Logs/figma-studio-mcp-socket.error.log</string>
+    <string>$HOME/Library/Logs/claude-figma-mcp-socket.error.log</string>
 
     <key>EnvironmentVariables</key>
     <dict>
         <key>PATH</key>
         <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+        <key>BUN_EXEC_PATH</key>
+        <string>$BUN_PATH</string>
+        <key>BUN_PROJECT_PATH</key>
+        <string>$PROJECT_PATH</string>
     </dict>
 </dict>
 </plist>
