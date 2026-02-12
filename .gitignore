@@ -2,6 +2,7 @@ node_modules/
 dist/
 coverage/
 .cursor/
+.serena/
 
 # NPM lock file (project uses Bun as primary package manager)
 package-lock.json
