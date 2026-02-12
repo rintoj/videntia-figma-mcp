@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { sendCommandToFigma } from "../utils/websocket";
+import { coerceArray } from "../utils/coerce-array.js";
 
 /**
  * Register creation tools to the MCP server
@@ -425,7 +426,7 @@ export function registerCreationTools(server: McpServer): void {
     "group_nodes",
     "Group nodes in Figma",
     {
-      nodeIds: z.array(z.string()).describe("Array of IDs of the nodes to group"),
+      nodeIds: coerceArray(z.array(z.string())).describe("Array of IDs of the nodes to group"),
       name: z.string().optional().describe("Optional name for the group")
     },
     async ({ nodeIds, name }) => {

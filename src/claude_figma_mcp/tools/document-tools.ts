@@ -3,6 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { sendCommandToFigma, joinChannel } from "../utils/websocket.js";
 import { filterFigmaNode } from "../utils/figma-helpers.js";
 import { figmaAccessToken, FIGMA_API_BASE_URL } from "../config/config.js";
+import { coerceArray } from "../utils/coerce-array.js";
 
 /**
  * Register document-related tools to the MCP server
@@ -104,7 +105,7 @@ export function registerDocumentTools(server: McpServer): void {
     "set_selections",
     "Set selection to multiple nodes in Figma and scroll viewport to show them",
     {
-      nodeIds: z.array(z.string()).describe("Array of node IDs to select")
+      nodeIds: coerceArray(z.array(z.string())).describe("Array of node IDs to select")
     },
     async ({ nodeIds }) => {
       try {
@@ -185,7 +186,7 @@ export function registerDocumentTools(server: McpServer): void {
       labelMarkdown: z.string().describe("The annotation text in markdown format"),
       categoryId: z.string().optional()
         .describe("The ID of the annotation category"),
-      properties: z.array(z.object({ type: z.string() }))
+      properties: coerceArray(z.array(z.object({ type: z.string() })))
         .optional()
         .describe("Additional properties for the annotation")
     },
@@ -226,7 +227,7 @@ export function registerDocumentTools(server: McpServer): void {
     {
       nodeId: z.string()
         .describe("The ID of the node containing elements to annotate"),
-      annotations: z.array(
+      annotations: coerceArray(z.array(
         z.object({
           nodeId: z.string().describe("The ID of the node to annotate"),
           labelMarkdown: z.string()
@@ -235,11 +236,11 @@ export function registerDocumentTools(server: McpServer): void {
             .describe("The ID of the annotation category"),
           annotationId: z.string().optional()
             .describe("The ID of the annotation to update"),
-          properties: z.array(z.object({ type: z.string() }))
+          properties: coerceArray(z.array(z.object({ type: z.string() })))
             .optional()
             .describe("Additional properties for the annotation")
         })
-      ).describe("Array of annotations to apply")
+      )).describe("Array of annotations to apply")
     },
     async ({ nodeId, annotations }) => {
       try {
@@ -443,7 +444,7 @@ export function registerDocumentTools(server: McpServer): void {
     "Scan for child nodes with specific types in the selected Figma node",
     {
       nodeId: z.string().describe("ID of the node to scan"),
-      types: z.array(z.string())
+      types: coerceArray(z.array(z.string()))
         .describe("Array of node types (e.g. ['COMPONENT', 'FRAME'])")
     },
     async ({ nodeId, types }) => {
@@ -527,12 +528,12 @@ export function registerDocumentTools(server: McpServer): void {
     "Get detailed information about a specific node in Figma",
     {
       nodeId: z.string().describe("The ID of the node to get information about"),
-      fields: z.array(z.enum([
+      fields: coerceArray(z.array(z.enum([
         "id", "name", "type", "fills", "strokes", "cornerRadius",
         "absoluteBoundingBox", "characters", "style", "children",
         "effects", "opacity", "blendMode", "constraints", "layoutMode",
         "padding", "itemSpacing", "componentProperties"
-      ])).optional().describe(
+      ]))).optional().describe(
         "Optional array of fields to include in the response. If not specified, returns: id, name, type, fills, strokes, cornerRadius, absoluteBoundingBox, characters, style. Available fields: id, name, type, fills, strokes, cornerRadius, absoluteBoundingBox, characters, style, children, effects, opacity, blendMode, constraints, layoutMode, padding, itemSpacing, componentProperties"
       ),
       stripImages: z.boolean().optional().default(true).describe(
@@ -568,13 +569,13 @@ export function registerDocumentTools(server: McpServer): void {
     "get_nodes_info",
     "Get detailed information about multiple nodes in Figma",
     {
-      nodeIds: z.array(z.string()).describe("Array of node IDs to get information about"),
-      fields: z.array(z.enum([
+      nodeIds: coerceArray(z.array(z.string())).describe("Array of node IDs to get information about"),
+      fields: coerceArray(z.array(z.enum([
         "id", "name", "type", "fills", "strokes", "cornerRadius",
         "absoluteBoundingBox", "characters", "style", "children",
         "effects", "opacity", "blendMode", "constraints", "layoutMode",
         "padding", "itemSpacing", "componentProperties"
-      ])).optional().describe(
+      ]))).optional().describe(
         "Optional array of fields to include in the response. If not specified, returns: id, name, type, fills, strokes, cornerRadius, absoluteBoundingBox, characters, style. Available fields: id, name, type, fills, strokes, cornerRadius, absoluteBoundingBox, characters, style, children, effects, opacity, blendMode, constraints, layoutMode, padding, itemSpacing, componentProperties"
       ),
       stripImages: z.boolean().optional().default(true).describe(

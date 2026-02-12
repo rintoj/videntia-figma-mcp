@@ -75,11 +75,12 @@ describe("new component tools integration", () => {
       expect(mockSendCommand).not.toHaveBeenCalled();
     });
 
-    it("requires nodeIds to be an array", async () => {
-      await expect(callTool("get_reactions", {
+    it("coerces string nodeIds into an array", async () => {
+      mockSendCommand.mockResolvedValue({ reactions: [] });
+      const response = await callTool("get_reactions", {
         nodeIds: "btn-1"
-      })).rejects.toThrow();
-      expect(mockSendCommand).not.toHaveBeenCalled();
+      });
+      expect(mockSendCommand).toHaveBeenCalledWith("get_reactions", { nodeIds: ["btn-1"] });
     });
 
     it("handles errors gracefully", async () => {
@@ -305,12 +306,13 @@ describe("new component tools integration", () => {
       expect(mockSendCommand).not.toHaveBeenCalled();
     });
 
-    it("requires targetNodeIds to be an array", async () => {
-      await expect(callTool("set_instance_overrides", {
+    it("coerces string targetNodeIds into an array", async () => {
+      mockSendCommand.mockResolvedValue({ success: true, message: "OK", totalCount: 1, results: [{ success: true }] });
+      const response = await callTool("set_instance_overrides", {
         sourceInstanceId: "source-123",
         targetNodeIds: "target-1"
-      })).rejects.toThrow();
-      expect(mockSendCommand).not.toHaveBeenCalled();
+      });
+      expect(mockSendCommand).toHaveBeenCalledWith("set_instance_overrides", { sourceInstanceId: "source-123", targetNodeIds: ["target-1"] });
     });
 
     it("handles errors gracefully", async () => {
