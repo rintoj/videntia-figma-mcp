@@ -85,7 +85,6 @@ figma.ui.onmessage = async (msg) => {
 
 // Listen for plugin commands from menu
 figma.on("run", ({ command }) => {
-  figma.ui.postMessage({ type: "auto-connect" });
 });
 
 // Update plugin settings

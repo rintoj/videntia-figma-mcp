@@ -260,6 +260,22 @@
         portInput.disabled = isConnected;
       }
 
+      // Copy text to clipboard
+      function copyToClipboard(text) {
+        try {
+          const textarea = document.createElement("textarea");
+          textarea.value = text;
+          textarea.style.position = "fixed";
+          textarea.style.opacity = "0";
+          document.body.appendChild(textarea);
+          textarea.select();
+          document.execCommand("copy");
+          document.body.removeChild(textarea);
+        } catch (e) {
+          console.error("Failed to copy to clipboard:", e);
+        }
+      }
+
       // Connect to WebSocket server
       async function connectToServer(port) {
         try {
@@ -296,17 +312,19 @@
                 if (data.message && data.message.result) {
                   state.connected = true;
                   const channelName = data.channel;
+
                   updateConnectionStatus(
                     true,
                     `Channel: <strong>${channelName}</strong>`
                   );
+                  copyToClipboard(channelName);
 
                   // Notify the plugin code
                   parent.postMessage(
                     {
                       pluginMessage: {
                         type: "notify",
-                        message: `Channel: ${channelName}`,
+                        message: `Channel: ${channelName} (copied to clipboard)`,
                       },
                     },
                     "*"
