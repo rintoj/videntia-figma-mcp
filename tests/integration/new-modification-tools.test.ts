@@ -72,11 +72,12 @@ describe("new modification tools integration", () => {
       expect(mockSendCommand).not.toHaveBeenCalled();
     });
 
-    it("requires nodeIds to be an array", async () => {
-      await expect(callTool("delete_multiple_nodes", {
+    it("coerces string nodeIds into an array", async () => {
+      mockSendCommand.mockResolvedValue({ deleted: ["node-1"] });
+      const response = await callTool("delete_multiple_nodes", {
         nodeIds: "node-1"
-      })).rejects.toThrow();
-      expect(mockSendCommand).not.toHaveBeenCalled();
+      });
+      expect(mockSendCommand).toHaveBeenCalledWith("delete_multiple_nodes", { nodeIds: ["node-1"] });
     });
 
     it("handles errors gracefully", async () => {

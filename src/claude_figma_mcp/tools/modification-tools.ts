@@ -3,6 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { sendCommandToFigma } from "../utils/websocket";
 import { applyColorDefaults, applyDefault, FIGMA_DEFAULTS } from "../utils/defaults";
 import { Color } from "../types/color";
+import { coerceArray } from "../utils/coerce-array.js";
 
 /**
  * Register modification tools to the MCP server
@@ -217,7 +218,7 @@ export function registerModificationTools(server: McpServer): void {
     "delete_multiple_nodes",
     "Delete multiple nodes from Figma at once",
     {
-      nodeIds: z.array(z.string()).describe("Array of node IDs to delete")
+      nodeIds: coerceArray(z.array(z.string())).describe("Array of node IDs to delete")
     },
     async ({ nodeIds }) => {
       try {
@@ -598,7 +599,7 @@ export function registerModificationTools(server: McpServer): void {
     "Set the visual effects of a node in Figma",
     {
       nodeId: z.string().describe("The ID of the node to modify"),
-      effects: z.array(
+      effects: coerceArray(z.array(
         z.object({
           type: z.enum(["DROP_SHADOW", "INNER_SHADOW", "LAYER_BLUR", "BACKGROUND_BLUR"]).describe("Effect type"),
           color: z.object({
@@ -616,7 +617,7 @@ export function registerModificationTools(server: McpServer): void {
           visible: z.boolean().optional().describe("Whether the effect is visible"),
           blendMode: z.string().optional().describe("Blend mode")
         })
-      ).describe("Array of effects to apply")
+      )).describe("Array of effects to apply")
     },
     async ({ nodeId, effects }) => {
       try {
