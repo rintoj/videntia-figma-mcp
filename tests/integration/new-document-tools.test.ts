@@ -164,10 +164,14 @@ describe("new document tools integration", () => {
   describe("get_annotations", () => {
     beforeEach(() => {
       mockSendCommand.mockResolvedValue({
+        success: true,
+        nodeId: "frame-123",
+        nodeName: "Test Frame",
+        nodeType: "FRAME",
+        annotationCount: 1,
         annotations: [
-          { id: "ann-1", label: "Annotation 1" }
-        ],
-        categories: []
+          { index: 0, label: "Annotation 1", labelMarkdown: "Annotation 1" }
+        ]
       });
     });
 
@@ -181,7 +185,8 @@ describe("new document tools integration", () => {
         nodeId: "frame-123",
         includeCategories: true
       });
-      expect(response.content[0].text).toContain("ann-1");
+      expect(response.content[0].text).toContain("Annotation 1");
+      expect(response.content[0].text).toContain('"annotationCount":1');
     });
 
     it("accepts includeCategories parameter", async () => {
@@ -215,9 +220,12 @@ describe("new document tools integration", () => {
   describe("set_annotation", () => {
     beforeEach(() => {
       mockSendCommand.mockResolvedValue({
-        id: "ann-123",
+        success: true,
         nodeId: "frame-123",
-        label: "Test annotation"
+        nodeName: "Test Frame",
+        annotationIndex: 0,
+        totalAnnotations: 1,
+        annotation: { labelMarkdown: "Test annotation" }
       });
     });
 
@@ -235,12 +243,13 @@ describe("new document tools integration", () => {
         categoryId: undefined,
         properties: undefined
       });
+      expect(response.content[0].text).toContain('"success":true');
     });
 
     it("accepts optional parameters", async () => {
       await callTool("set_annotation", {
         nodeId: "frame-123",
-        annotationId: "ann-existing",
+        annotationId: "0",
         labelMarkdown: "Updated annotation",
         categoryId: "cat-1",
         properties: [{ type: "status" }]
@@ -248,7 +257,7 @@ describe("new document tools integration", () => {
 
       expect(mockSendCommand).toHaveBeenCalledWith("set_annotation", {
         nodeId: "frame-123",
-        annotationId: "ann-existing",
+        annotationId: "0",
         labelMarkdown: "Updated annotation",
         categoryId: "cat-1",
         properties: [{ type: "status" }]
@@ -348,6 +357,179 @@ describe("new document tools integration", () => {
       });
 
       expect(response.content[0].text).toContain("Error setting multiple annotations");
+    });
+  });
+
+  describe("get_annotation_categories", () => {
+    beforeEach(() => {
+      mockSendCommand.mockResolvedValue({
+        success: true,
+        count: 2,
+        categories: [
+          { id: "cat-1", label: "Development", color: "blue", isPreset: true },
+          { id: "cat-2", label: "Custom", color: "green", isPreset: false }
+        ]
+      });
+    });
+
+    it("successfully gets annotation categories", async () => {
+      const response = await callTool("get_annotation_categories", {});
+
+      expect(mockSendCommand).toHaveBeenCalledTimes(1);
+      expect(mockSendCommand).toHaveBeenCalledWith("get_annotation_categories");
+      expect(response.content[0].text).toContain("Development");
+      expect(response.content[0].text).toContain("Custom");
+    });
+
+    it("handles errors gracefully", async () => {
+      mockSendCommand.mockRejectedValue(new Error("API error"));
+
+      const response = await callTool("get_annotation_categories", {});
+
+      expect(response.content[0].text).toContain("Error getting annotation categories");
+    });
+  });
+
+  describe("create_annotation_category", () => {
+    beforeEach(() => {
+      mockSendCommand.mockResolvedValue({
+        success: true,
+        category: { id: "cat-new", label: "Review", color: "green", isPreset: false }
+      });
+    });
+
+    it("successfully creates an annotation category", async () => {
+      const response = await callTool("create_annotation_category", {
+        label: "Review",
+        color: "green"
+      });
+
+      expect(mockSendCommand).toHaveBeenCalledTimes(1);
+      expect(mockSendCommand).toHaveBeenCalledWith("create_annotation_category", {
+        label: "Review",
+        color: "green"
+      });
+      expect(response.content[0].text).toContain("Review");
+    });
+
+    it("uses default color when not specified", async () => {
+      await callTool("create_annotation_category", {
+        label: "Review"
+      });
+
+      expect(mockSendCommand).toHaveBeenCalledWith("create_annotation_category", {
+        label: "Review",
+        color: "blue"
+      });
+    });
+
+    it("requires label parameter", async () => {
+      await expect(callTool("create_annotation_category", {})).rejects.toThrow();
+      expect(mockSendCommand).not.toHaveBeenCalled();
+    });
+
+    it("handles errors gracefully", async () => {
+      mockSendCommand.mockRejectedValue(new Error("Invalid color"));
+
+      const response = await callTool("create_annotation_category", {
+        label: "Test"
+      });
+
+      expect(response.content[0].text).toContain("Error creating annotation category");
+    });
+  });
+
+  describe("update_annotation_category", () => {
+    beforeEach(() => {
+      mockSendCommand.mockResolvedValue({
+        success: true,
+        category: { id: "cat-1", label: "Updated", color: "red", isPreset: false }
+      });
+    });
+
+    it("successfully updates an annotation category", async () => {
+      const response = await callTool("update_annotation_category", {
+        categoryId: "cat-1",
+        label: "Updated",
+        color: "red"
+      });
+
+      expect(mockSendCommand).toHaveBeenCalledTimes(1);
+      expect(mockSendCommand).toHaveBeenCalledWith("update_annotation_category", {
+        categoryId: "cat-1",
+        label: "Updated",
+        color: "red"
+      });
+      expect(response.content[0].text).toContain("Updated");
+    });
+
+    it("allows updating only label", async () => {
+      await callTool("update_annotation_category", {
+        categoryId: "cat-1",
+        label: "New Label"
+      });
+
+      expect(mockSendCommand).toHaveBeenCalledWith("update_annotation_category", {
+        categoryId: "cat-1",
+        label: "New Label",
+        color: undefined
+      });
+    });
+
+    it("requires categoryId parameter", async () => {
+      await expect(callTool("update_annotation_category", {
+        label: "Test"
+      })).rejects.toThrow();
+      expect(mockSendCommand).not.toHaveBeenCalled();
+    });
+
+    it("handles errors for preset categories", async () => {
+      mockSendCommand.mockRejectedValue(new Error("Cannot modify a preset annotation category"));
+
+      const response = await callTool("update_annotation_category", {
+        categoryId: "preset-1",
+        label: "Can't change"
+      });
+
+      expect(response.content[0].text).toContain("Error updating annotation category");
+      expect(response.content[0].text).toContain("preset");
+    });
+  });
+
+  describe("delete_annotation_category", () => {
+    beforeEach(() => {
+      mockSendCommand.mockResolvedValue({
+        success: true,
+        deletedCategoryId: "cat-1"
+      });
+    });
+
+    it("successfully deletes an annotation category", async () => {
+      const response = await callTool("delete_annotation_category", {
+        categoryId: "cat-1"
+      });
+
+      expect(mockSendCommand).toHaveBeenCalledTimes(1);
+      expect(mockSendCommand).toHaveBeenCalledWith("delete_annotation_category", {
+        categoryId: "cat-1"
+      });
+      expect(response.content[0].text).toContain("cat-1");
+    });
+
+    it("requires categoryId parameter", async () => {
+      await expect(callTool("delete_annotation_category", {})).rejects.toThrow();
+      expect(mockSendCommand).not.toHaveBeenCalled();
+    });
+
+    it("handles errors for preset categories", async () => {
+      mockSendCommand.mockRejectedValue(new Error("Cannot delete a preset annotation category"));
+
+      const response = await callTool("delete_annotation_category", {
+        categoryId: "preset-1"
+      });
+
+      expect(response.content[0].text).toContain("Error deleting annotation category");
+      expect(response.content[0].text).toContain("preset");
     });
   });
 

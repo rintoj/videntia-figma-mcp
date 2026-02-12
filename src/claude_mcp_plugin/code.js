@@ -338,6 +338,15 @@ async function handleCommand(command, params) {
       return await setAnnotation(params);
     case "set_multiple_annotations":
       return await setMultipleAnnotations(params);
+    // Annotation category commands
+    case "get_annotation_categories":
+      return await getAnnotationCategories();
+    case "create_annotation_category":
+      return await createAnnotationCategory(params);
+    case "update_annotation_category":
+      return await updateAnnotationCategory(params);
+    case "delete_annotation_category":
+      return await deleteAnnotationCategory(params);
     // Prototyping commands
     case "get_reactions":
       return await getReactions(params);
@@ -6453,29 +6462,82 @@ async function scanNodesByTypes(params) {
 
 // ANNOTATION COMMANDS
 
+const ANNOTATION_SUPPORTED_TYPES = [
+  "COMPONENT", "COMPONENT_SET", "ELLIPSE", "FRAME",
+  "INSTANCE", "LINE", "POLYGON", "RECTANGLE", "STAR",
+  "TEXT", "VECTOR"
+];
+
+const ANNOTATION_VALID_COLORS = ["blue", "green", "yellow", "orange", "red", "purple", "gray", "teal"];
+
+function isAnnotationSupported(node) {
+  return ANNOTATION_SUPPORTED_TYPES.includes(node.type);
+}
+
 async function getAnnotations(params) {
   const { nodeId, includeCategories } = params;
 
-  let targetNode = figma.currentPage;
-  if (nodeId) {
-    targetNode = await figma.getNodeByIdAsync(nodeId);
-    if (!targetNode) {
-      throw new Error(`Node with ID ${nodeId} not found`);
-    }
+  const targetNode = await figma.getNodeByIdAsync(nodeId);
+  if (!targetNode) {
+    throw new Error(`Node with ID ${nodeId} not found`);
   }
 
-  // Get dev resources (annotations are stored as dev resources)
+  if (!isAnnotationSupported(targetNode)) {
+    return {
+      success: true,
+      nodeId: targetNode.id,
+      nodeName: targetNode.name,
+      nodeType: targetNode.type,
+      annotationCount: 0,
+      annotations: [],
+      message: `Node type ${targetNode.type} does not support annotations`
+    };
+  }
+
+  const rawAnnotations = targetNode.annotations || [];
   const annotations = [];
 
-  // Note: Figma plugin API doesn't directly expose dev annotations yet
-  // This is a placeholder that would work once the API is available
+  for (let i = 0; i < rawAnnotations.length; i++) {
+    const ann = rawAnnotations[i];
+    const entry = {
+      index: i,
+      label: ann.label || "",
+      labelMarkdown: ann.labelMarkdown || "",
+    };
+
+    if (ann.categoryId) {
+      entry.categoryId = ann.categoryId;
+      if (includeCategories) {
+        try {
+          const category = await figma.annotations.getAnnotationCategoryByIdAsync(ann.categoryId);
+          if (category) {
+            entry.category = {
+              id: category.id,
+              label: category.label,
+              color: category.color,
+              isPreset: category.isPreset
+            };
+          }
+        } catch (e) {
+          // Category may have been deleted
+        }
+      }
+    }
+
+    if (ann.properties && ann.properties.length > 0) {
+      entry.properties = ann.properties;
+    }
+
+    annotations.push(entry);
+  }
 
   return {
+    success: true,
     nodeId: targetNode.id,
     nodeName: targetNode.name,
-    annotationCount: 0,
-    annotations: [],
-    message: 'Annotation API not yet fully available in Figma Plugin API'
+    nodeType: targetNode.type,
+    annotationCount: annotations.length,
+    annotations
   };
 }
 
@@ -6487,35 +6549,195 @@ async function setAnnotation(params) {
     throw new Error(`Node with ID ${nodeId} not found`);
   }
 
-  // Note: Figma plugin API doesn't directly expose dev annotations yet
-  // This is a placeholder for future implementation
+  if (!isAnnotationSupported(node)) {
+    throw new Error(`Node type ${node.type} does not support annotations. Supported types: ${ANNOTATION_SUPPORTED_TYPES.join(", ")}`);
+  }
+
+  const annotation = { labelMarkdown: labelMarkdown || "" };
+  if (categoryId) {
+    annotation.categoryId = categoryId;
+  }
+  if (properties && Array.isArray(properties) && properties.length > 0) {
+    annotation.properties = properties;
+  }
+
+  // Deep-copy existing annotations (readonly objects from Figma)
+  const existingAnnotations = (node.annotations || []).map(a => {
+    const copy = { labelMarkdown: a.labelMarkdown || "" };
+    if (a.categoryId) copy.categoryId = a.categoryId;
+    if (a.properties) copy.properties = a.properties.map(p => ({ ...p }));
+    return copy;
+  });
+
+  let annotationIndex;
+
+  if (annotationId !== undefined && annotationId !== null) {
+    const idx = parseInt(annotationId, 10);
+    if (isNaN(idx) || idx < 0 || idx >= existingAnnotations.length) {
+      const rangeMsg = existingAnnotations.length === 0
+        ? "no annotations exist on this node"
+        : `valid range: 0-${existingAnnotations.length - 1}`;
+      throw new Error(`Invalid annotation index ${annotationId}. ${rangeMsg}`);
+    }
+    existingAnnotations[idx] = annotation;
+    annotationIndex = idx;
+  } else {
+    annotationIndex = existingAnnotations.length;
+    existingAnnotations.push(annotation);
+  }
+
+  node.annotations = existingAnnotations;
 
   return {
+    success: true,
     nodeId: node.id,
     nodeName: node.name,
-    message: 'Annotation API not yet fully available in Figma Plugin API. Use Figma UI to add annotations.',
-    success: false
+    annotationIndex,
+    totalAnnotations: existingAnnotations.length,
+    annotation
   };
 }
 
 async function setMultipleAnnotations(params) {
-  const { nodeId, annotations } = params;
+  const { annotations } = params;
 
   if (!Array.isArray(annotations)) {
     throw new Error('annotations must be an array');
   }
 
-  const node = await figma.getNodeByIdAsync(nodeId);
-  if (!node) {
-    throw new Error(`Node with ID ${nodeId} not found`);
+  const results = [];
+  let applied = 0;
+  let failed = 0;
+
+  for (const entry of annotations) {
+    try {
+      const result = await setAnnotation({
+        nodeId: entry.nodeId,
+        labelMarkdown: entry.labelMarkdown,
+        categoryId: entry.categoryId,
+        properties: entry.properties,
+        annotationId: entry.annotationId
+      });
+      results.push({ success: true, nodeId: entry.nodeId, annotationIndex: result.annotationIndex });
+      applied++;
+    } catch (e) {
+      results.push({ success: false, nodeId: entry.nodeId, error: e.message || String(e) });
+      failed++;
+    }
   }
 
   return {
-    nodeId: node.id,
-    nodeName: node.name,
-    annotationCount: annotations.length,
-    message: 'Annotation API not yet fully available in Figma Plugin API. Use Figma UI to add annotations.',
-    success: false
+    success: failed === 0,
+    annotationsApplied: applied,
+    annotationsFailed: failed,
+    completedInChunks: 1,
+    results
+  };
+}
+
+// ANNOTATION CATEGORY COMMANDS
+
+async function getAnnotationCategories() {
+  const categories = await figma.annotations.getAnnotationCategoriesAsync();
+  return {
+    success: true,
+    count: categories.length,
+    categories: categories.map(c => ({
+      id: c.id,
+      label: c.label,
+      color: c.color,
+      isPreset: c.isPreset
+    }))
+  };
+}
+
+async function createAnnotationCategory(params) {
+  const { label, color } = params;
+
+  if (!label || typeof label !== "string" || label.trim() === "") {
+    throw new Error("label is required and must be a non-empty string");
+  }
+
+  const categoryColor = color || "blue";
+  if (!ANNOTATION_VALID_COLORS.includes(categoryColor)) {
+    throw new Error(`Invalid color "${categoryColor}". Valid colors: ${ANNOTATION_VALID_COLORS.join(", ")}`);
+  }
+
+  const category = await figma.annotations.addAnnotationCategoryAsync(label.trim(), categoryColor);
+
+  return {
+    success: true,
+    category: {
+      id: category.id,
+      label: category.label,
+      color: category.color,
+      isPreset: category.isPreset
+    }
+  };
+}
+
+async function updateAnnotationCategory(params) {
+  const { categoryId, label, color } = params;
+
+  if (!categoryId) {
+    throw new Error("categoryId is required");
+  }
+
+  const category = await figma.annotations.getAnnotationCategoryByIdAsync(categoryId);
+  if (!category) {
+    throw new Error(`Annotation category with ID ${categoryId} not found`);
+  }
+
+  if (category.isPreset) {
+    throw new Error("Cannot modify a preset annotation category");
+  }
+
+  if (label !== undefined && label !== null) {
+    if (typeof label !== "string" || label.trim() === "") {
+      throw new Error("label must be a non-empty string");
+    }
+    await category.setLabelAsync(label.trim());
+  }
+
+  if (color !== undefined && color !== null) {
+    if (!ANNOTATION_VALID_COLORS.includes(color)) {
+      throw new Error(`Invalid color "${color}". Valid colors: ${ANNOTATION_VALID_COLORS.join(", ")}`);
+    }
+    await category.setColorAsync(color);
+  }
+
+  return {
+    success: true,
+    category: {
+      id: category.id,
+      label: category.label,
+      color: category.color,
+      isPreset: category.isPreset
+    }
+  };
+}
+
+async function deleteAnnotationCategory(params) {
+  const { categoryId } = params;
+
+  if (!categoryId) {
+    throw new Error("categoryId is required");
+  }
+
+  const category = await figma.annotations.getAnnotationCategoryByIdAsync(categoryId);
+  if (!category) {
+    throw new Error(`Annotation category with ID ${categoryId} not found`);
+  }
+
+  if (category.isPreset) {
+    throw new Error("Cannot delete a preset annotation category");
+  }
+
+  await category.removeAsync();
+
+  return {
+    success: true,
+    deletedCategoryId: categoryId
   };
 }
 
