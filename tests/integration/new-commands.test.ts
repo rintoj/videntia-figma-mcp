@@ -242,50 +242,94 @@ describe("Annotation Commands", () => {
 
   beforeAll(() => {
     mockCommands["get_annotations"] = (params: any) => ({
-      nodeId: params.nodeId || "0:1",
+      success: true,
+      nodeId: params.nodeId,
       nodeName: "Test Node",
-      annotationCount: 0,
-      annotations: [],
-      message: "Annotation API not yet fully available in Figma Plugin API"
+      nodeType: "FRAME",
+      annotationCount: 2,
+      annotations: [
+        { index: 0, label: "First", labelMarkdown: "First", categoryId: "cat-1" },
+        { index: 1, label: "Second", labelMarkdown: "Second" }
+      ]
     });
 
     mockCommands["set_annotation"] = (params: any) => ({
+      success: true,
       nodeId: params.nodeId,
       nodeName: "Test Node",
-      message: "Annotation API not yet fully available in Figma Plugin API. Use Figma UI to add annotations.",
-      success: false
+      annotationIndex: params.annotationId !== undefined ? parseInt(params.annotationId) : 0,
+      totalAnnotations: 1,
+      annotation: { labelMarkdown: params.labelMarkdown }
     });
 
     mockCommands["set_multiple_annotations"] = (params: any) => ({
-      nodeId: params.nodeId,
-      nodeName: "Test Node",
-      annotationCount: params.annotations.length,
-      message: "Annotation API not yet fully available in Figma Plugin API. Use Figma UI to add annotations.",
-      success: false
+      success: true,
+      annotationsApplied: params.annotations.length,
+      annotationsFailed: 0,
+      completedInChunks: 1,
+      results: params.annotations.map((a: any) => ({ success: true, nodeId: a.nodeId }))
+    });
+
+    mockCommands["get_annotation_categories"] = () => ({
+      success: true,
+      count: 2,
+      categories: [
+        { id: "cat-1", label: "Development", color: "blue", isPreset: true },
+        { id: "cat-2", label: "QA Review", color: "green", isPreset: false }
+      ]
+    });
+
+    mockCommands["create_annotation_category"] = (params: any) => ({
+      success: true,
+      category: { id: "cat-new", label: params.label, color: params.color || "blue", isPreset: false }
+    });
+
+    mockCommands["update_annotation_category"] = (params: any) => ({
+      success: true,
+      category: { id: params.categoryId, label: params.label || "Updated", color: params.color || "blue", isPreset: false }
+    });
+
+    mockCommands["delete_annotation_category"] = (params: any) => ({
+      success: true,
+      deletedCategoryId: params.categoryId
     });
   });
 
-  it("should attempt to get annotations (API limitation)", async () => {
+  it("should get annotations for a node", async () => {
     const result = await mockSendCommandToFigma("get_annotations", {
       nodeId: nodeId,
       includeCategories: true
     });
 
-    expect(result.annotationCount).toBe(0);
-    expect(result.message).toContain("not yet fully available");
+    expect(result.success).toBe(true);
+    expect(result.annotationCount).toBe(2);
+    expect(result.annotations).toHaveLength(2);
+    expect(result.annotations[0].labelMarkdown).toBe("First");
   });
 
-  it("should attempt to set annotation (API limitation)", async () => {
+  it("should set an annotation on a node", async () => {
     const result = await mockSendCommandToFigma("set_annotation", {
       nodeId: nodeId,
       labelMarkdown: "Test annotation"
     });
 
-    expect(result.success).toBe(false);
-    expect(result.message).toContain("Use Figma UI");
+    expect(result.success).toBe(true);
+    expect(result.annotationIndex).toBe(0);
+    expect(result.annotation.labelMarkdown).toBe("Test annotation");
   });
 
-  it("should attempt to set multiple annotations (API limitation)", async () => {
+  it("should update an existing annotation by index", async () => {
+    const result = await mockSendCommandToFigma("set_annotation", {
+      nodeId: nodeId,
+      annotationId: "1",
+      labelMarkdown: "Updated annotation"
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.annotationIndex).toBe(1);
+  });
+
+  it("should set multiple annotations", async () => {
     const result = await mockSendCommandToFigma("set_multiple_annotations", {
       nodeId: nodeId,
       annotations: [
@@ -294,8 +338,50 @@ describe("Annotation Commands", () => {
       ]
     });
 
-    expect(result.success).toBe(false);
-    expect(result.annotationCount).toBe(2);
+    expect(result.success).toBe(true);
+    expect(result.annotationsApplied).toBe(2);
+    expect(result.annotationsFailed).toBe(0);
+  });
+
+  it("should get annotation categories", async () => {
+    const result = await mockSendCommandToFigma("get_annotation_categories", {});
+
+    expect(result.success).toBe(true);
+    expect(result.count).toBe(2);
+    expect(result.categories[0].label).toBe("Development");
+    expect(result.categories[1].isPreset).toBe(false);
+  });
+
+  it("should create a new annotation category", async () => {
+    const result = await mockSendCommandToFigma("create_annotation_category", {
+      label: "Design Review",
+      color: "purple"
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.category.label).toBe("Design Review");
+    expect(result.category.color).toBe("purple");
+    expect(result.category.isPreset).toBe(false);
+  });
+
+  it("should update an annotation category", async () => {
+    const result = await mockSendCommandToFigma("update_annotation_category", {
+      categoryId: "cat-2",
+      label: "QA Approved",
+      color: "teal"
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.category.id).toBe("cat-2");
+  });
+
+  it("should delete an annotation category", async () => {
+    const result = await mockSendCommandToFigma("delete_annotation_category", {
+      categoryId: "cat-2"
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.deletedCategoryId).toBe("cat-2");
   });
 });
 
