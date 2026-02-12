@@ -160,7 +160,8 @@ export type FigmaCommand =
   | "create_spacing_system"
   | "create_typography_system"
   | "create_radius_system"
-  | "create_complete_design_system";
+  | "create_complete_design_system"
+  | "batch_actions";
 
 // Variable-related interfaces
 export type VariableType = "COLOR" | "FLOAT" | "STRING" | "BOOLEAN";

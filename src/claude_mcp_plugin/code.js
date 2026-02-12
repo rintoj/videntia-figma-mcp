@@ -354,9 +354,147 @@ async function handleCommand(command, params) {
       return await setDefaultConnector(params);
     case "create_connections":
       return await createConnections(params);
+    case "batch_actions":
+      return await batchActions(params);
     default:
       throw new Error(`Unknown command: ${command}`);
   }
+}
+
+// Batch actions handler - executes multiple commands in a single round-trip
+async function batchActions(params) {
+  const { actions } = params || {};
+  if (!Array.isArray(actions) || actions.length === 0) {
+    throw new Error("batch_actions requires a non-empty 'actions' array");
+  }
+
+  const results = [];
+  let succeeded = 0;
+  let failed = 0;
+  const commandId = params.commandId || "batch";
+  const totalActions = actions.length;
+  const shouldSendProgress = totalActions > 10;
+
+  for (let i = 0; i < totalActions; i++) {
+    const { action, params: actionParams } = actions[i];
+
+    // Block recursive batch_actions calls
+    if (action === "batch_actions") {
+      results.push({
+        index: i,
+        action,
+        success: false,
+        error: "Recursive batch_actions calls are not allowed",
+      });
+      failed++;
+      continue;
+    }
+
+    try {
+      // Resolve $result[N].field references
+      const resolvedParams = resolveResultReferences(actionParams || {}, results);
+
+      const result = await handleCommand(action, resolvedParams);
+      results.push({ index: i, action, success: true, result });
+      succeeded++;
+    } catch (error) {
+      results.push({
+        index: i,
+        action,
+        success: false,
+        error: error.message || String(error),
+      });
+      failed++;
+    }
+
+    // Send progress updates every 10 actions for large batches
+    if (shouldSendProgress && (i + 1) % 10 === 0) {
+      const progress = Math.round(((i + 1) / totalActions) * 100);
+      sendProgressUpdate(
+        commandId,
+        "batch_actions",
+        "in_progress",
+        progress,
+        totalActions,
+        i + 1,
+        `Processed ${i + 1}/${totalActions} actions (${succeeded} succeeded, ${failed} failed)`
+      );
+    }
+  }
+
+  return {
+    success: failed === 0,
+    totalActions,
+    succeeded,
+    failed,
+    results,
+  };
+}
+
+// Resolves $result[N].field references in action params
+function resolveResultReferences(params, results) {
+  if (params === null || params === undefined) return params;
+
+  if (typeof params === "string") {
+    const refMatch = params.match(/^\$result\[(\d+)\](.*)$/);
+    if (refMatch) {
+      const refIndex = parseInt(refMatch[1], 10);
+      const fieldPath = refMatch[2]; // e.g., ".id" or ".children[0].name"
+
+      if (refIndex >= results.length) {
+        throw new Error(
+          `$result[${refIndex}] references action that hasn't executed yet (only ${results.length} completed)`
+        );
+      }
+
+      const referencedResult = results[refIndex];
+      if (!referencedResult.success) {
+        throw new Error(
+          `$result[${refIndex}] references a failed action: ${referencedResult.error}`
+        );
+      }
+
+      let value = referencedResult.result;
+
+      if (fieldPath) {
+        // Parse and navigate the field path (e.g., ".id", ".children[0].name")
+        const segments = fieldPath.match(/\.([a-zA-Z_]\w*)|(\[\d+\])/g);
+        if (segments) {
+          for (const segment of segments) {
+            if (value === null || value === undefined) {
+              throw new Error(
+                `Cannot access '${segment}' on null/undefined in $result[${refIndex}]${fieldPath}`
+              );
+            }
+            if (segment.startsWith("[")) {
+              const arrIndex = parseInt(segment.slice(1, -1), 10);
+              value = value[arrIndex];
+            } else {
+              // Remove leading dot
+              value = value[segment.slice(1)];
+            }
+          }
+        }
+      }
+
+      return value;
+    }
+    return params;
+  }
+
+  if (Array.isArray(params)) {
+    return params.map((item) => resolveResultReferences(item, results));
+  }
+
+  if (typeof params === "object") {
+    const resolved = {};
+    for (const key of Object.keys(params)) {
+      resolved[key] = resolveResultReferences(params[key], results);
+    }
+    return resolved;
+  }
+
+  return params;
 }
 
 // Command implementations
