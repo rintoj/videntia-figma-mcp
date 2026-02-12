@@ -181,7 +181,7 @@ export function registerDocumentTools(server: McpServer): void {
     {
       nodeId: z.string().describe("The ID of the node to annotate"),
       annotationId: z.string().optional()
-        .describe("The ID of the annotation to update"),
+        .describe("The index of the annotation to update (0-based). Omit to append a new annotation."),
       labelMarkdown: z.string().describe("The annotation text in markdown format"),
       categoryId: z.string().optional()
         .describe("The ID of the annotation category"),
@@ -291,6 +291,145 @@ export function registerDocumentTools(server: McpServer): void {
             {
               type: "text",
               text: `Error setting multiple annotations: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    }
+  );
+
+  // Get Annotation Categories Tool
+  server.tool(
+    "get_annotation_categories",
+    "Get all annotation categories in the current document",
+    {},
+    async () => {
+      try {
+        const result = await sendCommandToFigma("get_annotation_categories");
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(result)
+            }
+          ]
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error getting annotation categories: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    }
+  );
+
+  // Create Annotation Category Tool
+  server.tool(
+    "create_annotation_category",
+    "Create a new annotation category",
+    {
+      label: z.string().describe("The label for the new category"),
+      color: z.enum(["blue", "green", "yellow", "orange", "red", "purple", "gray", "teal"])
+        .optional()
+        .default("blue")
+        .describe("The color for the category")
+    },
+    async ({ label, color }) => {
+      try {
+        const result = await sendCommandToFigma("create_annotation_category", {
+          label,
+          color
+        });
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(result)
+            }
+          ]
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error creating annotation category: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    }
+  );
+
+  // Update Annotation Category Tool
+  server.tool(
+    "update_annotation_category",
+    "Update an existing annotation category's label or color",
+    {
+      categoryId: z.string().describe("The ID of the category to update"),
+      label: z.string().optional().describe("New label for the category"),
+      color: z.enum(["blue", "green", "yellow", "orange", "red", "purple", "gray", "teal"])
+        .optional()
+        .describe("New color for the category")
+    },
+    async ({ categoryId, label, color }) => {
+      try {
+        const result = await sendCommandToFigma("update_annotation_category", {
+          categoryId,
+          label,
+          color
+        });
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(result)
+            }
+          ]
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error updating annotation category: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    }
+  );
+
+  // Delete Annotation Category Tool
+  server.tool(
+    "delete_annotation_category",
+    "Delete a custom annotation category (preset categories cannot be deleted)",
+    {
+      categoryId: z.string().describe("The ID of the category to delete")
+    },
+    async ({ categoryId }) => {
+      try {
+        const result = await sendCommandToFigma("delete_annotation_category", {
+          categoryId
+        });
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(result)
+            }
+          ]
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error deleting annotation category: ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };
