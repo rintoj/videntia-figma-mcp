@@ -363,7 +363,7 @@ async function handleCommand(command, params) {
 
 // Batch actions handler - executes multiple commands in a single round-trip
 async function batchActions(params) {
-  const { actions } = params || {};
+  const { actions, stopOnError = false } = params || {};
   if (!Array.isArray(actions) || actions.length === 0) {
     throw new Error("batch_actions requires a non-empty 'actions' array");
   }
@@ -387,6 +387,7 @@ async function batchActions(params) {
         error: "Recursive batch_actions calls are not allowed",
       });
       failed++;
+      if (stopOnError) break;
       continue;
     }
 
@@ -405,6 +406,22 @@ async function batchActions(params) {
         error: error.message || String(error),
       });
       failed++;
+
+      // Send immediate progress update on failure for large batches
+      if (shouldSendProgress) {
+        const progress = Math.round(((i + 1) / totalActions) * 100);
+        sendProgressUpdate(
+          commandId,
+          "batch_actions",
+          "in_progress",
+          progress,
+          totalActions,
+          i + 1,
+          `Action ${i} (${action}) failed. Processed ${i + 1}/${totalActions} (${succeeded} succeeded, ${failed} failed)`
+        );
+      }
+
+      if (stopOnError) break;
     }
 
     // Send progress updates every 10 actions for large batches
@@ -431,43 +448,54 @@ async function batchActions(params) {
   };
 }
 
+// Max depth for field path navigation to prevent abuse
+var RESOLVE_MAX_PATH_DEPTH = 10;
+
 // Resolves $result[N].field references in action params
+// NOTE: This logic is mirrored in src/claude_figma_mcp/utils/resolve-result-references.ts
+// which has comprehensive unit tests. Keep both implementations in sync.
 function resolveResultReferences(params, results) {
   if (params === null || params === undefined) return params;
 
   if (typeof params === "string") {
-    const refMatch = params.match(/^\$result\[(\d+)\](.*)$/);
+    var refMatch = params.match(/^\$result\[(\d+)\](.*)$/);
     if (refMatch) {
-      const refIndex = parseInt(refMatch[1], 10);
-      const fieldPath = refMatch[2]; // e.g., ".id" or ".children[0].name"
+      var refIndex = parseInt(refMatch[1], 10);
+      var fieldPath = refMatch[2]; // e.g., ".id" or ".children[0].name"
 
       if (refIndex >= results.length) {
         throw new Error(
-          `$result[${refIndex}] references action that hasn't executed yet (only ${results.length} completed)`
+          "$result[" + refIndex + "] references action that hasn't executed yet (only " + results.length + " completed)"
         );
       }
 
-      const referencedResult = results[refIndex];
+      var referencedResult = results[refIndex];
       if (!referencedResult.success) {
         throw new Error(
-          `$result[${refIndex}] references a failed action: ${referencedResult.error}`
+          "$result[" + refIndex + "] references a failed action: " + referencedResult.error
         );
       }
 
-      let value = referencedResult.result;
+      var value = referencedResult.result;
 
       if (fieldPath) {
         // Parse and navigate the field path (e.g., ".id", ".children[0].name")
-        const segments = fieldPath.match(/\.([a-zA-Z_]\w*)|(\[\d+\])/g);
+        var segments = fieldPath.match(/\.([a-zA-Z_]\w*)|(\[\d+\])/g);
         if (segments) {
-          for (const segment of segments) {
+          if (segments.length > RESOLVE_MAX_PATH_DEPTH) {
+            throw new Error(
+              "Field path exceeds maximum depth of " + RESOLVE_MAX_PATH_DEPTH + ": $result[" + refIndex + "]" + fieldPath
+            );
+          }
+          for (var s = 0; s < segments.length; s++) {
+            var segment = segments[s];
             if (value === null || value === undefined) {
               throw new Error(
-                `Cannot access '${segment}' on null/undefined in $result[${refIndex}]${fieldPath}`
+                "Cannot access '" + segment + "' on null/undefined in $result[" + refIndex + "]" + fieldPath
               );
             }
             if (segment.startsWith("[")) {
-              const arrIndex = parseInt(segment.slice(1, -1), 10);
+              var arrIndex = parseInt(segment.slice(1, -1), 10);
               value = value[arrIndex];
             } else {
               // Remove leading dot
@@ -483,13 +511,14 @@ function resolveResultReferences(params, results) {
   }
 
   if (Array.isArray(params)) {
-    return params.map((item) => resolveResultReferences(item, results));
+    return params.map(function(item) { return resolveResultReferences(item, results); });
   }
 
   if (typeof params === "object") {
-    const resolved = {};
-    for (const key of Object.keys(params)) {
-      resolved[key] = resolveResultReferences(params[key], results);
+    var resolved = {};
+    var keys = Object.keys(params);
+    for (var k = 0; k < keys.length; k++) {
+      resolved[keys[k]] = resolveResultReferences(params[keys[k]], results);
     }
     return resolved;
   }

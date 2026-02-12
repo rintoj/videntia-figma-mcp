@@ -79,6 +79,7 @@ describe("batch_actions tool", () => {
             { action: "set_fill_color", params: { nodeId: "$result[0].id", color: { r: 1, g: 0, b: 0 } } },
             { action: "rename_node", params: { nodeId: "$result[0].id", name: "MyRect" } },
           ],
+          stopOnError: false,
         },
         expect.any(Number),
       );
@@ -263,6 +264,59 @@ describe("batch_actions tool", () => {
     });
   });
 
+  describe("stopOnError parameter", () => {
+    it("defaults stopOnError to false", async () => {
+      mockSendCommand.mockResolvedValue({
+        success: true,
+        totalActions: 1,
+        succeeded: 1,
+        failed: 0,
+        results: [],
+      });
+
+      await callTool("batch_actions", {
+        actions: [{ action: "get_node_info", params: { nodeId: "1:2" } }],
+      });
+
+      expect(mockSendCommand).toHaveBeenCalledWith(
+        "batch_actions",
+        {
+          actions: [{ action: "get_node_info", params: { nodeId: "1:2" } }],
+          stopOnError: false,
+        },
+        expect.any(Number),
+      );
+    });
+
+    it("passes stopOnError true to Figma", async () => {
+      mockSendCommand.mockResolvedValue({
+        success: false,
+        totalActions: 3,
+        succeeded: 1,
+        failed: 1,
+        results: [
+          { index: 0, action: "clone_node", success: true, result: { id: "new-1" } },
+          { index: 1, action: "rename_node", success: false, error: "Node not found" },
+        ],
+      });
+
+      await callTool("batch_actions", {
+        actions: [
+          { action: "clone_node", params: { nodeId: "25:212" } },
+          { action: "rename_node", params: { nodeId: "invalid", name: "X" } },
+          { action: "resize_node", params: { nodeId: "$result[0].id", width: 100, height: 50 } },
+        ],
+        stopOnError: true,
+      });
+
+      expect(mockSendCommand).toHaveBeenCalledWith(
+        "batch_actions",
+        expect.objectContaining({ stopOnError: true }),
+        expect.any(Number),
+      );
+    });
+  });
+
   describe("params defaults", () => {
     it("defaults params to empty object when not provided", async () => {
       mockSendCommand.mockResolvedValue({
@@ -281,7 +335,7 @@ describe("batch_actions tool", () => {
 
       expect(mockSendCommand).toHaveBeenCalledWith(
         "batch_actions",
-        { actions: [{ action: "get_selection", params: {} }] },
+        { actions: [{ action: "get_selection", params: {} }], stopOnError: false },
         expect.any(Number),
       );
       expect(response.content[0].text).toContain("1/1 succeeded");

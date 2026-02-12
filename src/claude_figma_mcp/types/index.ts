@@ -163,6 +163,23 @@ export type FigmaCommand =
   | "create_complete_design_system"
   | "batch_actions";
 
+// Batch actions types
+export interface BatchActionResult {
+  index: number;
+  action: string;
+  success: boolean;
+  result?: any;
+  error?: string;
+}
+
+export interface BatchActionsResult {
+  success: boolean;
+  totalActions: number;
+  succeeded: number;
+  failed: number;
+  results: BatchActionResult[];
+}
+
 // Variable-related interfaces
 export type VariableType = "COLOR" | "FLOAT" | "STRING" | "BOOLEAN";
 
