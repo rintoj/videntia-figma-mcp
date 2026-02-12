@@ -354,9 +354,176 @@ async function handleCommand(command, params) {
       return await setDefaultConnector(params);
     case "create_connections":
       return await createConnections(params);
+    case "batch_actions":
+      return await batchActions(params);
     default:
       throw new Error(`Unknown command: ${command}`);
   }
+}
+
+// Batch actions handler - executes multiple commands in a single round-trip
+async function batchActions(params) {
+  const { actions, stopOnError = false } = params || {};
+  if (!Array.isArray(actions) || actions.length === 0) {
+    throw new Error("batch_actions requires a non-empty 'actions' array");
+  }
+
+  const results = [];
+  let succeeded = 0;
+  let failed = 0;
+  const commandId = params.commandId || "batch";
+  const totalActions = actions.length;
+  const shouldSendProgress = totalActions > 10;
+
+  for (let i = 0; i < totalActions; i++) {
+    const { action, params: actionParams } = actions[i];
+
+    // Block recursive batch_actions calls
+    if (action === "batch_actions") {
+      results.push({
+        index: i,
+        action,
+        success: false,
+        error: "Recursive batch_actions calls are not allowed",
+      });
+      failed++;
+      if (stopOnError) break;
+      continue;
+    }
+
+    try {
+      // Resolve $result[N].field references
+      const resolvedParams = resolveResultReferences(actionParams || {}, results);
+
+      const result = await handleCommand(action, resolvedParams);
+      results.push({ index: i, action, success: true, result });
+      succeeded++;
+    } catch (error) {
+      results.push({
+        index: i,
+        action,
+        success: false,
+        error: error.message || String(error),
+      });
+      failed++;
+
+      // Send immediate progress update on failure for large batches
+      if (shouldSendProgress) {
+        const progress = Math.round(((i + 1) / totalActions) * 100);
+        sendProgressUpdate(
+          commandId,
+          "batch_actions",
+          "in_progress",
+          progress,
+          totalActions,
+          i + 1,
+          `Action ${i} (${action}) failed. Processed ${i + 1}/${totalActions} (${succeeded} succeeded, ${failed} failed)`
+        );
+      }
+
+      if (stopOnError) break;
+    }
+
+    // Send progress updates every 10 actions for large batches
+    if (shouldSendProgress && (i + 1) % 10 === 0) {
+      const progress = Math.round(((i + 1) / totalActions) * 100);
+      sendProgressUpdate(
+        commandId,
+        "batch_actions",
+        "in_progress",
+        progress,
+        totalActions,
+        i + 1,
+        `Processed ${i + 1}/${totalActions} actions (${succeeded} succeeded, ${failed} failed)`
+      );
+    }
+  }
+
+  return {
+    success: failed === 0,
+    totalActions,
+    succeeded,
+    failed,
+    results,
+  };
+}
+
+// Max depth for field path navigation to prevent abuse
+var RESOLVE_MAX_PATH_DEPTH = 10;
+
+// Resolves $result[N].field references in action params
+// NOTE: This logic is mirrored in src/claude_figma_mcp/utils/resolve-result-references.ts
+// which has comprehensive unit tests. Keep both implementations in sync.
+function resolveResultReferences(params, results) {
+  if (params === null || params === undefined) return params;
+
+  if (typeof params === "string") {
+    var refMatch = params.match(/^\$result\[(\d+)\](.*)$/);
+    if (refMatch) {
+      var refIndex = parseInt(refMatch[1], 10);
+      var fieldPath = refMatch[2]; // e.g., ".id" or ".children[0].name"
+
+      if (refIndex >= results.length) {
+        throw new Error(
+          "$result[" + refIndex + "] references action that hasn't executed yet (only " + results.length + " completed)"
+        );
+      }
+
+      var referencedResult = results[refIndex];
+      if (!referencedResult.success) {
+        throw new Error(
+          "$result[" + refIndex + "] references a failed action: " + referencedResult.error
+        );
+      }
+
+      var value = referencedResult.result;
+
+      if (fieldPath) {
+        // Parse and navigate the field path (e.g., ".id", ".children[0].name")
+        var segments = fieldPath.match(/\.([a-zA-Z_]\w*)|(\[\d+\])/g);
+        if (segments) {
+          if (segments.length > RESOLVE_MAX_PATH_DEPTH) {
+            throw new Error(
+              "Field path exceeds maximum depth of " + RESOLVE_MAX_PATH_DEPTH + ": $result[" + refIndex + "]" + fieldPath
+            );
+          }
+          for (var s = 0; s < segments.length; s++) {
+            var segment = segments[s];
+            if (value === null || value === undefined) {
+              throw new Error(
+                "Cannot access '" + segment + "' on null/undefined in $result[" + refIndex + "]" + fieldPath
+              );
+            }
+            if (segment.startsWith("[")) {
+              var arrIndex = parseInt(segment.slice(1, -1), 10);
+              value = value[arrIndex];
+            } else {
+              // Remove leading dot
+              value = value[segment.slice(1)];
+            }
+          }
+        }
+      }
+
+      return value;
+    }
+    return params;
+  }
+
+  if (Array.isArray(params)) {
+    return params.map(function(item) { return resolveResultReferences(item, results); });
+  }
+
+  if (typeof params === "object") {
+    var resolved = {};
+    var keys = Object.keys(params);
+    for (var k = 0; k < keys.length; k++) {
+      resolved[keys[k]] = resolveResultReferences(params[keys[k]], results);
+    }
+    return resolved;
+  }
+
+  return params;
 }
 
 // Command implementations
