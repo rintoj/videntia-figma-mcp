@@ -6468,6 +6468,8 @@ const ANNOTATION_SUPPORTED_TYPES = [
   "TEXT", "VECTOR"
 ];
 
+const ANNOTATION_VALID_COLORS = ["blue", "green", "yellow", "orange", "red", "purple", "gray", "teal"];
+
 function isAnnotationSupported(node) {
   return ANNOTATION_SUPPORTED_TYPES.includes(node.type);
 }
@@ -6563,7 +6565,7 @@ async function setAnnotation(params) {
   const existingAnnotations = (node.annotations || []).map(a => {
     const copy = { labelMarkdown: a.labelMarkdown || "" };
     if (a.categoryId) copy.categoryId = a.categoryId;
-    if (a.properties) copy.properties = [...a.properties];
+    if (a.properties) copy.properties = a.properties.map(p => ({ ...p }));
     return copy;
   });
 
@@ -6572,7 +6574,10 @@ async function setAnnotation(params) {
   if (annotationId !== undefined && annotationId !== null) {
     const idx = parseInt(annotationId, 10);
     if (isNaN(idx) || idx < 0 || idx >= existingAnnotations.length) {
-      throw new Error(`Invalid annotation index ${annotationId}. Valid range: 0-${existingAnnotations.length - 1}`);
+      const rangeMsg = existingAnnotations.length === 0
+        ? "no annotations exist on this node"
+        : `valid range: 0-${existingAnnotations.length - 1}`;
+      throw new Error(`Invalid annotation index ${annotationId}. ${rangeMsg}`);
     }
     existingAnnotations[idx] = annotation;
     annotationIndex = idx;
@@ -6653,10 +6658,9 @@ async function createAnnotationCategory(params) {
     throw new Error("label is required and must be a non-empty string");
   }
 
-  const validColors = ["blue", "green", "yellow", "orange", "red", "purple", "gray", "teal"];
   const categoryColor = color || "blue";
-  if (!validColors.includes(categoryColor)) {
-    throw new Error(`Invalid color "${categoryColor}". Valid colors: ${validColors.join(", ")}`);
+  if (!ANNOTATION_VALID_COLORS.includes(categoryColor)) {
+    throw new Error(`Invalid color "${categoryColor}". Valid colors: ${ANNOTATION_VALID_COLORS.join(", ")}`);
   }
 
   const category = await figma.annotations.addAnnotationCategoryAsync(label.trim(), categoryColor);
@@ -6696,9 +6700,8 @@ async function updateAnnotationCategory(params) {
   }
 
   if (color !== undefined && color !== null) {
-    const validColors = ["blue", "green", "yellow", "orange", "red", "purple", "gray", "teal"];
-    if (!validColors.includes(color)) {
-      throw new Error(`Invalid color "${color}". Valid colors: ${validColors.join(", ")}`);
+    if (!ANNOTATION_VALID_COLORS.includes(color)) {
+      throw new Error(`Invalid color "${color}". Valid colors: ${ANNOTATION_VALID_COLORS.join(", ")}`);
     }
     await category.setColorAsync(color);
   }
