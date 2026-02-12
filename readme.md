@@ -6,83 +6,71 @@ A Model Context Protocol (MCP) plugin that allows Claude Desktop and other AI to
 
 > **Important**: This project is based on [cursor-talk-to-figma-mcp](https://github.com/sonnylazuardi/cursor-talk-to-figma-mcp) by Sonny Lazuardi. It has been adapted to work with Claude Desktop and expanded with additional tools. Original credit belongs to Sonny Lazuardi ❤️
 
-## ⚡ Installation
+## Installation
 
 ### Prerequisites
+
 - [Figma Desktop](https://www.figma.com/downloads/)
-- [Bun](https://bun.sh) installed
 - [Claude Desktop](https://claude.ai/download), [Claude Code](https://docs.anthropic.com/en/docs/claude-code), or [Cursor](https://cursor.com/downloads)
 
-### Step 1: Clone and Setup
-
-```bash
-git clone https://github.com/arinspunk/claude-talk-to-figma-mcp.git
-cd claude-talk-to-figma-mcp
-./scripts/setup.sh
-```
-
-The setup script will:
-- Install dependencies
-- Build the project
-- Configure Claude Desktop automatically
-- **(macOS)** Optionally install auto-start service for the socket server
-
-### Step 2: Install Figma Plugin
+### Step 1: Install Figma Plugin
 
 1. Open Figma Desktop
 2. Go to **Menu → Plugins → Development → Import plugin from manifest...**
-3. Navigate to this project and select `src/claude_mcp_plugin/manifest.json`
+3. Navigate to `src/claude_mcp_plugin/manifest.json` in this project and select it
 
-### Step 3: Connect to Figma
+### Step 2: Configure MCP
 
-1. Start the socket server (if you didn't enable auto-start):
-   ```bash
-   bun socket
-   ```
-2. In Figma, run the plugin: **Plugins → Development → Claude MCP Plugin**
-3. The plugin will display a **Channel ID**
-4. Ask Claude to connect using this channel ID (e.g., "Connect to Figma channel abc123")
+#### Option A: Using npx (Recommended)
 
-✅ **Success**: Claude will confirm the connection and you can start designing!
+No need to clone or build - just configure your AI client to use npx:
 
----
-
-### Manual Configuration (Alternative)
-
-If you prefer manual setup instead of using `setup.sh`:
-
-<details>
-<summary>Click to expand manual setup instructions</summary>
-
-#### Build the Project
-
+**Claude Code**:
 ```bash
-bun install
-bun run build
+claude mcp add claude-talk-to-figma -s user -- npx -y claude-talk-to-figma-mcp
 ```
-
-#### Configure MCP
-
-Add the MCP server to your AI client's configuration:
 
 **Claude Desktop** (macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`):
 ```json
 {
   "mcpServers": {
     "ClaudeTalkToFigma": {
-      "command": "node",
-      "args": ["/ABSOLUTE/PATH/TO/claude-talk-to-figma-mcp/dist/talk_to_figma_mcp/server.js"]
+      "command": "npx",
+      "args": ["-y", "claude-talk-to-figma-mcp"]
     }
   }
 }
 ```
 
-**Claude Code**:
-```bash
-claude mcp add claude-talk-to-figma -- node /ABSOLUTE/PATH/TO/claude-talk-to-figma-mcp/dist/talk_to_figma_mcp/server.js
+**Cursor** (Settings → Tools & Integrations → New MCP Server):
+```json
+{
+  "mcpServers": {
+    "ClaudeTalkToFigma": {
+      "command": "npx",
+      "args": ["-y", "claude-talk-to-figma-mcp"]
+    }
+  }
+}
 ```
 
-**Cursor** (Settings → Tools & Integrations → New MCP Server):
+#### Option B: From Source
+
+Clone and build the project, then point to the local build:
+
+```bash
+git clone https://github.com/rintoj/claude-talk-to-figma-mcp.git
+cd claude-talk-to-figma-mcp
+bun install
+bun run build
+```
+
+**Claude Code**:
+```bash
+claude mcp add claude-talk-to-figma -s user -- node /ABSOLUTE/PATH/TO/claude-talk-to-figma-mcp/dist/talk_to_figma_mcp/server.js
+```
+
+**Claude Desktop / Cursor**:
 ```json
 {
   "mcpServers": {
@@ -96,31 +84,39 @@ claude mcp add claude-talk-to-figma -- node /ABSOLUTE/PATH/TO/claude-talk-to-fig
 
 > **Note**: Replace `/ABSOLUTE/PATH/TO/` with the actual path to where you cloned the repository.
 
-#### Auto-start on macOS (Optional)
+### Step 3: Start the Socket Server
 
-To avoid running `bun socket` manually every time, install as a launchd service:
+#### Option A: Auto-start on macOS (Recommended)
+
+Install as a launchd service so the socket server starts automatically on login:
 
 ```bash
-# Copy and configure the plist (auto-detects paths)
+# Generate the plist with your actual paths
 sed -e "s|\$PROJECT_PATH|$(pwd)|g" \
     -e "s|\$HOME|$HOME|g" \
     -e "s|\$BUN_PATH|$(which bun)|g" \
     scripts/com.claude-talk-to-figma.socket.plist \
     > ~/Library/LaunchAgents/com.claude-talk-to-figma.socket.plist
 
-# Load the service
+# Load and start the service
 launchctl load ~/Library/LaunchAgents/com.claude-talk-to-figma.socket.plist
 ```
 
-</details>
+#### Option B: Run Manually
 
----
+```bash
+bun run socket
+```
+
+### Step 4: Connect to Figma
+
+1. In Figma, run the plugin: **Plugins → Development → Claude MCP Plugin**
+2. The plugin will display a **Channel ID**
+3. Ask Claude to connect using this channel ID (e.g., "Connect to Figma channel abc123")
 
 ### Managing the Socket Server
 
 The socket server runs on port 3055. Verify it's working at `http://localhost:3055/status`.
-
-**If using auto-start (macOS launchd):**
 
 ```bash
 # Check status
@@ -129,17 +125,12 @@ launchctl list | grep claude-talk-to-figma
 # Stop the service
 launchctl unload ~/Library/LaunchAgents/com.claude-talk-to-figma.socket.plist
 
-# Start the service
+# Restart the service
+launchctl unload ~/Library/LaunchAgents/com.claude-talk-to-figma.socket.plist
 launchctl load ~/Library/LaunchAgents/com.claude-talk-to-figma.socket.plist
 
 # View logs
 tail -f ~/Library/Logs/claude-talk-to-figma-socket.log
-```
-
-**If running manually:**
-
-```bash
-bun socket
 ```
 
 ---
