@@ -19,6 +19,9 @@ const logger = {
 // Store clients by channel
 const channels = new Map<string, Set<ServerWebSocket<any>>>();
 
+// Store metadata per channel (e.g. Figma file name)
+const channelMetadata = new Map<string, { fileName?: string; joinedAt: number }>();
+
 // Keep track of channel statistics
 const stats = {
   totalConnections: 0,
@@ -60,6 +63,13 @@ function handleConnection(ws: ServerWebSocket<any>) {
       if (clients.has(ws)) {
         clients.delete(ws);
         logger.debug(`Removed client ${clientId} from channel: ${channelName}`);
+
+        // Clean up empty channels
+        if (clients.size === 0) {
+          channels.delete(channelName);
+          channelMetadata.delete(channelName);
+          logger.debug(`Removed empty channel: ${channelName}`);
+        }
 
         // Notify other clients in same channel
         try {
@@ -114,6 +124,22 @@ const server = Bun.serve({
           "Content-Type": "application/json",
           "Access-Control-Allow-Origin": "*"
         }
+      });
+    }
+
+    // Handle channels endpoint - list all active channels with metadata
+    if (url.pathname === "/channels") {
+      const channelList = Array.from(channels.entries()).map(([name, clients]) => ({
+        channel: name,
+        clients: clients.size,
+        fileName: channelMetadata.get(name)?.fileName ?? null,
+        joinedAt: channelMetadata.get(name)?.joinedAt ?? null,
+      }));
+      return new Response(JSON.stringify(channelList), {
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*",
+        },
       });
     }
 
@@ -174,6 +200,17 @@ const server = Bun.serve({
           const channelClients = channels.get(channelName)!;
           channelClients.add(ws);
           logger.info(`Client ${clientId} joined channel: ${channelName}`);
+
+          // Store channel metadata (file name from Figma plugin)
+          if (!channelMetadata.has(channelName)) {
+            channelMetadata.set(channelName, {
+              fileName: data.fileName || undefined,
+              joinedAt: Date.now(),
+            });
+          } else if (data.fileName) {
+            const existing = channelMetadata.get(channelName)!;
+            existing.fileName = data.fileName;
+          }
 
           // Notify client they joined successfully
           try {
@@ -326,6 +363,12 @@ const server = Bun.serve({
       channels.forEach((clients, channelName) => {
         if (clients.delete(ws)) {
           logger.debug(`Removed client ${clientId} from channel ${channelName} due to connection close`);
+          // Clean up empty channels
+          if (clients.size === 0) {
+            channels.delete(channelName);
+            channelMetadata.delete(channelName);
+            logger.debug(`Removed empty channel: ${channelName}`);
+          }
         }
       });
       
@@ -340,6 +383,7 @@ const server = Bun.serve({
 
 logger.info(`Claude to Figma WebSocket server running on port ${server.port}`);
 logger.info(`Status endpoint available at http://localhost:${server.port}/status`);
+logger.info(`Channels endpoint available at http://localhost:${server.port}/channels`);
 
 // Print server stats every 5 minutes
 setInterval(() => {

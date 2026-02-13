@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { sendCommandToFigma, joinChannel } from "../utils/websocket.js";
+import { sendCommandToFigma, joinChannel, getOpenChannels } from "../utils/websocket.js";
 import { filterFigmaNode } from "../utils/figma-helpers.js";
 import { figmaAccessToken, FIGMA_API_BASE_URL } from "../config/config.js";
 import { coerceArray } from "../utils/coerce-array.js";
@@ -816,6 +816,45 @@ export function registerDocumentTools(server: McpServer): void {
             {
               type: "text",
               text: `Error joining channel: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    }
+  );
+
+  // Get Open Channels Tool
+  server.tool(
+    "get_open_channels",
+    "Get all open Figma channels and their corresponding file names. Use this to discover available channels before joining one.",
+    {},
+    async () => {
+      try {
+        const channels = await getOpenChannels();
+        if (channels.length === 0) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: "No open channels found. Make sure the Figma plugin is running and connected.",
+              },
+            ],
+          };
+        }
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(channels, null, 2),
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error getting open channels: ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };

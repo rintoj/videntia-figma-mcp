@@ -60,6 +60,9 @@ figma.ui.onmessage = async (msg) => {
     case "close-plugin":
       figma.closePlugin();
       break;
+    case "get-file-name":
+      figma.ui.postMessage({ type: "file-name", fileName: figma.root.name });
+      break;
     case "execute-command":
       // Execute commands received from UI (which gets them from WebSocket)
       try {
