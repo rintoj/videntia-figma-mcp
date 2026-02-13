@@ -1160,6 +1160,9 @@ async function setGradientFill(params) {
     position: stop.position,
   }));
 
+  // Figma gradients use a 2x3 affine transform matrix in normalized [0,1] space.
+  // For LINEAR: rotate around center (0.5, 0.5) by the specified angle.
+  // For RADIAL/ANGULAR/DIAMOND: identity matrix (centered, no rotation).
   const angleRad = (angle * Math.PI) / 180;
   const cos = Math.cos(angleRad);
   const sin = Math.sin(angleRad);

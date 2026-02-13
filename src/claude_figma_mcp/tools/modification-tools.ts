@@ -921,20 +921,10 @@ export function registerModificationTools(server: McpServer): void {
     },
     async ({ nodeId, gradientType, gradientStops, angle, opacity }) => {
       try {
-        const stopsWithDefaults = gradientStops.map((stop) => ({
-          color: {
-            r: stop.color.r,
-            g: stop.color.g,
-            b: stop.color.b,
-            a: stop.color.a !== undefined ? stop.color.a : 1,
-          },
-          position: stop.position,
-        }));
-
         const result = await sendCommandToFigma("set_gradient_fill", {
           nodeId,
           gradientType,
-          gradientStops: stopsWithDefaults,
+          gradientStops,
           angle: angle ?? 0,
           opacity: opacity ?? 1,
         });
