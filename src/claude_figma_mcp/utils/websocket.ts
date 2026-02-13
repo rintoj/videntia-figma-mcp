@@ -4,6 +4,13 @@ import { logger } from "./logger";
 import { serverUrl, defaultPort, WS_URL, reconnectInterval } from "../config/config";
 import { FigmaCommand, FigmaResponse, CommandProgressUpdate, PendingRequest, ProgressMessage } from "../types";
 
+class ChannelValidationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ChannelValidationError';
+  }
+}
+
 // WebSocket connection and request tracking
 let ws: WebSocket | null = null;
 let currentChannel: string | null = null;
@@ -168,6 +175,28 @@ export function connectToFigma(port: number = defaultPort) {
 export async function joinChannel(channelName: string): Promise<void> {
   if (!ws || ws.readyState !== WebSocket.OPEN) {
     throw new Error("Not connected to Figma");
+  }
+
+  // Validate the channel exists and has a Figma plugin connected
+  try {
+    const openChannels = await getOpenChannels();
+    const match = openChannels.find(ch => ch.channel === channelName);
+    if (!match) {
+      const available = openChannels.map(ch => `  - ${ch.channel} (${ch.fileName ?? 'unknown file'})`).join('\n');
+      throw new ChannelValidationError(
+        `Invalid channel ID: "${channelName}". No Figma plugin is connected on this channel.` +
+        (openChannels.length > 0
+          ? `\nAvailable channels:\n${available}`
+          : '\nNo channels are currently available. Ensure the Claude MCP Plugin is open in Figma.')
+      );
+    }
+  } catch (error) {
+    // If the error is our own validation error, re-throw it
+    if (error instanceof ChannelValidationError) {
+      throw error;
+    }
+    // If we can't reach the channels endpoint, log a warning but proceed with the join
+    logger.warn(`Could not validate channel before joining: ${error instanceof Error ? error.message : String(error)}`);
   }
 
   try {
