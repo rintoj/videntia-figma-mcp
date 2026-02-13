@@ -51,6 +51,11 @@ figma.showUI(__html__, { width: 220, height: 200 });
 // Send file name to UI immediately on startup so it's available before WebSocket connects
 figma.ui.postMessage({ type: "file-name", fileName: figma.root.name });
 
+// Auto-connect on plugin load
+figma.on("run", ({ command }) => {
+  figma.ui.postMessage({ type: "auto-connect" });
+});
+
 // Plugin commands from UI
 figma.ui.onmessage = async (msg) => {
   switch (msg.type) {

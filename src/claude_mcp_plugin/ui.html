@@ -329,14 +329,13 @@
                     true,
                     `Channel: <strong>${channelName}</strong>`
                   );
-                  copyToClipboard(channelName);
 
                   // Notify the plugin code
                   parent.postMessage(
                     {
                       pluginMessage: {
                         type: "notify",
-                        message: `Channel: ${channelName} (copied to clipboard)`,
+                        message: `Channel: ${channelName}`,
                       },
                     },
                     "*"
