@@ -141,6 +141,8 @@ async function handleCommand(command, params) {
       return await setStrokeColor(params);
     case "set_image_fill":
       return await setImageFill(params);
+    case "set_gradient_fill":
+      return await setGradientFill(params);
     case "move_node":
       return await moveNode(params);
     case "resize_node":
@@ -1121,6 +1123,86 @@ async function setImageFill(params) {
     imageSize: { width, height },
     scaleMode: scaleMode,
     fills: [imagePaint]
+  };
+}
+
+async function setGradientFill(params) {
+  const { nodeId, gradientType, gradientStops, angle = 0, opacity = 1 } = params || {};
+
+  if (!nodeId) {
+    throw new Error("Missing nodeId parameter");
+  }
+
+  if (!gradientType) {
+    throw new Error("Missing gradientType parameter");
+  }
+
+  const validTypes = ["LINEAR", "RADIAL", "ANGULAR", "DIAMOND"];
+  if (!validTypes.includes(gradientType)) {
+    throw new Error(`Invalid gradientType: ${gradientType}. Must be one of: ${validTypes.join(", ")}`);
+  }
+
+  if (!gradientStops || !Array.isArray(gradientStops) || gradientStops.length < 2) {
+    throw new Error("gradientStops must be an array with at least 2 stops");
+  }
+
+  const node = await figma.getNodeByIdAsync(nodeId);
+  if (!node) {
+    throw new Error(`Node not found with ID: ${nodeId}`);
+  }
+
+  if (!("fills" in node)) {
+    throw new Error(`Node does not support fills: ${nodeId}`);
+  }
+
+  const figmaStops = gradientStops.map(stop => ({
+    color: {
+      r: stop.color.r,
+      g: stop.color.g,
+      b: stop.color.b,
+      a: stop.color.a !== undefined ? stop.color.a : 1,
+    },
+    position: stop.position,
+  }));
+
+  // Figma gradients use a 2x3 affine transform matrix in normalized [0,1] space.
+  // For LINEAR: rotate around center (0.5, 0.5) by the specified angle.
+  // For RADIAL/ANGULAR/DIAMOND: identity matrix (centered, no rotation).
+  const angleRad = (angle * Math.PI) / 180;
+  const cos = Math.cos(angleRad);
+  const sin = Math.sin(angleRad);
+  const cx = 0.5;
+  const cy = 0.5;
+  const startX = cx - cos * 0.5;
+  const startY = cy - sin * 0.5;
+
+  let gradientTransform;
+  if (gradientType === "LINEAR") {
+    gradientTransform = [
+      [cos, sin, startX],
+      [-sin, cos, startY],
+    ];
+  } else {
+    gradientTransform = [
+      [1, 0, 0],
+      [0, 1, 0],
+    ];
+  }
+
+  const gradientPaint = {
+    type: `GRADIENT_${gradientType}`,
+    gradientStops: figmaStops,
+    gradientTransform: gradientTransform,
+    opacity: opacity,
+  };
+
+  node.fills = [gradientPaint];
+
+  return {
+    id: node.id,
+    name: node.name,
+    gradientType: gradientType,
+    stopsCount: figmaStops.length,
   };
 }
 
@@ -3413,6 +3495,15 @@ async function setEffects(params) {
     throw new Error(`Node does not support effects: ${nodeId}`);
   }
   
+  // GLASS effects only work on FRAME, COMPONENT, and INSTANCE nodes
+  const hasGlass = effects.some(e => e.type === "GLASS");
+  if (hasGlass) {
+    const frameTypes = ["FRAME", "COMPONENT", "COMPONENT_SET", "INSTANCE"];
+    if (!frameTypes.includes(node.type)) {
+      throw new Error(`GLASS effect is only supported on frame-like nodes (FRAME, COMPONENT, INSTANCE). Got: ${node.type}`);
+    }
+  }
+
   try {
     // Convert incoming effects to valid Figma effects
     const validEffects = effects.map(effect => {
@@ -3420,7 +3511,7 @@ async function setEffects(params) {
       if (!effect.type) {
         throw new Error("Each effect must have a type property");
       }
-      
+
       // Create a clean effect object based on type
       switch (effect.type) {
         case "DROP_SHADOW":
@@ -3439,6 +3530,43 @@ async function setEffects(params) {
           return {
             type: effect.type,
             radius: effect.radius || 5,
+            visible: effect.visible !== undefined ? effect.visible : true
+          };
+        case "NOISE": {
+          const noiseEffect = {
+            type: "NOISE",
+            noiseType: effect.noiseType || "MONOTONE",
+            color: effect.color || { r: 0, g: 0, b: 0, a: 0.1 },
+            noiseSize: effect.noiseSize !== undefined ? effect.noiseSize : 1,
+            density: effect.density !== undefined ? effect.density : 0.5,
+            blendMode: effect.blendMode || "NORMAL",
+            visible: effect.visible !== undefined ? effect.visible : true
+          };
+          if (effect.noiseType === "DUOTONE" && effect.secondaryColor) {
+            noiseEffect.secondaryColor = effect.secondaryColor;
+          }
+          if (effect.noiseType === "MULTITONE" && effect.opacity !== undefined) {
+            noiseEffect.opacity = effect.opacity;
+          }
+          return noiseEffect;
+        }
+        case "TEXTURE":
+          return {
+            type: "TEXTURE",
+            noiseSize: effect.noiseSize !== undefined ? effect.noiseSize : 1,
+            radius: effect.radius || 0,
+            clipToShape: effect.clipToShape !== undefined ? effect.clipToShape : true,
+            visible: effect.visible !== undefined ? effect.visible : true
+          };
+        case "GLASS":
+          return {
+            type: "GLASS",
+            lightIntensity: effect.lightIntensity !== undefined ? effect.lightIntensity : 0.5,
+            lightAngle: effect.lightAngle !== undefined ? effect.lightAngle : 0,
+            refraction: effect.refraction !== undefined ? effect.refraction : 0.5,
+            depth: effect.depth !== undefined ? effect.depth : 0.5,
+            dispersion: effect.dispersion !== undefined ? effect.dispersion : 0,
+            radius: effect.radius || 0,
             visible: effect.visible !== undefined ? effect.visible : true
           };
         default:

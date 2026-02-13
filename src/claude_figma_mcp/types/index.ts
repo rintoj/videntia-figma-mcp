@@ -59,6 +59,7 @@ export type FigmaCommand =
   | "set_fill_color"
   | "set_stroke_color"
   | "set_image_fill"
+  | "set_gradient_fill"
   | "move_node"
   | "resize_node"
   | "delete_node"

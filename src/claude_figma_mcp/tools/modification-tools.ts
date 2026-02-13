@@ -596,26 +596,42 @@ export function registerModificationTools(server: McpServer): void {
   // Set Effects Tool
   server.tool(
     "set_effects",
-    "Set the visual effects of a node in Figma",
+    "Set the visual effects of a node in Figma. Supports DROP_SHADOW, INNER_SHADOW, LAYER_BLUR, BACKGROUND_BLUR, and beta types NOISE (grain overlay), TEXTURE (frosted texture), GLASS (frosted glass with refraction, frame-only).",
     {
       nodeId: z.string().describe("The ID of the node to modify"),
       effects: coerceArray(z.array(
         z.object({
-          type: z.enum(["DROP_SHADOW", "INNER_SHADOW", "LAYER_BLUR", "BACKGROUND_BLUR"]).describe("Effect type"),
+          type: z.enum(["DROP_SHADOW", "INNER_SHADOW", "LAYER_BLUR", "BACKGROUND_BLUR", "NOISE", "TEXTURE", "GLASS"]).describe("Effect type"),
           color: z.object({
             r: z.number().min(0).max(1).describe("Red (0-1)"),
             g: z.number().min(0).max(1).describe("Green (0-1)"),
             b: z.number().min(0).max(1).describe("Blue (0-1)"),
             a: z.number().min(0).max(1).describe("Alpha (0-1)")
-          }).optional().describe("Effect color (for shadows)"),
+          }).optional().describe("Effect color (for shadows and NOISE)"),
           offset: z.object({
             x: z.number().describe("X offset"),
             y: z.number().describe("Y offset")
           }).optional().describe("Offset (for shadows)"),
-          radius: z.number().optional().describe("Effect radius"),
+          radius: z.number().optional().describe("Effect radius (blur radius for blurs/TEXTURE/GLASS)"),
           spread: z.number().optional().describe("Shadow spread (for shadows)"),
           visible: z.boolean().optional().describe("Whether the effect is visible"),
-          blendMode: z.string().optional().describe("Blend mode")
+          blendMode: z.string().optional().describe("Blend mode"),
+          noiseType: z.enum(["MONOTONE", "DUOTONE", "MULTITONE"]).optional().describe("Noise variant (NOISE only, default MONOTONE)"),
+          noiseSize: z.number().optional().describe("Grain size (NOISE/TEXTURE)"),
+          density: z.number().optional().describe("Grain density (NOISE)"),
+          secondaryColor: z.object({
+            r: z.number().min(0).max(1).describe("Red (0-1)"),
+            g: z.number().min(0).max(1).describe("Green (0-1)"),
+            b: z.number().min(0).max(1).describe("Blue (0-1)"),
+            a: z.number().min(0).max(1).describe("Alpha (0-1)")
+          }).optional().describe("Secondary color (NOISE DUOTONE only)"),
+          opacity: z.number().min(0).max(1).optional().describe("Opacity (NOISE MULTITONE only)"),
+          clipToShape: z.boolean().optional().describe("Clip texture to shape bounds (TEXTURE only, default true)"),
+          lightIntensity: z.number().optional().describe("Light intensity (GLASS only)"),
+          lightAngle: z.number().optional().describe("Light angle in degrees (GLASS only)"),
+          refraction: z.number().optional().describe("Refraction amount (GLASS only)"),
+          depth: z.number().optional().describe("Depth amount (GLASS only)"),
+          dispersion: z.number().optional().describe("Chromatic dispersion (GLASS only)")
         })
       )).describe("Array of effects to apply")
     },
@@ -875,6 +891,65 @@ export function registerModificationTools(server: McpServer): void {
             {
               type: "text",
               text: `Error setting image fill: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    }
+  );
+
+  // Set Gradient Fill Tool
+  server.tool(
+    "set_gradient_fill",
+    "Set a gradient fill on a node. Supports LINEAR, RADIAL, ANGULAR, and DIAMOND gradient types.",
+    {
+      nodeId: z.string().describe("The ID of the node to modify"),
+      gradientType: z.enum(["LINEAR", "RADIAL", "ANGULAR", "DIAMOND"]).describe("Type of gradient"),
+      gradientStops: z.array(
+        z.object({
+          color: z.object({
+            r: z.number().min(0).max(1).describe("Red channel (0-1)"),
+            g: z.number().min(0).max(1).describe("Green channel (0-1)"),
+            b: z.number().min(0).max(1).describe("Blue channel (0-1)"),
+            a: z.number().min(0).max(1).optional().describe("Alpha channel (0-1, default 1)"),
+          }),
+          position: z.number().min(0).max(1).describe("Stop position (0-1)"),
+        })
+      ).min(2).describe("Array of gradient color stops (minimum 2)"),
+      angle: z.number().optional().describe("Gradient angle in degrees (LINEAR only, default 0)"),
+      opacity: z.number().min(0).max(1).optional().describe("Overall fill opacity (0-1, default 1)"),
+    },
+    async ({ nodeId, gradientType, gradientStops, angle, opacity }) => {
+      try {
+        const result = await sendCommandToFigma("set_gradient_fill", {
+          nodeId,
+          gradientType,
+          gradientStops,
+          angle: angle ?? 0,
+          opacity: opacity ?? 1,
+        });
+
+        const typedResult = result as {
+          id: string;
+          name: string;
+          gradientType: string;
+          stopsCount: number;
+        };
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Set ${typedResult.gradientType} gradient fill on "${typedResult.name}" with ${typedResult.stopsCount} stops`,
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error setting gradient fill: ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };
