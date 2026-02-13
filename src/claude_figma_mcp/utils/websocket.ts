@@ -170,6 +170,28 @@ export async function joinChannel(channelName: string): Promise<void> {
     throw new Error("Not connected to Figma");
   }
 
+  // Validate the channel exists and has a Figma plugin connected
+  try {
+    const openChannels = await getOpenChannels();
+    const match = openChannels.find(ch => ch.channel === channelName);
+    if (!match) {
+      const available = openChannels.map(ch => `  - ${ch.channel} (${ch.fileName ?? 'unknown file'})`).join('\n');
+      throw new Error(
+        `Invalid channel ID: "${channelName}". No Figma plugin is connected on this channel.` +
+        (openChannels.length > 0
+          ? `\nAvailable channels:\n${available}`
+          : '\nNo channels are currently available. Ensure the Claude MCP Plugin is open in Figma.')
+      );
+    }
+  } catch (error) {
+    // If the error is our own validation error, re-throw it
+    if (error instanceof Error && error.message.startsWith('Invalid channel ID:')) {
+      throw error;
+    }
+    // If we can't reach the channels endpoint, log a warning but proceed with the join
+    logger.warn(`Could not validate channel before joining: ${error instanceof Error ? error.message : String(error)}`);
+  }
+
   try {
     await sendCommandToFigma("join", { channel: channelName });
     currentChannel = channelName;
