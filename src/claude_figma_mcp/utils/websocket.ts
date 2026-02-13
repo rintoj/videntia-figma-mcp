@@ -4,6 +4,13 @@ import { logger } from "./logger";
 import { serverUrl, defaultPort, WS_URL, reconnectInterval } from "../config/config";
 import { FigmaCommand, FigmaResponse, CommandProgressUpdate, PendingRequest, ProgressMessage } from "../types";
 
+class ChannelValidationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ChannelValidationError';
+  }
+}
+
 // WebSocket connection and request tracking
 let ws: WebSocket | null = null;
 let currentChannel: string | null = null;
@@ -176,7 +183,7 @@ export async function joinChannel(channelName: string): Promise<void> {
     const match = openChannels.find(ch => ch.channel === channelName);
     if (!match) {
       const available = openChannels.map(ch => `  - ${ch.channel} (${ch.fileName ?? 'unknown file'})`).join('\n');
-      throw new Error(
+      throw new ChannelValidationError(
         `Invalid channel ID: "${channelName}". No Figma plugin is connected on this channel.` +
         (openChannels.length > 0
           ? `\nAvailable channels:\n${available}`
@@ -185,7 +192,7 @@ export async function joinChannel(channelName: string): Promise<void> {
     }
   } catch (error) {
     // If the error is our own validation error, re-throw it
-    if (error instanceof Error && error.message.startsWith('Invalid channel ID:')) {
+    if (error instanceof ChannelValidationError) {
       throw error;
     }
     // If we can't reach the channels endpoint, log a warning but proceed with the join
