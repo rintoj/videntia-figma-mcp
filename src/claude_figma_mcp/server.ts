@@ -10,7 +10,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 
 // Import configuration
-import { SERVER_CONFIG } from "./config/config";
+import { SERVER_CONFIG, SERVER_INSTRUCTIONS } from "./config/config";
 
 // Import utilities
 import { logger } from "./utils/logger";
@@ -27,8 +27,10 @@ import { registerPrompts } from "./prompts";
  */
 async function main() {
   try {
-    // Create MCP server instance with configuration
-    const server = new McpServer(SERVER_CONFIG);
+    // Create MCP server instance with configuration and instructions
+    const server = new McpServer(SERVER_CONFIG, {
+      instructions: SERVER_INSTRUCTIONS,
+    });
     
     // Register all tools with the server
     registerTools(server);
