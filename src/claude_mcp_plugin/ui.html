@@ -226,6 +226,7 @@
         serverPort: 3055,
         pendingRequests: new Map(),
         channel: null,
+        fileName: null,
       };
 
       // UI Elements
@@ -293,13 +294,24 @@
             console.log("Joining channel:", channelName);
             state.channel = channelName;
 
-            // Join the channel using the same format as App.tsx
-            state.socket.send(
-              JSON.stringify({
-                type: "join",
-                channel: channelName.trim(),
-              })
-            );
+            // Join the channel with file name metadata
+            // fileName is pre-fetched on plugin startup, so it should already be available
+            const joinPayload = {
+              type: "join",
+              channel: channelName.trim(),
+            };
+            if (state.fileName) {
+              joinPayload.fileName = state.fileName;
+            }
+            state.socket.send(JSON.stringify(joinPayload));
+
+            // If file name wasn't available yet, request it (fallback)
+            if (!state.fileName) {
+              parent.postMessage(
+                { pluginMessage: { type: "get-file-name" } },
+                "*"
+              );
+            }
           };
 
           state.socket.onmessage = (event) => {
@@ -621,6 +633,20 @@
             hideOperationStatusAfter(5000);
             // Forward the error from plugin code back to WebSocket
             sendErrorResponse(message.id, message.error);
+            break;
+          case "file-name":
+            state.fileName = message.fileName;
+            console.log("File name received:", state.fileName);
+            // Send updated metadata to server if socket is open
+            if (state.socket && state.socket.readyState === WebSocket.OPEN && state.channel) {
+              state.socket.send(
+                JSON.stringify({
+                  type: "join",
+                  channel: state.channel,
+                  fileName: state.fileName,
+                })
+              );
+            }
             break;
           case "command_progress":
             // Update UI with progress information

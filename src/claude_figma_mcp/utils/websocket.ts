@@ -189,6 +189,23 @@ export function getCurrentChannel(): string | null {
 }
 
 /**
+ * Get all open channels from the socket server via HTTP.
+ * @returns A promise that resolves with an array of channel objects
+ */
+export async function getOpenChannels(): Promise<
+  Array<{ channel: string; clients: number; fileName: string | null; joinedAt: number | null }>
+> {
+  const httpUrl = serverUrl === "localhost"
+    ? `http://localhost:${defaultPort}`
+    : `https://${serverUrl}`;
+  const response = await fetch(`${httpUrl}/channels`);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch channels: ${response.status} ${response.statusText}`);
+  }
+  return response.json();
+}
+
+/**
  * Send a command to Figma via WebSocket.
  * @param command - The command to send
  * @param params - Additional parameters for the command

@@ -48,6 +48,9 @@ function sendProgressUpdate(commandId, commandType, status, progress, totalItems
 // Show UI
 figma.showUI(__html__, { width: 220, height: 200 });
 
+// Send file name to UI immediately on startup so it's available before WebSocket connects
+figma.ui.postMessage({ type: "file-name", fileName: figma.root.name });
+
 // Plugin commands from UI
 figma.ui.onmessage = async (msg) => {
   switch (msg.type) {
@@ -59,6 +62,9 @@ figma.ui.onmessage = async (msg) => {
       break;
     case "close-plugin":
       figma.closePlugin();
+      break;
+    case "get-file-name":
+      figma.ui.postMessage({ type: "file-name", fileName: figma.root.name });
       break;
     case "execute-command":
       // Execute commands received from UI (which gets them from WebSocket)
