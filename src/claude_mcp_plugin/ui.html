@@ -226,6 +226,7 @@
         serverPort: 3055,
         pendingRequests: new Map(),
         channel: null,
+        fileName: null,
       };
 
       // UI Elements
@@ -298,6 +299,7 @@
               JSON.stringify({
                 type: "join",
                 channel: channelName.trim(),
+                fileName: state.fileName || "Untitled",
               })
             );
           };
@@ -621,6 +623,9 @@
             hideOperationStatusAfter(5000);
             // Forward the error from plugin code back to WebSocket
             sendErrorResponse(message.id, message.error);
+            break;
+          case "document-info":
+            state.fileName = message.fileName;
             break;
           case "command_progress":
             // Update UI with progress information

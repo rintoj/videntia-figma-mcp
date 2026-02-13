@@ -2,7 +2,7 @@ import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { sendCommandToFigma, joinChannel } from "../utils/websocket.js";
 import { filterFigmaNode } from "../utils/figma-helpers.js";
-import { figmaAccessToken, FIGMA_API_BASE_URL } from "../config/config.js";
+import { figmaAccessToken, FIGMA_API_BASE_URL, serverUrl, defaultPort } from "../config/config.js";
 import { coerceArray } from "../utils/coerce-array.js";
 
 /**
@@ -767,6 +767,102 @@ export function registerDocumentTools(server: McpServer): void {
             {
               type: "text",
               text: `Error scanning text nodes: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    }
+  );
+
+  // List Channels Tool
+  server.tool(
+    "list_channels",
+    "List all active channels on the WebSocket server. Shows channel names, connected client counts, and Figma file names. Use this to discover available channels before joining one.",
+    {},
+    async () => {
+      try {
+        const url = `http://${serverUrl}:${defaultPort}/channels`;
+        const response = await fetch(url);
+
+        if (!response.ok) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: `Error fetching channels: HTTP ${response.status} ${response.statusText}`,
+              },
+            ],
+          };
+        }
+
+        const contentType = response.headers.get("content-type") || "";
+        if (!contentType.includes("application/json")) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: `The WebSocket server does not support channel discovery. Please rebuild and restart the socket server (bun run build && bun run socket).`,
+              },
+            ],
+          };
+        }
+
+        const data = (await response.json()) as {
+          channels: Array<{
+            name: string;
+            clientCount: number;
+            fileNames: string[];
+          }>;
+        };
+
+        if (!data.channels || data.channels.length === 0) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: "No active channels found. Make sure the Figma plugin is running and connected.",
+              },
+            ],
+          };
+        }
+
+        const lines = data.channels.map((ch) => {
+          const fileInfo =
+            ch.fileNames.length > 0
+              ? ch.fileNames.join(", ")
+              : "Unknown file";
+          return `- ${ch.name} — ${fileInfo} (${ch.clientCount} client${ch.clientCount !== 1 ? "s" : ""})`;
+        });
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Active channels:\n${lines.join("\n")}`,
+            },
+          ],
+        };
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : String(error);
+        if (
+          message.includes("ECONNREFUSED") ||
+          message.includes("fetch failed")
+        ) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: `Cannot connect to WebSocket server at localhost:${defaultPort}. Make sure the server is running (bun run socket).`,
+              },
+            ],
+          };
+        }
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error listing channels: ${message}`,
             },
           ],
         };

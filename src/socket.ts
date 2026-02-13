@@ -117,6 +117,27 @@ const server = Bun.serve({
       });
     }
 
+    // Handle channels endpoint - list active channels with metadata
+    if (url.pathname === "/channels") {
+      const channelList: Array<{ name: string; clientCount: number; fileNames: string[] }> = [];
+      channels.forEach((clients, name) => {
+        if (clients.size > 0) {
+          const fileNames = [...new Set(
+            [...clients]
+              .map(client => client.data?.fileName)
+              .filter((fn): fn is string => typeof fn === "string")
+          )];
+          channelList.push({ name, clientCount: clients.size, fileNames });
+        }
+      });
+      return new Response(JSON.stringify({ channels: channelList }), {
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*"
+        }
+      });
+    }
+
     // Handle WebSocket upgrade
     try {
       const success = server.upgrade(req, {
@@ -169,6 +190,9 @@ const server = Bun.serve({
             logger.info(`Creating new channel: ${channelName}`);
             channels.set(channelName, new Set());
           }
+
+          // Store file name metadata from the Figma plugin
+          ws.data = { ...ws.data, fileName: data.fileName || null };
 
           // Add client to channel
           const channelClients = channels.get(channelName)!;
@@ -321,11 +345,15 @@ const server = Bun.serve({
     close(ws: ServerWebSocket<any>, code: number, reason: string) {
       const clientId = ws.data?.clientId || "unknown";
       logger.info(`WebSocket closed for client ${clientId}: Code ${code}, Reason: ${reason || 'No reason provided'}`);
-      
-      // Remove client from their channel
+
+      // Remove client from their channel and clean up empty channels
       channels.forEach((clients, channelName) => {
         if (clients.delete(ws)) {
           logger.debug(`Removed client ${clientId} from channel ${channelName} due to connection close`);
+          if (clients.size === 0) {
+            channels.delete(channelName);
+            logger.debug(`Deleted empty channel: ${channelName}`);
+          }
         }
       });
       

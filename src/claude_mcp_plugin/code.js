@@ -48,6 +48,9 @@ function sendProgressUpdate(commandId, commandType, status, progress, totalItems
 // Show UI
 figma.showUI(__html__, { width: 220, height: 200 });
 
+// Send the document name to the UI so it can be included in channel join messages
+figma.ui.postMessage({ type: "document-info", fileName: figma.root.name });
+
 // Plugin commands from UI
 figma.ui.onmessage = async (msg) => {
   switch (msg.type) {
