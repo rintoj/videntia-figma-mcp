@@ -295,6 +295,7 @@
             state.channel = channelName;
 
             // Join the channel with file name metadata
+            // fileName is pre-fetched on plugin startup, so it should already be available
             const joinPayload = {
               type: "join",
               channel: channelName.trim(),
@@ -304,7 +305,7 @@
             }
             state.socket.send(JSON.stringify(joinPayload));
 
-            // Request file name from plugin code (will update metadata on server if received after join)
+            // If file name wasn't available yet, request it (fallback)
             if (!state.fileName) {
               parent.postMessage(
                 { pluginMessage: { type: "get-file-name" } },
@@ -636,8 +637,8 @@
           case "file-name":
             state.fileName = message.fileName;
             console.log("File name received:", state.fileName);
-            // Send updated metadata to server if already connected
-            if (state.socket && state.connected && state.channel) {
+            // Send updated metadata to server if socket is open
+            if (state.socket && state.socket.readyState === WebSocket.OPEN && state.channel) {
               state.socket.send(
                 JSON.stringify({
                   type: "join",
