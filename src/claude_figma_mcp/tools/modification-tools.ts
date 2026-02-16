@@ -703,6 +703,134 @@ export function registerModificationTools(server: McpServer): void {
     }
   );
 
+  // Shared schema for effect style operations
+  const effectStyleEntrySchema = z.object({
+    type: z.enum(["DROP_SHADOW", "INNER_SHADOW", "LAYER_BLUR", "BACKGROUND_BLUR"]).describe("Effect type"),
+    color: z.object({
+      r: z.number().min(0).max(1).describe("Red (0-1)"),
+      g: z.number().min(0).max(1).describe("Green (0-1)"),
+      b: z.number().min(0).max(1).describe("Blue (0-1)"),
+      a: z.number().min(0).max(1).describe("Alpha (0-1)")
+    }).optional().describe("Effect color (for shadows)"),
+    offset: z.object({
+      x: z.number().describe("X offset"),
+      y: z.number().describe("Y offset")
+    }).optional().describe("Offset (for shadows)"),
+    radius: z.number().optional().describe("Blur radius"),
+    spread: z.number().optional().describe("Shadow spread (for shadows)"),
+    visible: z.boolean().optional().describe("Whether the effect is visible"),
+    blendMode: z.string().optional().describe("Blend mode")
+  });
+
+  // Create Effect Style Tool
+  server.tool(
+    "create_effect_style",
+    "Create a new effect style in Figma (e.g., shadow, blur). The style can then be applied to nodes using set_effect_style_id.",
+    {
+      name: z.string().describe("Name of the effect style (e.g., 'shadow/sm', 'shadow/md', 'blur/overlay')"),
+      effects: coerceArray(z.array(effectStyleEntrySchema)).describe("Array of effects for the style"),
+      description: z.string().optional().describe("Description of the effect style")
+    },
+    async ({ name, effects, description }) => {
+      try {
+        const result = await sendCommandToFigma("create_effect_style", {
+          name,
+          effects,
+          description
+        });
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(result, null, 2)
+            }
+          ]
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error creating effect style: ${error instanceof Error ? error.message : String(error)}`
+            }
+          ]
+        };
+      }
+    }
+  );
+
+  // Update Effect Style Tool
+  server.tool(
+    "update_effect_style",
+    "Update an existing effect style's properties (name, effects, description)",
+    {
+      styleId: z.string().describe("The ID of the effect style to update"),
+      name: z.string().optional().describe("New name for the effect style"),
+      effects: coerceArray(z.array(effectStyleEntrySchema)).optional().describe("New array of effects for the style"),
+      description: z.string().optional().describe("New description for the effect style")
+    },
+    async ({ styleId, name, effects, description }) => {
+      try {
+        const result = await sendCommandToFigma("update_effect_style", {
+          styleId,
+          name,
+          effects,
+          description
+        });
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(result, null, 2)
+            }
+          ]
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error updating effect style: ${error instanceof Error ? error.message : String(error)}`
+            }
+          ]
+        };
+      }
+    }
+  );
+
+  // Delete Effect Style Tool
+  server.tool(
+    "delete_effect_style",
+    "Delete an effect style from the document",
+    {
+      styleId: z.string().describe("The ID of the effect style to delete")
+    },
+    async ({ styleId }) => {
+      try {
+        const result = await sendCommandToFigma("delete_effect_style", {
+          styleId
+        });
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(result, null, 2)
+            }
+          ]
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error deleting effect style: ${error instanceof Error ? error.message : String(error)}`
+            }
+          ]
+        };
+      }
+    }
+  );
+
   // Bind Variable Tool
   server.tool(
     "bind_variable",
