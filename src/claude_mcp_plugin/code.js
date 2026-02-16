@@ -7260,6 +7260,11 @@ async function deletePage(params) {
     throw new Error(`Node ${pageId} is not a page (type: ${node.type})`);
   }
 
+  // Switch away from current page before removing it
+  if (figma.currentPage.id === pageId) {
+    figma.currentPage = figma.root.children.find(p => p.id !== pageId);
+  }
+
   const pageInfo = {
     id: node.id,
     name: node.name
