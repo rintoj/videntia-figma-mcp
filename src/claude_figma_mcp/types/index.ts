@@ -162,6 +162,9 @@ export type FigmaCommand =
   | "create_typography_system"
   | "create_radius_system"
   | "create_complete_design_system"
+  | "create_page"
+  | "rename_page"
+  | "delete_page"
   | "batch_actions";
 
 // Batch actions types
