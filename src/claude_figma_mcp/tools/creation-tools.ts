@@ -23,8 +23,12 @@ export function registerCreationTools(server: McpServer): void {
         .string()
         .optional()
         .describe("Optional parent node ID to append the rectangle to"),
+      layoutPositioning: z
+        .enum(["ABSOLUTE", "RELATIVE"])
+        .optional()
+        .describe("Position mode within auto-layout parent"),
     },
-    async ({ x, y, width, height, name, parentId }) => {
+    async ({ x, y, width, height, name, parentId, layoutPositioning }) => {
       try {
         const result = await sendCommandToFigma("create_rectangle", {
           x,
@@ -33,6 +37,7 @@ export function registerCreationTools(server: McpServer): void {
           height,
           name: name || "Rectangle",
           parentId,
+          layoutPositioning,
         });
         return {
           content: [
@@ -98,6 +103,14 @@ export function registerCreationTools(server: McpServer): void {
         .optional()
         .describe("Stroke color in RGBA format"),
       strokeWeight: z.number().positive().optional().describe("Stroke weight"),
+      clipsContent: z
+        .boolean()
+        .optional()
+        .describe("Whether to clip content outside frame bounds"),
+      layoutPositioning: z
+        .enum(["ABSOLUTE", "RELATIVE"])
+        .optional()
+        .describe("Position mode within auto-layout parent"),
     },
     async ({
       x,
@@ -109,6 +122,8 @@ export function registerCreationTools(server: McpServer): void {
       fillColor,
       strokeColor,
       strokeWeight,
+      clipsContent,
+      layoutPositioning,
     }) => {
       try {
         const result = await sendCommandToFigma("create_frame", {
@@ -121,6 +136,8 @@ export function registerCreationTools(server: McpServer): void {
           fillColor: fillColor || { r: 1, g: 1, b: 1, a: 1 },
           strokeColor: strokeColor,
           strokeWeight: strokeWeight,
+          clipsContent,
+          layoutPositioning,
         });
         const typedResult = result as { name: string; id: string };
         return {
@@ -244,8 +261,12 @@ export function registerCreationTools(server: McpServer): void {
         .optional()
         .describe("Stroke color in RGBA format"),
       strokeWeight: z.number().positive().optional().describe("Stroke weight"),
+      layoutPositioning: z
+        .enum(["ABSOLUTE", "RELATIVE"])
+        .optional()
+        .describe("Position mode within auto-layout parent"),
     },
-    async ({ x, y, width, height, name, parentId, fillColor, strokeColor, strokeWeight }) => {
+    async ({ x, y, width, height, name, parentId, fillColor, strokeColor, strokeWeight, layoutPositioning }) => {
       try {
         const result = await sendCommandToFigma("create_ellipse", {
           x,
@@ -257,6 +278,7 @@ export function registerCreationTools(server: McpServer): void {
           fillColor,
           strokeColor,
           strokeWeight,
+          layoutPositioning,
         });
         
         const typedResult = result as { id: string, name: string };

@@ -499,7 +499,7 @@ export function registerModificationTools(server: McpServer): void {
     "Set the corner radius of a node in Figma",
     {
       nodeId: z.string().describe("The ID of the node to modify"),
-      radius: z.number().min(0).describe("Corner radius value"),
+      radius: z.coerce.number().min(0).describe("Corner radius value"),
       corners: z
         .array(z.boolean())
         .length(4)
@@ -552,23 +552,25 @@ export function registerModificationTools(server: McpServer): void {
       primaryAxisAlignItems: z.enum(["MIN", "CENTER", "MAX", "SPACE_BETWEEN"]).optional().describe("Alignment along primary axis"),
       counterAxisAlignItems: z.enum(["MIN", "CENTER", "MAX"]).optional().describe("Alignment along counter axis"),
       layoutWrap: z.enum(["WRAP", "NO_WRAP"]).optional().describe("Whether items wrap to new lines"),
-      strokesIncludedInLayout: z.boolean().optional().describe("Whether strokes are included in layout calculations")
+      strokesIncludedInLayout: z.boolean().optional().describe("Whether strokes are included in layout calculations"),
+      clipsContent: z.boolean().optional().describe("Whether to clip content outside frame bounds")
     },
-    async ({ nodeId, layoutMode, paddingTop, paddingBottom, paddingLeft, paddingRight, 
-             itemSpacing, primaryAxisAlignItems, counterAxisAlignItems, layoutWrap, strokesIncludedInLayout }) => {
+    async ({ nodeId, layoutMode, paddingTop, paddingBottom, paddingLeft, paddingRight,
+             itemSpacing, primaryAxisAlignItems, counterAxisAlignItems, layoutWrap, strokesIncludedInLayout, clipsContent }) => {
       try {
-        const result = await sendCommandToFigma("set_auto_layout", { 
-          nodeId, 
-          layoutMode, 
-          paddingTop, 
-          paddingBottom, 
-          paddingLeft, 
-          paddingRight, 
-          itemSpacing, 
-          primaryAxisAlignItems, 
-          counterAxisAlignItems, 
-          layoutWrap, 
-          strokesIncludedInLayout 
+        const result = await sendCommandToFigma("set_auto_layout", {
+          nodeId,
+          layoutMode,
+          paddingTop,
+          paddingBottom,
+          paddingLeft,
+          paddingRight,
+          itemSpacing,
+          primaryAxisAlignItems,
+          counterAxisAlignItems,
+          layoutWrap,
+          strokesIncludedInLayout,
+          clipsContent
         });
         
         const typedResult = result as { name: string };
