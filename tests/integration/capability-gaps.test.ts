@@ -299,5 +299,193 @@ describe("MCP capability gap fixes", () => {
         }),
       ).rejects.toThrow();
     });
+
+    it("accepts corners array as JSON string via coercion", async () => {
+      mockSendCommand.mockResolvedValue({ name: "TopRounded" });
+
+      const response = await callTool("set_corner_radius", {
+        nodeId: "rect-001",
+        radius: 12,
+        corners: "[true, true, false, false]" as any,
+      });
+
+      const [command, params] = mockSendCommand.mock.calls[0];
+      expect(command).toBe("set_corner_radius");
+      expect(params.corners).toEqual([true, true, false, false]);
+      expect(response.content[0].text).toContain("12");
+    });
+
+    it("accepts corners as native boolean array", async () => {
+      mockSendCommand.mockResolvedValue({ name: "BottomRounded" });
+
+      await callTool("set_corner_radius", {
+        nodeId: "rect-001",
+        radius: 8,
+        corners: [false, false, true, true],
+      });
+
+      const [, params] = mockSendCommand.mock.calls[0];
+      expect(params.corners).toEqual([false, false, true, true]);
+    });
+  });
+
+  describe("Fix: layoutPositioning re-applies x/y coordinates", () => {
+    it("passes x, y, and layoutPositioning together to create_frame", async () => {
+      mockSendCommand.mockResolvedValue({
+        id: "abs-frame-001",
+        name: "AbsoluteChild",
+      });
+
+      await callTool("create_frame", {
+        x: 50,
+        y: 75,
+        width: 100,
+        height: 100,
+        name: "AbsoluteChild",
+        parentId: "parent-001",
+        layoutPositioning: "ABSOLUTE",
+      });
+
+      const [command, params] = mockSendCommand.mock.calls[0];
+      expect(command).toBe("create_frame");
+      expect(params.x).toBe(50);
+      expect(params.y).toBe(75);
+      expect(params.layoutPositioning).toBe("ABSOLUTE");
+    });
+
+    it("passes x, y, and layoutPositioning together to create_ellipse", async () => {
+      mockSendCommand.mockResolvedValue({
+        id: "abs-ellipse-001",
+        name: "Blob",
+      });
+
+      await callTool("create_ellipse", {
+        x: 100,
+        y: 200,
+        width: 300,
+        height: 300,
+        name: "Blob",
+        parentId: "parent-001",
+        layoutPositioning: "ABSOLUTE",
+      });
+
+      const [command, params] = mockSendCommand.mock.calls[0];
+      expect(command).toBe("create_ellipse");
+      expect(params.x).toBe(100);
+      expect(params.y).toBe(200);
+      expect(params.layoutPositioning).toBe("ABSOLUTE");
+    });
+  });
+
+  describe("Fix: numeric coercion across creation tools", () => {
+    it("coerces string x/y/width/height in create_rectangle", async () => {
+      mockSendCommand.mockResolvedValue({ id: "rect-c1", name: "Rect" });
+
+      await callTool("create_rectangle", {
+        x: "10" as any,
+        y: "20" as any,
+        width: "200" as any,
+        height: "100" as any,
+      });
+
+      const [, params] = mockSendCommand.mock.calls[0];
+      expect(params.x).toBe(10);
+      expect(params.y).toBe(20);
+      expect(params.width).toBe(200);
+      expect(params.height).toBe(100);
+    });
+
+    it("coerces string fontSize and fontWeight in create_text", async () => {
+      mockSendCommand.mockResolvedValue({ id: "text-c1", name: "Label" });
+
+      await callTool("create_text", {
+        x: 0,
+        y: 0,
+        text: "Hello",
+        fontSize: "18" as any,
+        fontWeight: "700" as any,
+      });
+
+      const [, params] = mockSendCommand.mock.calls[0];
+      expect(params.fontSize).toBe(18);
+      expect(params.fontWeight).toBe(700);
+    });
+  });
+
+  describe("Fix: numeric coercion across modification tools", () => {
+    it("coerces string x/y in move_node", async () => {
+      mockSendCommand.mockResolvedValue({ name: "MovedNode" });
+
+      await callTool("move_node", {
+        nodeId: "node-001",
+        x: "50" as any,
+        y: "75" as any,
+      });
+
+      const [command, params] = mockSendCommand.mock.calls[0];
+      expect(command).toBe("move_node");
+      expect(params.x).toBe(50);
+      expect(params.y).toBe(75);
+    });
+
+    it("coerces string width/height in resize_node", async () => {
+      mockSendCommand.mockResolvedValue({ name: "ResizedNode" });
+
+      await callTool("resize_node", {
+        nodeId: "node-001",
+        width: "300" as any,
+        height: "150" as any,
+      });
+
+      const [command, params] = mockSendCommand.mock.calls[0];
+      expect(command).toBe("resize_node");
+      expect(params.width).toBe(300);
+      expect(params.height).toBe(150);
+    });
+
+    it("coerces string padding values in set_padding", async () => {
+      mockSendCommand.mockResolvedValue({ name: "PaddedFrame" });
+
+      await callTool("set_padding", {
+        nodeId: "frame-001",
+        paddingTop: "16" as any,
+        paddingRight: "12" as any,
+        paddingBottom: "16" as any,
+        paddingLeft: "12" as any,
+      });
+
+      const [, params] = mockSendCommand.mock.calls[0];
+      expect(params.paddingTop).toBe(16);
+      expect(params.paddingRight).toBe(12);
+      expect(params.paddingBottom).toBe(16);
+      expect(params.paddingLeft).toBe(12);
+    });
+
+    it("coerces string itemSpacing in set_item_spacing", async () => {
+      mockSendCommand.mockResolvedValue({ name: "SpacedFrame", itemSpacing: 8 });
+
+      await callTool("set_item_spacing", {
+        nodeId: "frame-001",
+        itemSpacing: "8" as any,
+      });
+
+      const [, params] = mockSendCommand.mock.calls[0];
+      expect(params.itemSpacing).toBe(8);
+    });
+
+    it("coerces string strokeWeight in set_stroke_color", async () => {
+      mockSendCommand.mockResolvedValue({ name: "StrokedNode" });
+
+      await callTool("set_stroke_color", {
+        nodeId: "node-001",
+        r: 0,
+        g: 0,
+        b: 0,
+        strokeWeight: "2" as any,
+      });
+
+      const [, params] = mockSendCommand.mock.calls[0];
+      expect(params.strokeWeight).toBe(2);
+    });
   });
 });
