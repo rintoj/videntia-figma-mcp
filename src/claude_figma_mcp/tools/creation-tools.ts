@@ -170,6 +170,7 @@ export function registerCreationTools(server: McpServer): void {
       y: z.coerce.number().describe("Y position"),
       text: z.string().describe("Text content"),
       fontSize: z.coerce.number().optional().describe("Font size (default: 14)"),
+      fontFamily: z.string().optional().describe("Font family name (default: Inter)"),
       fontWeight: z.coerce
         .number()
         .optional()
@@ -197,13 +198,14 @@ export function registerCreationTools(server: McpServer): void {
         .optional()
         .describe("Optional parent node ID to append the text to"),
     },
-    async ({ x, y, text, fontSize, fontWeight, fontColor, name, parentId }) => {
+    async ({ x, y, text, fontSize, fontFamily, fontWeight, fontColor, name, parentId }) => {
       try {
         const result = await sendCommandToFigma("create_text", {
           x,
           y,
           text,
           fontSize: fontSize || 14,
+          fontFamily: fontFamily || "Inter",
           fontWeight: fontWeight || 400,
           fontColor: fontColor || { r: 0, g: 0, b: 0, a: 1 },
           name: name || "Text",

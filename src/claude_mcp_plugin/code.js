@@ -840,6 +840,7 @@ async function createText(params) {
     y = 0,
     text = "Text",
     fontSize = 14,
+    fontFamily = "Inter",
     fontWeight = 400,
     fontColor = { r: 0, g: 0, b: 0, a: 1 }, // Default to black
     name = "Text",
@@ -878,13 +879,13 @@ async function createText(params) {
   textNode.name = name;
   try {
     await figma.loadFontAsync({
-      family: "Inter",
+      family: fontFamily,
       style: getFontStyle(fontWeight),
     });
-    textNode.fontName = { family: "Inter", style: getFontStyle(fontWeight) };
+    textNode.fontName = { family: fontFamily, style: getFontStyle(fontWeight) };
     textNode.fontSize = parseInt(fontSize);
   } catch (error) {
-    console.error("Error setting font size", error);
+    console.error("Error setting font name/size", error);
   }
   await setCharacters(textNode, text);
 

@@ -410,6 +410,35 @@ describe("MCP capability gap fixes", () => {
       expect(params.fontSize).toBe(18);
       expect(params.fontWeight).toBe(700);
     });
+
+    it("passes fontFamily to create_text", async () => {
+      mockSendCommand.mockResolvedValue({ id: "text-f1", name: "Roboto Text" });
+
+      await callTool("create_text", {
+        x: 0,
+        y: 0,
+        text: "Custom Font",
+        fontFamily: "Roboto",
+        fontWeight: 700,
+      });
+
+      const [, params] = mockSendCommand.mock.calls[0];
+      expect(params.fontFamily).toBe("Roboto");
+      expect(params.fontWeight).toBe(700);
+    });
+
+    it("defaults fontFamily to Inter when not provided", async () => {
+      mockSendCommand.mockResolvedValue({ id: "text-f2", name: "Default Text" });
+
+      await callTool("create_text", {
+        x: 0,
+        y: 0,
+        text: "Default Font",
+      });
+
+      const [, params] = mockSendCommand.mock.calls[0];
+      expect(params.fontFamily).toBe("Inter");
+    });
   });
 
   describe("Fix: numeric coercion across modification tools", () => {
