@@ -242,3 +242,34 @@ export function getIcon(name: string): { name: string; svg: string } | null {
   if (svg) return { name: normalised, svg };
   return null;
 }
+
+export interface ListIconsResult {
+  total: number;
+  offset: number;
+  limit: number;
+  icons: string[];
+}
+
+/**
+ * List available icon names with optional prefix filter and pagination.
+ */
+export function listIcons(options: {
+  prefix?: string;
+  offset?: number;
+  limit?: number;
+}): ListIconsResult {
+  const { prefix, offset = 0, limit = 50 } = options;
+
+  let names = LUCIDE_ICON_NAMES;
+  if (prefix) {
+    const p = prefix.toLowerCase().trim();
+    names = names.filter((n) => n.startsWith(p));
+  }
+
+  return {
+    total: names.length,
+    offset,
+    limit,
+    icons: names.slice(offset, offset + limit),
+  };
+}

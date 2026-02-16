@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { searchIcons, getIcon } from "../utils/icon-search.js";
+import { searchIcons, getIcon, listIcons } from "../utils/icon-search.js";
 
 /**
  * Register icon lookup tools to the MCP server.
@@ -92,6 +92,47 @@ export function registerIconTools(server: McpServer): void {
             {
               type: "text" as const,
               text: `Error getting icon: ${error instanceof Error ? error.message : String(error)}`
+            }
+          ]
+        };
+      }
+    }
+  );
+
+  /**
+   * list_icons — paginated listing of available Lucide icon names.
+   * Supports optional prefix filtering.
+   */
+  server.tool(
+    "list_icons",
+    "List available Lucide icon names with optional prefix filter and pagination. Returns names only (use get_icon to fetch SVG).",
+    {
+      prefix: z.string().optional().describe("Filter icons by name prefix (e.g. \"arrow\", \"circle\")"),
+      offset: z.number().min(0).optional().describe("Start index for pagination (default 0)"),
+      limit: z.number().min(1).max(200).optional().describe("Max results per page (default 50, max 200)")
+    },
+    async ({ prefix, offset, limit }) => {
+      try {
+        const result = listIcons({
+          prefix,
+          offset: offset ?? 0,
+          limit: limit ?? 50,
+        });
+
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify(result, null, 2)
+            }
+          ]
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: `Error listing icons: ${error instanceof Error ? error.message : String(error)}`
             }
           ]
         };

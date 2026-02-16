@@ -1,4 +1,4 @@
-import { searchIcons, getIcon } from "../../../src/claude_figma_mcp/utils/icon-search";
+import { searchIcons, getIcon, listIcons } from "../../../src/claude_figma_mcp/utils/icon-search";
 
 describe("icon-search", () => {
   describe("searchIcons", () => {
@@ -148,6 +148,51 @@ describe("icon-search", () => {
       const result = getIcon("  bell  ");
       expect(result).not.toBeNull();
       expect(result!.name).toBe("bell");
+    });
+  });
+
+  describe("listIcons", () => {
+    it("returns all icons with default pagination", () => {
+      const result = listIcons({});
+      expect(result.total).toBe(1495);
+      expect(result.offset).toBe(0);
+      expect(result.limit).toBe(50);
+      expect(result.icons.length).toBe(50);
+    });
+
+    it("filters by prefix", () => {
+      const result = listIcons({ prefix: "arrow" });
+      expect(result.total).toBeGreaterThan(0);
+      expect(result.icons.every((n) => n.startsWith("arrow"))).toBe(true);
+    });
+
+    it("respects offset and limit", () => {
+      const page1 = listIcons({ limit: 10 });
+      const page2 = listIcons({ offset: 10, limit: 10 });
+      expect(page1.icons.length).toBe(10);
+      expect(page2.icons.length).toBe(10);
+      // No overlap
+      const overlap = page1.icons.filter((n) => page2.icons.includes(n));
+      expect(overlap.length).toBe(0);
+    });
+
+    it("returns empty list for non-matching prefix", () => {
+      const result = listIcons({ prefix: "zzzzzzxyz" });
+      expect(result.total).toBe(0);
+      expect(result.icons.length).toBe(0);
+    });
+
+    it("handles prefix case-insensitively", () => {
+      const result = listIcons({ prefix: "Arrow" });
+      expect(result.total).toBeGreaterThan(0);
+      expect(result.icons.every((n) => n.startsWith("arrow"))).toBe(true);
+    });
+
+    it("returns sorted icon names", () => {
+      const result = listIcons({ limit: 100 });
+      for (let i = 1; i < result.icons.length; i++) {
+        expect(result.icons[i].localeCompare(result.icons[i - 1])).toBeGreaterThanOrEqual(0);
+      }
     });
   });
 });
