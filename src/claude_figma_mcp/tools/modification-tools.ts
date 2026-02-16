@@ -69,7 +69,7 @@ export function registerModificationTools(server: McpServer): void {
       g: z.number().min(0).max(1).describe("Green component (0-1)"),
       b: z.number().min(0).max(1).describe("Blue component (0-1)"),
       a: z.number().min(0).max(1).optional().describe("Alpha component (0-1)"),
-      strokeWeight: z.number().min(0).optional().describe("Stroke weight >= 0)"),
+      strokeWeight: z.coerce.number().min(0).optional().describe("Stroke weight >= 0)"),
     },
     async ({ nodeId, r, g, b, a, strokeWeight }) => {
       try {
@@ -116,8 +116,8 @@ export function registerModificationTools(server: McpServer): void {
     "Move a node to a new position in Figma",
     {
       nodeId: z.string().describe("The ID of the node to move"),
-      x: z.number().describe("New X position"),
-      y: z.number().describe("New Y position"),
+      x: z.coerce.number().describe("New X position"),
+      y: z.coerce.number().describe("New Y position"),
     },
     async ({ nodeId, x, y }) => {
       try {
@@ -150,8 +150,8 @@ export function registerModificationTools(server: McpServer): void {
     "Resize a node in Figma",
     {
       nodeId: z.string().describe("The ID of the node to resize"),
-      width: z.number().positive().describe("New width"),
-      height: z.number().positive().describe("New height"),
+      width: z.coerce.number().positive().describe("New width"),
+      height: z.coerce.number().positive().describe("New height"),
     },
     async ({ nodeId, width, height }) => {
       try {
@@ -291,10 +291,10 @@ export function registerModificationTools(server: McpServer): void {
     "Set padding values for an auto-layout frame in Figma",
     {
       nodeId: z.string().describe("The ID of the frame to modify"),
-      paddingTop: z.number().optional().describe("Top padding value"),
-      paddingRight: z.number().optional().describe("Right padding value"),
-      paddingBottom: z.number().optional().describe("Bottom padding value"),
-      paddingLeft: z.number().optional().describe("Left padding value")
+      paddingTop: z.coerce.number().optional().describe("Top padding value"),
+      paddingRight: z.coerce.number().optional().describe("Right padding value"),
+      paddingBottom: z.coerce.number().optional().describe("Bottom padding value"),
+      paddingLeft: z.coerce.number().optional().describe("Left padding value")
     },
     async ({ nodeId, paddingTop, paddingRight, paddingBottom, paddingLeft }) => {
       try {
@@ -450,9 +450,9 @@ export function registerModificationTools(server: McpServer): void {
     "Set distance between children in an auto-layout frame",
     {
       nodeId: z.string().describe("The ID of the frame to modify"),
-      itemSpacing: z.number().optional()
+      itemSpacing: z.coerce.number().optional()
         .describe("Distance between children"),
-      counterAxisSpacing: z.number().optional()
+      counterAxisSpacing: z.coerce.number().optional()
         .describe("Distance between wrapped rows/columns")
     },
     async ({ nodeId, itemSpacing, counterAxisSpacing }) => {
@@ -499,10 +499,8 @@ export function registerModificationTools(server: McpServer): void {
     "Set the corner radius of a node in Figma",
     {
       nodeId: z.string().describe("The ID of the node to modify"),
-      radius: z.number().min(0).describe("Corner radius value"),
-      corners: z
-        .array(z.boolean())
-        .length(4)
+      radius: z.coerce.number().min(0).describe("Corner radius value"),
+      corners: coerceArray(z.array(z.coerce.boolean()).length(4))
         .optional()
         .describe(
           "Optional array of 4 booleans to specify which corners to round [topLeft, topRight, bottomRight, bottomLeft]"
@@ -544,31 +542,33 @@ export function registerModificationTools(server: McpServer): void {
     {
       nodeId: z.string().describe("The ID of the node to configure auto layout"),
       layoutMode: z.enum(["HORIZONTAL", "VERTICAL", "NONE"]).describe("Layout direction"),
-      paddingTop: z.number().optional().describe("Top padding in pixels"),
-      paddingBottom: z.number().optional().describe("Bottom padding in pixels"),
-      paddingLeft: z.number().optional().describe("Left padding in pixels"),
-      paddingRight: z.number().optional().describe("Right padding in pixels"),
-      itemSpacing: z.number().optional().describe("Spacing between items in pixels"),
+      paddingTop: z.coerce.number().optional().describe("Top padding in pixels"),
+      paddingBottom: z.coerce.number().optional().describe("Bottom padding in pixels"),
+      paddingLeft: z.coerce.number().optional().describe("Left padding in pixels"),
+      paddingRight: z.coerce.number().optional().describe("Right padding in pixels"),
+      itemSpacing: z.coerce.number().optional().describe("Spacing between items in pixels"),
       primaryAxisAlignItems: z.enum(["MIN", "CENTER", "MAX", "SPACE_BETWEEN"]).optional().describe("Alignment along primary axis"),
       counterAxisAlignItems: z.enum(["MIN", "CENTER", "MAX"]).optional().describe("Alignment along counter axis"),
       layoutWrap: z.enum(["WRAP", "NO_WRAP"]).optional().describe("Whether items wrap to new lines"),
-      strokesIncludedInLayout: z.boolean().optional().describe("Whether strokes are included in layout calculations")
+      strokesIncludedInLayout: z.boolean().optional().describe("Whether strokes are included in layout calculations"),
+      clipsContent: z.boolean().optional().describe("Whether to clip content outside frame bounds")
     },
-    async ({ nodeId, layoutMode, paddingTop, paddingBottom, paddingLeft, paddingRight, 
-             itemSpacing, primaryAxisAlignItems, counterAxisAlignItems, layoutWrap, strokesIncludedInLayout }) => {
+    async ({ nodeId, layoutMode, paddingTop, paddingBottom, paddingLeft, paddingRight,
+             itemSpacing, primaryAxisAlignItems, counterAxisAlignItems, layoutWrap, strokesIncludedInLayout, clipsContent }) => {
       try {
-        const result = await sendCommandToFigma("set_auto_layout", { 
-          nodeId, 
-          layoutMode, 
-          paddingTop, 
-          paddingBottom, 
-          paddingLeft, 
-          paddingRight, 
-          itemSpacing, 
-          primaryAxisAlignItems, 
-          counterAxisAlignItems, 
-          layoutWrap, 
-          strokesIncludedInLayout 
+        const result = await sendCommandToFigma("set_auto_layout", {
+          nodeId,
+          layoutMode,
+          paddingTop,
+          paddingBottom,
+          paddingLeft,
+          paddingRight,
+          itemSpacing,
+          primaryAxisAlignItems,
+          counterAxisAlignItems,
+          layoutWrap,
+          strokesIncludedInLayout,
+          clipsContent
         });
         
         const typedResult = result as { name: string };

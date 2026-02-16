@@ -696,6 +696,7 @@ async function createRectangle(params) {
     height = 100,
     name = "Rectangle",
     parentId,
+    layoutPositioning,
   } = params || {};
 
   const rect = figma.createRectangle();
@@ -716,6 +717,14 @@ async function createRectangle(params) {
     parentNode.appendChild(rect);
   } else {
     figma.currentPage.appendChild(rect);
+  }
+
+  // Set layoutPositioning after appendChild (node must be attached first)
+  if (layoutPositioning !== undefined) {
+    rect.layoutPositioning = layoutPositioning;
+    // Re-apply coordinates — setting ABSOLUTE resets position within parent
+    rect.x = x;
+    rect.y = y;
   }
 
   return {
@@ -740,6 +749,8 @@ async function createFrame(params) {
     fillColor,
     strokeColor,
     strokeWeight,
+    clipsContent,
+    layoutPositioning,
   } = params || {};
 
   const frame = figma.createFrame();
@@ -781,6 +792,11 @@ async function createFrame(params) {
     frame.strokeWeight = strokeWeight;
   }
 
+  // Set clipsContent if provided
+  if (clipsContent !== undefined) {
+    frame.clipsContent = clipsContent;
+  }
+
   // If parentId is provided, append to that node, otherwise append to current page
   if (parentId) {
     const parentNode = await figma.getNodeByIdAsync(parentId);
@@ -795,6 +811,14 @@ async function createFrame(params) {
     figma.currentPage.appendChild(frame);
   }
 
+  // Set layoutPositioning after appendChild (node must be attached first)
+  if (layoutPositioning !== undefined) {
+    frame.layoutPositioning = layoutPositioning;
+    // Re-apply coordinates — setting ABSOLUTE resets position within parent
+    frame.x = x;
+    frame.y = y;
+  }
+
   return {
     id: frame.id,
     name: frame.name,
@@ -805,6 +829,7 @@ async function createFrame(params) {
     fills: frame.fills,
     strokes: frame.strokes,
     strokeWeight: frame.strokeWeight,
+    clipsContent: frame.clipsContent,
     parentId: frame.parent ? frame.parent.id : undefined,
   };
 }
@@ -815,6 +840,7 @@ async function createText(params) {
     y = 0,
     text = "Text",
     fontSize = 14,
+    fontFamily = "Inter",
     fontWeight = 400,
     fontColor = { r: 0, g: 0, b: 0, a: 1 }, // Default to black
     name = "Text",
@@ -853,15 +879,15 @@ async function createText(params) {
   textNode.name = name;
   try {
     await figma.loadFontAsync({
-      family: "Inter",
+      family: fontFamily,
       style: getFontStyle(fontWeight),
     });
-    textNode.fontName = { family: "Inter", style: getFontStyle(fontWeight) };
+    textNode.fontName = { family: fontFamily, style: getFontStyle(fontWeight) };
     textNode.fontSize = parseInt(fontSize);
   } catch (error) {
-    console.error("Error setting font size", error);
+    console.error("Error setting font name/size", error);
   }
-  setCharacters(textNode, text);
+  await setCharacters(textNode, text);
 
   // Set text color
   const paintStyle = {
@@ -908,10 +934,9 @@ async function createText(params) {
 
 async function setFillColor(params) {
   debugLog("setFillColor", params);
-  const {
-    nodeId,
-    color: { r, g, b, a },
-  } = params || {};
+  const { nodeId, color } = params || {};
+  // Support both wrapped { color: { r, g, b, a } } and flat { r, g, b, a } formats
+  const { r, g, b, a } = color || (params && { r: params.r, g: params.g, b: params.b, a: params.a }) || {};
 
   if (!nodeId) {
     throw new Error("Missing nodeId parameter");
@@ -2655,8 +2680,9 @@ async function setAutoLayout(params) {
     itemSpacing, 
     primaryAxisAlignItems, 
     counterAxisAlignItems, 
-    layoutWrap, 
-    strokesIncludedInLayout 
+    layoutWrap,
+    strokesIncludedInLayout,
+    clipsContent
   } = params || {};
 
   if (!nodeId) {
@@ -2711,6 +2737,11 @@ async function setAutoLayout(params) {
     if (strokesIncludedInLayout !== undefined) {
       node.strokesIncludedInLayout = strokesIncludedInLayout;
     }
+
+    // Configure clip content
+    if (clipsContent !== undefined) {
+      node.clipsContent = clipsContent;
+    }
   }
 
   return {
@@ -2725,7 +2756,8 @@ async function setAutoLayout(params) {
     primaryAxisAlignItems: node.primaryAxisAlignItems,
     counterAxisAlignItems: node.counterAxisAlignItems,
     layoutWrap: node.layoutWrap,
-    strokesIncludedInLayout: node.strokesIncludedInLayout
+    strokesIncludedInLayout: node.strokesIncludedInLayout,
+    clipsContent: node.clipsContent
   };
 }
 
@@ -4253,7 +4285,8 @@ async function createEllipse(params) {
     parentId,
     fillColor = { r: 0.8, g: 0.8, b: 0.8, a: 1 },
     strokeColor,
-    strokeWeight
+    strokeWeight,
+    layoutPositioning,
   } = params || {};
 
   // Create a new ellipse node
@@ -4310,7 +4343,15 @@ async function createEllipse(params) {
   } else {
     figma.currentPage.appendChild(ellipse);
   }
-  
+
+  // Set layoutPositioning after appendChild (node must be attached first)
+  if (layoutPositioning !== undefined) {
+    ellipse.layoutPositioning = layoutPositioning;
+    // Re-apply coordinates — setting ABSOLUTE resets position within parent
+    ellipse.x = x;
+    ellipse.y = y;
+  }
+
   return {
     id: ellipse.id,
     name: ellipse.name,
@@ -6583,7 +6624,7 @@ async function setLayoutSizing(params) {
     throw new Error(`Node with ID ${nodeId} not found`);
   }
 
-  if (node.type !== 'FRAME' && node.type !== 'COMPONENT' && node.type !== 'INSTANCE' && node.type !== 'COMPONENT_SET') {
+  if (node.type !== 'FRAME' && node.type !== 'COMPONENT' && node.type !== 'INSTANCE' && node.type !== 'COMPONENT_SET' && node.type !== 'TEXT') {
     throw new Error(`Node "${node.name}" does not support layout sizing (type: ${node.type})`);
   }
 
