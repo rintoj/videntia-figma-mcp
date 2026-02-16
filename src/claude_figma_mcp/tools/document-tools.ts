@@ -1138,4 +1138,101 @@ export function registerDocumentTools(server: McpServer): void {
       }
     }
   );
+
+  // Create Page Tool
+  server.tool(
+    "create_page",
+    "Create a new page in the Figma document",
+    {
+      name: z.string().describe("The name for the new page"),
+    },
+    async ({ name }) => {
+      try {
+        const result = await sendCommandToFigma("create_page", { name });
+        const typedResult = result as { id: string; name: string };
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Created page "${typedResult.name}" (ID: ${typedResult.id})`,
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error creating page: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    }
+  );
+
+  // Rename Page Tool
+  server.tool(
+    "rename_page",
+    "Rename an existing page in the Figma document",
+    {
+      pageId: z.string().describe("The ID of the page to rename"),
+      name: z.string().describe("The new name for the page"),
+    },
+    async ({ pageId, name }) => {
+      try {
+        const result = await sendCommandToFigma("rename_page", { pageId, name });
+        const typedResult = result as { id: string; oldName: string; newName: string };
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Renamed page from "${typedResult.oldName}" to "${typedResult.newName}" (ID: ${typedResult.id})`,
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error renaming page: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    }
+  );
+
+  // Delete Page Tool
+  server.tool(
+    "delete_page",
+    "Delete a page from the Figma document. Cannot delete the last remaining page.",
+    {
+      pageId: z.string().describe("The ID of the page to delete"),
+    },
+    async ({ pageId }) => {
+      try {
+        const result = await sendCommandToFigma("delete_page", { pageId });
+        const typedResult = result as { id: string; name: string };
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Deleted page "${typedResult.name}" (ID: ${typedResult.id})`,
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error deleting page: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    }
+  );
 }

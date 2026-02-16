@@ -367,6 +367,12 @@ async function handleCommand(command, params) {
       return await setDefaultConnector(params);
     case "create_connections":
       return await createConnections(params);
+    case "create_page":
+      return await createPage(params);
+    case "rename_page":
+      return await renamePage(params);
+    case "delete_page":
+      return await deletePage(params);
     case "batch_actions":
       return await batchActions(params);
     default:
@@ -7185,4 +7191,86 @@ async function createConnections(params) {
     failedCount: results.filter(r => !r.success).length,
     connections: results
   };
+}
+
+// Page management functions
+async function createPage(params) {
+  const { name } = params || {};
+
+  if (!name || !name.trim()) {
+    throw new Error("Missing or empty name parameter");
+  }
+
+  const page = figma.createPage();
+  page.name = name.trim();
+
+  return {
+    id: page.id,
+    name: page.name
+  };
+}
+
+async function renamePage(params) {
+  const { pageId, name } = params || {};
+
+  if (!pageId) {
+    throw new Error("Missing pageId parameter");
+  }
+
+  if (!name || !name.trim()) {
+    throw new Error("Missing or empty name parameter");
+  }
+
+  const node = await figma.getNodeByIdAsync(pageId);
+  if (!node) {
+    throw new Error(`Page not found with ID: ${pageId}`);
+  }
+
+  if (node.type !== "PAGE") {
+    throw new Error(`Node ${pageId} is not a page (type: ${node.type})`);
+  }
+
+  const oldName = node.name;
+  node.name = name.trim();
+
+  return {
+    id: node.id,
+    oldName,
+    newName: node.name
+  };
+}
+
+async function deletePage(params) {
+  const { pageId } = params || {};
+
+  if (!pageId) {
+    throw new Error("Missing pageId parameter");
+  }
+
+  if (figma.root.children.length <= 1) {
+    throw new Error("Cannot delete the last remaining page");
+  }
+
+  const node = await figma.getNodeByIdAsync(pageId);
+  if (!node) {
+    throw new Error(`Page not found with ID: ${pageId}`);
+  }
+
+  if (node.type !== "PAGE") {
+    throw new Error(`Node ${pageId} is not a page (type: ${node.type})`);
+  }
+
+  // Switch away from current page before removing it
+  if (figma.currentPage.id === pageId) {
+    figma.currentPage = figma.root.children.find(p => p.id !== pageId);
+  }
+
+  const pageInfo = {
+    id: node.id,
+    name: node.name
+  };
+
+  node.remove();
+
+  return pageInfo;
 }

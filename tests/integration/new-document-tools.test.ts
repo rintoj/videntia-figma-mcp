@@ -613,4 +613,101 @@ describe("new document tools integration", () => {
       expect(response.content[0].text).toContain("Invalid node");
     });
   });
+
+  describe("create_page", () => {
+    it("creates a new page with the given name", async () => {
+      mockSendCommand.mockResolvedValue({
+        id: "page-123",
+        name: "Components",
+      });
+
+      const response = await callTool("create_page", { name: "Components" });
+
+      expect(mockSendCommand).toHaveBeenCalledWith("create_page", {
+        name: "Components",
+      });
+      expect(response.content[0].text).toContain('Created page "Components"');
+      expect(response.content[0].text).toContain("page-123");
+    });
+
+    it("handles errors gracefully", async () => {
+      mockSendCommand.mockRejectedValue(new Error("Plugin error"));
+
+      const response = await callTool("create_page", { name: "Test" });
+
+      expect(response.content[0].text).toContain("Error creating page");
+      expect(response.content[0].text).toContain("Plugin error");
+    });
+  });
+
+  describe("rename_page", () => {
+    it("renames an existing page", async () => {
+      mockSendCommand.mockResolvedValue({
+        id: "page-123",
+        oldName: "Page 1",
+        newName: "Design",
+      });
+
+      const response = await callTool("rename_page", {
+        pageId: "page-123",
+        name: "Design",
+      });
+
+      expect(mockSendCommand).toHaveBeenCalledWith("rename_page", {
+        pageId: "page-123",
+        name: "Design",
+      });
+      expect(response.content[0].text).toContain('Renamed page from "Page 1" to "Design"');
+      expect(response.content[0].text).toContain("page-123");
+    });
+
+    it("handles errors gracefully", async () => {
+      mockSendCommand.mockRejectedValue(new Error("Page not found"));
+
+      const response = await callTool("rename_page", {
+        pageId: "invalid",
+        name: "New Name",
+      });
+
+      expect(response.content[0].text).toContain("Error renaming page");
+      expect(response.content[0].text).toContain("Page not found");
+    });
+  });
+
+  describe("delete_page", () => {
+    it("deletes a page", async () => {
+      mockSendCommand.mockResolvedValue({
+        id: "page-456",
+        name: "Draft",
+      });
+
+      const response = await callTool("delete_page", { pageId: "page-456" });
+
+      expect(mockSendCommand).toHaveBeenCalledWith("delete_page", {
+        pageId: "page-456",
+      });
+      expect(response.content[0].text).toContain('Deleted page "Draft"');
+      expect(response.content[0].text).toContain("page-456");
+    });
+
+    it("handles errors when deleting last page", async () => {
+      mockSendCommand.mockRejectedValue(
+        new Error("Cannot delete the last remaining page")
+      );
+
+      const response = await callTool("delete_page", { pageId: "page-1" });
+
+      expect(response.content[0].text).toContain("Error deleting page");
+      expect(response.content[0].text).toContain("Cannot delete the last remaining page");
+    });
+
+    it("handles errors gracefully", async () => {
+      mockSendCommand.mockRejectedValue(new Error("Page not found"));
+
+      const response = await callTool("delete_page", { pageId: "invalid" });
+
+      expect(response.content[0].text).toContain("Error deleting page");
+      expect(response.content[0].text).toContain("Page not found");
+    });
+  });
 });
