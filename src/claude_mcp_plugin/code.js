@@ -992,11 +992,9 @@ async function setFillColor(params) {
 }
 
 async function setStrokeColor(params) {
-  const {
-    nodeId,
-    color: { r, g, b, a },
-    strokeWeight,
-  } = params || {};
+  const { nodeId, color, strokeWeight } = params || {};
+  // Support both wrapped { color: { r, g, b, a } } and flat { r, g, b, a } formats
+  const { r, g, b, a } = color || (params && { r: params.r, g: params.g, b: params.b, a: params.a }) || {};
 
   if (!nodeId) {
     throw new Error("Missing nodeId parameter");
