@@ -212,6 +212,12 @@ async function handleCommand(command, params) {
       return await setEffects(params);
     case "set_effect_style_id":
       return await setEffectStyleId(params);
+    case "create_effect_style":
+      return await createEffectStyle(params);
+    case "update_effect_style":
+      return await updateEffectStyle(params);
+    case "delete_effect_style":
+      return await deleteEffectStyle(params);
     case "group_nodes":
       return await groupNodes(params);
     case "ungroup_nodes":
@@ -3704,6 +3710,170 @@ async function setEffectStyleId(params) {
     } else {
       throw new Error(`Error setting effect style ID: ${error.message}`);
     }
+  }
+}
+
+// Create Effect Style Tool
+async function createEffectStyle(params) {
+  const { name, effects, description } = params || {};
+
+  if (!name) {
+    throw new Error("Missing required parameter: name");
+  }
+
+  if (!effects || !Array.isArray(effects) || effects.length === 0) {
+    throw new Error("Missing required parameter: effects (must be a non-empty array)");
+  }
+
+  try {
+    const validEffects = effects.map(effect => {
+      if (!effect.type) {
+        throw new Error("Each effect must have a type property");
+      }
+
+      switch (effect.type) {
+        case "DROP_SHADOW":
+        case "INNER_SHADOW":
+          return {
+            type: effect.type,
+            color: effect.color || { r: 0, g: 0, b: 0, a: 0.5 },
+            offset: effect.offset || { x: 0, y: 4 },
+            radius: effect.radius || 4,
+            spread: effect.spread || 0,
+            visible: effect.visible !== undefined ? effect.visible : true,
+            blendMode: effect.blendMode || "NORMAL"
+          };
+        case "LAYER_BLUR":
+        case "BACKGROUND_BLUR":
+          return {
+            type: effect.type,
+            radius: effect.radius || 4,
+            visible: effect.visible !== undefined ? effect.visible : true
+          };
+        default:
+          throw new Error(`Unsupported effect type for style: ${effect.type}. Supported: DROP_SHADOW, INNER_SHADOW, LAYER_BLUR, BACKGROUND_BLUR`);
+      }
+    });
+
+    const effectStyle = figma.createEffectStyle();
+    effectStyle.name = name;
+    effectStyle.effects = validEffects;
+    if (description) {
+      effectStyle.description = description;
+    }
+
+    return {
+      id: effectStyle.id,
+      name: effectStyle.name,
+      key: effectStyle.key,
+      effects: effectStyle.effects
+    };
+  } catch (error) {
+    throw new Error(`Error creating effect style: ${error.message}`);
+  }
+}
+
+// Update Effect Style Tool
+async function updateEffectStyle(params) {
+  const { styleId, name, effects, description } = params || {};
+
+  if (!styleId) {
+    throw new Error("Missing required parameter: styleId");
+  }
+
+  try {
+    const style = await figma.getStyleByIdAsync(styleId);
+    if (!style || style.type !== "EFFECT") {
+      throw new Error("Style not found or is not an effect style");
+    }
+
+    const updatedProperties = [];
+
+    if (name !== undefined) {
+      style.name = name;
+      updatedProperties.push("name");
+    }
+
+    if (description !== undefined) {
+      style.description = description;
+      updatedProperties.push("description");
+    }
+
+    if (effects !== undefined) {
+      if (!Array.isArray(effects) || effects.length === 0) {
+        throw new Error("effects must be a non-empty array");
+      }
+
+      const validEffects = effects.map(effect => {
+        if (!effect.type) {
+          throw new Error("Each effect must have a type property");
+        }
+
+        switch (effect.type) {
+          case "DROP_SHADOW":
+          case "INNER_SHADOW":
+            return {
+              type: effect.type,
+              color: effect.color || { r: 0, g: 0, b: 0, a: 0.5 },
+              offset: effect.offset || { x: 0, y: 4 },
+              radius: effect.radius || 4,
+              spread: effect.spread || 0,
+              visible: effect.visible !== undefined ? effect.visible : true,
+              blendMode: effect.blendMode || "NORMAL"
+            };
+          case "LAYER_BLUR":
+          case "BACKGROUND_BLUR":
+            return {
+              type: effect.type,
+              radius: effect.radius || 4,
+              visible: effect.visible !== undefined ? effect.visible : true
+            };
+          default:
+            throw new Error(`Unsupported effect type for style: ${effect.type}. Supported: DROP_SHADOW, INNER_SHADOW, LAYER_BLUR, BACKGROUND_BLUR`);
+        }
+      });
+
+      style.effects = validEffects;
+      updatedProperties.push("effects");
+    }
+
+    return {
+      id: style.id,
+      name: style.name,
+      key: style.key,
+      effects: style.effects,
+      updatedProperties
+    };
+  } catch (error) {
+    throw new Error(`Error updating effect style: ${error.message}`);
+  }
+}
+
+// Delete Effect Style Tool
+async function deleteEffectStyle(params) {
+  const { styleId } = params || {};
+
+  if (!styleId) {
+    throw new Error("Missing required parameter: styleId");
+  }
+
+  try {
+    const style = await figma.getStyleByIdAsync(styleId);
+    if (!style || style.type !== "EFFECT") {
+      throw new Error("Style not found or is not an effect style");
+    }
+
+    const styleName = style.name;
+    const styleIdCopy = style.id;
+
+    style.remove();
+
+    return {
+      id: styleIdCopy,
+      name: styleName
+    };
+  } catch (error) {
+    throw new Error(`Error deleting effect style: ${error.message}`);
   }
 }
 
