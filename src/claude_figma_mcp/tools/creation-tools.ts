@@ -14,10 +14,10 @@ export function registerCreationTools(server: McpServer): void {
     "create_rectangle",
     "Create a new rectangle in Figma",
     {
-      x: z.number().describe("X position"),
-      y: z.number().describe("Y position"),
-      width: z.number().describe("Width of the rectangle"),
-      height: z.number().describe("Height of the rectangle"),
+      x: z.coerce.number().describe("X position"),
+      y: z.coerce.number().describe("Y position"),
+      width: z.coerce.number().describe("Width of the rectangle"),
+      height: z.coerce.number().describe("Height of the rectangle"),
       name: z.string().optional().describe("Optional name for the rectangle"),
       parentId: z
         .string()
@@ -65,10 +65,10 @@ export function registerCreationTools(server: McpServer): void {
     "create_frame",
     "Create a new frame in Figma",
     {
-      x: z.number().describe("X position"),
-      y: z.number().describe("Y position"),
-      width: z.number().describe("Width of the frame"),
-      height: z.number().describe("Height of the frame"),
+      x: z.coerce.number().describe("X position"),
+      y: z.coerce.number().describe("Y position"),
+      width: z.coerce.number().describe("Width of the frame"),
+      height: z.coerce.number().describe("Height of the frame"),
       name: z.string().optional().describe("Optional name for the frame"),
       parentId: z
         .string()
@@ -102,7 +102,7 @@ export function registerCreationTools(server: McpServer): void {
         })
         .optional()
         .describe("Stroke color in RGBA format"),
-      strokeWeight: z.number().positive().optional().describe("Stroke weight"),
+      strokeWeight: z.coerce.number().positive().optional().describe("Stroke weight"),
       clipsContent: z
         .boolean()
         .optional()
@@ -166,11 +166,11 @@ export function registerCreationTools(server: McpServer): void {
     "create_text",
     "Create a new text element in Figma",
     {
-      x: z.number().describe("X position"),
-      y: z.number().describe("Y position"),
+      x: z.coerce.number().describe("X position"),
+      y: z.coerce.number().describe("Y position"),
       text: z.string().describe("Text content"),
-      fontSize: z.number().optional().describe("Font size (default: 14)"),
-      fontWeight: z
+      fontSize: z.coerce.number().optional().describe("Font size (default: 14)"),
+      fontWeight: z.coerce
         .number()
         .optional()
         .describe("Font weight (e.g., 400 for Regular, 700 for Bold)"),
@@ -236,10 +236,10 @@ export function registerCreationTools(server: McpServer): void {
     "create_ellipse",
     "Create a new ellipse in Figma",
     {
-      x: z.number().describe("X position"),
-      y: z.number().describe("Y position"),
-      width: z.number().describe("Width of the ellipse"),
-      height: z.number().describe("Height of the ellipse"),
+      x: z.coerce.number().describe("X position"),
+      y: z.coerce.number().describe("Y position"),
+      width: z.coerce.number().describe("Width of the ellipse"),
+      height: z.coerce.number().describe("Height of the ellipse"),
       name: z.string().optional().describe("Optional name for the ellipse"),
       parentId: z.string().optional().describe("Optional parent node ID to append the ellipse to"),
       fillColor: z
@@ -260,7 +260,7 @@ export function registerCreationTools(server: McpServer): void {
         })
         .optional()
         .describe("Stroke color in RGBA format"),
-      strokeWeight: z.number().positive().optional().describe("Stroke weight"),
+      strokeWeight: z.coerce.number().positive().optional().describe("Stroke weight"),
       layoutPositioning: z
         .enum(["ABSOLUTE", "RELATIVE"])
         .optional()
@@ -308,11 +308,11 @@ export function registerCreationTools(server: McpServer): void {
     "create_polygon",
     "Create a new polygon in Figma",
     {
-      x: z.number().describe("X position"),
-      y: z.number().describe("Y position"),
-      width: z.number().describe("Width of the polygon"),
-      height: z.number().describe("Height of the polygon"),
-      sides: z.number().min(3).optional().describe("Number of sides (default: 6)"),
+      x: z.coerce.number().describe("X position"),
+      y: z.coerce.number().describe("Y position"),
+      width: z.coerce.number().describe("Width of the polygon"),
+      height: z.coerce.number().describe("Height of the polygon"),
+      sides: z.coerce.number().min(3).optional().describe("Number of sides (default: 6)"),
       name: z.string().optional().describe("Optional name for the polygon"),
       parentId: z.string().optional().describe("Optional parent node ID to append the polygon to"),
       fillColor: z
@@ -333,7 +333,7 @@ export function registerCreationTools(server: McpServer): void {
         })
         .optional()
         .describe("Stroke color in RGBA format"),
-      strokeWeight: z.number().positive().optional().describe("Stroke weight"),
+      strokeWeight: z.coerce.number().positive().optional().describe("Stroke weight"),
     },
     async ({ x, y, width, height, sides, name, parentId, fillColor, strokeColor, strokeWeight }) => {
       try {
@@ -377,12 +377,12 @@ export function registerCreationTools(server: McpServer): void {
     "create_star",
     "Create a new star in Figma",
     {
-      x: z.number().describe("X position"),
-      y: z.number().describe("Y position"),
-      width: z.number().describe("Width of the star"),
-      height: z.number().describe("Height of the star"),
-      points: z.number().min(3).optional().describe("Number of points (default: 5)"),
-      innerRadius: z.number().min(0.01).max(0.99).optional().describe("Inner radius ratio (0.01-0.99, default: 0.5)"),
+      x: z.coerce.number().describe("X position"),
+      y: z.coerce.number().describe("Y position"),
+      width: z.coerce.number().describe("Width of the star"),
+      height: z.coerce.number().describe("Height of the star"),
+      points: z.coerce.number().min(3).optional().describe("Number of points (default: 5)"),
+      innerRadius: z.coerce.number().min(0.01).max(0.99).optional().describe("Inner radius ratio (0.01-0.99, default: 0.5)"),
       name: z.string().optional().describe("Optional name for the star"),
       parentId: z.string().optional().describe("Optional parent node ID to append the star to"),
       fillColor: z
@@ -403,7 +403,7 @@ export function registerCreationTools(server: McpServer): void {
         })
         .optional()
         .describe("Stroke color in RGBA format"),
-      strokeWeight: z.number().positive().optional().describe("Stroke weight"),
+      strokeWeight: z.coerce.number().positive().optional().describe("Stroke weight"),
     },
     async ({ x, y, width, height, points, innerRadius, name, parentId, fillColor, strokeColor, strokeWeight }) => {
       try {
@@ -530,8 +530,8 @@ export function registerCreationTools(server: McpServer): void {
     "Clone an existing node in Figma",
     {
       nodeId: z.string().describe("The ID of the node to clone"),
-      x: z.number().optional().describe("New X position for the clone"),
-      y: z.number().optional().describe("New Y position for the clone")
+      x: z.coerce.number().optional().describe("New X position for the clone"),
+      y: z.coerce.number().optional().describe("New Y position for the clone")
     },
     async ({ nodeId, x, y }) => {
       try {
@@ -609,8 +609,8 @@ export function registerCreationTools(server: McpServer): void {
     "Create a node from an SVG string in Figma. Useful for inserting SVG icons. The SVG is parsed and converted to Figma vector nodes.",
     {
       svgString: z.string().describe("The SVG markup string (must start with <svg or <?xml)"),
-      x: z.number().optional().describe("X position (default: 0)"),
-      y: z.number().optional().describe("Y position (default: 0)"),
+      x: z.coerce.number().optional().describe("X position (default: 0)"),
+      y: z.coerce.number().optional().describe("Y position (default: 0)"),
       name: z.string().optional().describe("Name for the created node"),
       parentId: z.string().optional().describe("Parent node ID to insert the SVG into"),
       flatten: z.boolean().optional().describe("Flatten all paths into a single vector node (default: false)"),
