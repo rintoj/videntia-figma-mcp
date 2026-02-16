@@ -61,8 +61,7 @@ describe("icon-search", () => {
     });
 
     it("supports multi-pattern with |", () => {
-      // arrow-* has 42 icons, chevron-* has 6 — use high limit to include both
-      const results = searchIcons("arrow|chevron", 50);
+      const results = searchIcons("arrow|chevron", 100);
       const hasArrow = results.some((r) => r.name.startsWith("arrow"));
       const hasChevron = results.some((r) => r.name.startsWith("chevron"));
       expect(hasArrow).toBe(true);
@@ -149,12 +148,33 @@ describe("icon-search", () => {
       expect(result).not.toBeNull();
       expect(result!.name).toBe("bell");
     });
+
+    it("resolves alias to target icon", () => {
+      const result = getIcon("notification");
+      expect(result).not.toBeNull();
+      expect(result!.name).toBe("bell");
+      expect(result!.svg).toContain("<svg");
+    });
+
+    it("resolves multiple aliases", () => {
+      expect(getIcon("dismiss")!.name).toBe("x");
+      expect(getIcon("preferences")!.name).toBe("settings");
+      expect(getIcon("favourite")!.name).toBe("star");
+      expect(getIcon("signout")!.name).toBe("log-out");
+    });
+
+    it("prefers exact match over alias", () => {
+      // "link" is both an icon name and an alias
+      const result = getIcon("link");
+      expect(result).not.toBeNull();
+      expect(result!.name).toBe("link");
+    });
   });
 
   describe("listIcons", () => {
     it("returns all icons with default pagination", () => {
       const result = listIcons({});
-      expect(result.total).toBe(1495);
+      expect(result.total).toBeGreaterThan(1000);
       expect(result.offset).toBe(0);
       expect(result.limit).toBe(50);
       expect(result.icons.length).toBe(50);

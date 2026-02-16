@@ -131,8 +131,12 @@ export function searchIcons(query: string, limit: number = 5): IconSearchResult[
     .slice(0, limit);
 }
 
+// Cap to avoid building huge intermediate arrays for common patterns
+const MAX_RESULTS_PER_PHASE = 60;
+
 function searchSinglePattern(pattern: string): IconSearchResult[] {
   const results: IconSearchResult[] = [];
+  const seen = new Set<string>();
 
   // Phase 1: Exact match
   if (LUCIDE_ICONS.has(pattern)) {
@@ -142,25 +146,25 @@ function searchSinglePattern(pattern: string): IconSearchResult[] {
       matchType: "exact",
       score: 100,
     });
+    seen.add(pattern);
   }
 
   // Phase 2: Alias match
   const aliasTarget = ICON_ALIASES.get(pattern);
-  if (aliasTarget && LUCIDE_ICONS.has(aliasTarget)) {
-    // Don't duplicate if already found as exact
-    if (!results.some((r) => r.name === aliasTarget)) {
-      results.push({
-        name: aliasTarget,
-        svg: LUCIDE_ICONS.get(aliasTarget)!,
-        matchType: "alias",
-        score: 90,
-      });
-    }
+  if (aliasTarget && LUCIDE_ICONS.has(aliasTarget) && !seen.has(aliasTarget)) {
+    results.push({
+      name: aliasTarget,
+      svg: LUCIDE_ICONS.get(aliasTarget)!,
+      matchType: "alias",
+      score: 90,
+    });
+    seen.add(aliasTarget);
   }
 
   // Phase 3-5: Prefix, word-boundary, substring
   for (const name of LUCIDE_ICON_NAMES) {
-    if (results.some((r) => r.name === name)) continue;
+    if (results.length >= MAX_RESULTS_PER_PHASE) break;
+    if (seen.has(name)) continue;
 
     if (name.startsWith(pattern)) {
       results.push({
@@ -169,6 +173,7 @@ function searchSinglePattern(pattern: string): IconSearchResult[] {
         matchType: "prefix",
         score: 80,
       });
+      seen.add(name);
     } else if (hasWordBoundaryMatch(name, pattern)) {
       results.push({
         name,
@@ -176,6 +181,7 @@ function searchSinglePattern(pattern: string): IconSearchResult[] {
         matchType: "word-boundary",
         score: 70,
       });
+      seen.add(name);
     } else if (name.includes(pattern)) {
       results.push({
         name,
@@ -183,13 +189,15 @@ function searchSinglePattern(pattern: string): IconSearchResult[] {
         matchType: "substring",
         score: 60,
       });
+      seen.add(name);
     }
   }
 
   // Phase 6: Fuzzy matching (only if few results so far)
   if (results.length < 20 && pattern.length >= 3) {
     for (const name of LUCIDE_ICON_NAMES) {
-      if (results.some((r) => r.name === name)) continue;
+      if (results.length >= MAX_RESULTS_PER_PHASE) break;
+      if (seen.has(name)) continue;
 
       const fuzzyScore = fuzzyMatch(name, pattern);
       if (fuzzyScore > 0) {
@@ -199,6 +207,7 @@ function searchSinglePattern(pattern: string): IconSearchResult[] {
           matchType: "fuzzy",
           score: fuzzyScore,
         });
+        seen.add(name);
       }
     }
   }
@@ -233,13 +242,21 @@ function fuzzyMatch(name: string, pattern: string): number {
 }
 
 /**
- * Get a single icon by exact name.
- * Returns the icon or null if not found.
+ * Get a single icon by exact name or alias.
+ * Tries exact lookup first, then alias resolution.
  */
 export function getIcon(name: string): { name: string; svg: string } | null {
   const normalised = name.toLowerCase().trim();
   const svg = LUCIDE_ICONS.get(normalised);
   if (svg) return { name: normalised, svg };
+
+  // Fallback: resolve alias
+  const aliasTarget = ICON_ALIASES.get(normalised);
+  if (aliasTarget) {
+    const aliasSvg = LUCIDE_ICONS.get(aliasTarget);
+    if (aliasSvg) return { name: aliasTarget, svg: aliasSvg };
+  }
+
   return null;
 }
 
