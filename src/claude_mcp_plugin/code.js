@@ -3713,6 +3713,36 @@ async function setEffectStyleId(params) {
   }
 }
 
+// Shared helper: build a valid Figma effect object for style operations
+function buildValidStyleEffect(effect) {
+  if (!effect.type) {
+    throw new Error("Each effect must have a type property");
+  }
+
+  switch (effect.type) {
+    case "DROP_SHADOW":
+    case "INNER_SHADOW":
+      return {
+        type: effect.type,
+        color: effect.color || { r: 0, g: 0, b: 0, a: 0.5 },
+        offset: effect.offset || { x: 0, y: 0 },
+        radius: effect.radius !== undefined ? effect.radius : 5,
+        spread: effect.spread !== undefined ? effect.spread : 0,
+        visible: effect.visible !== undefined ? effect.visible : true,
+        blendMode: effect.blendMode || "NORMAL"
+      };
+    case "LAYER_BLUR":
+    case "BACKGROUND_BLUR":
+      return {
+        type: effect.type,
+        radius: effect.radius !== undefined ? effect.radius : 5,
+        visible: effect.visible !== undefined ? effect.visible : true
+      };
+    default:
+      throw new Error(`Unsupported effect type for style: ${effect.type}. Supported: DROP_SHADOW, INNER_SHADOW, LAYER_BLUR, BACKGROUND_BLUR`);
+  }
+}
+
 // Create Effect Style Tool
 async function createEffectStyle(params) {
   const { name, effects, description } = params || {};
@@ -3726,34 +3756,7 @@ async function createEffectStyle(params) {
   }
 
   try {
-    const validEffects = effects.map(effect => {
-      if (!effect.type) {
-        throw new Error("Each effect must have a type property");
-      }
-
-      switch (effect.type) {
-        case "DROP_SHADOW":
-        case "INNER_SHADOW":
-          return {
-            type: effect.type,
-            color: effect.color || { r: 0, g: 0, b: 0, a: 0.5 },
-            offset: effect.offset || { x: 0, y: 4 },
-            radius: effect.radius || 4,
-            spread: effect.spread || 0,
-            visible: effect.visible !== undefined ? effect.visible : true,
-            blendMode: effect.blendMode || "NORMAL"
-          };
-        case "LAYER_BLUR":
-        case "BACKGROUND_BLUR":
-          return {
-            type: effect.type,
-            radius: effect.radius || 4,
-            visible: effect.visible !== undefined ? effect.visible : true
-          };
-        default:
-          throw new Error(`Unsupported effect type for style: ${effect.type}. Supported: DROP_SHADOW, INNER_SHADOW, LAYER_BLUR, BACKGROUND_BLUR`);
-      }
-    });
+    const validEffects = effects.map(buildValidStyleEffect);
 
     const effectStyle = figma.createEffectStyle();
     effectStyle.name = name;
@@ -3804,36 +3807,7 @@ async function updateEffectStyle(params) {
         throw new Error("effects must be a non-empty array");
       }
 
-      const validEffects = effects.map(effect => {
-        if (!effect.type) {
-          throw new Error("Each effect must have a type property");
-        }
-
-        switch (effect.type) {
-          case "DROP_SHADOW":
-          case "INNER_SHADOW":
-            return {
-              type: effect.type,
-              color: effect.color || { r: 0, g: 0, b: 0, a: 0.5 },
-              offset: effect.offset || { x: 0, y: 4 },
-              radius: effect.radius || 4,
-              spread: effect.spread || 0,
-              visible: effect.visible !== undefined ? effect.visible : true,
-              blendMode: effect.blendMode || "NORMAL"
-            };
-          case "LAYER_BLUR":
-          case "BACKGROUND_BLUR":
-            return {
-              type: effect.type,
-              radius: effect.radius || 4,
-              visible: effect.visible !== undefined ? effect.visible : true
-            };
-          default:
-            throw new Error(`Unsupported effect type for style: ${effect.type}. Supported: DROP_SHADOW, INNER_SHADOW, LAYER_BLUR, BACKGROUND_BLUR`);
-        }
-      });
-
-      style.effects = validEffects;
+      style.effects = effects.map(buildValidStyleEffect);
       updatedProperties.push("effects");
     }
 
