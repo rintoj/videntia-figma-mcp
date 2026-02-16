@@ -722,6 +722,9 @@ async function createRectangle(params) {
   // Set layoutPositioning after appendChild (node must be attached first)
   if (layoutPositioning !== undefined) {
     rect.layoutPositioning = layoutPositioning;
+    // Re-apply coordinates — setting ABSOLUTE resets position within parent
+    rect.x = x;
+    rect.y = y;
   }
 
   return {
@@ -811,6 +814,9 @@ async function createFrame(params) {
   // Set layoutPositioning after appendChild (node must be attached first)
   if (layoutPositioning !== undefined) {
     frame.layoutPositioning = layoutPositioning;
+    // Re-apply coordinates — setting ABSOLUTE resets position within parent
+    frame.x = x;
+    frame.y = y;
   }
 
   return {
@@ -880,7 +886,7 @@ async function createText(params) {
   } catch (error) {
     console.error("Error setting font size", error);
   }
-  setCharacters(textNode, text);
+  await setCharacters(textNode, text);
 
   // Set text color
   const paintStyle = {
@@ -929,7 +935,7 @@ async function setFillColor(params) {
   debugLog("setFillColor", params);
   const { nodeId, color } = params || {};
   // Support both wrapped { color: { r, g, b, a } } and flat { r, g, b, a } formats
-  const { r, g, b, a } = color || { r: params.r, g: params.g, b: params.b, a: params.a };
+  const { r, g, b, a } = color || (params && { r: params.r, g: params.g, b: params.b, a: params.a }) || {};
 
   if (!nodeId) {
     throw new Error("Missing nodeId parameter");
@@ -4340,6 +4346,9 @@ async function createEllipse(params) {
   // Set layoutPositioning after appendChild (node must be attached first)
   if (layoutPositioning !== undefined) {
     ellipse.layoutPositioning = layoutPositioning;
+    // Re-apply coordinates — setting ABSOLUTE resets position within parent
+    ellipse.x = x;
+    ellipse.y = y;
   }
 
   return {
