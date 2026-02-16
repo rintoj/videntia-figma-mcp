@@ -7197,12 +7197,12 @@ async function createConnections(params) {
 async function createPage(params) {
   const { name } = params || {};
 
-  if (!name) {
-    throw new Error("Missing name parameter");
+  if (!name || !name.trim()) {
+    throw new Error("Missing or empty name parameter");
   }
 
   const page = figma.createPage();
-  page.name = name;
+  page.name = name.trim();
 
   return {
     id: page.id,
@@ -7217,8 +7217,8 @@ async function renamePage(params) {
     throw new Error("Missing pageId parameter");
   }
 
-  if (!name) {
-    throw new Error("Missing name parameter");
+  if (!name || !name.trim()) {
+    throw new Error("Missing or empty name parameter");
   }
 
   const node = await figma.getNodeByIdAsync(pageId);
@@ -7231,11 +7231,11 @@ async function renamePage(params) {
   }
 
   const oldName = node.name;
-  node.name = name;
+  node.name = name.trim();
 
   return {
     id: node.id,
-    oldName: oldName,
+    oldName,
     newName: node.name
   };
 }
