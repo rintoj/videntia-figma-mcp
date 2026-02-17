@@ -1114,4 +1114,30 @@ describe("parseJsx - component tags", () => {
     expect(parsed[0].componentProperties!["Size"]).toEqual({ type: "VARIANT", value: "lg" });
     expect(parsed[0].componentProperties!["Disabled"]).toEqual({ type: "BOOLEAN", value: true });
   });
+
+  it("should NOT set componentSetName on standalone COMPONENT", () => {
+    const nodes = parseJsx('<IconClose id="1:1" />');
+    expect(nodes[0].type).toBe("COMPONENT");
+    expect(nodes[0].componentSetName).toBeUndefined();
+  });
+
+  // --- Edge-case / disambiguation tests ---
+
+  it("should treat lowercase tag with name attr as FRAME even with propertyDefinitions", () => {
+    // lowercase tags are always FRAME regardless of attrs
+    const nodes = parseJsx('<mywidget id="1:1" name="Widget" propertyDefinitions={{ size: "sm | lg" }} />');
+    expect(nodes[0].type).toBe("FRAME");
+  });
+
+  it("should treat PascalCase tag with name attr as FRAME (not component)", () => {
+    // A PascalCase tag WITH a name= attr is likely a regular frame from non-component context
+    const nodes = parseJsx('<DataSet id="1:1" name="Data Set" />');
+    expect(nodes[0].type).toBe("FRAME");
+  });
+
+  it("should treat PascalCase tag WITHOUT name attr as COMPONENT_SET when ending in Set", () => {
+    // A PascalCase tag ending in "Set" without name= is a component set
+    const nodes = parseJsx('<ButtonSet id="1:1" />');
+    expect(nodes[0].type).toBe("COMPONENT_SET");
+  });
 });

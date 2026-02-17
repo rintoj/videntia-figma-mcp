@@ -77,7 +77,7 @@ function jsxElementToNode(el: t.JSXElement, parentType?: string): FigmaNodeData 
 
   // Apply component-specific attributes
   if (nodeType === "COMPONENT_SET" || nodeType === "COMPONENT" || nodeType === "INSTANCE") {
-    applyComponentAttributes(node, tag, attrs);
+    applyComponentAttributes(node, tag, attrs, parentType);
   }
 
   // Parse children
@@ -212,10 +212,11 @@ function serializeObjectExpression(obj: t.ObjectExpression): string {
   return parts.join(", ");
 }
 
-// Standard JSX attributes that do NOT indicate component properties
+// Standard JSX attributes that do NOT indicate component properties.
+// Includes all known metadata attrs to avoid false-positive INSTANCE detection.
 const STANDARD_ATTRS = new Set([
   "id", "name", "className", "style", "componentName", "propertyNameMap", "propertyDefinitions",
-  "width", "height",
+  "width", "height", "variantProperties", "componentProperties", "componentSetName", "mainComponentName",
 ]);
 
 function isPascalCase(tag: string): boolean {
@@ -226,9 +227,19 @@ function tagToNodeType(tag: string, attrs?: Record<string, string>, parentType?:
   if (tag === "span") return "TEXT";
   if (tag === "svg") return "VECTOR";
 
+  // Primary signal: componentName attr is only emitted by figma-to-jsx for component types.
+  // This avoids false positives from PascalCase tags that happen to match (e.g. <DataSet>).
+  const hasComponentName = attrs?.componentName !== undefined;
+
   if (isPascalCase(tag)) {
-    // COMPONENT_SET: tag ends with "Set" suffix OR has propertyDefinitions
-    if (tag.endsWith("Set") || (attrs && attrs.propertyDefinitions !== undefined)) {
+    // COMPONENT_SET: has propertyDefinitions, or tag ends with "Set" AND has componentName
+    if ((attrs && attrs.propertyDefinitions !== undefined) ||
+        (tag.endsWith("Set") && hasComponentName)) {
+      return "COMPONENT_SET";
+    }
+    // Tag ends with "Set" but no componentName — only treat as COMPONENT_SET
+    // if it also has no name attr (component types omit name=)
+    if (tag.endsWith("Set") && attrs && !attrs.name) {
       return "COMPONENT_SET";
     }
     // COMPONENT: direct child of COMPONENT_SET
@@ -240,8 +251,10 @@ function tagToNodeType(tag: string, attrs?: Record<string, string>, parentType?:
       const hasComponentProps = Object.keys(attrs).some(k => !STANDARD_ATTRS.has(k));
       if (hasComponentProps) return "INSTANCE";
     }
-    // Bare PascalCase tag, no special attrs → standalone COMPONENT
-    return "COMPONENT";
+    // Bare PascalCase tag with componentName or without name attr → standalone COMPONENT
+    if (hasComponentName || (attrs && !attrs.name)) {
+      return "COMPONENT";
+    }
   }
 
   return "FRAME";
@@ -249,6 +262,8 @@ function tagToNodeType(tag: string, attrs?: Record<string, string>, parentType?:
 
 /**
  * Parse a serialized object string (format: `key: "value", key2: true`) into a Record.
+ * Only matches string values — non-string values are silently skipped.
+ * This is safe because figma-to-jsx.ts only emits string values in nameMap.
  */
 function parseNameMap(str: string): Record<string, string> {
   const map: Record<string, string> = {};
@@ -260,6 +275,13 @@ function parseNameMap(str: string): Record<string, string> {
   return map;
 }
 
+/** A single component property definition. */
+type ComponentPropertyDef =
+  | { type: "VARIANT"; options: string[]; default: string }
+  | { type: "BOOLEAN"; default: boolean }
+  | { type: "TEXT"; default: string }
+  | { type: "INSTANCE_SWAP" };
+
 /**
  * Parse propertyDefinitions serialized string into componentPropertyDefinitions.
  * Values with " | " → VARIANT with options array
@@ -270,8 +292,8 @@ function parseNameMap(str: string): Record<string, string> {
 function parsePropertyDefinitions(
   str: string,
   nameMap: Record<string, string>,
-): Record<string, any> {
-  const defs: Record<string, any> = {};
+): Record<string, ComponentPropertyDef> {
+  const defs: Record<string, ComponentPropertyDef> = {};
   // Match key: "string value" or key: true/false
   const regex = /(\w+):\s*(?:"((?:[^"\\]|\\.)*)"|(\btrue\b|\bfalse\b))/g;
   let match;
@@ -305,6 +327,7 @@ function applyComponentAttributes(
   node: FigmaNodeData,
   tag: string,
   attrs: Record<string, string>,
+  parentType?: string,
 ): void {
   const nameMap = attrs.propertyNameMap ? parseNameMap(attrs.propertyNameMap) : {};
 
@@ -314,8 +337,10 @@ function applyComponentAttributes(
       node.componentPropertyDefinitions = parsePropertyDefinitions(attrs.propertyDefinitions, nameMap);
     }
   } else if (node.type === "COMPONENT") {
-    // Component in a set — collect variant properties from non-standard attrs
-    node.componentSetName = attrs.componentName || (tag.endsWith("Set") ? tag.slice(0, -3) : tag);
+    // Only set componentSetName when this component is a child of a COMPONENT_SET
+    if (parentType === "COMPONENT_SET") {
+      node.componentSetName = attrs.componentName || (tag.endsWith("Set") ? tag.slice(0, -3) : tag);
+    }
     const variantProps: Record<string, string> = {};
     for (const [key, value] of Object.entries(attrs)) {
       if (STANDARD_ATTRS.has(key)) continue;

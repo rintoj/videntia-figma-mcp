@@ -6974,6 +6974,19 @@ async function createFromData(params) {
     return effect;
   }
 
+  // Build component lookup map once for INSTANCE resolution (avoids O(N*M) page scans)
+  const componentLookup = new Map();
+  const allPageComponents = figma.currentPage.findAll(n => n.type === "COMPONENT");
+  for (const comp of allPageComponents) {
+    componentLookup.set(comp.name, comp);
+    if (comp.parent && comp.parent.type === "COMPONENT_SET") {
+      // Also index by the set name so instances can find the default variant
+      if (!componentLookup.has(comp.parent.name)) {
+        componentLookup.set(comp.parent.name, comp);
+      }
+    }
+  }
+
   // Recursive node creator
   async function createNode(nodeData, parentNode, isRoot, rootX, rootY) {
     let node;
@@ -7003,6 +7016,7 @@ async function createFromData(params) {
       }
     } else if (nodeData.type === "COMPONENT") {
       node = figma.createComponent();
+      // Clear default white fill to match FRAME behavior (transparent by default)
       node.fills = [];
     } else if (nodeData.type === "COMPONENT_SET") {
       // COMPONENT_SET requires special handling:
@@ -7013,30 +7027,32 @@ async function createFromData(params) {
       tempFrame.fills = [];
       parentNode.appendChild(tempFrame);
 
-      // Create all child components inside the temp frame
-      const childComponents = [];
-      if (nodeData.children && nodeData.children.length > 0) {
-        for (const child of nodeData.children) {
-          const childNode = await createNode(child, tempFrame, false);
-          if (childNode && childNode.type === "COMPONENT") {
-            childComponents.push(childNode);
+      try {
+        // Create all child components inside the temp frame
+        const childComponents = [];
+        if (nodeData.children && nodeData.children.length > 0) {
+          for (const child of nodeData.children) {
+            const childNode = await createNode(child, tempFrame, false);
+            if (childNode && childNode.type === "COMPONENT") {
+              childComponents.push(childNode);
+            }
           }
         }
-      }
 
-      if (childComponents.length > 0) {
-        // Combine as variants — this creates the COMPONENT_SET
-        node = figma.combineAsVariants(childComponents, parentNode);
-        node.name = nodeData.name || "ComponentSet";
-      } else {
-        // No child components — create as a regular component
-        node = figma.createComponent();
-        node.fills = [];
-        parentNode.appendChild(node);
+        if (childComponents.length > 0) {
+          // Combine as variants — this creates the COMPONENT_SET
+          node = figma.combineAsVariants(childComponents, parentNode);
+          node.name = nodeData.name || "ComponentSet";
+        } else {
+          // No child components — create as a regular component
+          node = figma.createComponent();
+          node.fills = [];
+          parentNode.appendChild(node);
+        }
+      } finally {
+        // Always remove the temp frame, even on error
+        try { tempFrame.remove(); } catch (_) {}
       }
-
-      // Remove the temp frame
-      tempFrame.remove();
 
       // Add non-VARIANT property definitions
       if (nodeData.componentPropertyDefinitions && node.type === "COMPONENT_SET") {
@@ -7052,23 +7068,9 @@ async function createFromData(params) {
 
       skipChildRecursion = true; // Children already created above
     } else if (nodeData.type === "INSTANCE") {
-      // Search for the source component by name
+      // Look up the source component from the pre-built map (O(1) per instance)
       const componentName = nodeData.mainComponentName || nodeData.name;
-      let sourceComponent = null;
-
-      // Search in current page for a matching component
-      const allComponents = figma.currentPage.findAll(n => n.type === "COMPONENT");
-      for (const comp of allComponents) {
-        // Match by component name or parent COMPONENT_SET name
-        if (comp.name === componentName) {
-          sourceComponent = comp;
-          break;
-        }
-        if (comp.parent && comp.parent.type === "COMPONENT_SET" && comp.parent.name === componentName) {
-          sourceComponent = comp;
-          break;
-        }
-      }
+      const sourceComponent = componentLookup.get(componentName) || null;
 
       if (sourceComponent) {
         node = sourceComponent.createInstance();
