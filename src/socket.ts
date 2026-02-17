@@ -22,6 +22,9 @@ const channels = new Map<string, Set<ServerWebSocket<any>>>();
 // Store metadata per channel (e.g. Figma file name)
 const channelMetadata = new Map<string, { fileName?: string; joinedAt: number }>();
 
+// WebSocket readyState constant (avoid depending on browser WebSocket global)
+const WS_OPEN = 1;
+
 // Keep track of channel statistics
 const stats = {
   totalConnections: 0,
@@ -30,6 +33,33 @@ const stats = {
   messagesReceived: 0,
   errors: 0
 };
+
+function cleanupDeadConnections(): number {
+  let removedCount = 0;
+  for (const [channelName, clients] of channels) {
+    const deadClients: ServerWebSocket<any>[] = [];
+    for (const client of clients) {
+      if (client.readyState !== WS_OPEN) {
+        deadClients.push(client);
+      }
+    }
+    for (const dead of deadClients) {
+      clients.delete(dead);
+      removedCount++;
+    }
+    if (clients.size === 0) {
+      channels.delete(channelName);
+      channelMetadata.delete(channelName);
+      logger.info(`Removed stale channel: ${channelName}`);
+    }
+  }
+  if (removedCount > 0) {
+    logger.info(`Cleanup: removed ${removedCount} dead connection(s)`);
+    // Decrement for zombie connections that died without triggering the close handler
+    stats.activeConnections = Math.max(0, stats.activeConnections - removedCount);
+  }
+  return removedCount;
+}
 
 function handleConnection(ws: ServerWebSocket<any>) {
   // Track connection statistics
@@ -93,6 +123,7 @@ const server = Bun.serve({
 
     // Handle channels endpoint - list all active channels with metadata
     if (url.pathname === "/channels") {
+      cleanupDeadConnections();
       const channelList = Array.from(channels.entries()).map(([name, clients]) => ({
         channel: name,
         clients: clients.size,
@@ -133,6 +164,8 @@ const server = Bun.serve({
     });
   },
   websocket: {
+    idleTimeout: 60,
+    sendPings: true,
     open: handleConnection,
     message(ws: ServerWebSocket<any>, message: string | Buffer) {
       try {
@@ -154,6 +187,26 @@ const server = Bun.serve({
             return;
           }
 
+          // Remove stale channels with the same fileName (plugin reconnected with new channel ID)
+          if (data.fileName) {
+            for (const [existingChannel, existingClients] of channels) {
+              if (existingChannel === channelName) continue;
+              const meta = channelMetadata.get(existingChannel);
+              if (meta?.fileName === data.fileName) {
+                const hasActiveClient = Array.from(existingClients).some(
+                  (c) => c.readyState === WS_OPEN,
+                );
+                if (!hasActiveClient) {
+                  channels.delete(existingChannel);
+                  channelMetadata.delete(existingChannel);
+                  logger.info(
+                    `Removed stale channel ${existingChannel} for file "${data.fileName}" (replaced by ${channelName})`,
+                  );
+                }
+              }
+            }
+          }
+
           // Create channel if it doesn't exist
           if (!channels.has(channelName)) {
             logger.info(`Creating new channel: ${channelName}`);
@@ -163,6 +216,7 @@ const server = Bun.serve({
           // Add client to channel
           const channelClients = channels.get(channelName)!;
           channelClients.add(ws);
+          ws.data.channel = channelName;
           logger.info(`Client ${clientId} joined channel: ${channelName}`);
 
           // Store channel metadata (file name from Figma plugin)
@@ -205,7 +259,7 @@ const server = Bun.serve({
           try {
             let notificationCount = 0;
             channelClients.forEach((client) => {
-              if (client !== ws && client.readyState === WebSocket.OPEN) {
+              if (client !== ws && client.readyState === WS_OPEN) {
                 client.send(JSON.stringify({
                   type: "system",
                   message: "A new client has joined the channel",
@@ -255,7 +309,7 @@ const server = Bun.serve({
             let broadcastCount = 0;
             channelClients.forEach((client) => {
               // Only send to other clients, not back to the sender
-              if (client !== ws && client.readyState === WebSocket.OPEN) {
+              if (client !== ws && client.readyState === WS_OPEN) {
                 logger.debug(`Broadcasting message to peer in channel ${channelName}`);
                 client.send(JSON.stringify({
                   type: "broadcast",
@@ -311,7 +365,7 @@ const server = Bun.serve({
           // Broadcast progress update to all clients in the channel
           try {
             channelClients.forEach((client) => {
-              if (client.readyState === WebSocket.OPEN) {
+              if (client.readyState === WS_OPEN) {
                 client.send(JSON.stringify(data));
                 stats.messagesSent++;
               }
@@ -342,36 +396,21 @@ const server = Bun.serve({
       logger.info(`WebSocket closed for client ${clientId}: Code ${code}, Reason: ${reason || 'No reason provided'}`);
 
       // Remove client from their channel
-      channels.forEach((clients, channelName) => {
-        if (clients.delete(ws)) {
-          logger.debug(`Removed client ${clientId} from channel ${channelName} due to connection close`);
-          // Clean up empty channels
+      const channelName = ws.data?.channel;
+      if (channelName) {
+        const clients = channels.get(channelName);
+        if (clients) {
+          clients.delete(ws);
+          logger.debug(`Removed client ${clientId} from channel ${channelName}`);
           if (clients.size === 0) {
             channels.delete(channelName);
             channelMetadata.delete(channelName);
-            logger.debug(`Removed empty channel: ${channelName}`);
-          } else {
-            // Notify remaining clients that a peer disconnected
-            clients.forEach((client) => {
-              if (client.readyState === WebSocket.OPEN) {
-                try {
-                  client.send(JSON.stringify({
-                    type: "channel_peer_disconnected",
-                    channel: channelName,
-                    remainingClients: clients.size
-                  }));
-                  stats.messagesSent++;
-                } catch (sendError) {
-                  logger.error(`Failed to send peer disconnect notification:`, sendError);
-                  stats.errors++;
-                }
-              }
-            });
+            logger.info(`Removed empty channel: ${channelName}`);
           }
         }
-      });
+      }
 
-      stats.activeConnections--;
+      stats.activeConnections = Math.max(0, stats.activeConnections - 1);
     },
     drain(ws: ServerWebSocket<any>) {
       const clientId = ws.data?.clientId || "unknown";
@@ -384,10 +423,16 @@ logger.info(`Claude to Figma WebSocket server running on port ${server.port}`);
 logger.info(`Status endpoint available at http://localhost:${server.port}/status`);
 logger.info(`Channels endpoint available at http://localhost:${server.port}/channels`);
 
-// Print server stats every 5 minutes
+// Periodic cleanup of dead connections and stats logging
+const CLEANUP_INTERVAL_MS = 30_000;
+const STATS_LOG_INTERVAL_MS = 5 * 60_000;
+let lastStatsLog = Date.now();
+
 setInterval(() => {
-  logger.info("Server stats:", {
-    channels: channels.size,
-    ...stats
-  });
-}, 5 * 60 * 1000);
+  const removed = cleanupDeadConnections();
+  const now = Date.now();
+  if (removed > 0 || now - lastStatsLog >= STATS_LOG_INTERVAL_MS) {
+    logger.info("Server stats:", { channels: channels.size, ...stats });
+    lastStatsLog = now;
+  }
+}, CLEANUP_INTERVAL_MS);
