@@ -357,7 +357,7 @@ function applyComponentAttributes(
   } else if (node.type === "INSTANCE") {
     // Instance — set mainComponentName and parse component properties
     node.mainComponentName = attrs.componentName || tag;
-    const compProps: Record<string, any> = {};
+    const compProps: Record<string, { type: "BOOLEAN"; value: boolean } | { type: "VARIANT"; value: string }> = {};
     for (const [key, value] of Object.entries(attrs)) {
       if (STANDARD_ATTRS.has(key)) continue;
       const originalKey = nameMap[key] || key;
