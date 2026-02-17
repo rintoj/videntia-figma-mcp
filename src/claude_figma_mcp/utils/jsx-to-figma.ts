@@ -12,10 +12,15 @@ export function parseJsx(jsx: string): FigmaNodeData[] {
 
   // Wrap in a fragment to make it a valid JSX expression
   const wrapped = `(<>${trimmed}</>)`;
-  const ast = parse(wrapped, {
-    plugins: ["jsx"],
-    sourceType: "module",
-  });
+  let ast;
+  try {
+    ast = parse(wrapped, {
+      plugins: ["jsx"],
+      sourceType: "module",
+    });
+  } catch (e) {
+    throw new Error(`JSX parse error: ${e instanceof Error ? e.message : String(e)}`);
+  }
 
   // Extract the JSXFragment from the ExpressionStatement
   const stmt = ast.program.body[0];

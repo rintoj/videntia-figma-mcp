@@ -643,7 +643,8 @@ function serializeJsxElement(el: t.JSXElement, indent: number): string {
   const pad = "  ".repeat(indent);
   const tagName = (el.openingElement.name as t.JSXIdentifier).name;
   const attrStr = el.openingElement.attributes
-    .map((a) => serializeJsxAttribute(a as t.JSXAttribute))
+    .filter((a): a is t.JSXAttribute => a.type === "JSXAttribute")
+    .map((a) => serializeJsxAttribute(a))
     .join(" ");
 
   if (el.openingElement.selfClosing) {
@@ -683,6 +684,9 @@ function serializeJsxAttribute(attr: t.JSXAttribute): string {
     if (expr.type === "BooleanLiteral") {
       return `${name}={${expr.value}}`;
     }
+    if (expr.type === "NumericLiteral") {
+      return `${name}={${expr.value}}`;
+    }
     if (expr.type === "ObjectExpression") {
       return `${name}=${serializeObjectExpr(expr)}`;
     }
@@ -703,7 +707,8 @@ function serializeObjectExpr(obj: t.ObjectExpression): string {
       if (val.type === "StringLiteral") return `${key}: "${val.value}"`;
       if (val.type === "BooleanLiteral") return `${key}: ${val.value}`;
       if (val.type === "NumericLiteral") return `${key}: ${val.value}`;
-      return `${key}: ${JSON.stringify(val)}`;
+      if (val.type === "NullLiteral") return `${key}: null`;
+      return `${key}: undefined`;
     })
     .filter(Boolean);
   return `{{ ${entries.join(", ")} }}`;
