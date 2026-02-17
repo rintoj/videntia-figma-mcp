@@ -197,6 +197,21 @@ describe("parseJsx", () => {
   it("should parse padding with variable binding (uniform)", () => {
     const nodes = parseJsx('<div id="1:1" name="T" className="p-spacing-4" />');
     expect(nodes[0].bindings?.paddingTop).toBe("spacing/4");
+    expect(nodes[0].bindings?.paddingRight).toBe("spacing/4");
+    expect(nodes[0].bindings?.paddingBottom).toBe("spacing/4");
+    expect(nodes[0].bindings?.paddingLeft).toBe("spacing/4");
+  });
+
+  it("should parse px variable binding on both sides", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="px-spacing-4" />');
+    expect(nodes[0].bindings?.paddingLeft).toBe("spacing/4");
+    expect(nodes[0].bindings?.paddingRight).toBe("spacing/4");
+  });
+
+  it("should parse py variable binding on both sides", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="py-spacing-4" />');
+    expect(nodes[0].bindings?.paddingTop).toBe("spacing/4");
+    expect(nodes[0].bindings?.paddingBottom).toBe("spacing/4");
   });
 
   it("should parse individual padding with variable bindings", () => {
@@ -386,6 +401,13 @@ describe("parseJsx", () => {
   it("should parse corner radius with variable", () => {
     const nodes = parseJsx('<div id="1:1" name="T" className="rounded-radius-md" />');
     expect(nodes[0].bindings?.cornerRadius).toBe("radius/md");
+  });
+
+  it("should parse corner radius variable starting with t or b", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="rounded-token-md" />');
+    expect(nodes[0].bindings?.cornerRadius).toBe("token/md");
+    const nodes2 = parseJsx('<div id="1:1" name="T" className="rounded-base" />');
+    expect(nodes2[0].bindings?.cornerRadius).toBe("base");
   });
 
   it("should parse individual corner radii", () => {

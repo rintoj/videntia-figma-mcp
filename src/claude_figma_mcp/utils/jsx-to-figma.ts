@@ -50,7 +50,7 @@ function parseElement(input: string, pos: number): ParseResult {
   const attrs = attrResult.attrs;
 
   // Determine node type from tag
-  const nodeType = tagToNodeType(tag, attrs);
+  const nodeType = tagToNodeType(tag);
 
   // Build the base node
   const node: FigmaNodeData = {
@@ -196,7 +196,7 @@ function parseAttributes(input: string, pos: number): { attrs: Record<string, st
   return { attrs, pos };
 }
 
-function tagToNodeType(tag: string, attrs: Record<string, string>): string {
+function tagToNodeType(tag: string): string {
   if (tag === "span") return "TEXT";
   if (tag === "svg") return "VECTOR";
   return "FRAME";
@@ -220,14 +220,6 @@ function denormalizeVarName(name: string): string {
 }
 
 // --- Tailwind class name → FigmaNodeData mapping ---
-
-// Known Tailwind keywords that are NOT variable bindings
-const KNOWN_KEYWORDS = new Set([
-  "center", "end", "between", "hidden", "wrap", "cover", "row", "col",
-  "full", "1", "start", "baseline", "justify", "right", "left", "top",
-  "bottom", "thin", "extralight", "light", "normal", "medium", "semibold",
-  "bold", "extrabold", "black",
-]);
 
 // Font weight Tailwind class → number
 const FONT_WEIGHT_MAP: Record<string, number> = {
@@ -353,18 +345,23 @@ function applyClassName(node: FigmaNodeData, className: string): void {
       const varName = denormalizeVarName(m[1]);
       node.paddingTop = 0; node.paddingRight = 0; node.paddingBottom = 0; node.paddingLeft = 0;
       bindings["paddingTop"] = varName;
+      bindings["paddingRight"] = varName;
+      bindings["paddingBottom"] = varName;
+      bindings["paddingLeft"] = varName;
       continue;
     }
     if ((m = cls.match(/^px-(.+)$/)) && !m[1].startsWith("[")) {
       const varName = denormalizeVarName(m[1]);
       node.paddingRight = 0; node.paddingLeft = 0;
       bindings["paddingLeft"] = varName;
+      bindings["paddingRight"] = varName;
       continue;
     }
     if ((m = cls.match(/^py-(.+)$/)) && !m[1].startsWith("[")) {
       const varName = denormalizeVarName(m[1]);
       node.paddingTop = 0; node.paddingBottom = 0;
       bindings["paddingTop"] = varName;
+      bindings["paddingBottom"] = varName;
       continue;
     }
     if ((m = cls.match(/^pt-(.+)$/)) && !m[1].startsWith("[")) {
@@ -516,7 +513,7 @@ function applyClassName(node: FigmaNodeData, className: string): void {
       node.bottomLeftRadius = Number(m[1]); continue;
     }
     // rounded-{var}
-    if ((m = cls.match(/^rounded-(.+)$/)) && !m[1].startsWith("[") && !m[1].startsWith("t") && !m[1].startsWith("b")) {
+    if ((m = cls.match(/^rounded-(.+)$/)) && !m[1].startsWith("[") && !["tl-", "tr-", "bl-", "br-"].some(p => m![1].startsWith(p))) {
       node.cornerRadius = 0;
       bindings["cornerRadius"] = denormalizeVarName(m[1]);
       continue;

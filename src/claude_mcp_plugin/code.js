@@ -6853,7 +6853,9 @@ async function createFromData(params) {
     for (const v of localVars) {
       varNameMap.set(v.name, v);
     }
-  } catch (e) {}
+  } catch (e) {
+    console.warn("Failed to load local variables:", e);
+  }
 
   // Build text style name → style object map
   const textStyleMap = new Map();
@@ -6862,7 +6864,9 @@ async function createFromData(params) {
     for (const s of localStyles) {
       textStyleMap.set(s.name, s);
     }
-  } catch (e) {}
+  } catch (e) {
+    console.warn("Failed to load local text styles:", e);
+  }
 
   // Resolve parent
   let parent;
@@ -6893,18 +6897,24 @@ async function createFromData(params) {
     }
   }
 
+  // Expand 3-char hex to 6-char (e.g. "fff" → "ffffff")
+  function expandHex(hex) {
+    if (hex.length === 3) return hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+    return hex;
+  }
+
   // Parse hex color string to Figma {r,g,b} (0-1)
   function parseColor(colorStr) {
     if (!colorStr) return { r: 0, g: 0, b: 0 };
     if (colorStr.startsWith("rgba")) {
-      const m = colorStr.match(/rgba\((\d+),(\d+),(\d+),([\d.]+)\)/);
+      const m = colorStr.match(/rgba\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*([\d.]+)\s*\)/);
       if (m) return { r: parseInt(m[1]) / 255, g: parseInt(m[2]) / 255, b: parseInt(m[3]) / 255 };
     }
     if (colorStr.startsWith("rgb")) {
-      const m = colorStr.match(/rgb\((\d+),(\d+),(\d+)\)/);
+      const m = colorStr.match(/rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)/);
       if (m) return { r: parseInt(m[1]) / 255, g: parseInt(m[2]) / 255, b: parseInt(m[3]) / 255 };
     }
-    const hex = colorStr.replace("#", "");
+    const hex = expandHex(colorStr.replace("#", ""));
     return {
       r: parseInt(hex.substring(0, 2), 16) / 255,
       g: parseInt(hex.substring(2, 4), 16) / 255,
@@ -6916,7 +6926,7 @@ async function createFromData(params) {
   function parseOpacity(colorStr) {
     if (!colorStr) return 1;
     if (colorStr.startsWith("rgba")) {
-      const m = colorStr.match(/rgba\((\d+),(\d+),(\d+),([\d.]+)\)/);
+      const m = colorStr.match(/rgba\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*([\d.]+)\s*\)/);
       if (m) return parseFloat(m[4]);
     }
     return 1;
@@ -6976,7 +6986,12 @@ async function createFromData(params) {
         node.fontName = { family, style: getFontStyle(weight) };
       } catch (e) {
         // Fallback to Inter Regular
-        await figma.loadFontAsync({ family: "Inter", style: "Regular" });
+        try {
+          await figma.loadFontAsync({ family: "Inter", style: "Regular" });
+          node.fontName = { family: "Inter", style: "Regular" };
+        } catch (e2) {
+          console.warn("Failed to load fallback font Inter Regular:", e2);
+        }
       }
       // Set text content
       if (nodeData.characters) {
@@ -7019,7 +7034,13 @@ async function createFromData(params) {
     if (nodeData.clipsContent) node.clipsContent = true;
 
     // Sizing
-    if (nodeData.width && nodeData.height) node.resize(nodeData.width, nodeData.height);
+    if (nodeData.width !== undefined && nodeData.height !== undefined) {
+      node.resize(nodeData.width, nodeData.height);
+    } else if (nodeData.width !== undefined) {
+      node.resize(nodeData.width, node.height);
+    } else if (nodeData.height !== undefined) {
+      node.resize(node.width, nodeData.height);
+    }
     if (nodeData.layoutSizingHorizontal) node.layoutSizingHorizontal = nodeData.layoutSizingHorizontal;
     if (nodeData.layoutSizingVertical) node.layoutSizingVertical = nodeData.layoutSizingVertical;
 
@@ -7098,7 +7119,9 @@ async function createFromData(params) {
             node[prop] = paints;
           }
         } else {
-          try { node.setBoundVariable(field, variable); } catch (e) {}
+          try { node.setBoundVariable(field, variable); } catch (e) {
+            console.warn(`Failed to bind variable "${varName}" to field "${field}":`, e);
+          }
         }
       }
     }
