@@ -22,6 +22,9 @@ const channels = new Map<string, Set<ServerWebSocket<any>>>();
 // Store metadata per channel (e.g. Figma file name)
 const channelMetadata = new Map<string, { fileName?: string; joinedAt: number }>();
 
+// WebSocket readyState constant (avoid depending on browser WebSocket global)
+const WS_OPEN = 1;
+
 // Keep track of channel statistics
 const stats = {
   totalConnections: 0,
@@ -36,7 +39,7 @@ function cleanupDeadConnections(): number {
   for (const [channelName, clients] of channels) {
     const deadClients: ServerWebSocket<any>[] = [];
     for (const client of clients) {
-      if (client.readyState !== WebSocket.OPEN) {
+      if (client.readyState !== WS_OPEN) {
         deadClients.push(client);
       }
     }
@@ -52,6 +55,8 @@ function cleanupDeadConnections(): number {
   }
   if (removedCount > 0) {
     logger.info(`Cleanup: removed ${removedCount} dead connection(s)`);
+    // Decrement for zombie connections that died without triggering the close handler
+    stats.activeConnections = Math.max(0, stats.activeConnections - removedCount);
   }
   return removedCount;
 }
@@ -189,7 +194,7 @@ const server = Bun.serve({
               const meta = channelMetadata.get(existingChannel);
               if (meta?.fileName === data.fileName) {
                 const hasActiveClient = Array.from(existingClients).some(
-                  (c) => c.readyState === WebSocket.OPEN,
+                  (c) => c.readyState === WS_OPEN,
                 );
                 if (!hasActiveClient) {
                   channels.delete(existingChannel);
@@ -254,7 +259,7 @@ const server = Bun.serve({
           try {
             let notificationCount = 0;
             channelClients.forEach((client) => {
-              if (client !== ws && client.readyState === WebSocket.OPEN) {
+              if (client !== ws && client.readyState === WS_OPEN) {
                 client.send(JSON.stringify({
                   type: "system",
                   message: "A new client has joined the channel",
@@ -304,7 +309,7 @@ const server = Bun.serve({
             let broadcastCount = 0;
             channelClients.forEach((client) => {
               // Only send to other clients, not back to the sender
-              if (client !== ws && client.readyState === WebSocket.OPEN) {
+              if (client !== ws && client.readyState === WS_OPEN) {
                 logger.debug(`Broadcasting message to peer in channel ${channelName}`);
                 client.send(JSON.stringify({
                   type: "broadcast",
@@ -360,7 +365,7 @@ const server = Bun.serve({
           // Broadcast progress update to all clients in the channel
           try {
             channelClients.forEach((client) => {
-              if (client.readyState === WebSocket.OPEN) {
+              if (client.readyState === WS_OPEN) {
                 client.send(JSON.stringify(data));
                 stats.messagesSent++;
               }
