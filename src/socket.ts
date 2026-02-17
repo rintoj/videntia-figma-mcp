@@ -410,7 +410,7 @@ const server = Bun.serve({
         }
       }
 
-      stats.activeConnections--;
+      stats.activeConnections = Math.max(0, stats.activeConnections - 1);
     },
     drain(ws: ServerWebSocket<any>) {
       const clientId = ws.data?.clientId || "unknown";
