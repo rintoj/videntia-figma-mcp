@@ -546,15 +546,20 @@ describe("new document tools integration", () => {
 
   describe("scan_nodes_by_types", () => {
     beforeEach(() => {
-      mockSendCommand.mockResolvedValue({
-        success: true,
-        count: 3,
-        matchingNodes: [
-          { id: "frame-1", type: "FRAME" },
-          { id: "frame-2", type: "FRAME" },
-          { id: "comp-1", type: "COMPONENT" }
-        ],
-        searchedTypes: ["FRAME", "COMPONENT"]
+      mockSendCommand.mockImplementation((command: string) => {
+        if (command === "read_my_design") {
+          return Promise.resolve({ selectionCount: 0, selection: [] });
+        }
+        return Promise.resolve({
+          success: true,
+          count: 3,
+          matchingNodes: [
+            { id: "frame-1", type: "FRAME" },
+            { id: "frame-2", type: "FRAME" },
+            { id: "comp-1", type: "COMPONENT" }
+          ],
+          searchedTypes: ["FRAME", "COMPONENT"]
+        });
       });
     });
 
@@ -564,7 +569,6 @@ describe("new document tools integration", () => {
         types: ["FRAME", "COMPONENT"]
       });
 
-      expect(mockSendCommand).toHaveBeenCalledTimes(1);
       expect(mockSendCommand).toHaveBeenCalledWith("scan_nodes_by_types", {
         nodeId: "parent-123",
         types: ["FRAME", "COMPONENT"]
@@ -582,11 +586,16 @@ describe("new document tools integration", () => {
     });
 
     it("coerces string types into an array", async () => {
-      mockSendCommand.mockResolvedValue({
-        success: true,
-        count: 1,
-        matchingNodes: [{ id: "node-1" }],
-        searchedTypes: ["FRAME"]
+      mockSendCommand.mockImplementation((command: string) => {
+        if (command === "read_my_design") {
+          return Promise.resolve({ selectionCount: 0, selection: [] });
+        }
+        return Promise.resolve({
+          success: true,
+          count: 1,
+          matchingNodes: [{ id: "node-1" }],
+          searchedTypes: ["FRAME"]
+        });
       });
       const response = await callTool("scan_nodes_by_types", {
         nodeId: "parent-123",

@@ -7386,6 +7386,69 @@ async function readMyDesign(params) {
     const bindings = resolveBindings(node);
     if (Object.keys(bindings).length > 0) info.bindings = bindings;
 
+    // Component/instance metadata
+    if (node.type === 'COMPONENT_SET') {
+      // Extract property definitions from component set
+      if (node.componentPropertyDefinitions) {
+        const defs = {};
+        for (const [key, def] of Object.entries(node.componentPropertyDefinitions)) {
+          // Strip #ID suffix from keys (e.g. "Size#123:0" → "Size")
+          const cleanKey = key.replace(/#[\d:]+$/, '');
+          if (def.type === 'VARIANT') {
+            defs[cleanKey] = { type: 'VARIANT', options: def.variantOptions || [] };
+          } else if (def.type === 'BOOLEAN') {
+            defs[cleanKey] = { type: 'BOOLEAN', default: def.defaultValue };
+          } else if (def.type === 'TEXT') {
+            defs[cleanKey] = { type: 'TEXT', default: def.defaultValue };
+          } else if (def.type === 'INSTANCE_SWAP') {
+            defs[cleanKey] = { type: 'INSTANCE_SWAP' };
+          }
+        }
+        if (Object.keys(defs).length > 0) info.componentPropertyDefinitions = defs;
+      }
+    } else if (node.type === 'COMPONENT') {
+      // Check if this component is inside a component set
+      if (node.parent && node.parent.type === 'COMPONENT_SET') {
+        info.componentSetName = node.parent.name;
+        // Parse variant values from node name (e.g. "Size=md, State=default")
+        const variantProps = {};
+        const parts = node.name.split(',');
+        for (const part of parts) {
+          const eqIdx = part.indexOf('=');
+          if (eqIdx !== -1) {
+            const k = part.substring(0, eqIdx).trim();
+            const v = part.substring(eqIdx + 1).trim();
+            if (k) variantProps[k] = v;
+          }
+        }
+        if (Object.keys(variantProps).length > 0) info.variantProperties = variantProps;
+      }
+    } else if (node.type === 'INSTANCE') {
+      // Extract component properties (resolved values)
+      if (node.componentProperties) {
+        const props = {};
+        for (const [key, prop] of Object.entries(node.componentProperties)) {
+          // Strip #ID suffix from keys
+          const cleanKey = key.replace(/#[\d:]+$/, '');
+          props[cleanKey] = { type: prop.type, value: prop.value };
+        }
+        if (Object.keys(props).length > 0) info.componentProperties = props;
+      }
+      // Resolve main component name
+      try {
+        const mainComp = await node.getMainComponentAsync();
+        if (mainComp) {
+          if (mainComp.parent && mainComp.parent.type === 'COMPONENT_SET') {
+            info.mainComponentName = mainComp.parent.name;
+          } else {
+            info.mainComponentName = mainComp.name;
+          }
+        }
+      } catch (e) {
+        // Main component may not be available (e.g. external library)
+      }
+    }
+
     // Children (respect depth limit)
     if ('children' in node && node.children.length > 0) {
       if (depth === undefined || currentDepth < depth) {
@@ -7416,8 +7479,16 @@ async function readMyDesign(params) {
   }
 
   // Determine which nodes to process
+  const { nodeIds } = params || {};
   let nodesToProcess;
-  if (nodeId) {
+  if (nodeIds && Array.isArray(nodeIds) && nodeIds.length > 0) {
+    nodesToProcess = [];
+    for (const id of nodeIds) {
+      const node = await figma.getNodeByIdAsync(id);
+      if (node) nodesToProcess.push(node);
+    }
+    if (nodesToProcess.length === 0) throw new Error('None of the provided node IDs were found');
+  } else if (nodeId) {
     const node = await figma.getNodeByIdAsync(nodeId);
     if (!node) throw new Error(`Node with ID ${nodeId} not found`);
     nodesToProcess = [node];

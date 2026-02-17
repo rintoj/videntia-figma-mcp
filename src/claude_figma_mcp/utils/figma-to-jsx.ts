@@ -1,5 +1,7 @@
 import type { FigmaNodeData } from "../types/index.js";
 
+const COMPONENT_TYPES = new Set(["COMPONENT", "COMPONENT_SET", "INSTANCE"]);
+
 /**
  * Convert an array of Figma node data objects to JSX+Tailwind string.
  */
@@ -15,6 +17,34 @@ export function convertToJsx(nodes: FigmaNodeData[], indent = 0): string {
  */
 function normalizeName(name: string): string {
   return name.replace(/\//g, "-");
+}
+
+/**
+ * Convert a Figma name to PascalCase tag.
+ * "Profile Avatar" → "ProfileAvatar", "icon/close" → "IconClose", "Button" → "Button"
+ */
+export function toPascalCase(name: string): string {
+  return name
+    .split(/[\s\/\-_]+/)
+    .filter((s) => s.length > 0)
+    .map((s) => s.replace(/[^a-zA-Z0-9]/g, ""))
+    .filter((s) => s.length > 0)
+    .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
+    .join("");
+}
+
+/**
+ * Convert a property name to camelCase.
+ * "Show Icon" → "showIcon", "Size" → "size", "show-icon" → "showIcon"
+ */
+export function toCamelCase(name: string): string {
+  const parts = name
+    .split(/[\s\-_]+/)
+    .filter((s) => s.length > 0);
+  if (parts.length === 0) return name;
+  return parts
+    .map((s, i) => (i === 0 ? s.charAt(0).toLowerCase() + s.slice(1) : s.charAt(0).toUpperCase() + s.slice(1)))
+    .join("");
 }
 
 /**
@@ -378,12 +408,142 @@ function formatStyleAttr(style: Record<string, string>): string {
 }
 
 /**
+ * Check if a node is a component type (COMPONENT, COMPONENT_SET, or INSTANCE).
+ */
+function isComponentType(type: string): boolean {
+  return COMPONENT_TYPES.has(type);
+}
+
+/**
  * Determine the JSX element tag for a Figma node type.
  */
 function getTag(node: FigmaNodeData): string {
   if (node.type === "TEXT") return "span";
   if (node.type === "VECTOR" || node.type === "LINE") return "svg";
+
+  // Component types get PascalCase tags
+  if (node.type === "COMPONENT_SET") {
+    return toPascalCase(node.name) + "Set";
+  }
+  if (node.type === "COMPONENT") {
+    if (node.componentSetName) {
+      return toPascalCase(node.componentSetName);
+    }
+    return toPascalCase(node.name);
+  }
+  if (node.type === "INSTANCE") {
+    if (node.mainComponentName) {
+      return toPascalCase(node.mainComponentName);
+    }
+    return toPascalCase(node.name);
+  }
+
   return "div";
+}
+
+/**
+ * Get the original name used to derive the tag (for componentName attribute).
+ */
+function getOriginalNameForTag(node: FigmaNodeData): string {
+  if (node.type === "COMPONENT_SET") return node.name;
+  if (node.type === "COMPONENT") {
+    return node.componentSetName || node.name;
+  }
+  if (node.type === "INSTANCE") {
+    return node.mainComponentName || node.name;
+  }
+  return node.name;
+}
+
+/**
+ * Format an object as a JSX inline object expression.
+ */
+function formatJsxObject(obj: Record<string, unknown>): string {
+  const entries = Object.entries(obj)
+    .map(([k, v]) => {
+      if (typeof v === "string") return `${k}: "${v}"`;
+      return `${k}: ${JSON.stringify(v)}`;
+    })
+    .join(", ");
+  return `{{ ${entries} }}`;
+}
+
+/**
+ * Build component-specific attributes for COMPONENT_SET, COMPONENT, and INSTANCE nodes.
+ */
+function buildComponentAttrs(node: FigmaNodeData): string[] {
+  const attrs: string[] = [];
+
+  // componentName — emitted when the PascalCase tag differs from the original Figma name
+  const originalName = getOriginalNameForTag(node);
+  const tag = getTag(node);
+  // For COMPONENT_SET, the tag is Name+"Set", so compare against toPascalCase(originalName)+"Set"
+  const expectedTag = node.type === "COMPONENT_SET" ? toPascalCase(originalName) + "Set" : toPascalCase(originalName);
+  if (expectedTag === tag && toPascalCase(originalName) !== originalName) {
+    attrs.push(`componentName="${escapeJsx(originalName)}"`);
+  }
+
+  // propertyDefinitions for COMPONENT_SET
+  if (node.type === "COMPONENT_SET" && node.componentPropertyDefinitions) {
+    const defs: Record<string, unknown> = {};
+    const nameMap: Record<string, string> = {};
+    for (const [key, def] of Object.entries(node.componentPropertyDefinitions) as Array<[string, any]>) {
+      const camelKey = toCamelCase(key);
+      if (def.type === "VARIANT" && def.options) {
+        defs[camelKey] = (def.options as string[]).join(" | ");
+      } else if (def.type === "BOOLEAN") {
+        defs[camelKey] = def.default ?? true;
+      } else if (def.type === "TEXT") {
+        defs[camelKey] = def.default ?? "";
+      } else if (def.type === "INSTANCE_SWAP") {
+        defs[camelKey] = "InstanceSwap";
+      }
+      if (camelKey !== key) nameMap[camelKey] = key;
+    }
+    if (Object.keys(defs).length > 0) {
+      attrs.push(`propertyDefinitions=${formatJsxObject(defs)}`);
+    }
+    if (Object.keys(nameMap).length > 0) {
+      attrs.push(`propertyNameMap=${formatJsxObject(nameMap)}`);
+    }
+  }
+
+  // Variant properties for COMPONENT in a set
+  if (node.type === "COMPONENT" && node.variantProperties) {
+    const nameMap: Record<string, string> = {};
+    for (const [key, value] of Object.entries(node.variantProperties)) {
+      const camelKey = toCamelCase(key);
+      attrs.push(`${camelKey}="${escapeJsx(value)}"`);
+      if (camelKey !== key) nameMap[camelKey] = key;
+    }
+    if (Object.keys(nameMap).length > 0) {
+      attrs.push(`propertyNameMap=${formatJsxObject(nameMap)}`);
+    }
+  }
+
+  // Instance component properties
+  if (node.type === "INSTANCE" && node.componentProperties) {
+    const nameMap: Record<string, string> = {};
+    for (const [key, prop] of Object.entries(node.componentProperties) as Array<[string, any]>) {
+      const camelKey = toCamelCase(key);
+      if (prop.type === "BOOLEAN") {
+        attrs.push(`${camelKey}={${prop.value}}`);
+      } else if (prop.type === "TEXT") {
+        attrs.push(`${camelKey}="${escapeJsx(String(prop.value))}"`);
+      } else if (prop.type === "VARIANT") {
+        attrs.push(`${camelKey}="${escapeJsx(String(prop.value))}"`);
+      }
+      // Skip INSTANCE_SWAP — not useful as text
+      if (camelKey !== key && prop.type !== "INSTANCE_SWAP") {
+        nameMap[camelKey] = key;
+      }
+    }
+    if (Object.keys(nameMap).length > 0) {
+      attrs.push(`propertyNameMap=${formatJsxObject(nameMap)}`);
+    }
+  }
+
+  return attrs;
 }
 
 /**
@@ -396,11 +556,21 @@ function nodeToJsx(node: FigmaNodeData, indent: number): string {
   const tag = getTag(node);
   const classes = buildTailwindClasses(node);
   const style = buildStyleAttribute(node);
+  const isComponent = isComponentType(node.type);
 
   // Build attribute parts
   const attrs: string[] = [];
   attrs.push(`id="${node.id}"`);
-  attrs.push(`name="${escapeJsx(node.name)}"`);
+
+  // Skip name attribute for component types (tag carries the name)
+  if (!isComponent) {
+    attrs.push(`name="${escapeJsx(node.name)}"`);
+  }
+
+  // Add component-specific attributes
+  if (isComponent) {
+    attrs.push(...buildComponentAttrs(node));
+  }
 
   if (classes.length > 0) {
     attrs.push(`className="${classes.join(" ")}"`);
