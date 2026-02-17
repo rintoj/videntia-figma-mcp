@@ -262,6 +262,16 @@ bun run build:dxt
 bun run pub:release
 ```
 
+### After Merging to Main
+
+After every merge to `main`, **restart the WebSocket socket server** so it picks up the new code:
+
+```bash
+bun run build && launchctl stop com.claude-figma-mcp.socket && launchctl start com.claude-figma-mcp.socket
+```
+
+This restarts the launchd-managed socket service (`~/Library/LaunchAgents/com.claude-figma-mcp.socket.plist`).
+
 ### Debug
 ```bash
 # Run MCP server with logging
