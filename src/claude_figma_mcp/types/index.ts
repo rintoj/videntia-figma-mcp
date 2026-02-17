@@ -168,6 +168,7 @@ export type FigmaCommand =
   | "create_page"
   | "rename_page"
   | "delete_page"
+  | "create_from_data"
   | "batch_actions";
 
 // Batch actions types

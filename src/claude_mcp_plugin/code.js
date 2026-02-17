@@ -379,6 +379,8 @@ async function handleCommand(command, params) {
       return await renamePage(params);
     case "delete_page":
       return await deletePage(params);
+    case "create_from_data":
+      return await createFromData(params);
     case "batch_actions":
       return await batchActions(params);
     default:
@@ -6836,6 +6838,317 @@ async function setSelections(params) {
     })),
     success: true
   };
+}
+
+async function createFromData(params) {
+  const { data, parentId, x, y } = params || {};
+  if (!Array.isArray(data) || data.length === 0) {
+    throw new Error("create_from_data requires a non-empty 'data' array");
+  }
+
+  // Build variable name → variable object map (reverse of readMyDesign)
+  const varNameMap = new Map();
+  try {
+    const localVars = await figma.variables.getLocalVariablesAsync();
+    for (const v of localVars) {
+      varNameMap.set(v.name, v);
+    }
+  } catch (e) {
+    console.warn("Failed to load local variables:", e);
+  }
+
+  // Build text style name → style object map
+  const textStyleMap = new Map();
+  try {
+    const localStyles = await figma.getLocalTextStylesAsync();
+    for (const s of localStyles) {
+      textStyleMap.set(s.name, s);
+    }
+  } catch (e) {
+    console.warn("Failed to load local text styles:", e);
+  }
+
+  // Resolve parent
+  let parent;
+  if (parentId) {
+    parent = await figma.getNodeByIdAsync(parentId);
+    if (!parent || !("appendChild" in parent)) {
+      throw new Error(`Invalid parent node: ${parentId}`);
+    }
+  } else {
+    parent = figma.currentPage;
+  }
+
+  const createdNodes = [];
+
+  // Font weight → style name mapping
+  function getFontStyle(weight) {
+    switch (weight) {
+      case 100: return "Thin";
+      case 200: return "Extra Light";
+      case 300: return "Light";
+      case 400: return "Regular";
+      case 500: return "Medium";
+      case 600: return "Semi Bold";
+      case 700: return "Bold";
+      case 800: return "Extra Bold";
+      case 900: return "Black";
+      default: return "Regular";
+    }
+  }
+
+  // Expand 3-char hex to 6-char (e.g. "fff" → "ffffff")
+  function expandHex(hex) {
+    if (hex.length === 3) return hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+    return hex;
+  }
+
+  // Parse hex color string to Figma {r,g,b} (0-1)
+  function parseColor(colorStr) {
+    if (!colorStr) return { r: 0, g: 0, b: 0 };
+    if (colorStr.startsWith("rgba")) {
+      const m = colorStr.match(/rgba\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*([\d.]+)\s*\)/);
+      if (m) return { r: parseInt(m[1]) / 255, g: parseInt(m[2]) / 255, b: parseInt(m[3]) / 255 };
+    }
+    if (colorStr.startsWith("rgb")) {
+      const m = colorStr.match(/rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)/);
+      if (m) return { r: parseInt(m[1]) / 255, g: parseInt(m[2]) / 255, b: parseInt(m[3]) / 255 };
+    }
+    const hex = expandHex(colorStr.replace("#", ""));
+    return {
+      r: parseInt(hex.substring(0, 2), 16) / 255,
+      g: parseInt(hex.substring(2, 4), 16) / 255,
+      b: parseInt(hex.substring(4, 6), 16) / 255,
+    };
+  }
+
+  // Parse opacity from rgba string
+  function parseOpacity(colorStr) {
+    if (!colorStr) return 1;
+    if (colorStr.startsWith("rgba")) {
+      const m = colorStr.match(/rgba\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*([\d.]+)\s*\)/);
+      if (m) return parseFloat(m[4]);
+    }
+    return 1;
+  }
+
+  // Build a Figma paint from FigmaNodeFill data
+  function buildFigmaPaint(fillData) {
+    if (fillData.gradient) {
+      const stops = (fillData.gradient.stops || []).map(s => ({
+        color: Object.assign(parseColor(s.color), { a: parseOpacity(s.color) }),
+        position: s.position,
+      }));
+      return {
+        type: fillData.gradient.type,
+        gradientStops: stops,
+        gradientTransform: [[1, 0, 0], [0, 1, 0]],
+        visible: true,
+      };
+    }
+    if (fillData.isImage) {
+      const paint = { type: "IMAGE", visible: true, scaleMode: "FILL" };
+      if (fillData.imageRef) paint.imageHash = fillData.imageRef;
+      return paint;
+    }
+    const paint = {
+      type: "SOLID",
+      color: parseColor(fillData.color),
+      visible: true,
+    };
+    if (fillData.opacity !== undefined && fillData.opacity < 1) {
+      paint.opacity = fillData.opacity;
+    }
+    return paint;
+  }
+
+  // Build a Figma effect from FigmaNodeEffect data
+  function buildFigmaEffect(effectData) {
+    const effect = { type: effectData.type, visible: true };
+    if (effectData.radius !== undefined) effect.radius = effectData.radius;
+    if (effectData.offset) effect.offset = { x: effectData.offset.x, y: effectData.offset.y };
+    if (effectData.spread !== undefined) effect.spread = effectData.spread;
+    if (effectData.color) {
+      effect.color = Object.assign(parseColor(effectData.color), { a: parseOpacity(effectData.color) });
+    }
+    return effect;
+  }
+
+  // Recursive node creator
+  async function createNode(nodeData, parentNode, isRoot, rootX, rootY) {
+    let node;
+
+    if (nodeData.type === "TEXT") {
+      node = figma.createText();
+      // Font loading MUST happen first
+      const family = nodeData.fontFamily || "Inter";
+      const weight = nodeData.fontWeight || 400;
+      try {
+        await figma.loadFontAsync({ family, style: getFontStyle(weight) });
+        node.fontName = { family, style: getFontStyle(weight) };
+      } catch (e) {
+        // Fallback to Inter Regular
+        try {
+          await figma.loadFontAsync({ family: "Inter", style: "Regular" });
+          node.fontName = { family: "Inter", style: "Regular" };
+        } catch (e2) {
+          console.warn("Failed to load fallback font Inter Regular:", e2);
+        }
+      }
+      // Set text content
+      if (nodeData.characters) {
+        await setCharacters(node, nodeData.characters);
+      }
+    } else if (nodeData.type === "RECTANGLE" || nodeData.type === "VECTOR" || nodeData.type === "LINE") {
+      node = figma.createRectangle();
+    } else {
+      node = figma.createFrame();
+      // Clear default fills on frames
+      node.fills = [];
+    }
+
+    // Set name
+    node.name = nodeData.name || "Node";
+
+    // Append to parent FIRST (required for layout properties)
+    parentNode.appendChild(node);
+
+    // Set position for root nodes
+    if (isRoot && rootX !== undefined) node.x = rootX;
+    if (isRoot && rootY !== undefined) node.y = rootY;
+
+    // Set layout mode FIRST (gate for other layout props)
+    if (nodeData.layoutMode && nodeData.layoutMode !== "NONE") {
+      node.layoutMode = nodeData.layoutMode;
+
+      if (nodeData.primaryAxisAlignItems) node.primaryAxisAlignItems = nodeData.primaryAxisAlignItems;
+      if (nodeData.counterAxisAlignItems) node.counterAxisAlignItems = nodeData.counterAxisAlignItems;
+      if (nodeData.itemSpacing !== undefined) node.itemSpacing = nodeData.itemSpacing;
+      if (nodeData.counterAxisSpacing !== undefined) node.counterAxisSpacing = nodeData.counterAxisSpacing;
+      if (nodeData.layoutWrap) node.layoutWrap = nodeData.layoutWrap;
+      if (nodeData.paddingTop !== undefined) node.paddingTop = nodeData.paddingTop;
+      if (nodeData.paddingRight !== undefined) node.paddingRight = nodeData.paddingRight;
+      if (nodeData.paddingBottom !== undefined) node.paddingBottom = nodeData.paddingBottom;
+      if (nodeData.paddingLeft !== undefined) node.paddingLeft = nodeData.paddingLeft;
+    }
+
+    // Clipping
+    if (nodeData.clipsContent) node.clipsContent = true;
+
+    // Sizing
+    if (nodeData.width !== undefined && nodeData.height !== undefined) {
+      node.resize(nodeData.width, nodeData.height);
+    } else if (nodeData.width !== undefined) {
+      node.resize(nodeData.width, node.height);
+    } else if (nodeData.height !== undefined) {
+      node.resize(node.width, nodeData.height);
+    }
+    if (nodeData.layoutSizingHorizontal) node.layoutSizingHorizontal = nodeData.layoutSizingHorizontal;
+    if (nodeData.layoutSizingVertical) node.layoutSizingVertical = nodeData.layoutSizingVertical;
+
+    // Fills
+    if (nodeData.fills && nodeData.fills.length > 0) {
+      node.fills = nodeData.fills.map(f => buildFigmaPaint(f));
+    }
+
+    // Strokes
+    if (nodeData.strokes && nodeData.strokes.length > 0) {
+      node.strokes = nodeData.strokes.map(s => buildFigmaPaint(s));
+    }
+    if (nodeData.strokeWeight) node.strokeWeight = nodeData.strokeWeight;
+
+    // Corner radius
+    if (nodeData.cornerRadius) node.cornerRadius = nodeData.cornerRadius;
+    if (nodeData.topLeftRadius) node.topLeftRadius = nodeData.topLeftRadius;
+    if (nodeData.topRightRadius) node.topRightRadius = nodeData.topRightRadius;
+    if (nodeData.bottomRightRadius) node.bottomRightRadius = nodeData.bottomRightRadius;
+    if (nodeData.bottomLeftRadius) node.bottomLeftRadius = nodeData.bottomLeftRadius;
+
+    // Effects
+    if (nodeData.effects && nodeData.effects.length > 0) {
+      node.effects = nodeData.effects.map(e => buildFigmaEffect(e));
+    }
+
+    // Opacity
+    if (nodeData.opacity !== undefined) node.opacity = nodeData.opacity;
+
+    // Rotation
+    if (nodeData.rotation) node.rotation = nodeData.rotation;
+
+    // Text properties
+    if (nodeData.type === "TEXT") {
+      if (nodeData.fontSize) node.fontSize = nodeData.fontSize;
+      if (nodeData.lineHeight !== undefined) {
+        node.lineHeight = nodeData.lineHeightUnit === "percent"
+          ? { value: nodeData.lineHeight, unit: "PERCENT" }
+          : { value: nodeData.lineHeight, unit: "PIXELS" };
+      }
+      if (nodeData.letterSpacing !== undefined) {
+        node.letterSpacing = nodeData.letterSpacingUnit === "percent"
+          ? { value: nodeData.letterSpacing, unit: "PERCENT" }
+          : { value: nodeData.letterSpacing, unit: "PIXELS" };
+      }
+      if (nodeData.textAlignHorizontal) node.textAlignHorizontal = nodeData.textAlignHorizontal;
+      if (nodeData.textCase && nodeData.textCase !== "ORIGINAL") node.textCase = nodeData.textCase;
+      if (nodeData.textDecoration && nodeData.textDecoration !== "NONE") node.textDecoration = nodeData.textDecoration;
+      // Apply text style if present
+      if (nodeData.textStyleName) {
+        const style = textStyleMap.get(nodeData.textStyleName);
+        if (style) node.textStyleId = style.id;
+      }
+    }
+
+    // Absolute positioning (after appendChild)
+    if (nodeData.layoutPositioning === "ABSOLUTE") {
+      node.layoutPositioning = "ABSOLUTE";
+      if (nodeData.x !== undefined) node.x = nodeData.x;
+      if (nodeData.y !== undefined) node.y = nodeData.y;
+    }
+
+    // Variable bindings (after properties are set)
+    if (nodeData.bindings) {
+      for (const [field, varName] of Object.entries(nodeData.bindings)) {
+        const variable = varNameMap.get(varName);
+        if (!variable) continue;
+
+        if (field.startsWith("fills/") || field.startsWith("strokes/")) {
+          const parts = field.split("/");
+          const prop = parts[0]; // "fills" or "strokes"
+          const idx = parseInt(parts[1]);
+          const paints = [...node[prop]];
+          if (paints[idx]) {
+            paints[idx] = figma.variables.setBoundVariableForPaint(paints[idx], "color", variable);
+            node[prop] = paints;
+          }
+        } else {
+          try { node.setBoundVariable(field, variable); } catch (e) {
+            console.warn(`Failed to bind variable "${varName}" to field "${field}":`, e);
+          }
+        }
+      }
+    }
+
+    // Recursively create children
+    if (nodeData.children && nodeData.children.length > 0) {
+      for (const child of nodeData.children) {
+        await createNode(child, node, false);
+      }
+    }
+
+    createdNodes.push({ id: node.id, name: node.name, type: node.type });
+    return node;
+  }
+
+  // Create each root node
+  let xOffset = 0;
+  for (let i = 0; i < data.length; i++) {
+    const node = await createNode(data[i], parent, true,
+      x !== undefined ? x + xOffset : undefined,
+      y);
+    xOffset += (node.width || 100) + 40;
+  }
+
+  return { createdNodes };
 }
 
 async function readMyDesign(params) {

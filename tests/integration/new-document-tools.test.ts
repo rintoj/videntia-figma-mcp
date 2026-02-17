@@ -717,4 +717,77 @@ describe("new document tools integration", () => {
       expect(response.content[0].text).toContain("Page not found");
     });
   });
+
+  describe("jsx_to_figma", () => {
+    it("successfully creates nodes from JSX", async () => {
+      mockSendCommand.mockResolvedValue({
+        createdNodes: [
+          { id: "node-1", name: "Card", type: "FRAME" },
+        ],
+      });
+
+      const response = await callTool("jsx_to_figma", {
+        jsx: '<div id="1:1" name="Card" className="flex flex-col w-[320px] p-[16px]" />',
+      });
+
+      expect(mockSendCommand).toHaveBeenCalledTimes(1);
+      expect(mockSendCommand).toHaveBeenCalledWith("create_from_data", expect.objectContaining({
+        data: expect.arrayContaining([
+          expect.objectContaining({
+            id: "1:1",
+            name: "Card",
+            type: "FRAME",
+            layoutMode: "VERTICAL",
+            width: 320,
+            paddingTop: 16,
+          }),
+        ]),
+      }));
+      expect(response.content[0].text).toContain('Created 1 node(s)');
+      expect(response.content[0].text).toContain('"Card"');
+    });
+
+    it("passes optional parentId, x, y params", async () => {
+      mockSendCommand.mockResolvedValue({
+        createdNodes: [{ id: "node-1", name: "Test", type: "FRAME" }],
+      });
+
+      await callTool("jsx_to_figma", {
+        jsx: '<div id="1:1" name="Test" />',
+        parentId: "parent-123",
+        x: 100,
+        y: 200,
+      });
+
+      expect(mockSendCommand).toHaveBeenCalledWith("create_from_data", expect.objectContaining({
+        parentId: "parent-123",
+        x: 100,
+        y: 200,
+      }));
+    });
+
+    it("handles parse errors gracefully", async () => {
+      const response = await callTool("jsx_to_figma", {
+        jsx: "<div malformed",
+      });
+
+      expect(response.content[0].text).toContain("Error creating from JSX");
+    });
+
+    it("handles Figma plugin errors gracefully", async () => {
+      mockSendCommand.mockRejectedValue(new Error("Plugin error"));
+
+      const response = await callTool("jsx_to_figma", {
+        jsx: '<div id="1:1" name="Test" />',
+      });
+
+      expect(response.content[0].text).toContain("Error creating from JSX");
+      expect(response.content[0].text).toContain("Plugin error");
+    });
+
+    it("requires jsx parameter", async () => {
+      await expect(callTool("jsx_to_figma", {})).rejects.toThrow();
+      expect(mockSendCommand).not.toHaveBeenCalled();
+    });
+  });
 });
