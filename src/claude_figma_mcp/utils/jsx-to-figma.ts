@@ -23,11 +23,15 @@ export function parseJsx(jsx: string): FigmaNodeData[] {
       if (extras) {
         if (extras.fills) {
           pendingExtras.fills = pendingExtras.fills || [];
-          pendingExtras.fills.push(...extras.fills);
+          if (pendingExtras.fills.length + extras.fills.length <= MAX_EXTRA_ITEMS) {
+            pendingExtras.fills.push(...extras.fills);
+          }
         }
         if (extras.strokes) {
           pendingExtras.strokes = pendingExtras.strokes || [];
-          pendingExtras.strokes.push(...extras.strokes);
+          if (pendingExtras.strokes.length + extras.strokes.length <= MAX_EXTRA_ITEMS) {
+            pendingExtras.strokes.push(...extras.strokes);
+          }
         }
       }
       pos = comment.pos;
@@ -79,7 +83,7 @@ const MAX_EXTRA_ITEMS = 10; // Cap fills/strokes per comment
 const MAX_GRADIENT_STOPS = 50; // Cap gradient stops per fill
 const ALLOWED_FILL_TYPES = new Set(["SOLID", "GRADIENT_LINEAR", "GRADIENT_RADIAL", "GRADIENT_ANGULAR", "GRADIENT_DIAMOND", "IMAGE"]);
 const HEX_COLOR_RE = /^#[0-9a-fA-F]{3,8}$/;
-const RGBA_COLOR_RE = /^rgba?\(\d{1,3},\s*\d{1,3},\s*\d{1,3}(?:,\s*[\d.]+)?\)$/;
+const RGBA_COLOR_RE = /^rgba?\(\d{1,3},\s*\d{1,3},\s*\d{1,3}(?:,\s*\d{1,3}(?:\.\d+)?)?\)$/;
 
 function isValidColor(c: unknown): c is string {
   return typeof c === "string" && (HEX_COLOR_RE.test(c) || RGBA_COLOR_RE.test(c));
@@ -112,7 +116,8 @@ function validateFill(raw: unknown): FigmaNodeFill | null {
       stops.push({ color: stop.color as string, position: stop.position });
     }
     fill.gradient = { type: g.type, stops };
-    if (typeof g.direction === "string" && g.direction.length <= 2) {
+    const ALLOWED_DIRECTIONS = new Set(["r", "l", "t", "b", "tr", "tl", "br", "bl"]);
+    if (typeof g.direction === "string" && ALLOWED_DIRECTIONS.has(g.direction)) {
       fill.gradient.direction = g.direction;
     }
   }
@@ -276,11 +281,15 @@ function parseElement(input: string, pos: number): ParseResult {
         if (extras) {
           if (extras.fills) {
             childPendingExtras.fills = childPendingExtras.fills || [];
-            childPendingExtras.fills.push(...extras.fills);
+            if (childPendingExtras.fills.length + extras.fills.length <= MAX_EXTRA_ITEMS) {
+              childPendingExtras.fills.push(...extras.fills);
+            }
           }
           if (extras.strokes) {
             childPendingExtras.strokes = childPendingExtras.strokes || [];
-            childPendingExtras.strokes.push(...extras.strokes);
+            if (childPendingExtras.strokes.length + extras.strokes.length <= MAX_EXTRA_ITEMS) {
+              childPendingExtras.strokes.push(...extras.strokes);
+            }
           }
         }
         pos = childComment.pos;
