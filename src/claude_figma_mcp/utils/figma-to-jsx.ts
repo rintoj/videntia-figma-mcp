@@ -1,14 +1,20 @@
+import * as t from "@babel/types";
 import type { FigmaNodeData } from "../types/index.js";
 
 const COMPONENT_TYPES = new Set(["COMPONENT", "COMPONENT_SET", "INSTANCE"]);
 
 /**
  * Convert an array of Figma node data objects to JSX+Tailwind string.
+ * Uses @babel/types for AST construction with a custom serializer for output.
  */
 export function convertToJsx(nodes: FigmaNodeData[], indent = 0): string {
   return nodes
     .filter((n) => n.visible !== false)
-    .map((n) => nodeToJsx(n, indent))
+    .map((n) => {
+      const ast = nodeToAst(n);
+      if (!ast) return "";
+      return serializeJsxElement(ast, indent);
+    })
     .join("\n");
 }
 
@@ -398,13 +404,16 @@ function escapeJsx(text: string): string {
 }
 
 /**
- * Format a style object as a JSX style attribute string.
+ * Build a JSX style attribute AST node from a style object.
  */
-function formatStyleAttr(style: Record<string, string>): string {
-  const entries = Object.entries(style)
-    .map(([k, v]) => `${k}: "${v}"`)
-    .join(", ");
-  return `style={{ ${entries} }}`;
+function buildStyleAstAttr(style: Record<string, string>): t.JSXAttribute {
+  const properties = Object.entries(style).map(([key, value]) =>
+    t.objectProperty(t.identifier(key), t.stringLiteral(value)),
+  );
+  return t.jsxAttribute(
+    t.jsxIdentifier("style"),
+    t.jsxExpressionContainer(t.objectExpression(properties)),
+  );
 }
 
 /**
@@ -456,31 +465,32 @@ function getOriginalNameForTag(node: FigmaNodeData): string {
 }
 
 /**
- * Format an object as a JSX inline object expression.
+ * Build a Babel ObjectExpression AST node from a JS object.
  */
-function formatJsxObject(obj: Record<string, unknown>): string {
-  const entries = Object.entries(obj)
-    .map(([k, v]) => {
-      if (typeof v === "string") return `${k}: "${v}"`;
-      return `${k}: ${JSON.stringify(v)}`;
-    })
-    .join(", ");
-  return `{{ ${entries} }}`;
+function buildObjectExpr(obj: Record<string, unknown>): t.ObjectExpression {
+  const properties = Object.entries(obj).map(([key, value]) => {
+    let valueNode: t.Expression;
+    if (typeof value === "string") valueNode = t.stringLiteral(value);
+    else if (typeof value === "boolean") valueNode = t.booleanLiteral(value);
+    else if (typeof value === "number") valueNode = t.numericLiteral(value);
+    else valueNode = t.stringLiteral(JSON.stringify(value));
+    return t.objectProperty(t.identifier(key), valueNode);
+  });
+  return t.objectExpression(properties);
 }
 
 /**
- * Build component-specific attributes for COMPONENT_SET, COMPONENT, and INSTANCE nodes.
+ * Build component-specific JSX attributes for COMPONENT_SET, COMPONENT, and INSTANCE nodes.
  */
-function buildComponentAttrs(node: FigmaNodeData): string[] {
-  const attrs: string[] = [];
+function buildComponentAstAttrs(node: FigmaNodeData): t.JSXAttribute[] {
+  const attrs: t.JSXAttribute[] = [];
 
   // componentName — emitted when the PascalCase tag differs from the original Figma name
   const originalName = getOriginalNameForTag(node);
   const tag = getTag(node);
-  // For COMPONENT_SET, the tag is Name+"Set", so compare against toPascalCase(originalName)+"Set"
   const expectedTag = node.type === "COMPONENT_SET" ? toPascalCase(originalName) + "Set" : toPascalCase(originalName);
   if (expectedTag === tag && toPascalCase(originalName) !== originalName) {
-    attrs.push(`componentName="${escapeJsx(originalName)}"`);
+    attrs.push(t.jsxAttribute(t.jsxIdentifier("componentName"), t.stringLiteral(escapeJsx(originalName))));
   }
 
   // propertyDefinitions for COMPONENT_SET
@@ -501,10 +511,16 @@ function buildComponentAttrs(node: FigmaNodeData): string[] {
       if (camelKey !== key) nameMap[camelKey] = key;
     }
     if (Object.keys(defs).length > 0) {
-      attrs.push(`propertyDefinitions=${formatJsxObject(defs)}`);
+      attrs.push(t.jsxAttribute(
+        t.jsxIdentifier("propertyDefinitions"),
+        t.jsxExpressionContainer(buildObjectExpr(defs)),
+      ));
     }
     if (Object.keys(nameMap).length > 0) {
-      attrs.push(`propertyNameMap=${formatJsxObject(nameMap)}`);
+      attrs.push(t.jsxAttribute(
+        t.jsxIdentifier("propertyNameMap"),
+        t.jsxExpressionContainer(buildObjectExpr(nameMap)),
+      ));
     }
   }
 
@@ -513,11 +529,14 @@ function buildComponentAttrs(node: FigmaNodeData): string[] {
     const nameMap: Record<string, string> = {};
     for (const [key, value] of Object.entries(node.variantProperties)) {
       const camelKey = toCamelCase(key);
-      attrs.push(`${camelKey}="${escapeJsx(value)}"`);
+      attrs.push(t.jsxAttribute(t.jsxIdentifier(camelKey), t.stringLiteral(escapeJsx(value))));
       if (camelKey !== key) nameMap[camelKey] = key;
     }
     if (Object.keys(nameMap).length > 0) {
-      attrs.push(`propertyNameMap=${formatJsxObject(nameMap)}`);
+      attrs.push(t.jsxAttribute(
+        t.jsxIdentifier("propertyNameMap"),
+        t.jsxExpressionContainer(buildObjectExpr(nameMap)),
+      ));
     }
   }
 
@@ -527,11 +546,14 @@ function buildComponentAttrs(node: FigmaNodeData): string[] {
     for (const [key, prop] of Object.entries(node.componentProperties) as Array<[string, any]>) {
       const camelKey = toCamelCase(key);
       if (prop.type === "BOOLEAN") {
-        attrs.push(`${camelKey}={${prop.value}}`);
+        attrs.push(t.jsxAttribute(
+          t.jsxIdentifier(camelKey),
+          t.jsxExpressionContainer(t.booleanLiteral(prop.value)),
+        ));
       } else if (prop.type === "TEXT") {
-        attrs.push(`${camelKey}="${escapeJsx(String(prop.value))}"`);
+        attrs.push(t.jsxAttribute(t.jsxIdentifier(camelKey), t.stringLiteral(escapeJsx(String(prop.value)))));
       } else if (prop.type === "VARIANT") {
-        attrs.push(`${camelKey}="${escapeJsx(String(prop.value))}"`);
+        attrs.push(t.jsxAttribute(t.jsxIdentifier(camelKey), t.stringLiteral(escapeJsx(String(prop.value)))));
       }
       // Skip INSTANCE_SWAP — not useful as text
       if (camelKey !== key && prop.type !== "INSTANCE_SWAP") {
@@ -539,7 +561,10 @@ function buildComponentAttrs(node: FigmaNodeData): string[] {
       }
     }
     if (Object.keys(nameMap).length > 0) {
-      attrs.push(`propertyNameMap=${formatJsxObject(nameMap)}`);
+      attrs.push(t.jsxAttribute(
+        t.jsxIdentifier("propertyNameMap"),
+        t.jsxExpressionContainer(buildObjectExpr(nameMap)),
+      ));
     }
   }
 
@@ -547,63 +572,139 @@ function buildComponentAttrs(node: FigmaNodeData): string[] {
 }
 
 /**
- * Convert a single node to JSX string.
+ * Build a Babel JSX AST node from a FigmaNodeData.
  */
-function nodeToJsx(node: FigmaNodeData, indent: number): string {
-  if (node.visible === false) return "";
+function nodeToAst(node: FigmaNodeData): t.JSXElement | null {
+  if (node.visible === false) return null;
 
-  const pad = "  ".repeat(indent);
   const tag = getTag(node);
   const classes = buildTailwindClasses(node);
   const style = buildStyleAttribute(node);
   const isComponent = isComponentType(node.type);
 
-  // Build attribute parts
-  const attrs: string[] = [];
-  attrs.push(`id="${node.id}"`);
+  // Build AST attributes
+  const attrs: t.JSXAttribute[] = [];
+  attrs.push(t.jsxAttribute(t.jsxIdentifier("id"), t.stringLiteral(node.id)));
 
-  // Skip name attribute for component types (tag carries the name)
   if (!isComponent) {
-    attrs.push(`name="${escapeJsx(node.name)}"`);
+    attrs.push(t.jsxAttribute(t.jsxIdentifier("name"), t.stringLiteral(escapeJsx(node.name))));
   }
 
-  // Add component-specific attributes
   if (isComponent) {
-    attrs.push(...buildComponentAttrs(node));
+    attrs.push(...buildComponentAstAttrs(node));
   }
 
   if (classes.length > 0) {
-    attrs.push(`className="${classes.join(" ")}"`);
+    attrs.push(t.jsxAttribute(t.jsxIdentifier("className"), t.stringLiteral(classes.join(" "))));
   }
+
   if (style) {
-    attrs.push(formatStyleAttr(style));
+    attrs.push(buildStyleAstAttr(style));
   }
 
-  const attrStr = attrs.join(" ");
-
-  // SVG self-closing for vectors/lines
+  // SVG: add width/height
   if (tag === "svg") {
     const w = node.width ?? 0;
     const h = node.height ?? 0;
-    return `${pad}<svg ${attrStr} width="${w}" height="${h}" />`;
+    attrs.push(t.jsxAttribute(t.jsxIdentifier("width"), t.stringLiteral(String(w))));
+    attrs.push(t.jsxAttribute(t.jsxIdentifier("height"), t.stringLiteral(String(h))));
   }
 
-  // Text node
-  if (node.type === "TEXT") {
-    const text = node.characters ? escapeJsx(node.characters) : "";
-    return `${pad}<${tag} ${attrStr}>\n${pad}  ${text}\n${pad}</${tag}>`;
+  const isSelfClosing = tag === "svg" ||
+    (node.type !== "TEXT" && (!node.children || node.children.filter((c) => c.visible !== false).length === 0));
+
+  const opening = t.jsxOpeningElement(t.jsxIdentifier(tag), attrs, isSelfClosing);
+  const closing = isSelfClosing ? null : t.jsxClosingElement(t.jsxIdentifier(tag));
+
+  let children: t.JSXElement["children"] = [];
+
+  if (!isSelfClosing) {
+    if (node.type === "TEXT") {
+      const text = node.characters ? escapeJsx(node.characters) : "";
+      children = [t.jsxText(text)];
+    } else if (node.children) {
+      for (const child of node.children) {
+        if (child.visible === false) continue;
+        const childAst = nodeToAst(child);
+        if (childAst) children.push(childAst);
+      }
+    }
   }
 
-  // Container node
-  if (node.children && node.children.length > 0) {
-    const childrenJsx = node.children
-      .filter((c) => c.visible !== false)
-      .map((c) => nodeToJsx(c, indent + 1))
-      .filter((s) => s.length > 0)
-      .join("\n");
-    return `${pad}<${tag} ${attrStr}>\n${childrenJsx}\n${pad}</${tag}>`;
+  return t.jsxElement(opening, closing, children, isSelfClosing);
+}
+
+// --- AST Serializers ---
+
+/**
+ * Serialize a JSXElement AST node to a JSX string with proper indentation.
+ */
+function serializeJsxElement(el: t.JSXElement, indent: number): string {
+  const pad = "  ".repeat(indent);
+  const tagName = (el.openingElement.name as t.JSXIdentifier).name;
+  const attrStr = el.openingElement.attributes
+    .map((a) => serializeJsxAttribute(a as t.JSXAttribute))
+    .join(" ");
+
+  if (el.openingElement.selfClosing) {
+    return `${pad}<${tagName} ${attrStr} />`;
   }
 
-  // Empty container / leaf
-  return `${pad}<${tag} ${attrStr} />`;
+  // Text element (only JSXText children)
+  const textChildren = el.children.filter((c): c is t.JSXText => c.type === "JSXText");
+  if (textChildren.length > 0 && el.children.every((c) => c.type === "JSXText")) {
+    const text = textChildren.map((c) => c.value).join("");
+    return `${pad}<${tagName} ${attrStr}>\n${pad}  ${text}\n${pad}</${tagName}>`;
+  }
+
+  // Container with child elements
+  const childrenJsx = el.children
+    .filter((c): c is t.JSXElement => c.type === "JSXElement")
+    .map((c) => serializeJsxElement(c, indent + 1))
+    .filter((s) => s.length > 0)
+    .join("\n");
+
+  return `${pad}<${tagName} ${attrStr}>\n${childrenJsx}\n${pad}</${tagName}>`;
+}
+
+/**
+ * Serialize a JSXAttribute AST node to a JSX attribute string.
+ */
+function serializeJsxAttribute(attr: t.JSXAttribute): string {
+  const name = (attr.name as t.JSXIdentifier).name;
+  if (!attr.value) return name;
+
+  if (attr.value.type === "StringLiteral") {
+    return `${name}="${attr.value.value}"`;
+  }
+
+  if (attr.value.type === "JSXExpressionContainer") {
+    const expr = attr.value.expression;
+    if (expr.type === "BooleanLiteral") {
+      return `${name}={${expr.value}}`;
+    }
+    if (expr.type === "ObjectExpression") {
+      return `${name}=${serializeObjectExpr(expr)}`;
+    }
+  }
+
+  return name;
+}
+
+/**
+ * Serialize an ObjectExpression AST node to a JSX inline object string.
+ */
+function serializeObjectExpr(obj: t.ObjectExpression): string {
+  const entries = obj.properties
+    .map((p) => {
+      if (p.type !== "ObjectProperty") return "";
+      const key = p.key.type === "Identifier" ? p.key.name : (p.key as t.StringLiteral).value;
+      const val = p.value as t.Expression;
+      if (val.type === "StringLiteral") return `${key}: "${val.value}"`;
+      if (val.type === "BooleanLiteral") return `${key}: ${val.value}`;
+      if (val.type === "NumericLiteral") return `${key}: ${val.value}`;
+      return `${key}: ${JSON.stringify(val)}`;
+    })
+    .filter(Boolean);
+  return `{{ ${entries.join(", ")} }}`;
 }
