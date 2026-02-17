@@ -6,6 +6,7 @@ import { figmaAccessToken, FIGMA_API_BASE_URL } from "../config/config.js";
 import { coerceArray } from "../utils/coerce-array.js";
 import { convertToJsx } from "../utils/figma-to-jsx.js";
 import { parseJsx } from "../utils/jsx-to-figma.js";
+import { outputFormatSchema, fetchNodesAsJsx, fetchSelectionAsJsx } from "../utils/output-format.js";
 import type { ReadMyDesignResult } from "../types/index.js";
 
 /**
@@ -481,13 +482,14 @@ export function registerDocumentTools(server: McpServer): void {
   // Scan Nodes By Types Tool
   server.tool(
     "scan_nodes_by_types",
-    "Scan for child nodes with specific types in the selected Figma node",
+    "Scan for child nodes with specific types in the selected Figma node. Returns JSX+Tailwind by default; use output_format='json' for raw Figma JSON.",
     {
       nodeId: z.string().describe("ID of the node to scan"),
       types: coerceArray(z.array(z.string()))
-        .describe("Array of node types (e.g. ['COMPONENT', 'FRAME'])")
+        .describe("Array of node types (e.g. ['COMPONENT', 'FRAME'])"),
+      output_format: outputFormatSchema,
     },
-    async ({ nodeId, types }) => {
+    async ({ nodeId, types, output_format }) => {
       try {
         const result = await sendCommandToFigma("scan_nodes_by_types", {
           nodeId,
@@ -503,6 +505,17 @@ export function registerDocumentTools(server: McpServer): void {
           };
 
           const summaryText = `Found ${typedResult.count} nodes matching types: ${typedResult.searchedTypes.join(', ')}`;
+
+          if (output_format === "jsx" && typedResult.matchingNodes.length > 0) {
+            const ids = typedResult.matchingNodes.map((n: any) => n.id);
+            const jsx = await fetchNodesAsJsx(ids);
+            return {
+              content: [
+                { type: "text" as const, text: summaryText },
+                { type: "text" as const, text: jsx }
+              ]
+            };
+          }
 
           return {
             content: [
@@ -536,10 +549,16 @@ export function registerDocumentTools(server: McpServer): void {
   // Selection Tool
   server.tool(
     "get_selection",
-    "Get information about the current selection in Figma",
-    {},
-    async () => {
+    "Get information about the current selection in Figma. Returns JSX+Tailwind by default; use output_format='json' for raw Figma JSON.",
+    {
+      output_format: outputFormatSchema,
+    },
+    async ({ output_format }) => {
       try {
+        if (output_format === "jsx") {
+          const jsx = await fetchSelectionAsJsx();
+          return { content: [{ type: "text", text: jsx }] };
+        }
         const result = await sendCommandToFigma("get_selection");
         return {
           content: [
@@ -565,7 +584,7 @@ export function registerDocumentTools(server: McpServer): void {
   // Node Info Tool
   server.tool(
     "get_node_info",
-    "Get detailed information about a specific node in Figma",
+    "Get detailed information about a specific node in Figma. Returns JSX+Tailwind by default; use output_format='json' for raw Figma JSON.",
     {
       nodeId: z.string().describe("The ID of the node to get information about"),
       fields: coerceArray(z.array(z.enum([
@@ -574,14 +593,19 @@ export function registerDocumentTools(server: McpServer): void {
         "effects", "opacity", "blendMode", "constraints", "layoutMode",
         "padding", "itemSpacing", "componentProperties"
       ]))).optional().describe(
-        "Optional array of fields to include in the response. If not specified, returns: id, name, type, fills, strokes, cornerRadius, absoluteBoundingBox, characters, style. Available fields: id, name, type, fills, strokes, cornerRadius, absoluteBoundingBox, characters, style, children, effects, opacity, blendMode, constraints, layoutMode, padding, itemSpacing, componentProperties"
+        "Optional array of fields to include in the response (only used when output_format='json'). If not specified, returns: id, name, type, fills, strokes, cornerRadius, absoluteBoundingBox, characters, style. Available fields: id, name, type, fills, strokes, cornerRadius, absoluteBoundingBox, characters, style, children, effects, opacity, blendMode, constraints, layoutMode, padding, itemSpacing, componentProperties"
       ),
       stripImages: z.boolean().optional().default(true).describe(
-        "Whether to strip image data (imageRef, imageBytes) from the response to reduce size. Defaults to true."
+        "Whether to strip image data (only used when output_format='json'). Defaults to true."
       ),
+      output_format: outputFormatSchema,
     },
-    async ({ nodeId, fields, stripImages }) => {
+    async ({ nodeId, fields, stripImages, output_format }) => {
       try {
+        if (output_format === "jsx") {
+          const jsx = await fetchNodesAsJsx([nodeId]);
+          return { content: [{ type: "text", text: jsx }] };
+        }
         const result = await sendCommandToFigma("get_node_info", { nodeId, stripImages });
         return {
           content: [
@@ -607,7 +631,7 @@ export function registerDocumentTools(server: McpServer): void {
   // Nodes Info Tool
   server.tool(
     "get_nodes_info",
-    "Get detailed information about multiple nodes in Figma",
+    "Get detailed information about multiple nodes in Figma. Returns JSX+Tailwind by default; use output_format='json' for raw Figma JSON.",
     {
       nodeIds: coerceArray(z.array(z.string())).describe("Array of node IDs to get information about"),
       fields: coerceArray(z.array(z.enum([
@@ -616,14 +640,19 @@ export function registerDocumentTools(server: McpServer): void {
         "effects", "opacity", "blendMode", "constraints", "layoutMode",
         "padding", "itemSpacing", "componentProperties"
       ]))).optional().describe(
-        "Optional array of fields to include in the response. If not specified, returns: id, name, type, fills, strokes, cornerRadius, absoluteBoundingBox, characters, style. Available fields: id, name, type, fills, strokes, cornerRadius, absoluteBoundingBox, characters, style, children, effects, opacity, blendMode, constraints, layoutMode, padding, itemSpacing, componentProperties"
+        "Optional array of fields to include in the response (only used when output_format='json'). If not specified, returns: id, name, type, fills, strokes, cornerRadius, absoluteBoundingBox, characters, style. Available fields: id, name, type, fills, strokes, cornerRadius, absoluteBoundingBox, characters, style, children, effects, opacity, blendMode, constraints, layoutMode, padding, itemSpacing, componentProperties"
       ),
       stripImages: z.boolean().optional().default(true).describe(
-        "Whether to strip image data (imageRef, imageBytes) from the response to reduce size. Defaults to true."
+        "Whether to strip image data (only used when output_format='json'). Defaults to true."
       ),
+      output_format: outputFormatSchema,
     },
-    async ({ nodeIds, fields, stripImages }) => {
+    async ({ nodeIds, fields, stripImages, output_format }) => {
       try {
+        if (output_format === "jsx") {
+          const jsx = await fetchNodesAsJsx(nodeIds);
+          return { content: [{ type: "text", text: jsx }] };
+        }
         const results = await Promise.all(
           nodeIds.map(async (nodeId) => {
             const result = await sendCommandToFigma('get_node_info', { nodeId, stripImages });
@@ -683,11 +712,28 @@ export function registerDocumentTools(server: McpServer): void {
   // Get Local Components Tool
   server.tool(
     "get_local_components",
-    "Get all local components from the Figma document",
-    {},
-    async () => {
+    "Get all local components from the Figma document. Returns JSX+Tailwind by default; use output_format='json' for raw Figma JSON.",
+    {
+      output_format: outputFormatSchema,
+    },
+    async ({ output_format }) => {
       try {
         const result = await sendCommandToFigma("get_local_components");
+
+        if (output_format === "jsx" && result && typeof result === 'object') {
+          const components = Array.isArray(result) ? result : (result as any).components ?? [];
+          if (components.length > 0) {
+            const ids = components.map((c: any) => c.id);
+            const jsx = await fetchNodesAsJsx(ids);
+            return {
+              content: [
+                { type: "text" as const, text: `Found ${components.length} local components` },
+                { type: "text" as const, text: jsx }
+              ]
+            };
+          }
+        }
+
         return {
           content: [
             {
@@ -741,18 +787,13 @@ export function registerDocumentTools(server: McpServer): void {
   // Text Node Scanning Tool
   server.tool(
     "scan_text_nodes",
-    "Scan all text nodes in the selected Figma node",
+    "Scan all text nodes in the selected Figma node. Returns JSX+Tailwind by default; use output_format='json' for raw Figma JSON.",
     {
       nodeId: z.string().describe("ID of the node to scan"),
+      output_format: outputFormatSchema,
     },
-    async ({ nodeId }) => {
+    async ({ nodeId, output_format }) => {
       try {
-        // Initial response to indicate we're starting the process
-        const initialStatus = {
-          type: "text" as const,
-          text: "Starting text node scanning. This may take a moment for large designs...",
-        };
-
         // Use the plugin's scan_text_nodes function with chunking flag
         const result = await sendCommandToFigma("scan_text_nodes", {
           nodeId,
@@ -770,19 +811,22 @@ export function registerDocumentTools(server: McpServer): void {
             textNodes: Array<any>
           };
 
-          const summaryText = `
-          Scan completed:
-          - Found ${typedResult.totalNodes} text nodes
-          - Processed in ${typedResult.chunks} chunks
-          `;
+          const summaryText = `Found ${typedResult.totalNodes} text nodes (processed in ${typedResult.chunks} chunks)`;
+
+          if (output_format === "jsx" && typedResult.textNodes.length > 0) {
+            const ids = typedResult.textNodes.map((n: any) => n.id);
+            const jsx = await fetchNodesAsJsx(ids);
+            return {
+              content: [
+                { type: "text" as const, text: summaryText },
+                { type: "text" as const, text: jsx }
+              ],
+            };
+          }
 
           return {
             content: [
-              initialStatus,
-              {
-                type: "text" as const,
-                text: summaryText
-              },
+              { type: "text" as const, text: summaryText },
               {
                 type: "text" as const,
                 text: JSON.stringify(typedResult.textNodes, null, 2)
@@ -791,10 +835,23 @@ export function registerDocumentTools(server: McpServer): void {
           };
         }
 
-        // If chunking wasn't used or wasn't reported in the result format, return the result as is
+        // If chunking wasn't used, try to extract IDs for JSX mode
+        if (output_format === "jsx" && result && typeof result === 'object' && 'textNodes' in result) {
+          const typedResult = result as { textNodes: Array<any> };
+          if (typedResult.textNodes.length > 0) {
+            const ids = typedResult.textNodes.map((n: any) => n.id);
+            const jsx = await fetchNodesAsJsx(ids);
+            return {
+              content: [
+                { type: "text" as const, text: `Found ${typedResult.textNodes.length} text nodes` },
+                { type: "text" as const, text: jsx }
+              ],
+            };
+          }
+        }
+
         return {
           content: [
-            initialStatus,
             {
               type: "text",
               text: JSON.stringify(result, null, 2),

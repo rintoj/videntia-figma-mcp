@@ -456,15 +456,6 @@ function getOriginalNameForTag(node: FigmaNodeData): string {
 }
 
 /**
- * Format a value for JSX attribute output.
- */
-function formatJsxValue(value: unknown): string {
-  if (typeof value === "boolean") return `{${value}}`;
-  if (typeof value === "number") return `{${value}}`;
-  return `"${String(value)}"`;
-}
-
-/**
  * Format an object as a JSX inline object expression.
  */
 function formatJsxObject(obj: Record<string, unknown>): string {

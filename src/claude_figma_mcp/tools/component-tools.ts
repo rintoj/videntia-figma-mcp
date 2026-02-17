@@ -2,6 +2,7 @@ import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { sendCommandToFigma } from "../utils/websocket";
 import { coerceArray } from "../utils/coerce-array.js";
+import { outputFormatSchema, fetchNodesAsJsx } from "../utils/output-format.js";
 
 /**
  * Register component-related tools to the MCP server
@@ -12,13 +13,14 @@ export function registerComponentTools(server: McpServer): void {
   // Create Component Instance Tool
   server.tool(
     "create_component_instance",
-    "Create an instance of a component in Figma. For local components, use the node ID (e.g., '123:456') from get_local_components. For library components, use the component key.",
+    "Create an instance of a component in Figma. Returns JSX+Tailwind by default; use output_format='json' for raw Figma JSON. For local components, use the node ID (e.g., '123:456') from get_local_components. For library components, use the component key.",
     {
       componentKey: z.string().describe("Component node ID (for local, e.g., '123:456') or component key (for library components)"),
       x: z.number().describe("X position"),
       y: z.number().describe("Y position"),
+      output_format: outputFormatSchema,
     },
-    async ({ componentKey, x, y }) => {
+    async ({ componentKey, x, y, output_format }) => {
       try {
         const result = await sendCommandToFigma("create_component_instance", {
           componentKey,
@@ -26,6 +28,12 @@ export function registerComponentTools(server: McpServer): void {
           y,
         });
         const typedResult = result as any;
+
+        if (output_format === "jsx" && typedResult?.id) {
+          const jsx = await fetchNodesAsJsx([typedResult.id]);
+          return { content: [{ type: "text", text: jsx }] };
+        }
+
         return {
           content: [
             {
