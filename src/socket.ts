@@ -54,42 +54,6 @@ function handleConnection(ws: ServerWebSocket<any>) {
     stats.errors++;
   }
 
-  ws.close = () => {
-    logger.info(`Client disconnected: ${clientId}`);
-    stats.activeConnections--;
-
-    // Remove client from their channel
-    channels.forEach((clients, channelName) => {
-      if (clients.has(ws)) {
-        clients.delete(ws);
-        logger.debug(`Removed client ${clientId} from channel: ${channelName}`);
-
-        // Clean up empty channels
-        if (clients.size === 0) {
-          channels.delete(channelName);
-          channelMetadata.delete(channelName);
-          logger.debug(`Removed empty channel: ${channelName}`);
-        }
-
-        // Notify other clients in same channel
-        try {
-          clients.forEach((client) => {
-            if (client.readyState === WebSocket.OPEN) {
-              client.send(JSON.stringify({
-                type: "system",
-                message: "A client has left the channel",
-                channel: channelName
-              }));
-              stats.messagesSent++;
-            }
-          });
-        } catch (error) {
-          logger.error(`Error notifying channel ${channelName} about client disconnect:`, error);
-          stats.errors++;
-        }
-      }
-    });
-  };
 }
 
 const server = Bun.serve({
@@ -304,6 +268,24 @@ const server = Bun.serve({
               }
             });
             logger.info(`Broadcasted message to ${broadcastCount} peer(s) in channel ${channelName}`);
+
+            if (broadcastCount === 0) {
+              logger.warn(`No recipients for message in channel ${channelName}`);
+              try {
+                ws.send(JSON.stringify({
+                  type: "broadcast",
+                  message: {
+                    id: data.message?.id,
+                    error: "No Figma plugin is connected on this channel. The plugin may have been closed or reloaded."
+                  },
+                  channel: channelName
+                }));
+                stats.messagesSent++;
+              } catch (sendError) {
+                logger.error(`Failed to send no-recipient error:`, sendError);
+                stats.errors++;
+              }
+            }
           } catch (error) {
             logger.error(`Error broadcasting message to channel ${channelName}:`, error);
             stats.errors++;
@@ -358,7 +340,7 @@ const server = Bun.serve({
     close(ws: ServerWebSocket<any>, code: number, reason: string) {
       const clientId = ws.data?.clientId || "unknown";
       logger.info(`WebSocket closed for client ${clientId}: Code ${code}, Reason: ${reason || 'No reason provided'}`);
-      
+
       // Remove client from their channel
       channels.forEach((clients, channelName) => {
         if (clients.delete(ws)) {
@@ -368,10 +350,27 @@ const server = Bun.serve({
             channels.delete(channelName);
             channelMetadata.delete(channelName);
             logger.debug(`Removed empty channel: ${channelName}`);
+          } else {
+            // Notify remaining clients that a peer disconnected
+            clients.forEach((client) => {
+              if (client.readyState === WebSocket.OPEN) {
+                try {
+                  client.send(JSON.stringify({
+                    type: "channel_peer_disconnected",
+                    channel: channelName,
+                    remainingClients: clients.size
+                  }));
+                  stats.messagesSent++;
+                } catch (sendError) {
+                  logger.error(`Failed to send peer disconnect notification:`, sendError);
+                  stats.errors++;
+                }
+              }
+            });
           }
         }
       });
-      
+
       stats.activeConnections--;
     },
     drain(ws: ServerWebSocket<any>) {

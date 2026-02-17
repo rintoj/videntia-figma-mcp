@@ -66,6 +66,15 @@ export function connectToFigma(port: number = defaultPort) {
       try {
         const json = JSON.parse(data) as ProgressMessage;
 
+        // Handle peer disconnect notifications
+        if (json.type === 'channel_peer_disconnected') {
+          if (json.remainingClients <= 1) {
+            logger.warn(`Figma plugin disconnected from channel "${json.channel}". Clearing channel state.`);
+            currentChannel = null;
+          }
+          return;
+        }
+
         // Handle progress updates
         if (json.type === 'progress_update') {
           const progressData = json.message.data as CommandProgressUpdate;
@@ -125,6 +134,7 @@ export function connectToFigma(port: number = defaultPort) {
             request.resolve(myResponse.result);
           } else {
             logger.warn(`Received response without result or error for request ${myResponse.id}`);
+            request.reject(new Error('Received invalid response from Figma plugin (no result or error field)'));
           }
 
           pendingRequests.delete(myResponse.id);
@@ -257,7 +267,10 @@ export function sendCommandToFigma(
     // Check if we need a channel for this command
     const requiresChannel = command !== "join";
     if (requiresChannel && !currentChannel) {
-      reject(new Error("Must join a channel before sending commands"));
+      reject(new Error(
+        "No active Figma connection. The Figma plugin may have been closed or the channel was not joined. " +
+        "Please ensure the Claude MCP Plugin is running in Figma and use join_channel to reconnect."
+      ));
       return;
     }
 
