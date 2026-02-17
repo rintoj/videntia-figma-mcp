@@ -9,41 +9,21 @@ export function parseJsx(jsx: string): FigmaNodeData[] {
 
   const nodes: FigmaNodeData[] = [];
   let pos = 0;
-  let pendingExtras: PendingExtras = {};
 
   while (pos < trimmed.length) {
     // Skip whitespace
     while (pos < trimmed.length && /\s/.test(trimmed[pos])) pos++;
     if (pos >= trimmed.length) break;
 
-    // Try to parse JSX comments (extra fills/strokes)
-    const comment = tryParseJsxComment(trimmed, pos);
-    if (comment) {
-      const extras = parseExtraComment(comment.body);
-      if (extras) {
-        if (extras.fills) {
-          pendingExtras.fills = pendingExtras.fills || [];
-          if (pendingExtras.fills.length + extras.fills.length <= MAX_EXTRA_ITEMS) {
-            pendingExtras.fills.push(...extras.fills);
-          }
-        }
-        if (extras.strokes) {
-          pendingExtras.strokes = pendingExtras.strokes || [];
-          if (pendingExtras.strokes.length + extras.strokes.length <= MAX_EXTRA_ITEMS) {
-            pendingExtras.strokes.push(...extras.strokes);
-          }
-        }
-      }
-      pos = comment.pos;
+    // Skip JSX comments
+    const commentEnd = skipJsxComment(trimmed, pos);
+    if (commentEnd !== null) {
+      pos = commentEnd;
       continue;
     }
 
     if (trimmed[pos] === "<") {
       const result = parseElement(trimmed, pos);
-      if (pendingExtras.fills || pendingExtras.strokes) {
-        applyPendingExtras(result.node, pendingExtras);
-        pendingExtras = {};
-      }
       nodes.push(result.node);
       pos = result.pos;
     } else {
@@ -54,141 +34,16 @@ export function parseJsx(jsx: string): FigmaNodeData[] {
   return nodes;
 }
 
-// --- JSX comment parsing for extra fills/strokes ---
-
-interface PendingExtras {
-  fills?: FigmaNodeFill[];
-  strokes?: Array<{ type: string; color?: string; opacity?: number }>;
-}
-
 /**
- * Try to parse a JSX comment at the given position: {/* ... *​/}
- * Returns the comment body and the new position, or null if not a comment.
+ * Skip a JSX comment at the given position: {/\* ... *\/}
+ * Returns the new position after the comment, or null if not a comment.
  */
-function tryParseJsxComment(input: string, pos: number): { body: string; pos: number } | null {
+function skipJsxComment(input: string, pos: number): number | null {
   if (input.substring(pos, pos + 3) !== "{/*") return null;
   const endMarker = "*/}";
   const endIdx = input.indexOf(endMarker, pos + 3);
   if (endIdx === -1) return null;
-  const body = input.substring(pos + 3, endIdx).trim();
-  return { body, pos: endIdx + endMarker.length };
-}
-
-/**
- * Parse an extra-fills or extra-strokes comment body.
- * Expected format: "Figma fills[1..n]: [...]" or "Figma strokes[1..n]: [...]"
- */
-const MAX_COMMENT_JSON_LENGTH = 65536; // 64 KB guard
-const MAX_EXTRA_ITEMS = 10; // Cap fills/strokes per comment
-const MAX_GRADIENT_STOPS = 50; // Cap gradient stops per fill
-const ALLOWED_FILL_TYPES = new Set(["SOLID", "GRADIENT_LINEAR", "GRADIENT_RADIAL", "GRADIENT_ANGULAR", "GRADIENT_DIAMOND", "IMAGE"]);
-const HEX_COLOR_RE = /^#[0-9a-fA-F]{3,8}$/;
-const RGBA_COLOR_RE = /^rgba?\(\d{1,3},\s*\d{1,3},\s*\d{1,3}(?:,\s*\d{1,3}(?:\.\d+)?)?\)$/;
-
-function isValidColor(c: unknown): c is string {
-  return typeof c === "string" && (HEX_COLOR_RE.test(c) || RGBA_COLOR_RE.test(c));
-}
-
-function validateFill(raw: unknown): FigmaNodeFill | null {
-  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) return null;
-  const obj = raw as Record<string, unknown>;
-  if (typeof obj.type !== "string" || !ALLOWED_FILL_TYPES.has(obj.type)) return null;
-  const fill: FigmaNodeFill = { type: obj.type };
-  if (obj.color !== undefined) {
-    if (!isValidColor(obj.color)) return null;
-    fill.color = obj.color;
-  }
-  if (obj.opacity !== undefined) {
-    if (typeof obj.opacity !== "number" || obj.opacity < 0 || obj.opacity > 1) return null;
-    fill.opacity = obj.opacity;
-  }
-  if (obj.gradient !== undefined) {
-    if (typeof obj.gradient !== "object" || obj.gradient === null) return null;
-    const g = obj.gradient as Record<string, unknown>;
-    if (typeof g.type !== "string" || !ALLOWED_FILL_TYPES.has(g.type)) return null;
-    if (!Array.isArray(g.stops) || g.stops.length > MAX_GRADIENT_STOPS) return null;
-    const stops: Array<{ color: string; position: number }> = [];
-    for (const s of g.stops) {
-      if (typeof s !== "object" || s === null) return null;
-      const stop = s as Record<string, unknown>;
-      if (!isValidColor(stop.color)) return null;
-      if (typeof stop.position !== "number" || stop.position < 0 || stop.position > 1) return null;
-      stops.push({ color: stop.color as string, position: stop.position });
-    }
-    fill.gradient = { type: g.type, stops };
-    const ALLOWED_DIRECTIONS = new Set(["r", "l", "t", "b", "tr", "tl", "br", "bl"]);
-    if (typeof g.direction === "string" && ALLOWED_DIRECTIONS.has(g.direction)) {
-      fill.gradient.direction = g.direction;
-    }
-  }
-  if (obj.isImage === true) fill.isImage = true;
-  if (typeof obj.imageRef === "string" && /^[a-zA-Z0-9_-]{1,128}$/.test(obj.imageRef)) {
-    fill.imageRef = obj.imageRef;
-  }
-  return fill;
-}
-
-function validateStroke(raw: unknown): { type: string; color?: string; opacity?: number } | null {
-  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) return null;
-  const obj = raw as Record<string, unknown>;
-  if (typeof obj.type !== "string" || !ALLOWED_FILL_TYPES.has(obj.type)) return null;
-  const stroke: { type: string; color?: string; opacity?: number } = { type: obj.type };
-  if (obj.color !== undefined) {
-    if (!isValidColor(obj.color)) return null;
-    stroke.color = obj.color;
-  }
-  if (obj.opacity !== undefined) {
-    if (typeof obj.opacity !== "number" || obj.opacity < 0 || obj.opacity > 1) return null;
-    stroke.opacity = obj.opacity;
-  }
-  return stroke;
-}
-
-function parseExtraComment(body: string): PendingExtras | null {
-  if (body.length > MAX_COMMENT_JSON_LENGTH) return null;
-  const fillsMatch = body.match(/^Figma fills\[1\.\.n\]:\s*(\[.*\])$/);
-  if (fillsMatch) {
-    try {
-      const raw = JSON.parse(fillsMatch[1]);
-      if (!Array.isArray(raw) || raw.length > MAX_EXTRA_ITEMS) return null;
-      const fills: FigmaNodeFill[] = [];
-      for (const item of raw) {
-        const validated = validateFill(item);
-        if (!validated) return null;
-        fills.push(validated);
-      }
-      return { fills };
-    } catch { return null; }
-  }
-  const strokesMatch = body.match(/^Figma strokes\[1\.\.n\]:\s*(\[.*\])$/);
-  if (strokesMatch) {
-    try {
-      const raw = JSON.parse(strokesMatch[1]);
-      if (!Array.isArray(raw) || raw.length > MAX_EXTRA_ITEMS) return null;
-      const strokes: Array<{ type: string; color?: string; opacity?: number }> = [];
-      for (const item of raw) {
-        const validated = validateStroke(item);
-        if (!validated) return null;
-        strokes.push(validated);
-      }
-      return { strokes };
-    } catch { return null; }
-  }
-  return null;
-}
-
-/**
- * Apply pending extra fills/strokes to a node.
- */
-function applyPendingExtras(node: FigmaNodeData, extras: PendingExtras): void {
-  if (extras.fills) {
-    node.fills = node.fills || [];
-    node.fills.push(...extras.fills);
-  }
-  if (extras.strokes) {
-    node.strokes = node.strokes || [];
-    node.strokes.push(...extras.strokes);
-  }
+  return endIdx + endMarker.length;
 }
 
 // --- Recursive descent parser ---
@@ -255,7 +110,6 @@ function parseElement(input: string, pos: number): ParseResult {
   } else {
     // Container: parse child elements
     const children: FigmaNodeData[] = [];
-    let childPendingExtras: PendingExtras = {};
     while (true) {
       pos = skipWhitespace(input, pos);
       if (pos >= input.length) break;
@@ -274,34 +128,15 @@ function parseElement(input: string, pos: number): ParseResult {
         break;
       }
 
-      // Try to parse JSX comments (extra fills/strokes)
-      const childComment = tryParseJsxComment(input, pos);
-      if (childComment) {
-        const extras = parseExtraComment(childComment.body);
-        if (extras) {
-          if (extras.fills) {
-            childPendingExtras.fills = childPendingExtras.fills || [];
-            if (childPendingExtras.fills.length + extras.fills.length <= MAX_EXTRA_ITEMS) {
-              childPendingExtras.fills.push(...extras.fills);
-            }
-          }
-          if (extras.strokes) {
-            childPendingExtras.strokes = childPendingExtras.strokes || [];
-            if (childPendingExtras.strokes.length + extras.strokes.length <= MAX_EXTRA_ITEMS) {
-              childPendingExtras.strokes.push(...extras.strokes);
-            }
-          }
-        }
-        pos = childComment.pos;
+      // Skip JSX comments
+      const commentEnd = skipJsxComment(input, pos);
+      if (commentEnd !== null) {
+        pos = commentEnd;
         continue;
       }
 
       if (input[pos] === "<") {
         const childResult = parseElement(input, pos);
-        if (childPendingExtras.fills || childPendingExtras.strokes) {
-          applyPendingExtras(childResult.node, childPendingExtras);
-          childPendingExtras = {};
-        }
         children.push(childResult.node);
         pos = childResult.pos;
       } else {
@@ -590,7 +425,8 @@ function applyClassName(node: FigmaNodeData, className: string): void {
       const opacity = m[2] ? Number(m[2]) / 100 : undefined;
       const fill: FigmaNodeFill = { type: "SOLID", color };
       if (opacity !== undefined) fill.opacity = opacity;
-      node.fills = [fill];
+      node.fills = node.fills || [];
+      node.fills.push(fill);
       continue;
     }
     // --- Tailwind gradient classes (must come BEFORE catch-all bg-*) ---
@@ -622,8 +458,10 @@ function applyClassName(node: FigmaNodeData, className: string): void {
     // bg-{var}
     if ((m = cls.match(/^bg-(.+)$/)) && !m[1].startsWith("[")) {
       const varName = denormalizeVarName(m[1]);
-      node.fills = [{ type: "SOLID", color: "#000000" }];
-      bindings["fills/0"] = varName;
+      node.fills = node.fills || [];
+      const idx = node.fills.length;
+      node.fills.push({ type: "SOLID", color: "#000000" });
+      bindings[`fills/${idx}`] = varName;
       continue;
     }
 
@@ -633,7 +471,8 @@ function applyClassName(node: FigmaNodeData, className: string): void {
       const opacity = m[2] ? Number(m[2]) / 100 : undefined;
       const fill: FigmaNodeFill = { type: "SOLID", color };
       if (opacity !== undefined) fill.opacity = opacity;
-      node.fills = [fill];
+      node.fills = node.fills || [];
+      node.fills.push(fill);
       continue;
     }
 
@@ -642,12 +481,16 @@ function applyClassName(node: FigmaNodeData, className: string): void {
       node.strokeWeight = Number(m[1]); continue;
     }
     if ((m = cls.match(/^border-\[(#[0-9a-fA-F]{3,8})\]$/))) {
-      node.strokes = [{ type: "SOLID", color: m[1] }]; continue;
+      node.strokes = node.strokes || [];
+      node.strokes.push({ type: "SOLID", color: m[1] });
+      continue;
     }
     if ((m = cls.match(/^border-(.+)$/)) && !m[1].startsWith("[")) {
       const varName = denormalizeVarName(m[1]);
-      node.strokes = [{ type: "SOLID", color: "#000000" }];
-      bindings["strokes/0"] = varName;
+      node.strokes = node.strokes || [];
+      const idx = node.strokes.length;
+      node.strokes.push({ type: "SOLID", color: "#000000" });
+      bindings[`strokes/${idx}`] = varName;
       continue;
     }
 
@@ -711,8 +554,10 @@ function applyClassName(node: FigmaNodeData, className: string): void {
         // If no individual typography, it's a textStyleName
         if (hasFontSize || hasIndividualTypography) {
           // Fill variable binding
-          node.fills = [{ type: "SOLID", color: "#000000" }];
-          bindings["fills/0"] = denormalizeVarName(name);
+          node.fills = node.fills || [];
+          const idx = node.fills.length;
+          node.fills.push({ type: "SOLID", color: "#000000" });
+          bindings[`fills/${idx}`] = denormalizeVarName(name);
         } else {
           deferredTextClasses.push(name);
         }
@@ -787,8 +632,10 @@ function applyClassName(node: FigmaNodeData, className: string): void {
     for (const name of deferredTextClasses) {
       if (node.fontSize || hasIndividualTypography) {
         // Fill variable binding
-        node.fills = [{ type: "SOLID", color: "#000000" }];
-        bindings["fills/0"] = denormalizeVarName(name);
+        node.fills = node.fills || [];
+        const idx = node.fills.length;
+        node.fills.push({ type: "SOLID", color: "#000000" });
+        bindings[`fills/${idx}`] = denormalizeVarName(name);
       } else {
         // Text style name
         node.textStyleName = denormalizeVarName(name);
@@ -818,7 +665,8 @@ function applyStyleAttribute(node: FigmaNodeData, styleStr: string): void {
     } else if (key === "background") {
       const fill = parseGradient(value);
       if (fill) {
-        node.fills = [fill];
+        node.fills = node.fills || [];
+        node.fills.push(fill);
       }
     } else if (key === "backgroundImage") {
       // url(...) reference

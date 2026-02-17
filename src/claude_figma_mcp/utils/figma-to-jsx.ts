@@ -1,4 +1,4 @@
-import type { FigmaNodeData, FigmaNodeFill } from "../types/index.js";
+import type { FigmaNodeData } from "../types/index.js";
 
 /**
  * Convert an array of Figma node data objects to JSX+Tailwind string.
@@ -148,47 +148,63 @@ function buildTailwindClasses(node: FigmaNodeData): string[] {
     }
   }
 
-  // --- Colors ---
-  const fillBinding = bindings["fills/0"];
-  const firstFill = node.fills && node.fills.length > 0 ? node.fills[0] : undefined;
+  // --- Colors (all fills) ---
+  let hasImageClass = false;
+  if (node.fills && node.fills.length > 0) {
+    for (let i = 0; i < node.fills.length; i++) {
+      const fill = node.fills[i];
+      const fillBinding = bindings[`fills/${i}`];
+      const fillOpacitySuffix =
+        !fillBinding && fill.opacity !== undefined && fill.opacity < 1
+          ? `/${Math.round(fill.opacity * 100)}`
+          : "";
 
-  if (firstFill) {
-    const fillOpacitySuffix =
-      !fillBinding && firstFill.opacity !== undefined && firstFill.opacity < 1
-        ? `/${Math.round(firstFill.opacity * 100)}`
-        : "";
-
-    if (isText) {
-      if (fillBinding) {
-        classes.push(`text-${normalizeName(fillBinding)}`);
-      } else if (firstFill.color) {
-        classes.push(`text-[${firstFill.color}]${fillOpacitySuffix}`);
-      }
-    } else {
-      if (firstFill.isImage) {
-        classes.push("bg-cover", "bg-center");
-      } else if (!firstFill.gradient) {
+      if (isText) {
         if (fillBinding) {
-          classes.push(`bg-${normalizeName(fillBinding)}`);
-        } else if (firstFill.color) {
-          classes.push(`bg-[${firstFill.color}]${fillOpacitySuffix}`);
+          classes.push(`text-${normalizeName(fillBinding)}`);
+        } else if (fill.color) {
+          classes.push(`text-[${fill.color}]${fillOpacitySuffix}`);
+        }
+      } else {
+        if (fill.isImage) {
+          if (!hasImageClass) {
+            classes.push("bg-cover", "bg-center");
+            hasImageClass = true;
+          }
+        } else if (fill.gradient) {
+          // Linear gradient WITH direction → Tailwind classes
+          if (fill.gradient.type === "GRADIENT_LINEAR" && fill.gradient.direction) {
+            classes.push(`bg-gradient-to-${fill.gradient.direction}`);
+            const stops = fill.gradient.stops;
+            if (stops.length >= 1) classes.push(`from-[${stops[0].color}]`);
+            if (stops.length === 3) classes.push(`via-[${stops[1].color}]`);
+            if (stops.length >= 2) classes.push(`to-[${stops[stops.length - 1].color}]`);
+          }
+          // Other gradients (no direction, radial, angular, diamond) → handled by buildStyleAttribute
+        } else {
+          if (fillBinding) {
+            classes.push(`bg-${normalizeName(fillBinding)}`);
+          } else if (fill.color) {
+            classes.push(`bg-[${fill.color}]${fillOpacitySuffix}`);
+          }
         }
       }
     }
   }
 
-  // Strokes
-  const strokeBinding = bindings["strokes/0"];
-  const firstStroke = node.strokes && node.strokes.length > 0 ? node.strokes[0] : undefined;
-
-  if (firstStroke) {
+  // Strokes (all strokes)
+  if (node.strokes && node.strokes.length > 0) {
     if (node.strokeWeight) {
       classes.push(`border-[${node.strokeWeight}px]`);
     }
-    if (strokeBinding) {
-      classes.push(`border-${normalizeName(strokeBinding)}`);
-    } else if (firstStroke.color) {
-      classes.push(`border-[${firstStroke.color}]`);
+    for (let i = 0; i < node.strokes.length; i++) {
+      const stroke = node.strokes[i];
+      const strokeBinding = bindings[`strokes/${i}`];
+      if (strokeBinding) {
+        classes.push(`border-${normalizeName(strokeBinding)}`);
+      } else if (stroke.color) {
+        classes.push(`border-[${stroke.color}]`);
+      }
     }
   }
 
@@ -303,9 +319,10 @@ function buildStyleAttribute(node: FigmaNodeData): Record<string, string> | null
     }
   }
 
-  // Gradient fills → background (find first gradient fill across all fills)
-  const firstFill = node.fills && node.fills.length > 0 ? node.fills[0] : undefined;
-  const gradientFill = node.fills?.find((f) => f.gradient);
+  // Gradient fills → background (skip linear gradients with direction — already emitted as Tailwind)
+  const gradientFill = node.fills?.find(
+    (f) => f.gradient && !(f.gradient.type === "GRADIENT_LINEAR" && f.gradient.direction),
+  );
   if (gradientFill?.gradient) {
     const g = gradientFill.gradient;
     const stops = g.stops.map((s) => `${s.color} ${Math.round(s.position * 100)}%`).join(", ");
@@ -318,8 +335,9 @@ function buildStyleAttribute(node: FigmaNodeData): Record<string, string> | null
   }
 
   // Image fills → backgroundImage
-  if (firstFill?.isImage && firstFill.imageRef) {
-    style.backgroundImage = `url(${firstFill.imageRef})`;
+  const firstImageFill = node.fills?.find((f) => f.isImage);
+  if (firstImageFill?.imageRef) {
+    style.backgroundImage = `url(${firstImageFill.imageRef})`;
   }
 
   // Rotation
@@ -340,44 +358,6 @@ function hexToRgba(hex: string): string {
   const g = parseInt(h.substring(2, 4), 16);
   const b = parseInt(h.substring(4, 6), 16);
   return `rgba(${r},${g},${b},1)`;
-}
-
-/**
- * Serialize a single fill for comment output: compact JSON-like representation.
- */
-function serializeFill(fill: FigmaNodeFill): Record<string, unknown> {
-  const obj: Record<string, unknown> = { type: fill.type };
-  if (fill.color) obj.color = fill.color;
-  if (fill.opacity !== undefined) obj.opacity = fill.opacity;
-  if (fill.gradient) obj.gradient = fill.gradient;
-  if (fill.isImage) obj.isImage = true;
-  if (fill.imageRef) obj.imageRef = fill.imageRef;
-  return obj;
-}
-
-/**
- * Build a JSX comment for fills beyond index 0 (extra fills).
- * Returns null if there's only 0 or 1 fill.
- */
-function buildExtraFillsComment(node: FigmaNodeData): string | null {
-  if (!node.fills || node.fills.length <= 1) return null;
-  const extras = node.fills.slice(1).map(serializeFill);
-  return `{/* Figma fills[1..n]: ${JSON.stringify(extras)} */}`;
-}
-
-/**
- * Build a JSX comment for strokes beyond index 0 (extra strokes).
- * Returns null if there's only 0 or 1 stroke.
- */
-function buildExtraStrokesComment(node: FigmaNodeData): string | null {
-  if (!node.strokes || node.strokes.length <= 1) return null;
-  const extras = node.strokes.slice(1).map((s) => {
-    const obj: Record<string, unknown> = { type: s.type };
-    if (s.color) obj.color = s.color;
-    if (s.opacity !== undefined) obj.opacity = s.opacity;
-    return obj;
-  });
-  return `{/* Figma strokes[1..n]: ${JSON.stringify(extras)} */}`;
 }
 
 /**
@@ -431,25 +411,17 @@ function nodeToJsx(node: FigmaNodeData, indent: number): string {
 
   const attrStr = attrs.join(" ");
 
-  // Build extra fills/strokes comments
-  const extraFillsComment = buildExtraFillsComment(node);
-  const extraStrokesComment = buildExtraStrokesComment(node);
-  const comments: string[] = [];
-  if (extraFillsComment) comments.push(`${pad}${extraFillsComment}`);
-  if (extraStrokesComment) comments.push(`${pad}${extraStrokesComment}`);
-  const commentPrefix = comments.length > 0 ? comments.join("\n") + "\n" : "";
-
   // SVG self-closing for vectors/lines
   if (tag === "svg") {
     const w = node.width ?? 0;
     const h = node.height ?? 0;
-    return `${commentPrefix}${pad}<svg ${attrStr} width="${w}" height="${h}" />`;
+    return `${pad}<svg ${attrStr} width="${w}" height="${h}" />`;
   }
 
   // Text node
   if (node.type === "TEXT") {
     const text = node.characters ? escapeJsx(node.characters) : "";
-    return `${commentPrefix}${pad}<${tag} ${attrStr}>\n${pad}  ${text}\n${pad}</${tag}>`;
+    return `${pad}<${tag} ${attrStr}>\n${pad}  ${text}\n${pad}</${tag}>`;
   }
 
   // Container node
@@ -459,9 +431,9 @@ function nodeToJsx(node: FigmaNodeData, indent: number): string {
       .map((c) => nodeToJsx(c, indent + 1))
       .filter((s) => s.length > 0)
       .join("\n");
-    return `${commentPrefix}${pad}<${tag} ${attrStr}>\n${childrenJsx}\n${pad}</${tag}>`;
+    return `${pad}<${tag} ${attrStr}>\n${childrenJsx}\n${pad}</${tag}>`;
   }
 
   // Empty container / leaf
-  return `${commentPrefix}${pad}<${tag} ${attrStr} />`;
+  return `${pad}<${tag} ${attrStr} />`;
 }

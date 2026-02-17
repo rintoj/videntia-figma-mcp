@@ -732,7 +732,7 @@ describe("parseJsx", () => {
     expect(imageFill!.imageRef).toBe("img-ref-123");
   });
 
-  it("should round-trip multiple fills via comment", () => {
+  it("should round-trip multiple fills via duplicate classes", () => {
     const original = makeNode({
       fills: [
         { type: "SOLID", color: "#ffffff" },
@@ -747,7 +747,7 @@ describe("parseJsx", () => {
     expect(parsed[0].fills![1].opacity).toBe(0.5);
   });
 
-  it("should round-trip multiple strokes via comment", () => {
+  it("should round-trip multiple strokes via duplicate classes", () => {
     const original = makeNode({
       strokes: [
         { type: "SOLID", color: "#000000" },
@@ -837,69 +837,69 @@ describe("parseJsx - Tailwind gradients", () => {
   });
 });
 
-// --- Extra fills/strokes comment parsing ---
+// --- Multiple fills/strokes accumulation ---
 
-describe("parseJsx - extra fills/strokes comments", () => {
-  it("should parse extra fills comment and append to node", () => {
-    const jsx = `{/* Figma fills[1..n]: [{"type":"SOLID","color":"#FF0000","opacity":0.5}] */}
-<div id="1:1" name="T" className="bg-[#ffffff]" />`;
-    const nodes = parseJsx(jsx);
+describe("parseJsx - multiple fills/strokes accumulation", () => {
+  it("should accumulate multiple bg-[#hex] into fills array", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="bg-[#ffffff] bg-[#FF0000]/50" />');
     expect(nodes[0].fills).toHaveLength(2);
     expect(nodes[0].fills![0].color).toBe("#ffffff");
     expect(nodes[0].fills![1].color).toBe("#FF0000");
     expect(nodes[0].fills![1].opacity).toBe(0.5);
   });
 
-  it("should parse extra strokes comment and append to node", () => {
-    const jsx = `{/* Figma strokes[1..n]: [{"type":"SOLID","color":"#00FF00"}] */}
-<div id="1:1" name="T" className="border-[1px] border-[#000000]" />`;
-    const nodes = parseJsx(jsx);
+  it("should accumulate multiple border-[#hex] into strokes array", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="border-[1px] border-[#000000] border-[#00FF00]" />');
     expect(nodes[0].strokes).toHaveLength(2);
     expect(nodes[0].strokes![0].color).toBe("#000000");
     expect(nodes[0].strokes![1].color).toBe("#00FF00");
   });
 
-  it("should parse extra fills comment inside container children", () => {
-    const jsx = `<div id="1:1" name="Parent" className="flex flex-col">
-  {/* Figma fills[1..n]: [{"type":"SOLID","color":"#FF0000"}] */}
-  <div id="1:2" name="Child" className="bg-[#ffffff]" />
-</div>`;
-    const nodes = parseJsx(jsx);
-    const child = nodes[0].children![0];
-    expect(child.fills).toHaveLength(2);
-    expect(child.fills![0].color).toBe("#ffffff");
-    expect(child.fills![1].color).toBe("#FF0000");
+  it("should use correct binding indices for multiple bg variables", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="bg-primary bg-secondary" />');
+    expect(nodes[0].fills).toHaveLength(2);
+    expect(nodes[0].bindings?.["fills/0"]).toBe("primary");
+    expect(nodes[0].bindings?.["fills/1"]).toBe("secondary");
   });
 
-  it("should parse both extra fills and extra strokes comments", () => {
-    const jsx = `{/* Figma fills[1..n]: [{"type":"SOLID","color":"#FF0000"}] */}
-{/* Figma strokes[1..n]: [{"type":"SOLID","color":"#00FF00"}] */}
-<div id="1:1" name="T" className="bg-[#ffffff] border-[1px] border-[#000000]" />`;
+  it("should use correct binding indices for multiple border variables", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="border-[1px] border-primary border-secondary" />');
+    expect(nodes[0].strokes).toHaveLength(2);
+    expect(nodes[0].bindings?.["strokes/0"]).toBe("primary");
+    expect(nodes[0].bindings?.["strokes/1"]).toBe("secondary");
+  });
+
+  it("should accumulate solid fill + gradient fill from style", () => {
+    const jsx = '<div id="1:1" name="T" className="bg-[#ffffff]" style={{ background: "linear-gradient(#ff0000 0%, #0000ff 100%)" }} />';
     const nodes = parseJsx(jsx);
     expect(nodes[0].fills).toHaveLength(2);
-    expect(nodes[0].strokes).toHaveLength(2);
+    expect(nodes[0].fills![0].color).toBe("#ffffff");
+    expect(nodes[0].fills![1].gradient?.type).toBe("GRADIENT_LINEAR");
   });
 
-  it("should handle multiple extra fills in comment", () => {
-    const jsx = `{/* Figma fills[1..n]: [{"type":"SOLID","color":"#FF0000"},{"type":"SOLID","color":"#00FF00"}] */}
-<div id="1:1" name="T" className="bg-[#ffffff]" />`;
-    const nodes = parseJsx(jsx);
-    expect(nodes[0].fills).toHaveLength(3);
-    expect(nodes[0].fills![1].color).toBe("#FF0000");
-    expect(nodes[0].fills![2].color).toBe("#00FF00");
-  });
-
-  it("should ignore non-fills/strokes comments", () => {
+  it("should skip JSX comments gracefully without interpreting them", () => {
     const jsx = `{/* Some random comment */}
 <div id="1:1" name="T" className="bg-[#ffffff]" />`;
     const nodes = parseJsx(jsx);
     expect(nodes[0].fills).toHaveLength(1);
+    expect(nodes[0].fills![0].color).toBe("#ffffff");
   });
 
-  it("should handle empty extra fills array gracefully", () => {
-    const jsx = `{/* Figma fills[1..n]: [] */}
-<div id="1:1" name="T" className="bg-[#ffffff]" />`;
+  it("should skip JSX comments inside container children", () => {
+    const jsx = `<div id="1:1" name="Parent" className="flex flex-col">
+  {/* A child comment */}
+  <div id="1:2" name="Child" className="bg-[#ffffff]" />
+</div>`;
     const nodes = parseJsx(jsx);
-    expect(nodes[0].fills).toHaveLength(1);
+    expect(nodes[0].children).toHaveLength(1);
+    expect(nodes[0].children![0].fills).toHaveLength(1);
+  });
+
+  it("should accumulate 3 solid fills from duplicate classes", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="bg-[#111111] bg-[#222222] bg-[#333333]" />');
+    expect(nodes[0].fills).toHaveLength(3);
+    expect(nodes[0].fills![0].color).toBe("#111111");
+    expect(nodes[0].fills![1].color).toBe("#222222");
+    expect(nodes[0].fills![2].color).toBe("#333333");
   });
 });
