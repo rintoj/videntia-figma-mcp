@@ -21,8 +21,14 @@ export function parseJsx(jsx: string): FigmaNodeData[] {
     if (comment) {
       const extras = parseExtraComment(comment.body);
       if (extras) {
-        if (extras.fills) pendingExtras.fills = [...(pendingExtras.fills || []), ...extras.fills];
-        if (extras.strokes) pendingExtras.strokes = [...(pendingExtras.strokes || []), ...extras.strokes];
+        if (extras.fills) {
+          pendingExtras.fills = pendingExtras.fills || [];
+          pendingExtras.fills.push(...extras.fills);
+        }
+        if (extras.strokes) {
+          pendingExtras.strokes = pendingExtras.strokes || [];
+          pendingExtras.strokes.push(...extras.strokes);
+        }
       }
       pos = comment.pos;
       continue;
@@ -68,18 +74,24 @@ function tryParseJsxComment(input: string, pos: number): { body: string; pos: nu
  * Parse an extra-fills or extra-strokes comment body.
  * Expected format: "Figma fills[1..n]: [...]" or "Figma strokes[1..n]: [...]"
  */
+const MAX_COMMENT_JSON_LENGTH = 65536; // 64 KB guard for JSON.parse
+
 function parseExtraComment(body: string): PendingExtras | null {
-  const fillsMatch = body.match(/^Figma fills\[1\.\.n\]:\s*(\[.+\])$/);
+  const fillsMatch = body.match(/^Figma fills\[1\.\.n\]:\s*(\[.*\])$/);
   if (fillsMatch) {
+    if (fillsMatch[1].length > MAX_COMMENT_JSON_LENGTH) return null;
     try {
       const fills = JSON.parse(fillsMatch[1]) as FigmaNodeFill[];
+      if (!Array.isArray(fills)) return null;
       return { fills };
     } catch { return null; }
   }
-  const strokesMatch = body.match(/^Figma strokes\[1\.\.n\]:\s*(\[.+\])$/);
+  const strokesMatch = body.match(/^Figma strokes\[1\.\.n\]:\s*(\[.*\])$/);
   if (strokesMatch) {
+    if (strokesMatch[1].length > MAX_COMMENT_JSON_LENGTH) return null;
     try {
       const strokes = JSON.parse(strokesMatch[1]) as Array<{ type: string; color?: string; opacity?: number }>;
+      if (!Array.isArray(strokes)) return null;
       return { strokes };
     } catch { return null; }
   }
@@ -188,8 +200,14 @@ function parseElement(input: string, pos: number): ParseResult {
       if (childComment) {
         const extras = parseExtraComment(childComment.body);
         if (extras) {
-          if (extras.fills) childPendingExtras.fills = [...(childPendingExtras.fills || []), ...extras.fills];
-          if (extras.strokes) childPendingExtras.strokes = [...(childPendingExtras.strokes || []), ...extras.strokes];
+          if (extras.fills) {
+            childPendingExtras.fills = childPendingExtras.fills || [];
+            childPendingExtras.fills.push(...extras.fills);
+          }
+          if (extras.strokes) {
+            childPendingExtras.strokes = childPendingExtras.strokes || [];
+            childPendingExtras.strokes.push(...extras.strokes);
+          }
         }
         pos = childComment.pos;
         continue;
@@ -335,11 +353,12 @@ function applyClassName(node: FigmaNodeData, className: string): void {
   let hasFontSize = false;
   let hasIndividualTypography = false;
 
-  // Gradient accumulator
+  // Gradient accumulator (per-stop opacity from Tailwind /N suffix is not yet
+  // supported — Figma gradient stops use RGBA colors, not separate opacity)
   let gradientDir: string | undefined;
-  let gradientFrom: { color: string; opacity?: number; varName?: string } | undefined;
-  let gradientVia: { color: string; opacity?: number; varName?: string } | undefined;
-  let gradientTo: { color: string; opacity?: number; varName?: string } | undefined;
+  let gradientFrom: { color: string } | undefined;
+  let gradientVia: { color: string } | undefined;
+  let gradientTo: { color: string } | undefined;
 
   // First pass: detect typography indicators
   for (const cls of classes) {
@@ -496,23 +515,25 @@ function applyClassName(node: FigmaNodeData, className: string): void {
       gradientDir = m[1]; continue;
     }
     if ((m = cls.match(/^from-\[(#[0-9a-fA-F]{3,8})\](?:\/(\d+))?$/))) {
-      gradientFrom = { color: m[1], opacity: m[2] ? Number(m[2]) / 100 : undefined }; continue;
+      gradientFrom = { color: m[1] }; continue;
     }
     if ((m = cls.match(/^via-\[(#[0-9a-fA-F]{3,8})\](?:\/(\d+))?$/))) {
-      gradientVia = { color: m[1], opacity: m[2] ? Number(m[2]) / 100 : undefined }; continue;
+      gradientVia = { color: m[1] }; continue;
     }
     if ((m = cls.match(/^to-\[(#[0-9a-fA-F]{3,8})\](?:\/(\d+))?$/))) {
-      gradientTo = { color: m[1], opacity: m[2] ? Number(m[2]) / 100 : undefined }; continue;
+      gradientTo = { color: m[1] }; continue;
     }
     // Gradient variable bindings: from-{var}, via-{var}, to-{var}
+    // Note: variable bindings for gradient stops are not yet supported —
+    // the varName is not wired into node.bindings. Stored as placeholder color only.
     if ((m = cls.match(/^from-(.+)$/)) && !m[1].startsWith("[")) {
-      gradientFrom = { color: "#000000", varName: denormalizeVarName(m[1]) }; continue;
+      gradientFrom = { color: "#000000" }; continue;
     }
     if ((m = cls.match(/^via-(.+)$/)) && !m[1].startsWith("[")) {
-      gradientVia = { color: "#000000", varName: denormalizeVarName(m[1]) }; continue;
+      gradientVia = { color: "#000000" }; continue;
     }
     if ((m = cls.match(/^to-(.+)$/)) && !m[1].startsWith("[")) {
-      gradientTo = { color: "#000000", varName: denormalizeVarName(m[1]) }; continue;
+      gradientTo = { color: "#000000" }; continue;
     }
 
     // bg-{var}
@@ -658,12 +679,13 @@ function applyClassName(node: FigmaNodeData, className: string): void {
   }
 
   // Assemble gradient fill from accumulated gradient classes
+  // Require at least from + to (2 stops) for a valid gradient
   if (gradientDir || gradientFrom || gradientVia || gradientTo) {
     const stops: Array<{ color: string; position: number }> = [];
     if (gradientFrom) stops.push({ color: gradientFrom.color, position: 0 });
     if (gradientVia) stops.push({ color: gradientVia.color, position: 0.5 });
     if (gradientTo) stops.push({ color: gradientTo.color, position: 1 });
-    if (stops.length > 0) {
+    if (stops.length >= 2) {
       const gradientFill: FigmaNodeFill = {
         type: "GRADIENT_LINEAR",
         gradient: {

@@ -303,12 +303,9 @@ function buildStyleAttribute(node: FigmaNodeData): Record<string, string> | null
     }
   }
 
-  // Gradient fills → background
-  // Check all fills for gradients (first fill takes priority, then extras)
+  // Gradient fills → background (find first gradient fill across all fills)
   const firstFill = node.fills && node.fills.length > 0 ? node.fills[0] : undefined;
-  const gradientFill = firstFill?.gradient
-    ? firstFill
-    : node.fills?.find((f) => f.gradient);
+  const gradientFill = node.fills?.find((f) => f.gradient);
   if (gradientFill?.gradient) {
     const g = gradientFill.gradient;
     const stops = g.stops.map((s) => `${s.color} ${Math.round(s.position * 100)}%`).join(", ");

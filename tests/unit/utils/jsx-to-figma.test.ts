@@ -816,6 +816,25 @@ describe("parseJsx - Tailwind gradients", () => {
     // Should NOT create a variable binding for bg-gradient-to-r
     expect(nodes[0].bindings?.["fills/0"]).toBeUndefined();
   });
+
+  it("should not produce a gradient fill with only from (no to)", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="bg-gradient-to-r from-[#FF0000]" />');
+    // Single stop is invalid; should produce no gradient fill
+    expect(nodes[0].fills?.some(f => f.gradient)).toBeFalsy();
+  });
+
+  it("should not produce a gradient fill with only to (no from)", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="to-[#0000FF]" />');
+    expect(nodes[0].fills?.some(f => f.gradient)).toBeFalsy();
+  });
+
+  it("should not store opacity in gradient stops from /N suffix", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="bg-gradient-to-r from-[#FF0000]/50 to-[#0000FF]/80" />');
+    const fill = nodes[0].fills![0];
+    // Per-stop opacity from Tailwind /N is not supported; stops have no opacity field
+    expect((fill.gradient?.stops[0] as any).opacity).toBeUndefined();
+    expect((fill.gradient?.stops[1] as any).opacity).toBeUndefined();
+  });
 });
 
 // --- Extra fills/strokes comment parsing ---
@@ -872,6 +891,13 @@ describe("parseJsx - extra fills/strokes comments", () => {
 
   it("should ignore non-fills/strokes comments", () => {
     const jsx = `{/* Some random comment */}
+<div id="1:1" name="T" className="bg-[#ffffff]" />`;
+    const nodes = parseJsx(jsx);
+    expect(nodes[0].fills).toHaveLength(1);
+  });
+
+  it("should handle empty extra fills array gracefully", () => {
+    const jsx = `{/* Figma fills[1..n]: [] */}
 <div id="1:1" name="T" className="bg-[#ffffff]" />`;
     const nodes = parseJsx(jsx);
     expect(nodes[0].fills).toHaveLength(1);
