@@ -5,6 +5,7 @@ import { filterFigmaNode } from "../utils/figma-helpers.js";
 import { figmaAccessToken, FIGMA_API_BASE_URL } from "../config/config.js";
 import { coerceArray } from "../utils/coerce-array.js";
 import { convertToJsx } from "../utils/figma-to-jsx.js";
+import { parseJsx } from "../utils/jsx-to-figma.js";
 import type { ReadMyDesignResult } from "../types/index.js";
 
 /**
@@ -70,6 +71,38 @@ export function registerDocumentTools(server: McpServer): void {
               text: `Error reading design: ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
+        };
+      }
+    }
+  );
+
+  // JSX to Figma Tool
+  server.tool(
+    "jsx_to_figma",
+    "Create Figma nodes from JSX+Tailwind markup. Accepts the same format that read_my_design outputs.",
+    {
+      jsx: z.string().describe("JSX+Tailwind markup string"),
+      parentId: z.string().optional().describe("Parent node ID to insert into (defaults to current page)"),
+      x: z.number().optional().describe("X position for the root node"),
+      y: z.number().optional().describe("Y position for the root node"),
+    },
+    async ({ jsx, parentId, x, y }) => {
+      try {
+        const data = parseJsx(jsx);
+        const result = await sendCommandToFigma("create_from_data", { data, parentId, x, y });
+        const typedResult = result as { createdNodes: Array<{ id: string; name: string; type: string }> };
+        return {
+          content: [{
+            type: "text",
+            text: `Created ${typedResult.createdNodes.length} node(s): ${typedResult.createdNodes.map(n => `"${n.name}" (${n.id})`).join(", ")}`
+          }]
+        };
+      } catch (error) {
+        return {
+          content: [{
+            type: "text",
+            text: `Error creating from JSX: ${error instanceof Error ? error.message : String(error)}`
+          }]
         };
       }
     }
