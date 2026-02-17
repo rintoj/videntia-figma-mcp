@@ -52,7 +52,6 @@ function cleanupDeadConnections(): number {
   }
   if (removedCount > 0) {
     logger.info(`Cleanup: removed ${removedCount} dead connection(s)`);
-    stats.activeConnections = Math.max(0, stats.activeConnections - removedCount);
   }
   return removedCount;
 }
@@ -120,19 +119,12 @@ const server = Bun.serve({
     // Handle channels endpoint - list all active channels with metadata
     if (url.pathname === "/channels") {
       cleanupDeadConnections();
-      const channelList = Array.from(channels.entries())
-        .map(([name, clients]) => {
-          const activeClients = Array.from(clients).filter(
-            (c) => c.readyState === WebSocket.OPEN,
-          );
-          return {
-            channel: name,
-            clients: activeClients.length,
-            fileName: channelMetadata.get(name)?.fileName ?? null,
-            joinedAt: channelMetadata.get(name)?.joinedAt ?? null,
-          };
-        })
-        .filter((ch) => ch.clients > 0);
+      const channelList = Array.from(channels.entries()).map(([name, clients]) => ({
+        channel: name,
+        clients: clients.size,
+        fileName: channelMetadata.get(name)?.fileName ?? null,
+        joinedAt: channelMetadata.get(name)?.joinedAt ?? null,
+      }));
       return new Response(JSON.stringify(channelList), {
         headers: {
           "Content-Type": "application/json",
@@ -219,6 +211,7 @@ const server = Bun.serve({
           // Add client to channel
           const channelClients = channels.get(channelName)!;
           channelClients.add(ws);
+          ws.data.channel = channelName;
           logger.info(`Client ${clientId} joined channel: ${channelName}`);
 
           // Store channel metadata (file name from Figma plugin)
@@ -397,16 +390,20 @@ const server = Bun.serve({
       const clientId = ws.data?.clientId || "unknown";
       logger.info(`WebSocket closed for client ${clientId}: Code ${code}, Reason: ${reason || 'No reason provided'}`);
 
-      // Remove client and always delete the entire channel on disconnect
-      channels.forEach((clients, channelName) => {
-        if (clients.has(ws)) {
+      // Remove client from their channel
+      const channelName = ws.data?.channel;
+      if (channelName) {
+        const clients = channels.get(channelName);
+        if (clients) {
           clients.delete(ws);
-          // Always remove the channel - each channel is a plugin session
-          channels.delete(channelName);
-          channelMetadata.delete(channelName);
-          logger.info(`Removed channel ${channelName} due to client ${clientId} disconnect`);
+          logger.debug(`Removed client ${clientId} from channel ${channelName}`);
+          if (clients.size === 0) {
+            channels.delete(channelName);
+            channelMetadata.delete(channelName);
+            logger.info(`Removed empty channel: ${channelName}`);
+          }
         }
-      });
+      }
 
       stats.activeConnections--;
     },
