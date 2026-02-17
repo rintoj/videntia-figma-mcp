@@ -1,77 +1,52 @@
+import { parse } from "@babel/parser";
+import type * as t from "@babel/types";
 import type { FigmaNodeData, FigmaNodeFill, FigmaNodeEffect } from "../types/index.js";
 
 /**
  * Parse JSX+Tailwind markup (as produced by convertToJsx) back into FigmaNodeData[].
+ * Uses @babel/parser for robust AST-based parsing.
  */
 export function parseJsx(jsx: string): FigmaNodeData[] {
   const trimmed = jsx.trim();
   if (!trimmed) return [];
 
+  // Wrap in a fragment to make it a valid JSX expression
+  const wrapped = `(<>${trimmed}</>)`;
+  let ast;
+  try {
+    ast = parse(wrapped, {
+      plugins: ["jsx"],
+      sourceType: "module",
+    });
+  } catch (e) {
+    throw new Error(`JSX parse error: ${e instanceof Error ? e.message : String(e)}`);
+  }
+
+  // Extract the JSXFragment from the ExpressionStatement
+  const stmt = ast.program.body[0];
+  if (!stmt || stmt.type !== "ExpressionStatement") return [];
+  const expr = stmt.expression;
+  if (!expr || expr.type !== "JSXFragment") return [];
+
   const nodes: FigmaNodeData[] = [];
-  let pos = 0;
-
-  while (pos < trimmed.length) {
-    // Skip whitespace
-    while (pos < trimmed.length && /\s/.test(trimmed[pos])) pos++;
-    if (pos >= trimmed.length) break;
-
-    // Skip JSX comments
-    const commentEnd = skipJsxComment(trimmed, pos);
-    if (commentEnd !== null) {
-      pos = commentEnd;
-      continue;
+  for (const child of expr.children) {
+    if (child.type === "JSXElement") {
+      nodes.push(jsxElementToNode(child));
     }
-
-    if (trimmed[pos] === "<") {
-      const result = parseElement(trimmed, pos);
-      nodes.push(result.node);
-      pos = result.pos;
-    } else {
-      break; // Unexpected content
-    }
+    // Skip JSXText (whitespace), JSXExpressionContainer (comments), etc.
   }
 
   return nodes;
 }
 
 /**
- * Skip a JSX comment at the given position: {/\* ... *\/}
- * Returns the new position after the comment, or null if not a comment.
+ * Convert a Babel JSXElement AST node into a FigmaNodeData.
  */
-function skipJsxComment(input: string, pos: number): number | null {
-  if (input.substring(pos, pos + 3) !== "{/*") return null;
-  const endMarker = "*/}";
-  const endIdx = input.indexOf(endMarker, pos + 3);
-  if (endIdx === -1) return null;
-  return endIdx + endMarker.length;
-}
-
-// --- Recursive descent parser ---
-
-interface ParseResult {
-  node: FigmaNodeData;
-  pos: number;
-}
-
-function parseElement(input: string, pos: number): ParseResult {
-  // Expect '<'
-  if (input[pos] !== "<") throw new Error(`Expected '<' at position ${pos}`);
-  pos++; // skip '<'
-
-  // Parse tag name
-  const tagStart = pos;
-  while (pos < input.length && /[a-zA-Z0-9]/.test(input[pos])) pos++;
-  const tag = input.substring(tagStart, pos);
-
-  // Parse attributes
-  const attrResult = parseAttributes(input, pos);
-  pos = attrResult.pos;
-  const attrs = attrResult.attrs;
-
-  // Determine node type from tag
+function jsxElementToNode(el: t.JSXElement): FigmaNodeData {
+  const tag = getTagName(el.openingElement);
+  const attrs = extractAttributes(el.openingElement);
   const nodeType = tagToNodeType(tag);
 
-  // Build the base node
   const node: FigmaNodeData = {
     id: attrs.id || "",
     name: decodeEntities(attrs.name || "Node"),
@@ -85,64 +60,26 @@ function parseElement(input: string, pos: number): ParseResult {
     if (attrs.height !== undefined) node.height = Number(attrs.height);
   }
 
-  // Check for self-closing
-  pos = skipWhitespace(input, pos);
-  if (input[pos] === "/" && input[pos + 1] === ">") {
-    pos += 2; // skip '/>'
-    applyClassName(node, attrs.className || "");
-    applyStyleAttribute(node, attrs.style || "");
-    return { node, pos };
-  }
-
-  // Expect '>'
-  if (input[pos] !== ">") throw new Error(`Expected '>' at position ${pos}, got '${input[pos]}'`);
-  pos++; // skip '>'
-
-  // Parse children / text content
+  // Parse children
   if (nodeType === "TEXT") {
-    // Text node: content up to closing tag
-    const closeTag = `</${tag}>`;
-    const closeIdx = input.indexOf(closeTag, pos);
-    if (closeIdx === -1) throw new Error(`Missing closing tag </${tag}>`);
-    const rawText = input.substring(pos, closeIdx).trim();
-    node.characters = decodeEntities(rawText);
-    pos = closeIdx + closeTag.length;
+    // Collect text content from children
+    const textParts: string[] = [];
+    for (const child of el.children) {
+      if (child.type === "JSXText") {
+        textParts.push(child.value);
+      } else if (child.type === "JSXExpressionContainer" && child.expression.type === "StringLiteral") {
+        textParts.push(child.expression.value);
+      }
+    }
+    node.characters = decodeEntities(textParts.join("").trim());
   } else {
     // Container: parse child elements
     const children: FigmaNodeData[] = [];
-    while (true) {
-      pos = skipWhitespace(input, pos);
-      if (pos >= input.length) break;
-
-      // Check for closing tag
-      if (input[pos] === "<" && input[pos + 1] === "/") {
-        // Closing tag
-        const closeTag = `</${tag}>`;
-        const closeIdx = input.indexOf(closeTag, pos);
-        if (closeIdx === pos) {
-          pos = closeIdx + closeTag.length;
-          break;
-        }
-        // Might be a different closing tag (error), skip
-        pos = input.indexOf(">", pos) + 1;
-        break;
+    for (const child of el.children) {
+      if (child.type === "JSXElement") {
+        children.push(jsxElementToNode(child));
       }
-
-      // Skip JSX comments
-      const commentEnd = skipJsxComment(input, pos);
-      if (commentEnd !== null) {
-        pos = commentEnd;
-        continue;
-      }
-
-      if (input[pos] === "<") {
-        const childResult = parseElement(input, pos);
-        children.push(childResult.node);
-        pos = childResult.pos;
-      } else {
-        // Skip unexpected text content in containers
-        while (pos < input.length && input[pos] !== "<") pos++;
-      }
+      // Skip JSXText (whitespace), JSXExpressionContainer (comments)
     }
     if (children.length > 0) {
       node.children = children;
@@ -151,86 +88,114 @@ function parseElement(input: string, pos: number): ParseResult {
 
   applyClassName(node, attrs.className || "");
   applyStyleAttribute(node, attrs.style || "");
-  return { node, pos };
+  return node;
 }
 
-function parseAttributes(input: string, pos: number): { attrs: Record<string, string>; pos: number } {
+/**
+ * Extract the tag name from a JSXOpeningElement.
+ */
+function getTagName(opening: t.JSXOpeningElement): string {
+  if (opening.name.type === "JSXIdentifier") {
+    return opening.name.name;
+  }
+  return "div";
+}
+
+/**
+ * Extract attributes from a JSXOpeningElement into a flat Record.
+ * Handles string literals, JSX expression containers (objects for style, booleans, etc.).
+ */
+function extractAttributes(opening: t.JSXOpeningElement): Record<string, string> {
   const attrs: Record<string, string> = {};
 
-  while (pos < input.length) {
-    pos = skipWhitespace(input, pos);
-    if (pos >= input.length) break;
+  for (const attr of opening.attributes) {
+    if (attr.type !== "JSXAttribute" || attr.name.type !== "JSXIdentifier") continue;
+    const name = attr.name.name;
 
-    // End of attributes
-    if (input[pos] === ">" || (input[pos] === "/" && input[pos + 1] === ">")) break;
-
-    // Parse attribute name
-    const nameStart = pos;
-    while (pos < input.length && /[a-zA-Z0-9_-]/.test(input[pos])) pos++;
-    const attrName = input.substring(nameStart, pos);
-    if (!attrName) break;
-
-    pos = skipWhitespace(input, pos);
-    if (input[pos] !== "=") {
-      // Boolean attribute
-      attrs[attrName] = "true";
+    if (!attr.value) {
+      // Boolean attribute (no value)
+      attrs[name] = "true";
       continue;
     }
-    pos++; // skip '='
 
-    pos = skipWhitespace(input, pos);
-
-    if (input[pos] === '"') {
-      // String attribute: "value"
-      pos++; // skip opening quote
-      const valueStart = pos;
-      while (pos < input.length && input[pos] !== '"') pos++;
-      attrs[attrName] = input.substring(valueStart, pos);
-      pos++; // skip closing quote
-    } else if (input[pos] === "{" && input[pos + 1] === "{") {
-      // JSX style attribute: style={{ key: "value", ... }}
-      pos += 2; // skip '{{'
-      const styleStart = pos;
-      let depth = 1;
-      while (pos < input.length) {
-        if (input[pos] === "{") depth++;
-        else if (input[pos] === "}") {
-          depth--;
-          if (depth === 0) break;
-        }
-        pos++;
+    if (attr.value.type === "StringLiteral") {
+      attrs[name] = attr.value.value;
+    } else if (attr.value.type === "JSXExpressionContainer") {
+      const expr = attr.value.expression;
+      if (name === "style" && expr.type === "ObjectExpression") {
+        // style={{ key: "value", ... }} → serialize to our internal format
+        attrs[name] = serializeStyleObject(expr);
+      } else if (expr.type === "BooleanLiteral") {
+        attrs[name] = String(expr.value);
+      } else if (expr.type === "NumericLiteral") {
+        attrs[name] = String(expr.value);
+      } else if (expr.type === "StringLiteral") {
+        attrs[name] = expr.value;
+      } else if (expr.type === "ObjectExpression") {
+        attrs[name] = serializeObjectExpression(expr);
       }
-      // pos is at the first '}' of '}}'
-      attrs[attrName] = input.substring(styleStart, pos).trim();
-      pos++; // skip first '}'
-      if (pos < input.length && input[pos] === "}") pos++; // skip second '}'
-    } else if (input[pos] === "{") {
-      // JSX expression attribute: {value}
-      pos++; // skip '{'
-      let depth = 1;
-      const valueStart = pos;
-      while (pos < input.length && depth > 0) {
-        if (input[pos] === "{") depth++;
-        else if (input[pos] === "}") depth--;
-        if (depth > 0) pos++;
-      }
-      attrs[attrName] = input.substring(valueStart, pos).trim();
-      pos++; // skip '}'
     }
   }
 
-  return { attrs, pos };
+  return attrs;
+}
+
+/**
+ * Serialize a Babel ObjectExpression (from style={{ ... }}) into the key: "value" format
+ * expected by applyStyleAttribute's parseStyleEntries.
+ */
+function serializeStyleObject(obj: t.ObjectExpression): string {
+  const parts: string[] = [];
+  for (const prop of obj.properties) {
+    if (prop.type !== "ObjectProperty") continue;
+    const key =
+      prop.key.type === "Identifier"
+        ? prop.key.name
+        : prop.key.type === "StringLiteral"
+          ? prop.key.value
+          : "";
+    if (!key) continue;
+
+    if (prop.value.type === "StringLiteral") {
+      parts.push(`${key}: "${prop.value.value}"`);
+    } else if (prop.value.type === "NumericLiteral") {
+      parts.push(`${key}: "${prop.value.value}"`);
+    } else if (prop.value.type === "TemplateLiteral" && prop.value.quasis.length === 1) {
+      parts.push(`${key}: "${prop.value.quasis[0].value.cooked || prop.value.quasis[0].value.raw}"`);
+    }
+  }
+  return parts.join(", ");
+}
+
+/**
+ * Serialize a generic ObjectExpression for non-style attributes.
+ */
+function serializeObjectExpression(obj: t.ObjectExpression): string {
+  const parts: string[] = [];
+  for (const prop of obj.properties) {
+    if (prop.type !== "ObjectProperty") continue;
+    const key =
+      prop.key.type === "Identifier"
+        ? prop.key.name
+        : prop.key.type === "StringLiteral"
+          ? prop.key.value
+          : "";
+    if (!key) continue;
+    if (prop.value.type === "StringLiteral") {
+      parts.push(`${key}: "${prop.value.value}"`);
+    } else if (prop.value.type === "NumericLiteral") {
+      parts.push(`${key}: ${prop.value.value}`);
+    } else if (prop.value.type === "BooleanLiteral") {
+      parts.push(`${key}: ${prop.value.value}`);
+    }
+  }
+  return parts.join(", ");
 }
 
 function tagToNodeType(tag: string): string {
   if (tag === "span") return "TEXT";
   if (tag === "svg") return "VECTOR";
   return "FRAME";
-}
-
-function skipWhitespace(input: string, pos: number): number {
-  while (pos < input.length && /\s/.test(input[pos])) pos++;
-  return pos;
 }
 
 function decodeEntities(str: string): string {
