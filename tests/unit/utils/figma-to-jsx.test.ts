@@ -360,6 +360,47 @@ describe("convertToJsx", () => {
     expect(jsx).toContain("border-[#cccccc]");
   });
 
+  it("should render bg color with opacity modifier", () => {
+    const jsx = convertToJsx([
+      makeNode({
+        fills: [{ type: "SOLID", color: "#000000", opacity: 0.5 }],
+      }),
+    ]);
+    expect(jsx).toContain("bg-[#000000]/50");
+  });
+
+  it("should render text color with opacity modifier", () => {
+    const jsx = convertToJsx([
+      makeNode({
+        type: "TEXT",
+        characters: "T",
+        fills: [{ type: "SOLID", color: "#000000", opacity: 0.3 }],
+      }),
+    ]);
+    expect(jsx).toContain("text-[#000000]/30");
+  });
+
+  it("should not apply opacity modifier when fill has binding", () => {
+    const jsx = convertToJsx([
+      makeNode({
+        fills: [{ type: "SOLID", color: "#000000", opacity: 0.5 }],
+        bindings: { "fills/0": "muted" },
+      }),
+    ]);
+    expect(jsx).toContain("bg-muted");
+    expect(jsx).not.toContain("/50");
+  });
+
+  it("should not apply opacity modifier when opacity is 1", () => {
+    const jsx = convertToJsx([
+      makeNode({
+        fills: [{ type: "SOLID", color: "#ff0000", opacity: 1 }],
+      }),
+    ]);
+    expect(jsx).toContain("bg-[#ff0000]");
+    expect(jsx).not.toContain("bg-[#ff0000]/");
+  });
+
   it("should render bg-cover bg-center for image fills", () => {
     const jsx = convertToJsx([
       makeNode({ fills: [{ type: "IMAGE", isImage: true, imageRef: "img123" }] }),
@@ -400,6 +441,32 @@ describe("convertToJsx", () => {
     expect(jsx).toContain("font-semibold");
     expect(jsx).toContain("leading-[24px]");
     expect(jsx).toContain("tracking-[0.5px]");
+  });
+
+  it("should render percentage lineHeight as percent", () => {
+    const jsx = convertToJsx([
+      makeNode({
+        type: "TEXT",
+        characters: "T",
+        lineHeight: 150,
+        lineHeightUnit: "percent",
+      }),
+    ]);
+    expect(jsx).toContain("leading-[150%]");
+    expect(jsx).not.toContain("leading-[150px]");
+  });
+
+  it("should render percentage letterSpacing as em", () => {
+    const jsx = convertToJsx([
+      makeNode({
+        type: "TEXT",
+        characters: "T",
+        letterSpacing: 5,
+        letterSpacingUnit: "percent",
+      }),
+    ]);
+    expect(jsx).toContain("tracking-[0.05em]");
+    expect(jsx).not.toContain("tracking-[5px]");
   });
 
   it("should render font weight classes correctly", () => {
@@ -579,6 +646,23 @@ describe("convertToJsx", () => {
     expect(jsx).toContain("0px 4px 8px 0px rgba(0,0,0,1)");
   });
 
+  it("should pass through rgba shadow colors", () => {
+    const jsx = convertToJsx([
+      makeNode({
+        effects: [
+          {
+            type: "DROP_SHADOW",
+            color: "rgba(0,0,0,0.25)",
+            offset: { x: 0, y: 4 },
+            radius: 8,
+            spread: 0,
+          },
+        ],
+      }),
+    ]);
+    expect(jsx).toContain("0px 4px 8px 0px rgba(0,0,0,0.25)");
+  });
+
   it("should render inner shadow with inset", () => {
     const jsx = convertToJsx([
       makeNode({
@@ -650,14 +734,13 @@ describe("convertToJsx", () => {
                 { color: "#ff0000", position: 0 },
                 { color: "#0000ff", position: 1 },
               ],
-              angle: 90,
             },
           },
         ],
       }),
     ]);
     expect(jsx).toContain("background:");
-    expect(jsx).toContain("linear-gradient(90deg");
+    expect(jsx).toContain("linear-gradient(#ff0000 0%, #0000ff 100%)");
   });
 
   it("should render rotation as style.transform", () => {

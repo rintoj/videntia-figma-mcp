@@ -238,7 +238,6 @@ export interface FigmaNodeFill {
   gradient?: {
     type: string;
     stops: Array<{ color: string; position: number }>;
-    angle?: number;
   };
   isImage?: boolean;
   imageRef?: string;
@@ -301,7 +300,9 @@ export interface FigmaNodeData {
   fontSize?: number;
   fontWeight?: number;
   lineHeight?: number;
+  lineHeightUnit?: "percent";
   letterSpacing?: number;
+  letterSpacingUnit?: "percent";
   textAlignHorizontal?: "LEFT" | "CENTER" | "RIGHT" | "JUSTIFIED";
   textCase?: "ORIGINAL" | "UPPER" | "LOWER" | "TITLE";
   textDecoration?: "NONE" | "UNDERLINE" | "STRIKETHROUGH";

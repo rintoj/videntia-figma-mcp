@@ -153,11 +153,16 @@ function buildTailwindClasses(node: FigmaNodeData): string[] {
   const firstFill = node.fills && node.fills.length > 0 ? node.fills[0] : undefined;
 
   if (firstFill) {
+    const fillOpacitySuffix =
+      !fillBinding && firstFill.opacity !== undefined && firstFill.opacity < 1
+        ? `/${Math.round(firstFill.opacity * 100)}`
+        : "";
+
     if (isText) {
       if (fillBinding) {
         classes.push(`text-${normalizeName(fillBinding)}`);
       } else if (firstFill.color) {
-        classes.push(`text-[${firstFill.color}]`);
+        classes.push(`text-[${firstFill.color}]${fillOpacitySuffix}`);
       }
     } else {
       if (firstFill.isImage) {
@@ -166,7 +171,7 @@ function buildTailwindClasses(node: FigmaNodeData): string[] {
         if (fillBinding) {
           classes.push(`bg-${normalizeName(fillBinding)}`);
         } else if (firstFill.color) {
-          classes.push(`bg-[${firstFill.color}]`);
+          classes.push(`bg-[${firstFill.color}]${fillOpacitySuffix}`);
         }
       }
     }
@@ -198,9 +203,19 @@ function buildTailwindClasses(node: FigmaNodeData): string[] {
       if (node.fontWeight !== undefined && node.fontWeight !== 400) {
         classes.push(fontWeightClass(node.fontWeight));
       }
-      if (node.lineHeight !== undefined) classes.push(`leading-[${node.lineHeight}px]`);
+      if (node.lineHeight !== undefined) {
+        if (node.lineHeightUnit === "percent") {
+          classes.push(`leading-[${node.lineHeight}%]`);
+        } else {
+          classes.push(`leading-[${node.lineHeight}px]`);
+        }
+      }
       if (node.letterSpacing !== undefined && node.letterSpacing !== 0) {
-        classes.push(`tracking-[${node.letterSpacing}px]`);
+        if (node.letterSpacingUnit === "percent") {
+          classes.push(`tracking-[${node.letterSpacing / 100}em]`);
+        } else {
+          classes.push(`tracking-[${node.letterSpacing}px]`);
+        }
       }
       if (node.fontFamily && node.fontFamily !== "Inter") {
         classes.push(`font-['${node.fontFamily.replace(/ /g, "_")}']`);
@@ -294,8 +309,7 @@ function buildStyleAttribute(node: FigmaNodeData): Record<string, string> | null
     const g = firstFill.gradient;
     const stops = g.stops.map((s) => `${s.color} ${Math.round(s.position * 100)}%`).join(", ");
     if (g.type === "GRADIENT_LINEAR") {
-      const angle = g.angle ?? 180;
-      style.background = `linear-gradient(${angle}deg, ${stops})`;
+      style.background = `linear-gradient(${stops})`;
     } else if (g.type === "GRADIENT_RADIAL") {
       style.background = `radial-gradient(${stops})`;
     }

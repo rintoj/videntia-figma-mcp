@@ -6863,12 +6863,15 @@ async function readMyDesign(params) {
     // Text styles API may not be available
   }
 
-  // Helper: convert Figma color {r,g,b} (0-1) to hex string
+  // Helper: convert Figma color {r,g,b,a} (0-1) to hex or rgba string
   function colorToHex(color) {
-    const r = Math.round(color.r * 255).toString(16).padStart(2, '0');
-    const g = Math.round(color.g * 255).toString(16).padStart(2, '0');
-    const b = Math.round(color.b * 255).toString(16).padStart(2, '0');
-    return `#${r}${g}${b}`;
+    const r = Math.round(color.r * 255);
+    const g = Math.round(color.g * 255);
+    const b = Math.round(color.b * 255);
+    if (color.a !== undefined && color.a < 1) {
+      return `rgba(${r},${g},${b},${parseFloat(color.a.toFixed(2))})`;
+    }
+    return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
   }
 
   // Helper: resolve bound variables for a node
@@ -7037,9 +7040,11 @@ async function readMyDesign(params) {
       if (node.fontSize !== figma.mixed) info.fontSize = node.fontSize;
       if (node.lineHeight !== figma.mixed && node.lineHeight.unit !== 'AUTO') {
         info.lineHeight = node.lineHeight.value;
+        if (node.lineHeight.unit === 'PERCENT') info.lineHeightUnit = 'percent';
       }
       if (node.letterSpacing !== figma.mixed && node.letterSpacing.value !== 0) {
         info.letterSpacing = node.letterSpacing.value;
+        if (node.letterSpacing.unit === 'PERCENT') info.letterSpacingUnit = 'percent';
       }
       if (node.textAlignHorizontal) info.textAlignHorizontal = node.textAlignHorizontal;
       if (node.textCase !== figma.mixed && node.textCase !== 'ORIGINAL') {
