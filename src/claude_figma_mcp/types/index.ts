@@ -229,3 +229,94 @@ export interface VariablesResponse {
   variables: Variable[];
   collections: VariableCollection[];
 }
+
+// Figma node data returned by the enriched read_my_design plugin handler
+export interface FigmaNodeFill {
+  type: string;
+  color?: string;
+  opacity?: number;
+  gradient?: {
+    type: string;
+    stops: Array<{ color: string; position: number }>;
+  };
+  isImage?: boolean;
+  imageRef?: string;
+}
+
+export interface FigmaNodeStroke {
+  type: string;
+  color?: string;
+  opacity?: number;
+}
+
+export interface FigmaNodeEffect {
+  type: string;
+  color?: string;
+  offset?: { x: number; y: number };
+  radius?: number;
+  spread?: number;
+}
+
+export interface FigmaNodeData {
+  id: string;
+  name: string;
+  type: string;
+  visible: boolean;
+  width?: number;
+  height?: number;
+  x?: number;
+  y?: number;
+  // Layout
+  layoutMode?: "HORIZONTAL" | "VERTICAL" | "NONE";
+  layoutSizingHorizontal?: "FIXED" | "HUG" | "FILL";
+  layoutSizingVertical?: "FIXED" | "HUG" | "FILL";
+  primaryAxisAlignItems?: "MIN" | "CENTER" | "MAX" | "SPACE_BETWEEN";
+  counterAxisAlignItems?: "MIN" | "CENTER" | "MAX" | "BASELINE";
+  itemSpacing?: number;
+  counterAxisSpacing?: number;
+  layoutWrap?: "NO_WRAP" | "WRAP";
+  paddingTop?: number;
+  paddingRight?: number;
+  paddingBottom?: number;
+  paddingLeft?: number;
+  clipsContent?: boolean;
+  layoutPositioning?: "AUTO" | "ABSOLUTE";
+  // Fills
+  fills?: FigmaNodeFill[];
+  // Strokes
+  strokes?: FigmaNodeStroke[];
+  strokeWeight?: number;
+  // Corners
+  cornerRadius?: number;
+  topLeftRadius?: number;
+  topRightRadius?: number;
+  bottomRightRadius?: number;
+  bottomLeftRadius?: number;
+  // Effects
+  effects?: FigmaNodeEffect[];
+  // Text
+  characters?: string;
+  fontFamily?: string;
+  fontSize?: number;
+  fontWeight?: number;
+  lineHeight?: number;
+  lineHeightUnit?: "percent";
+  letterSpacing?: number;
+  letterSpacingUnit?: "percent";
+  textAlignHorizontal?: "LEFT" | "CENTER" | "RIGHT" | "JUSTIFIED";
+  textCase?: "ORIGINAL" | "UPPER" | "LOWER" | "TITLE";
+  textDecoration?: "NONE" | "UNDERLINE" | "STRIKETHROUGH";
+  textStyleName?: string;
+  // Appearance
+  opacity?: number;
+  rotation?: number;
+  // Variable bindings (resolved to names)
+  bindings?: Record<string, string>;
+  // Children
+  children?: FigmaNodeData[];
+}
+
+export interface ReadMyDesignResult {
+  selectionCount: number;
+  selection: FigmaNodeData[];
+}

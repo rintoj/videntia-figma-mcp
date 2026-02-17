@@ -4,6 +4,8 @@ import { sendCommandToFigma, joinChannel, getOpenChannels } from "../utils/webso
 import { filterFigmaNode } from "../utils/figma-helpers.js";
 import { figmaAccessToken, FIGMA_API_BASE_URL } from "../config/config.js";
 import { coerceArray } from "../utils/coerce-array.js";
+import { convertToJsx } from "../utils/figma-to-jsx.js";
+import type { ReadMyDesignResult } from "../types/index.js";
 
 /**
  * Register document-related tools to the MCP server
@@ -42,16 +44,21 @@ export function registerDocumentTools(server: McpServer): void {
   // Read My Design Tool
   server.tool(
     "read_my_design",
-    "Get detailed information about the current selection in Figma, including all node details",
-    {},
-    async () => {
+    "Read the current Figma selection (or a specific node) as JSX with Tailwind CSS classes. Returns compact, Claude-readable markup instead of verbose JSON.",
+    {
+      nodeId: z.string().optional().describe("Specific node ID to read (defaults to current selection)"),
+      depth: z.number().optional().describe("Max depth to traverse (default: unlimited)")
+    },
+    async ({ nodeId, depth }) => {
       try {
-        const result = await sendCommandToFigma("read_my_design", {});
+        const result = await sendCommandToFigma("read_my_design", { nodeId, depth }) as ReadMyDesignResult;
+        const selection = result?.selection ?? [];
+        const jsx = convertToJsx(selection);
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result)
+              text: jsx
             }
           ]
         };

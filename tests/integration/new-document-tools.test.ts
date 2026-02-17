@@ -51,17 +51,24 @@ describe("new document tools integration", () => {
   describe("read_my_design", () => {
     beforeEach(() => {
       mockSendCommand.mockResolvedValue({
-        nodes: [{ id: "node-1", name: "Frame 1", type: "FRAME" }],
-        count: 1
+        selectionCount: 1,
+        selection: [{ id: "node-1", name: "Frame 1", type: "FRAME", visible: true }]
       });
     });
 
-    it("successfully reads design information", async () => {
+    it("successfully reads design as JSX", async () => {
       const response = await callTool("read_my_design", {});
 
       expect(mockSendCommand).toHaveBeenCalledTimes(1);
-      expect(mockSendCommand).toHaveBeenCalledWith("read_my_design", {});
-      expect(response.content[0].text).toContain("node-1");
+      expect(mockSendCommand).toHaveBeenCalledWith("read_my_design", { nodeId: undefined, depth: undefined });
+      expect(response.content[0].text).toContain('id="node-1"');
+      expect(response.content[0].text).toContain('name="Frame 1"');
+    });
+
+    it("passes nodeId and depth params to plugin", async () => {
+      await callTool("read_my_design", { nodeId: "1:23", depth: 2 });
+
+      expect(mockSendCommand).toHaveBeenCalledWith("read_my_design", { nodeId: "1:23", depth: 2 });
     });
 
     it("handles errors gracefully", async () => {
