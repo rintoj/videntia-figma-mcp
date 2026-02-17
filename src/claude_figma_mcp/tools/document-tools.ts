@@ -52,7 +52,8 @@ export function registerDocumentTools(server: McpServer): void {
     async ({ nodeId, depth }) => {
       try {
         const result = await sendCommandToFigma("read_my_design", { nodeId, depth }) as ReadMyDesignResult;
-        const jsx = convertToJsx(result.selection);
+        const selection = result?.selection ?? [];
+        const jsx = convertToJsx(selection);
         return {
           content: [
             {

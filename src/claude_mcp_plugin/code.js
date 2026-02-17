@@ -7090,7 +7090,7 @@ async function readMyDesign(params) {
     if (s.includes('extralight') || s.includes('ultra light') || s.includes('extra light')) return 200;
     if (s.includes('light')) return 300;
     if (s.includes('medium')) return 500;
-    if (s.includes('semibold') || s.includes('semi bold') || s.includes('demi bold')) return 600;
+    if (s.includes('semibold') || s.includes('semi bold') || s.includes('demibold') || s.includes('demi bold')) return 600;
     if (s.includes('extrabold') || s.includes('extra bold') || s.includes('ultra bold')) return 800;
     if (s.includes('black') || s.includes('heavy')) return 900;
     if (s.includes('bold')) return 700;

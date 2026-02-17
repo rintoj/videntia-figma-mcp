@@ -76,6 +76,16 @@ function buildTailwindClasses(node: FigmaNodeData): string[] {
     }
   }
 
+  // Cross-axis spacing (gap-x/gap-y in wrapped layouts)
+  if (node.layoutMode && node.layoutMode !== "NONE" && node.layoutWrap === "WRAP" && node.counterAxisSpacing !== undefined && node.counterAxisSpacing > 0) {
+    const crossGapDir = node.layoutMode === "HORIZONTAL" ? "gap-y" : "gap-x";
+    if (bindings["counterAxisSpacing"]) {
+      classes.push(`${crossGapDir}-${normalizeName(bindings["counterAxisSpacing"])}`);
+    } else {
+      classes.push(`${crossGapDir}-[${node.counterAxisSpacing}px]`);
+    }
+  }
+
   // Clip content
   if (node.clipsContent) classes.push("overflow-hidden");
 
@@ -131,10 +141,10 @@ function buildTailwindClasses(node: FigmaNodeData): string[] {
         classes.push(`py-[${pt}px]`);
       }
     } else {
-      if (pt > 0) classes.push(`pt-[${pt}px]`);
-      if (pr > 0) classes.push(`pr-[${pr}px]`);
-      if (pb > 0) classes.push(`pb-[${pb}px]`);
-      if (pl > 0) classes.push(`pl-[${pl}px]`);
+      if (pt > 0) classes.push(bindings["paddingTop"] ? `pt-${normalizeName(bindings["paddingTop"])}` : `pt-[${pt}px]`);
+      if (pr > 0) classes.push(bindings["paddingRight"] ? `pr-${normalizeName(bindings["paddingRight"])}` : `pr-[${pr}px]`);
+      if (pb > 0) classes.push(bindings["paddingBottom"] ? `pb-${normalizeName(bindings["paddingBottom"])}` : `pb-[${pb}px]`);
+      if (pl > 0) classes.push(bindings["paddingLeft"] ? `pl-${normalizeName(bindings["paddingLeft"])}` : `pl-[${pl}px]`);
     }
   }
 
@@ -289,6 +299,7 @@ function buildStyleAttribute(node: FigmaNodeData): Record<string, string> | null
     } else if (g.type === "GRADIENT_RADIAL") {
       style.background = `radial-gradient(${stops})`;
     }
+    // GRADIENT_ANGULAR and GRADIENT_DIAMOND have no CSS equivalent
   }
 
   // Image fills → backgroundImage
@@ -356,7 +367,7 @@ function nodeToJsx(node: FigmaNodeData, indent: number): string {
   // Build attribute parts
   const attrs: string[] = [];
   attrs.push(`id="${node.id}"`);
-  attrs.push(`name="${node.name}"`);
+  attrs.push(`name="${escapeJsx(node.name)}"`);
 
   if (classes.length > 0) {
     attrs.push(`className="${classes.join(" ")}"`);

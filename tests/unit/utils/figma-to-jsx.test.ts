@@ -136,6 +136,43 @@ describe("convertToJsx", () => {
     expect(jsx).toContain("gap-spacing-4");
   });
 
+  it("should render counter axis spacing as gap-y for horizontal wrap", () => {
+    const jsx = convertToJsx([
+      makeNode({
+        layoutMode: "HORIZONTAL",
+        layoutWrap: "WRAP",
+        itemSpacing: 8,
+        counterAxisSpacing: 12,
+      }),
+    ]);
+    expect(jsx).toContain("gap-y-[12px]");
+  });
+
+  it("should render counter axis spacing as gap-x for vertical wrap", () => {
+    const jsx = convertToJsx([
+      makeNode({
+        layoutMode: "VERTICAL",
+        layoutWrap: "WRAP",
+        itemSpacing: 8,
+        counterAxisSpacing: 16,
+      }),
+    ]);
+    expect(jsx).toContain("gap-x-[16px]");
+  });
+
+  it("should render counter axis spacing with variable binding", () => {
+    const jsx = convertToJsx([
+      makeNode({
+        layoutMode: "HORIZONTAL",
+        layoutWrap: "WRAP",
+        itemSpacing: 8,
+        counterAxisSpacing: 12,
+        bindings: { counterAxisSpacing: "spacing/3" },
+      }),
+    ]);
+    expect(jsx).toContain("gap-y-spacing-3");
+  });
+
   it("should render overflow-hidden for clipsContent", () => {
     const jsx = convertToJsx([makeNode({ clipsContent: true })]);
     expect(jsx).toContain("overflow-hidden");
@@ -227,6 +264,22 @@ describe("convertToJsx", () => {
       makeNode({ paddingTop: 0, paddingRight: 0, paddingBottom: 0, paddingLeft: 0 }),
     ]);
     expect(jsx).not.toContain("p-");
+  });
+
+  it("should render individual padding with variable bindings", () => {
+    const jsx = convertToJsx([
+      makeNode({
+        paddingTop: 4,
+        paddingRight: 8,
+        paddingBottom: 12,
+        paddingLeft: 16,
+        bindings: { paddingTop: "spacing/1", paddingRight: "spacing/2", paddingBottom: "spacing/3", paddingLeft: "spacing/4" },
+      }),
+    ]);
+    expect(jsx).toContain("pt-spacing-1");
+    expect(jsx).toContain("pr-spacing-2");
+    expect(jsx).toContain("pb-spacing-3");
+    expect(jsx).toContain("pl-spacing-4");
   });
 
   it("should render padding with variable binding", () => {
@@ -795,6 +848,15 @@ describe("convertToJsx", () => {
       makeNode({ type: "TEXT", characters: "A < B & C > D" }),
     ]);
     expect(jsx).toContain("A &lt; B &amp; C &gt; D");
+  });
+
+  // --- Name escaping ---
+
+  it("should escape quotes in node names", () => {
+    const jsx = convertToJsx([
+      makeNode({ name: 'Button "Primary"' }),
+    ]);
+    expect(jsx).toContain('name="Button &quot;Primary&quot;"');
   });
 
   // --- Variable name normalization ---
