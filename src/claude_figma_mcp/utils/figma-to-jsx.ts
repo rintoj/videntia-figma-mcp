@@ -1,4 +1,4 @@
-import type { FigmaNodeData } from "../types/index.js";
+import type { FigmaNodeData, FigmaNodeFill } from "../types/index.js";
 
 /**
  * Convert an array of Figma node data objects to JSX+Tailwind string.
@@ -304,9 +304,13 @@ function buildStyleAttribute(node: FigmaNodeData): Record<string, string> | null
   }
 
   // Gradient fills → background
+  // Check all fills for gradients (first fill takes priority, then extras)
   const firstFill = node.fills && node.fills.length > 0 ? node.fills[0] : undefined;
-  if (firstFill?.gradient) {
-    const g = firstFill.gradient;
+  const gradientFill = firstFill?.gradient
+    ? firstFill
+    : node.fills?.find((f) => f.gradient);
+  if (gradientFill?.gradient) {
+    const g = gradientFill.gradient;
     const stops = g.stops.map((s) => `${s.color} ${Math.round(s.position * 100)}%`).join(", ");
     if (g.type === "GRADIENT_LINEAR") {
       style.background = `linear-gradient(${stops})`;
@@ -339,6 +343,44 @@ function hexToRgba(hex: string): string {
   const g = parseInt(h.substring(2, 4), 16);
   const b = parseInt(h.substring(4, 6), 16);
   return `rgba(${r},${g},${b},1)`;
+}
+
+/**
+ * Serialize a single fill for comment output: compact JSON-like representation.
+ */
+function serializeFill(fill: FigmaNodeFill): Record<string, unknown> {
+  const obj: Record<string, unknown> = { type: fill.type };
+  if (fill.color) obj.color = fill.color;
+  if (fill.opacity !== undefined) obj.opacity = fill.opacity;
+  if (fill.gradient) obj.gradient = fill.gradient;
+  if (fill.isImage) obj.isImage = true;
+  if (fill.imageRef) obj.imageRef = fill.imageRef;
+  return obj;
+}
+
+/**
+ * Build a JSX comment for fills beyond index 0 (extra fills).
+ * Returns null if there's only 0 or 1 fill.
+ */
+function buildExtraFillsComment(node: FigmaNodeData): string | null {
+  if (!node.fills || node.fills.length <= 1) return null;
+  const extras = node.fills.slice(1).map(serializeFill);
+  return `{/* Figma fills[1..n]: ${JSON.stringify(extras)} */}`;
+}
+
+/**
+ * Build a JSX comment for strokes beyond index 0 (extra strokes).
+ * Returns null if there's only 0 or 1 stroke.
+ */
+function buildExtraStrokesComment(node: FigmaNodeData): string | null {
+  if (!node.strokes || node.strokes.length <= 1) return null;
+  const extras = node.strokes.slice(1).map((s) => {
+    const obj: Record<string, unknown> = { type: s.type };
+    if (s.color) obj.color = s.color;
+    if (s.opacity !== undefined) obj.opacity = s.opacity;
+    return obj;
+  });
+  return `{/* Figma strokes[1..n]: ${JSON.stringify(extras)} */}`;
 }
 
 /**
@@ -392,17 +434,25 @@ function nodeToJsx(node: FigmaNodeData, indent: number): string {
 
   const attrStr = attrs.join(" ");
 
+  // Build extra fills/strokes comments
+  const extraFillsComment = buildExtraFillsComment(node);
+  const extraStrokesComment = buildExtraStrokesComment(node);
+  const comments: string[] = [];
+  if (extraFillsComment) comments.push(`${pad}${extraFillsComment}`);
+  if (extraStrokesComment) comments.push(`${pad}${extraStrokesComment}`);
+  const commentPrefix = comments.length > 0 ? comments.join("\n") + "\n" : "";
+
   // SVG self-closing for vectors/lines
   if (tag === "svg") {
     const w = node.width ?? 0;
     const h = node.height ?? 0;
-    return `${pad}<svg ${attrStr} width="${w}" height="${h}" />`;
+    return `${commentPrefix}${pad}<svg ${attrStr} width="${w}" height="${h}" />`;
   }
 
   // Text node
   if (node.type === "TEXT") {
     const text = node.characters ? escapeJsx(node.characters) : "";
-    return `${pad}<${tag} ${attrStr}>\n${pad}  ${text}\n${pad}</${tag}>`;
+    return `${commentPrefix}${pad}<${tag} ${attrStr}>\n${pad}  ${text}\n${pad}</${tag}>`;
   }
 
   // Container node
@@ -412,9 +462,9 @@ function nodeToJsx(node: FigmaNodeData, indent: number): string {
       .map((c) => nodeToJsx(c, indent + 1))
       .filter((s) => s.length > 0)
       .join("\n");
-    return `${pad}<${tag} ${attrStr}>\n${childrenJsx}\n${pad}</${tag}>`;
+    return `${commentPrefix}${pad}<${tag} ${attrStr}>\n${childrenJsx}\n${pad}</${tag}>`;
   }
 
   // Empty container / leaf
-  return `${pad}<${tag} ${attrStr} />`;
+  return `${commentPrefix}${pad}<${tag} ${attrStr} />`;
 }

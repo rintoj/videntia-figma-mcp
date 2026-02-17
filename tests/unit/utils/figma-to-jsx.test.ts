@@ -997,4 +997,111 @@ describe("convertToJsx", () => {
     const jsx = convertToJsx([makeNode()], 2);
     expect(jsx.startsWith("    ")).toBe(true); // 2 levels = 4 spaces
   });
+
+  // --- Multiple fills ---
+
+  it("should emit a comment for extra fills beyond index 0", () => {
+    const jsx = convertToJsx([
+      makeNode({
+        fills: [
+          { type: "SOLID", color: "#ffffff" },
+          { type: "SOLID", color: "#FF0000", opacity: 0.5 },
+        ],
+      }),
+    ]);
+    expect(jsx).toContain("bg-[#ffffff]");
+    expect(jsx).toContain("{/* Figma fills[1..n]:");
+    expect(jsx).toContain('"color":"#FF0000"');
+    expect(jsx).toContain('"opacity":0.5');
+  });
+
+  it("should not emit extra fills comment for single fill", () => {
+    const jsx = convertToJsx([
+      makeNode({ fills: [{ type: "SOLID", color: "#ffffff" }] }),
+    ]);
+    expect(jsx).not.toContain("Figma fills[1..n]");
+  });
+
+  it("should emit gradient from extra fill in style when first fill is solid", () => {
+    const jsx = convertToJsx([
+      makeNode({
+        fills: [
+          { type: "SOLID", color: "#ffffff" },
+          {
+            type: "GRADIENT_LINEAR",
+            gradient: {
+              type: "GRADIENT_LINEAR",
+              stops: [
+                { color: "#ff0000", position: 0 },
+                { color: "#0000ff", position: 1 },
+              ],
+            },
+          },
+        ],
+      }),
+    ]);
+    expect(jsx).toContain("bg-[#ffffff]");
+    expect(jsx).toContain("background:");
+    expect(jsx).toContain("linear-gradient");
+  });
+
+  it("should emit extra fills comment for 3+ fills", () => {
+    const jsx = convertToJsx([
+      makeNode({
+        fills: [
+          { type: "SOLID", color: "#111111" },
+          { type: "SOLID", color: "#222222" },
+          { type: "SOLID", color: "#333333" },
+        ],
+      }),
+    ]);
+    expect(jsx).toContain("Figma fills[1..n]:");
+    expect(jsx).toContain('"#222222"');
+    expect(jsx).toContain('"#333333"');
+  });
+
+  // --- Multiple strokes ---
+
+  it("should emit a comment for extra strokes beyond index 0", () => {
+    const jsx = convertToJsx([
+      makeNode({
+        strokes: [
+          { type: "SOLID", color: "#000000" },
+          { type: "SOLID", color: "#00FF00" },
+        ],
+        strokeWeight: 1,
+      }),
+    ]);
+    expect(jsx).toContain("border-[#000000]");
+    expect(jsx).toContain("{/* Figma strokes[1..n]:");
+    expect(jsx).toContain('"#00FF00"');
+  });
+
+  it("should not emit extra strokes comment for single stroke", () => {
+    const jsx = convertToJsx([
+      makeNode({
+        strokes: [{ type: "SOLID", color: "#000000" }],
+        strokeWeight: 1,
+      }),
+    ]);
+    expect(jsx).not.toContain("Figma strokes[1..n]");
+  });
+
+  it("should emit both extra fills and extra strokes comments", () => {
+    const jsx = convertToJsx([
+      makeNode({
+        fills: [
+          { type: "SOLID", color: "#ffffff" },
+          { type: "SOLID", color: "#FF0000" },
+        ],
+        strokes: [
+          { type: "SOLID", color: "#000000" },
+          { type: "SOLID", color: "#00FF00" },
+        ],
+        strokeWeight: 1,
+      }),
+    ]);
+    expect(jsx).toContain("Figma fills[1..n]:");
+    expect(jsx).toContain("Figma strokes[1..n]:");
+  });
 });

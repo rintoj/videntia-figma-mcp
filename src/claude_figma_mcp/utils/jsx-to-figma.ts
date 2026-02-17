@@ -9,14 +9,31 @@ export function parseJsx(jsx: string): FigmaNodeData[] {
 
   const nodes: FigmaNodeData[] = [];
   let pos = 0;
+  let pendingExtras: PendingExtras = {};
 
   while (pos < trimmed.length) {
     // Skip whitespace
     while (pos < trimmed.length && /\s/.test(trimmed[pos])) pos++;
     if (pos >= trimmed.length) break;
 
+    // Try to parse JSX comments (extra fills/strokes)
+    const comment = tryParseJsxComment(trimmed, pos);
+    if (comment) {
+      const extras = parseExtraComment(comment.body);
+      if (extras) {
+        if (extras.fills) pendingExtras.fills = [...(pendingExtras.fills || []), ...extras.fills];
+        if (extras.strokes) pendingExtras.strokes = [...(pendingExtras.strokes || []), ...extras.strokes];
+      }
+      pos = comment.pos;
+      continue;
+    }
+
     if (trimmed[pos] === "<") {
       const result = parseElement(trimmed, pos);
+      if (pendingExtras.fills || pendingExtras.strokes) {
+        applyPendingExtras(result.node, pendingExtras);
+        pendingExtras = {};
+      }
       nodes.push(result.node);
       pos = result.pos;
     } else {
@@ -25,6 +42,62 @@ export function parseJsx(jsx: string): FigmaNodeData[] {
   }
 
   return nodes;
+}
+
+// --- JSX comment parsing for extra fills/strokes ---
+
+interface PendingExtras {
+  fills?: FigmaNodeFill[];
+  strokes?: Array<{ type: string; color?: string; opacity?: number }>;
+}
+
+/**
+ * Try to parse a JSX comment at the given position: {/* ... *​/}
+ * Returns the comment body and the new position, or null if not a comment.
+ */
+function tryParseJsxComment(input: string, pos: number): { body: string; pos: number } | null {
+  if (input.substring(pos, pos + 3) !== "{/*") return null;
+  const endMarker = "*/}";
+  const endIdx = input.indexOf(endMarker, pos + 3);
+  if (endIdx === -1) return null;
+  const body = input.substring(pos + 3, endIdx).trim();
+  return { body, pos: endIdx + endMarker.length };
+}
+
+/**
+ * Parse an extra-fills or extra-strokes comment body.
+ * Expected format: "Figma fills[1..n]: [...]" or "Figma strokes[1..n]: [...]"
+ */
+function parseExtraComment(body: string): PendingExtras | null {
+  const fillsMatch = body.match(/^Figma fills\[1\.\.n\]:\s*(\[.+\])$/);
+  if (fillsMatch) {
+    try {
+      const fills = JSON.parse(fillsMatch[1]) as FigmaNodeFill[];
+      return { fills };
+    } catch { return null; }
+  }
+  const strokesMatch = body.match(/^Figma strokes\[1\.\.n\]:\s*(\[.+\])$/);
+  if (strokesMatch) {
+    try {
+      const strokes = JSON.parse(strokesMatch[1]) as Array<{ type: string; color?: string; opacity?: number }>;
+      return { strokes };
+    } catch { return null; }
+  }
+  return null;
+}
+
+/**
+ * Apply pending extra fills/strokes to a node.
+ */
+function applyPendingExtras(node: FigmaNodeData, extras: PendingExtras): void {
+  if (extras.fills) {
+    node.fills = node.fills || [];
+    node.fills.push(...extras.fills);
+  }
+  if (extras.strokes) {
+    node.strokes = node.strokes || [];
+    node.strokes.push(...extras.strokes);
+  }
 }
 
 // --- Recursive descent parser ---
@@ -91,6 +164,7 @@ function parseElement(input: string, pos: number): ParseResult {
   } else {
     // Container: parse child elements
     const children: FigmaNodeData[] = [];
+    let childPendingExtras: PendingExtras = {};
     while (true) {
       pos = skipWhitespace(input, pos);
       if (pos >= input.length) break;
@@ -109,8 +183,24 @@ function parseElement(input: string, pos: number): ParseResult {
         break;
       }
 
+      // Try to parse JSX comments (extra fills/strokes)
+      const childComment = tryParseJsxComment(input, pos);
+      if (childComment) {
+        const extras = parseExtraComment(childComment.body);
+        if (extras) {
+          if (extras.fills) childPendingExtras.fills = [...(childPendingExtras.fills || []), ...extras.fills];
+          if (extras.strokes) childPendingExtras.strokes = [...(childPendingExtras.strokes || []), ...extras.strokes];
+        }
+        pos = childComment.pos;
+        continue;
+      }
+
       if (input[pos] === "<") {
         const childResult = parseElement(input, pos);
+        if (childPendingExtras.fills || childPendingExtras.strokes) {
+          applyPendingExtras(childResult.node, childPendingExtras);
+          childPendingExtras = {};
+        }
         children.push(childResult.node);
         pos = childResult.pos;
       } else {
@@ -244,6 +334,12 @@ function applyClassName(node: FigmaNodeData, className: string): void {
   const deferredTextClasses: string[] = [];
   let hasFontSize = false;
   let hasIndividualTypography = false;
+
+  // Gradient accumulator
+  let gradientDir: string | undefined;
+  let gradientFrom: { color: string; opacity?: number; varName?: string } | undefined;
+  let gradientVia: { color: string; opacity?: number; varName?: string } | undefined;
+  let gradientTo: { color: string; opacity?: number; varName?: string } | undefined;
 
   // First pass: detect typography indicators
   for (const cls of classes) {
@@ -395,6 +491,30 @@ function applyClassName(node: FigmaNodeData, className: string): void {
       node.fills = [fill];
       continue;
     }
+    // --- Tailwind gradient classes (must come BEFORE catch-all bg-*) ---
+    if ((m = cls.match(/^bg-gradient-to-(r|l|t|b|tr|tl|br|bl)$/))) {
+      gradientDir = m[1]; continue;
+    }
+    if ((m = cls.match(/^from-\[(#[0-9a-fA-F]{3,8})\](?:\/(\d+))?$/))) {
+      gradientFrom = { color: m[1], opacity: m[2] ? Number(m[2]) / 100 : undefined }; continue;
+    }
+    if ((m = cls.match(/^via-\[(#[0-9a-fA-F]{3,8})\](?:\/(\d+))?$/))) {
+      gradientVia = { color: m[1], opacity: m[2] ? Number(m[2]) / 100 : undefined }; continue;
+    }
+    if ((m = cls.match(/^to-\[(#[0-9a-fA-F]{3,8})\](?:\/(\d+))?$/))) {
+      gradientTo = { color: m[1], opacity: m[2] ? Number(m[2]) / 100 : undefined }; continue;
+    }
+    // Gradient variable bindings: from-{var}, via-{var}, to-{var}
+    if ((m = cls.match(/^from-(.+)$/)) && !m[1].startsWith("[")) {
+      gradientFrom = { color: "#000000", varName: denormalizeVarName(m[1]) }; continue;
+    }
+    if ((m = cls.match(/^via-(.+)$/)) && !m[1].startsWith("[")) {
+      gradientVia = { color: "#000000", varName: denormalizeVarName(m[1]) }; continue;
+    }
+    if ((m = cls.match(/^to-(.+)$/)) && !m[1].startsWith("[")) {
+      gradientTo = { color: "#000000", varName: denormalizeVarName(m[1]) }; continue;
+    }
+
     // bg-{var}
     if ((m = cls.match(/^bg-(.+)$/)) && !m[1].startsWith("[")) {
       const varName = denormalizeVarName(m[1]);
@@ -534,6 +654,26 @@ function applyClassName(node: FigmaNodeData, className: string): void {
     // --- Opacity ---
     if ((m = cls.match(/^opacity-\[(\d+(?:\.\d+)?)\]$/))) {
       node.opacity = Number(m[1]); continue;
+    }
+  }
+
+  // Assemble gradient fill from accumulated gradient classes
+  if (gradientDir || gradientFrom || gradientVia || gradientTo) {
+    const stops: Array<{ color: string; position: number }> = [];
+    if (gradientFrom) stops.push({ color: gradientFrom.color, position: 0 });
+    if (gradientVia) stops.push({ color: gradientVia.color, position: 0.5 });
+    if (gradientTo) stops.push({ color: gradientTo.color, position: 1 });
+    if (stops.length > 0) {
+      const gradientFill: FigmaNodeFill = {
+        type: "GRADIENT_LINEAR",
+        gradient: {
+          type: "GRADIENT_LINEAR",
+          stops,
+          ...(gradientDir ? { direction: gradientDir } : {}),
+        },
+      };
+      node.fills = node.fills || [];
+      node.fills.push(gradientFill);
     }
   }
 

@@ -731,4 +731,149 @@ describe("parseJsx", () => {
     expect(imageFill).toBeDefined();
     expect(imageFill!.imageRef).toBe("img-ref-123");
   });
+
+  it("should round-trip multiple fills via comment", () => {
+    const original = makeNode({
+      fills: [
+        { type: "SOLID", color: "#ffffff" },
+        { type: "SOLID", color: "#FF0000", opacity: 0.5 },
+      ],
+    });
+    const jsx = convertToJsx([original]);
+    const parsed = parseJsx(jsx);
+    expect(parsed[0].fills).toHaveLength(2);
+    expect(parsed[0].fills![0].color).toBe("#ffffff");
+    expect(parsed[0].fills![1].color).toBe("#FF0000");
+    expect(parsed[0].fills![1].opacity).toBe(0.5);
+  });
+
+  it("should round-trip multiple strokes via comment", () => {
+    const original = makeNode({
+      strokes: [
+        { type: "SOLID", color: "#000000" },
+        { type: "SOLID", color: "#00FF00" },
+      ],
+      strokeWeight: 1,
+    });
+    const jsx = convertToJsx([original]);
+    const parsed = parseJsx(jsx);
+    expect(parsed[0].strokes).toHaveLength(2);
+    expect(parsed[0].strokes![0].color).toBe("#000000");
+    expect(parsed[0].strokes![1].color).toBe("#00FF00");
+  });
+});
+
+// --- Tailwind gradient classes ---
+
+describe("parseJsx - Tailwind gradients", () => {
+  it("should parse bg-gradient-to-r with from/to hex colors", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="bg-gradient-to-r from-[#FF0000] to-[#0000FF]" />');
+    expect(nodes[0].fills).toHaveLength(1);
+    const fill = nodes[0].fills![0];
+    expect(fill.type).toBe("GRADIENT_LINEAR");
+    expect(fill.gradient?.type).toBe("GRADIENT_LINEAR");
+    expect(fill.gradient?.direction).toBe("r");
+    expect(fill.gradient?.stops).toHaveLength(2);
+    expect(fill.gradient?.stops[0]).toEqual({ color: "#FF0000", position: 0 });
+    expect(fill.gradient?.stops[1]).toEqual({ color: "#0000FF", position: 1 });
+  });
+
+  it("should parse gradient with via (3 stops)", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="bg-gradient-to-b from-[#FF0000] via-[#00FF00] to-[#0000FF]" />');
+    const fill = nodes[0].fills![0];
+    expect(fill.gradient?.stops).toHaveLength(3);
+    expect(fill.gradient?.stops[0]).toEqual({ color: "#FF0000", position: 0 });
+    expect(fill.gradient?.stops[1]).toEqual({ color: "#00FF00", position: 0.5 });
+    expect(fill.gradient?.stops[2]).toEqual({ color: "#0000FF", position: 1 });
+    expect(fill.gradient?.direction).toBe("b");
+  });
+
+  it("should parse gradient with opacity on from/to", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="bg-gradient-to-r from-[#FF0000]/50 to-[#0000FF]/80" />');
+    const fill = nodes[0].fills![0];
+    expect(fill.gradient?.stops).toHaveLength(2);
+    // Colors are stored as-is (hex without opacity in gradient stops)
+    expect(fill.gradient?.stops[0].color).toBe("#FF0000");
+    expect(fill.gradient?.stops[1].color).toBe("#0000FF");
+  });
+
+  it("should parse gradient with various directions", () => {
+    const directions = ["r", "l", "t", "b", "tr", "tl", "br", "bl"];
+    for (const dir of directions) {
+      const nodes = parseJsx(`<div id="1:1" name="T" className="bg-gradient-to-${dir} from-[#000] to-[#fff]" />`);
+      expect(nodes[0].fills![0].gradient?.direction).toBe(dir);
+    }
+  });
+
+  it("should parse gradient without direction (from/to only)", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="from-[#FF0000] to-[#0000FF]" />');
+    expect(nodes[0].fills).toHaveLength(1);
+    expect(nodes[0].fills![0].gradient?.stops).toHaveLength(2);
+  });
+
+  it("should not confuse gradient classes with bg-* variable", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="bg-gradient-to-r from-[#FF0000] to-[#0000FF]" />');
+    // Should NOT create a variable binding for bg-gradient-to-r
+    expect(nodes[0].bindings?.["fills/0"]).toBeUndefined();
+  });
+});
+
+// --- Extra fills/strokes comment parsing ---
+
+describe("parseJsx - extra fills/strokes comments", () => {
+  it("should parse extra fills comment and append to node", () => {
+    const jsx = `{/* Figma fills[1..n]: [{"type":"SOLID","color":"#FF0000","opacity":0.5}] */}
+<div id="1:1" name="T" className="bg-[#ffffff]" />`;
+    const nodes = parseJsx(jsx);
+    expect(nodes[0].fills).toHaveLength(2);
+    expect(nodes[0].fills![0].color).toBe("#ffffff");
+    expect(nodes[0].fills![1].color).toBe("#FF0000");
+    expect(nodes[0].fills![1].opacity).toBe(0.5);
+  });
+
+  it("should parse extra strokes comment and append to node", () => {
+    const jsx = `{/* Figma strokes[1..n]: [{"type":"SOLID","color":"#00FF00"}] */}
+<div id="1:1" name="T" className="border-[1px] border-[#000000]" />`;
+    const nodes = parseJsx(jsx);
+    expect(nodes[0].strokes).toHaveLength(2);
+    expect(nodes[0].strokes![0].color).toBe("#000000");
+    expect(nodes[0].strokes![1].color).toBe("#00FF00");
+  });
+
+  it("should parse extra fills comment inside container children", () => {
+    const jsx = `<div id="1:1" name="Parent" className="flex flex-col">
+  {/* Figma fills[1..n]: [{"type":"SOLID","color":"#FF0000"}] */}
+  <div id="1:2" name="Child" className="bg-[#ffffff]" />
+</div>`;
+    const nodes = parseJsx(jsx);
+    const child = nodes[0].children![0];
+    expect(child.fills).toHaveLength(2);
+    expect(child.fills![0].color).toBe("#ffffff");
+    expect(child.fills![1].color).toBe("#FF0000");
+  });
+
+  it("should parse both extra fills and extra strokes comments", () => {
+    const jsx = `{/* Figma fills[1..n]: [{"type":"SOLID","color":"#FF0000"}] */}
+{/* Figma strokes[1..n]: [{"type":"SOLID","color":"#00FF00"}] */}
+<div id="1:1" name="T" className="bg-[#ffffff] border-[1px] border-[#000000]" />`;
+    const nodes = parseJsx(jsx);
+    expect(nodes[0].fills).toHaveLength(2);
+    expect(nodes[0].strokes).toHaveLength(2);
+  });
+
+  it("should handle multiple extra fills in comment", () => {
+    const jsx = `{/* Figma fills[1..n]: [{"type":"SOLID","color":"#FF0000"},{"type":"SOLID","color":"#00FF00"}] */}
+<div id="1:1" name="T" className="bg-[#ffffff]" />`;
+    const nodes = parseJsx(jsx);
+    expect(nodes[0].fills).toHaveLength(3);
+    expect(nodes[0].fills![1].color).toBe("#FF0000");
+    expect(nodes[0].fills![2].color).toBe("#00FF00");
+  });
+
+  it("should ignore non-fills/strokes comments", () => {
+    const jsx = `{/* Some random comment */}
+<div id="1:1" name="T" className="bg-[#ffffff]" />`;
+    const nodes = parseJsx(jsx);
+    expect(nodes[0].fills).toHaveLength(1);
+  });
 });

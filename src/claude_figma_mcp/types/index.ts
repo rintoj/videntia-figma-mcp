@@ -239,6 +239,7 @@ export interface FigmaNodeFill {
   gradient?: {
     type: string;
     stops: Array<{ color: string; position: number }>;
+    direction?: string;
   };
   isImage?: boolean;
   imageRef?: string;
