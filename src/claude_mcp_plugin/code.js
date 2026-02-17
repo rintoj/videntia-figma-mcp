@@ -6978,6 +6978,8 @@ async function createFromData(params) {
   async function createNode(nodeData, parentNode, isRoot, rootX, rootY) {
     let node;
 
+    let skipChildRecursion = false;
+
     if (nodeData.type === "TEXT") {
       node = figma.createText();
       // Font loading MUST happen first
@@ -6999,6 +7001,95 @@ async function createFromData(params) {
       if (nodeData.characters) {
         await setCharacters(node, nodeData.characters);
       }
+    } else if (nodeData.type === "COMPONENT") {
+      node = figma.createComponent();
+      node.fills = [];
+    } else if (nodeData.type === "COMPONENT_SET") {
+      // COMPONENT_SET requires special handling:
+      // 1. Create child components inside a temp frame
+      // 2. Combine them as variants
+      const tempFrame = figma.createFrame();
+      tempFrame.name = nodeData.name || "ComponentSet";
+      tempFrame.fills = [];
+      parentNode.appendChild(tempFrame);
+
+      // Create all child components inside the temp frame
+      const childComponents = [];
+      if (nodeData.children && nodeData.children.length > 0) {
+        for (const child of nodeData.children) {
+          const childNode = await createNode(child, tempFrame, false);
+          if (childNode && childNode.type === "COMPONENT") {
+            childComponents.push(childNode);
+          }
+        }
+      }
+
+      if (childComponents.length > 0) {
+        // Combine as variants — this creates the COMPONENT_SET
+        node = figma.combineAsVariants(childComponents, parentNode);
+        node.name = nodeData.name || "ComponentSet";
+      } else {
+        // No child components — create as a regular component
+        node = figma.createComponent();
+        node.fills = [];
+        parentNode.appendChild(node);
+      }
+
+      // Remove the temp frame
+      tempFrame.remove();
+
+      // Add non-VARIANT property definitions
+      if (nodeData.componentPropertyDefinitions && node.type === "COMPONENT_SET") {
+        for (const [propName, def] of Object.entries(nodeData.componentPropertyDefinitions)) {
+          if (def.type === "VARIANT") continue; // Variants are auto-created by combineAsVariants
+          try {
+            node.addComponentProperty(propName, def.type, def.default !== undefined ? def.default : (def.type === "BOOLEAN" ? true : ""));
+          } catch (e) {
+            console.warn(`Failed to add component property "${propName}":`, e);
+          }
+        }
+      }
+
+      skipChildRecursion = true; // Children already created above
+    } else if (nodeData.type === "INSTANCE") {
+      // Search for the source component by name
+      const componentName = nodeData.mainComponentName || nodeData.name;
+      let sourceComponent = null;
+
+      // Search in current page for a matching component
+      const allComponents = figma.currentPage.findAll(n => n.type === "COMPONENT");
+      for (const comp of allComponents) {
+        // Match by component name or parent COMPONENT_SET name
+        if (comp.name === componentName) {
+          sourceComponent = comp;
+          break;
+        }
+        if (comp.parent && comp.parent.type === "COMPONENT_SET" && comp.parent.name === componentName) {
+          sourceComponent = comp;
+          break;
+        }
+      }
+
+      if (sourceComponent) {
+        node = sourceComponent.createInstance();
+        // Apply component properties if present
+        if (nodeData.componentProperties) {
+          const propsToSet = {};
+          for (const [key, prop] of Object.entries(nodeData.componentProperties)) {
+            propsToSet[key] = prop.value;
+          }
+          try {
+            node.setProperties(propsToSet);
+          } catch (e) {
+            console.warn("Failed to set instance properties:", e);
+          }
+        }
+      } else {
+        // Fallback: create a frame with a warning
+        node = figma.createFrame();
+        node.fills = [];
+        console.warn(`Component "${componentName}" not found — created frame as fallback`);
+      }
     } else if (nodeData.type === "RECTANGLE" || nodeData.type === "VECTOR" || nodeData.type === "LINE") {
       node = figma.createRectangle();
     } else {
@@ -7011,7 +7102,12 @@ async function createFromData(params) {
     node.name = nodeData.name || "Node";
 
     // Append to parent FIRST (required for layout properties)
-    parentNode.appendChild(node);
+    // Skip for COMPONENT_SET (handled above) and INSTANCE from found component (already has parent)
+    if (nodeData.type !== "COMPONENT_SET") {
+      if (node.parent !== parentNode) {
+        parentNode.appendChild(node);
+      }
+    }
 
     // Set position for root nodes
     if (isRoot && rootX !== undefined) node.x = rootX;
@@ -7128,8 +7224,8 @@ async function createFromData(params) {
       }
     }
 
-    // Recursively create children
-    if (nodeData.children && nodeData.children.length > 0) {
+    // Recursively create children (unless already handled, e.g. COMPONENT_SET)
+    if (!skipChildRecursion && nodeData.children && nodeData.children.length > 0) {
       for (const child of nodeData.children) {
         await createNode(child, node, false);
       }

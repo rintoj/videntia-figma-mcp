@@ -903,3 +903,215 @@ describe("parseJsx - multiple fills/strokes accumulation", () => {
     expect(nodes[0].fills![2].color).toBe("#333333");
   });
 });
+
+// --- Component tags ---
+
+describe("parseJsx - component tags", () => {
+  it("should detect COMPONENT_SET from tag with Set suffix", () => {
+    const nodes = parseJsx('<ButtonSet id="1:1" />');
+    expect(nodes[0].type).toBe("COMPONENT_SET");
+    expect(nodes[0].name).toBe("Button");
+  });
+
+  it("should detect COMPONENT_SET from propertyDefinitions attr", () => {
+    const jsx = '<MyComponent id="1:1" propertyDefinitions={{ size: "sm | md | lg" }} />';
+    const nodes = parseJsx(jsx);
+    expect(nodes[0].type).toBe("COMPONENT_SET");
+    expect(nodes[0].name).toBe("MyComponent");
+  });
+
+  it("should parse propertyDefinitions into componentPropertyDefinitions", () => {
+    const jsx = '<ButtonSet id="1:1" propertyDefinitions={{ size: "sm | md | lg", disabled: false }} />';
+    const nodes = parseJsx(jsx);
+    expect(nodes[0].componentPropertyDefinitions).toBeDefined();
+    const defs = nodes[0].componentPropertyDefinitions!;
+    expect(defs["size"]).toEqual({ type: "VARIANT", options: ["sm", "md", "lg"], default: "sm" });
+    expect(defs["disabled"]).toEqual({ type: "BOOLEAN", default: false });
+  });
+
+  it("should restore original names from propertyNameMap in COMPONENT_SET", () => {
+    const jsx = '<ButtonSet id="1:1" propertyDefinitions={{ showIcon: true }} propertyNameMap={{ showIcon: "Show Icon" }} />';
+    const nodes = parseJsx(jsx);
+    const defs = nodes[0].componentPropertyDefinitions!;
+    expect(defs["Show Icon"]).toBeDefined();
+    expect(defs["Show Icon"].type).toBe("BOOLEAN");
+    expect(defs["showIcon"]).toBeUndefined();
+  });
+
+  it("should parse InstanceSwap property definition", () => {
+    const jsx = '<ButtonSet id="1:1" propertyDefinitions={{ icon: "InstanceSwap" }} />';
+    const nodes = parseJsx(jsx);
+    expect(nodes[0].componentPropertyDefinitions!["icon"]).toEqual({ type: "INSTANCE_SWAP" });
+  });
+
+  it("should parse TEXT property definition", () => {
+    const jsx = '<ButtonSet id="1:1" propertyDefinitions={{ label: "Click me" }} />';
+    const nodes = parseJsx(jsx);
+    expect(nodes[0].componentPropertyDefinitions!["label"]).toEqual({ type: "TEXT", default: "Click me" });
+  });
+
+  it("should detect COMPONENT as child of COMPONENT_SET", () => {
+    const jsx = `<ButtonSet id="1:1">
+  <Button id="1:2" size="md" state="default" />
+</ButtonSet>`;
+    const nodes = parseJsx(jsx);
+    expect(nodes[0].type).toBe("COMPONENT_SET");
+    expect(nodes[0].children).toHaveLength(1);
+    expect(nodes[0].children![0].type).toBe("COMPONENT");
+  });
+
+  it("should populate variantProperties on COMPONENT children", () => {
+    const jsx = `<ButtonSet id="1:1">
+  <Button id="1:2" size="md" state="default" />
+</ButtonSet>`;
+    const nodes = parseJsx(jsx);
+    const child = nodes[0].children![0];
+    expect(child.variantProperties).toEqual({ size: "md", state: "default" });
+  });
+
+  it("should derive COMPONENT name from variant props", () => {
+    const jsx = `<ButtonSet id="1:1">
+  <Button id="1:2" size="md" state="default" />
+</ButtonSet>`;
+    const nodes = parseJsx(jsx);
+    const child = nodes[0].children![0];
+    expect(child.name).toBe("size=md, state=default");
+  });
+
+  it("should restore original variant property names from propertyNameMap", () => {
+    const jsx = `<ButtonSet id="1:1">
+  <Button id="1:2" showIcon="true" propertyNameMap={{ showIcon: "Show Icon" }} />
+</ButtonSet>`;
+    const nodes = parseJsx(jsx);
+    const child = nodes[0].children![0];
+    expect(child.variantProperties!["Show Icon"]).toBe("true");
+    expect(child.variantProperties!["showIcon"]).toBeUndefined();
+  });
+
+  it("should set componentSetName on COMPONENT children", () => {
+    const jsx = `<ButtonSet id="1:1">
+  <Button id="1:2" size="md" />
+</ButtonSet>`;
+    const nodes = parseJsx(jsx);
+    expect(nodes[0].children![0].componentSetName).toBe("Button");
+  });
+
+  it("should detect standalone COMPONENT from bare PascalCase tag", () => {
+    const nodes = parseJsx('<IconClose id="1:1" />');
+    expect(nodes[0].type).toBe("COMPONENT");
+    expect(nodes[0].name).toBe("IconClose");
+  });
+
+  it("should detect INSTANCE from PascalCase tag with non-standard attrs", () => {
+    const jsx = '<Button id="1:1" size="md" disabled={false} />';
+    const nodes = parseJsx(jsx);
+    expect(nodes[0].type).toBe("INSTANCE");
+  });
+
+  it("should parse INSTANCE componentProperties with type inference", () => {
+    const jsx = '<Button id="1:1" size="lg" disabled={true} />';
+    const nodes = parseJsx(jsx);
+    expect(nodes[0].componentProperties).toBeDefined();
+    const props = nodes[0].componentProperties!;
+    expect(props["size"]).toEqual({ type: "VARIANT", value: "lg" });
+    expect(props["disabled"]).toEqual({ type: "BOOLEAN", value: true });
+  });
+
+  it("should set mainComponentName on INSTANCE from tag", () => {
+    const jsx = '<Button id="1:1" size="md" />';
+    const nodes = parseJsx(jsx);
+    expect(nodes[0].mainComponentName).toBe("Button");
+  });
+
+  it("should set mainComponentName on INSTANCE from componentName attr", () => {
+    const jsx = '<ProfileAvatar id="1:1" componentName="Profile Avatar" size="lg" />';
+    const nodes = parseJsx(jsx);
+    expect(nodes[0].mainComponentName).toBe("Profile Avatar");
+    expect(nodes[0].name).toBe("Profile Avatar");
+  });
+
+  it("should preserve componentName on COMPONENT_SET", () => {
+    const jsx = '<ProfileAvatarSet id="1:1" componentName="Profile Avatar" />';
+    const nodes = parseJsx(jsx);
+    expect(nodes[0].type).toBe("COMPONENT_SET");
+    expect(nodes[0].name).toBe("Profile Avatar");
+  });
+
+  it("should round-trip COMPONENT_SET with variants", () => {
+    const original: FigmaNodeData = {
+      id: "1:1",
+      name: "Button",
+      type: "COMPONENT_SET",
+      visible: true,
+      componentPropertyDefinitions: {
+        "Size": { type: "VARIANT", options: ["sm", "md", "lg"] },
+        "Disabled": { type: "BOOLEAN", default: false },
+      },
+      children: [
+        {
+          id: "1:2",
+          name: "Size=md, Disabled=false",
+          type: "COMPONENT",
+          visible: true,
+          componentSetName: "Button",
+          variantProperties: { "Size": "md", "Disabled": "false" },
+        },
+      ],
+    };
+    const jsx = convertToJsx([original]);
+    const parsed = parseJsx(jsx);
+
+    expect(parsed[0].type).toBe("COMPONENT_SET");
+    expect(parsed[0].name).toBe("Button");
+    expect(parsed[0].componentPropertyDefinitions).toBeDefined();
+    expect(parsed[0].componentPropertyDefinitions!["Size"]).toEqual({
+      type: "VARIANT",
+      options: ["sm", "md", "lg"],
+      default: "sm",
+    });
+    expect(parsed[0].componentPropertyDefinitions!["Disabled"]).toEqual({
+      type: "BOOLEAN",
+      default: false,
+    });
+
+    expect(parsed[0].children).toHaveLength(1);
+    const child = parsed[0].children![0];
+    expect(child.type).toBe("COMPONENT");
+    expect(child.variantProperties).toBeDefined();
+  });
+
+  it("should round-trip standalone COMPONENT", () => {
+    const original: FigmaNodeData = {
+      id: "1:1",
+      name: "CloseIcon",
+      type: "COMPONENT",
+      visible: true,
+      layoutMode: "HORIZONTAL",
+    };
+    const jsx = convertToJsx([original]);
+    const parsed = parseJsx(jsx);
+    expect(parsed[0].type).toBe("COMPONENT");
+    expect(parsed[0].name).toBe("CloseIcon");
+  });
+
+  it("should round-trip INSTANCE with properties", () => {
+    const original: FigmaNodeData = {
+      id: "1:1",
+      name: "Button",
+      type: "INSTANCE",
+      visible: true,
+      mainComponentName: "Button",
+      componentProperties: {
+        "Size": { type: "VARIANT", value: "lg" },
+        "Disabled": { type: "BOOLEAN", value: true },
+      },
+    };
+    const jsx = convertToJsx([original]);
+    const parsed = parseJsx(jsx);
+    expect(parsed[0].type).toBe("INSTANCE");
+    expect(parsed[0].mainComponentName).toBe("Button");
+    expect(parsed[0].componentProperties).toBeDefined();
+    expect(parsed[0].componentProperties!["Size"]).toEqual({ type: "VARIANT", value: "lg" });
+    expect(parsed[0].componentProperties!["Disabled"]).toEqual({ type: "BOOLEAN", value: true });
+  });
+});
