@@ -346,7 +346,7 @@ async function handleCommand(command, params) {
     case "set_selections":
       return await setSelections(params);
     case "read_my_design":
-      return await readMyDesign();
+      return await readMyDesign(params);
     // Scan commands
     case "scan_nodes_by_types":
       return await scanNodesByTypes(params);
@@ -6838,69 +6838,287 @@ async function setSelections(params) {
   };
 }
 
-async function readMyDesign() {
-  const selection = figma.currentPage.selection;
+async function readMyDesign(params) {
+  const { nodeId, depth } = params || {};
 
-  if (selection.length === 0) {
-    throw new Error('No nodes selected. Please select nodes in Figma first.');
+  // Build variable ID → name map once
+  const variableMap = new Map();
+  try {
+    const localVars = await figma.variables.getLocalVariablesAsync();
+    for (const v of localVars) {
+      variableMap.set(v.id, v.name);
+    }
+  } catch (e) {
+    // Variables API may not be available in all contexts
   }
 
-  const processNode = async (node) => {
-    const baseInfo = {
+  // Build text style ID → name map once
+  const textStyleMap = new Map();
+  try {
+    const localStyles = await figma.getLocalTextStylesAsync();
+    for (const s of localStyles) {
+      textStyleMap.set(s.id, s.name);
+    }
+  } catch (e) {
+    // Text styles API may not be available
+  }
+
+  // Helper: convert Figma color {r,g,b} (0-1) to hex string
+  function colorToHex(color) {
+    const r = Math.round(color.r * 255).toString(16).padStart(2, '0');
+    const g = Math.round(color.g * 255).toString(16).padStart(2, '0');
+    const b = Math.round(color.b * 255).toString(16).padStart(2, '0');
+    return `#${r}${g}${b}`;
+  }
+
+  // Helper: resolve bound variables for a node
+  function resolveBindings(node) {
+    const bindings = {};
+    if (!('boundVariables' in node) || !node.boundVariables) return bindings;
+
+    const bv = node.boundVariables;
+    for (const [field, binding] of Object.entries(bv)) {
+      if (!binding) continue;
+      // Binding can be a single object or an array (e.g. fills)
+      if (Array.isArray(binding)) {
+        binding.forEach((b, i) => {
+          if (b && b.id) {
+            const name = variableMap.get(b.id);
+            if (name) bindings[`${field}/${i}`] = name;
+          }
+        });
+      } else if (binding.id) {
+        const name = variableMap.get(binding.id);
+        if (name) bindings[field] = name;
+      }
+    }
+    return bindings;
+  }
+
+  // Helper: extract simplified fills
+  function extractFills(node) {
+    if (!('fills' in node) || node.fills === figma.mixed) return undefined;
+    const fills = node.fills;
+    if (!Array.isArray(fills) || fills.length === 0) return undefined;
+
+    const result = [];
+    for (const fill of fills) {
+      if (fill.visible === false) continue;
+      const f = { type: fill.type };
+      if (fill.type === 'SOLID' && fill.color) {
+        f.color = colorToHex(fill.color);
+        if (fill.opacity !== undefined && fill.opacity !== 1) f.opacity = fill.opacity;
+      } else if (fill.type === 'GRADIENT_LINEAR' || fill.type === 'GRADIENT_RADIAL' || fill.type === 'GRADIENT_ANGULAR' || fill.type === 'GRADIENT_DIAMOND') {
+        if (fill.gradientStops) {
+          f.gradient = {
+            type: fill.type,
+            stops: fill.gradientStops.map(s => ({
+              color: colorToHex(s.color),
+              position: s.position
+            }))
+          };
+        }
+      } else if (fill.type === 'IMAGE') {
+        f.isImage = true;
+        if (fill.imageRef) f.imageRef = fill.imageRef;
+      }
+      result.push(f);
+    }
+    return result.length > 0 ? result : undefined;
+  }
+
+  // Helper: extract simplified strokes
+  function extractStrokes(node) {
+    if (!('strokes' in node) || !Array.isArray(node.strokes) || node.strokes.length === 0) return undefined;
+
+    const result = [];
+    for (const stroke of node.strokes) {
+      if (stroke.visible === false) continue;
+      const s = { type: stroke.type };
+      if (stroke.type === 'SOLID' && stroke.color) {
+        s.color = colorToHex(stroke.color);
+        if (stroke.opacity !== undefined && stroke.opacity !== 1) s.opacity = stroke.opacity;
+      }
+      result.push(s);
+    }
+    return result.length > 0 ? result : undefined;
+  }
+
+  // Helper: extract simplified effects
+  function extractEffects(node) {
+    if (!('effects' in node) || !Array.isArray(node.effects) || node.effects.length === 0) return undefined;
+
+    const result = [];
+    for (const effect of node.effects) {
+      if (effect.visible === false) continue;
+      const e = { type: effect.type };
+      if (effect.color) e.color = colorToHex(effect.color);
+      if (effect.offset) e.offset = { x: effect.offset.x, y: effect.offset.y };
+      if (effect.radius !== undefined) e.radius = effect.radius;
+      if (effect.spread !== undefined) e.spread = effect.spread;
+      result.push(e);
+    }
+    return result.length > 0 ? result : undefined;
+  }
+
+  // Main recursive node processor
+  const processNode = async (node, currentDepth) => {
+    // Skip invisible nodes
+    if (node.visible === false) return null;
+
+    const info = {
       id: node.id,
       name: node.name,
       type: node.type,
       visible: node.visible
     };
 
-    // Add position and size if available
-    if ('x' in node && 'y' in node && 'width' in node && 'height' in node) {
-      baseInfo.x = node.x;
-      baseInfo.y = node.y;
-      baseInfo.width = node.width;
-      baseInfo.height = node.height;
+    // Position and size
+    if ('width' in node) info.width = node.width;
+    if ('height' in node) info.height = node.height;
+    if ('x' in node) info.x = node.x;
+    if ('y' in node) info.y = node.y;
+
+    // Layout properties
+    if ('layoutMode' in node && node.layoutMode) {
+      info.layoutMode = node.layoutMode;
+    }
+    if ('layoutSizingHorizontal' in node) info.layoutSizingHorizontal = node.layoutSizingHorizontal;
+    if ('layoutSizingVertical' in node) info.layoutSizingVertical = node.layoutSizingVertical;
+    if ('primaryAxisAlignItems' in node) info.primaryAxisAlignItems = node.primaryAxisAlignItems;
+    if ('counterAxisAlignItems' in node) info.counterAxisAlignItems = node.counterAxisAlignItems;
+    if ('itemSpacing' in node && node.itemSpacing !== undefined) info.itemSpacing = node.itemSpacing;
+    if ('counterAxisSpacing' in node && node.counterAxisSpacing !== undefined) info.counterAxisSpacing = node.counterAxisSpacing;
+    if ('layoutWrap' in node) info.layoutWrap = node.layoutWrap;
+    if ('paddingTop' in node) info.paddingTop = node.paddingTop;
+    if ('paddingRight' in node) info.paddingRight = node.paddingRight;
+    if ('paddingBottom' in node) info.paddingBottom = node.paddingBottom;
+    if ('paddingLeft' in node) info.paddingLeft = node.paddingLeft;
+    if ('clipsContent' in node) info.clipsContent = node.clipsContent;
+    if ('layoutPositioning' in node) info.layoutPositioning = node.layoutPositioning;
+
+    // Fills
+    const fills = extractFills(node);
+    if (fills) info.fills = fills;
+
+    // Strokes
+    const strokes = extractStrokes(node);
+    if (strokes) info.strokes = strokes;
+    if ('strokeWeight' in node && node.strokeWeight !== figma.mixed && node.strokeWeight > 0) {
+      info.strokeWeight = node.strokeWeight;
     }
 
-    // Add fill information
-    if ('fills' in node && node.fills !== figma.mixed) {
-      baseInfo.fills = node.fills.map(fill => {
-        const fillInfo = {
-          type: fill.type,
-          visible: fill.visible
-        };
-        if (fill.type === 'SOLID' && fill.color) {
-          fillInfo.color = `#${Math.round(fill.color.r * 255).toString(16).padStart(2, '0')}${Math.round(fill.color.g * 255).toString(16).padStart(2, '0')}${Math.round(fill.color.b * 255).toString(16).padStart(2, '0')}`;
-          fillInfo.opacity = fill.opacity;
-        }
-        return fillInfo;
-      });
-    }
-
-    // Add text content for text nodes
-    if (node.type === 'TEXT') {
-      baseInfo.characters = node.characters;
-      baseInfo.fontSize = node.fontSize;
-      baseInfo.fontName = node.fontName;
-    }
-
-    // Add children if it's a container
-    if ('children' in node && node.children.length > 0) {
-      baseInfo.children = [];
-      for (const child of node.children) {
-        baseInfo.children.push(await processNode(child));
+    // Corner radius
+    if ('cornerRadius' in node) {
+      if (node.cornerRadius !== figma.mixed) {
+        if (node.cornerRadius > 0) info.cornerRadius = node.cornerRadius;
+      } else {
+        // Individual corners
+        if (node.topLeftRadius > 0) info.topLeftRadius = node.topLeftRadius;
+        if (node.topRightRadius > 0) info.topRightRadius = node.topRightRadius;
+        if (node.bottomRightRadius > 0) info.bottomRightRadius = node.bottomRightRadius;
+        if (node.bottomLeftRadius > 0) info.bottomLeftRadius = node.bottomLeftRadius;
       }
     }
 
-    return baseInfo;
+    // Effects
+    const effects = extractEffects(node);
+    if (effects) info.effects = effects;
+
+    // Text properties
+    if (node.type === 'TEXT') {
+      info.characters = node.characters;
+
+      // Font properties (may be mixed for multi-style text)
+      if (node.fontName !== figma.mixed) {
+        info.fontFamily = node.fontName.family;
+        info.fontWeight = getFontWeight(node.fontName.style);
+      }
+      if (node.fontSize !== figma.mixed) info.fontSize = node.fontSize;
+      if (node.lineHeight !== figma.mixed && node.lineHeight.unit !== 'AUTO') {
+        info.lineHeight = node.lineHeight.value;
+      }
+      if (node.letterSpacing !== figma.mixed && node.letterSpacing.value !== 0) {
+        info.letterSpacing = node.letterSpacing.value;
+      }
+      if (node.textAlignHorizontal) info.textAlignHorizontal = node.textAlignHorizontal;
+      if (node.textCase !== figma.mixed && node.textCase !== 'ORIGINAL') {
+        info.textCase = node.textCase;
+      }
+      if (node.textDecoration !== figma.mixed && node.textDecoration !== 'NONE') {
+        info.textDecoration = node.textDecoration;
+      }
+
+      // Resolve text style name
+      if (node.textStyleId && node.textStyleId !== '' && node.textStyleId !== figma.mixed) {
+        const styleName = textStyleMap.get(node.textStyleId);
+        if (styleName) info.textStyleName = styleName;
+      }
+    }
+
+    // Appearance
+    if ('opacity' in node && node.opacity !== undefined && node.opacity !== 1) {
+      info.opacity = node.opacity;
+    }
+    if ('rotation' in node && node.rotation !== 0) {
+      info.rotation = node.rotation;
+    }
+
+    // Variable bindings
+    const bindings = resolveBindings(node);
+    if (Object.keys(bindings).length > 0) info.bindings = bindings;
+
+    // Children (respect depth limit)
+    if ('children' in node && node.children.length > 0) {
+      if (depth === undefined || currentDepth < depth) {
+        info.children = [];
+        for (const child of node.children) {
+          const childInfo = await processNode(child, currentDepth + 1);
+          if (childInfo) info.children.push(childInfo);
+        }
+        if (info.children.length === 0) delete info.children;
+      }
+    }
+
+    return info;
   };
 
+  // Helper: map font style string to numeric weight
+  function getFontWeight(style) {
+    const s = style.toLowerCase();
+    if (s.includes('thin') || s.includes('hairline')) return 100;
+    if (s.includes('extralight') || s.includes('ultra light') || s.includes('extra light')) return 200;
+    if (s.includes('light')) return 300;
+    if (s.includes('medium')) return 500;
+    if (s.includes('semibold') || s.includes('semi bold') || s.includes('demi bold')) return 600;
+    if (s.includes('extrabold') || s.includes('extra bold') || s.includes('ultra bold')) return 800;
+    if (s.includes('black') || s.includes('heavy')) return 900;
+    if (s.includes('bold')) return 700;
+    return 400; // Regular/Normal
+  }
+
+  // Determine which nodes to process
+  let nodesToProcess;
+  if (nodeId) {
+    const node = await figma.getNodeByIdAsync(nodeId);
+    if (!node) throw new Error(`Node with ID ${nodeId} not found`);
+    nodesToProcess = [node];
+  } else {
+    const selection = figma.currentPage.selection;
+    if (selection.length === 0) {
+      throw new Error('No nodes selected. Please select nodes in Figma first.');
+    }
+    nodesToProcess = selection;
+  }
+
   const result = [];
-  for (const node of selection) {
-    result.push(await processNode(node));
+  for (const node of nodesToProcess) {
+    const processed = await processNode(node, 0);
+    if (processed) result.push(processed);
   }
 
   return {
-    selectionCount: selection.length,
+    selectionCount: nodesToProcess.length,
     selection: result
   };
 }
