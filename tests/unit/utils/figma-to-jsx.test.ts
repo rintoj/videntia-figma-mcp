@@ -787,12 +787,32 @@ describe("convertToJsx", () => {
     expect(jsx).toContain("/>");
   });
 
-  it("should render FRAME, GROUP, COMPONENT, INSTANCE, RECTANGLE, ELLIPSE as <div>", () => {
-    const types = ["FRAME", "GROUP", "SECTION", "COMPONENT", "INSTANCE", "RECTANGLE", "ELLIPSE", "POLYGON", "STAR"];
+  it("should render FRAME, GROUP, RECTANGLE, ELLIPSE as <div>", () => {
+    const types = ["FRAME", "GROUP", "SECTION", "RECTANGLE", "ELLIPSE", "POLYGON", "STAR"];
     for (const type of types) {
       const jsx = convertToJsx([makeNode({ type })]);
       expect(jsx).toContain("<div");
     }
+  });
+
+  it("should render COMPONENT as PascalCase tag", () => {
+    const jsx = convertToJsx([makeNode({ type: "COMPONENT", name: "Button" })]);
+    expect(jsx).toContain("<Button");
+  });
+
+  it("should render COMPONENT_SET as PascalCase+Set tag", () => {
+    const jsx = convertToJsx([makeNode({ type: "COMPONENT_SET", name: "Button" })]);
+    expect(jsx).toContain("<ButtonSet");
+  });
+
+  it("should render INSTANCE with mainComponentName as PascalCase tag", () => {
+    const jsx = convertToJsx([makeNode({ type: "INSTANCE", name: "Button", mainComponentName: "Button" })]);
+    expect(jsx).toContain("<Button");
+  });
+
+  it("should render INSTANCE without mainComponentName using node name", () => {
+    const jsx = convertToJsx([makeNode({ type: "INSTANCE", name: "MyButton" })]);
+    expect(jsx).toContain("<MyButton");
   });
 
   // --- Nested children ---
@@ -1180,5 +1200,156 @@ describe("convertToJsx", () => {
     expect(jsx).toContain("bg-[#FF0000]");
     expect(jsx).toContain("border-[#000000]");
     expect(jsx).toContain("border-[#00FF00]");
+  });
+
+  // --- Component tags ---
+
+  describe("component tags", () => {
+    it("should render COMPONENT_SET with Set suffix", () => {
+      const jsx = convertToJsx([makeNode({ type: "COMPONENT_SET", name: "Button" })]);
+      expect(jsx).toContain("<ButtonSet");
+      expect(jsx).not.toContain('name=');
+    });
+
+    it("should render COMPONENT_SET with propertyDefinitions", () => {
+      const jsx = convertToJsx([makeNode({
+        type: "COMPONENT_SET",
+        name: "Button",
+        componentPropertyDefinitions: {
+          Size: { type: "VARIANT", options: ["sm", "md", "lg"] },
+          "Show Icon": { type: "BOOLEAN", default: true },
+        },
+      })]);
+      expect(jsx).toContain("<ButtonSet");
+      expect(jsx).toContain("propertyDefinitions=");
+      expect(jsx).toContain('size: "sm | md | lg"');
+      expect(jsx).toContain("showIcon: true");
+      expect(jsx).toContain("propertyNameMap=");
+      expect(jsx).toContain('showIcon: "Show Icon"');
+    });
+
+    it("should not emit propertyNameMap when no names were changed", () => {
+      const jsx = convertToJsx([makeNode({
+        type: "COMPONENT_SET",
+        name: "Button",
+        componentPropertyDefinitions: {
+          size: { type: "VARIANT", options: ["sm", "md"] },
+        },
+      })]);
+      expect(jsx).toContain("propertyDefinitions=");
+      expect(jsx).not.toContain("propertyNameMap=");
+    });
+
+    it("should render COMPONENT in a set with variant properties", () => {
+      const jsx = convertToJsx([makeNode({
+        type: "COMPONENT",
+        name: "Size=md, State=default",
+        componentSetName: "Button",
+        variantProperties: { Size: "md", State: "default" },
+      })]);
+      expect(jsx).toContain("<Button");
+      expect(jsx).toContain('size="md"');
+      expect(jsx).toContain('state="default"');
+      expect(jsx).not.toContain('name=');
+    });
+
+    it("should render standalone COMPONENT with PascalCase tag", () => {
+      const jsx = convertToJsx([makeNode({ type: "COMPONENT", name: "Avatar" })]);
+      expect(jsx).toContain("<Avatar");
+      expect(jsx).not.toContain('componentName=');
+    });
+
+    it("should emit componentName when name was sanitized", () => {
+      const jsx = convertToJsx([makeNode({ type: "COMPONENT", name: "Profile Avatar" })]);
+      expect(jsx).toContain("<ProfileAvatar");
+      expect(jsx).toContain('componentName="Profile Avatar"');
+    });
+
+    it("should not emit componentName when name is already valid PascalCase", () => {
+      const jsx = convertToJsx([makeNode({ type: "COMPONENT", name: "Button" })]);
+      expect(jsx).toContain("<Button");
+      expect(jsx).not.toContain('componentName=');
+    });
+
+    it("should render INSTANCE with mainComponentName as tag", () => {
+      const jsx = convertToJsx([makeNode({
+        type: "INSTANCE",
+        name: "Button",
+        mainComponentName: "Button",
+        componentProperties: {
+          size: { type: "VARIANT", value: "md" },
+          "Show Icon": { type: "BOOLEAN", value: true },
+          label: { type: "TEXT", value: "Click me" },
+        },
+      })]);
+      expect(jsx).toContain("<Button");
+      expect(jsx).toContain('size="md"');
+      expect(jsx).toContain("showIcon={true}");
+      expect(jsx).toContain('label="Click me"');
+      expect(jsx).toContain("propertyNameMap=");
+      expect(jsx).toContain('showIcon: "Show Icon"');
+    });
+
+    it("should render INSTANCE with boolean false", () => {
+      const jsx = convertToJsx([makeNode({
+        type: "INSTANCE",
+        name: "Icon",
+        mainComponentName: "Icon",
+        componentProperties: {
+          visible: { type: "BOOLEAN", value: false },
+        },
+      })]);
+      expect(jsx).toContain("visible={false}");
+    });
+
+    it("should handle PascalCase conversion for special chars", () => {
+      const jsx = convertToJsx([makeNode({ type: "COMPONENT", name: "icon/close" })]);
+      expect(jsx).toContain("<IconClose");
+      expect(jsx).toContain('componentName="icon/close"');
+    });
+
+    it("should skip name attribute for component types", () => {
+      for (const type of ["COMPONENT", "COMPONENT_SET", "INSTANCE"]) {
+        const jsx = convertToJsx([makeNode({ type, name: "Button" })]);
+        expect(jsx).not.toContain('name="Button"');
+      }
+    });
+
+    it("should still emit name for regular frames", () => {
+      const jsx = convertToJsx([makeNode({ type: "FRAME", name: "Container" })]);
+      expect(jsx).toContain('name="Container"');
+    });
+
+    it("should render component with children", () => {
+      const jsx = convertToJsx([makeNode({
+        type: "COMPONENT_SET",
+        name: "Button",
+        children: [
+          makeNode({
+            id: "1:2",
+            type: "COMPONENT",
+            name: "Size=sm",
+            componentSetName: "Button",
+            variantProperties: { Size: "sm" },
+          }),
+        ],
+      })]);
+      expect(jsx).toContain("<ButtonSet");
+      expect(jsx).toContain("<Button");
+      expect(jsx).toContain('size="sm"');
+      expect(jsx).toContain("</ButtonSet>");
+    });
+
+    it("should render variant props with propertyNameMap for multi-word keys", () => {
+      const jsx = convertToJsx([makeNode({
+        type: "COMPONENT",
+        name: "Has Icon=true",
+        componentSetName: "Button",
+        variantProperties: { "Has Icon": "true" },
+      })]);
+      expect(jsx).toContain('hasIcon="true"');
+      expect(jsx).toContain("propertyNameMap=");
+      expect(jsx).toContain('hasIcon: "Has Icon"');
+    });
   });
 });

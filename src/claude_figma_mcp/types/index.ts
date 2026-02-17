@@ -314,6 +314,12 @@ export interface FigmaNodeData {
   rotation?: number;
   // Variable bindings (resolved to names)
   bindings?: Record<string, string>;
+  // Component metadata
+  componentPropertyDefinitions?: Record<string, any>;
+  variantProperties?: Record<string, string>;
+  componentSetName?: string;
+  componentProperties?: Record<string, any>;
+  mainComponentName?: string;
   // Children
   children?: FigmaNodeData[];
 }
