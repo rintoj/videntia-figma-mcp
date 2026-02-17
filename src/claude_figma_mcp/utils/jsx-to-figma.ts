@@ -42,14 +42,29 @@ export function parseJsx(jsx: string): FigmaNodeData[] {
 /**
  * Convert a Babel JSXElement AST node into a FigmaNodeData.
  */
-function jsxElementToNode(el: t.JSXElement): FigmaNodeData {
+function jsxElementToNode(el: t.JSXElement, parentType?: string): FigmaNodeData {
   const tag = getTagName(el.openingElement);
   const attrs = extractAttributes(el.openingElement);
-  const nodeType = tagToNodeType(tag);
+  const nodeType = tagToNodeType(tag, attrs, parentType);
+
+  // Derive name for component types (they omit name= in JSX)
+  let name: string;
+  if (nodeType === "COMPONENT_SET" || nodeType === "COMPONENT" || nodeType === "INSTANCE") {
+    if (attrs.componentName) {
+      name = decodeEntities(attrs.componentName);
+    } else if (nodeType === "COMPONENT_SET") {
+      // Strip "Set" suffix from tag
+      name = tag.endsWith("Set") ? tag.slice(0, -3) : tag;
+    } else {
+      name = tag;
+    }
+  } else {
+    name = decodeEntities(attrs.name || "Node");
+  }
 
   const node: FigmaNodeData = {
     id: attrs.id || "",
-    name: decodeEntities(attrs.name || "Node"),
+    name,
     type: nodeType,
     visible: true,
   };
@@ -58,6 +73,11 @@ function jsxElementToNode(el: t.JSXElement): FigmaNodeData {
   if (tag === "svg") {
     if (attrs.width !== undefined) node.width = Number(attrs.width);
     if (attrs.height !== undefined) node.height = Number(attrs.height);
+  }
+
+  // Apply component-specific attributes
+  if (nodeType === "COMPONENT_SET" || nodeType === "COMPONENT" || nodeType === "INSTANCE") {
+    applyComponentAttributes(node, tag, attrs, parentType);
   }
 
   // Parse children
@@ -73,11 +93,11 @@ function jsxElementToNode(el: t.JSXElement): FigmaNodeData {
     }
     node.characters = decodeEntities(textParts.join("").trim());
   } else {
-    // Container: parse child elements
+    // Container: parse child elements (thread nodeType as parentType)
     const children: FigmaNodeData[] = [];
     for (const child of el.children) {
       if (child.type === "JSXElement") {
-        children.push(jsxElementToNode(child));
+        children.push(jsxElementToNode(child, nodeType));
       }
       // Skip JSXText (whitespace), JSXExpressionContainer (comments)
     }
@@ -192,10 +212,165 @@ function serializeObjectExpression(obj: t.ObjectExpression): string {
   return parts.join(", ");
 }
 
-function tagToNodeType(tag: string): string {
+// Standard JSX attributes that do NOT indicate component properties.
+// Includes all known metadata attrs to avoid false-positive INSTANCE detection.
+const STANDARD_ATTRS = new Set([
+  "id", "name", "className", "style", "componentName", "propertyNameMap", "propertyDefinitions",
+  "width", "height", "variantProperties", "componentProperties", "componentSetName", "mainComponentName",
+]);
+
+function isPascalCase(tag: string): boolean {
+  return /^[A-Z]/.test(tag);
+}
+
+function tagToNodeType(tag: string, attrs?: Record<string, string>, parentType?: string): string {
   if (tag === "span") return "TEXT";
   if (tag === "svg") return "VECTOR";
+
+  // Primary signal: componentName attr is only emitted by figma-to-jsx for component types.
+  // This avoids false positives from PascalCase tags that happen to match (e.g. <DataSet>).
+  const hasComponentName = attrs?.componentName !== undefined;
+
+  if (isPascalCase(tag)) {
+    // COMPONENT_SET: has propertyDefinitions, or tag ends with "Set" AND has componentName
+    if ((attrs && attrs.propertyDefinitions !== undefined) ||
+        (tag.endsWith("Set") && hasComponentName)) {
+      return "COMPONENT_SET";
+    }
+    // Tag ends with "Set" but no componentName — only treat as COMPONENT_SET
+    // if it also has no name attr (component types omit name=)
+    if (tag.endsWith("Set") && attrs && !attrs.name) {
+      return "COMPONENT_SET";
+    }
+    // COMPONENT: direct child of COMPONENT_SET
+    if (parentType === "COMPONENT_SET") {
+      return "COMPONENT";
+    }
+    // INSTANCE: has non-standard attrs (booleans/strings that look like component props)
+    if (attrs) {
+      const hasComponentProps = Object.keys(attrs).some(k => !STANDARD_ATTRS.has(k));
+      if (hasComponentProps) return "INSTANCE";
+    }
+    // Bare PascalCase tag with componentName or without name attr → standalone COMPONENT
+    if (hasComponentName || (attrs && !attrs.name)) {
+      return "COMPONENT";
+    }
+  }
+
   return "FRAME";
+}
+
+/**
+ * Parse a serialized object string (format: `key: "value", key2: true`) into a Record.
+ * Only matches string values — non-string values are silently skipped.
+ * This is safe because figma-to-jsx.ts only emits string values in nameMap.
+ */
+function parseNameMap(str: string): Record<string, string> {
+  const map: Record<string, string> = {};
+  const regex = /(\w+):\s*"((?:[^"\\]|\\.)*)"/g;
+  let match;
+  while ((match = regex.exec(str)) !== null) {
+    map[match[1]] = match[2];
+  }
+  return map;
+}
+
+/** A single component property definition. */
+type ComponentPropertyDef =
+  | { type: "VARIANT"; options: string[]; default: string }
+  | { type: "BOOLEAN"; default: boolean }
+  | { type: "TEXT"; default: string }
+  | { type: "INSTANCE_SWAP" };
+
+/**
+ * Parse propertyDefinitions serialized string into componentPropertyDefinitions.
+ * Values with " | " → VARIANT with options array
+ * "InstanceSwap" literal → INSTANCE_SWAP
+ * Boolean literal → BOOLEAN with default
+ * Other strings → TEXT with default
+ */
+function parsePropertyDefinitions(
+  str: string,
+  nameMap: Record<string, string>,
+): Record<string, ComponentPropertyDef> {
+  const defs: Record<string, ComponentPropertyDef> = {};
+  // Match key: "string value" or key: true/false
+  const regex = /(\w+):\s*(?:"((?:[^"\\]|\\.)*)"|(\btrue\b|\bfalse\b))/g;
+  let match;
+  while ((match = regex.exec(str)) !== null) {
+    const camelKey = match[1];
+    const originalKey = nameMap[camelKey] || camelKey;
+    const strValue = match[2];
+    const boolValue = match[3];
+
+    if (boolValue !== undefined) {
+      // Boolean property
+      defs[originalKey] = { type: "BOOLEAN", default: boolValue === "true" };
+    } else if (strValue === "InstanceSwap") {
+      defs[originalKey] = { type: "INSTANCE_SWAP" };
+    } else if (strValue && strValue.includes(" | ")) {
+      // VARIANT with options
+      const options = strValue.split(" | ");
+      defs[originalKey] = { type: "VARIANT", options, default: options[0] };
+    } else {
+      // TEXT property
+      defs[originalKey] = { type: "TEXT", default: strValue || "" };
+    }
+  }
+  return defs;
+}
+
+/**
+ * Apply component-specific JSX attributes onto FigmaNodeData fields.
+ */
+function applyComponentAttributes(
+  node: FigmaNodeData,
+  tag: string,
+  attrs: Record<string, string>,
+  parentType?: string,
+): void {
+  const nameMap = attrs.propertyNameMap ? parseNameMap(attrs.propertyNameMap) : {};
+
+  if (node.type === "COMPONENT_SET") {
+    // Parse propertyDefinitions
+    if (attrs.propertyDefinitions) {
+      node.componentPropertyDefinitions = parsePropertyDefinitions(attrs.propertyDefinitions, nameMap);
+    }
+  } else if (node.type === "COMPONENT") {
+    // Only set componentSetName when this component is a child of a COMPONENT_SET
+    if (parentType === "COMPONENT_SET") {
+      node.componentSetName = attrs.componentName || (tag.endsWith("Set") ? tag.slice(0, -3) : tag);
+    }
+    const variantProps: Record<string, string> = {};
+    for (const [key, value] of Object.entries(attrs)) {
+      if (STANDARD_ATTRS.has(key)) continue;
+      const originalKey = nameMap[key] || key;
+      variantProps[originalKey] = value;
+    }
+    if (Object.keys(variantProps).length > 0) {
+      node.variantProperties = variantProps;
+      // Derive name from variant props: "Key=value, Key2=value2"
+      node.name = Object.entries(variantProps)
+        .map(([k, v]) => `${k}=${v}`)
+        .join(", ");
+    }
+  } else if (node.type === "INSTANCE") {
+    // Instance — set mainComponentName and parse component properties
+    node.mainComponentName = attrs.componentName || tag;
+    const compProps: Record<string, { type: "BOOLEAN"; value: boolean } | { type: "VARIANT"; value: string }> = {};
+    for (const [key, value] of Object.entries(attrs)) {
+      if (STANDARD_ATTRS.has(key)) continue;
+      const originalKey = nameMap[key] || key;
+      if (value === "true" || value === "false") {
+        compProps[originalKey] = { type: "BOOLEAN", value: value === "true" };
+      } else {
+        compProps[originalKey] = { type: "VARIANT", value };
+      }
+    }
+    if (Object.keys(compProps).length > 0) {
+      node.componentProperties = compProps;
+    }
+  }
 }
 
 function decodeEntities(str: string): string {
