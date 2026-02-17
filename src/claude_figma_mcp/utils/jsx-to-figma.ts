@@ -74,24 +74,98 @@ function tryParseJsxComment(input: string, pos: number): { body: string; pos: nu
  * Parse an extra-fills or extra-strokes comment body.
  * Expected format: "Figma fills[1..n]: [...]" or "Figma strokes[1..n]: [...]"
  */
-const MAX_COMMENT_JSON_LENGTH = 65536; // 64 KB guard for JSON.parse
+const MAX_COMMENT_JSON_LENGTH = 65536; // 64 KB guard
+const MAX_EXTRA_ITEMS = 10; // Cap fills/strokes per comment
+const MAX_GRADIENT_STOPS = 50; // Cap gradient stops per fill
+const ALLOWED_FILL_TYPES = new Set(["SOLID", "GRADIENT_LINEAR", "GRADIENT_RADIAL", "GRADIENT_ANGULAR", "GRADIENT_DIAMOND", "IMAGE"]);
+const HEX_COLOR_RE = /^#[0-9a-fA-F]{3,8}$/;
+const RGBA_COLOR_RE = /^rgba?\(\d{1,3},\s*\d{1,3},\s*\d{1,3}(?:,\s*[\d.]+)?\)$/;
+
+function isValidColor(c: unknown): c is string {
+  return typeof c === "string" && (HEX_COLOR_RE.test(c) || RGBA_COLOR_RE.test(c));
+}
+
+function validateFill(raw: unknown): FigmaNodeFill | null {
+  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) return null;
+  const obj = raw as Record<string, unknown>;
+  if (typeof obj.type !== "string" || !ALLOWED_FILL_TYPES.has(obj.type)) return null;
+  const fill: FigmaNodeFill = { type: obj.type };
+  if (obj.color !== undefined) {
+    if (!isValidColor(obj.color)) return null;
+    fill.color = obj.color;
+  }
+  if (obj.opacity !== undefined) {
+    if (typeof obj.opacity !== "number" || obj.opacity < 0 || obj.opacity > 1) return null;
+    fill.opacity = obj.opacity;
+  }
+  if (obj.gradient !== undefined) {
+    if (typeof obj.gradient !== "object" || obj.gradient === null) return null;
+    const g = obj.gradient as Record<string, unknown>;
+    if (typeof g.type !== "string" || !ALLOWED_FILL_TYPES.has(g.type)) return null;
+    if (!Array.isArray(g.stops) || g.stops.length > MAX_GRADIENT_STOPS) return null;
+    const stops: Array<{ color: string; position: number }> = [];
+    for (const s of g.stops) {
+      if (typeof s !== "object" || s === null) return null;
+      const stop = s as Record<string, unknown>;
+      if (!isValidColor(stop.color)) return null;
+      if (typeof stop.position !== "number" || stop.position < 0 || stop.position > 1) return null;
+      stops.push({ color: stop.color as string, position: stop.position });
+    }
+    fill.gradient = { type: g.type, stops };
+    if (typeof g.direction === "string" && g.direction.length <= 2) {
+      fill.gradient.direction = g.direction;
+    }
+  }
+  if (obj.isImage === true) fill.isImage = true;
+  if (typeof obj.imageRef === "string" && /^[a-zA-Z0-9_-]{1,128}$/.test(obj.imageRef)) {
+    fill.imageRef = obj.imageRef;
+  }
+  return fill;
+}
+
+function validateStroke(raw: unknown): { type: string; color?: string; opacity?: number } | null {
+  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) return null;
+  const obj = raw as Record<string, unknown>;
+  if (typeof obj.type !== "string" || !ALLOWED_FILL_TYPES.has(obj.type)) return null;
+  const stroke: { type: string; color?: string; opacity?: number } = { type: obj.type };
+  if (obj.color !== undefined) {
+    if (!isValidColor(obj.color)) return null;
+    stroke.color = obj.color;
+  }
+  if (obj.opacity !== undefined) {
+    if (typeof obj.opacity !== "number" || obj.opacity < 0 || obj.opacity > 1) return null;
+    stroke.opacity = obj.opacity;
+  }
+  return stroke;
+}
 
 function parseExtraComment(body: string): PendingExtras | null {
+  if (body.length > MAX_COMMENT_JSON_LENGTH) return null;
   const fillsMatch = body.match(/^Figma fills\[1\.\.n\]:\s*(\[.*\])$/);
   if (fillsMatch) {
-    if (fillsMatch[1].length > MAX_COMMENT_JSON_LENGTH) return null;
     try {
-      const fills = JSON.parse(fillsMatch[1]) as FigmaNodeFill[];
-      if (!Array.isArray(fills)) return null;
+      const raw = JSON.parse(fillsMatch[1]);
+      if (!Array.isArray(raw) || raw.length > MAX_EXTRA_ITEMS) return null;
+      const fills: FigmaNodeFill[] = [];
+      for (const item of raw) {
+        const validated = validateFill(item);
+        if (!validated) return null;
+        fills.push(validated);
+      }
       return { fills };
     } catch { return null; }
   }
   const strokesMatch = body.match(/^Figma strokes\[1\.\.n\]:\s*(\[.*\])$/);
   if (strokesMatch) {
-    if (strokesMatch[1].length > MAX_COMMENT_JSON_LENGTH) return null;
     try {
-      const strokes = JSON.parse(strokesMatch[1]) as Array<{ type: string; color?: string; opacity?: number }>;
-      if (!Array.isArray(strokes)) return null;
+      const raw = JSON.parse(strokesMatch[1]);
+      if (!Array.isArray(raw) || raw.length > MAX_EXTRA_ITEMS) return null;
+      const strokes: Array<{ type: string; color?: string; opacity?: number }> = [];
+      for (const item of raw) {
+        const validated = validateStroke(item);
+        if (!validated) return null;
+        strokes.push(validated);
+      }
       return { strokes };
     } catch { return null; }
   }
