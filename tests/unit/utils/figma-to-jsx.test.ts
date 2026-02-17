@@ -997,4 +997,188 @@ describe("convertToJsx", () => {
     const jsx = convertToJsx([makeNode()], 2);
     expect(jsx.startsWith("    ")).toBe(true); // 2 levels = 4 spaces
   });
+
+  // --- Multiple fills ---
+
+  it("should emit duplicate bg classes for multiple solid fills", () => {
+    const jsx = convertToJsx([
+      makeNode({
+        fills: [
+          { type: "SOLID", color: "#ffffff" },
+          { type: "SOLID", color: "#FF0000", opacity: 0.5 },
+        ],
+      }),
+    ]);
+    expect(jsx).toContain("bg-[#ffffff]");
+    expect(jsx).toContain("bg-[#FF0000]/50");
+    expect(jsx).not.toContain("Figma fills");
+  });
+
+  it("should emit single bg class for single fill", () => {
+    const jsx = convertToJsx([
+      makeNode({ fills: [{ type: "SOLID", color: "#ffffff" }] }),
+    ]);
+    expect(jsx).toContain("bg-[#ffffff]");
+    expect(jsx).not.toContain("Figma fills");
+  });
+
+  it("should emit solid bg class and gradient style for solid + gradient without direction", () => {
+    const jsx = convertToJsx([
+      makeNode({
+        fills: [
+          { type: "SOLID", color: "#ffffff" },
+          {
+            type: "GRADIENT_LINEAR",
+            gradient: {
+              type: "GRADIENT_LINEAR",
+              stops: [
+                { color: "#ff0000", position: 0 },
+                { color: "#0000ff", position: 1 },
+              ],
+            },
+          },
+        ],
+      }),
+    ]);
+    expect(jsx).toContain("bg-[#ffffff]");
+    expect(jsx).toContain("background:");
+    expect(jsx).toContain("linear-gradient");
+  });
+
+  it("should emit duplicate bg classes for 3+ solid fills", () => {
+    const jsx = convertToJsx([
+      makeNode({
+        fills: [
+          { type: "SOLID", color: "#111111" },
+          { type: "SOLID", color: "#222222" },
+          { type: "SOLID", color: "#333333" },
+        ],
+      }),
+    ]);
+    expect(jsx).toContain("bg-[#111111]");
+    expect(jsx).toContain("bg-[#222222]");
+    expect(jsx).toContain("bg-[#333333]");
+  });
+
+  it("should emit Tailwind gradient classes for linear gradient with direction", () => {
+    const jsx = convertToJsx([
+      makeNode({
+        fills: [
+          {
+            type: "GRADIENT_LINEAR",
+            gradient: {
+              type: "GRADIENT_LINEAR",
+              direction: "r",
+              stops: [
+                { color: "#ff0000", position: 0 },
+                { color: "#0000ff", position: 1 },
+              ],
+            },
+          },
+        ],
+      }),
+    ]);
+    expect(jsx).toContain("bg-gradient-to-r");
+    expect(jsx).toContain("from-[#ff0000]");
+    expect(jsx).toContain("to-[#0000ff]");
+    expect(jsx).not.toContain("background:");
+  });
+
+  it("should emit via class for 3-stop gradient with direction", () => {
+    const jsx = convertToJsx([
+      makeNode({
+        fills: [
+          {
+            type: "GRADIENT_LINEAR",
+            gradient: {
+              type: "GRADIENT_LINEAR",
+              direction: "b",
+              stops: [
+                { color: "#ff0000", position: 0 },
+                { color: "#00ff00", position: 0.5 },
+                { color: "#0000ff", position: 1 },
+              ],
+            },
+          },
+        ],
+      }),
+    ]);
+    expect(jsx).toContain("bg-gradient-to-b");
+    expect(jsx).toContain("from-[#ff0000]");
+    expect(jsx).toContain("via-[#00ff00]");
+    expect(jsx).toContain("to-[#0000ff]");
+  });
+
+  it("should emit mixed solid + gradient with direction as duplicate classes", () => {
+    const jsx = convertToJsx([
+      makeNode({
+        fills: [
+          { type: "SOLID", color: "#ffffff" },
+          {
+            type: "GRADIENT_LINEAR",
+            gradient: {
+              type: "GRADIENT_LINEAR",
+              direction: "r",
+              stops: [
+                { color: "#ff0000", position: 0 },
+                { color: "#0000ff", position: 1 },
+              ],
+            },
+          },
+        ],
+      }),
+    ]);
+    expect(jsx).toContain("bg-[#ffffff]");
+    expect(jsx).toContain("bg-gradient-to-r");
+    expect(jsx).toContain("from-[#ff0000]");
+    expect(jsx).toContain("to-[#0000ff]");
+  });
+
+  // --- Multiple strokes ---
+
+  it("should emit duplicate border classes for multiple strokes", () => {
+    const jsx = convertToJsx([
+      makeNode({
+        strokes: [
+          { type: "SOLID", color: "#000000" },
+          { type: "SOLID", color: "#00FF00" },
+        ],
+        strokeWeight: 1,
+      }),
+    ]);
+    expect(jsx).toContain("border-[#000000]");
+    expect(jsx).toContain("border-[#00FF00]");
+    expect(jsx).not.toContain("Figma strokes");
+  });
+
+  it("should emit single border class for single stroke", () => {
+    const jsx = convertToJsx([
+      makeNode({
+        strokes: [{ type: "SOLID", color: "#000000" }],
+        strokeWeight: 1,
+      }),
+    ]);
+    expect(jsx).toContain("border-[#000000]");
+    expect(jsx).not.toContain("Figma strokes");
+  });
+
+  it("should emit duplicate classes for both multiple fills and strokes", () => {
+    const jsx = convertToJsx([
+      makeNode({
+        fills: [
+          { type: "SOLID", color: "#ffffff" },
+          { type: "SOLID", color: "#FF0000" },
+        ],
+        strokes: [
+          { type: "SOLID", color: "#000000" },
+          { type: "SOLID", color: "#00FF00" },
+        ],
+        strokeWeight: 1,
+      }),
+    ]);
+    expect(jsx).toContain("bg-[#ffffff]");
+    expect(jsx).toContain("bg-[#FF0000]");
+    expect(jsx).toContain("border-[#000000]");
+    expect(jsx).toContain("border-[#00FF00]");
+  });
 });

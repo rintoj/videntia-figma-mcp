@@ -731,4 +731,175 @@ describe("parseJsx", () => {
     expect(imageFill).toBeDefined();
     expect(imageFill!.imageRef).toBe("img-ref-123");
   });
+
+  it("should round-trip multiple fills via duplicate classes", () => {
+    const original = makeNode({
+      fills: [
+        { type: "SOLID", color: "#ffffff" },
+        { type: "SOLID", color: "#FF0000", opacity: 0.5 },
+      ],
+    });
+    const jsx = convertToJsx([original]);
+    const parsed = parseJsx(jsx);
+    expect(parsed[0].fills).toHaveLength(2);
+    expect(parsed[0].fills![0].color).toBe("#ffffff");
+    expect(parsed[0].fills![1].color).toBe("#FF0000");
+    expect(parsed[0].fills![1].opacity).toBe(0.5);
+  });
+
+  it("should round-trip multiple strokes via duplicate classes", () => {
+    const original = makeNode({
+      strokes: [
+        { type: "SOLID", color: "#000000" },
+        { type: "SOLID", color: "#00FF00" },
+      ],
+      strokeWeight: 1,
+    });
+    const jsx = convertToJsx([original]);
+    const parsed = parseJsx(jsx);
+    expect(parsed[0].strokes).toHaveLength(2);
+    expect(parsed[0].strokes![0].color).toBe("#000000");
+    expect(parsed[0].strokes![1].color).toBe("#00FF00");
+  });
+});
+
+// --- Tailwind gradient classes ---
+
+describe("parseJsx - Tailwind gradients", () => {
+  it("should parse bg-gradient-to-r with from/to hex colors", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="bg-gradient-to-r from-[#FF0000] to-[#0000FF]" />');
+    expect(nodes[0].fills).toHaveLength(1);
+    const fill = nodes[0].fills![0];
+    expect(fill.type).toBe("GRADIENT_LINEAR");
+    expect(fill.gradient?.type).toBe("GRADIENT_LINEAR");
+    expect(fill.gradient?.direction).toBe("r");
+    expect(fill.gradient?.stops).toHaveLength(2);
+    expect(fill.gradient?.stops[0]).toEqual({ color: "#FF0000", position: 0 });
+    expect(fill.gradient?.stops[1]).toEqual({ color: "#0000FF", position: 1 });
+  });
+
+  it("should parse gradient with via (3 stops)", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="bg-gradient-to-b from-[#FF0000] via-[#00FF00] to-[#0000FF]" />');
+    const fill = nodes[0].fills![0];
+    expect(fill.gradient?.stops).toHaveLength(3);
+    expect(fill.gradient?.stops[0]).toEqual({ color: "#FF0000", position: 0 });
+    expect(fill.gradient?.stops[1]).toEqual({ color: "#00FF00", position: 0.5 });
+    expect(fill.gradient?.stops[2]).toEqual({ color: "#0000FF", position: 1 });
+    expect(fill.gradient?.direction).toBe("b");
+  });
+
+  it("should parse gradient with opacity on from/to", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="bg-gradient-to-r from-[#FF0000]/50 to-[#0000FF]/80" />');
+    const fill = nodes[0].fills![0];
+    expect(fill.gradient?.stops).toHaveLength(2);
+    // Colors are stored as-is (hex without opacity in gradient stops)
+    expect(fill.gradient?.stops[0].color).toBe("#FF0000");
+    expect(fill.gradient?.stops[1].color).toBe("#0000FF");
+  });
+
+  it("should parse gradient with various directions", () => {
+    const directions = ["r", "l", "t", "b", "tr", "tl", "br", "bl"];
+    for (const dir of directions) {
+      const nodes = parseJsx(`<div id="1:1" name="T" className="bg-gradient-to-${dir} from-[#000] to-[#fff]" />`);
+      expect(nodes[0].fills![0].gradient?.direction).toBe(dir);
+    }
+  });
+
+  it("should parse gradient without direction (from/to only)", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="from-[#FF0000] to-[#0000FF]" />');
+    expect(nodes[0].fills).toHaveLength(1);
+    expect(nodes[0].fills![0].gradient?.stops).toHaveLength(2);
+  });
+
+  it("should not confuse gradient classes with bg-* variable", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="bg-gradient-to-r from-[#FF0000] to-[#0000FF]" />');
+    // Should NOT create a variable binding for bg-gradient-to-r
+    expect(nodes[0].bindings?.["fills/0"]).toBeUndefined();
+  });
+
+  it("should not produce a gradient fill with only from (no to)", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="bg-gradient-to-r from-[#FF0000]" />');
+    // Single stop is invalid; should produce no gradient fill
+    expect(nodes[0].fills?.some(f => f.gradient)).toBeFalsy();
+  });
+
+  it("should not produce a gradient fill with only to (no from)", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="to-[#0000FF]" />');
+    expect(nodes[0].fills?.some(f => f.gradient)).toBeFalsy();
+  });
+
+  it("should not store opacity in gradient stops from /N suffix", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="bg-gradient-to-r from-[#FF0000]/50 to-[#0000FF]/80" />');
+    const fill = nodes[0].fills![0];
+    // Per-stop opacity from Tailwind /N is not supported; stops have no opacity field
+    expect((fill.gradient?.stops[0] as any).opacity).toBeUndefined();
+    expect((fill.gradient?.stops[1] as any).opacity).toBeUndefined();
+  });
+});
+
+// --- Multiple fills/strokes accumulation ---
+
+describe("parseJsx - multiple fills/strokes accumulation", () => {
+  it("should accumulate multiple bg-[#hex] into fills array", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="bg-[#ffffff] bg-[#FF0000]/50" />');
+    expect(nodes[0].fills).toHaveLength(2);
+    expect(nodes[0].fills![0].color).toBe("#ffffff");
+    expect(nodes[0].fills![1].color).toBe("#FF0000");
+    expect(nodes[0].fills![1].opacity).toBe(0.5);
+  });
+
+  it("should accumulate multiple border-[#hex] into strokes array", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="border-[1px] border-[#000000] border-[#00FF00]" />');
+    expect(nodes[0].strokes).toHaveLength(2);
+    expect(nodes[0].strokes![0].color).toBe("#000000");
+    expect(nodes[0].strokes![1].color).toBe("#00FF00");
+  });
+
+  it("should use correct binding indices for multiple bg variables", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="bg-primary bg-secondary" />');
+    expect(nodes[0].fills).toHaveLength(2);
+    expect(nodes[0].bindings?.["fills/0"]).toBe("primary");
+    expect(nodes[0].bindings?.["fills/1"]).toBe("secondary");
+  });
+
+  it("should use correct binding indices for multiple border variables", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="border-[1px] border-primary border-secondary" />');
+    expect(nodes[0].strokes).toHaveLength(2);
+    expect(nodes[0].bindings?.["strokes/0"]).toBe("primary");
+    expect(nodes[0].bindings?.["strokes/1"]).toBe("secondary");
+  });
+
+  it("should accumulate solid fill + gradient fill from style", () => {
+    const jsx = '<div id="1:1" name="T" className="bg-[#ffffff]" style={{ background: "linear-gradient(#ff0000 0%, #0000ff 100%)" }} />';
+    const nodes = parseJsx(jsx);
+    expect(nodes[0].fills).toHaveLength(2);
+    expect(nodes[0].fills![0].color).toBe("#ffffff");
+    expect(nodes[0].fills![1].gradient?.type).toBe("GRADIENT_LINEAR");
+  });
+
+  it("should skip JSX comments gracefully without interpreting them", () => {
+    const jsx = `{/* Some random comment */}
+<div id="1:1" name="T" className="bg-[#ffffff]" />`;
+    const nodes = parseJsx(jsx);
+    expect(nodes[0].fills).toHaveLength(1);
+    expect(nodes[0].fills![0].color).toBe("#ffffff");
+  });
+
+  it("should skip JSX comments inside container children", () => {
+    const jsx = `<div id="1:1" name="Parent" className="flex flex-col">
+  {/* A child comment */}
+  <div id="1:2" name="Child" className="bg-[#ffffff]" />
+</div>`;
+    const nodes = parseJsx(jsx);
+    expect(nodes[0].children).toHaveLength(1);
+    expect(nodes[0].children![0].fills).toHaveLength(1);
+  });
+
+  it("should accumulate 3 solid fills from duplicate classes", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="bg-[#111111] bg-[#222222] bg-[#333333]" />');
+    expect(nodes[0].fills).toHaveLength(3);
+    expect(nodes[0].fills![0].color).toBe("#111111");
+    expect(nodes[0].fills![1].color).toBe("#222222");
+    expect(nodes[0].fills![2].color).toBe("#333333");
+  });
 });

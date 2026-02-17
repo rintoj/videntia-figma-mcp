@@ -148,47 +148,63 @@ function buildTailwindClasses(node: FigmaNodeData): string[] {
     }
   }
 
-  // --- Colors ---
-  const fillBinding = bindings["fills/0"];
-  const firstFill = node.fills && node.fills.length > 0 ? node.fills[0] : undefined;
+  // --- Colors (all fills) ---
+  let hasImageClass = false;
+  if (node.fills && node.fills.length > 0) {
+    for (let i = 0; i < node.fills.length; i++) {
+      const fill = node.fills[i];
+      const fillBinding = bindings[`fills/${i}`];
+      const fillOpacitySuffix =
+        !fillBinding && fill.opacity !== undefined && fill.opacity < 1
+          ? `/${Math.round(fill.opacity * 100)}`
+          : "";
 
-  if (firstFill) {
-    const fillOpacitySuffix =
-      !fillBinding && firstFill.opacity !== undefined && firstFill.opacity < 1
-        ? `/${Math.round(firstFill.opacity * 100)}`
-        : "";
-
-    if (isText) {
-      if (fillBinding) {
-        classes.push(`text-${normalizeName(fillBinding)}`);
-      } else if (firstFill.color) {
-        classes.push(`text-[${firstFill.color}]${fillOpacitySuffix}`);
-      }
-    } else {
-      if (firstFill.isImage) {
-        classes.push("bg-cover", "bg-center");
-      } else if (!firstFill.gradient) {
+      if (isText) {
         if (fillBinding) {
-          classes.push(`bg-${normalizeName(fillBinding)}`);
-        } else if (firstFill.color) {
-          classes.push(`bg-[${firstFill.color}]${fillOpacitySuffix}`);
+          classes.push(`text-${normalizeName(fillBinding)}`);
+        } else if (fill.color) {
+          classes.push(`text-[${fill.color}]${fillOpacitySuffix}`);
+        }
+      } else {
+        if (fill.isImage) {
+          if (!hasImageClass) {
+            classes.push("bg-cover", "bg-center");
+            hasImageClass = true;
+          }
+        } else if (fill.gradient) {
+          // Linear gradient WITH direction → Tailwind classes
+          if (fill.gradient.type === "GRADIENT_LINEAR" && fill.gradient.direction) {
+            classes.push(`bg-gradient-to-${fill.gradient.direction}`);
+            const stops = fill.gradient.stops;
+            if (stops.length >= 1) classes.push(`from-[${stops[0].color}]`);
+            if (stops.length === 3) classes.push(`via-[${stops[1].color}]`);
+            if (stops.length >= 2) classes.push(`to-[${stops[stops.length - 1].color}]`);
+          }
+          // Other gradients (no direction, radial, angular, diamond) → handled by buildStyleAttribute
+        } else {
+          if (fillBinding) {
+            classes.push(`bg-${normalizeName(fillBinding)}`);
+          } else if (fill.color) {
+            classes.push(`bg-[${fill.color}]${fillOpacitySuffix}`);
+          }
         }
       }
     }
   }
 
-  // Strokes
-  const strokeBinding = bindings["strokes/0"];
-  const firstStroke = node.strokes && node.strokes.length > 0 ? node.strokes[0] : undefined;
-
-  if (firstStroke) {
+  // Strokes (all strokes)
+  if (node.strokes && node.strokes.length > 0) {
     if (node.strokeWeight) {
       classes.push(`border-[${node.strokeWeight}px]`);
     }
-    if (strokeBinding) {
-      classes.push(`border-${normalizeName(strokeBinding)}`);
-    } else if (firstStroke.color) {
-      classes.push(`border-[${firstStroke.color}]`);
+    for (let i = 0; i < node.strokes.length; i++) {
+      const stroke = node.strokes[i];
+      const strokeBinding = bindings[`strokes/${i}`];
+      if (strokeBinding) {
+        classes.push(`border-${normalizeName(strokeBinding)}`);
+      } else if (stroke.color) {
+        classes.push(`border-[${stroke.color}]`);
+      }
     }
   }
 
@@ -303,10 +319,12 @@ function buildStyleAttribute(node: FigmaNodeData): Record<string, string> | null
     }
   }
 
-  // Gradient fills → background
-  const firstFill = node.fills && node.fills.length > 0 ? node.fills[0] : undefined;
-  if (firstFill?.gradient) {
-    const g = firstFill.gradient;
+  // Gradient fills → background (skip linear gradients with direction — already emitted as Tailwind)
+  const gradientFill = node.fills?.find(
+    (f) => f.gradient && !(f.gradient.type === "GRADIENT_LINEAR" && f.gradient.direction),
+  );
+  if (gradientFill?.gradient) {
+    const g = gradientFill.gradient;
     const stops = g.stops.map((s) => `${s.color} ${Math.round(s.position * 100)}%`).join(", ");
     if (g.type === "GRADIENT_LINEAR") {
       style.background = `linear-gradient(${stops})`;
@@ -317,8 +335,9 @@ function buildStyleAttribute(node: FigmaNodeData): Record<string, string> | null
   }
 
   // Image fills → backgroundImage
-  if (firstFill?.isImage && firstFill.imageRef) {
-    style.backgroundImage = `url(${firstFill.imageRef})`;
+  const firstImageFill = node.fills?.find((f) => f.isImage);
+  if (firstImageFill?.imageRef) {
+    style.backgroundImage = `url(${firstImageFill.imageRef})`;
   }
 
   // Rotation

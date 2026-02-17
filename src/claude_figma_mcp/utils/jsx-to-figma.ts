@@ -15,6 +15,13 @@ export function parseJsx(jsx: string): FigmaNodeData[] {
     while (pos < trimmed.length && /\s/.test(trimmed[pos])) pos++;
     if (pos >= trimmed.length) break;
 
+    // Skip JSX comments
+    const commentEnd = skipJsxComment(trimmed, pos);
+    if (commentEnd !== null) {
+      pos = commentEnd;
+      continue;
+    }
+
     if (trimmed[pos] === "<") {
       const result = parseElement(trimmed, pos);
       nodes.push(result.node);
@@ -25,6 +32,18 @@ export function parseJsx(jsx: string): FigmaNodeData[] {
   }
 
   return nodes;
+}
+
+/**
+ * Skip a JSX comment at the given position: {/\* ... *\/}
+ * Returns the new position after the comment, or null if not a comment.
+ */
+function skipJsxComment(input: string, pos: number): number | null {
+  if (input.substring(pos, pos + 3) !== "{/*") return null;
+  const endMarker = "*/}";
+  const endIdx = input.indexOf(endMarker, pos + 3);
+  if (endIdx === -1) return null;
+  return endIdx + endMarker.length;
 }
 
 // --- Recursive descent parser ---
@@ -107,6 +126,13 @@ function parseElement(input: string, pos: number): ParseResult {
         // Might be a different closing tag (error), skip
         pos = input.indexOf(">", pos) + 1;
         break;
+      }
+
+      // Skip JSX comments
+      const commentEnd = skipJsxComment(input, pos);
+      if (commentEnd !== null) {
+        pos = commentEnd;
+        continue;
       }
 
       if (input[pos] === "<") {
@@ -244,6 +270,13 @@ function applyClassName(node: FigmaNodeData, className: string): void {
   const deferredTextClasses: string[] = [];
   let hasFontSize = false;
   let hasIndividualTypography = false;
+
+  // Gradient accumulator (per-stop opacity from Tailwind /N suffix is not yet
+  // supported — Figma gradient stops use RGBA colors, not separate opacity)
+  let gradientDir: string | undefined;
+  let gradientFrom: { color: string } | undefined;
+  let gradientVia: { color: string } | undefined;
+  let gradientTo: { color: string } | undefined;
 
   // First pass: detect typography indicators
   for (const cls of classes) {
@@ -392,14 +425,43 @@ function applyClassName(node: FigmaNodeData, className: string): void {
       const opacity = m[2] ? Number(m[2]) / 100 : undefined;
       const fill: FigmaNodeFill = { type: "SOLID", color };
       if (opacity !== undefined) fill.opacity = opacity;
-      node.fills = [fill];
+      node.fills = node.fills || [];
+      node.fills.push(fill);
       continue;
     }
+    // --- Tailwind gradient classes (must come BEFORE catch-all bg-*) ---
+    if ((m = cls.match(/^bg-gradient-to-(r|l|t|b|tr|tl|br|bl)$/))) {
+      gradientDir = m[1]; continue;
+    }
+    if ((m = cls.match(/^from-\[(#[0-9a-fA-F]{3,8})\](?:\/(\d+))?$/))) {
+      gradientFrom = { color: m[1] }; continue;
+    }
+    if ((m = cls.match(/^via-\[(#[0-9a-fA-F]{3,8})\](?:\/(\d+))?$/))) {
+      gradientVia = { color: m[1] }; continue;
+    }
+    if ((m = cls.match(/^to-\[(#[0-9a-fA-F]{3,8})\](?:\/(\d+))?$/))) {
+      gradientTo = { color: m[1] }; continue;
+    }
+    // Gradient variable bindings: from-{var}, via-{var}, to-{var}
+    // Note: variable bindings for gradient stops are not yet supported —
+    // the varName is not wired into node.bindings. Stored as placeholder color only.
+    if ((m = cls.match(/^from-(.+)$/)) && !m[1].startsWith("[")) {
+      gradientFrom = { color: "#000000" }; continue;
+    }
+    if ((m = cls.match(/^via-(.+)$/)) && !m[1].startsWith("[")) {
+      gradientVia = { color: "#000000" }; continue;
+    }
+    if ((m = cls.match(/^to-(.+)$/)) && !m[1].startsWith("[")) {
+      gradientTo = { color: "#000000" }; continue;
+    }
+
     // bg-{var}
     if ((m = cls.match(/^bg-(.+)$/)) && !m[1].startsWith("[")) {
       const varName = denormalizeVarName(m[1]);
-      node.fills = [{ type: "SOLID", color: "#000000" }];
-      bindings["fills/0"] = varName;
+      node.fills = node.fills || [];
+      const idx = node.fills.length;
+      node.fills.push({ type: "SOLID", color: "#000000" });
+      bindings[`fills/${idx}`] = varName;
       continue;
     }
 
@@ -409,7 +471,8 @@ function applyClassName(node: FigmaNodeData, className: string): void {
       const opacity = m[2] ? Number(m[2]) / 100 : undefined;
       const fill: FigmaNodeFill = { type: "SOLID", color };
       if (opacity !== undefined) fill.opacity = opacity;
-      node.fills = [fill];
+      node.fills = node.fills || [];
+      node.fills.push(fill);
       continue;
     }
 
@@ -418,12 +481,16 @@ function applyClassName(node: FigmaNodeData, className: string): void {
       node.strokeWeight = Number(m[1]); continue;
     }
     if ((m = cls.match(/^border-\[(#[0-9a-fA-F]{3,8})\]$/))) {
-      node.strokes = [{ type: "SOLID", color: m[1] }]; continue;
+      node.strokes = node.strokes || [];
+      node.strokes.push({ type: "SOLID", color: m[1] });
+      continue;
     }
     if ((m = cls.match(/^border-(.+)$/)) && !m[1].startsWith("[")) {
       const varName = denormalizeVarName(m[1]);
-      node.strokes = [{ type: "SOLID", color: "#000000" }];
-      bindings["strokes/0"] = varName;
+      node.strokes = node.strokes || [];
+      const idx = node.strokes.length;
+      node.strokes.push({ type: "SOLID", color: "#000000" });
+      bindings[`strokes/${idx}`] = varName;
       continue;
     }
 
@@ -487,8 +554,10 @@ function applyClassName(node: FigmaNodeData, className: string): void {
         // If no individual typography, it's a textStyleName
         if (hasFontSize || hasIndividualTypography) {
           // Fill variable binding
-          node.fills = [{ type: "SOLID", color: "#000000" }];
-          bindings["fills/0"] = denormalizeVarName(name);
+          node.fills = node.fills || [];
+          const idx = node.fills.length;
+          node.fills.push({ type: "SOLID", color: "#000000" });
+          bindings[`fills/${idx}`] = denormalizeVarName(name);
         } else {
           deferredTextClasses.push(name);
         }
@@ -537,13 +606,36 @@ function applyClassName(node: FigmaNodeData, className: string): void {
     }
   }
 
+  // Assemble gradient fill from accumulated gradient classes
+  // Require at least from + to (2 stops) for a valid gradient
+  if (gradientDir || gradientFrom || gradientVia || gradientTo) {
+    const stops: Array<{ color: string; position: number }> = [];
+    if (gradientFrom) stops.push({ color: gradientFrom.color, position: 0 });
+    if (gradientVia) stops.push({ color: gradientVia.color, position: 0.5 });
+    if (gradientTo) stops.push({ color: gradientTo.color, position: 1 });
+    if (stops.length >= 2) {
+      const gradientFill: FigmaNodeFill = {
+        type: "GRADIENT_LINEAR",
+        gradient: {
+          type: "GRADIENT_LINEAR",
+          stops,
+          ...(gradientDir ? { direction: gradientDir } : {}),
+        },
+      };
+      node.fills = node.fills || [];
+      node.fills.push(gradientFill);
+    }
+  }
+
   // Process deferred text- classes
   if (isText && deferredTextClasses.length > 0) {
     for (const name of deferredTextClasses) {
       if (node.fontSize || hasIndividualTypography) {
         // Fill variable binding
-        node.fills = [{ type: "SOLID", color: "#000000" }];
-        bindings["fills/0"] = denormalizeVarName(name);
+        node.fills = node.fills || [];
+        const idx = node.fills.length;
+        node.fills.push({ type: "SOLID", color: "#000000" });
+        bindings[`fills/${idx}`] = denormalizeVarName(name);
       } else {
         // Text style name
         node.textStyleName = denormalizeVarName(name);
@@ -573,7 +665,8 @@ function applyStyleAttribute(node: FigmaNodeData, styleStr: string): void {
     } else if (key === "background") {
       const fill = parseGradient(value);
       if (fill) {
-        node.fills = [fill];
+        node.fills = node.fills || [];
+        node.fills.push(fill);
       }
     } else if (key === "backgroundImage") {
       // url(...) reference
