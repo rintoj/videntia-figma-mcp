@@ -6936,7 +6936,7 @@ async function createFromData(params) {
   function buildFigmaPaint(fillData) {
     if (fillData.gradient) {
       const stops = (fillData.gradient.stops || []).map(s => ({
-        color: Object.assign(parseColor(s.color), { a: 1 }),
+        color: Object.assign(parseColor(s.color), { a: parseOpacity(s.color) }),
         position: s.position,
       }));
       return {
@@ -6947,7 +6947,9 @@ async function createFromData(params) {
       };
     }
     if (fillData.isImage) {
-      return { type: "IMAGE", visible: true };
+      const paint = { type: "IMAGE", visible: true, scaleMode: "FILL" };
+      if (fillData.imageRef) paint.imageHash = fillData.imageRef;
+      return paint;
     }
     const paint = {
       type: "SOLID",
@@ -7138,10 +7140,12 @@ async function createFromData(params) {
   }
 
   // Create each root node
+  let xOffset = 0;
   for (let i = 0; i < data.length; i++) {
-    await createNode(data[i], parent, true,
-      x !== undefined ? x + (i * 20) : undefined,
+    const node = await createNode(data[i], parent, true,
+      x !== undefined ? x + xOffset : undefined,
       y);
+    xOffset += (node.width || 100) + 40;
   }
 
   return { createdNodes };

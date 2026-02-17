@@ -616,7 +616,7 @@ function parseBoxShadow(value: string): FigmaNodeEffect[] {
   const effects: FigmaNodeEffect[] = [];
 
   // Split on ", " but not within rgba()
-  const shadows = splitShadows(value);
+  const shadows = splitByComma(value);
 
   for (const shadow of shadows) {
     const trimmed = shadow.trim();
@@ -639,8 +639,8 @@ function parseBoxShadow(value: string): FigmaNodeEffect[] {
   return effects;
 }
 
-function splitShadows(value: string): string[] {
-  const shadows: string[] = [];
+function splitByComma(value: string): string[] {
+  const parts: string[] = [];
   let depth = 0;
   let current = "";
 
@@ -649,15 +649,15 @@ function splitShadows(value: string): string[] {
     if (ch === "(") depth++;
     else if (ch === ")") depth--;
     else if (ch === "," && depth === 0) {
-      shadows.push(current);
+      parts.push(current.trim());
       current = "";
       continue;
     }
     current += ch;
   }
-  if (current.trim()) shadows.push(current);
+  if (current.trim()) parts.push(current.trim());
 
-  return shadows;
+  return parts;
 }
 
 function parseGradient(value: string): FigmaNodeFill | null {
@@ -666,9 +666,9 @@ function parseGradient(value: string): FigmaNodeFill | null {
     const gradType = m[1] === "linear" ? "GRADIENT_LINEAR" : "GRADIENT_RADIAL";
     const stopsStr = m[2];
 
-    // Parse stops: "color position%, color position%"
+    // Parse stops: "color position%, color position%" (paren-aware split)
     const stops: Array<{ color: string; position: number }> = [];
-    const stopParts = stopsStr.split(/,\s*/).map(s => s.trim());
+    const stopParts = splitByComma(stopsStr);
 
     for (const part of stopParts) {
       const stopMatch = part.match(/^(.+?)\s+(\d+)%$/);

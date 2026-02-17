@@ -478,6 +478,16 @@ describe("parseJsx", () => {
     }]);
   });
 
+  it("should parse gradient with rgba colors", () => {
+    const jsx = '<div id="1:1" name="T" style={{ background: "linear-gradient(rgba(255,0,0,0.5) 0%, rgba(0,0,255,1) 100%)" }} />';
+    const nodes = parseJsx(jsx);
+    expect(nodes[0].fills![0].gradient?.stops).toHaveLength(2);
+    expect(nodes[0].fills![0].gradient?.stops[0].color).toBe("rgba(255,0,0,0.5)");
+    expect(nodes[0].fills![0].gradient?.stops[0].position).toBe(0);
+    expect(nodes[0].fills![0].gradient?.stops[1].color).toBe("rgba(0,0,255,1)");
+    expect(nodes[0].fills![0].gradient?.stops[1].position).toBe(1);
+  });
+
   it("should parse radial-gradient from style", () => {
     const jsx = '<div id="1:1" name="T" style={{ background: "radial-gradient(#ff0000 0%, #0000ff 100%)" }} />';
     const nodes = parseJsx(jsx);
