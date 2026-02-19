@@ -113,47 +113,24 @@ export function registerDocumentTools(server: McpServer): void {
     async ({ jsx, parentId, nextToId, x, y, replaceChildren }) => {
       try {
         const data = parseJsx(jsx);
-        // DEBUG: log what parseJsx produced (server-side)
-        const serverDebug = data.map((d: any) => ({
-          type: d.type,
-          layoutMode: d.layoutMode,
-          fillsCount: d.fills?.length ?? 0,
-          fills: d.fills,
-          fontFamily: d.fontFamily,
-          children: d.children?.map((c: any) => ({
-            type: c.type,
-            layoutMode: c.layoutMode,
-            fillsCount: c.fills?.length ?? 0,
-            fills: c.fills,
-            fontFamily: c.fontFamily,
-          })),
-        }));
         const result = await sendCommandToFigma("create_from_data", { data, parentId, nextToId, x, y, replaceChildren });
         const typedResult = result as {
           createdNodes: Array<{ id: string; name: string; type: string; action?: string }>;
-          debugInfo?: unknown;
         };
         const created = typedResult.createdNodes.filter((n) => n.action !== "updated");
         const updated = typedResult.createdNodes.filter((n) => n.action === "updated");
-        const lines: string[] = [];
+        const parts: string[] = [];
         if (updated.length > 0) {
-          lines.push(`Updated ${updated.length} node(s): ${updated.map((n) => `"${n.name}" (${n.id})`).join(", ")}`);
+          parts.push(`Updated ${updated.length} node(s): ${updated.map((n) => `"${n.name}" (${n.id})`).join(", ")}`);
         }
         if (created.length > 0) {
-          lines.push(`Created ${created.length} node(s): ${created.map((n) => `"${n.name}" (${n.id})`).join(", ")}`);
-        }
-        if (lines.length === 0) {
-          lines.push("No nodes created or updated.");
-        }
-        lines.push(`\nSERVER parseJsx output:\n${JSON.stringify(serverDebug, null, 2)}`);
-        if (typedResult.debugInfo) {
-          lines.push(`\nPLUGIN received data:\n${JSON.stringify(typedResult.debugInfo, null, 2)}`);
+          parts.push(`Created ${created.length} node(s): ${created.map((n) => `"${n.name}" (${n.id})`).join(", ")}`);
         }
         return {
           content: [
             {
               type: "text",
-              text: lines.join("\n"),
+              text: parts.length > 0 ? parts.join(" | ") : "No nodes created or updated.",
             },
           ],
         };

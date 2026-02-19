@@ -6847,17 +6847,11 @@ async function createFromData(params) {
   }
 
   // Build variable name → variable object map (reverse of readMyDesign)
-  // Also index by fully-hyphenated name so "semantic/success/subtle" finds "semantic/success-subtle"
   const varNameMap = new Map();
   try {
     const localVars = await figma.variables.getLocalVariablesAsync();
     for (const v of localVars) {
       varNameMap.set(v.name, v);
-      // Add hyphen→slash normalized key: "semantic/success-subtle" → "semantic/success/subtle"
-      const normalized = v.name.replace(/-/g, "/");
-      if (normalized !== v.name) {
-        varNameMap.set(normalized, v);
-      }
     }
   } catch (e) {
     console.warn("Failed to load local variables:", e);
@@ -7383,25 +7377,6 @@ async function createFromData(params) {
     return node;
   }
 
-  // Capture debug info from the received data
-  const debugInfo = data.map((d, i) => ({
-    index: i,
-    type: d.type,
-    name: d.name,
-    layoutMode: d.layoutMode || null,
-    fillsCount: d.fills ? d.fills.length : 0,
-    fills: d.fills || [],
-    childrenCount: d.children ? d.children.length : 0,
-    children: (d.children || []).map(c => ({
-      type: c.type,
-      name: c.name,
-      layoutMode: c.layoutMode || null,
-      fillsCount: c.fills ? c.fills.length : 0,
-      fills: c.fills || [],
-      fontFamily: c.fontFamily || null,
-    })),
-  }));
-
   // Create each root node
   let xOffset = 0;
   for (let i = 0; i < data.length; i++) {
@@ -7411,7 +7386,7 @@ async function createFromData(params) {
     xOffset += (node.width || 100) + 40;
   }
 
-  return { createdNodes, debugInfo };
+  return { createdNodes };
 }
 
 async function readMyDesign(params) {
