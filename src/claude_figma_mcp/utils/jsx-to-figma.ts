@@ -1564,18 +1564,180 @@ function applyStyleAttribute(node: FigmaNodeData, styleStr: string): void {
       } else if (value === "100%") {
         node.layoutSizingVertical = "FILL";
       }
+    } else if (key === "display") {
+      if (value === "flex") {
+        node.layoutMode = node.layoutMode || "HORIZONTAL";
+      }
+    } else if (key === "flexDirection") {
+      if (value === "column") {
+        node.layoutMode = "VERTICAL";
+      } else if (value === "row") {
+        node.layoutMode = "HORIZONTAL";
+      }
+    } else if (key === "justifyContent") {
+      const map: Record<string, "CENTER" | "MIN" | "MAX" | "SPACE_BETWEEN"> = {
+        center: "CENTER",
+        "flex-start": "MIN",
+        start: "MIN",
+        "flex-end": "MAX",
+        end: "MAX",
+        "space-between": "SPACE_BETWEEN",
+      };
+      if (map[value]) node.primaryAxisAlignItems = map[value];
+    } else if (key === "alignItems") {
+      const map: Record<string, "CENTER" | "MIN" | "MAX" | "BASELINE"> = {
+        center: "CENTER",
+        "flex-start": "MIN",
+        start: "MIN",
+        "flex-end": "MAX",
+        end: "MAX",
+        baseline: "BASELINE",
+      };
+      if (map[value]) node.counterAxisAlignItems = map[value];
+    } else if (key === "gap") {
+      const m = value.match(/^(\d+(?:\.\d+)?)px$/);
+      if (m) node.itemSpacing = Number(m[1]);
+    } else if (key === "padding") {
+      // Parse CSS shorthand: 1-4 values (supports px units and unitless 0)
+      const vals = value.match(/(\d+(?:\.\d+)?)(?:px)?/g);
+      if (vals) {
+        const nums = vals.map((v) => Number(v.replace("px", ""))).filter((n) => !isNaN(n));
+        if (nums.length === 1) {
+          node.paddingTop = nums[0];
+          node.paddingRight = nums[0];
+          node.paddingBottom = nums[0];
+          node.paddingLeft = nums[0];
+        } else if (nums.length === 2) {
+          node.paddingTop = nums[0];
+          node.paddingBottom = nums[0];
+          node.paddingRight = nums[1];
+          node.paddingLeft = nums[1];
+        } else if (nums.length === 3) {
+          node.paddingTop = nums[0];
+          node.paddingRight = nums[1];
+          node.paddingLeft = nums[1];
+          node.paddingBottom = nums[2];
+        } else if (nums.length >= 4) {
+          node.paddingTop = nums[0];
+          node.paddingRight = nums[1];
+          node.paddingBottom = nums[2];
+          node.paddingLeft = nums[3];
+        }
+      }
+    } else if (key === "paddingTop") {
+      const m = value.match(/^(\d+(?:\.\d+)?)px$/);
+      if (m) node.paddingTop = Number(m[1]);
+    } else if (key === "paddingRight") {
+      const m = value.match(/^(\d+(?:\.\d+)?)px$/);
+      if (m) node.paddingRight = Number(m[1]);
+    } else if (key === "paddingBottom") {
+      const m = value.match(/^(\d+(?:\.\d+)?)px$/);
+      if (m) node.paddingBottom = Number(m[1]);
+    } else if (key === "paddingLeft") {
+      const m = value.match(/^(\d+(?:\.\d+)?)px$/);
+      if (m) node.paddingLeft = Number(m[1]);
+    } else if (key === "opacity") {
+      const num = parseFloat(value);
+      if (!isNaN(num)) node.opacity = Math.min(1, Math.max(0, num));
+    } else if (key === "overflow") {
+      if (value === "hidden") node.clipsContent = true;
+    } else if (key === "flexWrap") {
+      if (value === "wrap") node.layoutWrap = "WRAP";
+    } else if (key === "fontSize") {
+      if (node.type === "TEXT") {
+        const m = value.match(/^(\d+(?:\.\d+)?)px$/);
+        if (m) node.fontSize = Number(m[1]);
+      }
+    } else if (key === "fontWeight") {
+      if (node.type === "TEXT") {
+        const num = parseInt(value, 10);
+        if (!isNaN(num)) node.fontWeight = num;
+      }
+    } else if (key === "lineHeight") {
+      if (node.type === "TEXT") {
+        const m = value.match(/^(\d+(?:\.\d+)?)px$/);
+        if (m) node.lineHeight = Number(m[1]);
+      }
+    } else if (key === "letterSpacing") {
+      if (node.type === "TEXT") {
+        const m = value.match(/^(-?\d+(?:\.\d+)?)px$/);
+        if (m) node.letterSpacing = Number(m[1]);
+      }
+    } else if (key === "textAlign") {
+      if (node.type === "TEXT") {
+        const map: Record<string, "LEFT" | "CENTER" | "RIGHT" | "JUSTIFIED"> = {
+          left: "LEFT",
+          center: "CENTER",
+          right: "RIGHT",
+          justify: "JUSTIFIED",
+        };
+        if (map[value]) node.textAlignHorizontal = map[value];
+      }
+    } else if (key === "textTransform") {
+      if (node.type === "TEXT") {
+        const map: Record<string, "UPPER" | "LOWER" | "TITLE"> = {
+          uppercase: "UPPER",
+          lowercase: "LOWER",
+          capitalize: "TITLE",
+        };
+        if (map[value]) node.textCase = map[value];
+      }
+    } else if (key === "borderStyle") {
+      // no-op: Figma always uses solid borders
+    } else if (key === "maxWidth" || key === "minWidth" || key === "maxHeight" || key === "minHeight") {
+      const m = value.match(/^(\d+(?:\.\d+)?)px$/);
+      if (m) (node as any)[key] = Number(m[1]);
     }
   }
 }
 
+/**
+ * Convert a kebab-case CSS property name to camelCase.
+ * e.g. "flex-direction" → "flexDirection", "background-color" → "backgroundColor"
+ */
+function kebabToCamel(str: string): string {
+  return str.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+}
+
+/**
+ * Detect whether a style string is CSS format (semicolons, unquoted values, kebab-case keys)
+ * vs the JSX serialized format (key: "value" with double-quoted values).
+ */
+function isCssStyleString(styleStr: string): boolean {
+  // CSS strings contain semicolons as delimiters
+  if (styleStr.includes(";")) return true;
+  // CSS strings have unquoted values — if no double-quoted values found, it's CSS
+  if (!/:\s*"/.test(styleStr)) return true;
+  return false;
+}
+
 function parseStyleEntries(styleStr: string): Array<[string, string]> {
   const entries: Array<[string, string]> = [];
-  // Match key: "value" patterns, handling nested parens/commas in values
-  const regex = /(\w+):\s*"((?:[^"\\]|\\.)*)"/g;
-  let match;
-  while ((match = regex.exec(styleStr)) !== null) {
-    entries.push([match[1], match[2]]);
+
+  if (isCssStyleString(styleStr)) {
+    // CSS string format: "display: flex; flex-direction: column; background-color: #0a0a0a;"
+    // Use paren-depth-aware splitting to handle values like url(data:image/png;base64,...)
+    const parts = splitBySemicolon(styleStr);
+    for (const part of parts) {
+      const trimmed = part.trim();
+      if (!trimmed) continue;
+      const colonIdx = trimmed.indexOf(":");
+      if (colonIdx === -1) continue;
+      const key = kebabToCamel(trimmed.substring(0, colonIdx).trim());
+      const value = trimmed.substring(colonIdx + 1).trim();
+      if (key && value) {
+        entries.push([key, value]);
+      }
+    }
+  } else {
+    // JSX serialized format: key: "value", key2: "value2"
+    const regex = /(\w+):\s*"((?:[^"\\]|\\.)*)"/g;
+    let match;
+    while ((match = regex.exec(styleStr)) !== null) {
+      entries.push([match[1], match[2]]);
+    }
   }
+
   return entries;
 }
 
@@ -1606,6 +1768,31 @@ function parseBoxShadow(value: string): FigmaNodeEffect[] {
   }
 
   return effects;
+}
+
+/**
+ * Split a CSS string on semicolons, respecting parentheses depth.
+ * This prevents splitting inside url(...), linear-gradient(...), etc.
+ */
+function splitBySemicolon(value: string): string[] {
+  const parts: string[] = [];
+  let depth = 0;
+  let current = "";
+
+  for (let i = 0; i < value.length; i++) {
+    const ch = value[i];
+    if (ch === "(") depth++;
+    else if (ch === ")") depth--;
+    else if (ch === ";" && depth === 0) {
+      parts.push(current.trim());
+      current = "";
+      continue;
+    }
+    current += ch;
+  }
+  if (current.trim()) parts.push(current.trim());
+
+  return parts;
 }
 
 function splitByComma(value: string): string[] {

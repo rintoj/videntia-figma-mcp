@@ -1751,3 +1751,192 @@ describe("parseJsx - bare flex defaults to HORIZONTAL", () => {
     expect(nodes[0].name).toBe("Icon");
   });
 });
+
+// --- CSS string format in style attribute ---
+
+describe("parseJsx - CSS string format in style attribute", () => {
+  it("should parse a full CSS string style with layout properties", () => {
+    const jsx =
+      '<div id="1:1" name="T" style="width: 1440px; height: 900px; display: flex; flex-direction: column; justify-content: center; align-items: center; background-color: #0a0a0a;" />';
+    const nodes = parseJsx(jsx);
+    expect(nodes[0].width).toBe(1440);
+    expect(nodes[0].height).toBe(900);
+    expect(nodes[0].layoutMode).toBe("VERTICAL");
+    expect(nodes[0].primaryAxisAlignItems).toBe("CENTER");
+    expect(nodes[0].counterAxisAlignItems).toBe("CENTER");
+    expect(nodes[0].fills).toEqual([{ type: "SOLID", color: "#0a0a0a" }]);
+  });
+
+  it("should convert kebab-case CSS properties to camelCase", () => {
+    const jsx = '<div id="1:1" name="T" style="background-color: #ff0000; border-radius: 12px;" />';
+    const nodes = parseJsx(jsx);
+    expect(nodes[0].fills).toEqual([{ type: "SOLID", color: "#ff0000" }]);
+    expect(nodes[0].cornerRadius).toBe(12);
+  });
+
+  it("should handle display: flex defaulting to HORIZONTAL", () => {
+    const jsx = '<div id="1:1" name="T" style="display: flex;" />';
+    const nodes = parseJsx(jsx);
+    expect(nodes[0].layoutMode).toBe("HORIZONTAL");
+  });
+
+  it("should handle flex-direction: row", () => {
+    const jsx = '<div id="1:1" name="T" style="display: flex; flex-direction: row;" />';
+    const nodes = parseJsx(jsx);
+    expect(nodes[0].layoutMode).toBe("HORIZONTAL");
+  });
+
+  it("should handle flex-direction: column", () => {
+    const jsx = '<div id="1:1" name="T" style="display: flex; flex-direction: column;" />';
+    const nodes = parseJsx(jsx);
+    expect(nodes[0].layoutMode).toBe("VERTICAL");
+  });
+
+  it("should handle justify-content values", () => {
+    const cases: Array<[string, string]> = [
+      ["flex-start", "MIN"],
+      ["start", "MIN"],
+      ["center", "CENTER"],
+      ["flex-end", "MAX"],
+      ["end", "MAX"],
+      ["space-between", "SPACE_BETWEEN"],
+    ];
+    for (const [cssVal, figmaVal] of cases) {
+      const jsx = `<div id="1:1" name="T" style="display: flex; justify-content: ${cssVal};" />`;
+      const nodes = parseJsx(jsx);
+      expect(nodes[0].primaryAxisAlignItems).toBe(figmaVal);
+    }
+  });
+
+  it("should handle align-items values", () => {
+    const cases: Array<[string, string]> = [
+      ["flex-start", "MIN"],
+      ["start", "MIN"],
+      ["center", "CENTER"],
+      ["flex-end", "MAX"],
+      ["end", "MAX"],
+      ["baseline", "BASELINE"],
+    ];
+    for (const [cssVal, figmaVal] of cases) {
+      const jsx = `<div id="1:1" name="T" style="display: flex; align-items: ${cssVal};" />`;
+      const nodes = parseJsx(jsx);
+      expect(nodes[0].counterAxisAlignItems).toBe(figmaVal);
+    }
+  });
+
+  it("should handle gap property", () => {
+    const jsx = '<div id="1:1" name="T" style="display: flex; gap: 16px;" />';
+    const nodes = parseJsx(jsx);
+    expect(nodes[0].itemSpacing).toBe(16);
+  });
+
+  it("should handle padding shorthand (1 value)", () => {
+    const jsx = '<div id="1:1" name="T" style="padding: 20px;" />';
+    const nodes = parseJsx(jsx);
+    expect(nodes[0].paddingTop).toBe(20);
+    expect(nodes[0].paddingRight).toBe(20);
+    expect(nodes[0].paddingBottom).toBe(20);
+    expect(nodes[0].paddingLeft).toBe(20);
+  });
+
+  it("should handle padding shorthand (2 values)", () => {
+    const jsx = '<div id="1:1" name="T" style="padding: 10px 20px;" />';
+    const nodes = parseJsx(jsx);
+    expect(nodes[0].paddingTop).toBe(10);
+    expect(nodes[0].paddingBottom).toBe(10);
+    expect(nodes[0].paddingRight).toBe(20);
+    expect(nodes[0].paddingLeft).toBe(20);
+  });
+
+  it("should handle padding shorthand (3 values)", () => {
+    const jsx = '<div id="1:1" name="T" style="padding: 10px 20px 30px;" />';
+    const nodes = parseJsx(jsx);
+    expect(nodes[0].paddingTop).toBe(10);
+    expect(nodes[0].paddingRight).toBe(20);
+    expect(nodes[0].paddingLeft).toBe(20);
+    expect(nodes[0].paddingBottom).toBe(30);
+  });
+
+  it("should handle padding shorthand (4 values)", () => {
+    const jsx = '<div id="1:1" name="T" style="padding: 10px 20px 30px 40px;" />';
+    const nodes = parseJsx(jsx);
+    expect(nodes[0].paddingTop).toBe(10);
+    expect(nodes[0].paddingRight).toBe(20);
+    expect(nodes[0].paddingBottom).toBe(30);
+    expect(nodes[0].paddingLeft).toBe(40);
+  });
+
+  it("should handle padding with unitless 0", () => {
+    const jsx = '<div id="1:1" name="T" style="padding: 0 16px;" />';
+    const nodes = parseJsx(jsx);
+    expect(nodes[0].paddingTop).toBe(0);
+    expect(nodes[0].paddingBottom).toBe(0);
+    expect(nodes[0].paddingRight).toBe(16);
+    expect(nodes[0].paddingLeft).toBe(16);
+  });
+
+  it("should handle individual padding properties", () => {
+    const jsx = '<div id="1:1" name="T" style="padding-top: 5px; padding-right: 10px; padding-bottom: 15px; padding-left: 20px;" />';
+    const nodes = parseJsx(jsx);
+    expect(nodes[0].paddingTop).toBe(5);
+    expect(nodes[0].paddingRight).toBe(10);
+    expect(nodes[0].paddingBottom).toBe(15);
+    expect(nodes[0].paddingLeft).toBe(20);
+  });
+
+  it("should handle opacity", () => {
+    const jsx = '<div id="1:1" name="T" style="opacity: 0.5;" />';
+    const nodes = parseJsx(jsx);
+    expect(nodes[0].opacity).toBe(0.5);
+  });
+
+  it("should handle overflow: hidden", () => {
+    const jsx = '<div id="1:1" name="T" style="overflow: hidden;" />';
+    const nodes = parseJsx(jsx);
+    expect(nodes[0].clipsContent).toBe(true);
+  });
+
+  it("should handle flex-wrap: wrap", () => {
+    const jsx = '<div id="1:1" name="T" style="display: flex; flex-wrap: wrap;" />';
+    const nodes = parseJsx(jsx);
+    expect(nodes[0].layoutWrap).toBe("WRAP");
+  });
+
+  it("should handle text properties on TEXT nodes", () => {
+    const jsx = '<span id="1:1" name="T" style="font-size: 18px; font-weight: 600; line-height: 24px; letter-spacing: 1px; text-align: center; text-transform: uppercase;">Hello</span>';
+    const nodes = parseJsx(jsx);
+    expect(nodes[0].fontSize).toBe(18);
+    expect(nodes[0].fontWeight).toBe(600);
+    expect(nodes[0].lineHeight).toBe(24);
+    expect(nodes[0].letterSpacing).toBe(1);
+    expect(nodes[0].textAlignHorizontal).toBe("CENTER");
+    expect(nodes[0].textCase).toBe("UPPER");
+  });
+
+  it("should ignore border-style (no-op)", () => {
+    const jsx = '<div id="1:1" name="T" style="border-style: solid; border-width: 2px;" />';
+    const nodes = parseJsx(jsx);
+    expect(nodes[0].strokeWeight).toBe(2);
+  });
+
+  it("should handle min/max width/height", () => {
+    const jsx = '<div id="1:1" name="T" style="max-width: 800px; min-height: 100px;" />';
+    const nodes = parseJsx(jsx);
+    expect((nodes[0] as any).maxWidth).toBe(800);
+    expect((nodes[0] as any).minHeight).toBe(100);
+  });
+
+  it("should still parse JSX object format style (regression)", () => {
+    const jsx = '<div id="1:1" name="T" style={{ backgroundColor: "#ff0000", borderRadius: "8px" }} />';
+    const nodes = parseJsx(jsx);
+    expect(nodes[0].fills).toEqual([{ type: "SOLID", color: "#ff0000" }]);
+    expect(nodes[0].cornerRadius).toBe(8);
+  });
+
+  it("should handle CSS string without trailing semicolon", () => {
+    const jsx = '<div id="1:1" name="T" style="width: 100px; height: 50px" />';
+    const nodes = parseJsx(jsx);
+    expect(nodes[0].width).toBe(100);
+    expect(nodes[0].height).toBe(50);
+  });
+});
