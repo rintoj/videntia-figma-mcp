@@ -80,22 +80,37 @@ export function registerDocumentTools(server: McpServer): void {
   // JSX to Figma Tool
   server.tool(
     "jsx_to_figma",
-    "Create Figma nodes from JSX+Tailwind markup. Accepts the same format that read_my_design outputs.",
+    "Create Figma nodes from JSX+Tailwind markup. Accepts the same format that read_my_design outputs. Auto-positions next to existing page content when no positioning params are given.",
     {
       jsx: z.string().describe("JSX+Tailwind markup string"),
       parentId: z.string().optional().describe("Parent node ID to insert into (defaults to current page)"),
+      nextToId: z.string().optional().describe("Place the new node to the right of this node ID"),
       x: z.number().optional().describe("X position for the root node"),
       y: z.number().optional().describe("Y position for the root node"),
     },
-    async ({ jsx, parentId, x, y }) => {
+    async ({ jsx, parentId, nextToId, x, y }) => {
       try {
         const data = parseJsx(jsx);
-        const result = await sendCommandToFigma("create_from_data", { data, parentId, x, y });
-        const typedResult = result as { createdNodes: Array<{ id: string; name: string; type: string }> };
+        // DEBUG: log what parseJsx produced (server-side)
+        const serverDebug = data.map((d: any) => ({
+          type: d.type, layoutMode: d.layoutMode, fillsCount: d.fills?.length ?? 0,
+          fills: d.fills, fontFamily: d.fontFamily,
+          children: d.children?.map((c: any) => ({
+            type: c.type, layoutMode: c.layoutMode, fillsCount: c.fills?.length ?? 0,
+            fills: c.fills, fontFamily: c.fontFamily,
+          })),
+        }));
+        const result = await sendCommandToFigma("create_from_data", { data, parentId, nextToId, x, y });
+        const typedResult = result as { createdNodes: Array<{ id: string; name: string; type: string }>; debugInfo?: unknown };
+        const lines = [`Created ${typedResult.createdNodes.length} node(s): ${typedResult.createdNodes.map(n => `"${n.name}" (${n.id})`).join(", ")}`];
+        lines.push(`\nSERVER parseJsx output:\n${JSON.stringify(serverDebug, null, 2)}`);
+        if (typedResult.debugInfo) {
+          lines.push(`\nPLUGIN received data:\n${JSON.stringify(typedResult.debugInfo, null, 2)}`);
+        }
         return {
           content: [{
             type: "text",
-            text: `Created ${typedResult.createdNodes.length} node(s): ${typedResult.createdNodes.map(n => `"${n.name}" (${n.id})`).join(", ")}`
+            text: lines.join("\n")
           }]
         };
       } catch (error) {
@@ -1177,6 +1192,83 @@ export function registerDocumentTools(server: McpServer): void {
   );
 
   // Get Variables Tool
+  function formatVariablesAsText(result: { variables: any[]; collections: any[] }): string {
+    const { variables, collections } = result;
+
+    // Build collection lookup
+    const collectionMap = new Map<string, any>();
+    for (const col of collections) {
+      collectionMap.set(col.id, col);
+    }
+
+    // Group variables by collectionId
+    const grouped = new Map<string, any[]>();
+    for (const v of variables) {
+      const list = grouped.get(v.collectionId) || [];
+      list.push(v);
+      grouped.set(v.collectionId, list);
+    }
+
+    const lines: string[] = [];
+
+    for (const col of collections) {
+      const vars = grouped.get(col.id) || [];
+      if (vars.length === 0) continue;
+
+      lines.push(`## Collection: ${col.name} (id: ${col.id})`);
+      const modeStr = col.modes.map((m: any) => `${m.name} (id: ${m.modeId})`).join(", ");
+      lines.push(`Modes: ${modeStr}`);
+      lines.push("");
+
+      const modes = col.modes as { name: string; modeId: string }[];
+      const multiMode = modes.length > 1;
+
+      // Build header
+      if (multiMode) {
+        const modeHeaders = modes.map((m) => m.name).join(" | ");
+        lines.push(`| Name | Type | ${modeHeaders} | ID |`);
+        lines.push(`|------|------|${modes.map(() => "------").join("|")}|----|`);
+      } else {
+        lines.push("| Name | Type | Value | ID |");
+        lines.push("|------|------|-------|----|");
+      }
+
+      for (const v of vars) {
+        const name = v.description ? `${v.name} — ${v.description}` : v.name;
+
+        if (multiMode) {
+          const values = modes.map((m) => {
+            const entry = v.values?.find((val: any) => val.modeId === m.modeId);
+            return entry ? formatValue(v.type, entry.value) : "-";
+          }).join(" | ");
+          lines.push(`| ${name} | ${v.type} | ${values} | ${v.id} |`);
+        } else {
+          const value = v.values?.[0]?.value;
+          lines.push(`| ${name} | ${v.type} | ${formatValue(v.type, value)} | ${v.id} |`);
+        }
+      }
+
+      lines.push("");
+    }
+
+    return lines.join("\n");
+  }
+
+  function formatValue(type: string, value: any): string {
+    if (value == null) return "-";
+    if (type === "COLOR" && typeof value === "object") {
+      const r = Math.round((value.r ?? 0) * 255);
+      const g = Math.round((value.g ?? 0) * 255);
+      const b = Math.round((value.b ?? 0) * 255);
+      const a = value.a ?? 1;
+      return `rgba(${r},${g},${b},${a})`;
+    }
+    if (typeof value === "object") {
+      return JSON.stringify(value);
+    }
+    return String(value);
+  }
+
   server.tool(
     "get_variables",
     "Get all variables and variable collections from the current Figma document",
@@ -1188,7 +1280,7 @@ export function registerDocumentTools(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result, null, 2)
+              text: formatVariablesAsText(result as { variables: any[]; collections: any[] })
             }
           ]
         };

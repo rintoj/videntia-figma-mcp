@@ -6841,7 +6841,7 @@ async function setSelections(params) {
 }
 
 async function createFromData(params) {
-  const { data, parentId, x, y } = params || {};
+  const { data, parentId, nextToId, x, y } = params || {};
   if (!Array.isArray(data) || data.length === 0) {
     throw new Error("create_from_data requires a non-empty 'data' array");
   }
@@ -6877,6 +6877,36 @@ async function createFromData(params) {
     }
   } else {
     parent = figma.currentPage;
+  }
+
+  // Resolve positioning
+  const GAP = 100;
+  let resolvedX = x;
+  let resolvedY = y;
+
+  if (nextToId) {
+    // Position next to the specified node
+    const refNode = await figma.getNodeByIdAsync(nextToId);
+    if (!refNode) throw new Error(`nextToId node not found: ${nextToId}`);
+    resolvedX = refNode.x + refNode.width + GAP;
+    resolvedY = refNode.y;
+  } else if (resolvedX === undefined && resolvedY === undefined && !parentId) {
+    // Auto-position: find rightmost edge of existing page children
+    const children = parent.children;
+    if (children.length > 0) {
+      let maxRight = -Infinity;
+      let topY = Infinity;
+      for (const child of children) {
+        const right = child.x + child.width;
+        if (right > maxRight) maxRight = right;
+        if (child.y < topY) topY = child.y;
+      }
+      resolvedX = maxRight + GAP;
+      resolvedY = topY;
+    } else {
+      resolvedX = 0;
+      resolvedY = 0;
+    }
   }
 
   const createdNodes = [];
@@ -6964,13 +6994,40 @@ async function createFromData(params) {
 
   // Build a Figma effect from FigmaNodeEffect data
   function buildFigmaEffect(effectData) {
-    const effect = { type: effectData.type, visible: true };
+    const type = effectData.type;
+
+    if (type === "DROP_SHADOW" || type === "INNER_SHADOW") {
+      const color = effectData.color
+        ? Object.assign(parseColor(effectData.color), { a: parseOpacity(effectData.color) })
+        : { r: 0, g: 0, b: 0, a: 0.25 };
+      return {
+        type,
+        color,
+        offset: effectData.offset || { x: 0, y: 0 },
+        radius: effectData.radius || 0,
+        spread: effectData.spread || 0,
+        visible: effectData.visible !== undefined ? effectData.visible : true,
+        blendMode: effectData.blendMode || "NORMAL",
+      };
+    }
+
+    if (type === "LAYER_BLUR" || type === "BACKGROUND_BLUR") {
+      return {
+        type,
+        radius: effectData.radius || 0,
+        visible: effectData.visible !== undefined ? effectData.visible : true,
+      };
+    }
+
+    // Fallback for other effect types
+    const effect = { type, visible: true };
     if (effectData.radius !== undefined) effect.radius = effectData.radius;
     if (effectData.offset) effect.offset = { x: effectData.offset.x, y: effectData.offset.y };
     if (effectData.spread !== undefined) effect.spread = effectData.spread;
     if (effectData.color) {
       effect.color = Object.assign(parseColor(effectData.color), { a: parseOpacity(effectData.color) });
     }
+    if (effectData.blendMode) effect.blendMode = effectData.blendMode;
     return effect;
   }
 
@@ -7141,8 +7198,16 @@ async function createFromData(params) {
     } else if (nodeData.height !== undefined) {
       node.resize(node.width, nodeData.height);
     }
-    if (nodeData.layoutSizingHorizontal) node.layoutSizingHorizontal = nodeData.layoutSizingHorizontal;
-    if (nodeData.layoutSizingVertical) node.layoutSizingVertical = nodeData.layoutSizingVertical;
+    if (nodeData.layoutSizingHorizontal) {
+      node.layoutSizingHorizontal = nodeData.layoutSizingHorizontal;
+    } else if (nodeData.layoutMode) {
+      node.layoutSizingHorizontal = "HUG";
+    }
+    if (nodeData.layoutSizingVertical) {
+      node.layoutSizingVertical = nodeData.layoutSizingVertical;
+    } else if (nodeData.layoutMode) {
+      node.layoutSizingVertical = "HUG";
+    }
 
     // Fills
     if (nodeData.fills && nodeData.fills.length > 0) {
@@ -7237,16 +7302,35 @@ async function createFromData(params) {
     return node;
   }
 
+  // Capture debug info from the received data
+  const debugInfo = data.map((d, i) => ({
+    index: i,
+    type: d.type,
+    name: d.name,
+    layoutMode: d.layoutMode || null,
+    fillsCount: d.fills ? d.fills.length : 0,
+    fills: d.fills || [],
+    childrenCount: d.children ? d.children.length : 0,
+    children: (d.children || []).map(c => ({
+      type: c.type,
+      name: c.name,
+      layoutMode: c.layoutMode || null,
+      fillsCount: c.fills ? c.fills.length : 0,
+      fills: c.fills || [],
+      fontFamily: c.fontFamily || null,
+    })),
+  }));
+
   // Create each root node
   let xOffset = 0;
   for (let i = 0; i < data.length; i++) {
     const node = await createNode(data[i], parent, true,
-      x !== undefined ? x + xOffset : undefined,
-      y);
+      resolvedX !== undefined ? resolvedX + xOffset : undefined,
+      resolvedY);
     xOffset += (node.width || 100) + 40;
   }
 
-  return { createdNodes };
+  return { createdNodes, debugInfo };
 }
 
 async function readMyDesign(params) {

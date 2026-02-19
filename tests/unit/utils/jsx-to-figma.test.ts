@@ -1141,3 +1141,541 @@ describe("parseJsx - component tags", () => {
     expect(nodes[0].type).toBe("COMPONENT_SET");
   });
 });
+
+// --- Standard Tailwind spacing ---
+
+describe("parseJsx - standard Tailwind spacing", () => {
+  it("should resolve px-6 to paddingLeft/Right: 24 + binding", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="px-6" />');
+    expect(nodes[0].paddingLeft).toBe(24);
+    expect(nodes[0].paddingRight).toBe(24);
+    expect(nodes[0].bindings?.paddingLeft).toBe("6");
+    expect(nodes[0].bindings?.paddingRight).toBe("6");
+  });
+
+  it("should resolve py-3 to paddingTop/Bottom: 12 + binding", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="py-3" />');
+    expect(nodes[0].paddingTop).toBe(12);
+    expect(nodes[0].paddingBottom).toBe(12);
+    expect(nodes[0].bindings?.paddingTop).toBe("3");
+    expect(nodes[0].bindings?.paddingBottom).toBe("3");
+  });
+
+  it("should resolve p-4 to all padding: 16 + binding", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="p-4" />');
+    expect(nodes[0].paddingTop).toBe(16);
+    expect(nodes[0].paddingRight).toBe(16);
+    expect(nodes[0].paddingBottom).toBe(16);
+    expect(nodes[0].paddingLeft).toBe(16);
+    expect(nodes[0].bindings?.paddingTop).toBe("4");
+  });
+
+  it("should resolve gap-4 to itemSpacing: 16 + binding", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="flex flex-row gap-4" />');
+    expect(nodes[0].itemSpacing).toBe(16);
+    expect(nodes[0].bindings?.itemSpacing).toBe("4");
+  });
+
+  it("should resolve w-12 to width: 48, FIXED", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="w-12" />');
+    expect(nodes[0].width).toBe(48);
+    expect(nodes[0].layoutSizingHorizontal).toBe("FIXED");
+  });
+
+  it("should resolve h-8 to height: 32, FIXED", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="h-8" />');
+    expect(nodes[0].height).toBe(32);
+    expect(nodes[0].layoutSizingVertical).toBe("FIXED");
+  });
+
+  it("should resolve w-full to FILL", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="w-full" />');
+    expect(nodes[0].layoutSizingHorizontal).toBe("FILL");
+  });
+
+  it("should resolve w-auto to HUG", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="w-auto" />');
+    expect(nodes[0].layoutSizingHorizontal).toBe("HUG");
+  });
+
+  it("should resolve h-auto to HUG", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="h-auto" />');
+    expect(nodes[0].layoutSizingVertical).toBe("HUG");
+  });
+
+  it("should resolve w-screen to 1440", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="w-screen" />');
+    expect(nodes[0].width).toBe(1440);
+    expect(nodes[0].layoutSizingHorizontal).toBe("FIXED");
+  });
+
+  it("should still handle variable-only padding bindings", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="p-spacing-4" />');
+    expect(nodes[0].bindings?.paddingTop).toBe("spacing/4");
+    expect(nodes[0].paddingTop).toBe(0);
+  });
+});
+
+// --- Standard Tailwind colors ---
+
+describe("parseJsx - standard Tailwind colors", () => {
+  it("should resolve bg-blue-600 to fill #2563EB + binding", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="bg-blue-600" />');
+    expect(nodes[0].fills).toEqual([{ type: "SOLID", color: "#2563EB" }]);
+    expect(nodes[0].bindings?.["fills/0"]).toBe("blue/600");
+  });
+
+  it("should resolve bg-white to fill #FFFFFF + binding", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="bg-white" />');
+    expect(nodes[0].fills).toEqual([{ type: "SOLID", color: "#FFFFFF" }]);
+    expect(nodes[0].bindings?.["fills/0"]).toBe("white");
+  });
+
+  it("should resolve bg-black to fill #000000 + binding", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="bg-black" />');
+    expect(nodes[0].fills).toEqual([{ type: "SOLID", color: "#000000" }]);
+    expect(nodes[0].bindings?.["fills/0"]).toBe("black");
+  });
+
+  it("should resolve text-white on TEXT to fill #FFFFFF + binding", () => {
+    const nodes = parseJsx('<span id="1:1" name="T" className="text-sm text-white">\n  Hello\n</span>');
+    const whiteFill = nodes[0].fills?.find(f => f.color === "#FFFFFF");
+    expect(whiteFill).toBeDefined();
+  });
+
+  it("should resolve text-red-500 on TEXT to fill #EF4444 + binding", () => {
+    const nodes = parseJsx('<span id="1:1" name="T" className="text-sm text-red-500">\n  Hello\n</span>');
+    const redFill = nodes[0].fills?.find(f => f.color === "#EF4444");
+    expect(redFill).toBeDefined();
+  });
+
+  it("should resolve border-gray-300 to stroke color #D1D5DB + binding", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="border border-gray-300" />');
+    expect(nodes[0].strokeWeight).toBe(1);
+    expect(nodes[0].strokes?.[0].color).toBe("#D1D5DB");
+    expect(nodes[0].bindings?.["strokes/0"]).toBe("gray/300");
+  });
+
+  it("should still handle non-standard color names as variable bindings", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="bg-primary" />');
+    expect(nodes[0].fills).toEqual([{ type: "SOLID", color: "#000000" }]);
+    expect(nodes[0].bindings?.["fills/0"]).toBe("primary");
+  });
+});
+
+// --- Standard Tailwind font sizes ---
+
+describe("parseJsx - standard Tailwind font sizes", () => {
+  it("should resolve text-sm on TEXT to fontSize: 14, lineHeight: 20", () => {
+    const nodes = parseJsx('<span id="1:1" name="T" className="text-sm">\n  Hello\n</span>');
+    expect(nodes[0].fontSize).toBe(14);
+    expect(nodes[0].lineHeight).toBe(20);
+  });
+
+  it("should resolve text-xl on TEXT to fontSize: 20, lineHeight: 28", () => {
+    const nodes = parseJsx('<span id="1:1" name="T" className="text-xl">\n  Hello\n</span>');
+    expect(nodes[0].fontSize).toBe(20);
+    expect(nodes[0].lineHeight).toBe(28);
+  });
+
+  it("should resolve text-base on TEXT to fontSize: 16, lineHeight: 24", () => {
+    const nodes = parseJsx('<span id="1:1" name="T" className="text-base">\n  Hello\n</span>');
+    expect(nodes[0].fontSize).toBe(16);
+    expect(nodes[0].lineHeight).toBe(24);
+  });
+
+  it("should resolve text-2xl on TEXT to fontSize: 24, lineHeight: 32", () => {
+    const nodes = parseJsx('<span id="1:1" name="T" className="text-2xl">\n  Hello\n</span>');
+    expect(nodes[0].fontSize).toBe(24);
+    expect(nodes[0].lineHeight).toBe(32);
+  });
+
+  it("should treat text-{color} as fill when text-sm is also present", () => {
+    const nodes = parseJsx('<span id="1:1" name="T" className="text-sm text-gray-700">\n  Hello\n</span>');
+    expect(nodes[0].fontSize).toBe(14);
+    const grayFill = nodes[0].fills?.find(f => f.color === "#374151");
+    expect(grayFill).toBeDefined();
+  });
+});
+
+// --- Standard Tailwind border radius ---
+
+describe("parseJsx - standard Tailwind border radius", () => {
+  it("should resolve rounded-lg to cornerRadius: 8 + binding", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="rounded-lg" />');
+    expect(nodes[0].cornerRadius).toBe(8);
+    expect(nodes[0].bindings?.cornerRadius).toBe("lg");
+  });
+
+  it("should resolve bare rounded to cornerRadius: 4 + binding DEFAULT", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="rounded" />');
+    expect(nodes[0].cornerRadius).toBe(4);
+    expect(nodes[0].bindings?.cornerRadius).toBe("DEFAULT");
+  });
+
+  it("should resolve rounded-full to cornerRadius: 9999 + binding", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="rounded-full" />');
+    expect(nodes[0].cornerRadius).toBe(9999);
+    expect(nodes[0].bindings?.cornerRadius).toBe("full");
+  });
+
+  it("should resolve rounded-md to cornerRadius: 6 + binding", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="rounded-md" />');
+    expect(nodes[0].cornerRadius).toBe(6);
+    expect(nodes[0].bindings?.cornerRadius).toBe("md");
+  });
+
+  it("should resolve rounded-none to cornerRadius: 0", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="rounded-none" />');
+    expect(nodes[0].cornerRadius).toBe(0);
+  });
+});
+
+// --- Standard Tailwind shadows ---
+
+describe("parseJsx - standard Tailwind shadows", () => {
+  it("should resolve shadow-md to effects with DROP_SHADOW", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="shadow-md" />');
+    expect(nodes[0].effects).toBeDefined();
+    expect(nodes[0].effects!.length).toBeGreaterThan(0);
+    expect(nodes[0].effects![0].type).toBe("DROP_SHADOW");
+  });
+
+  it("should resolve shadow-lg to effects with DROP_SHADOW", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="shadow-lg" />');
+    expect(nodes[0].effects).toBeDefined();
+    expect(nodes[0].effects!.length).toBeGreaterThan(0);
+    expect(nodes[0].effects![0].type).toBe("DROP_SHADOW");
+  });
+
+  it("should resolve bare shadow to default shadow effects", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="shadow" />');
+    expect(nodes[0].effects).toBeDefined();
+    expect(nodes[0].effects!.length).toBeGreaterThan(0);
+  });
+
+  it("should resolve shadow-inner to INNER_SHADOW effect", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="shadow-inner" />');
+    expect(nodes[0].effects).toBeDefined();
+    expect(nodes[0].effects![0].type).toBe("INNER_SHADOW");
+  });
+
+  it("should resolve shadow-none to empty effects", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="shadow-none" />');
+    expect(nodes[0].effects).toEqual([]);
+  });
+});
+
+// --- Standard Tailwind opacity ---
+
+describe("parseJsx - standard Tailwind opacity", () => {
+  it("should resolve opacity-50 to opacity: 0.5", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="opacity-50" />');
+    expect(nodes[0].opacity).toBe(0.5);
+  });
+
+  it("should resolve opacity-0 to opacity: 0", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="opacity-0" />');
+    expect(nodes[0].opacity).toBe(0);
+  });
+
+  it("should resolve opacity-100 to opacity: 1", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="opacity-100" />');
+    expect(nodes[0].opacity).toBe(1);
+  });
+});
+
+// --- Standard Tailwind blur ---
+
+describe("parseJsx - standard Tailwind blur", () => {
+  it("should resolve blur-sm to LAYER_BLUR with radius 4", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="blur-sm" />');
+    expect(nodes[0].effects).toEqual([{ type: "LAYER_BLUR", radius: 4 }]);
+  });
+
+  it("should resolve bare blur to LAYER_BLUR with radius 8", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="blur" />');
+    expect(nodes[0].effects).toEqual([{ type: "LAYER_BLUR", radius: 8 }]);
+  });
+
+  it("should resolve backdrop-blur-lg to BACKGROUND_BLUR with radius 16", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="backdrop-blur-lg" />');
+    expect(nodes[0].effects).toEqual([{ type: "BACKGROUND_BLUR", radius: 16 }]);
+  });
+});
+
+// --- Standard Tailwind border widths ---
+
+describe("parseJsx - standard Tailwind border widths", () => {
+  it("should resolve bare border to strokeWeight: 1", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="border" />');
+    expect(nodes[0].strokeWeight).toBe(1);
+  });
+
+  it("should resolve border-2 to strokeWeight: 2", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="border-2" />');
+    expect(nodes[0].strokeWeight).toBe(2);
+  });
+
+  it("should resolve border-0 to strokeWeight: 0", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="border-0" />');
+    expect(nodes[0].strokeWeight).toBe(0);
+  });
+});
+
+// --- Standard Tailwind line heights ---
+
+describe("parseJsx - standard Tailwind line heights", () => {
+  it("should resolve leading-tight to lineHeight: 125%", () => {
+    const nodes = parseJsx('<span id="1:1" name="T" className="text-[14px] leading-tight">\n  T\n</span>');
+    expect(nodes[0].lineHeight).toBe(125);
+    expect(nodes[0].lineHeightUnit).toBe("percent");
+  });
+
+  it("should resolve leading-6 to lineHeight: 24px", () => {
+    const nodes = parseJsx('<span id="1:1" name="T" className="text-[14px] leading-6">\n  T\n</span>');
+    expect(nodes[0].lineHeight).toBe(24);
+  });
+
+  it("should resolve leading-normal to lineHeight: 150%", () => {
+    const nodes = parseJsx('<span id="1:1" name="T" className="text-[14px] leading-normal">\n  T\n</span>');
+    expect(nodes[0].lineHeight).toBe(150);
+    expect(nodes[0].lineHeightUnit).toBe("percent");
+  });
+});
+
+// --- Standard Tailwind letter spacings ---
+
+describe("parseJsx - standard Tailwind letter spacings", () => {
+  it("should resolve tracking-tight to -2.5% letter spacing", () => {
+    const nodes = parseJsx('<span id="1:1" name="T" className="text-[14px] tracking-tight">\n  T\n</span>');
+    expect(nodes[0].letterSpacing).toBe(-2.5);
+    expect(nodes[0].letterSpacingUnit).toBe("percent");
+  });
+
+  it("should resolve tracking-wide to 2.5% letter spacing", () => {
+    const nodes = parseJsx('<span id="1:1" name="T" className="text-[14px] tracking-wide">\n  T\n</span>');
+    expect(nodes[0].letterSpacing).toBe(2.5);
+    expect(nodes[0].letterSpacingUnit).toBe("percent");
+  });
+});
+
+// --- HTML tag support ---
+
+describe("parseJsx - HTML tags", () => {
+  it("should parse <button> with text children as FRAME + child TEXT", () => {
+    const nodes = parseJsx('<button id="1:1">Get Started</button>');
+    expect(nodes[0].type).toBe("FRAME");
+    expect(nodes[0].name).toBe("Button");
+    expect(nodes[0].children).toHaveLength(1);
+    expect(nodes[0].children![0].type).toBe("TEXT");
+    expect(nodes[0].children![0].characters).toBe("Get Started");
+    // Default layout
+    expect(nodes[0].layoutMode).toBe("HORIZONTAL");
+    expect(nodes[0].primaryAxisAlignItems).toBe("CENTER");
+    expect(nodes[0].counterAxisAlignItems).toBe("CENTER");
+  });
+
+  it("should parse fully styled <button> with standard Tailwind", () => {
+    const nodes = parseJsx('<button id="1:1" className="px-6 py-3 bg-blue-600 text-white rounded-lg text-sm font-semibold">Get Started</button>');
+    expect(nodes[0].type).toBe("FRAME");
+    expect(nodes[0].paddingLeft).toBe(24);
+    expect(nodes[0].paddingRight).toBe(24);
+    expect(nodes[0].paddingTop).toBe(12);
+    expect(nodes[0].paddingBottom).toBe(12);
+    expect(nodes[0].fills?.[0].color).toBe("#2563EB");
+    expect(nodes[0].cornerRadius).toBe(8);
+    // Child text node
+    expect(nodes[0].children).toHaveLength(1);
+    const textNode = nodes[0].children![0];
+    expect(textNode.type).toBe("TEXT");
+    expect(textNode.characters).toBe("Get Started");
+    expect(textNode.fontSize).toBe(14);
+    expect(textNode.fontWeight).toBe(600);
+  });
+
+  it("should parse <input /> with default sizing and border", () => {
+    const nodes = parseJsx('<input id="1:1" />');
+    expect(nodes[0].type).toBe("FRAME");
+    expect(nodes[0].name).toBe("Input");
+    expect(nodes[0].width).toBe(240);
+    expect(nodes[0].height).toBe(40);
+    expect(nodes[0].cornerRadius).toBe(6);
+    expect(nodes[0].strokeWeight).toBe(1);
+    expect(nodes[0].strokes?.[0].color).toBe("#D1D5DB");
+  });
+
+  it("should parse <h1> as TEXT node with default fontSize 36", () => {
+    const nodes = parseJsx('<h1 id="1:1">Title</h1>');
+    expect(nodes[0].type).toBe("TEXT");
+    expect(nodes[0].name).toBe("H1");
+    expect(nodes[0].characters).toBe("Title");
+    expect(nodes[0].fontSize).toBe(36);
+    expect(nodes[0].fontWeight).toBe(800);
+  });
+
+  it("should parse <h2> as TEXT node with default fontSize 30", () => {
+    const nodes = parseJsx('<h2 id="1:1">Subtitle</h2>');
+    expect(nodes[0].type).toBe("TEXT");
+    expect(nodes[0].fontSize).toBe(30);
+    expect(nodes[0].fontWeight).toBe(700);
+  });
+
+  it("should parse <p> as TEXT node", () => {
+    const nodes = parseJsx('<p id="1:1">Content paragraph</p>');
+    expect(nodes[0].type).toBe("TEXT");
+    expect(nodes[0].name).toBe("Text");
+    expect(nodes[0].characters).toBe("Content paragraph");
+  });
+
+  it("should parse <img /> with default sizing and image fill", () => {
+    const nodes = parseJsx('<img id="1:1" />');
+    expect(nodes[0].type).toBe("FRAME");
+    expect(nodes[0].name).toBe("Image");
+    expect(nodes[0].width).toBe(100);
+    expect(nodes[0].height).toBe(100);
+    expect(nodes[0].fills?.some(f => f.isImage)).toBe(true);
+  });
+
+  it("should parse <a> as TEXT node", () => {
+    const nodes = parseJsx('<a id="1:1">Click here</a>');
+    expect(nodes[0].type).toBe("TEXT");
+    expect(nodes[0].name).toBe("Link");
+    expect(nodes[0].characters).toBe("Click here");
+  });
+
+  it("should parse <li> with text children", () => {
+    const nodes = parseJsx('<li id="1:1">List item</li>');
+    expect(nodes[0].type).toBe("FRAME");
+    expect(nodes[0].name).toBe("ListItem");
+    expect(nodes[0].children).toHaveLength(1);
+    expect(nodes[0].children![0].characters).toBe("List item");
+  });
+
+  it("should parse <select> with defaults", () => {
+    const nodes = parseJsx('<select id="1:1" />');
+    expect(nodes[0].name).toBe("Select");
+    expect(nodes[0].width).toBe(240);
+    expect(nodes[0].height).toBe(40);
+    expect(nodes[0].cornerRadius).toBe(6);
+  });
+
+  it("should parse <textarea> with defaults", () => {
+    const nodes = parseJsx('<textarea id="1:1" />');
+    expect(nodes[0].name).toBe("Textarea");
+    expect(nodes[0].width).toBe(240);
+    expect(nodes[0].height).toBe(120);
+  });
+
+  it("should not override explicit classes with HTML tag defaults", () => {
+    const nodes = parseJsx('<input id="1:1" className="w-[300px] h-[50px] rounded-[10px]" />');
+    expect(nodes[0].width).toBe(300);
+    expect(nodes[0].height).toBe(50);
+    expect(nodes[0].cornerRadius).toBe(10);
+  });
+
+  it("should split text/frame classes when button has text children", () => {
+    const nodes = parseJsx('<button id="1:1" className="px-4 py-2 text-sm font-bold">Click</button>');
+    // Frame gets padding
+    expect(nodes[0].paddingLeft).toBe(16);
+    expect(nodes[0].paddingTop).toBe(8);
+    // Text child gets typography
+    expect(nodes[0].children![0].fontSize).toBe(14);
+    expect(nodes[0].children![0].fontWeight).toBe(700);
+  });
+
+  it("should handle <section> tag as FRAME", () => {
+    const nodes = parseJsx('<section id="1:1" className="flex flex-col" />');
+    expect(nodes[0].type).toBe("FRAME");
+    expect(nodes[0].name).toBe("Section");
+    expect(nodes[0].layoutMode).toBe("VERTICAL");
+  });
+
+  it("should handle <strong> as TEXT node", () => {
+    const nodes = parseJsx('<strong id="1:1">Bold text</strong>');
+    expect(nodes[0].type).toBe("TEXT");
+    expect(nodes[0].characters).toBe("Bold text");
+  });
+});
+
+// --- Style attribute: additional CSS properties ---
+
+describe("parseJsx - style attribute CSS properties", () => {
+  it("should parse backgroundColor from style on FRAME", () => {
+    const jsx = '<div id="1:1" name="T" style={{ backgroundColor: "#ff0000" }} />';
+    const nodes = parseJsx(jsx);
+    expect(nodes[0].fills).toEqual([{ type: "SOLID", color: "#ff0000" }]);
+  });
+
+  it("should parse color from style on TEXT node", () => {
+    const jsx = '<span id="1:1" name="T" style={{ color: "#fafafa" }}>\n  Hello\n</span>';
+    const nodes = parseJsx(jsx);
+    expect(nodes[0].fills).toEqual([{ type: "SOLID", color: "#fafafa" }]);
+  });
+
+  it("should parse fontFamily from style on TEXT node", () => {
+    const jsx = '<span id="1:1" name="T" style={{ fontFamily: "Manrope" }}>\n  Hello\n</span>';
+    const nodes = parseJsx(jsx);
+    expect(nodes[0].fontFamily).toBe("Manrope");
+  });
+
+  it("should parse borderColor from style", () => {
+    const jsx = '<div id="1:1" name="T" style={{ borderColor: "#2a2a2a" }} />';
+    const nodes = parseJsx(jsx);
+    expect(nodes[0].strokes).toEqual([{ type: "SOLID", color: "#2a2a2a" }]);
+  });
+
+  it("should parse borderRadius from style", () => {
+    const jsx = '<div id="1:1" name="T" style={{ borderRadius: "8px" }} />';
+    const nodes = parseJsx(jsx);
+    expect(nodes[0].cornerRadius).toBe(8);
+  });
+
+  it("should propagate color from style to child TEXT nodes on FRAME", () => {
+    const jsx = '<button id="1:1" style={{ color: "#0a0a0a" }}>Click</button>';
+    const nodes = parseJsx(jsx);
+    expect(nodes[0].type).toBe("FRAME");
+    expect(nodes[0].children![0].type).toBe("TEXT");
+    expect(nodes[0].children![0].fills).toEqual([{ type: "SOLID", color: "#0a0a0a" }]);
+  });
+
+  it("should propagate fontFamily from style to child TEXT nodes on FRAME", () => {
+    const jsx = '<button id="1:1" style={{ fontFamily: "Manrope" }}>Click</button>';
+    const nodes = parseJsx(jsx);
+    expect(nodes[0].children![0].fontFamily).toBe("Manrope");
+  });
+
+  it("should not override child TEXT fills if already set", () => {
+    const jsx = '<button id="1:1" className="text-white" style={{ color: "#0a0a0a" }}>Click</button>';
+    const nodes = parseJsx(jsx);
+    // text-white should be applied to child TEXT, and style color should NOT override it
+    expect(nodes[0].children![0].fills![0].color).toBe("#FFFFFF");
+  });
+
+  it("should ignore transparent backgroundColor", () => {
+    const jsx = '<div id="1:1" name="T" style={{ backgroundColor: "transparent" }} />';
+    const nodes = parseJsx(jsx);
+    expect(nodes[0].fills).toBeUndefined();
+  });
+});
+
+// --- Bare flex as HORIZONTAL ---
+
+describe("parseJsx - bare flex defaults to HORIZONTAL", () => {
+  it("should set layoutMode HORIZONTAL for bare flex", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="flex items-center gap-4" />');
+    expect(nodes[0].layoutMode).toBe("HORIZONTAL");
+    expect(nodes[0].counterAxisAlignItems).toBe("CENTER");
+    expect(nodes[0].itemSpacing).toBe(16);
+  });
+
+  it("should not override flex-col with flex default", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="flex flex-col" />');
+    expect(nodes[0].layoutMode).toBe("VERTICAL");
+  });
+
+  it("should not override flex-row with flex default", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="flex flex-row" />');
+    expect(nodes[0].layoutMode).toBe("HORIZONTAL");
+  });
+});
