@@ -601,7 +601,11 @@ describe("new document tools integration", () => {
         nodeId: "parent-123",
         types: "FRAME",
       });
-      expect(mockSendCommand).toHaveBeenCalledWith("scan_nodes_by_types", { nodeId: "parent-123", types: ["FRAME"], topLevelOnly: true });
+      expect(mockSendCommand).toHaveBeenCalledWith("scan_nodes_by_types", {
+        nodeId: "parent-123",
+        types: ["FRAME"],
+        topLevelOnly: true,
+      });
     });
 
     it("handles non-standard result format", async () => {
@@ -883,9 +887,7 @@ describe("new document tools integration", () => {
 
     it("shows only updated nodes when all are updates", async () => {
       mockSendCommand.mockResolvedValue({
-        createdNodes: [
-          { id: "1:100", name: "Card", type: "FRAME", action: "updated" },
-        ],
+        createdNodes: [{ id: "1:100", name: "Card", type: "FRAME", action: "updated" }],
       });
 
       const response = await callTool("jsx_to_figma", {
@@ -899,9 +901,7 @@ describe("new document tools integration", () => {
 
     it("shows only created nodes when none are updates (backward compat)", async () => {
       mockSendCommand.mockResolvedValue({
-        createdNodes: [
-          { id: "1:100", name: "Card", type: "FRAME" },
-        ],
+        createdNodes: [{ id: "1:100", name: "Card", type: "FRAME" }],
       });
 
       const response = await callTool("jsx_to_figma", {

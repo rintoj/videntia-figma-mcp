@@ -55,8 +55,10 @@ export function parseJsx(jsx: string): FigmaNodeData[] {
 }
 
 /**
- * Post-process pass: fix flex-1 children based on parent's layoutMode.
- * When parent is VERTICAL, flex-1 should fill vertically, not horizontally.
+ * Post-process pass: resolve flex-1 children based on parent's layoutMode.
+ * flex-1 fills along the parent's primary axis:
+ *   VERTICAL parent → layoutSizingVertical = "FILL"
+ *   HORIZONTAL parent (or default) → layoutSizingHorizontal = "FILL"
  */
 function fixFlexChildren(nodes: FigmaNodeData[], parentLayoutMode?: string): void {
   for (const node of nodes) {
@@ -64,12 +66,7 @@ function fixFlexChildren(nodes: FigmaNodeData[], parentLayoutMode?: string): voi
       delete (node as any)._flex1;
       if (parentLayoutMode === "VERTICAL") {
         node.layoutSizingVertical = "FILL";
-        // Only reset horizontal if it was set by flex-1 (no explicit width)
-        if (node.layoutSizingHorizontal === "FILL" && !node.width) {
-          node.layoutSizingHorizontal = undefined;
-        }
       } else {
-        // HORIZONTAL or default — horizontal FILL is correct
         node.layoutSizingHorizontal = "FILL";
       }
     }
@@ -112,9 +109,7 @@ function jsxElementToNode(el: t.JSXElement, parentType?: string, source?: string
   // SVG: extract raw markup and skip child processing entirely
   if (tag === "svg" && source && el.start != null && el.end != null) {
     // Strip non-SVG attributes (name, id, className) that are Figma JSX metadata
-    node.svgString = source
-      .substring(el.start, el.end)
-      .replace(/\s+(?:name|id|className)="[^"]*"/g, "");
+    node.svgString = source.substring(el.start, el.end).replace(/\s+(?:name|id|className)="[^"]*"/g, "");
     if (attrs.width !== undefined) node.width = Number(attrs.width);
     if (attrs.height !== undefined) node.height = Number(attrs.height);
     return node;
@@ -181,10 +176,7 @@ function jsxElementToNode(el: t.JSXElement, parentType?: string, source?: string
   // Infer layoutMode when alignment/flex properties are set but layoutMode isn't
   if (
     !node.layoutMode &&
-    (node.primaryAxisAlignItems ||
-      node.counterAxisAlignItems ||
-      node.itemSpacing !== undefined ||
-      node.layoutWrap)
+    (node.primaryAxisAlignItems || node.counterAxisAlignItems || node.itemSpacing !== undefined || node.layoutWrap)
   ) {
     node.layoutMode = "HORIZONTAL";
   }
@@ -864,11 +856,6 @@ function applyClassName(node: FigmaNodeData, className: string): void {
     if (cls === "flex-1") {
       // Mark for post-processing — correct axis depends on parent's layoutMode
       (node as any)._flex1 = true;
-      if (!node.layoutSizingHorizontal || node.layoutSizingHorizontal !== "FIXED") {
-        node.layoutSizingHorizontal = "FILL";
-      } else {
-        node.layoutSizingVertical = "FILL";
-      }
       continue;
     }
     if (cls === "h-full") {
@@ -1133,12 +1120,15 @@ function applyClassName(node: FigmaNodeData, className: string): void {
       continue;
     }
     // Per-side border color: border-t-{color}, border-b-{color}, etc.
+    // Note: Figma doesn't support per-side stroke colors — the color is applied
+    // uniformly to all strokes. The side prefix is consumed to avoid falling through
+    // to unrelated matchers, but the color applies to the whole border.
     if ((m = cls.match(/^border-(t|b|l|r)-\[(#[0-9a-fA-F]{3,8})\]$/))) {
       node.strokes = node.strokes || [];
       node.strokes.push({ type: "SOLID", color: m[2] });
       continue;
     }
-    if ((m = cls.match(/^border-(t|b|l|r)-(.+)$/)) && !m[2].startsWith("[") && !/^\d+$/.test(m[2])) {
+    if ((m = cls.match(/^border-(t|b|l|r)-([a-zA-Z][\w-]*)$/)) && !m[2].startsWith("[")) {
       const name = m[2];
       const resolvedColor = resolveTwColor(name);
       if (resolvedColor) {
@@ -1553,8 +1543,7 @@ function applyStyleAttribute(node: FigmaNodeData, styleStr: string): void {
     } else if (key === "flex") {
       const num = parseFloat(value);
       if (num >= 1) {
-        node.layoutSizingHorizontal = "FILL";
-        node.layoutSizingVertical = "FILL";
+        (node as any)._flex1 = true;
       }
     } else if (key === "width") {
       const m = value.match(/^(\d+(?:\.\d+)?)px$/);
