@@ -1107,7 +1107,7 @@ export function registerDocumentTools(server: McpServer): void {
         ];
         for (const ch of channels) {
           lines.push(
-            `| ${(ch as any).fileName || (ch as any).name || "-"} | ${(ch as any).channelId || (ch as any).id || "-"} |`,
+            `| ${ch.fileName || "-"} | ${ch.channel || "-"} |`,
           );
         }
         return {
