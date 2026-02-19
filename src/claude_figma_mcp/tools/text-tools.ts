@@ -472,11 +472,26 @@ export function registerTextTools(server: McpServer): void {
           property
         });
         
+        const segments = (result as any)?.segments || (Array.isArray(result) ? result : []);
+        if (segments.length === 0) {
+          return { content: [{ type: "text", text: "No styled text segments found." }] };
+        }
+        const lines: string[] = [
+          `Found ${segments.length} segment(s) by "${property}"`,
+          "",
+          "| Start | End | Characters | Value |",
+          "|-------|-----|------------|-------|",
+        ];
+        for (const seg of segments) {
+          const chars = (seg.characters || "").replace(/\n/g, " ").slice(0, 30);
+          const val = seg[property] != null ? (typeof seg[property] === "object" ? JSON.stringify(seg[property]) : String(seg[property])) : "-";
+          lines.push(`| ${seg.start ?? "-"} | ${seg.end ?? "-"} | ${chars} | ${val} |`);
+        }
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result, null, 2)
+              text: lines.join("\n")
             }
           ]
         };
@@ -686,11 +701,26 @@ export function registerTextTools(server: McpServer): void {
             textDecoration: string;
           }>;
         };
+        if (!typedResult.styles || typedResult.styles.length === 0) {
+          return { content: [{ type: "text", text: "No text styles found." }] };
+        }
+        const lines: string[] = [
+          `Found ${typedResult.count} text style(s)`,
+          "",
+          "| Name | Font | Size | Weight | Line Height | ID |",
+          "|------|------|------|--------|-------------|----|",
+        ];
+        for (const s of typedResult.styles) {
+          const font = s.fontName ? `${s.fontName.family}` : "-";
+          const weight = s.fontName?.style || "-";
+          const lh = s.lineHeight && (s.lineHeight as any).unit === "AUTO" ? "auto" : s.lineHeight ? `${(s.lineHeight as any).value}${(s.lineHeight as any).unit === "PERCENT" ? "%" : "px"}` : "-";
+          lines.push(`| ${s.name} | ${font} | ${s.fontSize} | ${weight} | ${lh} | ${s.id} |`);
+        }
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(typedResult, null, 2)
+              text: lines.join("\n")
             }
           ]
         };

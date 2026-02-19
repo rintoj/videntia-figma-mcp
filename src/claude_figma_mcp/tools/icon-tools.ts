@@ -23,15 +23,18 @@ export function registerIconTools(server: McpServer): void {
       try {
         const results = searchIcons(query, limit ?? 5);
 
+        if (results.length === 0) {
+          return { content: [{ type: "text" as const, text: `No icons found for "${query}".` }] };
+        }
+        const parts: string[] = [`Found ${results.length} icon(s) for "${query}"\n`];
+        for (const { name, svg, matchType } of results) {
+          parts.push(`### ${name} (${matchType})\n${svg}\n`);
+        }
         return {
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify({
-                query,
-                count: results.length,
-                icons: results.map(({ name, svg, matchType }) => ({ name, svg, matchType }))
-              }, null, 2)
+              text: parts.join("\n")
             }
           ]
         };
@@ -119,11 +122,18 @@ export function registerIconTools(server: McpServer): void {
           limit: limit ?? 50,
         });
 
+        const r = result as { total: number; offset: number; limit: number; names: string[] };
+        const end = r.offset + r.names.length;
+        const lines = [
+          `Icons ${r.offset + 1}-${end} of ${r.total}${prefix ? ` (prefix: "${prefix}")` : ""}`,
+          "",
+          r.names.join(", ")
+        ];
         return {
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify(result, null, 2)
+              text: lines.join("\n")
             }
           ]
         };

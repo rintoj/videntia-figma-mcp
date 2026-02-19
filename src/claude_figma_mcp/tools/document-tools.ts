@@ -8,6 +8,7 @@ import { convertToJsx } from "../utils/figma-to-jsx.js";
 import { parseJsx } from "../utils/jsx-to-figma.js";
 import { outputFormatSchema, fetchNodesAsJsx, fetchSelectionAsJsx } from "../utils/output-format.js";
 import type { ReadMyDesignResult } from "../types/index.js";
+import { formatColorValue, formatVariableValue, truncate } from "../utils/format-helpers.js";
 
 /**
  * Register document-related tools to the MCP server
@@ -194,12 +195,27 @@ export function registerDocumentTools(server: McpServer): void {
         const result = await sendCommandToFigma("get_annotations", {
           nodeId,
           includeCategories
-        });
+        }) as any;
+        const annotations = result.annotations || (Array.isArray(result) ? result : []);
+        if (annotations.length === 0) {
+          return { content: [{ type: "text", text: "No annotations found." }] };
+        }
+        const lines: string[] = [
+          `Found ${annotations.length} annotation(s)`,
+          "",
+          "| Label | Category | Node ID | ID |",
+          "|-------|----------|---------|----|",
+        ];
+        for (const a of annotations) {
+          const label = truncate((a.labelMarkdown || a.label || "-").replace(/\n/g, " "), 60);
+          const cat = a.category?.label || a.categoryId || "-";
+          lines.push(`| ${label} | ${cat} | ${a.nodeId || "-"} | ${a.id ?? "-"} |`);
+        }
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result)
+              text: lines.join("\n")
             }
           ]
         };
@@ -347,12 +363,25 @@ export function registerDocumentTools(server: McpServer): void {
     {},
     async () => {
       try {
-        const result = await sendCommandToFigma("get_annotation_categories");
+        const result = await sendCommandToFigma("get_annotation_categories") as any;
+        const categories = result.categories || (Array.isArray(result) ? result : []);
+        if (categories.length === 0) {
+          return { content: [{ type: "text", text: "No annotation categories found." }] };
+        }
+        const lines: string[] = [
+          `Found ${categories.length} annotation category/categories`,
+          "",
+          "| Label | Color | Preset | ID |",
+          "|-------|-------|--------|----|",
+        ];
+        for (const c of categories) {
+          lines.push(`| ${c.label || "-"} | ${c.color || "-"} | ${c.isPreset ? "Yes" : "No"} | ${c.id} |`);
+        }
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result)
+              text: lines.join("\n")
             }
           ]
         };
@@ -517,10 +546,17 @@ export function registerDocumentTools(server: McpServer): void {
             };
           }
 
+          const nodeLines: string[] = [
+            "| Name | Type | ID |",
+            "|------|------|----|",
+          ];
+          for (const n of typedResult.matchingNodes) {
+            nodeLines.push(`| ${n.name || "-"} | ${n.type || "-"} | ${n.id} |`);
+          }
           return {
             content: [
               { type: "text" as const, text: summaryText },
-              { type: "text" as const, text: JSON.stringify(typedResult.matchingNodes, null, 2) }
+              { type: "text" as const, text: nodeLines.join("\n") }
             ]
           };
         }
@@ -529,7 +565,7 @@ export function registerDocumentTools(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result, null, 2)
+              text: typeof result === "string" ? result : JSON.stringify(result, null, 2)
             }
           ]
         };
@@ -687,12 +723,34 @@ export function registerDocumentTools(server: McpServer): void {
     {},
     async () => {
       try {
-        const result = await sendCommandToFigma("get_styles");
+        const result = await sendCommandToFigma("get_styles") as any;
+        const styles = Array.isArray(result) ? result : result?.styles || [];
+        if (styles.length === 0) {
+          return { content: [{ type: "text", text: "No styles found." }] };
+        }
+        // Group by style type
+        const grouped = new Map<string, any[]>();
+        for (const s of styles) {
+          const type = s.type || "UNKNOWN";
+          const list = grouped.get(type) || [];
+          list.push(s);
+          grouped.set(type, list);
+        }
+        const lines: string[] = [`Found ${styles.length} style(s)`, ""];
+        for (const [type, items] of grouped) {
+          lines.push(`### ${type} Styles (${items.length})`);
+          lines.push("| Name | ID | Key |");
+          lines.push("|------|----|-----|");
+          for (const s of items) {
+            lines.push(`| ${s.name || "-"} | ${s.id || "-"} | ${s.key || "-"} |`);
+          }
+          lines.push("");
+        }
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result)
+              text: lines.join("\n")
             }
           ]
         };
@@ -734,11 +792,24 @@ export function registerDocumentTools(server: McpServer): void {
           }
         }
 
+        const components = Array.isArray(result) ? result : (result as any)?.components ?? [];
+        if (components.length === 0) {
+          return { content: [{ type: "text", text: "No local components found." }] };
+        }
+        const lines: string[] = [
+          `Found ${components.length} local component(s)`,
+          "",
+          "| Name | Type | ID | Key |",
+          "|------|------|----|-----|",
+        ];
+        for (const c of components) {
+          lines.push(`| ${c.name || "-"} | ${c.type || "-"} | ${c.id || "-"} | ${c.key || "-"} |`);
+        }
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result)
+              text: lines.join("\n")
             }
           ]
         };
@@ -762,12 +833,25 @@ export function registerDocumentTools(server: McpServer): void {
     {},
     async () => {
       try {
-        const result = await sendCommandToFigma("get_remote_components");
+        const result = await sendCommandToFigma("get_remote_components") as any;
+        const components = Array.isArray(result) ? result : result?.components ?? [];
+        if (components.length === 0) {
+          return { content: [{ type: "text", text: "No remote components found." }] };
+        }
+        const lines: string[] = [
+          `Found ${components.length} remote component(s)`,
+          "",
+          "| Name | ID | Key | Library |",
+          "|------|----|-----|---------|",
+        ];
+        for (const c of components) {
+          lines.push(`| ${c.name || "-"} | ${c.id || "-"} | ${c.key || "-"} | ${c.libraryName || c.library || "-"} |`);
+        }
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result, null, 2)
+              text: lines.join("\n")
             }
           ]
         };
@@ -824,13 +908,20 @@ export function registerDocumentTools(server: McpServer): void {
             };
           }
 
+          const nodeLines: string[] = [
+            "| Name | Characters | Font | Size | ID |",
+            "|------|------------|------|------|----|",
+          ];
+          for (const n of typedResult.textNodes) {
+            const chars = truncate((n.characters || "").replace(/\n/g, " "), 40);
+            const font = n.fontName ? `${n.fontName.family} ${n.fontName.style || ""}`.trim() : n.style?.fontFamily || "-";
+            const size = n.fontSize ?? n.style?.fontSize ?? "-";
+            nodeLines.push(`| ${n.name || "-"} | ${chars} | ${font} | ${size} | ${n.id} |`);
+          }
           return {
             content: [
               { type: "text" as const, text: summaryText },
-              {
-                type: "text" as const,
-                text: JSON.stringify(typedResult.textNodes, null, 2)
-              }
+              { type: "text" as const, text: nodeLines.join("\n") }
             ],
           };
         }
@@ -854,7 +945,7 @@ export function registerDocumentTools(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result, null, 2),
+              text: typeof result === "string" ? result : JSON.stringify(result, null, 2),
             },
           ],
         };
@@ -938,11 +1029,20 @@ export function registerDocumentTools(server: McpServer): void {
             ],
           };
         }
+        const lines: string[] = [
+          `Found ${channels.length} open channel(s)`,
+          "",
+          "| File Name | Channel ID |",
+          "|-----------|------------|",
+        ];
+        for (const ch of channels) {
+          lines.push(`| ${(ch as any).fileName || (ch as any).name || "-"} | ${(ch as any).channelId || (ch as any).id || "-"} |`);
+        }
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(channels, null, 2),
+              text: lines.join("\n"),
             },
           ],
         };
@@ -1180,12 +1280,6 @@ export function registerDocumentTools(server: McpServer): void {
   function formatVariablesAsText(result: { variables: any[]; collections: any[] }): string {
     const { variables, collections } = result;
 
-    // Build collection lookup
-    const collectionMap = new Map<string, any>();
-    for (const col of collections) {
-      collectionMap.set(col.id, col);
-    }
-
     // Group variables by collectionId
     const grouped = new Map<string, any[]>();
     for (const v of variables) {
@@ -1208,7 +1302,6 @@ export function registerDocumentTools(server: McpServer): void {
       const modes = col.modes as { name: string; modeId: string }[];
       const multiMode = modes.length > 1;
 
-      // Build header
       if (multiMode) {
         const modeHeaders = modes.map((m) => m.name).join(" | ");
         lines.push(`| Name | Type | ${modeHeaders} | ID |`);
@@ -1224,12 +1317,12 @@ export function registerDocumentTools(server: McpServer): void {
         if (multiMode) {
           const values = modes.map((m) => {
             const entry = v.values?.find((val: any) => val.modeId === m.modeId);
-            return entry ? formatValue(v.type, entry.value) : "-";
+            return entry ? formatVariableValue(v.type, entry.value) : "-";
           }).join(" | ");
           lines.push(`| ${name} | ${v.type} | ${values} | ${v.id} |`);
         } else {
           const value = v.values?.[0]?.value;
-          lines.push(`| ${name} | ${v.type} | ${formatValue(v.type, value)} | ${v.id} |`);
+          lines.push(`| ${name} | ${v.type} | ${formatVariableValue(v.type, value)} | ${v.id} |`);
         }
       }
 
@@ -1237,21 +1330,6 @@ export function registerDocumentTools(server: McpServer): void {
     }
 
     return lines.join("\n");
-  }
-
-  function formatValue(type: string, value: any): string {
-    if (value == null) return "-";
-    if (type === "COLOR" && typeof value === "object") {
-      const r = Math.round((value.r ?? 0) * 255);
-      const g = Math.round((value.g ?? 0) * 255);
-      const b = Math.round((value.b ?? 0) * 255);
-      const a = value.a ?? 1;
-      return `rgba(${r},${g},${b},${a})`;
-    }
-    if (typeof value === "object") {
-      return JSON.stringify(value);
-    }
-    return String(value);
   }
 
   server.tool(
@@ -1291,12 +1369,45 @@ export function registerDocumentTools(server: McpServer): void {
     },
     async ({ nodeId }) => {
       try {
-        const result = await sendCommandToFigma("get_bound_variables", { nodeId });
+        const result = await sendCommandToFigma("get_bound_variables", { nodeId }) as any;
+        // Result can be an object map {property: binding} or {bindings: [...]}
+        const bindings = result.bindings || (Array.isArray(result) ? result : null);
+        if (bindings) {
+          // Array format
+          if (bindings.length === 0) {
+            return { content: [{ type: "text", text: "No variable bindings found on this node." }] };
+          }
+          const lines: string[] = [
+            `Found ${bindings.length} variable binding(s)`,
+            "",
+            "| Property | Variable | Collection | ID |",
+            "|----------|----------|------------|----|",
+          ];
+          for (const b of bindings) {
+            lines.push(`| ${b.property || "-"} | ${b.name || b.variableName || "-"} | ${b.collectionName || "-"} | ${b.variableId || b.id || "-"} |`);
+          }
+          return { content: [{ type: "text", text: lines.join("\n") }] };
+        }
+        // Object map format {property: {variableId, ...}}
+        const entries = Object.entries(result);
+        if (entries.length === 0) {
+          return { content: [{ type: "text", text: "No variable bindings found on this node." }] };
+        }
+        const lines: string[] = [
+          `Found ${entries.length} variable binding(s)`,
+          "",
+          "| Property | Variable | ID |",
+          "|----------|----------|----|",
+        ];
+        for (const [prop, binding] of entries) {
+          const b = binding as any;
+          lines.push(`| ${prop} | ${b.name || b.variableName || "-"} | ${b.variableId || b.id || "-"} |`);
+        }
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result, null, 2)
+              text: lines.join("\n")
             }
           ]
         };

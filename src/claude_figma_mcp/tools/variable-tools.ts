@@ -32,6 +32,7 @@ import {
   generateSemanticSpacing,
   generateSemanticTypography
 } from "../utils/token-presets.js";
+import { formatColorValue, formatVariableValue } from "../utils/format-helpers.js";
 
 // Zod schemas for color validation
 const RGBAColorSchema = z.object({
@@ -61,11 +62,20 @@ export function registerVariableTools(server: McpServer): void {
     async () => {
       try {
         const result = await sendCommandToFigma("get_variable_collections");
+        const collections = Array.isArray(result) ? result : (result as any)?.collections ?? [result];
+        const lines: string[] = [`Found ${collections.length} variable collection(s)`, ""];
+        lines.push("| Name | Modes | Variables | ID |");
+        lines.push("|------|-------|-----------|-----|");
+        for (const col of collections) {
+          const modes = (col.modes || []).map((m: any) => m.name || m).join(", ");
+          const varCount = col.variableCount ?? col.variableIds?.length ?? "-";
+          lines.push(`| ${col.name} | ${modes} | ${varCount} | ${col.id} |`);
+        }
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result, null, 2)
+              text: lines.join("\n")
             }
           ]
         };
@@ -130,12 +140,20 @@ export function registerVariableTools(server: McpServer): void {
     },
     async ({ collection_id }) => {
       try {
-        const result = await sendCommandToFigma("get_collection_info", { collectionId: collection_id });
+        const result = await sendCommandToFigma("get_collection_info", { collectionId: collection_id }) as any;
+        const modes = (result.modes || []).map((m: any) => `${m.name} (${m.modeId})`).join(", ");
+        const varCount = result.variableCount ?? result.variableIds?.length ?? "-";
+        const lines = [
+          `## Collection: ${result.name} (id: ${result.id})`,
+          `Modes: ${modes}`,
+          `Variables: ${varCount}`,
+        ];
+        if (result.description) lines.push(`Description: ${result.description}`);
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result, null, 2)
+              text: lines.join("\n")
             }
           ]
         };
@@ -497,15 +515,24 @@ export function registerVariableTools(server: McpServer): void {
       try {
         const scale = calculateColorScale(base_color, background_color);
 
+        const lines: string[] = [
+          "## Color Scale",
+          "Formula: resultant RGB = (base x mix%) + (background x (1 - mix%))",
+          "",
+          "| Level | Color | Mix% |",
+          "|-------|-------|------|",
+        ];
+        const levels = ["50", "100", "200", "300", "400", "500", "600", "700", "800", "900"];
+        for (const level of levels) {
+          const color = (scale as any)[level];
+          const mix = (SCALE_MIX_PERCENTAGES as any)[level];
+          lines.push(`| ${level} | ${color ? formatColorValue(color) : "-"} | ${mix != null ? `${Math.round(mix * 100)}%` : "-"} |`);
+        }
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify({
-                scale,
-                formula: "resultant RGB = (base × mix%) + (background × (1 - mix%))",
-                mixPercentages: SCALE_MIX_PERCENTAGES
-              }, null, 2)
+              text: lines.join("\n")
             }
           ]
         };
@@ -668,12 +695,43 @@ export function registerVariableTools(server: McpServer): void {
           collectionId: collection_id,
           includeChartColors: include_chart_colors || false,
           customSchema: custom_schema
-        });
+        }) as any;
+        const lines: string[] = [];
+        const compliance = result.compliancePercent ?? result.compliance ?? "-";
+        lines.push(`## Audit Result — ${compliance}% compliant`);
+        const total = result.totalExpected ?? result.total ?? "-";
+        const found = result.found ?? result.matching ?? "-";
+        lines.push(`Expected: ${total} | Found: ${found}`);
+        lines.push("");
+        const missing = result.missing || [];
+        if (missing.length > 0) {
+          lines.push(`### Missing (${missing.length})`);
+          lines.push("| Name |");
+          lines.push("|------|");
+          for (const m of missing) lines.push(`| ${typeof m === "string" ? m : m.name} |`);
+          lines.push("");
+        }
+        const extra = result.extra || [];
+        if (extra.length > 0) {
+          lines.push(`### Extra (${extra.length})`);
+          lines.push("| Name |");
+          lines.push("|------|");
+          for (const e of extra) lines.push(`| ${typeof e === "string" ? e : e.name} |`);
+          lines.push("");
+        }
+        const mismatched = result.mismatched || result.typeErrors || [];
+        if (mismatched.length > 0) {
+          lines.push(`### Mismatched (${mismatched.length})`);
+          lines.push("| Name | Expected | Actual |");
+          lines.push("|------|----------|--------|");
+          for (const m of mismatched) lines.push(`| ${m.name} | ${m.expected || "-"} | ${m.actual || "-"} |`);
+          lines.push("");
+        }
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result, null, 2)
+              text: lines.join("\n")
             }
           ]
         };
@@ -707,12 +765,28 @@ export function registerVariableTools(server: McpServer): void {
           collectionId: collection_id,
           mode,
           standard: standard || "AA"
-        });
+        }) as any;
+        const pairs = result.pairs || result.results || (Array.isArray(result) ? result : []);
+        const passCount = pairs.filter((p: any) => p.passes || p.pass).length;
+        const lines: string[] = [
+          `## Color Contrast Validation (${standard || "AA"})`,
+          `${passCount}/${pairs.length} pairs pass`,
+          "",
+          "| Foreground | Background | Ratio | Pass |",
+          "|------------|------------|-------|------|",
+        ];
+        for (const p of pairs) {
+          const fg = p.foregroundName || formatColorValue(p.foreground);
+          const bg = p.backgroundName || formatColorValue(p.background);
+          const ratio = typeof p.ratio === "number" ? p.ratio.toFixed(2) : p.ratio ?? "-";
+          const pass = (p.passes || p.pass) ? "Yes" : "No";
+          lines.push(`| ${fg} | ${bg} | ${ratio}:1 | ${pass} |`);
+        }
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result, null, 2)
+              text: lines.join("\n")
             }
           ]
         };
@@ -795,12 +869,28 @@ export function registerVariableTools(server: McpServer): void {
         const result = await sendCommandToFigma("suggest_missing_variables", {
           collectionId: collection_id,
           useDefaults: use_defaults !== false
-        });
+        }) as any;
+        const suggestions = result.suggestions || result.missing || (Array.isArray(result) ? result : []);
+        if (suggestions.length === 0) {
+          return { content: [{ type: "text", text: "No missing variables found — collection is complete." }] };
+        }
+        const lines: string[] = [
+          `## Missing Variables (${suggestions.length})`,
+          "",
+          "| Name | Category | Suggested Value |",
+          "|------|----------|-----------------|",
+        ];
+        for (const s of suggestions) {
+          const name = s.name || s.variableName || "-";
+          const cat = s.category || s.group || "-";
+          const val = s.suggestedValue != null ? formatVariableValue(s.type || "COLOR", s.suggestedValue) : "-";
+          lines.push(`| ${name} | ${cat} | ${val} |`);
+        }
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result, null, 2)
+              text: lines.join("\n")
             }
           ]
         };
