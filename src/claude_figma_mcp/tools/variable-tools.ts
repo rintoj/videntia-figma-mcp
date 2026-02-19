@@ -740,7 +740,8 @@ export function registerVariableTools(server: McpServer): void {
           for (const e of extra) lines.push(`| ${typeof e === "string" ? e : e.name} |`);
           lines.push("");
         }
-        const mismatched = result.mismatched || result.typeErrors || [];
+        const mismatched: Array<Record<string, any>> =
+          result.typeMismatches || (result as any).mismatched || (result as any).typeErrors || [];
         if (mismatched.length > 0) {
           lines.push(`### Mismatched (${mismatched.length})`);
           lines.push("| Name | Expected | Actual |");
@@ -787,7 +788,8 @@ export function registerVariableTools(server: McpServer): void {
           mode,
           standard: standard || "AA",
         });
-        const pairs = result.pairs || result.results || (Array.isArray(result) ? result : []);
+        const pairs: Array<Record<string, any>> =
+          result.pairs || (result as any).results || (Array.isArray(result) ? result : []);
         const passCount = pairs.filter((p: any) => p.passes || p.pass).length;
         const lines: string[] = [
           `## Color Contrast Validation (${standard || "AA"})`,
@@ -891,7 +893,8 @@ export function registerVariableTools(server: McpServer): void {
           collectionId: collection_id,
           useDefaults: use_defaults !== false,
         });
-        const suggestions = result.suggestions || result.missing || (Array.isArray(result) ? result : []);
+        const suggestions: Array<Record<string, any>> =
+          result.suggestions || (result as any).missing || (Array.isArray(result) ? result : []);
         if (suggestions.length === 0) {
           return { content: [{ type: "text", text: "No missing variables found — collection is complete." }] };
         }
@@ -1512,7 +1515,7 @@ export function registerVariableTools(server: McpServer): void {
           targetMode: target_mode,
           transformColors: transform_colors,
         });
-        const count = result.copied ?? "-";
+        const count = result.copied ?? result.variablesCopied ?? "-";
         return {
           content: [
             {
@@ -1628,7 +1631,7 @@ export function registerVariableTools(server: McpServer): void {
       try {
         const typeScale = getTypographyPreset(scale_preset);
 
-        const variables = [];
+        const variables: Array<{ name: string; type: "FLOAT"; value: number }> = [];
 
         // Create font size variables
         Object.entries(typeScale).forEach(([key, value]) => {

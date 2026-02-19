@@ -333,6 +333,7 @@ export interface ReadMyDesignResult {
 
 // Document tools
 export interface DocumentInfoResult {
+  id?: string;
   name?: string;
   currentPage?: string;
   pages?: Array<{ id: string; name: string; childCount?: number }>;
@@ -453,8 +454,8 @@ export interface DeleteVariablesBatchResult {
 export interface AuditCollectionResult {
   collectionName?: string;
   totalVariables?: number;
-  missing?: string[];
-  extra?: string[];
+  missing?: Array<string | { name: string }>;
+  extra?: Array<string | { name: string }>;
   typeMismatches?: Array<{ name?: string; expected?: string; actual?: string }>;
   compliant?: boolean;
   [key: string]: unknown;

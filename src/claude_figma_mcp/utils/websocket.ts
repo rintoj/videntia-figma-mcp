@@ -146,12 +146,12 @@ export function connectToFigma(port: number = defaultPort) {
       }
     });
 
-    ws.on("error", (error) => {
+    ws.on("error", (error: Error) => {
       logger.error(`Socket error: ${error}`);
       // Don't attempt to reconnect here, let the close handler do it
     });
 
-    ws.on("close", (code, reason) => {
+    ws.on("close", (code: number, reason: Buffer) => {
       clearTimeout(connectionTimeout);
       logger.info(
         `Disconnected from Figma socket server with code ${code} and reason: ${reason || "No reason provided"}`,
@@ -239,7 +239,9 @@ export async function getOpenChannels(): Promise<
   if (!response.ok) {
     throw new Error(`Failed to fetch channels: ${response.status} ${response.statusText}`);
   }
-  return response.json();
+  return response.json() as Promise<
+    Array<{ channel: string; clients: number; fileName: string | null; joinedAt: number | null }>
+  >;
 }
 
 /**
@@ -300,7 +302,7 @@ export function sendCommandToFigma<T = unknown>(
 
     // Store the promise callbacks to resolve/reject later
     pendingRequests.set(id, {
-      resolve,
+      resolve: resolve as (value: unknown) => void,
       reject,
       timeout,
       lastActivity: Date.now(),

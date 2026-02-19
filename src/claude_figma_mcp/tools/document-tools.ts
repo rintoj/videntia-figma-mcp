@@ -1129,7 +1129,7 @@ export function registerDocumentTools(server: McpServer): void {
           exportedHeight: number;
         };
 
-        const content: Array<{ type: string; text?: string; data?: string; mimeType?: string }> = [];
+        const content: Array<{ type: "text"; text: string } | { type: "image"; data: string; mimeType: string }> = [];
 
         // Add warning if scale was auto-reduced or image is large
         const wasScaleReduced = typedResult.actualScale < typedResult.requestedScale;
