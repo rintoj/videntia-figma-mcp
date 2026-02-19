@@ -1710,14 +1710,16 @@ describe("parseJsx - bare flex defaults to HORIZONTAL", () => {
   });
 
   it("should not recursively parse SVG children as FigmaNodeData", () => {
-    const svg = '<svg width="16" height="16"><circle cx="8" cy="8" r="8" /><rect x="0" y="0" width="16" height="16" /></svg>';
+    const svg =
+      '<svg width="16" height="16"><circle cx="8" cy="8" r="8" /><rect x="0" y="0" width="16" height="16" /></svg>';
     const nodes = parseJsx(svg);
     expect(nodes).toHaveLength(1);
     expect(nodes[0].children).toBeUndefined();
   });
 
   it("should preserve SVG attributes in svgString", () => {
-    const svg = '<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M0 0" /></svg>';
+    const svg =
+      '<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M0 0" /></svg>';
     const nodes = parseJsx(svg);
     expect(nodes[0].svgString).toContain('viewBox="0 0 48 48"');
     expect(nodes[0].svgString).toContain('fill="none"');
@@ -1737,11 +1739,12 @@ describe("parseJsx - bare flex defaults to HORIZONTAL", () => {
   });
 
   it("should strip non-SVG attributes (name, id, className) from svgString", () => {
-    const svg = '<svg name="Icon" id="1:1" className="icon-class" width="24" height="24" viewBox="0 0 24 24"><path d="M0 0" /></svg>';
+    const svg =
+      '<svg name="Icon" id="1:1" className="icon-class" width="24" height="24" viewBox="0 0 24 24"><path d="M0 0" /></svg>';
     const nodes = parseJsx(svg);
-    expect(nodes[0].svgString).not.toContain('name=');
-    expect(nodes[0].svgString).not.toContain('id=');
-    expect(nodes[0].svgString).not.toContain('className=');
+    expect(nodes[0].svgString).not.toContain("name=");
+    expect(nodes[0].svgString).not.toContain("id=");
+    expect(nodes[0].svgString).not.toContain("className=");
     expect(nodes[0].svgString).toContain('width="24"');
     expect(nodes[0].svgString).toContain('viewBox="0 0 24 24"');
     // The name should still be set on the node data

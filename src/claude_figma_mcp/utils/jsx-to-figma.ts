@@ -48,7 +48,32 @@ export function parseJsx(jsx: string): FigmaNodeData[] {
     // Skip JSXText (whitespace), JSXExpressionContainer (comments), etc.
   }
 
+  // Post-process: fix flex-1 children based on parent's layoutMode
+  fixFlexChildren(nodes);
+
   return nodes;
+}
+
+/**
+ * Post-process pass: resolve flex-1 children based on parent's layoutMode.
+ * flex-1 fills along the parent's primary axis:
+ *   VERTICAL parent → layoutSizingVertical = "FILL"
+ *   HORIZONTAL parent (or default) → layoutSizingHorizontal = "FILL"
+ */
+function fixFlexChildren(nodes: FigmaNodeData[], parentLayoutMode?: string): void {
+  for (const node of nodes) {
+    if ((node as any)._flex1) {
+      delete (node as any)._flex1;
+      if (parentLayoutMode === "VERTICAL") {
+        node.layoutSizingVertical = "FILL";
+      } else {
+        node.layoutSizingHorizontal = "FILL";
+      }
+    }
+    if (node.children) {
+      fixFlexChildren(node.children, node.layoutMode);
+    }
+  }
 }
 
 /**
@@ -84,9 +109,7 @@ function jsxElementToNode(el: t.JSXElement, parentType?: string, source?: string
   // SVG: extract raw markup and skip child processing entirely
   if (tag === "svg" && source && el.start != null && el.end != null) {
     // Strip non-SVG attributes (name, id, className) that are Figma JSX metadata
-    node.svgString = source
-      .substring(el.start, el.end)
-      .replace(/\s+(?:name|id|className)="[^"]*"/g, "");
+    node.svgString = source.substring(el.start, el.end).replace(/\s+(?:name|id|className)="[^"]*"/g, "");
     if (attrs.width !== undefined) node.width = Number(attrs.width);
     if (attrs.height !== undefined) node.height = Number(attrs.height);
     return node;
@@ -149,6 +172,14 @@ function jsxElementToNode(el: t.JSXElement, parentType?: string, source?: string
 
   // Apply HTML tag defaults (only set values that weren't already set by classes)
   applyHtmlTagDefaults(node, tag);
+
+  // Infer layoutMode when alignment/flex properties are set but layoutMode isn't
+  if (
+    !node.layoutMode &&
+    (node.primaryAxisAlignItems || node.counterAxisAlignItems || node.itemSpacing !== undefined || node.layoutWrap)
+  ) {
+    node.layoutMode = "HORIZONTAL";
+  }
 
   // Auto-layout frames default to HUG sizing (matching Figma UI behavior)
   if (node.layoutMode) {
@@ -823,12 +854,8 @@ function applyClassName(node: FigmaNodeData, className: string): void {
       continue;
     }
     if (cls === "flex-1") {
-      // flex-1 means FILL on whichever axis hasn't been set yet
-      if (!node.layoutSizingHorizontal || node.layoutSizingHorizontal !== "FIXED") {
-        node.layoutSizingHorizontal = "FILL";
-      } else {
-        node.layoutSizingVertical = "FILL";
-      }
+      // Mark for post-processing — correct axis depends on parent's layoutMode
+      (node as any)._flex1 = true;
       continue;
     }
     if (cls === "h-full") {
@@ -1072,6 +1099,43 @@ function applyClassName(node: FigmaNodeData, className: string): void {
       const resolved = resolveTwBorderWidth(m[1]);
       if (resolved !== undefined) {
         node.strokeWeight = resolved;
+        continue;
+      }
+    }
+    // Per-side borders: border-t, border-b, border-l, border-r (with optional width)
+    if (
+      (m = cls.match(/^border-(t|b|l|r)$/)) ||
+      (m = cls.match(/^border-(t|b|l|r)-(\d+)$/)) ||
+      (m = cls.match(/^border-(t|b|l|r)-\[(\d+(?:\.\d+)?)px\]$/))
+    ) {
+      const side = m[1];
+      const weight = m[2] ? Number(m[2]) : 1;
+      const fieldMap: Record<string, keyof FigmaNodeData> = {
+        t: "strokeTopWeight",
+        b: "strokeBottomWeight",
+        l: "strokeLeftWeight",
+        r: "strokeRightWeight",
+      };
+      (node as any)[fieldMap[side]] = weight;
+      continue;
+    }
+    // Per-side border color: border-t-{color}, border-b-{color}, etc.
+    // Note: Figma doesn't support per-side stroke colors — the color is applied
+    // uniformly to all strokes. The side prefix is consumed to avoid falling through
+    // to unrelated matchers, but the color applies to the whole border.
+    if ((m = cls.match(/^border-(t|b|l|r)-\[(#[0-9a-fA-F]{3,8})\]$/))) {
+      node.strokes = node.strokes || [];
+      node.strokes.push({ type: "SOLID", color: m[2] });
+      continue;
+    }
+    if ((m = cls.match(/^border-(t|b|l|r)-([a-zA-Z][\w-]*)$/)) && !m[2].startsWith("[")) {
+      const name = m[2];
+      const resolvedColor = resolveTwColor(name);
+      if (resolvedColor) {
+        node.strokes = node.strokes || [];
+        const idx = node.strokes.length;
+        node.strokes.push({ type: "SOLID", color: resolvedColor });
+        bindings[`strokes/${idx}`] = denormalizeVarName(name);
         continue;
       }
     }
@@ -1475,6 +1539,27 @@ function applyStyleAttribute(node: FigmaNodeData, styleStr: string): void {
       const m = value.match(/^(\d+(?:\.\d+)?)px$/);
       if (m) {
         node.strokeWeight = Number(m[1]);
+      }
+    } else if (key === "flex") {
+      const num = parseFloat(value);
+      if (num >= 1) {
+        (node as any)._flex1 = true;
+      }
+    } else if (key === "width") {
+      const m = value.match(/^(\d+(?:\.\d+)?)px$/);
+      if (m) {
+        node.width = Number(m[1]);
+        node.layoutSizingHorizontal = "FIXED";
+      } else if (value === "100%") {
+        node.layoutSizingHorizontal = "FILL";
+      }
+    } else if (key === "height") {
+      const m = value.match(/^(\d+(?:\.\d+)?)px$/);
+      if (m) {
+        node.height = Number(m[1]);
+        node.layoutSizingVertical = "FIXED";
+      } else if (value === "100%") {
+        node.layoutSizingVertical = "FILL";
       }
     }
   }

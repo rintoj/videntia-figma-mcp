@@ -11,7 +11,9 @@ export const outputFormatSchema = z
   .enum(["jsx", "json"])
   .optional()
   .default("jsx")
-  .describe('Output format. Always defaults to "jsx" which returns JSX+Tailwind markup. Use "json" only when you specifically need raw Figma node properties.');
+  .describe(
+    'Output format. Always defaults to "jsx" which returns JSX+Tailwind markup. Use "json" only when you specifically need raw Figma node properties.',
+  );
 
 /**
  * Fetch specific nodes by ID through the read_my_design pipeline and convert to JSX.

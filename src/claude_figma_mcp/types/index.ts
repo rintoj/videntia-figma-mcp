@@ -288,6 +288,10 @@ export interface FigmaNodeData {
   // Strokes
   strokes?: FigmaNodeStroke[];
   strokeWeight?: number;
+  strokeTopWeight?: number;
+  strokeBottomWeight?: number;
+  strokeLeftWeight?: number;
+  strokeRightWeight?: number;
   // Corners
   cornerRadius?: number;
   topLeftRadius?: number;

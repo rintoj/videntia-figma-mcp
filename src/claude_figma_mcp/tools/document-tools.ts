@@ -103,17 +103,33 @@ export function registerDocumentTools(server: McpServer): void {
     "jsx_to_figma",
     "Create or update Figma nodes from JSX+Tailwind markup. Supports multiple root elements in a single call — batch them together instead of making separate calls. When an element has id='<nodeId>' matching an existing Figma node, that node is updated in-place (properties only — existing children are preserved). Set replaceChildren=true to also replace children. Without an id, creates new nodes. Accepts the same format that read_my_design outputs. Auto-positions next to existing page content when no positioning params are given.",
     {
-      jsx: z.string().describe("JSX+Tailwind markup string. Supports multiple root elements e.g. '<div id=\"1:1\" .../><div id=\"1:2\" .../>' — always batch multiple nodes into one call."),
+      jsx: z
+        .string()
+        .describe(
+          'JSX+Tailwind markup string. Supports multiple root elements e.g. \'<div id="1:1" .../><div id="1:2" .../>\' — always batch multiple nodes into one call.',
+        ),
       parentId: z.string().optional().describe("Parent node ID to insert into (defaults to current page)"),
       nextToId: z.string().optional().describe("Place the new node to the right of this node ID"),
       x: z.number().optional().describe("X position for the root node"),
       y: z.number().optional().describe("Y position for the root node"),
-      replaceChildren: z.boolean().optional().describe("When updating an existing node (via id), replace its children with the JSX children. When true with no JSX children, clears all existing children. Omit or false to preserve existing children."),
+      replaceChildren: z
+        .boolean()
+        .optional()
+        .describe(
+          "When updating an existing node (via id), replace its children with the JSX children. When true with no JSX children, clears all existing children. Omit or false to preserve existing children.",
+        ),
     },
     async ({ jsx, parentId, nextToId, x, y, replaceChildren }) => {
       try {
         const data = parseJsx(jsx);
-        const result = await sendCommandToFigma("create_from_data", { data, parentId, nextToId, x, y, replaceChildren });
+        const result = await sendCommandToFigma("create_from_data", {
+          data,
+          parentId,
+          nextToId,
+          x,
+          y,
+          replaceChildren,
+        });
         const typedResult = result as {
           createdNodes: Array<{ id: string; name: string; type: string; action?: string }>;
         };
@@ -543,7 +559,13 @@ export function registerDocumentTools(server: McpServer): void {
     {
       nodeId: z.string().describe("ID of the node to scan"),
       types: coerceArray(z.array(z.string())).describe("Array of node types (e.g. ['COMPONENT', 'FRAME'])"),
-      topLevelOnly: z.boolean().optional().default(true).describe("When true (default), returns only the first matching nodes without descending into their children. Set to false to recursively find all nested matches."),
+      topLevelOnly: z
+        .boolean()
+        .optional()
+        .default(true)
+        .describe(
+          "When true (default), returns only the first matching nodes without descending into their children. Set to false to recursively find all nested matches.",
+        ),
       output_format: outputFormatSchema,
     },
     async ({ nodeId, types, topLevelOnly, output_format }) => {
@@ -1095,9 +1117,7 @@ export function registerDocumentTools(server: McpServer): void {
           "|-----------|------------|",
         ];
         for (const ch of channels) {
-          lines.push(
-            `| ${ch.fileName || "-"} | ${ch.channel || "-"} |`,
-          );
+          lines.push(`| ${ch.fileName || "-"} | ${ch.channel || "-"} |`);
         }
         return {
           content: [

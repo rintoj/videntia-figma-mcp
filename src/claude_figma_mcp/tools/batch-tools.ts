@@ -43,15 +43,9 @@ export function registerBatchTools(server: McpServer): void {
         if (result.results?.length) {
           const failedResults = result.results.filter((r) => !r.success);
           if (failedResults.length > 0) {
-            lines.push(
-              "",
-              "| # | Action | Status | Detail |",
-              "|---|--------|--------|--------|",
-            );
+            lines.push("", "| # | Action | Status | Detail |", "|---|--------|--------|--------|");
             for (const r of failedResults) {
-              lines.push(
-                `| ${r.index} | ${r.action} | FAIL | ${r.error || "unknown error"} |`,
-              );
+              lines.push(`| ${r.index} | ${r.action} | FAIL | ${r.error || "unknown error"} |`);
             }
           }
         }
