@@ -7056,21 +7056,26 @@ async function createFromData(params) {
       try {
         const existing = await figma.getNodeByIdAsync(nodeData.id);
         if (existing) {
-          node = existing;
-          isUpdate = true;
+          // Type guard: only update if JSX type is compatible with existing node type
+          const isTypeCompatible =
+            existing.type === nodeData.type ||
+            (nodeData.type === "FRAME" && existing.type === "COMPONENT") ||
+            (nodeData.type === "FRAME" && existing.type === "INSTANCE") ||
+            (nodeData.type === "COMPONENT" && existing.type === "FRAME");
 
-          // COMPONENT_SET and SVG cannot be updated in-place — skip and create new
+          // COMPONENT_SET and SVG cannot be updated in-place
           if (nodeData.type === "COMPONENT_SET") {
             console.warn(`Cannot update COMPONENT_SET "${existing.name}" in-place — creating new node`);
-            node = undefined;
-            isUpdate = false;
           } else if (nodeData.type === "SVG") {
             console.warn(`Cannot update SVG node "${existing.name}" in-place — creating new node`);
-            node = undefined;
-            isUpdate = false;
+          } else if (!isTypeCompatible) {
+            console.warn(`Type mismatch: JSX type "${nodeData.type}" does not match existing node type "${existing.type}" for id "${nodeData.id}" — creating new node`);
           } else {
-            // Only replace children when explicitly requested via replaceChildren param
-            if (replaceChildren && nodeData.children && nodeData.children.length > 0 && "children" in node) {
+            node = existing;
+            isUpdate = true;
+
+            // Replace children when explicitly requested via replaceChildren param
+            if (replaceChildren && "children" in node) {
               for (let i = node.children.length - 1; i >= 0; i--) {
                 node.children[i].remove();
               }
@@ -7380,10 +7385,14 @@ async function createFromData(params) {
   // Create each root node
   let xOffset = 0;
   for (let i = 0; i < data.length; i++) {
+    const isExistingUpdate = data[i].id ? await figma.getNodeByIdAsync(data[i].id).catch(() => null) : null;
     const node = await createNode(data[i], parent, true,
       resolvedX !== undefined ? resolvedX + xOffset : undefined,
       resolvedY);
-    xOffset += (node.width || 100) + 40;
+    // Only accumulate offset for newly created nodes, not in-place updates
+    if (!isExistingUpdate) {
+      xOffset += (node.width || 100) + 40;
+    }
   }
 
   return { createdNodes };

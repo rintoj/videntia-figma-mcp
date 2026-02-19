@@ -108,7 +108,7 @@ export function registerDocumentTools(server: McpServer): void {
       nextToId: z.string().optional().describe("Place the new node to the right of this node ID"),
       x: z.number().optional().describe("X position for the root node"),
       y: z.number().optional().describe("Y position for the root node"),
-      replaceChildren: z.boolean().optional().describe("When updating an existing node (via id), replace its children with the JSX children. Default: false (preserve existing children)"),
+      replaceChildren: z.boolean().optional().describe("When updating an existing node (via id), replace its children with the JSX children. When true with no JSX children, clears all existing children. Omit or false to preserve existing children."),
     },
     async ({ jsx, parentId, nextToId, x, y, replaceChildren }) => {
       try {
