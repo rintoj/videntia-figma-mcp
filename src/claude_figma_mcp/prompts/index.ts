@@ -461,22 +461,3 @@ After creation, verify:
     },
   );
 }
-
-// Export individual prompt registration functions
-export function registerDesignStrategyPrompt(server: McpServer): void {
-  server.prompt("design_strategy", "Best practices for working with Figma designs", (_extra) => ({
-    messages: [{ role: "user" as const, content: { type: "text" as const, text: "Design strategy prompt" } }],
-  }));
-}
-
-export function registerReadDesignStrategyPrompt(server: McpServer): void {
-  server.prompt("read_design_strategy", "Best practices for reading Figma designs", (_extra) => ({
-    messages: [{ role: "user" as const, content: { type: "text" as const, text: "Read design strategy prompt" } }],
-  }));
-}
-
-export function registerTextReplacementStrategyPrompt(server: McpServer): void {
-  server.prompt("text_replacement_strategy", "Systematic approach for replacing text in Figma designs", (_extra) => ({
-    messages: [{ role: "user" as const, content: { type: "text" as const, text: "Text replacement strategy prompt" } }],
-  }));
-}

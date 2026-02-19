@@ -1411,7 +1411,8 @@ export function registerDocumentTools(server: McpServer): void {
           return { content: [{ type: "text", text: lines.join("\n") }] };
         }
         // Object map format {property: {variableId, ...}}
-        const entries = Object.entries(result);
+        const metadataKeys = new Set(["nodeId", "nodeName", "bindings"]);
+        const entries = Object.entries(result).filter(([k]) => !metadataKeys.has(k));
         if (entries.length === 0) {
           return { content: [{ type: "text", text: "No variable bindings found on this node." }] };
         }
