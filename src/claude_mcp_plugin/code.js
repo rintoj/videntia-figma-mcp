@@ -7297,6 +7297,13 @@ async function createFromData(params) {
       node.strokes = nodeData.strokes.map(s => buildFigmaPaint(s));
     }
     if (nodeData.strokeWeight) node.strokeWeight = nodeData.strokeWeight;
+    if (nodeData.strokeTopWeight !== undefined || nodeData.strokeBottomWeight !== undefined ||
+        nodeData.strokeLeftWeight !== undefined || nodeData.strokeRightWeight !== undefined) {
+      node.strokeTopWeight = nodeData.strokeTopWeight !== undefined ? nodeData.strokeTopWeight : 0;
+      node.strokeBottomWeight = nodeData.strokeBottomWeight !== undefined ? nodeData.strokeBottomWeight : 0;
+      node.strokeLeftWeight = nodeData.strokeLeftWeight !== undefined ? nodeData.strokeLeftWeight : 0;
+      node.strokeRightWeight = nodeData.strokeRightWeight !== undefined ? nodeData.strokeRightWeight : 0;
+    }
 
     // Corner radius
     if (nodeData.cornerRadius) node.cornerRadius = nodeData.cornerRadius;
@@ -7341,7 +7348,11 @@ async function createFromData(params) {
 
     // Absolute positioning (after appendChild)
     if (nodeData.layoutPositioning === "ABSOLUTE") {
-      node.layoutPositioning = "ABSOLUTE";
+      // Absolute positioning requires parent to have auto-layout
+      if (node.parent && "layoutMode" in node.parent && node.parent.layoutMode !== "NONE") {
+        node.layoutPositioning = "ABSOLUTE";
+      }
+      // Always set x/y coordinates
       if (nodeData.x !== undefined) node.x = nodeData.x;
       if (nodeData.y !== undefined) node.y = nodeData.y;
     }
