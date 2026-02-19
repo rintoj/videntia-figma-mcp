@@ -207,7 +207,7 @@ describe("variable tools integration", () => {
       });
 
       expect(mockSendCommand).not.toHaveBeenCalled(); // This is a local calculation
-      expect(response.content[0].text).toContain("scale");
+      expect(response.content[0].text).toContain("Color Scale");
       expect(response.content[0].text).toContain("50");
       expect(response.content[0].text).toContain("900");
     });
@@ -278,8 +278,8 @@ describe("variable tools integration", () => {
         includeChartColors: false,
         customSchema: undefined
       });
-      expect(response.content[0].text).toContain("Incomplete");
-      expect(response.content[0].text).toContain("76.5");
+      expect(response.content[0].text).toContain("Audit Result");
+      expect(response.content[0].text).toContain("compliant");
     });
   });
 

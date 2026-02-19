@@ -197,7 +197,7 @@ describe("new document tools integration", () => {
         includeCategories: true
       });
       expect(response.content[0].text).toContain("Annotation 1");
-      expect(response.content[0].text).toContain('"annotationCount":1');
+      expect(response.content[0].text).toContain("Found 1 annotation");
     });
 
     it("accepts includeCategories parameter", async () => {
