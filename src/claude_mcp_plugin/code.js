@@ -6841,7 +6841,7 @@ async function setSelections(params) {
 }
 
 async function createFromData(params) {
-  const { data, parentId, x, y } = params || {};
+  const { data, parentId, nextToId, x, y } = params || {};
   if (!Array.isArray(data) || data.length === 0) {
     throw new Error("create_from_data requires a non-empty 'data' array");
   }
@@ -6877,6 +6877,36 @@ async function createFromData(params) {
     }
   } else {
     parent = figma.currentPage;
+  }
+
+  // Resolve positioning
+  const GAP = 100;
+  let resolvedX = x;
+  let resolvedY = y;
+
+  if (nextToId) {
+    // Position next to the specified node
+    const refNode = await figma.getNodeByIdAsync(nextToId);
+    if (!refNode) throw new Error(`nextToId node not found: ${nextToId}`);
+    resolvedX = refNode.x + refNode.width + GAP;
+    resolvedY = refNode.y;
+  } else if (resolvedX === undefined && resolvedY === undefined && !parentId) {
+    // Auto-position: find rightmost edge of existing page children
+    const children = parent.children;
+    if (children.length > 0) {
+      let maxRight = -Infinity;
+      let topY = Infinity;
+      for (const child of children) {
+        const right = child.x + child.width;
+        if (right > maxRight) maxRight = right;
+        if (child.y < topY) topY = child.y;
+      }
+      resolvedX = maxRight + GAP;
+      resolvedY = topY;
+    } else {
+      resolvedX = 0;
+      resolvedY = 0;
+    }
   }
 
   const createdNodes = [];
@@ -7141,8 +7171,16 @@ async function createFromData(params) {
     } else if (nodeData.height !== undefined) {
       node.resize(node.width, nodeData.height);
     }
-    if (nodeData.layoutSizingHorizontal) node.layoutSizingHorizontal = nodeData.layoutSizingHorizontal;
-    if (nodeData.layoutSizingVertical) node.layoutSizingVertical = nodeData.layoutSizingVertical;
+    if (nodeData.layoutSizingHorizontal) {
+      node.layoutSizingHorizontal = nodeData.layoutSizingHorizontal;
+    } else if (nodeData.layoutMode) {
+      node.layoutSizingHorizontal = "HUG";
+    }
+    if (nodeData.layoutSizingVertical) {
+      node.layoutSizingVertical = nodeData.layoutSizingVertical;
+    } else if (nodeData.layoutMode) {
+      node.layoutSizingVertical = "HUG";
+    }
 
     // Fills
     if (nodeData.fills && nodeData.fills.length > 0) {
@@ -7260,8 +7298,8 @@ async function createFromData(params) {
   let xOffset = 0;
   for (let i = 0; i < data.length; i++) {
     const node = await createNode(data[i], parent, true,
-      x !== undefined ? x + xOffset : undefined,
-      y);
+      resolvedX !== undefined ? resolvedX + xOffset : undefined,
+      resolvedY);
     xOffset += (node.width || 100) + 40;
   }
 

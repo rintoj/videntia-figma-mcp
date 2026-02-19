@@ -80,14 +80,15 @@ export function registerDocumentTools(server: McpServer): void {
   // JSX to Figma Tool
   server.tool(
     "jsx_to_figma",
-    "Create Figma nodes from JSX+Tailwind markup. Accepts the same format that read_my_design outputs.",
+    "Create Figma nodes from JSX+Tailwind markup. Accepts the same format that read_my_design outputs. Auto-positions next to existing page content when no positioning params are given.",
     {
       jsx: z.string().describe("JSX+Tailwind markup string"),
       parentId: z.string().optional().describe("Parent node ID to insert into (defaults to current page)"),
+      nextToId: z.string().optional().describe("Place the new node to the right of this node ID"),
       x: z.number().optional().describe("X position for the root node"),
       y: z.number().optional().describe("Y position for the root node"),
     },
-    async ({ jsx, parentId, x, y }) => {
+    async ({ jsx, parentId, nextToId, x, y }) => {
       try {
         const data = parseJsx(jsx);
         // DEBUG: log what parseJsx produced (server-side)
@@ -99,7 +100,7 @@ export function registerDocumentTools(server: McpServer): void {
             fills: c.fills, fontFamily: c.fontFamily,
           })),
         }));
-        const result = await sendCommandToFigma("create_from_data", { data, parentId, x, y });
+        const result = await sendCommandToFigma("create_from_data", { data, parentId, nextToId, x, y });
         const typedResult = result as { createdNodes: Array<{ id: string; name: string; type: string }>; debugInfo?: unknown };
         const lines = [`Created ${typedResult.createdNodes.length} node(s): ${typedResult.createdNodes.map(n => `"${n.name}" (${n.id})`).join(", ")}`];
         lines.push(`\nSERVER parseJsx output:\n${JSON.stringify(serverDebug, null, 2)}`);
