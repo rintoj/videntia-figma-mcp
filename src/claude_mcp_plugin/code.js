@@ -383,6 +383,8 @@ async function handleCommand(command, params) {
       return await createFromData(params);
     case "batch_actions":
       return await batchActions(params);
+    case "lint_frame":
+      return await lintFrame(params);
     default:
       throw new Error(`Unknown command: ${command}`);
   }
@@ -8345,4 +8347,430 @@ async function deletePage(params) {
   node.remove();
 
   return pageInfo;
+}
+
+// ── lint_frame: one-shot compliance audit ──────────────────────────────────
+
+async function lintFrame(params) {
+  var nodeId = params ? params.nodeId : undefined;
+  var checks = params ? params.checks : undefined;
+
+  if (!nodeId) throw new Error("nodeId is required");
+
+  var rootNode = await figma.getNodeByIdAsync(nodeId);
+  if (!rootNode) throw new Error("Node not found: " + nodeId);
+
+  // Default checks — all on
+  var chk = {
+    colors: true,
+    spacing: true,
+    radius: true,
+    textStyles: true,
+    effectStyles: true,
+    autoLayout: true
+  };
+  if (checks) {
+    if (checks.colors === false) chk.colors = false;
+    if (checks.spacing === false) chk.spacing = false;
+    if (checks.radius === false) chk.radius = false;
+    if (checks.textStyles === false) chk.textStyles = false;
+    if (checks.effectStyles === false) chk.effectStyles = false;
+    if (checks.autoLayout === false) chk.autoLayout = false;
+  }
+
+  // Pre-load lookup maps
+  var localVars = await figma.variables.getLocalVariablesAsync();
+  var variableMap = {};
+  for (var vi = 0; vi < localVars.length; vi++) {
+    variableMap[localVars[vi].id] = localVars[vi];
+  }
+
+  var localTextStyles = await figma.getLocalTextStylesAsync();
+  var textStyleMap = {};
+  for (var ti = 0; ti < localTextStyles.length; ti++) {
+    textStyleMap[localTextStyles[ti].id] = localTextStyles[ti];
+  }
+
+  var localEffectStyles = await figma.getLocalEffectStylesAsync();
+  var effectStyleMap = {};
+  for (var ei = 0; ei < localEffectStyles.length; ei++) {
+    effectStyleMap[localEffectStyles[ei].id] = localEffectStyles[ei];
+  }
+
+  var localPaintStyles = await figma.getLocalPaintStylesAsync();
+  var paintStyleMap = {};
+  for (var pi = 0; pi < localPaintStyles.length; pi++) {
+    paintStyleMap[localPaintStyles[pi].id] = localPaintStyles[pi];
+  }
+
+  // Category tallies
+  var categories = {
+    typography:      { total: 0, bound: 0, unbound: 0, compliance: 100 },
+    colors:          { total: 0, bound: 0, unbound: 0, compliance: 100 },
+    spacing:         { total: 0, bound: 0, unbound: 0, compliance: 100 },
+    borderRadius:    { total: 0, bound: 0, unbound: 0, compliance: 100 },
+    iconColors:      { total: 0, bound: 0, unbound: 0, compliance: 100 },
+    strokesBorders:  { total: 0, bound: 0, unbound: 0, compliance: 100 },
+    backgroundFills: { total: 0, bound: 0, unbound: 0, compliance: 100 },
+    effectStyles:    { total: 0, bound: 0, unbound: 0, compliance: 100 }
+  };
+  var violations = [];
+  var totalNodes = 0;
+
+  // Helper: check if a fill/stroke property is bound to a variable or uses a paint style
+  function isFillBound(node, propKey, idx) {
+    var bv = node.boundVariables;
+    if (bv) {
+      var binding = bv[propKey];
+      if (binding) {
+        // Could be a single binding or array of bindings
+        if (Array.isArray(binding)) {
+          if (binding[idx] && binding[idx].id) return true;
+        } else if (binding.id) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  // Helper: check if a scalar property is bound to a variable
+  function isScalarBound(node, propKey) {
+    var bv = node.boundVariables;
+    if (bv && bv[propKey]) {
+      var binding = bv[propKey];
+      if (binding.id) return true;
+      if (Array.isArray(binding) && binding.length > 0 && binding[0] && binding[0].id) return true;
+    }
+    return false;
+  }
+
+  // Helper: check if node has a paint style applied for fills
+  function hasFillPaintStyle(node) {
+    try {
+      if (node.fillStyleId && node.fillStyleId !== "" && node.fillStyleId !== figma.mixed) return true;
+    } catch (e) {}
+    return false;
+  }
+
+  // Helper: check if node has a paint style applied for strokes
+  function hasStrokePaintStyle(node) {
+    try {
+      if (node.strokeStyleId && node.strokeStyleId !== "" && node.strokeStyleId !== figma.mixed) return true;
+    } catch (e) {}
+    return false;
+  }
+
+  // Helper: check if node has text style applied
+  function hasTextStyle(node) {
+    try {
+      if (node.textStyleId && node.textStyleId !== "" && node.textStyleId !== figma.mixed) return true;
+    } catch (e) {}
+    return false;
+  }
+
+  // Helper: check if node has effect style applied
+  function hasEffectStyle(node) {
+    try {
+      if (node.effectStyleId && node.effectStyleId !== "" && node.effectStyleId !== figma.mixed) return true;
+    } catch (e) {}
+    return false;
+  }
+
+  // Helper: check if TEXT node has font-related variable bindings (CRITICAL violation)
+  function hasFontVariableBindings(node) {
+    var bv = node.boundVariables;
+    if (!bv) return false;
+    var fontProps = ["fontFamily", "fontSize", "fontStyle", "fontWeight", "lineHeight", "letterSpacing", "paragraphSpacing"];
+    for (var fi = 0; fi < fontProps.length; fi++) {
+      if (bv[fontProps[fi]] && bv[fontProps[fi]].id) return true;
+    }
+    return false;
+  }
+
+  // Helper: is this an icon-like node (VECTOR, LINE, or small component with only vector children)
+  function isIconLike(node) {
+    if (node.type === "VECTOR" || node.type === "LINE" || node.type === "BOOLEAN_OPERATION") return true;
+    if (node.type === "INSTANCE" || node.type === "COMPONENT") {
+      // Small size heuristic for icons
+      try {
+        if (node.width <= 48 && node.height <= 48) return true;
+      } catch (e) {}
+    }
+    return false;
+  }
+
+  // Helper: check if a fill is a visible solid/gradient color (not image)
+  function isColorFill(fill) {
+    if (!fill || fill.visible === false) return false;
+    if (fill.type === "SOLID" || fill.type === "GRADIENT_LINEAR" || fill.type === "GRADIENT_RADIAL" || fill.type === "GRADIENT_ANGULAR" || fill.type === "GRADIENT_DIAMOND") return true;
+    return false;
+  }
+
+  function addViolation(node, depth, severity, category, property, message) {
+    violations.push({
+      nodeId: node.id,
+      nodeName: node.name,
+      nodeType: node.type,
+      depth: depth,
+      severity: severity,
+      category: category,
+      property: property,
+      message: message
+    });
+  }
+
+  // ── Main traversal ──
+  function scanNode(node, depth) {
+    // Skip invisible nodes
+    if (node.visible === false) return;
+
+    totalNodes++;
+    var nodeType = node.type;
+
+    // ── TEXT STYLE checks ──
+    if (chk.textStyles && nodeType === "TEXT") {
+      categories.typography.total++;
+
+      if (hasTextStyle(node)) {
+        categories.typography.bound++;
+        // Check for text style overrides (LOW)
+        // If textStyleId is mixed, there's a partial override
+        try {
+          if (node.textStyleId === figma.mixed) {
+            addViolation(node, depth, "LOW", "typography", "textStyleId", "Text style override present (mixed styles in segments)");
+          }
+        } catch (e) {}
+      } else {
+        categories.typography.unbound++;
+        addViolation(node, depth, "HIGH", "typography", "textStyleId", "Text node without textStyleId applied");
+      }
+
+      // Check for direct font variable bindings (CRITICAL)
+      if (hasFontVariableBindings(node)) {
+        addViolation(node, depth, "CRITICAL", "typography", "fontVariables", "Font variable bound directly to text (should use text style instead)");
+      }
+    }
+
+    // ── FILL / COLOR checks ──
+    if (chk.colors) {
+      var fills = null;
+      try { fills = node.fills; } catch (e) {}
+      if (fills && fills !== figma.mixed && Array.isArray(fills)) {
+        for (var fi = 0; fi < fills.length; fi++) {
+          if (!isColorFill(fills[fi])) continue;
+
+          var isIcon = isIconLike(node);
+          var catName = isIcon ? "iconColors" : "backgroundFills";
+          categories[catName].total++;
+
+          var fillBound = isFillBound(node, "fills", fi) || hasFillPaintStyle(node);
+          if (fillBound) {
+            categories[catName].bound++;
+          } else {
+            categories[catName].unbound++;
+            var sevFill = "HIGH";
+            addViolation(node, depth, sevFill, catName, "fills[" + fi + "]", "Color using raw hex value (no variable or paint style bound)");
+          }
+        }
+      }
+    }
+
+    // ── STROKE checks ──
+    if (chk.colors) {
+      var strokes = null;
+      try { strokes = node.strokes; } catch (e) {}
+      if (strokes && strokes !== figma.mixed && Array.isArray(strokes) && strokes.length > 0) {
+        for (var si = 0; si < strokes.length; si++) {
+          if (!isColorFill(strokes[si])) continue;
+
+          categories.strokesBorders.total++;
+          var strokeBound = isFillBound(node, "strokes", si) || hasStrokePaintStyle(node);
+          if (strokeBound) {
+            categories.strokesBorders.bound++;
+          } else {
+            categories.strokesBorders.unbound++;
+            addViolation(node, depth, "HIGH", "strokesBorders", "strokes[" + si + "]", "Stroke color using raw hex value (no variable or paint style bound)");
+          }
+        }
+      }
+    }
+
+    // ── SPACING checks (auto-layout frames) ──
+    if (chk.spacing && (nodeType === "FRAME" || nodeType === "COMPONENT" || nodeType === "COMPONENT_SET" || nodeType === "INSTANCE")) {
+      var layoutMode = null;
+      try { layoutMode = node.layoutMode; } catch (e) {}
+
+      if (layoutMode && layoutMode !== "NONE") {
+        // Check itemSpacing
+        var itemSpacing = 0;
+        try { itemSpacing = node.itemSpacing; } catch (e) {}
+        if (itemSpacing > 0) {
+          categories.spacing.total++;
+          if (isScalarBound(node, "itemSpacing")) {
+            categories.spacing.bound++;
+          } else {
+            categories.spacing.unbound++;
+            addViolation(node, depth, "MEDIUM", "spacing", "itemSpacing", "Item spacing using raw number (" + itemSpacing + ") — no variable bound");
+          }
+        }
+
+        // Check padding
+        var paddingProps = ["paddingTop", "paddingRight", "paddingBottom", "paddingLeft"];
+        for (var ppi = 0; ppi < paddingProps.length; ppi++) {
+          var padVal = 0;
+          try { padVal = node[paddingProps[ppi]]; } catch (e) {}
+          if (padVal > 0) {
+            categories.spacing.total++;
+            if (isScalarBound(node, paddingProps[ppi])) {
+              categories.spacing.bound++;
+            } else {
+              categories.spacing.unbound++;
+              addViolation(node, depth, "MEDIUM", "spacing", paddingProps[ppi], paddingProps[ppi] + " using raw number (" + padVal + ") — no variable bound");
+            }
+          }
+        }
+      }
+    }
+
+    // ── BORDER RADIUS checks ──
+    if (chk.radius && (nodeType === "FRAME" || nodeType === "RECTANGLE" || nodeType === "COMPONENT" || nodeType === "INSTANCE" || nodeType === "ELLIPSE")) {
+      var cornerRadius = 0;
+      try { cornerRadius = node.cornerRadius; } catch (e) {}
+
+      if (cornerRadius && cornerRadius !== figma.mixed && cornerRadius > 0) {
+        categories.borderRadius.total++;
+        if (isScalarBound(node, "topLeftRadius") || isScalarBound(node, "topRightRadius") || isScalarBound(node, "bottomLeftRadius") || isScalarBound(node, "bottomRightRadius") || isScalarBound(node, "cornerRadius")) {
+          categories.borderRadius.bound++;
+        } else {
+          categories.borderRadius.unbound++;
+          addViolation(node, depth, "MEDIUM", "borderRadius", "cornerRadius", "Border radius using raw number (" + cornerRadius + ") — no variable bound");
+        }
+      } else if (cornerRadius === figma.mixed) {
+        // Individual corners set — check each
+        var radiusProps = ["topLeftRadius", "topRightRadius", "bottomLeftRadius", "bottomRightRadius"];
+        for (var ri = 0; ri < radiusProps.length; ri++) {
+          var rVal = 0;
+          try { rVal = node[radiusProps[ri]]; } catch (e) {}
+          if (rVal > 0) {
+            categories.borderRadius.total++;
+            if (isScalarBound(node, radiusProps[ri])) {
+              categories.borderRadius.bound++;
+            } else {
+              categories.borderRadius.unbound++;
+              addViolation(node, depth, "MEDIUM", "borderRadius", radiusProps[ri], radiusProps[ri] + " using raw number (" + rVal + ") — no variable bound");
+            }
+          }
+        }
+      }
+    }
+
+    // ── EFFECT STYLE checks ──
+    if (chk.effectStyles) {
+      var effects = null;
+      try { effects = node.effects; } catch (e) {}
+      if (effects && Array.isArray(effects) && effects.length > 0) {
+        // Check for visible effects
+        var hasVisibleEffects = false;
+        for (var efi = 0; efi < effects.length; efi++) {
+          if (effects[efi].visible !== false) { hasVisibleEffects = true; break; }
+        }
+        if (hasVisibleEffects) {
+          categories.effectStyles.total++;
+          if (hasEffectStyle(node)) {
+            categories.effectStyles.bound++;
+          } else {
+            categories.effectStyles.unbound++;
+            var effectTypes = [];
+            for (var eti = 0; eti < effects.length; eti++) {
+              if (effects[eti].visible !== false && effectTypes.indexOf(effects[eti].type) === -1) {
+                effectTypes.push(effects[eti].type);
+              }
+            }
+            addViolation(node, depth, "CRITICAL", "effectStyles", "effectStyleId", "Raw " + effectTypes.join("/") + " effect (no effect style applied)");
+          }
+        }
+      }
+    }
+
+    // ── AUTO-LAYOUT compliance ──
+    if (chk.autoLayout && (nodeType === "FRAME" || nodeType === "COMPONENT" || nodeType === "COMPONENT_SET")) {
+      var hasLayout = false;
+      try {
+        var lm = node.layoutMode;
+        hasLayout = lm && lm !== "NONE";
+      } catch (e) {}
+
+      if (!hasLayout) {
+        // Only flag frames that have children (empty frames are fine)
+        var childCount = 0;
+        try { childCount = node.children ? node.children.length : 0; } catch (e) {}
+        if (childCount > 0) {
+          addViolation(node, depth, "MEDIUM", "autoLayout", "layoutMode", "Frame has " + childCount + " children but no auto-layout set");
+        }
+      }
+    }
+
+    // ── Recurse into children ──
+    if ("children" in node && node.children) {
+      for (var ci = 0; ci < node.children.length; ci++) {
+        scanNode(node.children[ci], depth + 1);
+      }
+    }
+  }
+
+  // Run the traversal
+  scanNode(rootNode, 0);
+
+  // Compute compliance percentages
+  var catKeys = ["typography", "colors", "spacing", "borderRadius", "iconColors", "strokesBorders", "backgroundFills", "effectStyles"];
+  for (var ck = 0; ck < catKeys.length; ck++) {
+    var cat = categories[catKeys[ck]];
+    if (cat.total > 0) {
+      cat.compliance = Math.round((cat.bound / cat.total) * 100);
+    } else {
+      cat.compliance = 100;
+    }
+  }
+
+  // Compute summary
+  var summaryTotal = violations.length;
+  var summaryCritical = 0;
+  var summaryHigh = 0;
+  var summaryMedium = 0;
+  var summaryLow = 0;
+  for (var sv = 0; sv < violations.length; sv++) {
+    switch (violations[sv].severity) {
+      case "CRITICAL": summaryCritical++; break;
+      case "HIGH": summaryHigh++; break;
+      case "MEDIUM": summaryMedium++; break;
+      case "LOW": summaryLow++; break;
+    }
+  }
+
+  // Overall compliance: ratio of bound to total across all categories
+  var overallTotal = 0;
+  var overallBound = 0;
+  for (var ok = 0; ok < catKeys.length; ok++) {
+    overallTotal += categories[catKeys[ok]].total;
+    overallBound += categories[catKeys[ok]].bound;
+  }
+  var overallCompliance = overallTotal > 0 ? Math.round((overallBound / overallTotal) * 100) : 100;
+
+  return {
+    nodeId: rootNode.id,
+    nodeName: rootNode.name,
+    nodeType: rootNode.type,
+    totalNodes: totalNodes,
+    categories: categories,
+    violations: violations,
+    summary: {
+      total: summaryTotal,
+      critical: summaryCritical,
+      high: summaryHigh,
+      medium: summaryMedium,
+      low: summaryLow,
+      compliance: overallCompliance
+    }
+  };
 }

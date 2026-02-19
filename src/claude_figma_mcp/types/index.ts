@@ -169,7 +169,8 @@ export type FigmaCommand =
   | "rename_page"
   | "delete_page"
   | "create_from_data"
-  | "batch_actions";
+  | "batch_actions"
+  | "lint_frame";
 
 // Batch actions types
 export interface BatchActionResult {
@@ -629,4 +630,49 @@ export interface UpdateEffectStyleResult {
   success?: boolean;
   id?: string;
   [key: string]: unknown;
+}
+
+// Lint frame result
+export interface LintViolation {
+  nodeId: string;
+  nodeName: string;
+  nodeType: string;
+  depth: number;
+  severity: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
+  category: string;
+  property: string;
+  message: string;
+}
+
+export interface LintCategoryResult {
+  total: number;
+  bound: number;
+  unbound: number;
+  compliance: number;
+}
+
+export interface LintFrameResult {
+  nodeId: string;
+  nodeName: string;
+  nodeType: string;
+  totalNodes: number;
+  categories: {
+    typography: LintCategoryResult;
+    colors: LintCategoryResult;
+    spacing: LintCategoryResult;
+    borderRadius: LintCategoryResult;
+    iconColors: LintCategoryResult;
+    strokesBorders: LintCategoryResult;
+    backgroundFills: LintCategoryResult;
+    effectStyles: LintCategoryResult;
+  };
+  violations: LintViolation[];
+  summary: {
+    total: number;
+    critical: number;
+    high: number;
+    medium: number;
+    low: number;
+    compliance: number;
+  };
 }

@@ -18,6 +18,8 @@ import type {
   StylesResult,
   RemoteComponentsResult,
   BoundVariablesResult,
+  LintFrameResult,
+  LintViolation,
 } from "../types/index.js";
 import {
   formatColorValue,
@@ -1063,6 +1065,132 @@ export function registerDocumentTools(server: McpServer): void {
             {
               type: "text",
               text: `Error scanning text nodes in node "${nodeId}": ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  // Lint Frame Tool
+  server.tool(
+    "lint_frame",
+    "Run a comprehensive compliance audit on a frame (or any node with children). Checks color tokens, spacing tokens, border radius tokens, text styles, effect styles, and auto-layout compliance in a single traversal. Returns a structured report with violations by severity (CRITICAL/HIGH/MEDIUM/LOW) and compliance percentages across 8 categories.",
+    {
+      node_id: z.string().describe("The ID of the root node to lint"),
+      checks: z
+        .object({
+          colors: z.boolean().optional().describe("Check fill/stroke color bindings (default: true)"),
+          spacing: z.boolean().optional().describe("Check padding/itemSpacing bindings (default: true)"),
+          radius: z.boolean().optional().describe("Check cornerRadius bindings (default: true)"),
+          textStyles: z.boolean().optional().describe("Check text style application (default: true)"),
+          effectStyles: z.boolean().optional().describe("Check effect style application (default: true)"),
+          autoLayout: z.boolean().optional().describe("Check auto-layout on frames (default: true)"),
+        })
+        .optional()
+        .describe("Toggle individual check categories (all enabled by default)"),
+    },
+    async ({ node_id, checks }) => {
+      try {
+        const result = await sendCommandToFigma<LintFrameResult>(
+          "lint_frame",
+          { nodeId: node_id, checks },
+          60000,
+        );
+
+        // Format as markdown compliance report
+        const lines: string[] = [];
+
+        lines.push(`# Compliance Audit: ${result.nodeName}`);
+        lines.push(`**Node:** ${result.nodeId} (${result.nodeType}) | **Nodes scanned:** ${result.totalNodes}`);
+        lines.push("");
+
+        // Compliance table
+        lines.push("## Compliance by Category");
+        lines.push("");
+        lines.push("| Category | Total | Bound | Unbound | Compliance |");
+        lines.push("|----------|-------|-------|---------|------------|");
+
+        const catLabels: { key: keyof typeof result.categories; label: string }[] = [
+          { key: "typography", label: "Typography" },
+          { key: "backgroundFills", label: "Background Fills" },
+          { key: "colors", label: "Colors" },
+          { key: "iconColors", label: "Icon Colors" },
+          { key: "strokesBorders", label: "Strokes/Borders" },
+          { key: "spacing", label: "Spacing" },
+          { key: "borderRadius", label: "Border Radius" },
+          { key: "effectStyles", label: "Effect Styles" },
+        ];
+
+        for (const { key, label } of catLabels) {
+          const cat = result.categories[key];
+          const pct = cat.compliance;
+          const status = pct === 100 ? "PASS" : pct >= 80 ? "WARN" : "FAIL";
+          lines.push(`| ${label} | ${cat.total} | ${cat.bound} | ${cat.unbound} | ${status} ${pct}% |`);
+        }
+        lines.push("");
+
+        // Summary
+        const s = result.summary;
+        lines.push("## Summary");
+        lines.push("");
+        lines.push(`**Overall Compliance: ${s.compliance}%**`);
+        lines.push("");
+        if (s.total === 0) {
+          lines.push("No violations found.");
+        } else {
+          lines.push(`Total violations: ${s.total}`);
+          if (s.critical > 0) lines.push(`- CRITICAL: ${s.critical}`);
+          if (s.high > 0) lines.push(`- HIGH: ${s.high}`);
+          if (s.medium > 0) lines.push(`- MEDIUM: ${s.medium}`);
+          if (s.low > 0) lines.push(`- LOW: ${s.low}`);
+        }
+
+        // Violations list (grouped by severity)
+        if (result.violations.length > 0) {
+          lines.push("");
+          lines.push("## Violations");
+
+          const severities: Array<"CRITICAL" | "HIGH" | "MEDIUM" | "LOW"> = ["CRITICAL", "HIGH", "MEDIUM", "LOW"];
+          for (const sev of severities) {
+            const sevViolations = result.violations.filter((v: LintViolation) => v.severity === sev);
+            if (sevViolations.length === 0) continue;
+
+            lines.push("");
+            lines.push(`### ${sev} (${sevViolations.length})`);
+            lines.push("");
+            lines.push("| Node | Type | Category | Property | Message |");
+            lines.push("|------|------|----------|----------|---------|");
+            for (const v of sevViolations) {
+              const name = (v.nodeName || "-").replace(/\|/g, "\\|");
+              lines.push(
+                `| ${name} (${v.nodeId}) | ${v.nodeType} | ${v.category} | ${v.property} | ${v.message} |`,
+              );
+            }
+          }
+        }
+
+        // Verdict
+        lines.push("");
+        if (s.compliance === 100) {
+          lines.push("**Verdict: PASS** — All checks passed.");
+        } else if (s.critical > 0) {
+          lines.push("**Verdict: FAIL** — Critical violations must be resolved.");
+        } else if (s.compliance >= 80) {
+          lines.push("**Verdict: WARN** — Minor issues to address.");
+        } else {
+          lines.push("**Verdict: FAIL** — Significant compliance gaps.");
+        }
+
+        return {
+          content: [{ type: "text", text: lines.join("\n") }],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error running lint_frame on node "${node_id}": ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };
