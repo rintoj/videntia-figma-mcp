@@ -7237,6 +7237,25 @@ async function createFromData(params) {
     return node;
   }
 
+  // Capture debug info from the received data
+  const debugInfo = data.map((d, i) => ({
+    index: i,
+    type: d.type,
+    name: d.name,
+    layoutMode: d.layoutMode || null,
+    fillsCount: d.fills ? d.fills.length : 0,
+    fills: d.fills || [],
+    childrenCount: d.children ? d.children.length : 0,
+    children: (d.children || []).map(c => ({
+      type: c.type,
+      name: c.name,
+      layoutMode: c.layoutMode || null,
+      fillsCount: c.fills ? c.fills.length : 0,
+      fills: c.fills || [],
+      fontFamily: c.fontFamily || null,
+    })),
+  }));
+
   // Create each root node
   let xOffset = 0;
   for (let i = 0; i < data.length; i++) {
@@ -7246,7 +7265,7 @@ async function createFromData(params) {
     xOffset += (node.width || 100) + 40;
   }
 
-  return { createdNodes };
+  return { createdNodes, debugInfo };
 }
 
 async function readMyDesign(params) {

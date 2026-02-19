@@ -90,12 +90,26 @@ export function registerDocumentTools(server: McpServer): void {
     async ({ jsx, parentId, x, y }) => {
       try {
         const data = parseJsx(jsx);
+        // DEBUG: log what parseJsx produced (server-side)
+        const serverDebug = data.map((d: any) => ({
+          type: d.type, layoutMode: d.layoutMode, fillsCount: d.fills?.length ?? 0,
+          fills: d.fills, fontFamily: d.fontFamily,
+          children: d.children?.map((c: any) => ({
+            type: c.type, layoutMode: c.layoutMode, fillsCount: c.fills?.length ?? 0,
+            fills: c.fills, fontFamily: c.fontFamily,
+          })),
+        }));
         const result = await sendCommandToFigma("create_from_data", { data, parentId, x, y });
-        const typedResult = result as { createdNodes: Array<{ id: string; name: string; type: string }> };
+        const typedResult = result as { createdNodes: Array<{ id: string; name: string; type: string }>; debugInfo?: unknown };
+        const lines = [`Created ${typedResult.createdNodes.length} node(s): ${typedResult.createdNodes.map(n => `"${n.name}" (${n.id})`).join(", ")}`];
+        lines.push(`\nSERVER parseJsx output:\n${JSON.stringify(serverDebug, null, 2)}`);
+        if (typedResult.debugInfo) {
+          lines.push(`\nPLUGIN received data:\n${JSON.stringify(typedResult.debugInfo, null, 2)}`);
+        }
         return {
           content: [{
             type: "text",
-            text: `Created ${typedResult.createdNodes.length} node(s): ${typedResult.createdNodes.map(n => `"${n.name}" (${n.id})`).join(", ")}`
+            text: lines.join("\n")
           }]
         };
       } catch (error) {
