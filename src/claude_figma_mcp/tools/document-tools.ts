@@ -812,28 +812,55 @@ export function registerDocumentTools(server: McpServer): void {
   server.tool("get_styles", "Get all styles from the current Figma document", {}, async () => {
     try {
       const result = await sendCommandToFigma<StylesResult>("get_styles");
-      const styles = Array.isArray(result) ? result : result?.styles || [];
-      if (styles.length === 0) {
-        return { content: [{ type: "text", text: "No styles found." }] };
-      }
-      // Group by style type
-      const grouped = new Map<string, any[]>();
-      for (const s of styles) {
-        const type = s.type || "UNKNOWN";
-        const list = grouped.get(type) || [];
-        list.push(s);
-        grouped.set(type, list);
-      }
-      const lines: string[] = [`Found ${styles.length} style(s)`, ""];
-      for (const [type, items] of grouped) {
-        lines.push(`### ${type} Styles (${items.length})`);
-        lines.push("| Name | ID | Key |");
-        lines.push("|------|----|-----|");
-        for (const s of items) {
-          lines.push(`| ${s.name || "-"} | ${s.id || "-"} | ${s.key || "-"} |`);
+
+      // The plugin returns { colors: [...], texts: [...], effects: [...], grids: [...] }
+      const raw = result as any;
+      const categories: { label: string; key: string; extraColumns?: string[] }[] = [
+        { label: "Paint", key: "colors", extraColumns: ["paint"] },
+        { label: "Text", key: "texts", extraColumns: ["fontSize", "fontName"] },
+        { label: "Effect", key: "effects" },
+        { label: "Grid", key: "grids" },
+      ];
+
+      const lines: string[] = [];
+      let totalCount = 0;
+
+      for (const cat of categories) {
+        const items: any[] = raw?.[cat.key] || [];
+        if (items.length === 0) continue;
+        totalCount += items.length;
+
+        lines.push(`### ${cat.label} Styles (${items.length})`);
+
+        if (cat.key === "texts") {
+          lines.push("| Name | ID | Key | Font | Size |");
+          lines.push("|------|----|-----|------|------|");
+          for (const s of items) {
+            const font = s.fontName ? `${s.fontName.family} ${s.fontName.style}` : "-";
+            lines.push(`| ${s.name || "-"} | ${s.id || "-"} | ${s.key || "-"} | ${font} | ${s.fontSize || "-"} |`);
+          }
+        } else if (cat.key === "colors") {
+          lines.push("| Name | ID | Key | Paint Type |");
+          lines.push("|------|----|-----|------------|");
+          for (const s of items) {
+            const paintType = s.paint?.type || "-";
+            lines.push(`| ${s.name || "-"} | ${s.id || "-"} | ${s.key || "-"} | ${paintType} |`);
+          }
+        } else {
+          lines.push("| Name | ID | Key |");
+          lines.push("|------|----|-----|");
+          for (const s of items) {
+            lines.push(`| ${s.name || "-"} | ${s.id || "-"} | ${s.key || "-"} |`);
+          }
         }
         lines.push("");
       }
+
+      if (totalCount === 0) {
+        return { content: [{ type: "text", text: "No styles found." }] };
+      }
+
+      lines.unshift(`Found ${totalCount} style(s)`, "");
       return {
         content: [
           {
