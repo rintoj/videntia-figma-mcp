@@ -1,0 +1,286 @@
+import { z } from "zod";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { registerDocumentTools } from "../../src/claude_figma_mcp/tools/document-tools";
+import type { GetDesignSystemResult } from "../../src/claude_figma_mcp/types/index";
+
+jest.mock("../../src/claude_figma_mcp/utils/websocket", () => ({
+  sendCommandToFigma: jest.fn(),
+  joinChannel: jest.fn(),
+  getOpenChannels: jest.fn().mockResolvedValue([]),
+}));
+
+describe("get_design_system tool", () => {
+  let server: McpServer;
+  let mockSendCommand: jest.Mock;
+  let toolHandlers: Map<string, Function>;
+  let toolSchemas: Map<string, z.ZodObject<any>>;
+
+  beforeEach(() => {
+    server = new McpServer({ name: "test-server", version: "1.0.0" }, { capabilities: { tools: {} } });
+
+    mockSendCommand = require("../../src/claude_figma_mcp/utils/websocket").sendCommandToFigma;
+    mockSendCommand.mockClear();
+
+    toolHandlers = new Map();
+    toolSchemas = new Map();
+
+    const originalTool = server.tool.bind(server);
+    jest.spyOn(server, "tool").mockImplementation((...args: any[]) => {
+      if (args.length === 4) {
+        const [name, description, schema, handler] = args;
+        toolHandlers.set(name, handler);
+        toolSchemas.set(name, z.object(schema));
+      }
+      return (originalTool as any)(...args);
+    });
+
+    registerDocumentTools(server);
+  });
+
+  async function callTool(toolName: string, args: any = {}) {
+    const schema = toolSchemas.get(toolName);
+    const handler = toolHandlers.get(toolName);
+    if (!schema || !handler) {
+      throw new Error(`Tool ${toolName} not found`);
+    }
+    const validatedArgs = schema.parse(args);
+    return await handler(validatedArgs, { meta: {} });
+  }
+
+  function makeResult(overrides?: Partial<GetDesignSystemResult>): GetDesignSystemResult {
+    return {
+      variables: [
+        {
+          id: "v:1",
+          name: "background/primary",
+          description: "Main app background",
+          resolvedType: "COLOR",
+          collectionName: "Colors",
+          values: [{ modeId: "m1", modeName: "Light", value: { r: 1, g: 1, b: 1, a: 1 } }],
+        },
+        {
+          id: "v:2",
+          name: "text/primary",
+          description: "Main body text",
+          resolvedType: "COLOR",
+          collectionName: "Colors",
+          values: [{ modeId: "m1", modeName: "Light", value: { r: 0, g: 0, b: 0, a: 1 } }],
+        },
+        {
+          id: "v:3",
+          name: "space/4",
+          description: "Default spacing",
+          resolvedType: "FLOAT",
+          collectionName: "Spacing",
+          values: [{ modeId: "m1", modeName: "Default", value: 16 }],
+        },
+        {
+          id: "v:4",
+          name: "radius/md",
+          description: "Medium rounding",
+          resolvedType: "FLOAT",
+          collectionName: "Radius",
+          values: [{ modeId: "m1", modeName: "Default", value: 8 }],
+        },
+      ],
+      textStyles: [
+        {
+          id: "ts:1",
+          name: "heading/h1",
+          fontSize: 32,
+          fontName: { family: "Inter", style: "Bold" },
+          lineHeight: { unit: "AUTO" },
+        },
+      ],
+      effectStyles: [
+        {
+          id: "es:1",
+          name: "shadow/md",
+          description: "Medium elevation",
+        },
+      ],
+      ...overrides,
+    };
+  }
+
+  it("is registered as a tool", () => {
+    expect(toolHandlers.has("get_design_system")).toBe(true);
+  });
+
+  it("returns formatted markdown with variable categories", async () => {
+    mockSendCommand.mockResolvedValue(makeResult());
+
+    const response = await callTool("get_design_system");
+    const text = response.content[0].text;
+
+    expect(text).toContain("# Design System");
+    expect(text).toContain("## Color Variables");
+    expect(text).toContain("## Spacing Variables");
+    expect(text).toContain("## Radius Variables");
+    expect(text).toContain("## Text Styles");
+    expect(text).toContain("## Effect Styles");
+  });
+
+  it("includes variable IDs in output", async () => {
+    mockSendCommand.mockResolvedValue(makeResult());
+
+    const response = await callTool("get_design_system");
+    const text = response.content[0].text;
+
+    expect(text).toContain("v:1");
+    expect(text).toContain("v:2");
+    expect(text).toContain("v:3");
+    expect(text).toContain("v:4");
+    expect(text).toContain("ts:1");
+    expect(text).toContain("es:1");
+  });
+
+  it("derives correct Tailwind classes for color variables", async () => {
+    mockSendCommand.mockResolvedValue(makeResult());
+
+    const response = await callTool("get_design_system");
+    const text = response.content[0].text;
+
+    expect(text).toContain("bg-background-primary");
+    expect(text).toContain("text-text-primary");
+  });
+
+  it("derives correct Tailwind classes for spacing and radius", async () => {
+    mockSendCommand.mockResolvedValue(makeResult());
+
+    const response = await callTool("get_design_system");
+    const text = response.content[0].text;
+
+    expect(text).toContain("p-space-4");
+    expect(text).toContain("gap-space-4");
+    expect(text).toContain("rounded-radius-md");
+  });
+
+  it("derives correct Tailwind classes for text and effect styles", async () => {
+    mockSendCommand.mockResolvedValue(makeResult());
+
+    const response = await callTool("get_design_system");
+    const text = response.content[0].text;
+
+    expect(text).toContain("text-heading-h1");
+    expect(text).toContain("shadow-shadow-md");
+  });
+
+  it("groups variables by category correctly", async () => {
+    mockSendCommand.mockResolvedValue(makeResult());
+
+    const response = await callTool("get_design_system");
+    const text = response.content[0].text;
+
+    // Color section should have color vars but not spacing/radius
+    const colorSection = text.split("## Spacing Variables")[0];
+    expect(colorSection).toContain("background/primary");
+    expect(colorSection).not.toContain("space/4");
+    expect(colorSection).not.toContain("radius/md");
+  });
+
+  it("reports missing items compared to style guide", async () => {
+    mockSendCommand.mockResolvedValue(makeResult());
+
+    const response = await callTool("get_design_system");
+    const text = response.content[0].text;
+
+    // Should report missing items since we only have a small subset
+    expect(text).toContain("## Missing Items");
+    expect(text).toContain("Missing Variables");
+    expect(text).toContain("Missing Text Styles");
+    expect(text).toContain("Missing Effect Styles");
+  });
+
+  it("lists specific missing variable names", async () => {
+    mockSendCommand.mockResolvedValue(makeResult());
+
+    const response = await callTool("get_design_system");
+    const text = response.content[0].text;
+
+    // We have background/primary and text/primary, but many others are missing
+    expect(text).toContain("background/secondary");
+    expect(text).toContain("brand/primary");
+    expect(text).toContain("semantic/success");
+    expect(text).toContain("border/primary");
+  });
+
+  it("reports all items as missing for empty design system", async () => {
+    mockSendCommand.mockResolvedValue({
+      variables: [],
+      textStyles: [],
+      effectStyles: [],
+    });
+
+    const response = await callTool("get_design_system");
+    const text = response.content[0].text;
+
+    expect(text).toContain("No color variables found.");
+    expect(text).toContain("No spacing variables found.");
+    expect(text).toContain("No radius variables found.");
+    expect(text).toContain("No text styles found.");
+    expect(text).toContain("No effect styles found.");
+    expect(text).toContain("## Missing Items");
+    expect(text).toContain("Missing Variables");
+    expect(text).toContain("Missing Text Styles");
+    expect(text).toContain("Missing Effect Styles");
+  });
+
+  it("handles errors gracefully", async () => {
+    mockSendCommand.mockRejectedValue(new Error("Connection failed"));
+
+    const response = await callTool("get_design_system");
+    const text = response.content[0].text;
+
+    expect(text).toContain("Error getting design system: Connection failed");
+  });
+
+  it("sends command with 60s timeout", async () => {
+    mockSendCommand.mockResolvedValue(makeResult());
+
+    await callTool("get_design_system");
+
+    expect(mockSendCommand).toHaveBeenCalledWith("get_design_system", {}, 60000);
+  });
+
+  it("includes font info in text styles table", async () => {
+    mockSendCommand.mockResolvedValue(makeResult());
+
+    const response = await callTool("get_design_system");
+    const text = response.content[0].text;
+
+    expect(text).toContain("Inter Bold");
+    expect(text).toContain("32");
+  });
+
+  it("handles semantic subtle variables correctly", async () => {
+    mockSendCommand.mockResolvedValue(
+      makeResult({
+        variables: [
+          {
+            id: "v:10",
+            name: "semantic/success/subtle",
+            description: "Success bg",
+            resolvedType: "COLOR",
+            collectionName: "Colors",
+            values: [{ modeId: "m1", modeName: "Light", value: { r: 0.9, g: 1, b: 0.9, a: 1 } }],
+          },
+          {
+            id: "v:11",
+            name: "semantic/error",
+            description: "Error text",
+            resolvedType: "COLOR",
+            collectionName: "Colors",
+            values: [{ modeId: "m1", modeName: "Light", value: { r: 1, g: 0, b: 0, a: 1 } }],
+          },
+        ],
+      }),
+    );
+
+    const response = await callTool("get_design_system");
+    const text = response.content[0].text;
+
+    expect(text).toContain("bg-semantic-success-subtle");
+    expect(text).toContain("text-semantic-error");
+  });
+});

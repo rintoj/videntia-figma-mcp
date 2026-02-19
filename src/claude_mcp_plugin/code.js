@@ -385,6 +385,8 @@ async function handleCommand(command, params) {
       return await batchActions(params);
     case "lint_frame":
       return await lintFrame(params);
+    case "get_design_system":
+      return await getDesignSystem();
     default:
       throw new Error(`Unknown command: ${command}`);
   }
@@ -8381,6 +8383,97 @@ async function deletePage(params) {
   node.remove();
 
   return pageInfo;
+}
+
+// ── get_design_system: aggregate all design tokens ─────────────────────────
+
+async function getDesignSystem() {
+  // Fetch all data in parallel
+  var results = await Promise.all([
+    figma.variables.getLocalVariablesAsync(),
+    figma.variables.getLocalVariableCollectionsAsync(),
+    figma.getLocalTextStylesAsync(),
+    figma.getLocalEffectStylesAsync()
+  ]);
+
+  var allVariables = results[0];
+  var allCollections = results[1];
+  var textStyles = results[2];
+  var effectStyles = results[3];
+
+  // Build collection lookup
+  var collectionMap = {};
+  for (var ci = 0; ci < allCollections.length; ci++) {
+    var col = allCollections[ci];
+    collectionMap[col.id] = col;
+  }
+
+  // Map variables with collection info and mode values
+  var variables = [];
+  for (var vi = 0; vi < allVariables.length; vi++) {
+    var v = allVariables[vi];
+    var collection = collectionMap[v.variableCollectionId];
+    var collectionName = collection ? collection.name : "";
+    var modes = collection ? collection.modes : [];
+
+    var values = [];
+    for (var mi = 0; mi < modes.length; mi++) {
+      var mode = modes[mi];
+      var rawValue = v.valuesByMode[mode.modeId];
+      var resolvedValue = rawValue;
+
+      // If the value is an alias (variable reference), resolve it
+      if (rawValue && typeof rawValue === "object" && rawValue.type === "VARIABLE_ALIAS") {
+        var aliasVar = figma.variables.getVariableById(rawValue.id);
+        resolvedValue = aliasVar ? aliasVar.name : rawValue.id;
+      }
+
+      values.push({
+        modeId: mode.modeId,
+        modeName: mode.name,
+        value: resolvedValue
+      });
+    }
+
+    variables.push({
+      id: v.id,
+      name: v.name,
+      description: v.description !== undefined ? v.description : "",
+      resolvedType: v.resolvedType,
+      collectionName: collectionName,
+      values: values
+    });
+  }
+
+  // Map text styles
+  var mappedTextStyles = [];
+  for (var ti = 0; ti < textStyles.length; ti++) {
+    var ts = textStyles[ti];
+    mappedTextStyles.push({
+      id: ts.id,
+      name: ts.name,
+      fontSize: ts.fontSize,
+      fontName: ts.fontName ? { family: ts.fontName.family, style: ts.fontName.style } : { family: "", style: "" },
+      lineHeight: ts.lineHeight
+    });
+  }
+
+  // Map effect styles
+  var mappedEffectStyles = [];
+  for (var ei = 0; ei < effectStyles.length; ei++) {
+    var es = effectStyles[ei];
+    mappedEffectStyles.push({
+      id: es.id,
+      name: es.name,
+      description: es.description !== undefined ? es.description : ""
+    });
+  }
+
+  return {
+    variables: variables,
+    textStyles: mappedTextStyles,
+    effectStyles: mappedEffectStyles
+  };
 }
 
 // ── lint_frame: one-shot compliance audit ──────────────────────────────────

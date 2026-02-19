@@ -170,7 +170,8 @@ export type FigmaCommand =
   | "delete_page"
   | "create_from_data"
   | "batch_actions"
-  | "lint_frame";
+  | "lint_frame"
+  | "get_design_system";
 
 // Batch actions types
 export interface BatchActionResult {
@@ -612,6 +613,36 @@ export interface GetReactionsResult {
 export interface GetComponentPropertiesResult {
   properties?: Record<string, unknown>;
   [key: string]: unknown;
+}
+
+// Design system aggregation result
+export interface DesignSystemVariable {
+  id: string;
+  name: string;
+  description: string;
+  resolvedType: string;
+  collectionName: string;
+  values: Array<{ modeId: string; modeName: string; value: unknown }>;
+}
+
+export interface DesignSystemTextStyle {
+  id: string;
+  name: string;
+  fontSize: number;
+  fontName: { family: string; style: string };
+  lineHeight: unknown;
+}
+
+export interface DesignSystemEffectStyle {
+  id: string;
+  name: string;
+  description: string;
+}
+
+export interface GetDesignSystemResult {
+  variables: DesignSystemVariable[];
+  textStyles: DesignSystemTextStyle[];
+  effectStyles: DesignSystemEffectStyle[];
 }
 
 // Modification tools

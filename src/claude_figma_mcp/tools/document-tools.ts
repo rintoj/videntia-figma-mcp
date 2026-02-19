@@ -1,5 +1,8 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { readFileSync } from "node:fs";
+import { resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import { sendCommandToFigma, joinChannel, getOpenChannels } from "../utils/websocket.js";
 import { filterFigmaNode } from "../utils/figma-helpers.js";
 import { figmaAccessToken, FIGMA_API_BASE_URL } from "../config/config.js";
@@ -20,6 +23,10 @@ import type {
   BoundVariablesResult,
   LintFrameResult,
   LintViolation,
+  GetDesignSystemResult,
+  DesignSystemVariable,
+  DesignSystemTextStyle,
+  DesignSystemEffectStyle,
 } from "../types/index.js";
 import {
   formatColorValue,
@@ -28,6 +35,134 @@ import {
   sanitizeCell,
   truncate,
 } from "../utils/format-helpers.js";
+
+/** Parsed style guide reference with expected names */
+interface StyleGuideReference {
+  variables: string[];
+  textStyles: string[];
+  effectStyles: string[];
+}
+
+/**
+ * Parse the style guide markdown to extract expected variable/style names.
+ * Extracts the first column from tables under known section headings.
+ */
+export function parseStyleGuide(content: string): StyleGuideReference {
+  const variables: string[] = [];
+  const textStyles: string[] = [];
+  const effectStyles: string[] = [];
+
+  let currentSection = "";
+  const lines = content.split("\n");
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+
+    // Detect section headings
+    if (trimmed.startsWith("## ")) {
+      const heading = trimmed.slice(3).trim().toLowerCase();
+      if (heading.includes("color") && heading.includes("variable")) {
+        currentSection = "color-vars";
+      } else if (heading.includes("spacing") && heading.includes("variable")) {
+        currentSection = "spacing-vars";
+      } else if (heading.includes("radius") && heading.includes("variable")) {
+        currentSection = "radius-vars";
+      } else if (heading.includes("text") && heading.includes("style")) {
+        currentSection = "text-styles";
+      } else if (heading.includes("effect") && heading.includes("style")) {
+        currentSection = "effect-styles";
+      } else {
+        currentSection = "";
+      }
+      continue;
+    }
+
+    // Parse table rows (skip header and separator)
+    if (!currentSection || !trimmed.startsWith("|") || trimmed.startsWith("|--") || trimmed.startsWith("| Variable Name") || trimmed.startsWith("| Style Name")) {
+      continue;
+    }
+
+    const cells = trimmed.split("|").map((c) => c.trim()).filter(Boolean);
+    if (cells.length === 0) continue;
+
+    const name = cells[0];
+    if (currentSection === "text-styles") {
+      textStyles.push(name);
+    } else if (currentSection === "effect-styles") {
+      effectStyles.push(name);
+    } else {
+      variables.push(name);
+    }
+  }
+
+  return { variables, textStyles, effectStyles };
+}
+
+/** Load and parse the style guide template. Returns null if not found. */
+export function loadStyleGuide(): StyleGuideReference | null {
+  try {
+    const currentDir = typeof __dirname !== "undefined" ? __dirname : dirname(fileURLToPath(import.meta.url));
+    // Navigate from src/claude_figma_mcp/tools/ or dist/ to project root
+    const projectRoot = resolve(currentDir, "..", "..", "..");
+    const styleGuidePath = resolve(projectRoot, "templates", "style-guide.md");
+    const content = readFileSync(styleGuidePath, "utf-8");
+    return parseStyleGuide(content);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Derive Tailwind CSS class from a Figma variable/style name.
+ */
+export function deriveTailwindClass(name: string, type: "color" | "spacing" | "radius" | "text" | "effect"): string {
+  const normalized = name.replace(/\s+/g, "-").toLowerCase();
+
+  if (type === "text") {
+    return `text-${normalized.replace(/\//g, "-")}`;
+  }
+  if (type === "effect") {
+    return `shadow-${normalized.replace(/\//g, "-")}`;
+  }
+  if (type === "spacing") {
+    // space/4 → p-space-4, gap-space-4
+    const cls = normalized.replace(/\//g, "-");
+    return `p-${cls}, gap-${cls}`;
+  }
+  if (type === "radius") {
+    return `rounded-${normalized.replace(/\//g, "-")}`;
+  }
+
+  // Color type - derive from prefix
+  const parts = normalized.split("/");
+  const prefix = parts[0];
+  const rest = parts.slice(1).join("-");
+
+  switch (prefix) {
+    case "background":
+      return `bg-background-${rest}`;
+    case "text":
+      return `text-text-${rest}`;
+    case "brand":
+      return `bg-brand-${rest}`;
+    case "semantic": {
+      if (rest.endsWith("-subtle") || rest.endsWith("subtle")) {
+        return `bg-semantic-${rest}`;
+      }
+      return `text-semantic-${rest}`;
+    }
+    case "border":
+      return `border-border-${rest}`;
+    case "interactive":
+      return `bg-interactive-${rest}`;
+    case "overlay":
+      return `bg-overlay-${rest}`;
+    case "preview":
+      return `bg-preview-${rest}`;
+    default:
+      return `bg-${normalized.replace(/\//g, "-")}`;
+  }
+}
 
 /**
  * Register document-related tools to the MCP server
@@ -1191,6 +1326,213 @@ export function registerDocumentTools(server: McpServer): void {
             {
               type: "text",
               text: `Error running lint_frame on node "${node_id}": ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  // Get Design System Tool
+  server.tool(
+    "get_design_system",
+    "Aggregate all design system tokens (color variables, spacing, radius, text styles, effect styles) from the active Figma file. Returns formatted markdown tables and reports what is missing compared to the reference style guide.",
+    {},
+    async () => {
+      try {
+        const result = await sendCommandToFigma<GetDesignSystemResult>("get_design_system", {}, 60000);
+
+        // Load style guide reference
+        const styleGuideRef = loadStyleGuide();
+
+        // Categorize variables
+        const colorVars: DesignSystemVariable[] = [];
+        const spacingVars: DesignSystemVariable[] = [];
+        const radiusVars: DesignSystemVariable[] = [];
+        const otherVars: DesignSystemVariable[] = [];
+
+        for (const v of result.variables) {
+          const name = v.name.toLowerCase();
+          if (
+            name.startsWith("space/") ||
+            name.startsWith("spacing/")
+          ) {
+            spacingVars.push(v);
+          } else if (
+            name.startsWith("radius/")
+          ) {
+            radiusVars.push(v);
+          } else if (v.resolvedType === "COLOR") {
+            colorVars.push(v);
+          } else {
+            otherVars.push(v);
+          }
+        }
+
+        const lines: string[] = [];
+        lines.push("# Design System");
+        lines.push("");
+
+        // Color Variables
+        lines.push("## Color Variables");
+        lines.push("");
+        if (colorVars.length === 0) {
+          lines.push("No color variables found.");
+        } else {
+          lines.push("| Variable Name | Tailwind Class | Purpose | ID |");
+          lines.push("|---------------|----------------|---------|----|");
+          for (const v of colorVars) {
+            const tw = deriveTailwindClass(v.name, "color");
+            const purpose = v.description || "-";
+            lines.push(`| ${sanitizeCell(v.name)} | ${tw} | ${sanitizeCell(purpose)} | ${v.id} |`);
+          }
+        }
+        lines.push("");
+
+        // Spacing Variables
+        lines.push("## Spacing Variables");
+        lines.push("");
+        if (spacingVars.length === 0) {
+          lines.push("No spacing variables found.");
+        } else {
+          lines.push("| Variable Name | Tailwind Class | Purpose | ID |");
+          lines.push("|---------------|----------------|---------|----|");
+          for (const v of spacingVars) {
+            const tw = deriveTailwindClass(v.name, "spacing");
+            const purpose = v.description || "-";
+            lines.push(`| ${sanitizeCell(v.name)} | ${tw} | ${sanitizeCell(purpose)} | ${v.id} |`);
+          }
+        }
+        lines.push("");
+
+        // Radius Variables
+        lines.push("## Radius Variables");
+        lines.push("");
+        if (radiusVars.length === 0) {
+          lines.push("No radius variables found.");
+        } else {
+          lines.push("| Variable Name | Tailwind Class | Purpose | ID |");
+          lines.push("|---------------|----------------|---------|----|");
+          for (const v of radiusVars) {
+            const tw = deriveTailwindClass(v.name, "radius");
+            const purpose = v.description || "-";
+            lines.push(`| ${sanitizeCell(v.name)} | ${tw} | ${sanitizeCell(purpose)} | ${v.id} |`);
+          }
+        }
+        lines.push("");
+
+        // Text Styles
+        lines.push("## Text Styles");
+        lines.push("");
+        if (result.textStyles.length === 0) {
+          lines.push("No text styles found.");
+        } else {
+          lines.push("| Style Name | Tailwind Class | Font | Size | ID |");
+          lines.push("|------------|----------------|------|------|----|");
+          for (const ts of result.textStyles) {
+            const tw = deriveTailwindClass(ts.name, "text");
+            const font = ts.fontName ? `${ts.fontName.family} ${ts.fontName.style}` : "-";
+            lines.push(`| ${sanitizeCell(ts.name)} | ${tw} | ${font} | ${ts.fontSize} | ${ts.id} |`);
+          }
+        }
+        lines.push("");
+
+        // Effect Styles
+        lines.push("## Effect Styles");
+        lines.push("");
+        if (result.effectStyles.length === 0) {
+          lines.push("No effect styles found.");
+        } else {
+          lines.push("| Style Name | Tailwind Class | Description | ID |");
+          lines.push("|------------|----------------|-------------|----|");
+          for (const es of result.effectStyles) {
+            const tw = deriveTailwindClass(es.name, "effect");
+            const desc = es.description || "-";
+            lines.push(`| ${sanitizeCell(es.name)} | ${tw} | ${sanitizeCell(desc)} | ${es.id} |`);
+          }
+        }
+        lines.push("");
+
+        // Other Variables (if any)
+        if (otherVars.length > 0) {
+          lines.push("## Other Variables");
+          lines.push("");
+          lines.push("| Variable Name | Type | Purpose | ID |");
+          lines.push("|---------------|------|---------|----|");
+          for (const v of otherVars) {
+            const purpose = v.description || "-";
+            lines.push(`| ${sanitizeCell(v.name)} | ${v.resolvedType} | ${sanitizeCell(purpose)} | ${v.id} |`);
+          }
+          lines.push("");
+        }
+
+        // Missing items comparison
+        if (styleGuideRef) {
+          const foundVarNames = new Set(result.variables.map((v) => v.name.toLowerCase()));
+          const foundTextStyleNames = new Set(result.textStyles.map((ts) => ts.name.toLowerCase()));
+          const foundEffectStyleNames = new Set(result.effectStyles.map((es) => es.name.toLowerCase()));
+
+          const missingVars = styleGuideRef.variables.filter((name) => !foundVarNames.has(name.toLowerCase()));
+          const missingTextStyles = styleGuideRef.textStyles.filter(
+            (name) => !foundTextStyleNames.has(name.toLowerCase()),
+          );
+          const missingEffectStyles = styleGuideRef.effectStyles.filter(
+            (name) => !foundEffectStyleNames.has(name.toLowerCase()),
+          );
+
+          const totalMissing = missingVars.length + missingTextStyles.length + missingEffectStyles.length;
+
+          if (totalMissing > 0) {
+            lines.push("## Missing Items");
+            lines.push("");
+            lines.push(
+              `Found ${totalMissing} missing item(s) compared to the style guide reference.`,
+            );
+            lines.push("");
+
+            if (missingVars.length > 0) {
+              lines.push(`### Missing Variables (${missingVars.length})`);
+              lines.push("");
+              for (const name of missingVars) {
+                lines.push(`- ${name}`);
+              }
+              lines.push("");
+            }
+
+            if (missingTextStyles.length > 0) {
+              lines.push(`### Missing Text Styles (${missingTextStyles.length})`);
+              lines.push("");
+              for (const name of missingTextStyles) {
+                lines.push(`- ${name}`);
+              }
+              lines.push("");
+            }
+
+            if (missingEffectStyles.length > 0) {
+              lines.push(`### Missing Effect Styles (${missingEffectStyles.length})`);
+              lines.push("");
+              for (const name of missingEffectStyles) {
+                lines.push(`- ${name}`);
+              }
+              lines.push("");
+            }
+          } else {
+            lines.push("## Missing Items");
+            lines.push("");
+            lines.push("All items from the style guide reference are present.");
+            lines.push("");
+          }
+        }
+
+        return {
+          content: [{ type: "text", text: lines.join("\n") }],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error getting design system: ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };
