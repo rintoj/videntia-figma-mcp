@@ -1137,20 +1137,14 @@ export function registerDocumentTools(server: McpServer): void {
             ],
           };
         }
-        const lines: string[] = [
-          `Found ${channels.length} open channel(s)`,
-          "",
-          "| File Name | Channel ID |",
-          "|-----------|------------|",
-        ];
-        for (const ch of channels) {
-          lines.push(`| ${ch.fileName || "-"} | ${ch.channel || "-"} |`);
-        }
+        const channelList = channels
+          .map((ch) => `  - ${ch.channel} (${ch.fileName || "unknown file"})`)
+          .join("\n");
         return {
           content: [
             {
               type: "text",
-              text: lines.join("\n"),
+              text: `Available channels:\n${channelList}`,
             },
           ],
         };

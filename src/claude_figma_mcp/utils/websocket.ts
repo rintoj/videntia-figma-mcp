@@ -267,12 +267,34 @@ export function sendCommandToFigma<T = unknown>(
     // Check if we need a channel for this command
     const requiresChannel = command !== "join";
     if (requiresChannel && !currentChannel) {
-      reject(
-        new Error(
-          "No active Figma connection. The Figma plugin may have been closed or the channel was not joined. " +
-            "Please ensure the Claude MCP Plugin is running in Figma and use join_channel to reconnect.",
-        ),
-      );
+      getOpenChannels()
+        .then((channels) => {
+          if (channels.length > 0) {
+            const channelList = channels
+              .map((ch) => `  - ${ch.channel} (${ch.fileName || "unknown file"})`)
+              .join("\n");
+            reject(
+              new Error(
+                `No active Figma connection.\nAvailable channels:\n${channelList}\n\nUse join_channel with one of the above channel IDs to connect.`,
+              ),
+            );
+          } else {
+            reject(
+              new Error(
+                "No active Figma connection. No open channels found.\n" +
+                  "Ensure the Claude MCP Plugin is running in Figma, then use get_open_channels and join_channel.",
+              ),
+            );
+          }
+        })
+        .catch(() => {
+          reject(
+            new Error(
+              "No active Figma connection. Could not fetch available channels.\n" +
+                "Ensure the Claude MCP Plugin is running in Figma and use join_channel to reconnect.",
+            ),
+          );
+        });
       return;
     }
 
