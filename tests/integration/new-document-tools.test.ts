@@ -861,5 +861,90 @@ describe("new document tools integration", () => {
       await expect(callTool("jsx_to_figma", {})).rejects.toThrow();
       expect(mockSendCommand).not.toHaveBeenCalled();
     });
+
+    it("shows updated nodes separately from created nodes", async () => {
+      mockSendCommand.mockResolvedValue({
+        createdNodes: [
+          { id: "1:100", name: "Card", type: "FRAME", action: "updated" },
+          { id: "1:200", name: "Title", type: "TEXT", action: "created" },
+          { id: "1:300", name: "Body", type: "TEXT", action: "created" },
+        ],
+      });
+
+      const response = await callTool("jsx_to_figma", {
+        jsx: '<div id="1:100" name="Card"><p name="Title">Hello</p><p name="Body">World</p></div>',
+      });
+
+      const text = response.content[0].text;
+      expect(text).toContain('Updated 1 node(s): "Card" (1:100)');
+      expect(text).toContain('Created 2 node(s): "Title" (1:200)');
+    });
+
+    it("shows only updated nodes when all are updates", async () => {
+      mockSendCommand.mockResolvedValue({
+        createdNodes: [
+          { id: "1:100", name: "Card", type: "FRAME", action: "updated" },
+        ],
+      });
+
+      const response = await callTool("jsx_to_figma", {
+        jsx: '<div id="1:100" name="Card" className="bg-red-500" />',
+      });
+
+      const text = response.content[0].text;
+      expect(text).toContain('Updated 1 node(s): "Card" (1:100)');
+      expect(text).not.toContain("Created");
+    });
+
+    it("shows only created nodes when none are updates (backward compat)", async () => {
+      mockSendCommand.mockResolvedValue({
+        createdNodes: [
+          { id: "1:100", name: "Card", type: "FRAME" },
+        ],
+      });
+
+      const response = await callTool("jsx_to_figma", {
+        jsx: '<div name="Card" />',
+      });
+
+      const text = response.content[0].text;
+      expect(text).toContain('Created 1 node(s): "Card" (1:100)');
+      expect(text).not.toContain("Updated");
+    });
+
+    it("passes replaceChildren param to plugin", async () => {
+      mockSendCommand.mockResolvedValue({
+        createdNodes: [{ id: "1:100", name: "Card", type: "FRAME", action: "updated" }],
+      });
+
+      await callTool("jsx_to_figma", {
+        jsx: '<div id="1:100" name="Card"><p>New child</p></div>',
+        replaceChildren: true,
+      });
+
+      expect(mockSendCommand).toHaveBeenCalledWith(
+        "create_from_data",
+        expect.objectContaining({
+          replaceChildren: true,
+        }),
+      );
+    });
+
+    it("defaults replaceChildren to undefined (preserve children)", async () => {
+      mockSendCommand.mockResolvedValue({
+        createdNodes: [{ id: "1:100", name: "Card", type: "FRAME", action: "updated" }],
+      });
+
+      await callTool("jsx_to_figma", {
+        jsx: '<div id="1:100" name="Card" className="bg-red-500" />',
+      });
+
+      expect(mockSendCommand).toHaveBeenCalledWith(
+        "create_from_data",
+        expect.objectContaining({
+          replaceChildren: undefined,
+        }),
+      );
+    });
   });
 });

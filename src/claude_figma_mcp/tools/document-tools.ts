@@ -101,49 +101,36 @@ export function registerDocumentTools(server: McpServer): void {
   // JSX to Figma Tool
   server.tool(
     "jsx_to_figma",
-    "Create Figma nodes from JSX+Tailwind markup. Accepts the same format that read_my_design outputs. Auto-positions next to existing page content when no positioning params are given.",
+    "Create or update Figma nodes from JSX+Tailwind markup. Supports multiple root elements in a single call — batch them together instead of making separate calls. When an element has id='<nodeId>' matching an existing Figma node, that node is updated in-place (properties only — existing children are preserved). Set replaceChildren=true to also replace children. Without an id, creates new nodes. Accepts the same format that read_my_design outputs. Auto-positions next to existing page content when no positioning params are given.",
     {
-      jsx: z.string().describe("JSX+Tailwind markup string"),
+      jsx: z.string().describe("JSX+Tailwind markup string. Supports multiple root elements e.g. '<div id=\"1:1\" .../><div id=\"1:2\" .../>' — always batch multiple nodes into one call."),
       parentId: z.string().optional().describe("Parent node ID to insert into (defaults to current page)"),
       nextToId: z.string().optional().describe("Place the new node to the right of this node ID"),
       x: z.number().optional().describe("X position for the root node"),
       y: z.number().optional().describe("Y position for the root node"),
+      replaceChildren: z.boolean().optional().describe("When updating an existing node (via id), replace its children with the JSX children. When true with no JSX children, clears all existing children. Omit or false to preserve existing children."),
     },
-    async ({ jsx, parentId, nextToId, x, y }) => {
+    async ({ jsx, parentId, nextToId, x, y, replaceChildren }) => {
       try {
         const data = parseJsx(jsx);
-        // DEBUG: log what parseJsx produced (server-side)
-        const serverDebug = data.map((d: any) => ({
-          type: d.type,
-          layoutMode: d.layoutMode,
-          fillsCount: d.fills?.length ?? 0,
-          fills: d.fills,
-          fontFamily: d.fontFamily,
-          children: d.children?.map((c: any) => ({
-            type: c.type,
-            layoutMode: c.layoutMode,
-            fillsCount: c.fills?.length ?? 0,
-            fills: c.fills,
-            fontFamily: c.fontFamily,
-          })),
-        }));
-        const result = await sendCommandToFigma("create_from_data", { data, parentId, nextToId, x, y });
+        const result = await sendCommandToFigma("create_from_data", { data, parentId, nextToId, x, y, replaceChildren });
         const typedResult = result as {
-          createdNodes: Array<{ id: string; name: string; type: string }>;
-          debugInfo?: unknown;
+          createdNodes: Array<{ id: string; name: string; type: string; action?: string }>;
         };
-        const lines = [
-          `Created ${typedResult.createdNodes.length} node(s): ${typedResult.createdNodes.map((n) => `"${n.name}" (${n.id})`).join(", ")}`,
-        ];
-        lines.push(`\nSERVER parseJsx output:\n${JSON.stringify(serverDebug, null, 2)}`);
-        if (typedResult.debugInfo) {
-          lines.push(`\nPLUGIN received data:\n${JSON.stringify(typedResult.debugInfo, null, 2)}`);
+        const created = typedResult.createdNodes.filter((n) => n.action !== "updated");
+        const updated = typedResult.createdNodes.filter((n) => n.action === "updated");
+        const parts: string[] = [];
+        if (updated.length > 0) {
+          parts.push(`Updated ${updated.length} node(s): ${updated.map((n) => `"${n.name}" (${n.id})`).join(", ")}`);
+        }
+        if (created.length > 0) {
+          parts.push(`Created ${created.length} node(s): ${created.map((n) => `"${n.name}" (${n.id})`).join(", ")}`);
         }
         return {
           content: [
             {
               type: "text",
-              text: lines.join("\n"),
+              text: parts.length > 0 ? parts.join(" | ") : "No nodes created or updated.",
             },
           ],
         };
