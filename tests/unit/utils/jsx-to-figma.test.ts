@@ -41,9 +41,10 @@ describe("parseJsx", () => {
   it("should parse an svg node", () => {
     const nodes = parseJsx('<svg id="1:1" name="Icon" width="24" height="24" />');
     expect(nodes).toHaveLength(1);
-    expect(nodes[0].type).toBe("VECTOR");
+    expect(nodes[0].type).toBe("SVG");
     expect(nodes[0].width).toBe(24);
     expect(nodes[0].height).toBe(24);
+    expect(nodes[0].svgString).toContain("<svg");
   });
 
   it("should decode HTML entities in text", () => {
@@ -1694,5 +1695,56 @@ describe("parseJsx - bare flex defaults to HORIZONTAL", () => {
   it("should not override flex-row with flex default", () => {
     const nodes = parseJsx('<div id="1:1" name="T" className="flex flex-row" />');
     expect(nodes[0].layoutMode).toBe("HORIZONTAL");
+  });
+
+  // --- SVG support ---
+
+  it("should parse <svg> as SVG type with svgString", () => {
+    const svg = '<svg width="24" height="24" viewBox="0 0 24 24"><path d="M12 2L2 22h20L12 2z" /></svg>';
+    const nodes = parseJsx(svg);
+    expect(nodes).toHaveLength(1);
+    expect(nodes[0].type).toBe("SVG");
+    expect(nodes[0].svgString).toContain("<svg");
+    expect(nodes[0].svgString).toContain("</svg>");
+    expect(nodes[0].svgString).toContain('<path d="M12 2L2 22h20L12 2z"');
+  });
+
+  it("should not recursively parse SVG children as FigmaNodeData", () => {
+    const svg = '<svg width="16" height="16"><circle cx="8" cy="8" r="8" /><rect x="0" y="0" width="16" height="16" /></svg>';
+    const nodes = parseJsx(svg);
+    expect(nodes).toHaveLength(1);
+    expect(nodes[0].children).toBeUndefined();
+  });
+
+  it("should preserve SVG attributes in svgString", () => {
+    const svg = '<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M0 0" /></svg>';
+    const nodes = parseJsx(svg);
+    expect(nodes[0].svgString).toContain('viewBox="0 0 48 48"');
+    expect(nodes[0].svgString).toContain('fill="none"');
+    expect(nodes[0].svgString).toContain('xmlns="http://www.w3.org/2000/svg"');
+    expect(nodes[0].width).toBe(48);
+    expect(nodes[0].height).toBe(48);
+  });
+
+  it("should handle SVG inside a div (mixed content)", () => {
+    const jsx = '<div id="1:1" name="Container"><svg width="24" height="24"><path d="M0 0" /></svg></div>';
+    const nodes = parseJsx(jsx);
+    expect(nodes).toHaveLength(1);
+    expect(nodes[0].type).toBe("FRAME");
+    expect(nodes[0].children).toHaveLength(1);
+    expect(nodes[0].children![0].type).toBe("SVG");
+    expect(nodes[0].children![0].svgString).toContain("<svg");
+  });
+
+  it("should strip non-SVG attributes (name, id, className) from svgString", () => {
+    const svg = '<svg name="Icon" id="1:1" className="icon-class" width="24" height="24" viewBox="0 0 24 24"><path d="M0 0" /></svg>';
+    const nodes = parseJsx(svg);
+    expect(nodes[0].svgString).not.toContain('name=');
+    expect(nodes[0].svgString).not.toContain('id=');
+    expect(nodes[0].svgString).not.toContain('className=');
+    expect(nodes[0].svgString).toContain('width="24"');
+    expect(nodes[0].svgString).toContain('viewBox="0 0 24 24"');
+    // The name should still be set on the node data
+    expect(nodes[0].name).toBe("Icon");
   });
 });

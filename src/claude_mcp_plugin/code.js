@@ -7149,6 +7149,25 @@ async function createFromData(params) {
         node.fills = [];
         console.warn(`Component "${componentName}" not found — created frame as fallback`);
       }
+    } else if (nodeData.type === "SVG" && nodeData.svgString) {
+      try {
+        node = figma.createNodeFromSvg(nodeData.svgString);
+      } catch (e) {
+        console.warn("Failed to create SVG node, falling back to frame:", e);
+        node = figma.createFrame();
+        node.fills = [];
+      }
+      // SVG is an opaque unit — set name, append to parent, resize, and return early
+      node.name = nodeData.name || "SVG";
+      if (nodeData.type !== "COMPONENT_SET" && node.parent !== parentNode) {
+        parentNode.appendChild(node);
+      }
+      if (isRoot && rootX !== undefined) node.x = rootX;
+      if (isRoot && rootY !== undefined) node.y = rootY;
+      if (nodeData.width !== undefined && nodeData.height !== undefined) {
+        node.resize(nodeData.width, nodeData.height);
+      }
+      return node;
     } else if (nodeData.type === "RECTANGLE" || nodeData.type === "VECTOR" || nodeData.type === "LINE") {
       node = figma.createRectangle();
     } else {
