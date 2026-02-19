@@ -1177,6 +1177,83 @@ export function registerDocumentTools(server: McpServer): void {
   );
 
   // Get Variables Tool
+  function formatVariablesAsText(result: { variables: any[]; collections: any[] }): string {
+    const { variables, collections } = result;
+
+    // Build collection lookup
+    const collectionMap = new Map<string, any>();
+    for (const col of collections) {
+      collectionMap.set(col.id, col);
+    }
+
+    // Group variables by collectionId
+    const grouped = new Map<string, any[]>();
+    for (const v of variables) {
+      const list = grouped.get(v.collectionId) || [];
+      list.push(v);
+      grouped.set(v.collectionId, list);
+    }
+
+    const lines: string[] = [];
+
+    for (const col of collections) {
+      const vars = grouped.get(col.id) || [];
+      if (vars.length === 0) continue;
+
+      lines.push(`## Collection: ${col.name} (id: ${col.id})`);
+      const modeStr = col.modes.map((m: any) => `${m.name} (id: ${m.modeId})`).join(", ");
+      lines.push(`Modes: ${modeStr}`);
+      lines.push("");
+
+      const modes = col.modes as { name: string; modeId: string }[];
+      const multiMode = modes.length > 1;
+
+      // Build header
+      if (multiMode) {
+        const modeHeaders = modes.map((m) => m.name).join(" | ");
+        lines.push(`| Name | Type | ${modeHeaders} | ID |`);
+        lines.push(`|------|------|${modes.map(() => "------").join("|")}|----|`);
+      } else {
+        lines.push("| Name | Type | Value | ID |");
+        lines.push("|------|------|-------|----|");
+      }
+
+      for (const v of vars) {
+        const name = v.description ? `${v.name} — ${v.description}` : v.name;
+
+        if (multiMode) {
+          const values = modes.map((m) => {
+            const entry = v.values?.find((val: any) => val.modeId === m.modeId);
+            return entry ? formatValue(v.type, entry.value) : "-";
+          }).join(" | ");
+          lines.push(`| ${name} | ${v.type} | ${values} | ${v.id} |`);
+        } else {
+          const value = v.values?.[0]?.value;
+          lines.push(`| ${name} | ${v.type} | ${formatValue(v.type, value)} | ${v.id} |`);
+        }
+      }
+
+      lines.push("");
+    }
+
+    return lines.join("\n");
+  }
+
+  function formatValue(type: string, value: any): string {
+    if (value == null) return "-";
+    if (type === "COLOR" && typeof value === "object") {
+      const r = Math.round((value.r ?? 0) * 255);
+      const g = Math.round((value.g ?? 0) * 255);
+      const b = Math.round((value.b ?? 0) * 255);
+      const a = value.a ?? 1;
+      return `rgba(${r},${g},${b},${a})`;
+    }
+    if (typeof value === "object") {
+      return JSON.stringify(value);
+    }
+    return String(value);
+  }
+
   server.tool(
     "get_variables",
     "Get all variables and variable collections from the current Figma document",
@@ -1188,7 +1265,7 @@ export function registerDocumentTools(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result, null, 2)
+              text: formatVariablesAsText(result as { variables: any[]; collections: any[] })
             }
           ]
         };
