@@ -14,7 +14,7 @@ export function registerComponentTools(server: McpServer): void {
   // Create Component Instance Tool
   server.tool(
     "create_component_instance",
-    "Create an instance of a component in Figma. Returns JSX+Tailwind by default; use output_format='json' for raw Figma JSON. For local components, use the node ID (e.g., '123:456') from get_local_components. For library components, use the component key.",
+    "Create an instance of a component in Figma. Returns JSX+Tailwind markup. For local components, use the node ID (e.g., '123:456') from get_local_components. For library components, use the component key.",
     {
       componentKey: z
         .string()

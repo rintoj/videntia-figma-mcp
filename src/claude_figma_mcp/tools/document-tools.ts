@@ -539,17 +539,19 @@ export function registerDocumentTools(server: McpServer): void {
   // Scan Nodes By Types Tool
   server.tool(
     "scan_nodes_by_types",
-    "Scan for child nodes with specific types in the selected Figma node. Returns JSX+Tailwind by default; use output_format='json' for raw Figma JSON.",
+    "Scan for child nodes with specific types in the selected Figma node. Returns JSX+Tailwind markup.",
     {
       nodeId: z.string().describe("ID of the node to scan"),
       types: coerceArray(z.array(z.string())).describe("Array of node types (e.g. ['COMPONENT', 'FRAME'])"),
+      topLevelOnly: z.boolean().optional().default(true).describe("When true (default), returns only the first matching nodes without descending into their children. Set to false to recursively find all nested matches."),
       output_format: outputFormatSchema,
     },
-    async ({ nodeId, types, output_format }) => {
+    async ({ nodeId, types, topLevelOnly, output_format }) => {
       try {
         const result = await sendCommandToFigma("scan_nodes_by_types", {
           nodeId,
           types,
+          topLevelOnly,
         });
 
         if (result && typeof result === "object" && "matchingNodes" in result) {
@@ -609,7 +611,7 @@ export function registerDocumentTools(server: McpServer): void {
   // Selection Tool
   server.tool(
     "get_selection",
-    "Get information about the current selection in Figma. Returns JSX+Tailwind by default; use output_format='json' for raw Figma JSON.",
+    "Get information about the current selection in Figma. Returns JSX+Tailwind markup.",
     {
       output_format: outputFormatSchema,
     },
@@ -644,7 +646,7 @@ export function registerDocumentTools(server: McpServer): void {
   // Node Info Tool
   server.tool(
     "get_node_info",
-    "Get detailed information about a specific node in Figma. Returns JSX+Tailwind by default; use output_format='json' for raw Figma JSON.",
+    "Get detailed information about a specific node in Figma. Returns JSX+Tailwind markup.",
     {
       nodeId: z.string().describe("The ID of the node to get information about"),
       fields: coerceArray(
@@ -673,13 +675,13 @@ export function registerDocumentTools(server: McpServer): void {
       )
         .optional()
         .describe(
-          "Optional array of fields to include in the response (only used when output_format='json'). If not specified, returns: id, name, type, fills, strokes, cornerRadius, absoluteBoundingBox, characters, style. Available fields: id, name, type, fills, strokes, cornerRadius, absoluteBoundingBox, characters, style, children, effects, opacity, blendMode, constraints, layoutMode, padding, itemSpacing, componentProperties",
+          "Optional array of fields to include in the response. Ignored in JSX mode. For JSON mode only — fields to include. Defaults: id, name, type, fills, strokes, cornerRadius, absoluteBoundingBox, characters, style",
         ),
       stripImages: z
         .boolean()
         .optional()
         .default(true)
-        .describe("Whether to strip image data (only used when output_format='json'). Defaults to true."),
+        .describe("Ignored in JSX mode. For JSON mode only — strip image data. Defaults to true."),
       output_format: outputFormatSchema,
     },
     async ({ nodeId, fields, stripImages, output_format }) => {
@@ -713,7 +715,7 @@ export function registerDocumentTools(server: McpServer): void {
   // Nodes Info Tool
   server.tool(
     "get_nodes_info",
-    "Get detailed information about multiple nodes in Figma. Returns JSX+Tailwind by default; use output_format='json' for raw Figma JSON.",
+    "Get detailed information about multiple nodes in Figma. Returns JSX+Tailwind markup.",
     {
       nodeIds: coerceArray(z.array(z.string())).describe("Array of node IDs to get information about"),
       fields: coerceArray(
@@ -742,13 +744,13 @@ export function registerDocumentTools(server: McpServer): void {
       )
         .optional()
         .describe(
-          "Optional array of fields to include in the response (only used when output_format='json'). If not specified, returns: id, name, type, fills, strokes, cornerRadius, absoluteBoundingBox, characters, style. Available fields: id, name, type, fills, strokes, cornerRadius, absoluteBoundingBox, characters, style, children, effects, opacity, blendMode, constraints, layoutMode, padding, itemSpacing, componentProperties",
+          "Optional array of fields to include in the response. Ignored in JSX mode. For JSON mode only — fields to include. Defaults: id, name, type, fills, strokes, cornerRadius, absoluteBoundingBox, characters, style",
         ),
       stripImages: z
         .boolean()
         .optional()
         .default(true)
-        .describe("Whether to strip image data (only used when output_format='json'). Defaults to true."),
+        .describe("Ignored in JSX mode. For JSON mode only — strip image data. Defaults to true."),
       output_format: outputFormatSchema,
     },
     async ({ nodeIds, fields, stripImages, output_format }) => {
@@ -833,7 +835,7 @@ export function registerDocumentTools(server: McpServer): void {
   // Get Local Components Tool
   server.tool(
     "get_local_components",
-    "Get all local components from the Figma document. Returns JSX+Tailwind by default; use output_format='json' for raw Figma JSON.",
+    "Get all local components from the Figma document. Returns JSX+Tailwind markup.",
     {
       output_format: outputFormatSchema,
     },
@@ -926,7 +928,7 @@ export function registerDocumentTools(server: McpServer): void {
   // Text Node Scanning Tool
   server.tool(
     "scan_text_nodes",
-    "Scan all text nodes in the selected Figma node. Returns JSX+Tailwind by default; use output_format='json' for raw Figma JSON.",
+    "Scan all text nodes in the selected Figma node. Returns JSX+Tailwind markup.",
     {
       nodeId: z.string().describe("ID of the node to scan"),
       output_format: outputFormatSchema,
