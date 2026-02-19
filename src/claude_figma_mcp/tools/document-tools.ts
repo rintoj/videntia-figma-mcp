@@ -101,7 +101,7 @@ export function registerDocumentTools(server: McpServer): void {
   // JSX to Figma Tool
   server.tool(
     "jsx_to_figma",
-    "Create Figma nodes from JSX+Tailwind markup. Accepts the same format that read_my_design outputs. Auto-positions next to existing page content when no positioning params are given.",
+    "Create or update Figma nodes from JSX+Tailwind markup. When an element has id='<nodeId>' matching an existing Figma node, that node is updated in-place (children are replaced). Without an id, creates new nodes. Accepts the same format that read_my_design outputs. Auto-positions next to existing page content when no positioning params are given.",
     {
       jsx: z.string().describe("JSX+Tailwind markup string"),
       parentId: z.string().optional().describe("Parent node ID to insert into (defaults to current page)"),
@@ -129,12 +129,21 @@ export function registerDocumentTools(server: McpServer): void {
         }));
         const result = await sendCommandToFigma("create_from_data", { data, parentId, nextToId, x, y });
         const typedResult = result as {
-          createdNodes: Array<{ id: string; name: string; type: string }>;
+          createdNodes: Array<{ id: string; name: string; type: string; action?: string }>;
           debugInfo?: unknown;
         };
-        const lines = [
-          `Created ${typedResult.createdNodes.length} node(s): ${typedResult.createdNodes.map((n) => `"${n.name}" (${n.id})`).join(", ")}`,
-        ];
+        const created = typedResult.createdNodes.filter((n) => n.action !== "updated");
+        const updated = typedResult.createdNodes.filter((n) => n.action === "updated");
+        const lines: string[] = [];
+        if (updated.length > 0) {
+          lines.push(`Updated ${updated.length} node(s): ${updated.map((n) => `"${n.name}" (${n.id})`).join(", ")}`);
+        }
+        if (created.length > 0) {
+          lines.push(`Created ${created.length} node(s): ${created.map((n) => `"${n.name}" (${n.id})`).join(", ")}`);
+        }
+        if (lines.length === 0) {
+          lines.push("No nodes created or updated.");
+        }
         lines.push(`\nSERVER parseJsx output:\n${JSON.stringify(serverDebug, null, 2)}`);
         if (typedResult.debugInfo) {
           lines.push(`\nPLUGIN received data:\n${JSON.stringify(typedResult.debugInfo, null, 2)}`);

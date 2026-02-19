@@ -7047,10 +7047,63 @@ async function createFromData(params) {
   // Recursive node creator
   async function createNode(nodeData, parentNode, isRoot, rootX, rootY) {
     let node;
+    let isUpdate = false;
 
     let skipChildRecursion = false;
 
-    if (nodeData.type === "TEXT") {
+    // CHECK: does nodeData.id reference an existing Figma node?
+    if (nodeData.id) {
+      try {
+        const existing = await figma.getNodeByIdAsync(nodeData.id);
+        if (existing) {
+          node = existing;
+          isUpdate = true;
+
+          // COMPONENT_SET and SVG cannot be updated in-place — skip and create new
+          if (nodeData.type === "COMPONENT_SET") {
+            console.warn(`Cannot update COMPONENT_SET "${existing.name}" in-place — creating new node`);
+            node = undefined;
+            isUpdate = false;
+          } else if (nodeData.type === "SVG") {
+            console.warn(`Cannot update SVG node "${existing.name}" in-place — creating new node`);
+            node = undefined;
+            isUpdate = false;
+          } else {
+            // If the element has children in JSX, remove existing children first
+            if (nodeData.children && nodeData.children.length > 0 && "children" in node) {
+              for (let i = node.children.length - 1; i >= 0; i--) {
+                node.children[i].remove();
+              }
+            }
+
+            // For TEXT nodes, load font before setting characters
+            if (existing.type === "TEXT") {
+              const family = nodeData.fontFamily || "Inter";
+              const weight = nodeData.fontWeight || 400;
+              try {
+                await figma.loadFontAsync({ family, style: getFontStyle(weight) });
+                node.fontName = { family, style: getFontStyle(weight) };
+              } catch (e) {
+                try {
+                  await figma.loadFontAsync({ family: "Inter", style: "Regular" });
+                  node.fontName = { family: "Inter", style: "Regular" };
+                } catch (e2) {
+                  console.warn("Failed to load fallback font Inter Regular:", e2);
+                }
+              }
+              if (nodeData.characters) {
+                await setCharacters(node, nodeData.characters);
+              }
+            }
+          }
+        }
+      } catch (e) {
+        // Node not found or invalid ID — fall through to create new
+        console.warn(`Could not find node with id "${nodeData.id}" — creating new node`);
+      }
+    }
+
+    if (!node && nodeData.type === "TEXT") {
       node = figma.createText();
       // Font loading MUST happen first
       const family = nodeData.fontFamily || "Inter";
@@ -7071,11 +7124,11 @@ async function createFromData(params) {
       if (nodeData.characters) {
         await setCharacters(node, nodeData.characters);
       }
-    } else if (nodeData.type === "COMPONENT") {
+    } else if (!node && nodeData.type === "COMPONENT") {
       node = figma.createComponent();
       // Clear default white fill to match FRAME behavior (transparent by default)
       node.fills = [];
-    } else if (nodeData.type === "COMPONENT_SET") {
+    } else if (!node && nodeData.type === "COMPONENT_SET") {
       // COMPONENT_SET requires special handling:
       // 1. Create child components inside a temp frame
       // 2. Combine them as variants
@@ -7124,7 +7177,7 @@ async function createFromData(params) {
       }
 
       skipChildRecursion = true; // Children already created above
-    } else if (nodeData.type === "INSTANCE") {
+    } else if (!node && nodeData.type === "INSTANCE") {
       // Look up the source component from the pre-built map (O(1) per instance)
       const componentName = nodeData.mainComponentName || nodeData.name;
       const sourceComponent = componentLookup.get(componentName) || null;
@@ -7149,7 +7202,7 @@ async function createFromData(params) {
         node.fills = [];
         console.warn(`Component "${componentName}" not found — created frame as fallback`);
       }
-    } else if (nodeData.type === "SVG" && nodeData.svgString) {
+    } else if (!node && nodeData.type === "SVG" && nodeData.svgString) {
       try {
         node = figma.createNodeFromSvg(nodeData.svgString);
       } catch (e) {
@@ -7168,9 +7221,9 @@ async function createFromData(params) {
         node.resize(nodeData.width, nodeData.height);
       }
       return node;
-    } else if (nodeData.type === "RECTANGLE" || nodeData.type === "VECTOR" || nodeData.type === "LINE") {
+    } else if (!node && (nodeData.type === "RECTANGLE" || nodeData.type === "VECTOR" || nodeData.type === "LINE")) {
       node = figma.createRectangle();
-    } else {
+    } else if (!node) {
       node = figma.createFrame();
       // Clear default fills on frames
       node.fills = [];
@@ -7180,16 +7233,17 @@ async function createFromData(params) {
     node.name = nodeData.name || "Node";
 
     // Append to parent FIRST (required for layout properties)
-    // Skip for COMPONENT_SET (handled above) and INSTANCE from found component (already has parent)
-    if (nodeData.type !== "COMPONENT_SET") {
+    // Skip for COMPONENT_SET (handled above), INSTANCE from found component (already has parent),
+    // and updated nodes (already have a parent — don't re-parent)
+    if (!isUpdate && nodeData.type !== "COMPONENT_SET") {
       if (node.parent !== parentNode) {
         parentNode.appendChild(node);
       }
     }
 
-    // Set position for root nodes
-    if (isRoot && rootX !== undefined) node.x = rootX;
-    if (isRoot && rootY !== undefined) node.y = rootY;
+    // Set position for root nodes (skip for updated nodes — preserve their position)
+    if (!isUpdate && isRoot && rootX !== undefined) node.x = rootX;
+    if (!isUpdate && isRoot && rootY !== undefined) node.y = rootY;
 
     // Set layout mode FIRST (gate for other layout props)
     if (nodeData.layoutMode && nodeData.layoutMode !== "NONE") {
@@ -7317,7 +7371,7 @@ async function createFromData(params) {
       }
     }
 
-    createdNodes.push({ id: node.id, name: node.name, type: node.type });
+    createdNodes.push({ id: node.id, name: node.name, type: node.type, action: isUpdate ? "updated" : "created" });
     return node;
   }
 
