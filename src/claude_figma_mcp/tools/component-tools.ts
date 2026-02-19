@@ -164,8 +164,8 @@ export function registerComponentTools(server: McpServer): void {
     async ({ nodeIds }) => {
       try {
         const result = await sendCommandToFigma<GetReactionsResult>("get_reactions", { nodeIds });
-        const nodes = Array.isArray(result) ? result : (result as any)?.nodes || [];
-        const total = nodes.reduce((sum: number, n: any) => sum + (n.reactions?.length || 0), 0);
+        const nodes = Array.isArray(result) ? result : (result?.nodes ?? []);
+        const total = nodes.reduce((sum, n) => sum + (n.reactions?.length || 0), 0);
         const lines: string[] = [`Found ${total} reaction(s) across ${nodes.length} node(s)`];
         for (const n of nodes) {
           if (!n.reactions?.length) continue;

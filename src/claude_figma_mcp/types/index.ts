@@ -585,7 +585,18 @@ export interface CreateComponentInstanceResult {
   [key: string]: unknown;
 }
 
+export interface ReactionNode {
+  nodeId: string;
+  nodeName?: string;
+  reactions: Array<{
+    trigger?: { type?: string; [key: string]: unknown };
+    action?: { type?: string; destinationId?: string; [key: string]: unknown };
+    [key: string]: unknown;
+  }>;
+}
+
 export interface GetReactionsResult {
+  nodes?: ReactionNode[];
   reactions?: Array<{ trigger?: string; action?: string; [key: string]: unknown }>;
   [key: string]: unknown;
 }
