@@ -770,8 +770,70 @@ describe("new document tools integration", () => {
         "create_from_data",
         expect.objectContaining({
           parentId: "parent-123",
+          nextToId: undefined,
           x: 100,
           y: 200,
+        }),
+      );
+    });
+
+    it("passes nextToId param to plugin", async () => {
+      mockSendCommand.mockResolvedValue({
+        createdNodes: [{ id: "node-2", name: "New Frame", type: "FRAME" }],
+      });
+
+      await callTool("jsx_to_figma", {
+        jsx: '<div id="1:2" name="New Frame" />',
+        nextToId: "existing-node-123",
+      });
+
+      expect(mockSendCommand).toHaveBeenCalledWith(
+        "create_from_data",
+        expect.objectContaining({
+          nextToId: "existing-node-123",
+          parentId: undefined,
+          x: undefined,
+          y: undefined,
+        }),
+      );
+    });
+
+    it("passes nextToId alongside parentId", async () => {
+      mockSendCommand.mockResolvedValue({
+        createdNodes: [{ id: "node-3", name: "Child", type: "FRAME" }],
+      });
+
+      await callTool("jsx_to_figma", {
+        jsx: '<div id="1:3" name="Child" />',
+        parentId: "parent-456",
+        nextToId: "sibling-789",
+      });
+
+      expect(mockSendCommand).toHaveBeenCalledWith(
+        "create_from_data",
+        expect.objectContaining({
+          parentId: "parent-456",
+          nextToId: "sibling-789",
+        }),
+      );
+    });
+
+    it("sends no positioning params when none provided (auto-position)", async () => {
+      mockSendCommand.mockResolvedValue({
+        createdNodes: [{ id: "node-4", name: "Auto", type: "FRAME" }],
+      });
+
+      await callTool("jsx_to_figma", {
+        jsx: '<div id="1:4" name="Auto" />',
+      });
+
+      expect(mockSendCommand).toHaveBeenCalledWith(
+        "create_from_data",
+        expect.objectContaining({
+          parentId: undefined,
+          nextToId: undefined,
+          x: undefined,
+          y: undefined,
         }),
       );
     });

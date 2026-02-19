@@ -194,19 +194,24 @@ const server = Bun.serve({
           }
 
           // Remove stale channels with the same fileName (plugin reconnected with new channel ID)
+          // A Figma file can only run one plugin instance at a time, so when a new
+          // join arrives with the same fileName but a different channel name, the old
+          // channel is definitively stale — forcibly close and remove it.
           if (data.fileName) {
             for (const [existingChannel, existingClients] of channels) {
               if (existingChannel === channelName) continue;
               const meta = channelMetadata.get(existingChannel);
               if (meta?.fileName === data.fileName) {
-                const hasActiveClient = Array.from(existingClients).some((c) => c.readyState === WS_OPEN);
-                if (!hasActiveClient) {
-                  channels.delete(existingChannel);
-                  channelMetadata.delete(existingChannel);
-                  logger.info(
-                    `Removed stale channel ${existingChannel} for file "${data.fileName}" (replaced by ${channelName})`,
-                  );
+                for (const client of existingClients) {
+                  try {
+                    client.close(1000, "Replaced by new connection");
+                  } catch (_) {}
                 }
+                channels.delete(existingChannel);
+                channelMetadata.delete(existingChannel);
+                logger.info(
+                  `Removed stale channel ${existingChannel} for file "${data.fileName}" (replaced by ${channelName})`,
+                );
               }
             }
           }
