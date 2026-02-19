@@ -1597,3 +1597,85 @@ describe("parseJsx - HTML tags", () => {
     expect(nodes[0].characters).toBe("Bold text");
   });
 });
+
+// --- Style attribute: additional CSS properties ---
+
+describe("parseJsx - style attribute CSS properties", () => {
+  it("should parse backgroundColor from style on FRAME", () => {
+    const jsx = '<div id="1:1" name="T" style={{ backgroundColor: "#ff0000" }} />';
+    const nodes = parseJsx(jsx);
+    expect(nodes[0].fills).toEqual([{ type: "SOLID", color: "#ff0000" }]);
+  });
+
+  it("should parse color from style on TEXT node", () => {
+    const jsx = '<span id="1:1" name="T" style={{ color: "#fafafa" }}>\n  Hello\n</span>';
+    const nodes = parseJsx(jsx);
+    expect(nodes[0].fills).toEqual([{ type: "SOLID", color: "#fafafa" }]);
+  });
+
+  it("should parse fontFamily from style on TEXT node", () => {
+    const jsx = '<span id="1:1" name="T" style={{ fontFamily: "Manrope" }}>\n  Hello\n</span>';
+    const nodes = parseJsx(jsx);
+    expect(nodes[0].fontFamily).toBe("Manrope");
+  });
+
+  it("should parse borderColor from style", () => {
+    const jsx = '<div id="1:1" name="T" style={{ borderColor: "#2a2a2a" }} />';
+    const nodes = parseJsx(jsx);
+    expect(nodes[0].strokes).toEqual([{ type: "SOLID", color: "#2a2a2a" }]);
+  });
+
+  it("should parse borderRadius from style", () => {
+    const jsx = '<div id="1:1" name="T" style={{ borderRadius: "8px" }} />';
+    const nodes = parseJsx(jsx);
+    expect(nodes[0].cornerRadius).toBe(8);
+  });
+
+  it("should propagate color from style to child TEXT nodes on FRAME", () => {
+    const jsx = '<button id="1:1" style={{ color: "#0a0a0a" }}>Click</button>';
+    const nodes = parseJsx(jsx);
+    expect(nodes[0].type).toBe("FRAME");
+    expect(nodes[0].children![0].type).toBe("TEXT");
+    expect(nodes[0].children![0].fills).toEqual([{ type: "SOLID", color: "#0a0a0a" }]);
+  });
+
+  it("should propagate fontFamily from style to child TEXT nodes on FRAME", () => {
+    const jsx = '<button id="1:1" style={{ fontFamily: "Manrope" }}>Click</button>';
+    const nodes = parseJsx(jsx);
+    expect(nodes[0].children![0].fontFamily).toBe("Manrope");
+  });
+
+  it("should not override child TEXT fills if already set", () => {
+    const jsx = '<button id="1:1" className="text-white" style={{ color: "#0a0a0a" }}>Click</button>';
+    const nodes = parseJsx(jsx);
+    // text-white should be applied to child TEXT, and style color should NOT override it
+    expect(nodes[0].children![0].fills![0].color).toBe("#FFFFFF");
+  });
+
+  it("should ignore transparent backgroundColor", () => {
+    const jsx = '<div id="1:1" name="T" style={{ backgroundColor: "transparent" }} />';
+    const nodes = parseJsx(jsx);
+    expect(nodes[0].fills).toBeUndefined();
+  });
+});
+
+// --- Bare flex as HORIZONTAL ---
+
+describe("parseJsx - bare flex defaults to HORIZONTAL", () => {
+  it("should set layoutMode HORIZONTAL for bare flex", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="flex items-center gap-4" />');
+    expect(nodes[0].layoutMode).toBe("HORIZONTAL");
+    expect(nodes[0].counterAxisAlignItems).toBe("CENTER");
+    expect(nodes[0].itemSpacing).toBe(16);
+  });
+
+  it("should not override flex-col with flex default", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="flex flex-col" />');
+    expect(nodes[0].layoutMode).toBe("VERTICAL");
+  });
+
+  it("should not override flex-row with flex default", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="flex flex-row" />');
+    expect(nodes[0].layoutMode).toBe("HORIZONTAL");
+  });
+});

@@ -145,6 +145,9 @@ function jsxElementToNode(el: t.JSXElement, parentType?: string): FigmaNodeData 
   // Apply HTML tag defaults (only set values that weren't already set by classes)
   applyHtmlTagDefaults(node, tag);
 
+  // Propagate text-related style properties from FRAME to child TEXT nodes
+  propagateTextStyles(node);
+
   return node;
 }
 
@@ -500,6 +503,33 @@ function applyComponentAttributes(
   }
 }
 
+/**
+ * Propagate text-related style properties (color, fontFamily) from a FRAME parent
+ * to its child TEXT nodes. These are stored as _styleColor / _styleFontFamily
+ * by applyStyleAttribute when applied to non-TEXT nodes.
+ */
+function propagateTextStyles(node: FigmaNodeData): void {
+  const color = (node as any)._styleColor;
+  const fontFamily = (node as any)._styleFontFamily;
+  if (!color && !fontFamily) return;
+
+  // Clean up temporary properties
+  delete (node as any)._styleColor;
+  delete (node as any)._styleFontFamily;
+
+  if (!node.children) return;
+  for (const child of node.children) {
+    if (child.type === "TEXT") {
+      if (color && (!child.fills || child.fills.length === 0)) {
+        child.fills = [{ type: "SOLID", color }];
+      }
+      if (fontFamily && !child.fontFamily) {
+        child.fontFamily = fontFamily;
+      }
+    }
+  }
+}
+
 function applyHtmlTagDefaults(node: FigmaNodeData, tag: string): void {
   const defaults = HTML_TAG_DEFAULTS[tag];
   if (!defaults) return;
@@ -599,7 +629,7 @@ function applyClassName(node: FigmaNodeData, className: string): void {
 
   for (const cls of classes) {
     // --- Layout ---
-    if (cls === "flex") continue; // paired with flex-row/flex-col
+    if (cls === "flex") { node.layoutMode = node.layoutMode || "HORIZONTAL"; continue; }
     if (cls === "flex-row") { node.layoutMode = "HORIZONTAL"; continue; }
     if (cls === "flex-col") { node.layoutMode = "VERTICAL"; continue; }
     if (cls === "relative") { /* non-layout container, no special prop */ continue; }
@@ -1186,6 +1216,40 @@ function applyStyleAttribute(node: FigmaNodeData, styleStr: string): void {
       const m = value.match(/rotate\((-?\d+(?:\.\d+)?)deg\)/);
       if (m) {
         node.rotation = Number(m[1]);
+      }
+    } else if (key === "backgroundColor") {
+      // Solid background color from style
+      if (value !== "transparent") {
+        node.fills = node.fills || [];
+        node.fills.push({ type: "SOLID", color: value });
+      }
+    } else if (key === "color") {
+      // Text color — applied to TEXT nodes or stored for propagation to child TEXT
+      if (node.type === "TEXT") {
+        node.fills = node.fills || [];
+        node.fills.push({ type: "SOLID", color: value });
+      } else {
+        // Store for later propagation to child TEXT nodes
+        (node as any)._styleColor = value;
+      }
+    } else if (key === "fontFamily") {
+      if (node.type === "TEXT") {
+        node.fontFamily = value;
+      } else {
+        (node as any)._styleFontFamily = value;
+      }
+    } else if (key === "borderColor") {
+      node.strokes = node.strokes || [];
+      node.strokes.push({ type: "SOLID", color: value });
+    } else if (key === "borderRadius") {
+      const m = value.match(/^(\d+(?:\.\d+)?)px$/);
+      if (m) {
+        node.cornerRadius = Number(m[1]);
+      }
+    } else if (key === "borderWidth") {
+      const m = value.match(/^(\d+(?:\.\d+)?)px$/);
+      if (m) {
+        node.strokeWeight = Number(m[1]);
       }
     }
   }
