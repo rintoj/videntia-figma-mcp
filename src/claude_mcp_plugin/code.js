@@ -7802,7 +7802,12 @@ async function scanNodesByTypes(params) {
     }
   };
 
-  scanNode(node);
+  // Start from children of the root node, not the root itself
+  if ('children' in node) {
+    for (const child of node.children) {
+      scanNode(child, 0);
+    }
+  }
 
   return {
     success: true,
@@ -8278,8 +8283,16 @@ async function renamePage(params) {
     throw new Error(`Node ${pageId} is not a page (type: ${node.type})`);
   }
 
+  const trimmedName = name.trim();
+  const existing = figma.root.children.find(
+    (p) => p.id !== pageId && p.name.toLowerCase() === trimmedName.toLowerCase()
+  );
+  if (existing) {
+    throw new Error(`A page named "${existing.name}" already exists (ID: ${existing.id})`);
+  }
+
   const oldName = node.name;
-  node.name = name.trim();
+  node.name = trimmedName;
 
   return {
     id: node.id,

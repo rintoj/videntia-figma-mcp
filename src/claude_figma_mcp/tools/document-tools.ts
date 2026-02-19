@@ -675,7 +675,7 @@ export function registerDocumentTools(server: McpServer): void {
       )
         .optional()
         .describe(
-          "Optional array of fields to include in the response Ignored in JSX mode. For JSON mode only — fields to include. Defaults: id, name, type, fills, strokes, cornerRadius, absoluteBoundingBox, characters, style",
+          "Optional array of fields to include in the response. Ignored in JSX mode. For JSON mode only — fields to include. Defaults: id, name, type, fills, strokes, cornerRadius, absoluteBoundingBox, characters, style",
         ),
       stripImages: z
         .boolean()
@@ -744,7 +744,7 @@ export function registerDocumentTools(server: McpServer): void {
       )
         .optional()
         .describe(
-          "Optional array of fields to include in the response Ignored in JSX mode. For JSON mode only — fields to include. Defaults: id, name, type, fills, strokes, cornerRadius, absoluteBoundingBox, characters, style",
+          "Optional array of fields to include in the response. Ignored in JSX mode. For JSON mode only — fields to include. Defaults: id, name, type, fills, strokes, cornerRadius, absoluteBoundingBox, characters, style",
         ),
       stripImages: z
         .boolean()
