@@ -19,7 +19,13 @@ import type {
   RemoteComponentsResult,
   BoundVariablesResult,
 } from "../types/index.js";
-import { formatColorValue, formatVariableValue, truncate } from "../utils/format-helpers.js";
+import {
+  formatColorValue,
+  formatVariableValue,
+  formatVariablesAsText,
+  sanitizeCell,
+  truncate,
+} from "../utils/format-helpers.js";
 
 /**
  * Register document-related tools to the MCP server
@@ -847,22 +853,19 @@ export function registerDocumentTools(server: McpServer): void {
     async ({ output_format }) => {
       try {
         const result = await sendCommandToFigma("get_local_components");
+        const components = Array.isArray(result) ? result : ((result as any)?.components ?? []);
 
-        if (output_format === "jsx" && result && typeof result === "object") {
-          const components = Array.isArray(result) ? result : ((result as any).components ?? []);
-          if (components.length > 0) {
-            const ids = components.map((c: any) => c.id);
-            const jsx = await fetchNodesAsJsx(ids);
-            return {
-              content: [
-                { type: "text" as const, text: `Found ${components.length} local components` },
-                { type: "text" as const, text: jsx },
-              ],
-            };
-          }
+        if (output_format === "jsx" && components.length > 0) {
+          const ids = components.map((c: any) => c.id);
+          const jsx = await fetchNodesAsJsx(ids);
+          return {
+            content: [
+              { type: "text" as const, text: `Found ${components.length} local components` },
+              { type: "text" as const, text: jsx },
+            ],
+          };
         }
 
-        const components = Array.isArray(result) ? result : ((result as any)?.components ?? []);
         if (components.length === 0) {
           return { content: [{ type: "text", text: "No local components found." }] };
         }
@@ -873,7 +876,7 @@ export function registerDocumentTools(server: McpServer): void {
           "|------|------|----|-----|",
         ];
         for (const c of components) {
-          lines.push(`| ${c.name || "-"} | ${c.type || "-"} | ${c.id || "-"} | ${c.key || "-"} |`);
+          lines.push(`| ${sanitizeCell(c.name || "-")} | ${c.type || "-"} | ${c.id || "-"} | ${c.key || "-"} |`);
         }
         return {
           content: [
@@ -1321,63 +1324,6 @@ export function registerDocumentTools(server: McpServer): void {
   );
 
   // Get Variables Tool
-  function formatVariablesAsText(result: { variables: any[]; collections: any[] }): string {
-    const { variables, collections } = result;
-
-    // Group variables by collectionId
-    const grouped = new Map<string, any[]>();
-    for (const v of variables) {
-      const list = grouped.get(v.collectionId) || [];
-      list.push(v);
-      grouped.set(v.collectionId, list);
-    }
-
-    const lines: string[] = [];
-
-    for (const col of collections) {
-      const vars = grouped.get(col.id) || [];
-      if (vars.length === 0) continue;
-
-      lines.push(`## Collection: ${col.name} (id: ${col.id})`);
-      const modeStr = col.modes.map((m: any) => `${m.name} (id: ${m.modeId})`).join(", ");
-      lines.push(`Modes: ${modeStr}`);
-      lines.push("");
-
-      const modes = col.modes as { name: string; modeId: string }[];
-      const multiMode = modes.length > 1;
-
-      if (multiMode) {
-        const modeHeaders = modes.map((m) => m.name).join(" | ");
-        lines.push(`| Name | Type | ${modeHeaders} | ID |`);
-        lines.push(`|------|------|${modes.map(() => "------").join("|")}|----|`);
-      } else {
-        lines.push("| Name | Type | Value | ID |");
-        lines.push("|------|------|-------|----|");
-      }
-
-      for (const v of vars) {
-        const name = v.description ? `${v.name} — ${v.description}` : v.name;
-
-        if (multiMode) {
-          const values = modes
-            .map((m) => {
-              const entry = v.values?.find((val: any) => val.modeId === m.modeId);
-              return entry ? formatVariableValue(v.type, entry.value) : "-";
-            })
-            .join(" | ");
-          lines.push(`| ${name} | ${v.type} | ${values} | ${v.id} |`);
-        } else {
-          const value = v.values?.[0]?.value;
-          lines.push(`| ${name} | ${v.type} | ${formatVariableValue(v.type, value)} | ${v.id} |`);
-        }
-      }
-
-      lines.push("");
-    }
-
-    return lines.join("\n");
-  }
-
   server.tool(
     "get_variables",
     "Get all variables and variable collections from the current Figma document",
@@ -1431,7 +1377,7 @@ export function registerDocumentTools(server: McpServer): void {
           ];
           for (const b of bindings) {
             lines.push(
-              `| ${b.property || "-"} | ${b.name || b.variableName || "-"} | ${b.collectionName || "-"} | ${b.variableId || b.id || "-"} |`,
+              `| ${sanitizeCell(b.property || "-")} | ${sanitizeCell(b.name || b.variableName || "-")} | ${sanitizeCell(b.collectionName || "-")} | ${b.variableId || b.id || "-"} |`,
             );
           }
           return { content: [{ type: "text", text: lines.join("\n") }] };
@@ -1450,7 +1396,9 @@ export function registerDocumentTools(server: McpServer): void {
         ];
         for (const [prop, binding] of entries) {
           const b = binding as any;
-          lines.push(`| ${prop} | ${b.name || b.variableName || "-"} | ${b.variableId || b.id || "-"} |`);
+          lines.push(
+            `| ${sanitizeCell(prop)} | ${sanitizeCell(b.name || b.variableName || "-")} | ${b.variableId || b.id || "-"} |`,
+          );
         }
         return {
           content: [
