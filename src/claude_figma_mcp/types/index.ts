@@ -320,6 +320,8 @@ export interface FigmaNodeData {
   componentSetName?: string;
   componentProperties?: Record<string, any>;
   mainComponentName?: string;
+  // SVG
+  svgString?: string;
   // Children
   children?: FigmaNodeData[];
 }

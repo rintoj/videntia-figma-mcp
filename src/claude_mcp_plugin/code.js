@@ -7149,6 +7149,15 @@ async function createFromData(params) {
         node.fills = [];
         console.warn(`Component "${componentName}" not found — created frame as fallback`);
       }
+    } else if (nodeData.type === "SVG" && nodeData.svgString) {
+      try {
+        node = figma.createNodeFromSvg(nodeData.svgString);
+        skipChildRecursion = true;
+      } catch (e) {
+        console.warn("Failed to create SVG node, falling back to frame:", e);
+        node = figma.createFrame();
+        node.fills = [];
+      }
     } else if (nodeData.type === "RECTANGLE" || nodeData.type === "VECTOR" || nodeData.type === "LINE") {
       node = figma.createRectangle();
     } else {

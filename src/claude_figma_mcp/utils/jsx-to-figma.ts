@@ -43,7 +43,7 @@ export function parseJsx(jsx: string): FigmaNodeData[] {
   const nodes: FigmaNodeData[] = [];
   for (const child of expr.children) {
     if (child.type === "JSXElement") {
-      nodes.push(jsxElementToNode(child));
+      nodes.push(jsxElementToNode(child, undefined, wrapped));
     }
     // Skip JSXText (whitespace), JSXExpressionContainer (comments), etc.
   }
@@ -54,7 +54,7 @@ export function parseJsx(jsx: string): FigmaNodeData[] {
 /**
  * Convert a Babel JSXElement AST node into a FigmaNodeData.
  */
-function jsxElementToNode(el: t.JSXElement, parentType?: string): FigmaNodeData {
+function jsxElementToNode(el: t.JSXElement, parentType?: string, source?: string): FigmaNodeData {
   const tag = getTagName(el.openingElement);
   const attrs = extractAttributes(el.openingElement);
   const nodeType = tagToNodeType(tag, attrs, parentType);
@@ -81,10 +81,12 @@ function jsxElementToNode(el: t.JSXElement, parentType?: string): FigmaNodeData 
     visible: true,
   };
 
-  // Apply SVG width/height
-  if (tag === "svg") {
+  // SVG: extract raw markup and skip child processing entirely
+  if (tag === "svg" && source && el.start != null && el.end != null) {
+    node.svgString = source.substring(el.start, el.end);
     if (attrs.width !== undefined) node.width = Number(attrs.width);
     if (attrs.height !== undefined) node.height = Number(attrs.height);
+    return node;
   }
 
   // Apply component-specific attributes
@@ -110,7 +112,7 @@ function jsxElementToNode(el: t.JSXElement, parentType?: string): FigmaNodeData 
     const textParts: string[] = [];
     for (const child of el.children) {
       if (child.type === "JSXElement") {
-        children.push(jsxElementToNode(child, nodeType));
+        children.push(jsxElementToNode(child, nodeType, source));
       } else if (child.type === "JSXText") {
         const trimmed = child.value.trim();
         if (trimmed) textParts.push(trimmed);
@@ -432,7 +434,7 @@ function extractTextClasses(className: string): { textClasses: string; frameClas
 
 function tagToNodeType(tag: string, attrs?: Record<string, string>, parentType?: string): string {
   if (HTML_TEXT_TAGS.has(tag)) return "TEXT";
-  if (tag === "svg") return "VECTOR";
+  if (tag === "svg") return "SVG";
   if (HTML_FRAME_TAGS.has(tag)) return "FRAME";
 
   // Primary signal: componentName attr is only emitted by figma-to-jsx for component types.
