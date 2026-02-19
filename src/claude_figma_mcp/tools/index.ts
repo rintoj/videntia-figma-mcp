@@ -33,5 +33,5 @@ export {
   registerComponentTools,
   registerVariableTools,
   registerBatchTools,
-  registerIconTools
+  registerIconTools,
 };

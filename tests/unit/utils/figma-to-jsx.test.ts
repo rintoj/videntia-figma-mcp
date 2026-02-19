@@ -63,65 +63,47 @@ describe("convertToJsx", () => {
   });
 
   it("should render justify-center for CENTER primary alignment", () => {
-    const jsx = convertToJsx([
-      makeNode({ layoutMode: "HORIZONTAL", primaryAxisAlignItems: "CENTER" }),
-    ]);
+    const jsx = convertToJsx([makeNode({ layoutMode: "HORIZONTAL", primaryAxisAlignItems: "CENTER" })]);
     expect(jsx).toContain("justify-center");
   });
 
   it("should render justify-end for MAX primary alignment", () => {
-    const jsx = convertToJsx([
-      makeNode({ layoutMode: "HORIZONTAL", primaryAxisAlignItems: "MAX" }),
-    ]);
+    const jsx = convertToJsx([makeNode({ layoutMode: "HORIZONTAL", primaryAxisAlignItems: "MAX" })]);
     expect(jsx).toContain("justify-end");
   });
 
   it("should render justify-between for SPACE_BETWEEN", () => {
-    const jsx = convertToJsx([
-      makeNode({ layoutMode: "HORIZONTAL", primaryAxisAlignItems: "SPACE_BETWEEN" }),
-    ]);
+    const jsx = convertToJsx([makeNode({ layoutMode: "HORIZONTAL", primaryAxisAlignItems: "SPACE_BETWEEN" })]);
     expect(jsx).toContain("justify-between");
   });
 
   it("should omit justify-start for MIN primary alignment", () => {
-    const jsx = convertToJsx([
-      makeNode({ layoutMode: "HORIZONTAL", primaryAxisAlignItems: "MIN" }),
-    ]);
+    const jsx = convertToJsx([makeNode({ layoutMode: "HORIZONTAL", primaryAxisAlignItems: "MIN" })]);
     expect(jsx).not.toContain("justify-");
   });
 
   it("should render items-center for CENTER counter alignment", () => {
-    const jsx = convertToJsx([
-      makeNode({ layoutMode: "HORIZONTAL", counterAxisAlignItems: "CENTER" }),
-    ]);
+    const jsx = convertToJsx([makeNode({ layoutMode: "HORIZONTAL", counterAxisAlignItems: "CENTER" })]);
     expect(jsx).toContain("items-center");
   });
 
   it("should render items-end for MAX counter alignment", () => {
-    const jsx = convertToJsx([
-      makeNode({ layoutMode: "VERTICAL", counterAxisAlignItems: "MAX" }),
-    ]);
+    const jsx = convertToJsx([makeNode({ layoutMode: "VERTICAL", counterAxisAlignItems: "MAX" })]);
     expect(jsx).toContain("items-end");
   });
 
   it("should render items-baseline for BASELINE counter alignment", () => {
-    const jsx = convertToJsx([
-      makeNode({ layoutMode: "HORIZONTAL", counterAxisAlignItems: "BASELINE" }),
-    ]);
+    const jsx = convertToJsx([makeNode({ layoutMode: "HORIZONTAL", counterAxisAlignItems: "BASELINE" })]);
     expect(jsx).toContain("items-baseline");
   });
 
   it("should render flex-wrap for WRAP", () => {
-    const jsx = convertToJsx([
-      makeNode({ layoutMode: "HORIZONTAL", layoutWrap: "WRAP" }),
-    ]);
+    const jsx = convertToJsx([makeNode({ layoutMode: "HORIZONTAL", layoutWrap: "WRAP" })]);
     expect(jsx).toContain("flex-wrap");
   });
 
   it("should render gap for item spacing", () => {
-    const jsx = convertToJsx([
-      makeNode({ layoutMode: "HORIZONTAL", itemSpacing: 16 }),
-    ]);
+    const jsx = convertToJsx([makeNode({ layoutMode: "HORIZONTAL", itemSpacing: 16 })]);
     expect(jsx).toContain("gap-[16px]");
   });
 
@@ -179,9 +161,7 @@ describe("convertToJsx", () => {
   });
 
   it("should render absolute positioning", () => {
-    const jsx = convertToJsx([
-      makeNode({ layoutPositioning: "ABSOLUTE", x: 10, y: 20 }),
-    ]);
+    const jsx = convertToJsx([makeNode({ layoutPositioning: "ABSOLUTE", x: 10, y: 20 })]);
     expect(jsx).toContain("absolute");
     expect(jsx).toContain("left-[10px]");
     expect(jsx).toContain("top-[20px]");
@@ -190,16 +170,12 @@ describe("convertToJsx", () => {
   // --- Sizing ---
 
   it("should render fixed width", () => {
-    const jsx = convertToJsx([
-      makeNode({ layoutSizingHorizontal: "FIXED", width: 320 }),
-    ]);
+    const jsx = convertToJsx([makeNode({ layoutSizingHorizontal: "FIXED", width: 320 })]);
     expect(jsx).toContain("w-[320px]");
   });
 
   it("should render fixed height", () => {
-    const jsx = convertToJsx([
-      makeNode({ layoutSizingVertical: "FIXED", height: 200 }),
-    ]);
+    const jsx = convertToJsx([makeNode({ layoutSizingVertical: "FIXED", height: 200 })]);
     expect(jsx).toContain("h-[200px]");
   });
 
@@ -214,17 +190,13 @@ describe("convertToJsx", () => {
   });
 
   it("should render h-full when both horizontal and vertical are FILL", () => {
-    const jsx = convertToJsx([
-      makeNode({ layoutSizingHorizontal: "FILL", layoutSizingVertical: "FILL" }),
-    ]);
+    const jsx = convertToJsx([makeNode({ layoutSizingHorizontal: "FILL", layoutSizingVertical: "FILL" })]);
     expect(jsx).toContain("flex-1");
     expect(jsx).toContain("h-full");
   });
 
   it("should omit sizing for HUG", () => {
-    const jsx = convertToJsx([
-      makeNode({ layoutSizingHorizontal: "HUG", layoutSizingVertical: "HUG" }),
-    ]);
+    const jsx = convertToJsx([makeNode({ layoutSizingHorizontal: "HUG", layoutSizingVertical: "HUG" })]);
     expect(jsx).not.toContain("w-");
     expect(jsx).not.toContain("h-");
     expect(jsx).not.toContain("flex-1");
@@ -233,26 +205,20 @@ describe("convertToJsx", () => {
   // --- Padding ---
 
   it("should render uniform padding", () => {
-    const jsx = convertToJsx([
-      makeNode({ paddingTop: 16, paddingRight: 16, paddingBottom: 16, paddingLeft: 16 }),
-    ]);
+    const jsx = convertToJsx([makeNode({ paddingTop: 16, paddingRight: 16, paddingBottom: 16, paddingLeft: 16 })]);
     expect(jsx).toContain("p-[16px]");
     expect(jsx).not.toContain("px-");
     expect(jsx).not.toContain("py-");
   });
 
   it("should render symmetric padding (px/py)", () => {
-    const jsx = convertToJsx([
-      makeNode({ paddingTop: 8, paddingRight: 16, paddingBottom: 8, paddingLeft: 16 }),
-    ]);
+    const jsx = convertToJsx([makeNode({ paddingTop: 8, paddingRight: 16, paddingBottom: 8, paddingLeft: 16 })]);
     expect(jsx).toContain("px-[16px]");
     expect(jsx).toContain("py-[8px]");
   });
 
   it("should render individual padding", () => {
-    const jsx = convertToJsx([
-      makeNode({ paddingTop: 4, paddingRight: 8, paddingBottom: 12, paddingLeft: 16 }),
-    ]);
+    const jsx = convertToJsx([makeNode({ paddingTop: 4, paddingRight: 8, paddingBottom: 12, paddingLeft: 16 })]);
     expect(jsx).toContain("pt-[4px]");
     expect(jsx).toContain("pr-[8px]");
     expect(jsx).toContain("pb-[12px]");
@@ -260,9 +226,7 @@ describe("convertToJsx", () => {
   });
 
   it("should skip padding when all zero", () => {
-    const jsx = convertToJsx([
-      makeNode({ paddingTop: 0, paddingRight: 0, paddingBottom: 0, paddingLeft: 0 }),
-    ]);
+    const jsx = convertToJsx([makeNode({ paddingTop: 0, paddingRight: 0, paddingBottom: 0, paddingLeft: 0 })]);
     expect(jsx).not.toContain("p-");
   });
 
@@ -273,7 +237,12 @@ describe("convertToJsx", () => {
         paddingRight: 8,
         paddingBottom: 12,
         paddingLeft: 16,
-        bindings: { paddingTop: "spacing/1", paddingRight: "spacing/2", paddingBottom: "spacing/3", paddingLeft: "spacing/4" },
+        bindings: {
+          paddingTop: "spacing/1",
+          paddingRight: "spacing/2",
+          paddingBottom: "spacing/3",
+          paddingLeft: "spacing/4",
+        },
       }),
     ]);
     expect(jsx).toContain("pt-spacing-1");
@@ -308,9 +277,7 @@ describe("convertToJsx", () => {
   });
 
   it("should render bg color without binding", () => {
-    const jsx = convertToJsx([
-      makeNode({ fills: [{ type: "SOLID", color: "#ff0000" }] }),
-    ]);
+    const jsx = convertToJsx([makeNode({ fills: [{ type: "SOLID", color: "#ff0000" }] })]);
     expect(jsx).toContain("bg-[#ff0000]");
   });
 
@@ -402,9 +369,7 @@ describe("convertToJsx", () => {
   });
 
   it("should render bg-cover bg-center for image fills", () => {
-    const jsx = convertToJsx([
-      makeNode({ fills: [{ type: "IMAGE", isImage: true, imageRef: "img123" }] }),
-    ]);
+    const jsx = convertToJsx([makeNode({ fills: [{ type: "IMAGE", isImage: true, imageRef: "img123" }] })]);
     expect(jsx).toContain("bg-cover");
     expect(jsx).toContain("bg-center");
   });
@@ -482,17 +447,13 @@ describe("convertToJsx", () => {
     ];
 
     for (const [weight, expected] of weights) {
-      const jsx = convertToJsx([
-        makeNode({ type: "TEXT", characters: "T", fontWeight: weight }),
-      ]);
+      const jsx = convertToJsx([makeNode({ type: "TEXT", characters: "T", fontWeight: weight })]);
       expect(jsx).toContain(expected);
     }
   });
 
   it("should omit font-normal for weight 400", () => {
-    const jsx = convertToJsx([
-      makeNode({ type: "TEXT", characters: "T", fontWeight: 400 }),
-    ]);
+    const jsx = convertToJsx([makeNode({ type: "TEXT", characters: "T", fontWeight: 400 })]);
     expect(jsx).not.toContain("font-normal");
     expect(jsx).not.toContain("font-[400]");
   });
@@ -555,37 +516,27 @@ describe("convertToJsx", () => {
   });
 
   it("should render uppercase", () => {
-    const jsx = convertToJsx([
-      makeNode({ type: "TEXT", characters: "T", textCase: "UPPER" }),
-    ]);
+    const jsx = convertToJsx([makeNode({ type: "TEXT", characters: "T", textCase: "UPPER" })]);
     expect(jsx).toContain("uppercase");
   });
 
   it("should render lowercase", () => {
-    const jsx = convertToJsx([
-      makeNode({ type: "TEXT", characters: "T", textCase: "LOWER" }),
-    ]);
+    const jsx = convertToJsx([makeNode({ type: "TEXT", characters: "T", textCase: "LOWER" })]);
     expect(jsx).toContain("lowercase");
   });
 
   it("should render capitalize", () => {
-    const jsx = convertToJsx([
-      makeNode({ type: "TEXT", characters: "T", textCase: "TITLE" }),
-    ]);
+    const jsx = convertToJsx([makeNode({ type: "TEXT", characters: "T", textCase: "TITLE" })]);
     expect(jsx).toContain("capitalize");
   });
 
   it("should render underline", () => {
-    const jsx = convertToJsx([
-      makeNode({ type: "TEXT", characters: "T", textDecoration: "UNDERLINE" }),
-    ]);
+    const jsx = convertToJsx([makeNode({ type: "TEXT", characters: "T", textDecoration: "UNDERLINE" })]);
     expect(jsx).toContain("underline");
   });
 
   it("should render line-through", () => {
-    const jsx = convertToJsx([
-      makeNode({ type: "TEXT", characters: "T", textDecoration: "STRIKETHROUGH" }),
-    ]);
+    const jsx = convertToJsx([makeNode({ type: "TEXT", characters: "T", textDecoration: "STRIKETHROUGH" })]);
     expect(jsx).toContain("line-through");
   });
 
@@ -707,16 +658,12 @@ describe("convertToJsx", () => {
   });
 
   it("should render layer blur as class", () => {
-    const jsx = convertToJsx([
-      makeNode({ effects: [{ type: "LAYER_BLUR", radius: 10 }] }),
-    ]);
+    const jsx = convertToJsx([makeNode({ effects: [{ type: "LAYER_BLUR", radius: 10 }] })]);
     expect(jsx).toContain("blur-[10px]");
   });
 
   it("should render background blur as class", () => {
-    const jsx = convertToJsx([
-      makeNode({ effects: [{ type: "BACKGROUND_BLUR", radius: 20 }] }),
-    ]);
+    const jsx = convertToJsx([makeNode({ effects: [{ type: "BACKGROUND_BLUR", radius: 20 }] })]);
     expect(jsx).toContain("backdrop-blur-[20px]");
   });
 
@@ -761,18 +708,14 @@ describe("convertToJsx", () => {
   // --- Element types ---
 
   it("should render TEXT nodes as <span>", () => {
-    const jsx = convertToJsx([
-      makeNode({ type: "TEXT", characters: "Hello World" }),
-    ]);
+    const jsx = convertToJsx([makeNode({ type: "TEXT", characters: "Hello World" })]);
     expect(jsx).toContain("<span");
     expect(jsx).toContain("Hello World");
     expect(jsx).toContain("</span>");
   });
 
   it("should render VECTOR nodes as self-closing <svg>", () => {
-    const jsx = convertToJsx([
-      makeNode({ type: "VECTOR", width: 24, height: 24 }),
-    ]);
+    const jsx = convertToJsx([makeNode({ type: "VECTOR", width: 24, height: 24 })]);
     expect(jsx).toContain("<svg");
     expect(jsx).toContain('width="24"');
     expect(jsx).toContain('height="24"');
@@ -780,9 +723,7 @@ describe("convertToJsx", () => {
   });
 
   it("should render LINE nodes as self-closing <svg>", () => {
-    const jsx = convertToJsx([
-      makeNode({ type: "LINE", width: 100, height: 1 }),
-    ]);
+    const jsx = convertToJsx([makeNode({ type: "LINE", width: 100, height: 1 })]);
     expect(jsx).toContain("<svg");
     expect(jsx).toContain("/>");
   });
@@ -947,18 +888,14 @@ describe("convertToJsx", () => {
   // --- JSX escaping ---
 
   it("should escape special characters in text content", () => {
-    const jsx = convertToJsx([
-      makeNode({ type: "TEXT", characters: "A < B & C > D" }),
-    ]);
+    const jsx = convertToJsx([makeNode({ type: "TEXT", characters: "A < B & C > D" })]);
     expect(jsx).toContain("A &lt; B &amp; C &gt; D");
   });
 
   // --- Name escaping ---
 
   it("should escape quotes in node names", () => {
-    const jsx = convertToJsx([
-      makeNode({ name: 'Button "Primary"' }),
-    ]);
+    const jsx = convertToJsx([makeNode({ name: 'Button "Primary"' })]);
     expect(jsx).toContain('name="Button &quot;Primary&quot;"');
   });
 
@@ -977,9 +914,7 @@ describe("convertToJsx", () => {
   // --- Image fill with style ---
 
   it("should render image fill with backgroundImage style", () => {
-    const jsx = convertToJsx([
-      makeNode({ fills: [{ type: "IMAGE", isImage: true, imageRef: "img-ref-123" }] }),
-    ]);
+    const jsx = convertToJsx([makeNode({ fills: [{ type: "IMAGE", isImage: true, imageRef: "img-ref-123" }] })]);
     expect(jsx).toContain("bg-cover");
     expect(jsx).toContain("bg-center");
     expect(jsx).toContain("backgroundImage:");
@@ -988,9 +923,7 @@ describe("convertToJsx", () => {
   // --- Text node rendering ---
 
   it("should render text content inside span", () => {
-    const jsx = convertToJsx([
-      makeNode({ type: "TEXT", characters: "Some text" }),
-    ]);
+    const jsx = convertToJsx([makeNode({ type: "TEXT", characters: "Some text" })]);
     expect(jsx).toMatch(/<span[^>]*>\n\s+Some text\n\s*<\/span>/);
   });
 
@@ -1003,10 +936,7 @@ describe("convertToJsx", () => {
   // --- Multiple root nodes ---
 
   it("should render multiple root nodes", () => {
-    const jsx = convertToJsx([
-      makeNode({ id: "1:1", name: "First" }),
-      makeNode({ id: "1:2", name: "Second" }),
-    ]);
+    const jsx = convertToJsx([makeNode({ id: "1:1", name: "First" }), makeNode({ id: "1:2", name: "Second" })]);
     expect(jsx).toContain('name="First"');
     expect(jsx).toContain('name="Second"');
   });
@@ -1035,9 +965,7 @@ describe("convertToJsx", () => {
   });
 
   it("should emit single bg class for single fill", () => {
-    const jsx = convertToJsx([
-      makeNode({ fills: [{ type: "SOLID", color: "#ffffff" }] }),
-    ]);
+    const jsx = convertToJsx([makeNode({ fills: [{ type: "SOLID", color: "#ffffff" }] })]);
     expect(jsx).toContain("bg-[#ffffff]");
     expect(jsx).not.toContain("Figma fills");
   });
@@ -1208,18 +1136,20 @@ describe("convertToJsx", () => {
     it("should render COMPONENT_SET with Set suffix", () => {
       const jsx = convertToJsx([makeNode({ type: "COMPONENT_SET", name: "Button" })]);
       expect(jsx).toContain("<ButtonSet");
-      expect(jsx).not.toContain('name=');
+      expect(jsx).not.toContain("name=");
     });
 
     it("should render COMPONENT_SET with propertyDefinitions", () => {
-      const jsx = convertToJsx([makeNode({
-        type: "COMPONENT_SET",
-        name: "Button",
-        componentPropertyDefinitions: {
-          Size: { type: "VARIANT", options: ["sm", "md", "lg"] },
-          "Show Icon": { type: "BOOLEAN", default: true },
-        },
-      })]);
+      const jsx = convertToJsx([
+        makeNode({
+          type: "COMPONENT_SET",
+          name: "Button",
+          componentPropertyDefinitions: {
+            Size: { type: "VARIANT", options: ["sm", "md", "lg"] },
+            "Show Icon": { type: "BOOLEAN", default: true },
+          },
+        }),
+      ]);
       expect(jsx).toContain("<ButtonSet");
       expect(jsx).toContain("propertyDefinitions=");
       expect(jsx).toContain('size: "sm | md | lg"');
@@ -1229,34 +1159,38 @@ describe("convertToJsx", () => {
     });
 
     it("should not emit propertyNameMap when no names were changed", () => {
-      const jsx = convertToJsx([makeNode({
-        type: "COMPONENT_SET",
-        name: "Button",
-        componentPropertyDefinitions: {
-          size: { type: "VARIANT", options: ["sm", "md"] },
-        },
-      })]);
+      const jsx = convertToJsx([
+        makeNode({
+          type: "COMPONENT_SET",
+          name: "Button",
+          componentPropertyDefinitions: {
+            size: { type: "VARIANT", options: ["sm", "md"] },
+          },
+        }),
+      ]);
       expect(jsx).toContain("propertyDefinitions=");
       expect(jsx).not.toContain("propertyNameMap=");
     });
 
     it("should render COMPONENT in a set with variant properties", () => {
-      const jsx = convertToJsx([makeNode({
-        type: "COMPONENT",
-        name: "Size=md, State=default",
-        componentSetName: "Button",
-        variantProperties: { Size: "md", State: "default" },
-      })]);
+      const jsx = convertToJsx([
+        makeNode({
+          type: "COMPONENT",
+          name: "Size=md, State=default",
+          componentSetName: "Button",
+          variantProperties: { Size: "md", State: "default" },
+        }),
+      ]);
       expect(jsx).toContain("<Button");
       expect(jsx).toContain('size="md"');
       expect(jsx).toContain('state="default"');
-      expect(jsx).not.toContain('name=');
+      expect(jsx).not.toContain("name=");
     });
 
     it("should render standalone COMPONENT with PascalCase tag", () => {
       const jsx = convertToJsx([makeNode({ type: "COMPONENT", name: "Avatar" })]);
       expect(jsx).toContain("<Avatar");
-      expect(jsx).not.toContain('componentName=');
+      expect(jsx).not.toContain("componentName=");
     });
 
     it("should emit componentName when name was sanitized", () => {
@@ -1268,20 +1202,22 @@ describe("convertToJsx", () => {
     it("should not emit componentName when name is already valid PascalCase", () => {
       const jsx = convertToJsx([makeNode({ type: "COMPONENT", name: "Button" })]);
       expect(jsx).toContain("<Button");
-      expect(jsx).not.toContain('componentName=');
+      expect(jsx).not.toContain("componentName=");
     });
 
     it("should render INSTANCE with mainComponentName as tag", () => {
-      const jsx = convertToJsx([makeNode({
-        type: "INSTANCE",
-        name: "Button",
-        mainComponentName: "Button",
-        componentProperties: {
-          size: { type: "VARIANT", value: "md" },
-          "Show Icon": { type: "BOOLEAN", value: true },
-          label: { type: "TEXT", value: "Click me" },
-        },
-      })]);
+      const jsx = convertToJsx([
+        makeNode({
+          type: "INSTANCE",
+          name: "Button",
+          mainComponentName: "Button",
+          componentProperties: {
+            size: { type: "VARIANT", value: "md" },
+            "Show Icon": { type: "BOOLEAN", value: true },
+            label: { type: "TEXT", value: "Click me" },
+          },
+        }),
+      ]);
       expect(jsx).toContain("<Button");
       expect(jsx).toContain('size="md"');
       expect(jsx).toContain("showIcon={true}");
@@ -1291,14 +1227,16 @@ describe("convertToJsx", () => {
     });
 
     it("should render INSTANCE with boolean false", () => {
-      const jsx = convertToJsx([makeNode({
-        type: "INSTANCE",
-        name: "Icon",
-        mainComponentName: "Icon",
-        componentProperties: {
-          visible: { type: "BOOLEAN", value: false },
-        },
-      })]);
+      const jsx = convertToJsx([
+        makeNode({
+          type: "INSTANCE",
+          name: "Icon",
+          mainComponentName: "Icon",
+          componentProperties: {
+            visible: { type: "BOOLEAN", value: false },
+          },
+        }),
+      ]);
       expect(jsx).toContain("visible={false}");
     });
 
@@ -1321,19 +1259,21 @@ describe("convertToJsx", () => {
     });
 
     it("should render component with children", () => {
-      const jsx = convertToJsx([makeNode({
-        type: "COMPONENT_SET",
-        name: "Button",
-        children: [
-          makeNode({
-            id: "1:2",
-            type: "COMPONENT",
-            name: "Size=sm",
-            componentSetName: "Button",
-            variantProperties: { Size: "sm" },
-          }),
-        ],
-      })]);
+      const jsx = convertToJsx([
+        makeNode({
+          type: "COMPONENT_SET",
+          name: "Button",
+          children: [
+            makeNode({
+              id: "1:2",
+              type: "COMPONENT",
+              name: "Size=sm",
+              componentSetName: "Button",
+              variantProperties: { Size: "sm" },
+            }),
+          ],
+        }),
+      ]);
       expect(jsx).toContain("<ButtonSet");
       expect(jsx).toContain("<Button");
       expect(jsx).toContain('size="sm"');
@@ -1341,12 +1281,14 @@ describe("convertToJsx", () => {
     });
 
     it("should render variant props with propertyNameMap for multi-word keys", () => {
-      const jsx = convertToJsx([makeNode({
-        type: "COMPONENT",
-        name: "Has Icon=true",
-        componentSetName: "Button",
-        variantProperties: { "Has Icon": "true" },
-      })]);
+      const jsx = convertToJsx([
+        makeNode({
+          type: "COMPONENT",
+          name: "Has Icon=true",
+          componentSetName: "Button",
+          variantProperties: { "Has Icon": "true" },
+        }),
+      ]);
       expect(jsx).toContain('hasIcon="true"');
       expect(jsx).toContain("propertyNameMap=");
       expect(jsx).toContain('hasIcon: "Has Icon"');

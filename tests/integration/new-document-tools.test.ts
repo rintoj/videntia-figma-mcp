@@ -1,10 +1,10 @@
-import { z } from 'zod';
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { registerDocumentTools } from '../../src/claude_figma_mcp/tools/document-tools';
+import { z } from "zod";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { registerDocumentTools } from "../../src/claude_figma_mcp/tools/document-tools";
 
-jest.mock('../../src/claude_figma_mcp/utils/websocket', () => ({
+jest.mock("../../src/claude_figma_mcp/utils/websocket", () => ({
   sendCommandToFigma: jest.fn(),
-  joinChannel: jest.fn()
+  joinChannel: jest.fn(),
 }));
 
 describe("new document tools integration", () => {
@@ -14,19 +14,16 @@ describe("new document tools integration", () => {
   let toolSchemas: Map<string, z.ZodObject<any>>;
 
   beforeEach(() => {
-    server = new McpServer(
-      { name: 'test-server', version: '1.0.0' },
-      { capabilities: { tools: {} } }
-    );
+    server = new McpServer({ name: "test-server", version: "1.0.0" }, { capabilities: { tools: {} } });
 
-    mockSendCommand = require('../../src/claude_figma_mcp/utils/websocket').sendCommandToFigma;
+    mockSendCommand = require("../../src/claude_figma_mcp/utils/websocket").sendCommandToFigma;
     mockSendCommand.mockClear();
 
     toolHandlers = new Map();
     toolSchemas = new Map();
 
     const originalTool = server.tool.bind(server);
-    jest.spyOn(server, 'tool').mockImplementation((...args: any[]) => {
+    jest.spyOn(server, "tool").mockImplementation((...args: any[]) => {
       if (args.length === 4) {
         const [name, description, schema, handler] = args;
         toolHandlers.set(name, handler);
@@ -52,7 +49,7 @@ describe("new document tools integration", () => {
     beforeEach(() => {
       mockSendCommand.mockResolvedValue({
         selectionCount: 1,
-        selection: [{ id: "node-1", name: "Frame 1", type: "FRAME", visible: true }]
+        selection: [{ id: "node-1", name: "Frame 1", type: "FRAME", visible: true }],
       });
     });
 
@@ -85,18 +82,18 @@ describe("new document tools integration", () => {
     beforeEach(() => {
       mockSendCommand.mockResolvedValue({
         name: "Target Frame",
-        id: "frame-123"
+        id: "frame-123",
       });
     });
 
     it("successfully sets focus on a node", async () => {
       const response = await callTool("set_focus", {
-        nodeId: "frame-123"
+        nodeId: "frame-123",
       });
 
       expect(mockSendCommand).toHaveBeenCalledTimes(1);
       expect(mockSendCommand).toHaveBeenCalledWith("set_focus", {
-        nodeId: "frame-123"
+        nodeId: "frame-123",
       });
       expect(response.content[0].text).toContain("Focused on node");
       expect(response.content[0].text).toContain("Target Frame");
@@ -111,7 +108,7 @@ describe("new document tools integration", () => {
       mockSendCommand.mockRejectedValue(new Error("Node not found"));
 
       const response = await callTool("set_focus", {
-        nodeId: "invalid-id"
+        nodeId: "invalid-id",
       });
 
       expect(response.content[0].text).toContain("Error setting focus");
@@ -124,20 +121,20 @@ describe("new document tools integration", () => {
       mockSendCommand.mockResolvedValue({
         selectedNodes: [
           { name: "Frame 1", id: "frame-1" },
-          { name: "Frame 2", id: "frame-2" }
+          { name: "Frame 2", id: "frame-2" },
         ],
-        count: 2
+        count: 2,
       });
     });
 
     it("successfully sets multiple selections", async () => {
       const response = await callTool("set_selections", {
-        nodeIds: ["frame-1", "frame-2"]
+        nodeIds: ["frame-1", "frame-2"],
       });
 
       expect(mockSendCommand).toHaveBeenCalledTimes(1);
       expect(mockSendCommand).toHaveBeenCalledWith("set_selections", {
-        nodeIds: ["frame-1", "frame-2"]
+        nodeIds: ["frame-1", "frame-2"],
       });
       expect(response.content[0].text).toContain("Selected 2 nodes");
       expect(response.content[0].text).toContain("Frame 1");
@@ -152,10 +149,10 @@ describe("new document tools integration", () => {
     it("coerces string nodeIds into an array", async () => {
       mockSendCommand.mockResolvedValue({
         selectedNodes: [{ name: "Frame 1", id: "frame-1" }],
-        count: 1
+        count: 1,
       });
       const response = await callTool("set_selections", {
-        nodeIds: "frame-1"
+        nodeIds: "frame-1",
       });
       expect(mockSendCommand).toHaveBeenCalledWith("set_selections", { nodeIds: ["frame-1"] });
     });
@@ -164,7 +161,7 @@ describe("new document tools integration", () => {
       mockSendCommand.mockRejectedValue(new Error("Some nodes not found"));
 
       const response = await callTool("set_selections", {
-        nodeIds: ["invalid-1", "invalid-2"]
+        nodeIds: ["invalid-1", "invalid-2"],
       });
 
       expect(response.content[0].text).toContain("Error setting selections");
@@ -180,35 +177,33 @@ describe("new document tools integration", () => {
         nodeName: "Test Frame",
         nodeType: "FRAME",
         annotationCount: 1,
-        annotations: [
-          { index: 0, label: "Annotation 1", labelMarkdown: "Annotation 1" }
-        ]
+        annotations: [{ index: 0, label: "Annotation 1", labelMarkdown: "Annotation 1" }],
       });
     });
 
     it("successfully gets annotations for a node", async () => {
       const response = await callTool("get_annotations", {
-        nodeId: "frame-123"
+        nodeId: "frame-123",
       });
 
       expect(mockSendCommand).toHaveBeenCalledTimes(1);
       expect(mockSendCommand).toHaveBeenCalledWith("get_annotations", {
         nodeId: "frame-123",
-        includeCategories: true
+        includeCategories: true,
       });
       expect(response.content[0].text).toContain("Annotation 1");
-      expect(response.content[0].text).toContain('"annotationCount":1');
+      expect(response.content[0].text).toContain("Found 1 annotation");
     });
 
     it("accepts includeCategories parameter", async () => {
       await callTool("get_annotations", {
         nodeId: "frame-123",
-        includeCategories: false
+        includeCategories: false,
       });
 
       expect(mockSendCommand).toHaveBeenCalledWith("get_annotations", {
         nodeId: "frame-123",
-        includeCategories: false
+        includeCategories: false,
       });
     });
 
@@ -221,7 +216,7 @@ describe("new document tools integration", () => {
       mockSendCommand.mockRejectedValue(new Error("Annotations not available"));
 
       const response = await callTool("get_annotations", {
-        nodeId: "frame-123"
+        nodeId: "frame-123",
       });
 
       expect(response.content[0].text).toContain("Error getting annotations");
@@ -236,14 +231,14 @@ describe("new document tools integration", () => {
         nodeName: "Test Frame",
         annotationIndex: 0,
         totalAnnotations: 1,
-        annotation: { labelMarkdown: "Test annotation" }
+        annotation: { labelMarkdown: "Test annotation" },
       });
     });
 
     it("successfully creates an annotation", async () => {
       const response = await callTool("set_annotation", {
         nodeId: "frame-123",
-        labelMarkdown: "Test annotation"
+        labelMarkdown: "Test annotation",
       });
 
       expect(mockSendCommand).toHaveBeenCalledTimes(1);
@@ -252,9 +247,9 @@ describe("new document tools integration", () => {
         annotationId: undefined,
         labelMarkdown: "Test annotation",
         categoryId: undefined,
-        properties: undefined
+        properties: undefined,
       });
-      expect(response.content[0].text).toContain('"success":true');
+      expect(response.content[0].text).toContain("Created annotation");
     });
 
     it("accepts optional parameters", async () => {
@@ -263,7 +258,7 @@ describe("new document tools integration", () => {
         annotationId: "0",
         labelMarkdown: "Updated annotation",
         categoryId: "cat-1",
-        properties: [{ type: "status" }]
+        properties: [{ type: "status" }],
       });
 
       expect(mockSendCommand).toHaveBeenCalledWith("set_annotation", {
@@ -271,14 +266,16 @@ describe("new document tools integration", () => {
         annotationId: "0",
         labelMarkdown: "Updated annotation",
         categoryId: "cat-1",
-        properties: [{ type: "status" }]
+        properties: [{ type: "status" }],
       });
     });
 
     it("requires nodeId and labelMarkdown parameters", async () => {
-      await expect(callTool("set_annotation", {
-        nodeId: "frame-123"
-      })).rejects.toThrow();
+      await expect(
+        callTool("set_annotation", {
+          nodeId: "frame-123",
+        }),
+      ).rejects.toThrow();
       expect(mockSendCommand).not.toHaveBeenCalled();
     });
 
@@ -287,7 +284,7 @@ describe("new document tools integration", () => {
 
       const response = await callTool("set_annotation", {
         nodeId: "frame-123",
-        labelMarkdown: "Test"
+        labelMarkdown: "Test",
       });
 
       expect(response.content[0].text).toContain("Error setting annotation");
@@ -303,8 +300,8 @@ describe("new document tools integration", () => {
         completedInChunks: 1,
         results: [
           { success: true, nodeId: "node-1" },
-          { success: true, nodeId: "node-2" }
-        ]
+          { success: true, nodeId: "node-2" },
+        ],
       });
     });
 
@@ -313,8 +310,8 @@ describe("new document tools integration", () => {
         nodeId: "parent-frame",
         annotations: [
           { nodeId: "node-1", labelMarkdown: "Ann 1" },
-          { nodeId: "node-2", labelMarkdown: "Ann 2" }
-        ]
+          { nodeId: "node-2", labelMarkdown: "Ann 2" },
+        ],
       });
 
       expect(mockSendCommand).toHaveBeenCalledTimes(1);
@@ -325,7 +322,7 @@ describe("new document tools integration", () => {
     it("returns early if no annotations provided", async () => {
       const response = await callTool("set_multiple_annotations", {
         nodeId: "parent-frame",
-        annotations: []
+        annotations: [],
       });
 
       expect(mockSendCommand).not.toHaveBeenCalled();
@@ -340,16 +337,16 @@ describe("new document tools integration", () => {
         completedInChunks: 1,
         results: [
           { success: true, nodeId: "node-1" },
-          { success: false, nodeId: "node-2", error: "Node not found" }
-        ]
+          { success: false, nodeId: "node-2", error: "Node not found" },
+        ],
       });
 
       const response = await callTool("set_multiple_annotations", {
         nodeId: "parent-frame",
         annotations: [
           { nodeId: "node-1", labelMarkdown: "Ann 1" },
-          { nodeId: "node-2", labelMarkdown: "Ann 2" }
-        ]
+          { nodeId: "node-2", labelMarkdown: "Ann 2" },
+        ],
       });
 
       expect(response.content[0].text).toContain("1 failed");
@@ -362,9 +359,7 @@ describe("new document tools integration", () => {
 
       const response = await callTool("set_multiple_annotations", {
         nodeId: "parent-frame",
-        annotations: [
-          { nodeId: "node-1", labelMarkdown: "Ann 1" }
-        ]
+        annotations: [{ nodeId: "node-1", labelMarkdown: "Ann 1" }],
       });
 
       expect(response.content[0].text).toContain("Error setting multiple annotations");
@@ -378,8 +373,8 @@ describe("new document tools integration", () => {
         count: 2,
         categories: [
           { id: "cat-1", label: "Development", color: "blue", isPreset: true },
-          { id: "cat-2", label: "Custom", color: "green", isPreset: false }
-        ]
+          { id: "cat-2", label: "Custom", color: "green", isPreset: false },
+        ],
       });
     });
 
@@ -405,32 +400,32 @@ describe("new document tools integration", () => {
     beforeEach(() => {
       mockSendCommand.mockResolvedValue({
         success: true,
-        category: { id: "cat-new", label: "Review", color: "green", isPreset: false }
+        category: { id: "cat-new", label: "Review", color: "green", isPreset: false },
       });
     });
 
     it("successfully creates an annotation category", async () => {
       const response = await callTool("create_annotation_category", {
         label: "Review",
-        color: "green"
+        color: "green",
       });
 
       expect(mockSendCommand).toHaveBeenCalledTimes(1);
       expect(mockSendCommand).toHaveBeenCalledWith("create_annotation_category", {
         label: "Review",
-        color: "green"
+        color: "green",
       });
       expect(response.content[0].text).toContain("Review");
     });
 
     it("uses default color when not specified", async () => {
       await callTool("create_annotation_category", {
-        label: "Review"
+        label: "Review",
       });
 
       expect(mockSendCommand).toHaveBeenCalledWith("create_annotation_category", {
         label: "Review",
-        color: "blue"
+        color: "blue",
       });
     });
 
@@ -443,7 +438,7 @@ describe("new document tools integration", () => {
       mockSendCommand.mockRejectedValue(new Error("Invalid color"));
 
       const response = await callTool("create_annotation_category", {
-        label: "Test"
+        label: "Test",
       });
 
       expect(response.content[0].text).toContain("Error creating annotation category");
@@ -454,7 +449,7 @@ describe("new document tools integration", () => {
     beforeEach(() => {
       mockSendCommand.mockResolvedValue({
         success: true,
-        category: { id: "cat-1", label: "Updated", color: "red", isPreset: false }
+        category: { id: "cat-1", label: "Updated", color: "red", isPreset: false },
       });
     });
 
@@ -462,14 +457,14 @@ describe("new document tools integration", () => {
       const response = await callTool("update_annotation_category", {
         categoryId: "cat-1",
         label: "Updated",
-        color: "red"
+        color: "red",
       });
 
       expect(mockSendCommand).toHaveBeenCalledTimes(1);
       expect(mockSendCommand).toHaveBeenCalledWith("update_annotation_category", {
         categoryId: "cat-1",
         label: "Updated",
-        color: "red"
+        color: "red",
       });
       expect(response.content[0].text).toContain("Updated");
     });
@@ -477,20 +472,22 @@ describe("new document tools integration", () => {
     it("allows updating only label", async () => {
       await callTool("update_annotation_category", {
         categoryId: "cat-1",
-        label: "New Label"
+        label: "New Label",
       });
 
       expect(mockSendCommand).toHaveBeenCalledWith("update_annotation_category", {
         categoryId: "cat-1",
         label: "New Label",
-        color: undefined
+        color: undefined,
       });
     });
 
     it("requires categoryId parameter", async () => {
-      await expect(callTool("update_annotation_category", {
-        label: "Test"
-      })).rejects.toThrow();
+      await expect(
+        callTool("update_annotation_category", {
+          label: "Test",
+        }),
+      ).rejects.toThrow();
       expect(mockSendCommand).not.toHaveBeenCalled();
     });
 
@@ -499,7 +496,7 @@ describe("new document tools integration", () => {
 
       const response = await callTool("update_annotation_category", {
         categoryId: "preset-1",
-        label: "Can't change"
+        label: "Can't change",
       });
 
       expect(response.content[0].text).toContain("Error updating annotation category");
@@ -511,18 +508,18 @@ describe("new document tools integration", () => {
     beforeEach(() => {
       mockSendCommand.mockResolvedValue({
         success: true,
-        deletedCategoryId: "cat-1"
+        deletedCategoryId: "cat-1",
       });
     });
 
     it("successfully deletes an annotation category", async () => {
       const response = await callTool("delete_annotation_category", {
-        categoryId: "cat-1"
+        categoryId: "cat-1",
       });
 
       expect(mockSendCommand).toHaveBeenCalledTimes(1);
       expect(mockSendCommand).toHaveBeenCalledWith("delete_annotation_category", {
-        categoryId: "cat-1"
+        categoryId: "cat-1",
       });
       expect(response.content[0].text).toContain("cat-1");
     });
@@ -536,7 +533,7 @@ describe("new document tools integration", () => {
       mockSendCommand.mockRejectedValue(new Error("Cannot delete a preset annotation category"));
 
       const response = await callTool("delete_annotation_category", {
-        categoryId: "preset-1"
+        categoryId: "preset-1",
       });
 
       expect(response.content[0].text).toContain("Error deleting annotation category");
@@ -556,9 +553,9 @@ describe("new document tools integration", () => {
           matchingNodes: [
             { id: "frame-1", type: "FRAME" },
             { id: "frame-2", type: "FRAME" },
-            { id: "comp-1", type: "COMPONENT" }
+            { id: "comp-1", type: "COMPONENT" },
           ],
-          searchedTypes: ["FRAME", "COMPONENT"]
+          searchedTypes: ["FRAME", "COMPONENT"],
         });
       });
     });
@@ -566,12 +563,12 @@ describe("new document tools integration", () => {
     it("successfully scans for nodes by types", async () => {
       const response = await callTool("scan_nodes_by_types", {
         nodeId: "parent-123",
-        types: ["FRAME", "COMPONENT"]
+        types: ["FRAME", "COMPONENT"],
       });
 
       expect(mockSendCommand).toHaveBeenCalledWith("scan_nodes_by_types", {
         nodeId: "parent-123",
-        types: ["FRAME", "COMPONENT"]
+        types: ["FRAME", "COMPONENT"],
       });
       expect(response.content[0].text).toContain("Found 3 nodes");
       expect(response.content[0].text).toContain("FRAME");
@@ -579,9 +576,11 @@ describe("new document tools integration", () => {
     });
 
     it("requires nodeId and types parameters", async () => {
-      await expect(callTool("scan_nodes_by_types", {
-        nodeId: "parent-123"
-      })).rejects.toThrow();
+      await expect(
+        callTool("scan_nodes_by_types", {
+          nodeId: "parent-123",
+        }),
+      ).rejects.toThrow();
       expect(mockSendCommand).not.toHaveBeenCalled();
     });
 
@@ -594,24 +593,24 @@ describe("new document tools integration", () => {
           success: true,
           count: 1,
           matchingNodes: [{ id: "node-1" }],
-          searchedTypes: ["FRAME"]
+          searchedTypes: ["FRAME"],
         });
       });
       const response = await callTool("scan_nodes_by_types", {
         nodeId: "parent-123",
-        types: "FRAME"
+        types: "FRAME",
       });
       expect(mockSendCommand).toHaveBeenCalledWith("scan_nodes_by_types", { nodeId: "parent-123", types: ["FRAME"] });
     });
 
     it("handles non-standard result format", async () => {
       mockSendCommand.mockResolvedValue({
-        nodes: [{ id: "node-1" }]
+        nodes: [{ id: "node-1" }],
       });
 
       const response = await callTool("scan_nodes_by_types", {
         nodeId: "parent-123",
-        types: ["FRAME"]
+        types: ["FRAME"],
       });
 
       expect(response.content[0].text).toContain("node-1");
@@ -622,7 +621,7 @@ describe("new document tools integration", () => {
 
       const response = await callTool("scan_nodes_by_types", {
         nodeId: "invalid-123",
-        types: ["FRAME"]
+        types: ["FRAME"],
       });
 
       expect(response.content[0].text).toContain("Error scanning nodes by types");
@@ -707,9 +706,7 @@ describe("new document tools integration", () => {
     });
 
     it("handles errors when deleting last page", async () => {
-      mockSendCommand.mockRejectedValue(
-        new Error("Cannot delete the last remaining page")
-      );
+      mockSendCommand.mockRejectedValue(new Error("Cannot delete the last remaining page"));
 
       const response = await callTool("delete_page", { pageId: "page-1" });
 
@@ -730,9 +727,7 @@ describe("new document tools integration", () => {
   describe("jsx_to_figma", () => {
     it("successfully creates nodes from JSX", async () => {
       mockSendCommand.mockResolvedValue({
-        createdNodes: [
-          { id: "node-1", name: "Card", type: "FRAME" },
-        ],
+        createdNodes: [{ id: "node-1", name: "Card", type: "FRAME" }],
       });
 
       const response = await callTool("jsx_to_figma", {
@@ -740,19 +735,22 @@ describe("new document tools integration", () => {
       });
 
       expect(mockSendCommand).toHaveBeenCalledTimes(1);
-      expect(mockSendCommand).toHaveBeenCalledWith("create_from_data", expect.objectContaining({
-        data: expect.arrayContaining([
-          expect.objectContaining({
-            id: "1:1",
-            name: "Card",
-            type: "FRAME",
-            layoutMode: "VERTICAL",
-            width: 320,
-            paddingTop: 16,
-          }),
-        ]),
-      }));
-      expect(response.content[0].text).toContain('Created 1 node(s)');
+      expect(mockSendCommand).toHaveBeenCalledWith(
+        "create_from_data",
+        expect.objectContaining({
+          data: expect.arrayContaining([
+            expect.objectContaining({
+              id: "1:1",
+              name: "Card",
+              type: "FRAME",
+              layoutMode: "VERTICAL",
+              width: 320,
+              paddingTop: 16,
+            }),
+          ]),
+        }),
+      );
+      expect(response.content[0].text).toContain("Created 1 node(s)");
       expect(response.content[0].text).toContain('"Card"');
     });
 
@@ -768,12 +766,15 @@ describe("new document tools integration", () => {
         y: 200,
       });
 
-      expect(mockSendCommand).toHaveBeenCalledWith("create_from_data", expect.objectContaining({
-        parentId: "parent-123",
-        nextToId: undefined,
-        x: 100,
-        y: 200,
-      }));
+      expect(mockSendCommand).toHaveBeenCalledWith(
+        "create_from_data",
+        expect.objectContaining({
+          parentId: "parent-123",
+          nextToId: undefined,
+          x: 100,
+          y: 200,
+        }),
+      );
     });
 
     it("passes nextToId param to plugin", async () => {
@@ -786,12 +787,15 @@ describe("new document tools integration", () => {
         nextToId: "existing-node-123",
       });
 
-      expect(mockSendCommand).toHaveBeenCalledWith("create_from_data", expect.objectContaining({
-        nextToId: "existing-node-123",
-        parentId: undefined,
-        x: undefined,
-        y: undefined,
-      }));
+      expect(mockSendCommand).toHaveBeenCalledWith(
+        "create_from_data",
+        expect.objectContaining({
+          nextToId: "existing-node-123",
+          parentId: undefined,
+          x: undefined,
+          y: undefined,
+        }),
+      );
     });
 
     it("passes nextToId alongside parentId", async () => {
@@ -805,10 +809,13 @@ describe("new document tools integration", () => {
         nextToId: "sibling-789",
       });
 
-      expect(mockSendCommand).toHaveBeenCalledWith("create_from_data", expect.objectContaining({
-        parentId: "parent-456",
-        nextToId: "sibling-789",
-      }));
+      expect(mockSendCommand).toHaveBeenCalledWith(
+        "create_from_data",
+        expect.objectContaining({
+          parentId: "parent-456",
+          nextToId: "sibling-789",
+        }),
+      );
     });
 
     it("sends no positioning params when none provided (auto-position)", async () => {
@@ -820,12 +827,15 @@ describe("new document tools integration", () => {
         jsx: '<div id="1:4" name="Auto" />',
       });
 
-      expect(mockSendCommand).toHaveBeenCalledWith("create_from_data", expect.objectContaining({
-        parentId: undefined,
-        nextToId: undefined,
-        x: undefined,
-        y: undefined,
-      }));
+      expect(mockSendCommand).toHaveBeenCalledWith(
+        "create_from_data",
+        expect.objectContaining({
+          parentId: undefined,
+          nextToId: undefined,
+          x: undefined,
+          y: undefined,
+        }),
+      );
     });
 
     it("handles parse errors gracefully", async () => {

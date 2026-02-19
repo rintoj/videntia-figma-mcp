@@ -16,14 +16,8 @@ export function registerBatchTools(server: McpServer): void {
       actions: z
         .array(
           z.object({
-            action: z
-              .string()
-              .describe("Command name (e.g., 'clone_node', 'set_fill_color')"),
-            params: z
-              .record(z.unknown())
-              .optional()
-              .default({})
-              .describe("Parameters for the command"),
+            action: z.string().describe("Command name (e.g., 'clone_node', 'set_fill_color')"),
+            params: z.record(z.unknown()).optional().default({}).describe("Parameters for the command"),
           }),
         )
         .min(1)
@@ -33,9 +27,7 @@ export function registerBatchTools(server: McpServer): void {
         .boolean()
         .optional()
         .default(false)
-        .describe(
-          "Stop processing remaining actions after the first failure (default: false)",
-        ),
+        .describe("Stop processing remaining actions after the first failure (default: false)"),
     },
     async ({ actions, stopOnError }) => {
       try {
@@ -47,12 +39,21 @@ export function registerBatchTools(server: McpServer): void {
         )) as BatchActionsResult;
 
         const summary = `Batch completed: ${result.succeeded}/${result.totalActions} succeeded${result.failed > 0 ? `, ${result.failed} failed` : ""}`;
+        const lines: string[] = [summary];
+        if (result.results?.length) {
+          lines.push("", "| # | Action | Status | Detail |", "|---|--------|--------|--------|");
+          for (const r of result.results) {
+            const status = r.success ? "OK" : "FAIL";
+            const detail = r.error || (r.result?.id ? `ID: ${r.result.id}` : "done");
+            lines.push(`| ${r.index} | ${r.action} | ${status} | ${detail} |`);
+          }
+        }
 
         return {
           content: [
             {
               type: "text" as const,
-              text: `${summary}\n\n${JSON.stringify(result.results, null, 2)}`,
+              text: lines.join("\n"),
             },
           ],
         };

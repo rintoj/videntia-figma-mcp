@@ -4,6 +4,7 @@ import { sendCommandToFigma } from "../utils/websocket";
 import { applyColorDefaults, applyDefault, FIGMA_DEFAULTS } from "../utils/defaults";
 import { Color } from "../types/color";
 import { coerceArray } from "../utils/coerce-array.js";
+import { DeleteMultipleNodesResult, CreateEffectStyleResult, UpdateEffectStyleResult } from "../types";
 
 /**
  * Register modification tools to the MCP server
@@ -28,11 +29,11 @@ export function registerModificationTools(server: McpServer): void {
         if (r === undefined || g === undefined || b === undefined) {
           throw new Error("RGB components (r, g, b) are required and cannot be undefined");
         }
-        
+
         // Apply default values safely - preserves opacity 0 for transparency
         const colorInput: Color = { r, g, b, a };
         const colorWithDefaults = applyColorDefaults(colorInput);
-        
+
         const result = await sendCommandToFigma("set_fill_color", {
           nodeId,
           color: colorWithDefaults,
@@ -56,7 +57,7 @@ export function registerModificationTools(server: McpServer): void {
           ],
         };
       }
-    }
+    },
   );
 
   // Set Stroke Color Tool
@@ -73,16 +74,15 @@ export function registerModificationTools(server: McpServer): void {
     },
     async ({ nodeId, r, g, b, a, strokeWeight }) => {
       try {
-
         if (r === undefined || g === undefined || b === undefined) {
           throw new Error("RGB components (r, g, b) are required and cannot be undefined");
         }
-        
+
         const colorInput: Color = { r, g, b, a };
         const colorWithDefaults = applyColorDefaults(colorInput);
-        
+
         const strokeWeightWithDefault = applyDefault(strokeWeight, FIGMA_DEFAULTS.stroke.weight);
-        
+
         const result = await sendCommandToFigma("set_stroke_color", {
           nodeId,
           color: colorWithDefaults,
@@ -107,7 +107,7 @@ export function registerModificationTools(server: McpServer): void {
           ],
         };
       }
-    }
+    },
   );
 
   // Move Node Tool
@@ -141,7 +141,7 @@ export function registerModificationTools(server: McpServer): void {
           ],
         };
       }
-    }
+    },
   );
 
   // Resize Node Tool
@@ -179,7 +179,7 @@ export function registerModificationTools(server: McpServer): void {
           ],
         };
       }
-    }
+    },
   );
 
   // Delete Node Tool
@@ -210,7 +210,7 @@ export function registerModificationTools(server: McpServer): void {
           ],
         };
       }
-    }
+    },
   );
 
   // Delete Multiple Nodes Tool
@@ -218,30 +218,33 @@ export function registerModificationTools(server: McpServer): void {
     "delete_multiple_nodes",
     "Delete multiple nodes from Figma at once",
     {
-      nodeIds: coerceArray(z.array(z.string())).describe("Array of node IDs to delete")
+      nodeIds: coerceArray(z.array(z.string())).describe("Array of node IDs to delete"),
     },
     async ({ nodeIds }) => {
       try {
-        const result = await sendCommandToFigma("delete_multiple_nodes", { nodeIds });
+        const result = await sendCommandToFigma<DeleteMultipleNodesResult>("delete_multiple_nodes", {
+          nodeIds,
+        });
+        const deleted = result?.deleted ?? nodeIds.length;
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result)
-            }
-          ]
+              text: `Deleted ${deleted} node(s)`,
+            },
+          ],
         };
       } catch (error) {
         return {
           content: [
             {
               type: "text",
-              text: `Error deleting multiple nodes: ${error instanceof Error ? error.message : String(error)}`,
+              text: `Error deleting multiple nodes [${nodeIds.join(", ")}]: ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };
       }
-    }
+    },
   );
 
   // Set Layout Mode Tool
@@ -250,27 +253,24 @@ export function registerModificationTools(server: McpServer): void {
     "Set the layout mode and wrap behavior of a frame in Figma",
     {
       nodeId: z.string().describe("The ID of the frame to modify"),
-      layoutMode: z.enum(["NONE", "HORIZONTAL", "VERTICAL"])
-        .describe("Layout mode for the frame"),
-      layoutWrap: z.enum(["NO_WRAP", "WRAP"])
-        .optional()
-        .describe("Whether the auto-layout frame wraps its children")
+      layoutMode: z.enum(["NONE", "HORIZONTAL", "VERTICAL"]).describe("Layout mode for the frame"),
+      layoutWrap: z.enum(["NO_WRAP", "WRAP"]).optional().describe("Whether the auto-layout frame wraps its children"),
     },
     async ({ nodeId, layoutMode, layoutWrap }) => {
       try {
         const result = await sendCommandToFigma("set_layout_mode", {
           nodeId,
           layoutMode,
-          layoutWrap: layoutWrap || "NO_WRAP"
+          layoutWrap: layoutWrap || "NO_WRAP",
         });
         const typedResult = result as { name: string };
         return {
           content: [
             {
               type: "text",
-              text: `Set layout mode of frame "${typedResult.name}" to ${layoutMode}`
-            }
-          ]
+              text: `Set layout mode of frame "${typedResult.name}" to ${layoutMode}`,
+            },
+          ],
         };
       } catch (error) {
         return {
@@ -282,7 +282,7 @@ export function registerModificationTools(server: McpServer): void {
           ],
         };
       }
-    }
+    },
   );
 
   // Set Padding Tool
@@ -294,7 +294,7 @@ export function registerModificationTools(server: McpServer): void {
       paddingTop: z.coerce.number().optional().describe("Top padding value"),
       paddingRight: z.coerce.number().optional().describe("Right padding value"),
       paddingBottom: z.coerce.number().optional().describe("Bottom padding value"),
-      paddingLeft: z.coerce.number().optional().describe("Left padding value")
+      paddingLeft: z.coerce.number().optional().describe("Left padding value"),
     },
     async ({ nodeId, paddingTop, paddingRight, paddingBottom, paddingLeft }) => {
       try {
@@ -303,7 +303,7 @@ export function registerModificationTools(server: McpServer): void {
           paddingTop,
           paddingRight,
           paddingBottom,
-          paddingLeft
+          paddingLeft,
         });
         const typedResult = result as { name: string };
 
@@ -313,17 +313,15 @@ export function registerModificationTools(server: McpServer): void {
         if (paddingBottom !== undefined) paddingMessages.push(`bottom: ${paddingBottom}`);
         if (paddingLeft !== undefined) paddingMessages.push(`left: ${paddingLeft}`);
 
-        const paddingText = paddingMessages.length > 0
-          ? `padding (${paddingMessages.join(', ')})`
-          : "padding";
+        const paddingText = paddingMessages.length > 0 ? `padding (${paddingMessages.join(", ")})` : "padding";
 
         return {
           content: [
             {
               type: "text",
-              text: `Set ${paddingText} for frame "${typedResult.name}"`
-            }
-          ]
+              text: `Set ${paddingText} for frame "${typedResult.name}"`,
+            },
+          ],
         };
       } catch (error) {
         return {
@@ -335,7 +333,7 @@ export function registerModificationTools(server: McpServer): void {
           ],
         };
       }
-    }
+    },
   );
 
   // Set Axis Align Tool
@@ -344,39 +342,34 @@ export function registerModificationTools(server: McpServer): void {
     "Set primary and counter axis alignment for an auto-layout frame",
     {
       nodeId: z.string().describe("The ID of the frame to modify"),
-      primaryAxisAlignItems: z.enum(["MIN", "MAX", "CENTER", "SPACE_BETWEEN"])
+      primaryAxisAlignItems: z
+        .enum(["MIN", "MAX", "CENTER", "SPACE_BETWEEN"])
         .optional()
         .describe("Primary axis alignment"),
-      counterAxisAlignItems: z.enum(["MIN", "MAX", "CENTER", "BASELINE"])
-        .optional()
-        .describe("Counter axis alignment")
+      counterAxisAlignItems: z.enum(["MIN", "MAX", "CENTER", "BASELINE"]).optional().describe("Counter axis alignment"),
     },
     async ({ nodeId, primaryAxisAlignItems, counterAxisAlignItems }) => {
       try {
         const result = await sendCommandToFigma("set_axis_align", {
           nodeId,
           primaryAxisAlignItems,
-          counterAxisAlignItems
+          counterAxisAlignItems,
         });
         const typedResult = result as { name: string };
 
         const alignMessages = [];
-        if (primaryAxisAlignItems !== undefined)
-          alignMessages.push(`primary: ${primaryAxisAlignItems}`);
-        if (counterAxisAlignItems !== undefined)
-          alignMessages.push(`counter: ${counterAxisAlignItems}`);
+        if (primaryAxisAlignItems !== undefined) alignMessages.push(`primary: ${primaryAxisAlignItems}`);
+        if (counterAxisAlignItems !== undefined) alignMessages.push(`counter: ${counterAxisAlignItems}`);
 
-        const alignText = alignMessages.length > 0
-          ? `axis alignment (${alignMessages.join(', ')})`
-          : "axis alignment";
+        const alignText = alignMessages.length > 0 ? `axis alignment (${alignMessages.join(", ")})` : "axis alignment";
 
         return {
           content: [
             {
               type: "text",
-              text: `Set ${alignText} for frame "${typedResult.name}"`
-            }
-          ]
+              text: `Set ${alignText} for frame "${typedResult.name}"`,
+            },
+          ],
         };
       } catch (error) {
         return {
@@ -388,7 +381,7 @@ export function registerModificationTools(server: McpServer): void {
           ],
         };
       }
-    }
+    },
   );
 
   // Set Layout Sizing Tool
@@ -397,39 +390,31 @@ export function registerModificationTools(server: McpServer): void {
     "Set horizontal and vertical sizing modes for an auto-layout frame",
     {
       nodeId: z.string().describe("The ID of the frame to modify"),
-      layoutSizingHorizontal: z.enum(["FIXED", "HUG", "FILL"])
-        .optional()
-        .describe("Horizontal sizing mode"),
-      layoutSizingVertical: z.enum(["FIXED", "HUG", "FILL"])
-        .optional()
-        .describe("Vertical sizing mode")
+      layoutSizingHorizontal: z.enum(["FIXED", "HUG", "FILL"]).optional().describe("Horizontal sizing mode"),
+      layoutSizingVertical: z.enum(["FIXED", "HUG", "FILL"]).optional().describe("Vertical sizing mode"),
     },
     async ({ nodeId, layoutSizingHorizontal, layoutSizingVertical }) => {
       try {
         const result = await sendCommandToFigma("set_layout_sizing", {
           nodeId,
           layoutSizingHorizontal,
-          layoutSizingVertical
+          layoutSizingVertical,
         });
         const typedResult = result as { name: string };
 
         const sizingMessages = [];
-        if (layoutSizingHorizontal !== undefined)
-          sizingMessages.push(`horizontal: ${layoutSizingHorizontal}`);
-        if (layoutSizingVertical !== undefined)
-          sizingMessages.push(`vertical: ${layoutSizingVertical}`);
+        if (layoutSizingHorizontal !== undefined) sizingMessages.push(`horizontal: ${layoutSizingHorizontal}`);
+        if (layoutSizingVertical !== undefined) sizingMessages.push(`vertical: ${layoutSizingVertical}`);
 
-        const sizingText = sizingMessages.length > 0
-          ? `layout sizing (${sizingMessages.join(', ')})`
-          : "layout sizing";
+        const sizingText = sizingMessages.length > 0 ? `layout sizing (${sizingMessages.join(", ")})` : "layout sizing";
 
         return {
           content: [
             {
               type: "text",
-              text: `Set ${sizingText} for frame "${typedResult.name}"`
-            }
-          ]
+              text: `Set ${sizingText} for frame "${typedResult.name}"`,
+            },
+          ],
         };
       } catch (error) {
         return {
@@ -441,7 +426,7 @@ export function registerModificationTools(server: McpServer): void {
           ],
         };
       }
-    }
+    },
   );
 
   // Set Item Spacing Tool
@@ -450,10 +435,8 @@ export function registerModificationTools(server: McpServer): void {
     "Set distance between children in an auto-layout frame",
     {
       nodeId: z.string().describe("The ID of the frame to modify"),
-      itemSpacing: z.coerce.number().optional()
-        .describe("Distance between children"),
-      counterAxisSpacing: z.coerce.number().optional()
-        .describe("Distance between wrapped rows/columns")
+      itemSpacing: z.coerce.number().optional().describe("Distance between children"),
+      counterAxisSpacing: z.coerce.number().optional().describe("Distance between wrapped rows/columns"),
     },
     async ({ nodeId, itemSpacing, counterAxisSpacing }) => {
       try {
@@ -465,7 +448,7 @@ export function registerModificationTools(server: McpServer): void {
         const typedResult = result as {
           name: string;
           itemSpacing?: number;
-          counterAxisSpacing?: number
+          counterAxisSpacing?: number;
         };
 
         let message = `Updated spacing for frame "${typedResult.name}":`;
@@ -476,9 +459,9 @@ export function registerModificationTools(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: message
-            }
-          ]
+              text: message,
+            },
+          ],
         };
       } catch (error) {
         return {
@@ -490,7 +473,7 @@ export function registerModificationTools(server: McpServer): void {
           ],
         };
       }
-    }
+    },
   );
 
   // Set Corner Radius Tool
@@ -503,7 +486,7 @@ export function registerModificationTools(server: McpServer): void {
       corners: coerceArray(z.array(z.coerce.boolean()).length(4))
         .optional()
         .describe(
-          "Optional array of 4 booleans to specify which corners to round [topLeft, topRight, bottomRight, bottomLeft]"
+          "Optional array of 4 booleans to specify which corners to round [topLeft, topRight, bottomRight, bottomLeft]",
         ),
     },
     async ({ nodeId, radius, corners }) => {
@@ -532,7 +515,7 @@ export function registerModificationTools(server: McpServer): void {
           ],
         };
       }
-    }
+    },
   );
 
   // Auto Layout Tool
@@ -547,14 +530,29 @@ export function registerModificationTools(server: McpServer): void {
       paddingLeft: z.coerce.number().optional().describe("Left padding in pixels"),
       paddingRight: z.coerce.number().optional().describe("Right padding in pixels"),
       itemSpacing: z.coerce.number().optional().describe("Spacing between items in pixels"),
-      primaryAxisAlignItems: z.enum(["MIN", "CENTER", "MAX", "SPACE_BETWEEN"]).optional().describe("Alignment along primary axis"),
+      primaryAxisAlignItems: z
+        .enum(["MIN", "CENTER", "MAX", "SPACE_BETWEEN"])
+        .optional()
+        .describe("Alignment along primary axis"),
       counterAxisAlignItems: z.enum(["MIN", "CENTER", "MAX"]).optional().describe("Alignment along counter axis"),
       layoutWrap: z.enum(["WRAP", "NO_WRAP"]).optional().describe("Whether items wrap to new lines"),
       strokesIncludedInLayout: z.boolean().optional().describe("Whether strokes are included in layout calculations"),
-      clipsContent: z.boolean().optional().describe("Whether to clip content outside frame bounds")
+      clipsContent: z.boolean().optional().describe("Whether to clip content outside frame bounds"),
     },
-    async ({ nodeId, layoutMode, paddingTop, paddingBottom, paddingLeft, paddingRight,
-             itemSpacing, primaryAxisAlignItems, counterAxisAlignItems, layoutWrap, strokesIncludedInLayout, clipsContent }) => {
+    async ({
+      nodeId,
+      layoutMode,
+      paddingTop,
+      paddingBottom,
+      paddingLeft,
+      paddingRight,
+      itemSpacing,
+      primaryAxisAlignItems,
+      counterAxisAlignItems,
+      layoutWrap,
+      strokesIncludedInLayout,
+      clipsContent,
+    }) => {
       try {
         const result = await sendCommandToFigma("set_auto_layout", {
           nodeId,
@@ -568,29 +566,29 @@ export function registerModificationTools(server: McpServer): void {
           counterAxisAlignItems,
           layoutWrap,
           strokesIncludedInLayout,
-          clipsContent
+          clipsContent,
         });
-        
+
         const typedResult = result as { name: string };
         return {
           content: [
             {
               type: "text",
-              text: `Applied auto layout to node "${typedResult.name}" with mode: ${layoutMode}`
-            }
-          ]
+              text: `Applied auto layout to node "${typedResult.name}" with mode: ${layoutMode}`,
+            },
+          ],
         };
       } catch (error) {
         return {
           content: [
             {
               type: "text",
-              text: `Error setting auto layout: ${error instanceof Error ? error.message : String(error)}`
-            }
-          ]
+              text: `Error setting auto layout: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
         };
       }
-    }
+    },
   );
 
   // Set Effects Tool
@@ -599,70 +597,86 @@ export function registerModificationTools(server: McpServer): void {
     "Set the visual effects of a node in Figma. Supports DROP_SHADOW, INNER_SHADOW, LAYER_BLUR, BACKGROUND_BLUR, and beta types NOISE (grain overlay), TEXTURE (frosted texture), GLASS (frosted glass with refraction, frame-only).",
     {
       nodeId: z.string().describe("The ID of the node to modify"),
-      effects: coerceArray(z.array(
-        z.object({
-          type: z.enum(["DROP_SHADOW", "INNER_SHADOW", "LAYER_BLUR", "BACKGROUND_BLUR", "NOISE", "TEXTURE", "GLASS"]).describe("Effect type"),
-          color: z.object({
-            r: z.number().min(0).max(1).describe("Red (0-1)"),
-            g: z.number().min(0).max(1).describe("Green (0-1)"),
-            b: z.number().min(0).max(1).describe("Blue (0-1)"),
-            a: z.number().min(0).max(1).describe("Alpha (0-1)")
-          }).optional().describe("Effect color (for shadows and NOISE)"),
-          offset: z.object({
-            x: z.number().describe("X offset"),
-            y: z.number().describe("Y offset")
-          }).optional().describe("Offset (for shadows)"),
-          radius: z.number().optional().describe("Effect radius (blur radius for blurs/TEXTURE/GLASS)"),
-          spread: z.number().optional().describe("Shadow spread (for shadows)"),
-          visible: z.boolean().optional().describe("Whether the effect is visible"),
-          blendMode: z.string().optional().describe("Blend mode"),
-          noiseType: z.enum(["MONOTONE", "DUOTONE", "MULTITONE"]).optional().describe("Noise variant (NOISE only, default MONOTONE)"),
-          noiseSize: z.number().optional().describe("Grain size (NOISE/TEXTURE)"),
-          density: z.number().optional().describe("Grain density (NOISE)"),
-          secondaryColor: z.object({
-            r: z.number().min(0).max(1).describe("Red (0-1)"),
-            g: z.number().min(0).max(1).describe("Green (0-1)"),
-            b: z.number().min(0).max(1).describe("Blue (0-1)"),
-            a: z.number().min(0).max(1).describe("Alpha (0-1)")
-          }).optional().describe("Secondary color (NOISE DUOTONE only)"),
-          opacity: z.number().min(0).max(1).optional().describe("Opacity (NOISE MULTITONE only)"),
-          clipToShape: z.boolean().optional().describe("Clip texture to shape bounds (TEXTURE only, default true)"),
-          lightIntensity: z.number().optional().describe("Light intensity (GLASS only)"),
-          lightAngle: z.number().optional().describe("Light angle in degrees (GLASS only)"),
-          refraction: z.number().optional().describe("Refraction amount (GLASS only)"),
-          depth: z.number().optional().describe("Depth amount (GLASS only)"),
-          dispersion: z.number().optional().describe("Chromatic dispersion (GLASS only)")
-        })
-      )).describe("Array of effects to apply")
+      effects: coerceArray(
+        z.array(
+          z.object({
+            type: z
+              .enum(["DROP_SHADOW", "INNER_SHADOW", "LAYER_BLUR", "BACKGROUND_BLUR", "NOISE", "TEXTURE", "GLASS"])
+              .describe("Effect type"),
+            color: z
+              .object({
+                r: z.number().min(0).max(1).describe("Red (0-1)"),
+                g: z.number().min(0).max(1).describe("Green (0-1)"),
+                b: z.number().min(0).max(1).describe("Blue (0-1)"),
+                a: z.number().min(0).max(1).describe("Alpha (0-1)"),
+              })
+              .optional()
+              .describe("Effect color (for shadows and NOISE)"),
+            offset: z
+              .object({
+                x: z.number().describe("X offset"),
+                y: z.number().describe("Y offset"),
+              })
+              .optional()
+              .describe("Offset (for shadows)"),
+            radius: z.number().optional().describe("Effect radius (blur radius for blurs/TEXTURE/GLASS)"),
+            spread: z.number().optional().describe("Shadow spread (for shadows)"),
+            visible: z.boolean().optional().describe("Whether the effect is visible"),
+            blendMode: z.string().optional().describe("Blend mode"),
+            noiseType: z
+              .enum(["MONOTONE", "DUOTONE", "MULTITONE"])
+              .optional()
+              .describe("Noise variant (NOISE only, default MONOTONE)"),
+            noiseSize: z.number().optional().describe("Grain size (NOISE/TEXTURE)"),
+            density: z.number().optional().describe("Grain density (NOISE)"),
+            secondaryColor: z
+              .object({
+                r: z.number().min(0).max(1).describe("Red (0-1)"),
+                g: z.number().min(0).max(1).describe("Green (0-1)"),
+                b: z.number().min(0).max(1).describe("Blue (0-1)"),
+                a: z.number().min(0).max(1).describe("Alpha (0-1)"),
+              })
+              .optional()
+              .describe("Secondary color (NOISE DUOTONE only)"),
+            opacity: z.number().min(0).max(1).optional().describe("Opacity (NOISE MULTITONE only)"),
+            clipToShape: z.boolean().optional().describe("Clip texture to shape bounds (TEXTURE only, default true)"),
+            lightIntensity: z.number().optional().describe("Light intensity (GLASS only)"),
+            lightAngle: z.number().optional().describe("Light angle in degrees (GLASS only)"),
+            refraction: z.number().optional().describe("Refraction amount (GLASS only)"),
+            depth: z.number().optional().describe("Depth amount (GLASS only)"),
+            dispersion: z.number().optional().describe("Chromatic dispersion (GLASS only)"),
+          }),
+        ),
+      ).describe("Array of effects to apply"),
     },
     async ({ nodeId, effects }) => {
       try {
         const result = await sendCommandToFigma("set_effects", {
           nodeId,
-          effects
+          effects,
         });
-        
-        const typedResult = result as { name: string, effects: any[] };
-        
+
+        const typedResult = result as { name: string; effects: any[] };
+
         return {
           content: [
             {
               type: "text",
-              text: `Successfully applied ${effects.length} effect(s) to node "${typedResult.name}"`
-            }
-          ]
+              text: `Successfully applied ${effects.length} effect(s) to node "${typedResult.name}"`,
+            },
+          ],
         };
       } catch (error) {
         return {
           content: [
             {
               type: "text",
-              text: `Error setting effects: ${error instanceof Error ? error.message : String(error)}`
-            }
-          ]
+              text: `Error setting effects: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
         };
       }
-    }
+    },
   );
 
   // Set Effect Style ID Tool
@@ -671,55 +685,61 @@ export function registerModificationTools(server: McpServer): void {
     "Apply an effect style to a node in Figma",
     {
       nodeId: z.string().describe("The ID of the node to modify"),
-      effectStyleId: z.string().describe("The ID of the effect style to apply")
+      effectStyleId: z.string().describe("The ID of the effect style to apply"),
     },
     async ({ nodeId, effectStyleId }) => {
       try {
         const result = await sendCommandToFigma("set_effect_style_id", {
           nodeId,
-          effectStyleId
+          effectStyleId,
         });
-        
-        const typedResult = result as { name: string, effectStyleId: string };
-        
+
+        const typedResult = result as { name: string; effectStyleId: string };
+
         return {
           content: [
             {
               type: "text",
-              text: `Successfully applied effect style to node "${typedResult.name}"`
-            }
-          ]
+              text: `Successfully applied effect style to node "${typedResult.name}"`,
+            },
+          ],
         };
       } catch (error) {
         return {
           content: [
             {
               type: "text",
-              text: `Error setting effect style: ${error instanceof Error ? error.message : String(error)}`
-            }
-          ]
+              text: `Error setting effect style: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
         };
       }
-    }
+    },
   );
 
   // Shared schema for effect style operations
   const effectStyleEntrySchema = z.object({
     type: z.enum(["DROP_SHADOW", "INNER_SHADOW", "LAYER_BLUR", "BACKGROUND_BLUR"]).describe("Effect type"),
-    color: z.object({
-      r: z.number().min(0).max(1).describe("Red (0-1)"),
-      g: z.number().min(0).max(1).describe("Green (0-1)"),
-      b: z.number().min(0).max(1).describe("Blue (0-1)"),
-      a: z.number().min(0).max(1).describe("Alpha (0-1)")
-    }).optional().describe("Effect color (for shadows)"),
-    offset: z.object({
-      x: z.number().describe("X offset"),
-      y: z.number().describe("Y offset")
-    }).optional().describe("Offset (for shadows)"),
+    color: z
+      .object({
+        r: z.number().min(0).max(1).describe("Red (0-1)"),
+        g: z.number().min(0).max(1).describe("Green (0-1)"),
+        b: z.number().min(0).max(1).describe("Blue (0-1)"),
+        a: z.number().min(0).max(1).describe("Alpha (0-1)"),
+      })
+      .optional()
+      .describe("Effect color (for shadows)"),
+    offset: z
+      .object({
+        x: z.number().describe("X offset"),
+        y: z.number().describe("Y offset"),
+      })
+      .optional()
+      .describe("Offset (for shadows)"),
     radius: z.number().optional().describe("Blur radius"),
     spread: z.number().optional().describe("Shadow spread (for shadows)"),
     visible: z.boolean().optional().describe("Whether the effect is visible"),
-    blendMode: z.string().optional().describe("Blend mode")
+    blendMode: z.string().optional().describe("Blend mode"),
   });
 
   // Create Effect Style Tool
@@ -729,34 +749,34 @@ export function registerModificationTools(server: McpServer): void {
     {
       name: z.string().describe("Name of the effect style (e.g., 'shadow/sm', 'shadow/md', 'blur/overlay')"),
       effects: coerceArray(z.array(effectStyleEntrySchema)).describe("Array of effects for the style"),
-      description: z.string().optional().describe("Description of the effect style")
+      description: z.string().optional().describe("Description of the effect style"),
     },
     async ({ name, effects, description }) => {
       try {
-        const result = await sendCommandToFigma("create_effect_style", {
+        const result = await sendCommandToFigma<CreateEffectStyleResult>("create_effect_style", {
           name,
           effects,
-          description
+          description,
         });
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result, null, 2)
-            }
-          ]
+              text: `Created effect style "${result?.name || name}" (ID: ${result?.id || "-"})`,
+            },
+          ],
         };
       } catch (error) {
         return {
           content: [
             {
               type: "text",
-              text: `Error creating effect style: ${error instanceof Error ? error.message : String(error)}`
-            }
-          ]
+              text: `Error creating effect style "${name}": ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
         };
       }
-    }
+    },
   );
 
   // Update Effect Style Tool
@@ -767,35 +787,35 @@ export function registerModificationTools(server: McpServer): void {
       styleId: z.string().describe("The ID of the effect style to update"),
       name: z.string().optional().describe("New name for the effect style"),
       effects: coerceArray(z.array(effectStyleEntrySchema)).optional().describe("New array of effects for the style"),
-      description: z.string().optional().describe("New description for the effect style")
+      description: z.string().optional().describe("New description for the effect style"),
     },
     async ({ styleId, name, effects, description }) => {
       try {
-        const result = await sendCommandToFigma("update_effect_style", {
+        const result = await sendCommandToFigma<UpdateEffectStyleResult>("update_effect_style", {
           styleId,
           name,
           effects,
-          description
+          description,
         });
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result, null, 2)
-            }
-          ]
+              text: `Updated effect style "${result?.name || name || "-"}" (ID: ${result?.id || styleId})`,
+            },
+          ],
         };
       } catch (error) {
         return {
           content: [
             {
               type: "text",
-              text: `Error updating effect style: ${error instanceof Error ? error.message : String(error)}`
-            }
-          ]
+              text: `Error updating effect style (styleId="${styleId}"): ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
         };
       }
-    }
+    },
   );
 
   // Delete Effect Style Tool
@@ -803,32 +823,32 @@ export function registerModificationTools(server: McpServer): void {
     "delete_effect_style",
     "Delete an effect style from the document",
     {
-      styleId: z.string().describe("The ID of the effect style to delete")
+      styleId: z.string().describe("The ID of the effect style to delete"),
     },
     async ({ styleId }) => {
       try {
-        const result = await sendCommandToFigma("delete_effect_style", {
-          styleId
+        await sendCommandToFigma("delete_effect_style", {
+          styleId,
         });
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result, null, 2)
-            }
-          ]
+              text: `Deleted effect style (ID: ${styleId})`,
+            },
+          ],
         };
       } catch (error) {
         return {
           content: [
             {
               type: "text",
-              text: `Error deleting effect style: ${error instanceof Error ? error.message : String(error)}`
-            }
-          ]
+              text: `Error deleting effect style: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
         };
       }
-    }
+    },
   );
 
   // Bind Variable Tool
@@ -838,16 +858,18 @@ export function registerModificationTools(server: McpServer): void {
     {
       nodeId: z.string().describe("The ID of the node to modify"),
       variableId: z.string().describe("The ID of the variable to bind"),
-      field: z.string().describe(
-        'Property field path to bind to. Examples: "fills/0/color" for fill color, "strokes/0/color" for stroke color, "opacity", "width", "height", "strokeWeight", "cornerRadius", "topLeftRadius", "topRightRadius", "bottomLeftRadius", "bottomRightRadius", "paddingLeft", "paddingRight", "paddingTop", "paddingBottom", "itemSpacing", "counterAxisSpacing"'
-      )
+      field: z
+        .string()
+        .describe(
+          'Property field path to bind to. Examples: "fills/0/color" for fill color, "strokes/0/color" for stroke color, "opacity", "width", "height", "strokeWeight", "cornerRadius", "topLeftRadius", "topRightRadius", "bottomLeftRadius", "bottomRightRadius", "paddingLeft", "paddingRight", "paddingTop", "paddingBottom", "itemSpacing", "counterAxisSpacing"',
+        ),
     },
     async ({ nodeId, variableId, field }) => {
       try {
         const result = await sendCommandToFigma("bind_variable", {
           nodeId,
           variableId,
-          field
+          field,
         });
 
         const typedResult = result as {
@@ -863,21 +885,21 @@ export function registerModificationTools(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: `Successfully bound variable "${typedResult.variableName}" (${typedResult.variableType}) to "${typedResult.field}" on node "${typedResult.nodeName}"`
-            }
-          ]
+              text: `Successfully bound variable "${typedResult.variableName}" (${typedResult.variableType}) to "${typedResult.field}" on node "${typedResult.nodeName}"`,
+            },
+          ],
         };
       } catch (error) {
         return {
           content: [
             {
               type: "text",
-              text: `Error binding variable: ${error instanceof Error ? error.message : String(error)}`
-            }
-          ]
+              text: `Error binding variable: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
         };
       }
-    }
+    },
   );
 
   // Unbind Variable Tool
@@ -886,15 +908,17 @@ export function registerModificationTools(server: McpServer): void {
     "Remove a variable binding from a node property in Figma",
     {
       nodeId: z.string().describe("The ID of the node to modify"),
-      field: z.string().describe(
-        'Property field path to unbind. Examples: "fills/0/color" for fill color, "strokes/0/color" for stroke color, "opacity", "strokeWeight", etc.'
-      )
+      field: z
+        .string()
+        .describe(
+          'Property field path to unbind. Examples: "fills/0/color" for fill color, "strokes/0/color" for stroke color, "opacity", "strokeWeight", etc.',
+        ),
     },
     async ({ nodeId, field }) => {
       try {
         const result = await sendCommandToFigma("unbind_variable", {
           nodeId,
-          field
+          field,
         });
 
         const typedResult = result as {
@@ -907,21 +931,21 @@ export function registerModificationTools(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: `Successfully removed variable binding from "${typedResult.field}" on node "${typedResult.nodeName}"`
-            }
-          ]
+              text: `Successfully removed variable binding from "${typedResult.field}" on node "${typedResult.nodeName}"`,
+            },
+          ],
         };
       } catch (error) {
         return {
           content: [
             {
               type: "text",
-              text: `Error unbinding variable: ${error instanceof Error ? error.message : String(error)}`
-            }
-          ]
+              text: `Error unbinding variable: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
         };
       }
-    }
+    },
   );
 
   // Rename Node Tool
@@ -930,13 +954,13 @@ export function registerModificationTools(server: McpServer): void {
     "Rename a node in Figma",
     {
       nodeId: z.string().describe("The ID of the node to rename"),
-      name: z.string().describe("The new name for the node")
+      name: z.string().describe("The new name for the node"),
     },
     async ({ nodeId, name }) => {
       try {
         const result = await sendCommandToFigma("rename_node", {
           nodeId,
-          name
+          name,
         });
 
         const typedResult = result as {
@@ -949,21 +973,21 @@ export function registerModificationTools(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: `Renamed node from "${typedResult.oldName}" to "${typedResult.newName}" (ID: ${typedResult.id})`
-            }
-          ]
+              text: `Renamed node from "${typedResult.oldName}" to "${typedResult.newName}" (ID: ${typedResult.id})`,
+            },
+          ],
         };
       } catch (error) {
         return {
           content: [
             {
               type: "text",
-              text: `Error renaming node: ${error instanceof Error ? error.message : String(error)}`
-            }
-          ]
+              text: `Error renaming node: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
         };
       }
-    }
+    },
   );
 
   // Set Image Fill Tool
@@ -973,7 +997,10 @@ export function registerModificationTools(server: McpServer): void {
     {
       nodeId: z.string().describe("The ID of the node to modify"),
       imageUrl: z.string().url().describe("URL of the image (PNG, JPEG, or GIF)"),
-      scaleMode: z.enum(["FILL", "FIT", "CROP", "TILE"]).optional().describe("How the image scales within the node (default: FILL)"),
+      scaleMode: z
+        .enum(["FILL", "FIT", "CROP", "TILE"])
+        .optional()
+        .describe("How the image scales within the node (default: FILL)"),
       rotation: z.number().optional().describe("Image rotation in degrees (increments of 90, only for FILL/FIT/TILE)"),
       exposure: z.number().min(-1).max(1).optional().describe("Exposure adjustment (-1 to 1, default: 0)"),
       contrast: z.number().min(-1).max(1).optional().describe("Contrast adjustment (-1 to 1, default: 0)"),
@@ -983,7 +1010,19 @@ export function registerModificationTools(server: McpServer): void {
       highlights: z.number().min(-1).max(1).optional().describe("Highlights adjustment (-1 to 1, default: 0)"),
       shadows: z.number().min(-1).max(1).optional().describe("Shadows adjustment (-1 to 1, default: 0)"),
     },
-    async ({ nodeId, imageUrl, scaleMode, rotation, exposure, contrast, saturation, temperature, tint, highlights, shadows }) => {
+    async ({
+      nodeId,
+      imageUrl,
+      scaleMode,
+      rotation,
+      exposure,
+      contrast,
+      saturation,
+      temperature,
+      tint,
+      highlights,
+      shadows,
+    }) => {
       try {
         const result = await sendCommandToFigma("set_image_fill", {
           nodeId,
@@ -1023,7 +1062,7 @@ export function registerModificationTools(server: McpServer): void {
           ],
         };
       }
-    }
+    },
   );
 
   // Set Gradient Fill Tool
@@ -1033,17 +1072,20 @@ export function registerModificationTools(server: McpServer): void {
     {
       nodeId: z.string().describe("The ID of the node to modify"),
       gradientType: z.enum(["LINEAR", "RADIAL", "ANGULAR", "DIAMOND"]).describe("Type of gradient"),
-      gradientStops: z.array(
-        z.object({
-          color: z.object({
-            r: z.number().min(0).max(1).describe("Red channel (0-1)"),
-            g: z.number().min(0).max(1).describe("Green channel (0-1)"),
-            b: z.number().min(0).max(1).describe("Blue channel (0-1)"),
-            a: z.number().min(0).max(1).optional().describe("Alpha channel (0-1, default 1)"),
+      gradientStops: z
+        .array(
+          z.object({
+            color: z.object({
+              r: z.number().min(0).max(1).describe("Red channel (0-1)"),
+              g: z.number().min(0).max(1).describe("Green channel (0-1)"),
+              b: z.number().min(0).max(1).describe("Blue channel (0-1)"),
+              a: z.number().min(0).max(1).optional().describe("Alpha channel (0-1, default 1)"),
+            }),
+            position: z.number().min(0).max(1).describe("Stop position (0-1)"),
           }),
-          position: z.number().min(0).max(1).describe("Stop position (0-1)"),
-        })
-      ).min(2).describe("Array of gradient color stops (minimum 2)"),
+        )
+        .min(2)
+        .describe("Array of gradient color stops (minimum 2)"),
       angle: z.number().optional().describe("Gradient angle in degrees (LINEAR only, default 0)"),
       opacity: z.number().min(0).max(1).optional().describe("Overall fill opacity (0-1, default 1)"),
     },
@@ -1082,6 +1124,6 @@ export function registerModificationTools(server: McpServer): void {
           ],
         };
       }
-    }
+    },
   );
 }

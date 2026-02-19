@@ -20,7 +20,7 @@ describe("Auto Layout Commands", () => {
       nodeName: "Test Frame",
       layoutMode: params.layoutMode,
       layoutWrap: params.layoutWrap || "NO_WRAP",
-      success: true
+      success: true,
     });
 
     mockCommands["set_padding"] = (params: any) => ({
@@ -30,7 +30,7 @@ describe("Auto Layout Commands", () => {
       paddingRight: params.paddingRight || 0,
       paddingBottom: params.paddingBottom || 0,
       paddingLeft: params.paddingLeft || 0,
-      success: true
+      success: true,
     });
 
     mockCommands["set_item_spacing"] = (params: any) => ({
@@ -38,7 +38,7 @@ describe("Auto Layout Commands", () => {
       nodeName: "Test Frame",
       itemSpacing: params.itemSpacing || 0,
       counterAxisSpacing: params.counterAxisSpacing || 0,
-      success: true
+      success: true,
     });
 
     mockCommands["set_axis_align"] = (params: any) => ({
@@ -46,7 +46,7 @@ describe("Auto Layout Commands", () => {
       nodeName: "Test Frame",
       primaryAxisAlignItems: params.primaryAxisAlignItems || "MIN",
       counterAxisAlignItems: params.counterAxisAlignItems || "MIN",
-      success: true
+      success: true,
     });
 
     mockCommands["set_layout_sizing"] = (params: any) => ({
@@ -54,7 +54,7 @@ describe("Auto Layout Commands", () => {
       nodeName: "Test Frame",
       layoutSizingHorizontal: params.layoutSizingHorizontal || "FIXED",
       layoutSizingVertical: params.layoutSizingVertical || "FIXED",
-      success: true
+      success: true,
     });
   });
 
@@ -62,7 +62,7 @@ describe("Auto Layout Commands", () => {
     const result = await mockSendCommandToFigma("set_layout_mode", {
       nodeId: frameId,
       layoutMode: "HORIZONTAL",
-      layoutWrap: "NO_WRAP"
+      layoutWrap: "NO_WRAP",
     });
 
     expect(result.success).toBe(true);
@@ -76,7 +76,7 @@ describe("Auto Layout Commands", () => {
       paddingTop: 16,
       paddingRight: 16,
       paddingBottom: 16,
-      paddingLeft: 16
+      paddingLeft: 16,
     });
 
     expect(result.success).toBe(true);
@@ -90,7 +90,7 @@ describe("Auto Layout Commands", () => {
     const result = await mockSendCommandToFigma("set_item_spacing", {
       nodeId: frameId,
       itemSpacing: 12,
-      counterAxisSpacing: 8
+      counterAxisSpacing: 8,
     });
 
     expect(result.success).toBe(true);
@@ -102,7 +102,7 @@ describe("Auto Layout Commands", () => {
     const result = await mockSendCommandToFigma("set_axis_align", {
       nodeId: frameId,
       primaryAxisAlignItems: "CENTER",
-      counterAxisAlignItems: "CENTER"
+      counterAxisAlignItems: "CENTER",
     });
 
     expect(result.success).toBe(true);
@@ -114,7 +114,7 @@ describe("Auto Layout Commands", () => {
     const result = await mockSendCommandToFigma("set_layout_sizing", {
       nodeId: frameId,
       layoutSizingHorizontal: "HUG",
-      layoutSizingVertical: "HUG"
+      layoutSizingVertical: "HUG",
     });
 
     expect(result.success).toBe(true);
@@ -133,7 +133,7 @@ describe("Selection and Focus Commands", () => {
       nodeName: "Test Node",
       nodeType: "FRAME",
       focused: true,
-      success: true
+      success: true,
     });
 
     mockCommands["set_selections"] = (params: any) => ({
@@ -141,9 +141,9 @@ describe("Selection and Focus Commands", () => {
       selectedNodes: params.nodeIds.map((id: string) => ({
         id,
         name: `Node ${id}`,
-        type: "FRAME"
+        type: "FRAME",
       })),
-      success: true
+      success: true,
     });
 
     mockCommands["read_my_design"] = () => ({
@@ -156,7 +156,7 @@ describe("Selection and Focus Commands", () => {
           x: 100,
           y: 100,
           width: 200,
-          height: 150
+          height: 150,
         },
         {
           id: nodeId2,
@@ -164,15 +164,15 @@ describe("Selection and Focus Commands", () => {
           type: "TEXT",
           x: 350,
           y: 100,
-          characters: "Hello World"
-        }
-      ]
+          characters: "Hello World",
+        },
+      ],
     });
   });
 
   it("should focus on a specific node", async () => {
     const result = await mockSendCommandToFigma("set_focus", {
-      nodeId: nodeId1
+      nodeId: nodeId1,
     });
 
     expect(result.success).toBe(true);
@@ -182,7 +182,7 @@ describe("Selection and Focus Commands", () => {
 
   it("should select multiple nodes", async () => {
     const result = await mockSendCommandToFigma("set_selections", {
-      nodeIds: [nodeId1, nodeId2]
+      nodeIds: [nodeId1, nodeId2],
     });
 
     expect(result.success).toBe(true);
@@ -214,15 +214,15 @@ describe("Scan Commands", () => {
         { id: "f2", name: "Frame 2", type: "FRAME", depth: 1, x: 10, y: 10, width: 80, height: 80 },
         { id: "g1", name: "Group 1", type: "GROUP", depth: 0, x: 150, y: 0 },
         { id: "f3", name: "Frame 3", type: "FRAME", depth: 2, x: 20, y: 20, width: 60, height: 60 },
-        { id: "g2", name: "Group 2", type: "GROUP", depth: 1, x: 160, y: 10 }
-      ]
+        { id: "g2", name: "Group 2", type: "GROUP", depth: 1, x: 160, y: 10 },
+      ],
     });
   });
 
   it("should scan and find nodes by types", async () => {
     const result = await mockSendCommandToFigma("scan_nodes_by_types", {
       nodeId: pageId,
-      types: ["FRAME", "GROUP"]
+      types: ["FRAME", "GROUP"],
     });
 
     expect(result.foundCount).toBe(5);
@@ -249,8 +249,8 @@ describe("Annotation Commands", () => {
       annotationCount: 2,
       annotations: [
         { index: 0, label: "First", labelMarkdown: "First", categoryId: "cat-1" },
-        { index: 1, label: "Second", labelMarkdown: "Second" }
-      ]
+        { index: 1, label: "Second", labelMarkdown: "Second" },
+      ],
     });
 
     mockCommands["set_annotation"] = (params: any) => ({
@@ -259,7 +259,7 @@ describe("Annotation Commands", () => {
       nodeName: "Test Node",
       annotationIndex: params.annotationId !== undefined ? parseInt(params.annotationId) : 0,
       totalAnnotations: 1,
-      annotation: { labelMarkdown: params.labelMarkdown }
+      annotation: { labelMarkdown: params.labelMarkdown },
     });
 
     mockCommands["set_multiple_annotations"] = (params: any) => ({
@@ -267,7 +267,7 @@ describe("Annotation Commands", () => {
       annotationsApplied: params.annotations.length,
       annotationsFailed: 0,
       completedInChunks: 1,
-      results: params.annotations.map((a: any) => ({ success: true, nodeId: a.nodeId }))
+      results: params.annotations.map((a: any) => ({ success: true, nodeId: a.nodeId })),
     });
 
     mockCommands["get_annotation_categories"] = () => ({
@@ -275,30 +275,35 @@ describe("Annotation Commands", () => {
       count: 2,
       categories: [
         { id: "cat-1", label: "Development", color: "blue", isPreset: true },
-        { id: "cat-2", label: "QA Review", color: "green", isPreset: false }
-      ]
+        { id: "cat-2", label: "QA Review", color: "green", isPreset: false },
+      ],
     });
 
     mockCommands["create_annotation_category"] = (params: any) => ({
       success: true,
-      category: { id: "cat-new", label: params.label, color: params.color || "blue", isPreset: false }
+      category: { id: "cat-new", label: params.label, color: params.color || "blue", isPreset: false },
     });
 
     mockCommands["update_annotation_category"] = (params: any) => ({
       success: true,
-      category: { id: params.categoryId, label: params.label || "Updated", color: params.color || "blue", isPreset: false }
+      category: {
+        id: params.categoryId,
+        label: params.label || "Updated",
+        color: params.color || "blue",
+        isPreset: false,
+      },
     });
 
     mockCommands["delete_annotation_category"] = (params: any) => ({
       success: true,
-      deletedCategoryId: params.categoryId
+      deletedCategoryId: params.categoryId,
     });
   });
 
   it("should get annotations for a node", async () => {
     const result = await mockSendCommandToFigma("get_annotations", {
       nodeId: nodeId,
-      includeCategories: true
+      includeCategories: true,
     });
 
     expect(result.success).toBe(true);
@@ -310,7 +315,7 @@ describe("Annotation Commands", () => {
   it("should set an annotation on a node", async () => {
     const result = await mockSendCommandToFigma("set_annotation", {
       nodeId: nodeId,
-      labelMarkdown: "Test annotation"
+      labelMarkdown: "Test annotation",
     });
 
     expect(result.success).toBe(true);
@@ -322,7 +327,7 @@ describe("Annotation Commands", () => {
     const result = await mockSendCommandToFigma("set_annotation", {
       nodeId: nodeId,
       annotationId: "1",
-      labelMarkdown: "Updated annotation"
+      labelMarkdown: "Updated annotation",
     });
 
     expect(result.success).toBe(true);
@@ -334,8 +339,8 @@ describe("Annotation Commands", () => {
       nodeId: nodeId,
       annotations: [
         { nodeId: "child-1", labelMarkdown: "Annotation 1" },
-        { nodeId: "child-2", labelMarkdown: "Annotation 2" }
-      ]
+        { nodeId: "child-2", labelMarkdown: "Annotation 2" },
+      ],
     });
 
     expect(result.success).toBe(true);
@@ -355,7 +360,7 @@ describe("Annotation Commands", () => {
   it("should create a new annotation category", async () => {
     const result = await mockSendCommandToFigma("create_annotation_category", {
       label: "Design Review",
-      color: "purple"
+      color: "purple",
     });
 
     expect(result.success).toBe(true);
@@ -368,7 +373,7 @@ describe("Annotation Commands", () => {
     const result = await mockSendCommandToFigma("update_annotation_category", {
       categoryId: "cat-2",
       label: "QA Approved",
-      color: "teal"
+      color: "teal",
     });
 
     expect(result.success).toBe(true);
@@ -377,7 +382,7 @@ describe("Annotation Commands", () => {
 
   it("should delete an annotation category", async () => {
     const result = await mockSendCommandToFigma("delete_annotation_category", {
-      categoryId: "cat-2"
+      categoryId: "cat-2",
     });
 
     expect(result.success).toBe(true);
@@ -401,11 +406,11 @@ describe("Prototyping Commands", () => {
           reactions: [
             {
               trigger: { type: "ON_CLICK" },
-              actions: [{ type: "NODE", destinationId: nodeId2 }]
-            }
-          ]
-        }
-      ]
+              actions: [{ type: "NODE", destinationId: nodeId2 }],
+            },
+          ],
+        },
+      ],
     });
 
     mockCommands["create_connections"] = (params: any) => ({
@@ -415,21 +420,21 @@ describe("Prototyping Commands", () => {
       connections: params.connections.map((conn: any) => ({
         ...conn,
         connectorId: `connector-${conn.startNodeId}-${conn.endNodeId}`,
-        success: true
-      }))
+        success: true,
+      })),
     });
 
     mockCommands["set_default_connector"] = (params: any) => ({
       connectorId: params.connectorId,
       connectorName: "Default Connector",
       message: "Default connector setting is not available in Figma Plugin API. Use Figma UI.",
-      success: false
+      success: false,
     });
   });
 
   it("should get reactions from nodes", async () => {
     const result = await mockSendCommandToFigma("get_reactions", {
-      nodeIds: [nodeId1, nodeId2]
+      nodeIds: [nodeId1, nodeId2],
     });
 
     expect(result.nodeCount).toBe(2);
@@ -442,8 +447,8 @@ describe("Prototyping Commands", () => {
     const result = await mockSendCommandToFigma("create_connections", {
       connections: [
         { startNodeId: "node-A", endNodeId: "node-B", text: "Navigate" },
-        { startNodeId: "node-B", endNodeId: "node-C" }
-      ]
+        { startNodeId: "node-B", endNodeId: "node-C" },
+      ],
     });
 
     expect(result.totalRequested).toBe(2);
@@ -454,7 +459,7 @@ describe("Prototyping Commands", () => {
 
   it("should acknowledge default connector limitation", async () => {
     const result = await mockSendCommandToFigma("set_default_connector", {
-      connectorId: "connector-001"
+      connectorId: "connector-001",
     });
 
     expect(result.success).toBe(false);
@@ -470,37 +475,76 @@ describe("Design System Preset Commands", () => {
       success: true,
       primitiveCount: 19,
       primitiveVariables: [
-        "spacing/0", "spacing/1", "spacing/2", "spacing/3", "spacing/4",
-        "spacing/5", "spacing/6", "spacing/7", "spacing/8", "spacing/10",
-        "spacing/12", "spacing/16", "spacing/20", "spacing/24", "spacing/32",
-        "spacing/40", "spacing/48", "spacing/56", "spacing/64"
+        "spacing/0",
+        "spacing/1",
+        "spacing/2",
+        "spacing/3",
+        "spacing/4",
+        "spacing/5",
+        "spacing/6",
+        "spacing/7",
+        "spacing/8",
+        "spacing/10",
+        "spacing/12",
+        "spacing/16",
+        "spacing/20",
+        "spacing/24",
+        "spacing/32",
+        "spacing/40",
+        "spacing/48",
+        "spacing/56",
+        "spacing/64",
       ],
-      preset: params.preset
+      preset: params.preset,
     });
 
     mockCommands["create_typography_system"] = (params: any) => ({
       success: true,
       totalVariables: 24,
       variables: [
-        "font.size.xs", "font.size.sm", "font.size.base", "font.size.lg",
-        "font.size.xl", "font.size.2xl", "font.size.3xl", "font.size.4xl", "font.size.5xl",
-        "font.weight.thin", "font.weight.extralight", "font.weight.light",
-        "font.weight.normal", "font.weight.medium", "font.weight.semibold",
-        "font.weight.bold", "font.weight.extrabold", "font.weight.black",
-        "font.lineHeight.none", "font.lineHeight.tight", "font.lineHeight.snug",
-        "font.lineHeight.normal", "font.lineHeight.relaxed", "font.lineHeight.loose"
+        "font.size.xs",
+        "font.size.sm",
+        "font.size.base",
+        "font.size.lg",
+        "font.size.xl",
+        "font.size.2xl",
+        "font.size.3xl",
+        "font.size.4xl",
+        "font.size.5xl",
+        "font.weight.thin",
+        "font.weight.extralight",
+        "font.weight.light",
+        "font.weight.normal",
+        "font.weight.medium",
+        "font.weight.semibold",
+        "font.weight.bold",
+        "font.weight.extrabold",
+        "font.weight.black",
+        "font.lineHeight.none",
+        "font.lineHeight.tight",
+        "font.lineHeight.snug",
+        "font.lineHeight.normal",
+        "font.lineHeight.relaxed",
+        "font.lineHeight.loose",
       ],
-      preset: params.scale_preset
+      preset: params.scale_preset,
     });
 
     mockCommands["create_radius_system"] = (params: any) => ({
       success: true,
       totalVariables: 9,
       variables: [
-        "radius/none", "radius/sm", "radius/md", "radius/md",
-        "radius/lg", "radius/xl", "radius/2xl", "radius/3xl", "radius/full"
+        "radius/none",
+        "radius/sm",
+        "radius/md",
+        "radius/md",
+        "radius/lg",
+        "radius/xl",
+        "radius/2xl",
+        "radius/3xl",
+        "radius/full",
       ],
-      preset: params.preset
+      preset: params.preset,
     });
   });
 
@@ -508,7 +552,7 @@ describe("Design System Preset Commands", () => {
     const result = await mockSendCommandToFigma("create_spacing_system", {
       collection_id: collectionId,
       preset: "8pt",
-      include_semantic: true
+      include_semantic: true,
     });
 
     expect(result.success).toBe(true);
@@ -525,7 +569,7 @@ describe("Design System Preset Commands", () => {
       base_size: 16,
       include_weights: true,
       include_line_heights: true,
-      include_semantic: true
+      include_semantic: true,
     });
 
     expect(result.success).toBe(true);
@@ -539,7 +583,7 @@ describe("Design System Preset Commands", () => {
   it("should create radius system with standard preset", async () => {
     const result = await mockSendCommandToFigma("create_radius_system", {
       collection_id: collectionId,
-      preset: "standard"
+      preset: "standard",
     });
 
     expect(result.success).toBe(true);
@@ -560,14 +604,14 @@ describe("Fixed Commands", () => {
       width: 100,
       height: 40,
       componentId: params.componentKey,
-      parentId: params.parentId || "0:1"
+      parentId: params.parentId || "0:1",
     });
 
     mockCommands["unbind_variable"] = (params: any) => ({
       nodeId: params.nodeId,
       nodeName: "Test Node",
       field: params.field,
-      success: true
+      success: true,
     });
   });
 
@@ -576,7 +620,7 @@ describe("Fixed Commands", () => {
       componentKey: "component-key-123",
       x: 50,
       y: 100,
-      parentId: "frame-001"
+      parentId: "frame-001",
     });
 
     expect(result.id).toBe("instance-001");
@@ -588,7 +632,7 @@ describe("Fixed Commands", () => {
   it("should unbind variable from node successfully", async () => {
     const result = await mockSendCommandToFigma("unbind_variable", {
       nodeId: "rect-001",
-      field: "fills/0"
+      field: "fills/0",
     });
 
     expect(result.success).toBe(true);

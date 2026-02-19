@@ -1,9 +1,9 @@
-import { z } from 'zod';
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { registerModificationTools } from '../../src/claude_figma_mcp/tools/modification-tools';
+import { z } from "zod";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { registerModificationTools } from "../../src/claude_figma_mcp/tools/modification-tools";
 
-jest.mock('../../src/claude_figma_mcp/utils/websocket', () => ({
-  sendCommandToFigma: jest.fn()
+jest.mock("../../src/claude_figma_mcp/utils/websocket", () => ({
+  sendCommandToFigma: jest.fn(),
 }));
 
 describe("rename_node tool integration", () => {
@@ -13,19 +13,16 @@ describe("rename_node tool integration", () => {
   let toolSchema: z.ZodObject<any>;
 
   beforeEach(() => {
-    server = new McpServer(
-      { name: 'test-server', version: '1.0.0' },
-      { capabilities: { tools: {} } }
-    );
+    server = new McpServer({ name: "test-server", version: "1.0.0" }, { capabilities: { tools: {} } });
 
-    mockSendCommand = require('../../src/claude_figma_mcp/utils/websocket').sendCommandToFigma;
+    mockSendCommand = require("../../src/claude_figma_mcp/utils/websocket").sendCommandToFigma;
     mockSendCommand.mockClear();
 
     const originalTool = server.tool.bind(server);
-    jest.spyOn(server, 'tool').mockImplementation((...args: any[]) => {
+    jest.spyOn(server, "tool").mockImplementation((...args: any[]) => {
       if (args.length === 4) {
         const [name, description, schema, handler] = args;
-        if (name === 'rename_node') {
+        if (name === "rename_node") {
           toolHandler = handler;
           toolSchema = z.object(schema);
         }
@@ -47,20 +44,20 @@ describe("rename_node tool integration", () => {
       mockSendCommand.mockResolvedValue({
         id: "node-123",
         oldName: "Old Name",
-        newName: "New Name"
+        newName: "New Name",
       });
     });
 
     it("successfully renames a node", async () => {
       const response = await callToolWithValidation({
         nodeId: "node-123",
-        name: "New Name"
+        name: "New Name",
       });
 
       expect(mockSendCommand).toHaveBeenCalledTimes(1);
       expect(mockSendCommand).toHaveBeenCalledWith("rename_node", {
         nodeId: "node-123",
-        name: "New Name"
+        name: "New Name",
       });
       expect(response.content[0].text).toContain('Renamed node from "Old Name" to "New Name"');
       expect(response.content[0].text).toContain("node-123");
@@ -70,17 +67,17 @@ describe("rename_node tool integration", () => {
       mockSendCommand.mockResolvedValue({
         id: "node-456",
         oldName: "Button",
-        newName: "Button/Primary/Large"
+        newName: "Button/Primary/Large",
       });
 
       const response = await callToolWithValidation({
         nodeId: "node-456",
-        name: "Button/Primary/Large"
+        name: "Button/Primary/Large",
       });
 
       expect(mockSendCommand).toHaveBeenCalledWith("rename_node", {
         nodeId: "node-456",
-        name: "Button/Primary/Large"
+        name: "Button/Primary/Large",
       });
       expect(response.content[0].text).toContain("Button/Primary/Large");
     });
@@ -89,12 +86,12 @@ describe("rename_node tool integration", () => {
       mockSendCommand.mockResolvedValue({
         id: "node-789",
         oldName: "",
-        newName: "Named Node"
+        newName: "Named Node",
       });
 
       const response = await callToolWithValidation({
         nodeId: "node-789",
-        name: "Named Node"
+        name: "Named Node",
       });
 
       expect(response.content[0].text).toContain('Renamed node from "" to "Named Node"');
@@ -104,17 +101,17 @@ describe("rename_node tool integration", () => {
       mockSendCommand.mockResolvedValue({
         id: "node-unicode",
         oldName: "Button",
-        newName: "Botón Principal"
+        newName: "Botón Principal",
       });
 
       const response = await callToolWithValidation({
         nodeId: "node-unicode",
-        name: "Botón Principal"
+        name: "Botón Principal",
       });
 
       expect(mockSendCommand).toHaveBeenCalledWith("rename_node", {
         nodeId: "node-unicode",
-        name: "Botón Principal"
+        name: "Botón Principal",
       });
     });
 
@@ -123,49 +120,57 @@ describe("rename_node tool integration", () => {
       mockSendCommand.mockResolvedValue({
         id: "node-long",
         oldName: "Short",
-        newName: longName
+        newName: longName,
       });
 
       const response = await callToolWithValidation({
         nodeId: "node-long",
-        name: longName
+        name: longName,
       });
 
       expect(mockSendCommand).toHaveBeenCalledWith("rename_node", {
         nodeId: "node-long",
-        name: longName
+        name: longName,
       });
     });
   });
 
   describe("parameter validation", () => {
     it("requires nodeId parameter", async () => {
-      await expect(callToolWithValidation({
-        name: "New Name"
-      })).rejects.toThrow();
+      await expect(
+        callToolWithValidation({
+          name: "New Name",
+        }),
+      ).rejects.toThrow();
       expect(mockSendCommand).not.toHaveBeenCalled();
     });
 
     it("requires name parameter", async () => {
-      await expect(callToolWithValidation({
-        nodeId: "node-123"
-      })).rejects.toThrow();
+      await expect(
+        callToolWithValidation({
+          nodeId: "node-123",
+        }),
+      ).rejects.toThrow();
       expect(mockSendCommand).not.toHaveBeenCalled();
     });
 
     it("rejects non-string nodeId", async () => {
-      await expect(callToolWithValidation({
-        nodeId: 123,
-        name: "New Name"
-      })).rejects.toThrow();
+      await expect(
+        callToolWithValidation({
+          nodeId: 123,
+          name: "New Name",
+        }),
+      ).rejects.toThrow();
       expect(mockSendCommand).not.toHaveBeenCalled();
     });
 
     it("rejects non-string name", async () => {
-      await expect(callToolWithValidation({
-        nodeId: "node-123",
-        name: 456
-      })).rejects.toThrow();
+      await expect(
+        callToolWithValidation({
+          nodeId: "node-123",
+          name: 456,
+        }),
+      ).rejects.toThrow();
       expect(mockSendCommand).not.toHaveBeenCalled();
     });
   });
@@ -176,7 +181,7 @@ describe("rename_node tool integration", () => {
 
       const response = await callToolWithValidation({
         nodeId: "invalid-id",
-        name: "New Name"
+        name: "New Name",
       });
 
       expect(response.content[0].text).toContain("Error renaming node");
@@ -188,7 +193,7 @@ describe("rename_node tool integration", () => {
 
       const response = await callToolWithValidation({
         nodeId: "locked-node",
-        name: "New Name"
+        name: "New Name",
       });
 
       expect(response.content[0].text).toContain("Error renaming node");
@@ -200,7 +205,7 @@ describe("rename_node tool integration", () => {
 
       const response = await callToolWithValidation({
         nodeId: "node-123",
-        name: "New Name"
+        name: "New Name",
       });
 
       expect(response.content[0].text).toContain("Error renaming node");
@@ -213,12 +218,12 @@ describe("rename_node tool integration", () => {
       mockSendCommand.mockResolvedValue({
         id: "node-same",
         oldName: "Same Name",
-        newName: "Same Name"
+        newName: "Same Name",
       });
 
       const response = await callToolWithValidation({
         nodeId: "node-same",
-        name: "Same Name"
+        name: "Same Name",
       });
 
       expect(response.content[0].text).toContain('Renamed node from "Same Name" to "Same Name"');
@@ -228,17 +233,17 @@ describe("rename_node tool integration", () => {
       mockSendCommand.mockResolvedValue({
         id: "node-spaces",
         oldName: "Old",
-        newName: "  Spaced Name  "
+        newName: "  Spaced Name  ",
       });
 
       const response = await callToolWithValidation({
         nodeId: "node-spaces",
-        name: "  Spaced Name  "
+        name: "  Spaced Name  ",
       });
 
       expect(mockSendCommand).toHaveBeenCalledWith("rename_node", {
         nodeId: "node-spaces",
-        name: "  Spaced Name  "
+        name: "  Spaced Name  ",
       });
     });
 
@@ -246,17 +251,17 @@ describe("rename_node tool integration", () => {
       mockSendCommand.mockResolvedValue({
         id: "node-newline",
         oldName: "Old",
-        newName: "Line1\nLine2"
+        newName: "Line1\nLine2",
       });
 
       const response = await callToolWithValidation({
         nodeId: "node-newline",
-        name: "Line1\nLine2"
+        name: "Line1\nLine2",
       });
 
       expect(mockSendCommand).toHaveBeenCalledWith("rename_node", {
         nodeId: "node-newline",
-        name: "Line1\nLine2"
+        name: "Line1\nLine2",
       });
     });
   });

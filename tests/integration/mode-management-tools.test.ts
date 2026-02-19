@@ -1,9 +1,9 @@
-import { z } from 'zod';
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { registerVariableTools } from '../../src/claude_figma_mcp/tools/variable-tools';
+import { z } from "zod";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { registerVariableTools } from "../../src/claude_figma_mcp/tools/variable-tools";
 
-jest.mock('../../src/claude_figma_mcp/utils/websocket', () => ({
-  sendCommandToFigma: jest.fn()
+jest.mock("../../src/claude_figma_mcp/utils/websocket", () => ({
+  sendCommandToFigma: jest.fn(),
 }));
 
 describe("mode management tools", () => {
@@ -13,19 +13,16 @@ describe("mode management tools", () => {
   let toolSchemas: Map<string, z.ZodObject<any>>;
 
   beforeEach(() => {
-    server = new McpServer(
-      { name: 'test-server', version: '1.0.0' },
-      { capabilities: { tools: {} } }
-    );
+    server = new McpServer({ name: "test-server", version: "1.0.0" }, { capabilities: { tools: {} } });
 
-    mockSendCommand = require('../../src/claude_figma_mcp/utils/websocket').sendCommandToFigma;
+    mockSendCommand = require("../../src/claude_figma_mcp/utils/websocket").sendCommandToFigma;
     mockSendCommand.mockClear();
 
     toolHandlers = new Map();
     toolSchemas = new Map();
 
     const originalTool = server.tool.bind(server);
-    jest.spyOn(server, 'tool').mockImplementation((...args: any[]) => {
+    jest.spyOn(server, "tool").mockImplementation((...args: any[]) => {
       if (args.length === 4) {
         const [name, description, schema, handler] = args;
         toolHandlers.set(name, handler);
@@ -58,48 +55,47 @@ describe("mode management tools", () => {
   describe("add_mode_to_collection", () => {
     beforeEach(() => {
       mockSendCommand.mockResolvedValue({
-        collectionId: 'col-123',
-        collectionName: 'Design Tokens',
-        modeId: 'mode-456',
-        modeName: 'Dark',
+        collectionId: "col-123",
+        collectionName: "Design Tokens",
+        modeId: "mode-456",
+        modeName: "Dark",
         totalModes: 2,
-        success: true
+        success: true,
       });
     });
 
     it("successfully adds a new mode to collection", async () => {
       const response = await callTool("add_mode_to_collection", {
         collection_id: "col-123",
-        mode_name: "Dark"
+        mode_name: "Dark",
       });
 
       expect(mockSendCommand).toHaveBeenCalledTimes(1);
       expect(mockSendCommand).toHaveBeenCalledWith("add_mode_to_collection", {
         collectionId: "col-123",
-        modeName: "Dark"
+        modeName: "Dark",
       });
       expect(response.content[0].text).toContain("Dark");
-      expect(response.content[0].text).toContain("success");
-      expect(response.content[0].text).toContain("totalModes");
+      expect(response.content[0].text).toContain("Added mode");
     });
 
     it("accepts collection name instead of ID", async () => {
       const response = await callTool("add_mode_to_collection", {
         collection_id: "Design Tokens",
-        mode_name: "Brand"
+        mode_name: "Brand",
       });
 
       expect(mockSendCommand).toHaveBeenCalledWith("add_mode_to_collection", {
         collectionId: "Design Tokens",
-        modeName: "Brand"
+        modeName: "Brand",
       });
     });
 
     it("validates mode name is provided", async () => {
       await expect(
         callTool("add_mode_to_collection", {
-          collection_id: "col-123"
-        })
+          collection_id: "col-123",
+        }),
       ).rejects.toThrow();
     });
   });
@@ -111,12 +107,12 @@ describe("mode management tools", () => {
   describe("rename_mode", () => {
     beforeEach(() => {
       mockSendCommand.mockResolvedValue({
-        collectionId: 'col-123',
-        collectionName: 'Design Tokens',
-        modeId: 'mode-456',
-        oldName: 'Mode 1',
-        newName: 'Light',
-        success: true
+        collectionId: "col-123",
+        collectionName: "Design Tokens",
+        modeId: "mode-456",
+        oldName: "Mode 1",
+        newName: "Light",
+        success: true,
       });
     });
 
@@ -124,33 +120,33 @@ describe("mode management tools", () => {
       const response = await callTool("rename_mode", {
         collection_id: "col-123",
         old_mode_name: "Mode 1",
-        new_mode_name: "Light"
+        new_mode_name: "Light",
       });
 
       expect(mockSendCommand).toHaveBeenCalledTimes(1);
       expect(mockSendCommand).toHaveBeenCalledWith("rename_mode", {
         collectionId: "col-123",
         oldModeName: "Mode 1",
-        newModeName: "Light"
+        newModeName: "Light",
       });
       expect(response.content[0].text).toContain("Mode 1");
       expect(response.content[0].text).toContain("Light");
-      expect(response.content[0].text).toContain("success");
+      expect(response.content[0].text).toContain("Renamed mode");
     });
 
     it("validates both old and new names are provided", async () => {
       await expect(
         callTool("rename_mode", {
           collection_id: "col-123",
-          old_mode_name: "Mode 1"
-        })
+          old_mode_name: "Mode 1",
+        }),
       ).rejects.toThrow();
 
       await expect(
         callTool("rename_mode", {
           collection_id: "col-123",
-          new_mode_name: "Light"
-        })
+          new_mode_name: "Light",
+        }),
       ).rejects.toThrow();
     });
   });
@@ -162,28 +158,27 @@ describe("mode management tools", () => {
   describe("delete_mode", () => {
     beforeEach(() => {
       mockSendCommand.mockResolvedValue({
-        collectionId: 'col-123',
-        collectionName: 'Design Tokens',
-        deletedMode: 'Deprecated',
+        collectionId: "col-123",
+        collectionName: "Design Tokens",
+        deletedMode: "Deprecated",
         remainingModes: 2,
-        success: true
+        success: true,
       });
     });
 
     it("successfully deletes a mode", async () => {
       const response = await callTool("delete_mode", {
         collection_id: "col-123",
-        mode_name: "Deprecated"
+        mode_name: "Deprecated",
       });
 
       expect(mockSendCommand).toHaveBeenCalledTimes(1);
       expect(mockSendCommand).toHaveBeenCalledWith("delete_mode", {
         collectionId: "col-123",
-        modeName: "Deprecated"
+        modeName: "Deprecated",
       });
       expect(response.content[0].text).toContain("Deprecated");
-      expect(response.content[0].text).toContain("success");
-      expect(response.content[0].text).toContain("remainingModes");
+      expect(response.content[0].text).toContain("Deleted mode");
     });
 
     it("handles error when trying to delete last mode", async () => {
@@ -191,7 +186,7 @@ describe("mode management tools", () => {
 
       const response = await callTool("delete_mode", {
         collection_id: "col-123",
-        mode_name: "Light"
+        mode_name: "Light",
       });
 
       expect(response.content[0].text).toContain("Error");
@@ -201,8 +196,8 @@ describe("mode management tools", () => {
     it("validates mode name is provided", async () => {
       await expect(
         callTool("delete_mode", {
-          collection_id: "col-123"
-        })
+          collection_id: "col-123",
+        }),
       ).rejects.toThrow();
     });
   });
@@ -214,13 +209,13 @@ describe("mode management tools", () => {
   describe("duplicate_mode_values", () => {
     beforeEach(() => {
       mockSendCommand.mockResolvedValue({
-        collectionId: 'col-123',
-        collectionName: 'Design Tokens',
-        sourceMode: 'Light',
-        targetMode: 'Dark',
+        collectionId: "col-123",
+        collectionName: "Design Tokens",
+        sourceMode: "Light",
+        targetMode: "Dark",
         variablesCopied: 50,
         variablesTransformed: 30,
-        success: true
+        success: true,
       });
     });
 
@@ -228,7 +223,7 @@ describe("mode management tools", () => {
       const response = await callTool("duplicate_mode_values", {
         collection_id: "col-123",
         source_mode: "Light",
-        target_mode: "Dark"
+        target_mode: "Dark",
       });
 
       expect(mockSendCommand).toHaveBeenCalledTimes(1);
@@ -236,12 +231,12 @@ describe("mode management tools", () => {
         collectionId: "col-123",
         sourceMode: "Light",
         targetMode: "Dark",
-        transformColors: undefined
+        transformColors: undefined,
       });
       expect(response.content[0].text).toContain("Light");
       expect(response.content[0].text).toContain("Dark");
       expect(response.content[0].text).toContain("50");
-      expect(response.content[0].text).toContain("success");
+      expect(response.content[0].text).toContain("Copied");
     });
 
     it("successfully duplicates with brightness adjustment", async () => {
@@ -250,8 +245,8 @@ describe("mode management tools", () => {
         source_mode: "Light",
         target_mode: "Dark",
         transform_colors: {
-          brightness_adjustment: -0.2
-        }
+          brightness_adjustment: -0.2,
+        },
       });
 
       expect(mockSendCommand).toHaveBeenCalledWith("duplicate_mode_values", {
@@ -259,10 +254,10 @@ describe("mode management tools", () => {
         sourceMode: "Light",
         targetMode: "Dark",
         transformColors: {
-          brightness_adjustment: -0.2
-        }
+          brightness_adjustment: -0.2,
+        },
       });
-      expect(response.content[0].text).toContain("variablesTransformed");
+      expect(response.content[0].text).toContain("Copied");
     });
 
     it("validates source and target modes are different", async () => {
@@ -271,7 +266,7 @@ describe("mode management tools", () => {
       const response = await callTool("duplicate_mode_values", {
         collection_id: "col-123",
         source_mode: "Light",
-        target_mode: "Light"
+        target_mode: "Light",
       });
 
       expect(response.content[0].text).toContain("Error");
@@ -281,8 +276,8 @@ describe("mode management tools", () => {
       await expect(
         callTool("duplicate_mode_values", {
           collection_id: "col-123",
-          source_mode: "Light"
-        })
+          source_mode: "Light",
+        }),
       ).rejects.toThrow();
     });
   });
@@ -297,7 +292,7 @@ describe("mode management tools", () => {
 
       const response = await callTool("add_mode_to_collection", {
         collection_id: "invalid-id",
-        mode_name: "Dark"
+        mode_name: "Dark",
       });
 
       expect(response.content[0].text).toContain("Error");
@@ -310,7 +305,7 @@ describe("mode management tools", () => {
       const response = await callTool("rename_mode", {
         collection_id: "col-123",
         old_mode_name: "NonExistent",
-        new_mode_name: "Light"
+        new_mode_name: "Light",
       });
 
       expect(response.content[0].text).toContain("Error");
@@ -322,7 +317,7 @@ describe("mode management tools", () => {
 
       const response = await callTool("add_mode_to_collection", {
         collection_id: "col-123",
-        mode_name: "Light"
+        mode_name: "Light",
       });
 
       expect(response.content[0].text).toContain("Error");

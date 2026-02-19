@@ -3,6 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { sendCommandToFigma } from "../utils/websocket";
 import { coerceArray } from "../utils/coerce-array.js";
 import { outputFormatSchema, fetchNodesAsJsx } from "../utils/output-format.js";
+import { CreateComponentInstanceResult, GetReactionsResult, GetComponentPropertiesResult } from "../types";
 
 /**
  * Register component-related tools to the MCP server
@@ -15,22 +16,23 @@ export function registerComponentTools(server: McpServer): void {
     "create_component_instance",
     "Create an instance of a component in Figma. Returns JSX+Tailwind by default; use output_format='json' for raw Figma JSON. For local components, use the node ID (e.g., '123:456') from get_local_components. For library components, use the component key.",
     {
-      componentKey: z.string().describe("Component node ID (for local, e.g., '123:456') or component key (for library components)"),
+      componentKey: z
+        .string()
+        .describe("Component node ID (for local, e.g., '123:456') or component key (for library components)"),
       x: z.number().describe("X position"),
       y: z.number().describe("Y position"),
       output_format: outputFormatSchema,
     },
     async ({ componentKey, x, y, output_format }) => {
       try {
-        const result = await sendCommandToFigma("create_component_instance", {
+        const result = await sendCommandToFigma<CreateComponentInstanceResult>("create_component_instance", {
           componentKey,
           x,
           y,
         });
-        const typedResult = result as any;
 
-        if (output_format === "jsx" && typedResult?.id) {
-          const jsx = await fetchNodesAsJsx([typedResult.id]);
+        if (output_format === "jsx" && result?.id) {
+          const jsx = await fetchNodesAsJsx([result.id]);
           return { content: [{ type: "text", text: jsx }] };
         }
 
@@ -38,21 +40,21 @@ export function registerComponentTools(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: JSON.stringify(typedResult),
-            }
-          ]
-        }
+              text: JSON.stringify(result),
+            },
+          ],
+        };
       } catch (error) {
         return {
           content: [
             {
               type: "text",
-              text: `Error creating component instance: ${error instanceof Error ? error.message : String(error)}`,
+              text: `Error creating component instance (componentKey="${componentKey}"): ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };
       }
-    }
+    },
   );
 
   // Detach Instance Tool
@@ -84,7 +86,7 @@ export function registerComponentTools(server: McpServer): void {
           ],
         };
       }
-    }
+    },
   );
 
   // Create Component Tool
@@ -116,7 +118,7 @@ export function registerComponentTools(server: McpServer): void {
           ],
         };
       }
-    }
+    },
   );
 
   // Create Component Set Tool
@@ -149,7 +151,7 @@ export function registerComponentTools(server: McpServer): void {
           ],
         };
       }
-    }
+    },
   );
 
   // Get Reactions Tool
@@ -157,32 +159,41 @@ export function registerComponentTools(server: McpServer): void {
     "get_reactions",
     "Get Figma Prototyping Reactions from multiple nodes",
     {
-      nodeIds: coerceArray(z.array(z.string()))
-        .describe("Array of node IDs to get reactions from")
+      nodeIds: coerceArray(z.array(z.string())).describe("Array of node IDs to get reactions from"),
     },
     async ({ nodeIds }) => {
       try {
-        const result = await sendCommandToFigma("get_reactions", { nodeIds });
+        const result = await sendCommandToFigma<GetReactionsResult>("get_reactions", { nodeIds });
+        const nodes = Array.isArray(result) ? result : (result as any)?.nodes || [];
+        const total = nodes.reduce((sum: number, n: any) => sum + (n.reactions?.length || 0), 0);
+        const lines: string[] = [`Found ${total} reaction(s) across ${nodes.length} node(s)`];
+        for (const n of nodes) {
+          if (!n.reactions?.length) continue;
+          lines.push(
+            `\n**${n.nodeName || n.nodeId}** (${n.reactions.length} reaction${n.reactions.length > 1 ? "s" : ""}):`,
+          );
+          for (const r of n.reactions) {
+            const trigger = r.trigger?.type || "unknown";
+            const action = r.action?.type || "unknown";
+            const dest = r.action?.destinationId || "-";
+            lines.push(`- ${trigger} → ${action} (dest: ${dest})`);
+          }
+        }
+        lines.push("", "Use 'reaction_to_connector_strategy' prompt to prepare parameters");
         return {
-          content: [
-            { type: "text", text: JSON.stringify(result) },
-            {
-              type: "text",
-              text: "Use 'reaction_to_connector_strategy' prompt to prepare parameters"
-            }
-          ]
+          content: [{ type: "text", text: lines.join("\n") }],
         };
       } catch (error) {
         return {
           content: [
             {
               type: "text",
-              text: `Error getting reactions: ${error instanceof Error ? error.message : String(error)}`,
+              text: `Error getting reactions for nodes [${nodeIds.join(", ")}]: ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };
       }
-    }
+    },
   );
 
   // Set Default Connector Tool
@@ -190,21 +201,20 @@ export function registerComponentTools(server: McpServer): void {
     "set_default_connector",
     "Set a copied connector node as the default connector",
     {
-      connectorId: z.string().optional()
-        .describe("The ID of the connector node to set as default")
+      connectorId: z.string().optional().describe("The ID of the connector node to set as default"),
     },
     async ({ connectorId }) => {
       try {
         const result = await sendCommandToFigma("set_default_connector", {
-          connectorId
+          connectorId,
         });
         return {
           content: [
             {
               type: "text",
-              text: `Default connector set: ${JSON.stringify(result)}`
-            }
-          ]
+              text: `Default connector set: ${JSON.stringify(result)}`,
+            },
+          ],
         };
       } catch (error) {
         return {
@@ -216,7 +226,7 @@ export function registerComponentTools(server: McpServer): void {
           ],
         };
       }
-    }
+    },
   );
 
   // Create Connections Tool
@@ -224,12 +234,15 @@ export function registerComponentTools(server: McpServer): void {
     "create_connections",
     "Create connections between nodes using the default connector style",
     {
-      connections: coerceArray(z.array(z.object({
-        startNodeId: z.string().describe("ID of the starting node"),
-        endNodeId: z.string().describe("ID of the ending node"),
-        text: z.string().optional()
-          .describe("Optional text to display on the connector")
-      }))).describe("Array of node connections to create")
+      connections: coerceArray(
+        z.array(
+          z.object({
+            startNodeId: z.string().describe("ID of the starting node"),
+            endNodeId: z.string().describe("ID of the ending node"),
+            text: z.string().optional().describe("Optional text to display on the connector"),
+          }),
+        ),
+      ).describe("Array of node connections to create"),
     },
     async ({ connections }) => {
       try {
@@ -238,23 +251,23 @@ export function registerComponentTools(server: McpServer): void {
             content: [
               {
                 type: "text",
-                text: "No connections provided"
-              }
-            ]
+                text: "No connections provided",
+              },
+            ],
           };
         }
 
         const result = await sendCommandToFigma("create_connections", {
-          connections
+          connections,
         });
 
         return {
           content: [
             {
               type: "text",
-              text: `Created ${connections.length} connections: ${JSON.stringify(result)}`
-            }
-          ]
+              text: `Created ${connections.length} connections: ${JSON.stringify(result)}`,
+            },
+          ],
         };
       } catch (error) {
         return {
@@ -266,7 +279,7 @@ export function registerComponentTools(server: McpServer): void {
           ],
         };
       }
-    }
+    },
   );
 
   // Get Instance Overrides Tool
@@ -274,13 +287,12 @@ export function registerComponentTools(server: McpServer): void {
     "get_instance_overrides",
     "Get all override properties from a selected component instance",
     {
-      nodeId: z.string().optional()
-        .describe("Optional ID of component instance. Uses current selection if omitted")
+      nodeId: z.string().optional().describe("Optional ID of component instance. Uses current selection if omitted"),
     },
     async ({ nodeId }) => {
       try {
         const result = await sendCommandToFigma("get_instance_overrides", {
-          instanceNodeId: nodeId || null
+          instanceNodeId: nodeId || null,
         });
         const typedResult = result as {
           success: boolean;
@@ -293,9 +305,9 @@ export function registerComponentTools(server: McpServer): void {
               type: "text",
               text: typedResult.success
                 ? `Successfully got instance overrides: ${typedResult.message}`
-                : `Failed to get instance overrides: ${typedResult.message}`
-            }
-          ]
+                : `Failed to get instance overrides: ${typedResult.message}`,
+            },
+          ],
         };
       } catch (error) {
         return {
@@ -307,7 +319,7 @@ export function registerComponentTools(server: McpServer): void {
           ],
         };
       }
-    }
+    },
   );
 
   // Set Instance Overrides Tool
@@ -315,16 +327,14 @@ export function registerComponentTools(server: McpServer): void {
     "set_instance_overrides",
     "Apply previously copied overrides to selected component instances",
     {
-      sourceInstanceId: z.string()
-        .describe("ID of the source component instance"),
-      targetNodeIds: coerceArray(z.array(z.string()))
-        .describe("Array of target instance IDs")
+      sourceInstanceId: z.string().describe("ID of the source component instance"),
+      targetNodeIds: coerceArray(z.array(z.string())).describe("Array of target instance IDs"),
     },
     async ({ sourceInstanceId, targetNodeIds }) => {
       try {
         const result = await sendCommandToFigma("set_instance_overrides", {
           sourceInstanceId,
-          targetNodeIds: targetNodeIds || []
+          targetNodeIds: targetNodeIds || [],
         });
         const typedResult = result as {
           success: boolean;
@@ -334,24 +344,23 @@ export function registerComponentTools(server: McpServer): void {
         };
 
         if (typedResult.success) {
-          const successCount = typedResult.results
-            ?.filter(r => r.success).length || 0;
+          const successCount = typedResult.results?.filter((r) => r.success).length || 0;
           return {
             content: [
               {
                 type: "text",
-                text: `Successfully applied ${typedResult.totalCount || 0} overrides to ${successCount} instances.`
-              }
-            ]
+                text: `Successfully applied ${typedResult.totalCount || 0} overrides to ${successCount} instances.`,
+              },
+            ],
           };
         } else {
           return {
             content: [
               {
                 type: "text",
-                text: `Failed to set instance overrides: ${typedResult.message}`
-              }
-            ]
+                text: `Failed to set instance overrides: ${typedResult.message}`,
+              },
+            ],
           };
         }
       } catch (error) {
@@ -364,7 +373,7 @@ export function registerComponentTools(server: McpServer): void {
           ],
         };
       }
-    }
+    },
   );
 
   // Add Component Property Tool
@@ -375,7 +384,12 @@ export function registerComponentTools(server: McpServer): void {
       nodeId: z.string().describe("The ID of the component or component set"),
       propertyName: z.string().describe("Name for the property (e.g., 'Show Icon', 'Label Text')"),
       type: z.enum(["BOOLEAN", "TEXT", "INSTANCE_SWAP", "VARIANT"]).describe("Type of property to create"),
-      defaultValue: z.union([z.boolean(), z.string()]).optional().describe("Default value (boolean for BOOLEAN type, string for TEXT/VARIANT, required component key for INSTANCE_SWAP)"),
+      defaultValue: z
+        .union([z.boolean(), z.string()])
+        .optional()
+        .describe(
+          "Default value (boolean for BOOLEAN type, string for TEXT/VARIANT, required component key for INSTANCE_SWAP)",
+        ),
     },
     async ({ nodeId, propertyName, type, defaultValue }) => {
       try {
@@ -410,7 +424,7 @@ export function registerComponentTools(server: McpServer): void {
           ],
         };
       }
-    }
+    },
   );
 
   // Edit Component Property Tool
@@ -422,10 +436,16 @@ export function registerComponentTools(server: McpServer): void {
       propertyName: z.string().describe("The full property name including the #ID suffix (e.g., 'Show Icon#123:456')"),
       newName: z.string().optional().describe("New name for the property"),
       newDefaultValue: z.union([z.boolean(), z.string()]).optional().describe("New default value"),
-      preferredValues: coerceArray(z.array(z.object({
-        type: z.enum(["COMPONENT", "COMPONENT_SET"]),
-        key: z.string(),
-      }))).optional().describe("Preferred values for INSTANCE_SWAP properties"),
+      preferredValues: coerceArray(
+        z.array(
+          z.object({
+            type: z.enum(["COMPONENT", "COMPONENT_SET"]),
+            key: z.string(),
+          }),
+        ),
+      )
+        .optional()
+        .describe("Preferred values for INSTANCE_SWAP properties"),
     },
     async ({ nodeId, propertyName, newName, newDefaultValue, preferredValues }) => {
       try {
@@ -461,7 +481,7 @@ export function registerComponentTools(server: McpServer): void {
           ],
         };
       }
-    }
+    },
   );
 
   // Delete Component Property Tool
@@ -501,7 +521,7 @@ export function registerComponentTools(server: McpServer): void {
           ],
         };
       }
-    }
+    },
   );
 
   // Set Component Property References Tool
@@ -510,7 +530,11 @@ export function registerComponentTools(server: McpServer): void {
     "Link a component property to a child node. Use 'visible' to control visibility with a boolean property, 'characters' for text content, or 'mainComponent' for instance swap.",
     {
       nodeId: z.string().describe("The ID of the child node within the component"),
-      references: z.record(z.string()).describe("Object mapping property types to property names. E.g., { visible: 'ShowIcon#123:456' } for boolean visibility"),
+      references: z
+        .record(z.string())
+        .describe(
+          "Object mapping property types to property names. E.g., { visible: 'ShowIcon#123:456' } for boolean visibility",
+        ),
     },
     async ({ nodeId, references }) => {
       try {
@@ -541,7 +565,7 @@ export function registerComponentTools(server: McpServer): void {
           ],
         };
       }
-    }
+    },
   );
 
   // Get Component Properties Tool
@@ -553,20 +577,32 @@ export function registerComponentTools(server: McpServer): void {
     },
     async ({ nodeId }) => {
       try {
-        const result = await sendCommandToFigma("get_component_properties", {
+        const result = await sendCommandToFigma<GetComponentPropertiesResult>("get_component_properties", {
           nodeId,
         });
-        const typedResult = result as {
-          nodeId: string;
-          nodeName: string;
-          nodeType: string;
-          properties: Record<string, object>;
+        const typedResult = result as GetComponentPropertiesResult & {
+          nodeId?: string;
+          nodeName?: string;
+          nodeType?: string;
         };
+        const props = typedResult.properties || {};
+        const propEntries = Object.entries(props);
+        const lines: string[] = [
+          `## ${typedResult.nodeName || "-"} (${typedResult.nodeType || "-"})`,
+          `Properties: ${propEntries.length}`,
+        ];
+        if (propEntries.length > 0) {
+          lines.push("", "| Property | Type | Default |", "|----------|------|---------|");
+          for (const [name, prop] of propEntries) {
+            const p = prop as any;
+            lines.push(`| ${name} | ${p.type || "-"} | ${p.defaultValue ?? "-"} |`);
+          }
+        }
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(typedResult, null, 2),
+              text: lines.join("\n"),
             },
           ],
         };
@@ -575,11 +611,11 @@ export function registerComponentTools(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: `Error getting component properties: ${error instanceof Error ? error.message : String(error)}`,
+              text: `Error getting component properties for node "${nodeId}": ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };
       }
-    }
+    },
   );
 }

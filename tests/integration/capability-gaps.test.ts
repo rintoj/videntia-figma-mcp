@@ -14,13 +14,9 @@ describe("MCP capability gap fixes", () => {
   let toolSchemas: Map<string, z.ZodObject<any>>;
 
   beforeEach(() => {
-    server = new McpServer(
-      { name: "test-server", version: "1.0.0" },
-      { capabilities: { tools: {} } },
-    );
+    server = new McpServer({ name: "test-server", version: "1.0.0" }, { capabilities: { tools: {} } });
 
-    mockSendCommand =
-      require("../../src/claude_figma_mcp/utils/websocket").sendCommandToFigma;
+    mockSendCommand = require("../../src/claude_figma_mcp/utils/websocket").sendCommandToFigma;
     mockSendCommand.mockClear();
 
     toolHandlers = new Map();

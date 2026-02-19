@@ -16,14 +16,14 @@
  */
 export const SPACING_8PT = {
   0: 0,
-  1: 4,   // 0.5 units
-  2: 8,   // 1 unit
-  3: 12,  // 1.5 units
-  4: 16,  // 2 units
-  5: 20,  // 2.5 units
-  6: 24,  // 3 units
-  7: 28,  // 3.5 units
-  8: 32,  // 4 units
+  1: 4, // 0.5 units
+  2: 8, // 1 unit
+  3: 12, // 1.5 units
+  4: 16, // 2 units
+  5: 20, // 2.5 units
+  6: 24, // 3 units
+  7: 28, // 3.5 units
+  8: 32, // 4 units
   10: 40, // 5 units
   12: 48, // 6 units
   16: 64, // 8 units
@@ -33,7 +33,7 @@ export const SPACING_8PT = {
   40: 160, // 20 units
   48: 192, // 24 units
   56: 224, // 28 units
-  64: 256  // 32 units
+  64: 256, // 32 units
 } as const;
 
 /**
@@ -71,7 +71,7 @@ export const SPACING_4PT = {
   64: 256,
   72: 288,
   80: 320,
-  96: 384
+  96: 384,
 } as const;
 
 export type SpacingScale = typeof SPACING_8PT | typeof SPACING_4PT;
@@ -87,12 +87,12 @@ export type SpacingScale = typeof SPACING_8PT | typeof SPACING_4PT;
 export const TYPE_SCALE_RATIOS = {
   "minor-second": 1.067,
   "major-second": 1.125,
-  "minor-third": 1.200,
-  "major-third": 1.250,
+  "minor-third": 1.2,
+  "major-third": 1.25,
   "perfect-fourth": 1.333,
   "augmented-fourth": 1.414,
-  "perfect-fifth": 1.500,
-  "golden-ratio": 1.618
+  "perfect-fifth": 1.5,
+  "golden-ratio": 1.618,
 } as const;
 
 export type TypeScaleRatio = keyof typeof TYPE_SCALE_RATIOS;
@@ -133,7 +133,7 @@ export const TYPE_SCALE_MAJOR_THIRD = {
   "2xl": 31,
   "3xl": 39,
   "4xl": 49,
-  "5xl": 61
+  "5xl": 61,
 } as const;
 
 /**
@@ -150,7 +150,7 @@ export const TYPE_SCALE_PERFECT_FOURTH = {
   "2xl": 37,
   "3xl": 50,
   "4xl": 66,
-  "5xl": 88
+  "5xl": 88,
 } as const;
 
 /**
@@ -167,7 +167,7 @@ export const TYPE_SCALE_MINOR_THIRD = {
   "2xl": 28,
   "3xl": 33,
   "4xl": 40,
-  "5xl": 48
+  "5xl": 48,
 } as const;
 
 /**
@@ -183,7 +183,7 @@ export const FONT_WEIGHTS = {
   semibold: 600,
   bold: 700,
   extrabold: 800,
-  black: 900
+  black: 900,
 } as const;
 
 /**
@@ -196,7 +196,7 @@ export const LINE_HEIGHTS = {
   snug: 1.375,
   normal: 1.5,
   relaxed: 1.625,
-  loose: 2
+  loose: 2,
 } as const;
 
 /**
@@ -209,7 +209,7 @@ export const LETTER_SPACING = {
   normal: 0,
   wide: 0.025,
   wider: 0.05,
-  widest: 0.1
+  widest: 0.1,
 } as const;
 
 // ========================================
@@ -229,7 +229,7 @@ export const BORDER_RADIUS_STANDARD = {
   xl: 24,
   "2xl": 32,
   "3xl": 48,
-  full: 9999
+  full: 9999,
 } as const;
 
 /**
@@ -244,7 +244,7 @@ export const BORDER_RADIUS_SUBTLE = {
   lg: 8,
   xl: 12,
   "2xl": 16,
-  full: 9999
+  full: 9999,
 } as const;
 
 /**
@@ -259,7 +259,7 @@ export const BORDER_RADIUS_BOLD = {
   lg: 24,
   xl: 32,
   "2xl": 48,
-  full: 9999
+  full: 9999,
 } as const;
 
 export type BorderRadiusScale = typeof BORDER_RADIUS_STANDARD | typeof BORDER_RADIUS_SUBTLE | typeof BORDER_RADIUS_BOLD;
@@ -278,8 +278,8 @@ export const TAILWIND_PRESET = {
   fonts: {
     sans: "Inter, system-ui, sans-serif",
     serif: "Georgia, serif",
-    mono: "Menlo, monospace"
-  }
+    mono: "Menlo, monospace",
+  },
 } as const;
 
 /**
@@ -291,8 +291,8 @@ export const MATERIAL_PRESET = {
   radius: BORDER_RADIUS_STANDARD,
   fonts: {
     sans: "Roboto, system-ui, sans-serif",
-    mono: "Roboto Mono, monospace"
-  }
+    mono: "Roboto Mono, monospace",
+  },
 } as const;
 
 /**
@@ -304,8 +304,8 @@ export const BOOTSTRAP_PRESET = {
   radius: BORDER_RADIUS_SUBTLE,
   fonts: {
     sans: "system-ui, -apple-system, sans-serif",
-    mono: "SFMono-Regular, monospace"
-  }
+    mono: "SFMono-Regular, monospace",
+  },
 } as const;
 
 // ========================================
@@ -315,7 +315,9 @@ export const BOOTSTRAP_PRESET = {
 /**
  * Get spacing preset by name
  */
-export function getSpacingPreset(preset: "4pt" | "8pt" | "tailwind" | "material"): typeof SPACING_8PT | typeof SPACING_4PT {
+export function getSpacingPreset(
+  preset: "4pt" | "8pt" | "tailwind" | "material",
+): typeof SPACING_8PT | typeof SPACING_4PT {
   switch (preset) {
     case "4pt":
     case "tailwind":
@@ -386,7 +388,7 @@ export function generateSemanticSpacing() {
     "layout.margin.sm": "spacing.4",
     "layout.margin.md": "spacing.8",
     "layout.margin.lg": "spacing.12",
-    "layout.margin.xl": "spacing.16"
+    "layout.margin.xl": "spacing.16",
   };
 }
 
@@ -419,6 +421,6 @@ export function generateSemanticTypography() {
     // Line heights
     "heading.lineHeight": "font.lineHeight.tight",
     "body.lineHeight": "font.lineHeight.normal",
-    "caption.lineHeight": "font.lineHeight.snug"
+    "caption.lineHeight": "font.lineHeight.snug",
   };
 }

@@ -16,10 +16,7 @@ const REF_PATTERN = /^\$result\[(\d+)\](.*)$/;
  * @param results - Array of previous batch action results
  * @returns The resolved value with all references replaced
  */
-export function resolveResultReferences(
-  params: unknown,
-  results: BatchActionResult[],
-): unknown {
+export function resolveResultReferences(params: unknown, results: BatchActionResult[]): unknown {
   if (params === null || params === undefined) return params;
 
   if (typeof params === "string") {
@@ -36,9 +33,7 @@ export function resolveResultReferences(
 
       const referencedResult = results[refIndex];
       if (!referencedResult.success) {
-        throw new Error(
-          `$result[${refIndex}] references a failed action: ${referencedResult.error}`,
-        );
+        throw new Error(`$result[${refIndex}] references a failed action: ${referencedResult.error}`);
       }
 
       let value: any = referencedResult.result;
@@ -47,15 +42,11 @@ export function resolveResultReferences(
         const segments = fieldPath.match(/\.([a-zA-Z_]\w*)|(\[\d+\])/g);
         if (segments) {
           if (segments.length > MAX_PATH_DEPTH) {
-            throw new Error(
-              `Field path exceeds maximum depth of ${MAX_PATH_DEPTH}: $result[${refIndex}]${fieldPath}`,
-            );
+            throw new Error(`Field path exceeds maximum depth of ${MAX_PATH_DEPTH}: $result[${refIndex}]${fieldPath}`);
           }
           for (const segment of segments) {
             if (value === null || value === undefined) {
-              throw new Error(
-                `Cannot access '${segment}' on null/undefined in $result[${refIndex}]${fieldPath}`,
-              );
+              throw new Error(`Cannot access '${segment}' on null/undefined in $result[${refIndex}]${fieldPath}`);
             }
             if (segment.startsWith("[")) {
               const arrIndex = parseInt(segment.slice(1, -1), 10);
@@ -79,10 +70,7 @@ export function resolveResultReferences(
   if (typeof params === "object") {
     const resolved: Record<string, unknown> = {};
     for (const key of Object.keys(params as Record<string, unknown>)) {
-      resolved[key] = resolveResultReferences(
-        (params as Record<string, unknown>)[key],
-        results,
-      );
+      resolved[key] = resolveResultReferences((params as Record<string, unknown>)[key], results);
     }
     return resolved;
   }

@@ -25,9 +25,7 @@ describe("coerceArray", () => {
   });
 
   it("should parse JSON object arrays", () => {
-    const objectArraySchema = coerceArray(
-      z.array(z.object({ key: z.string() }))
-    );
+    const objectArraySchema = coerceArray(z.array(z.object({ key: z.string() })));
     const result = objectArraySchema.parse('[{"key":"val"}]');
     expect(result).toEqual([{ key: "val" }]);
   });
@@ -65,18 +63,14 @@ describe("coerceArray", () => {
   });
 
   it("should work with z.enum arrays", () => {
-    const enumArraySchema = coerceArray(
-      z.array(z.enum(["FRAME", "COMPONENT", "TEXT"]))
-    );
+    const enumArraySchema = coerceArray(z.array(z.enum(["FRAME", "COMPONENT", "TEXT"])));
     const result = enumArraySchema.parse("FRAME,COMPONENT");
     expect(result).toEqual(["FRAME", "COMPONENT"]);
   });
 
   it("should work with optional().describe() chaining", () => {
     const schema = z.object({
-      items: coerceArray(z.array(z.string()))
-        .optional()
-        .describe("test field"),
+      items: coerceArray(z.array(z.string())).optional().describe("test field"),
     });
 
     expect(schema.parse({ items: "a,b" })).toEqual({ items: ["a", "b"] });

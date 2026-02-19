@@ -215,11 +215,7 @@ function serializeStyleObject(obj: t.ObjectExpression): string {
   for (const prop of obj.properties) {
     if (prop.type !== "ObjectProperty") continue;
     const key =
-      prop.key.type === "Identifier"
-        ? prop.key.name
-        : prop.key.type === "StringLiteral"
-          ? prop.key.value
-          : "";
+      prop.key.type === "Identifier" ? prop.key.name : prop.key.type === "StringLiteral" ? prop.key.value : "";
     if (!key) continue;
 
     if (prop.value.type === "StringLiteral") {
@@ -241,11 +237,7 @@ function serializeObjectExpression(obj: t.ObjectExpression): string {
   for (const prop of obj.properties) {
     if (prop.type !== "ObjectProperty") continue;
     const key =
-      prop.key.type === "Identifier"
-        ? prop.key.name
-        : prop.key.type === "StringLiteral"
-          ? prop.key.value
-          : "";
+      prop.key.type === "Identifier" ? prop.key.name : prop.key.type === "StringLiteral" ? prop.key.value : "";
     if (!key) continue;
     if (prop.value.type === "StringLiteral") {
       parts.push(`${key}: "${prop.value.value}"`);
@@ -261,8 +253,19 @@ function serializeObjectExpression(obj: t.ObjectExpression): string {
 // Standard JSX attributes that do NOT indicate component properties.
 // Includes all known metadata attrs to avoid false-positive INSTANCE detection.
 const STANDARD_ATTRS = new Set([
-  "id", "name", "className", "style", "componentName", "propertyNameMap", "propertyDefinitions",
-  "width", "height", "variantProperties", "componentProperties", "componentSetName", "mainComponentName",
+  "id",
+  "name",
+  "className",
+  "style",
+  "componentName",
+  "propertyNameMap",
+  "propertyDefinitions",
+  "width",
+  "height",
+  "variantProperties",
+  "componentProperties",
+  "componentSetName",
+  "mainComponentName",
 ]);
 
 function isPascalCase(tag: string): boolean {
@@ -271,27 +274,87 @@ function isPascalCase(tag: string): boolean {
 
 // HTML tags that map to TEXT nodes
 const HTML_TEXT_TAGS = new Set([
-  "span", "p", "h1", "h2", "h3", "h4", "h5", "h6", "a", "label",
-  "small", "strong", "em", "b", "i", "u", "s",
+  "span",
+  "p",
+  "h1",
+  "h2",
+  "h3",
+  "h4",
+  "h5",
+  "h6",
+  "a",
+  "label",
+  "small",
+  "strong",
+  "em",
+  "b",
+  "i",
+  "u",
+  "s",
 ]);
 
 // HTML tags that map to FRAME nodes (explicitly named for clarity)
 const HTML_FRAME_TAGS = new Set([
-  "button", "input", "select", "textarea", "img", "section", "article",
-  "nav", "header", "footer", "main", "aside", "form", "ul", "ol", "li",
-  "table", "tr", "td", "th",
+  "button",
+  "input",
+  "select",
+  "textarea",
+  "img",
+  "section",
+  "article",
+  "nav",
+  "header",
+  "footer",
+  "main",
+  "aside",
+  "form",
+  "ul",
+  "ol",
+  "li",
+  "table",
+  "tr",
+  "td",
+  "th",
 ]);
 
 // HTML tag default names
 const HTML_TAG_NAMES: Record<string, string> = {
-  button: "Button", input: "Input", select: "Select", textarea: "Textarea",
-  img: "Image", section: "Section", article: "Article", nav: "Nav",
-  header: "Header", footer: "Footer", main: "Main", aside: "Aside",
-  form: "Form", ul: "List", ol: "List", li: "ListItem",
-  table: "Table", tr: "Row", td: "Cell", th: "HeaderCell",
-  p: "Text", h1: "H1", h2: "H2", h3: "H3", h4: "H4", h5: "H5", h6: "H6",
-  a: "Link", label: "Label", small: "Small", strong: "Strong", em: "Em",
-  b: "Bold", i: "Italic", u: "Underline", s: "Strikethrough",
+  button: "Button",
+  input: "Input",
+  select: "Select",
+  textarea: "Textarea",
+  img: "Image",
+  section: "Section",
+  article: "Article",
+  nav: "Nav",
+  header: "Header",
+  footer: "Footer",
+  main: "Main",
+  aside: "Aside",
+  form: "Form",
+  ul: "List",
+  ol: "List",
+  li: "ListItem",
+  table: "Table",
+  tr: "Row",
+  td: "Cell",
+  th: "HeaderCell",
+  p: "Text",
+  h1: "H1",
+  h2: "H2",
+  h3: "H3",
+  h4: "H4",
+  h5: "H5",
+  h6: "H6",
+  a: "Link",
+  label: "Label",
+  small: "Small",
+  strong: "Strong",
+  em: "Em",
+  b: "Bold",
+  i: "Italic",
+  u: "Underline",
+  s: "Strikethrough",
 };
 
 // HTML tag defaults applied after className processing
@@ -320,16 +383,25 @@ const HTML_TAG_DEFAULTS: Record<string, HtmlTagDefaults> = {
     layoutSizingVertical: "HUG",
   },
   input: {
-    width: 240, height: 40, cornerRadius: 6,
-    strokeWeight: 1, strokeColor: "#D1D5DB",
+    width: 240,
+    height: 40,
+    cornerRadius: 6,
+    strokeWeight: 1,
+    strokeColor: "#D1D5DB",
   },
   select: {
-    width: 240, height: 40, cornerRadius: 6,
-    strokeWeight: 1, strokeColor: "#D1D5DB",
+    width: 240,
+    height: 40,
+    cornerRadius: 6,
+    strokeWeight: 1,
+    strokeColor: "#D1D5DB",
   },
   textarea: {
-    width: 240, height: 120, cornerRadius: 6,
-    strokeWeight: 1, strokeColor: "#D1D5DB",
+    width: 240,
+    height: 120,
+    cornerRadius: 6,
+    strokeWeight: 1,
+    strokeColor: "#D1D5DB",
   },
   img: { width: 100, height: 100, imageFill: true },
   h1: { fontSize: 36, fontWeight: 800 },
@@ -349,7 +421,7 @@ function extractTextClasses(className: string): { textClasses: string; frameClas
   const text: string[] = [];
   const frame: string[] = [];
   for (const cls of classes) {
-    if (TEXT_CLASS_EXACT.has(cls) || TEXT_CLASS_PREFIXES.some(p => cls.startsWith(p))) {
+    if (TEXT_CLASS_EXACT.has(cls) || TEXT_CLASS_PREFIXES.some((p) => cls.startsWith(p))) {
       text.push(cls);
     } else {
       frame.push(cls);
@@ -369,8 +441,7 @@ function tagToNodeType(tag: string, attrs?: Record<string, string>, parentType?:
 
   if (isPascalCase(tag)) {
     // COMPONENT_SET: has propertyDefinitions, or tag ends with "Set" AND has componentName
-    if ((attrs && attrs.propertyDefinitions !== undefined) ||
-        (tag.endsWith("Set") && hasComponentName)) {
+    if ((attrs && attrs.propertyDefinitions !== undefined) || (tag.endsWith("Set") && hasComponentName)) {
       return "COMPONENT_SET";
     }
     // Tag ends with "Set" but no componentName — only treat as COMPONENT_SET
@@ -384,7 +455,7 @@ function tagToNodeType(tag: string, attrs?: Record<string, string>, parentType?:
     }
     // INSTANCE: has non-standard attrs (booleans/strings that look like component props)
     if (attrs) {
-      const hasComponentProps = Object.keys(attrs).some(k => !STANDARD_ATTRS.has(k));
+      const hasComponentProps = Object.keys(attrs).some((k) => !STANDARD_ATTRS.has(k));
       if (hasComponentProps) return "INSTANCE";
     }
     // Bare PascalCase tag with componentName or without name attr → standalone COMPONENT
@@ -425,10 +496,7 @@ type ComponentPropertyDef =
  * Boolean literal → BOOLEAN with default
  * Other strings → TEXT with default
  */
-function parsePropertyDefinitions(
-  str: string,
-  nameMap: Record<string, string>,
-): Record<string, ComponentPropertyDef> {
+function parsePropertyDefinitions(str: string, nameMap: Record<string, string>): Record<string, ComponentPropertyDef> {
   const defs: Record<string, ComponentPropertyDef> = {};
   // Match key: "string value" or key: true/false
   const regex = /(\w+):\s*(?:"((?:[^"\\]|\\.)*)"|(\btrue\b|\bfalse\b))/g;
@@ -541,10 +609,14 @@ function applyHtmlTagDefaults(node: FigmaNodeData, tag: string): void {
   if (!defaults) return;
 
   if (defaults.layoutMode && !node.layoutMode) node.layoutMode = defaults.layoutMode;
-  if (defaults.primaryAxisAlignItems && !node.primaryAxisAlignItems) node.primaryAxisAlignItems = defaults.primaryAxisAlignItems;
-  if (defaults.counterAxisAlignItems && !node.counterAxisAlignItems) node.counterAxisAlignItems = defaults.counterAxisAlignItems;
-  if (defaults.layoutSizingHorizontal && !node.layoutSizingHorizontal) node.layoutSizingHorizontal = defaults.layoutSizingHorizontal;
-  if (defaults.layoutSizingVertical && !node.layoutSizingVertical) node.layoutSizingVertical = defaults.layoutSizingVertical;
+  if (defaults.primaryAxisAlignItems && !node.primaryAxisAlignItems)
+    node.primaryAxisAlignItems = defaults.primaryAxisAlignItems;
+  if (defaults.counterAxisAlignItems && !node.counterAxisAlignItems)
+    node.counterAxisAlignItems = defaults.counterAxisAlignItems;
+  if (defaults.layoutSizingHorizontal && !node.layoutSizingHorizontal)
+    node.layoutSizingHorizontal = defaults.layoutSizingHorizontal;
+  if (defaults.layoutSizingVertical && !node.layoutSizingVertical)
+    node.layoutSizingVertical = defaults.layoutSizingVertical;
 
   // Dimension defaults only when no explicit sizing set
   if (defaults.width !== undefined && node.width === undefined && !node.layoutSizingHorizontal?.match(/HUG|FILL/)) {
@@ -568,7 +640,7 @@ function applyHtmlTagDefaults(node: FigmaNodeData, tag: string): void {
   if (defaults.fontSize !== undefined && node.fontSize === undefined) node.fontSize = defaults.fontSize;
   if (defaults.fontWeight !== undefined && node.fontWeight === undefined) node.fontWeight = defaults.fontWeight;
 
-  if (defaults.imageFill && (!node.fills || !node.fills.some(f => f.isImage))) {
+  if (defaults.imageFill && (!node.fills || !node.fills.some((f) => f.isImage))) {
     node.fills = node.fills || [];
     node.fills.push({ type: "IMAGE", isImage: true });
   }
@@ -635,65 +707,115 @@ function applyClassName(node: FigmaNodeData, className: string): void {
 
   for (const cls of classes) {
     // --- Layout ---
-    if (cls === "flex") { node.layoutMode = node.layoutMode || "HORIZONTAL"; continue; }
-    if (cls === "flex-row") { node.layoutMode = "HORIZONTAL"; continue; }
-    if (cls === "flex-col") { node.layoutMode = "VERTICAL"; continue; }
-    if (cls === "relative") { /* non-layout container, no special prop */ continue; }
-    if (cls === "justify-center") { node.primaryAxisAlignItems = "CENTER"; continue; }
-    if (cls === "justify-end") { node.primaryAxisAlignItems = "MAX"; continue; }
-    if (cls === "justify-between") { node.primaryAxisAlignItems = "SPACE_BETWEEN"; continue; }
-    if (cls === "items-center") { node.counterAxisAlignItems = "CENTER"; continue; }
-    if (cls === "items-end") { node.counterAxisAlignItems = "MAX"; continue; }
-    if (cls === "items-baseline") { node.counterAxisAlignItems = "BASELINE"; continue; }
-    if (cls === "flex-wrap") { node.layoutWrap = "WRAP"; continue; }
-    if (cls === "overflow-hidden") { node.clipsContent = true; continue; }
-    if (cls === "absolute") { node.layoutPositioning = "ABSOLUTE"; continue; }
+    if (cls === "flex") {
+      node.layoutMode = node.layoutMode || "HORIZONTAL";
+      continue;
+    }
+    if (cls === "flex-row") {
+      node.layoutMode = "HORIZONTAL";
+      continue;
+    }
+    if (cls === "flex-col") {
+      node.layoutMode = "VERTICAL";
+      continue;
+    }
+    if (cls === "relative") {
+      /* non-layout container, no special prop */ continue;
+    }
+    if (cls === "justify-center") {
+      node.primaryAxisAlignItems = "CENTER";
+      continue;
+    }
+    if (cls === "justify-end") {
+      node.primaryAxisAlignItems = "MAX";
+      continue;
+    }
+    if (cls === "justify-between") {
+      node.primaryAxisAlignItems = "SPACE_BETWEEN";
+      continue;
+    }
+    if (cls === "items-center") {
+      node.counterAxisAlignItems = "CENTER";
+      continue;
+    }
+    if (cls === "items-end") {
+      node.counterAxisAlignItems = "MAX";
+      continue;
+    }
+    if (cls === "items-baseline") {
+      node.counterAxisAlignItems = "BASELINE";
+      continue;
+    }
+    if (cls === "flex-wrap") {
+      node.layoutWrap = "WRAP";
+      continue;
+    }
+    if (cls === "overflow-hidden") {
+      node.clipsContent = true;
+      continue;
+    }
+    if (cls === "absolute") {
+      node.layoutPositioning = "ABSOLUTE";
+      continue;
+    }
 
     // left-[Npx] / top-[Npx]
     let m: RegExpMatchArray | null;
     if ((m = cls.match(/^left-\[(-?\d+(?:\.\d+)?)px\]$/))) {
-      node.x = Number(m[1]); continue;
+      node.x = Number(m[1]);
+      continue;
     }
     if ((m = cls.match(/^top-\[(-?\d+(?:\.\d+)?)px\]$/))) {
-      node.y = Number(m[1]); continue;
+      node.y = Number(m[1]);
+      continue;
     }
 
     // --- Gap ---
     if ((m = cls.match(/^gap-\[(\d+(?:\.\d+)?)px\]$/))) {
-      node.itemSpacing = Number(m[1]); continue;
+      node.itemSpacing = Number(m[1]);
+      continue;
     }
     if ((m = cls.match(/^gap-y-\[(\d+(?:\.\d+)?)px\]$/))) {
-      node.counterAxisSpacing = Number(m[1]); continue;
+      node.counterAxisSpacing = Number(m[1]);
+      continue;
     }
     if ((m = cls.match(/^gap-x-\[(\d+(?:\.\d+)?)px\]$/))) {
-      node.counterAxisSpacing = Number(m[1]); continue;
+      node.counterAxisSpacing = Number(m[1]);
+      continue;
     }
     // gap-{value/var}
     if ((m = cls.match(/^gap-y-(.+)$/)) && !m[1].startsWith("[")) {
       const value = m[1];
       const resolved = resolveTwSpacing(value);
       node.counterAxisSpacing = resolved ?? 0;
-      bindings["counterAxisSpacing"] = denormalizeVarName(value); continue;
+      bindings["counterAxisSpacing"] = denormalizeVarName(value);
+      continue;
     }
     if ((m = cls.match(/^gap-x-(.+)$/)) && !m[1].startsWith("[")) {
       const value = m[1];
       const resolved = resolveTwSpacing(value);
       node.counterAxisSpacing = resolved ?? 0;
-      bindings["counterAxisSpacing"] = denormalizeVarName(value); continue;
+      bindings["counterAxisSpacing"] = denormalizeVarName(value);
+      continue;
     }
     if ((m = cls.match(/^gap-(.+)$/)) && !m[1].startsWith("[")) {
       const value = m[1];
       const resolved = resolveTwSpacing(value);
       node.itemSpacing = resolved ?? 0;
-      bindings["itemSpacing"] = denormalizeVarName(value); continue;
+      bindings["itemSpacing"] = denormalizeVarName(value);
+      continue;
     }
 
     // --- Sizing ---
     if ((m = cls.match(/^w-\[(\d+(?:\.\d+)?)px\]$/))) {
-      node.width = Number(m[1]); node.layoutSizingHorizontal = "FIXED"; continue;
+      node.width = Number(m[1]);
+      node.layoutSizingHorizontal = "FIXED";
+      continue;
     }
     if ((m = cls.match(/^h-\[(\d+(?:\.\d+)?)px\]$/))) {
-      node.height = Number(m[1]); node.layoutSizingVertical = "FIXED"; continue;
+      node.height = Number(m[1]);
+      node.layoutSizingVertical = "FIXED";
+      continue;
     }
     if (cls === "flex-1") {
       // flex-1 means FILL on whichever axis hasn't been set yet
@@ -705,29 +827,39 @@ function applyClassName(node: FigmaNodeData, className: string): void {
       continue;
     }
     if (cls === "h-full") {
-      node.layoutSizingVertical = "FILL"; continue;
+      node.layoutSizingVertical = "FILL";
+      continue;
     }
     if (cls === "w-full") {
-      node.layoutSizingHorizontal = "FILL"; continue;
+      node.layoutSizingHorizontal = "FILL";
+      continue;
     }
     if (cls === "w-auto" || cls === "w-fit") {
-      node.layoutSizingHorizontal = "HUG"; continue;
+      node.layoutSizingHorizontal = "HUG";
+      continue;
     }
     if (cls === "h-auto" || cls === "h-fit") {
-      node.layoutSizingVertical = "HUG"; continue;
+      node.layoutSizingVertical = "HUG";
+      continue;
     }
     if (cls === "w-screen") {
-      node.width = 1440; node.layoutSizingHorizontal = "FIXED"; continue;
+      node.width = 1440;
+      node.layoutSizingHorizontal = "FIXED";
+      continue;
     }
     if (cls === "h-screen") {
-      node.height = 900; node.layoutSizingVertical = "FIXED"; continue;
+      node.height = 900;
+      node.layoutSizingVertical = "FIXED";
+      continue;
     }
     // w-{value} (standard Tailwind spacing)
     if ((m = cls.match(/^w-(.+)$/)) && !m[1].startsWith("[")) {
       const value = m[1];
       const resolved = resolveTwSpacing(value);
       if (resolved !== undefined) {
-        node.width = resolved; node.layoutSizingHorizontal = "FIXED"; continue;
+        node.width = resolved;
+        node.layoutSizingHorizontal = "FIXED";
+        continue;
       }
     }
     // h-{value} (standard Tailwind spacing)
@@ -735,34 +867,58 @@ function applyClassName(node: FigmaNodeData, className: string): void {
       const value = m[1];
       const resolved = resolveTwSpacing(value);
       if (resolved !== undefined) {
-        node.height = resolved; node.layoutSizingVertical = "FIXED"; continue;
+        node.height = resolved;
+        node.layoutSizingVertical = "FIXED";
+        continue;
       }
     }
 
     // --- Padding ---
     if ((m = cls.match(/^p-\[(\d+(?:\.\d+)?)px\]$/))) {
       const v = Number(m[1]);
-      node.paddingTop = v; node.paddingRight = v; node.paddingBottom = v; node.paddingLeft = v;
+      node.paddingTop = v;
+      node.paddingRight = v;
+      node.paddingBottom = v;
+      node.paddingLeft = v;
       continue;
     }
     if ((m = cls.match(/^px-\[(\d+(?:\.\d+)?)px\]$/))) {
       const v = Number(m[1]);
-      node.paddingRight = v; node.paddingLeft = v; continue;
+      node.paddingRight = v;
+      node.paddingLeft = v;
+      continue;
     }
     if ((m = cls.match(/^py-\[(\d+(?:\.\d+)?)px\]$/))) {
       const v = Number(m[1]);
-      node.paddingTop = v; node.paddingBottom = v; continue;
+      node.paddingTop = v;
+      node.paddingBottom = v;
+      continue;
     }
-    if ((m = cls.match(/^pt-\[(\d+(?:\.\d+)?)px\]$/))) { node.paddingTop = Number(m[1]); continue; }
-    if ((m = cls.match(/^pr-\[(\d+(?:\.\d+)?)px\]$/))) { node.paddingRight = Number(m[1]); continue; }
-    if ((m = cls.match(/^pb-\[(\d+(?:\.\d+)?)px\]$/))) { node.paddingBottom = Number(m[1]); continue; }
-    if ((m = cls.match(/^pl-\[(\d+(?:\.\d+)?)px\]$/))) { node.paddingLeft = Number(m[1]); continue; }
+    if ((m = cls.match(/^pt-\[(\d+(?:\.\d+)?)px\]$/))) {
+      node.paddingTop = Number(m[1]);
+      continue;
+    }
+    if ((m = cls.match(/^pr-\[(\d+(?:\.\d+)?)px\]$/))) {
+      node.paddingRight = Number(m[1]);
+      continue;
+    }
+    if ((m = cls.match(/^pb-\[(\d+(?:\.\d+)?)px\]$/))) {
+      node.paddingBottom = Number(m[1]);
+      continue;
+    }
+    if ((m = cls.match(/^pl-\[(\d+(?:\.\d+)?)px\]$/))) {
+      node.paddingLeft = Number(m[1]);
+      continue;
+    }
     // p-{value/var}
     if ((m = cls.match(/^p-(.+)$/)) && !m[1].startsWith("[")) {
       const value = m[1];
       const resolved = resolveTwSpacing(value);
       const v = resolved ?? 0;
-      node.paddingTop = v; node.paddingRight = v; node.paddingBottom = v; node.paddingLeft = v;
+      node.paddingTop = v;
+      node.paddingRight = v;
+      node.paddingBottom = v;
+      node.paddingLeft = v;
       const varName = denormalizeVarName(value);
       bindings["paddingTop"] = varName;
       bindings["paddingRight"] = varName;
@@ -774,7 +930,8 @@ function applyClassName(node: FigmaNodeData, className: string): void {
       const value = m[1];
       const resolved = resolveTwSpacing(value);
       const v = resolved ?? 0;
-      node.paddingRight = v; node.paddingLeft = v;
+      node.paddingRight = v;
+      node.paddingLeft = v;
       const varName = denormalizeVarName(value);
       bindings["paddingLeft"] = varName;
       bindings["paddingRight"] = varName;
@@ -784,7 +941,8 @@ function applyClassName(node: FigmaNodeData, className: string): void {
       const value = m[1];
       const resolved = resolveTwSpacing(value);
       const v = resolved ?? 0;
-      node.paddingTop = v; node.paddingBottom = v;
+      node.paddingTop = v;
+      node.paddingBottom = v;
       const varName = denormalizeVarName(value);
       bindings["paddingTop"] = varName;
       bindings["paddingBottom"] = varName;
@@ -823,7 +981,7 @@ function applyClassName(node: FigmaNodeData, className: string): void {
     if (cls === "bg-cover") continue; // Image fill indicator (handled with bg-center)
     if (cls === "bg-center") {
       // Image fill
-      if (!node.fills || !node.fills.some(f => f.isImage)) {
+      if (!node.fills || !node.fills.some((f) => f.isImage)) {
         node.fills = node.fills || [];
         node.fills.push({ type: "IMAGE", isImage: true });
       }
@@ -840,28 +998,35 @@ function applyClassName(node: FigmaNodeData, className: string): void {
     }
     // --- Tailwind gradient classes (must come BEFORE catch-all bg-*) ---
     if ((m = cls.match(/^bg-gradient-to-(r|l|t|b|tr|tl|br|bl)$/))) {
-      gradientDir = m[1]; continue;
+      gradientDir = m[1];
+      continue;
     }
     if ((m = cls.match(/^from-\[(#[0-9a-fA-F]{3,8})\](?:\/(\d+))?$/))) {
-      gradientFrom = { color: m[1] }; continue;
+      gradientFrom = { color: m[1] };
+      continue;
     }
     if ((m = cls.match(/^via-\[(#[0-9a-fA-F]{3,8})\](?:\/(\d+))?$/))) {
-      gradientVia = { color: m[1] }; continue;
+      gradientVia = { color: m[1] };
+      continue;
     }
     if ((m = cls.match(/^to-\[(#[0-9a-fA-F]{3,8})\](?:\/(\d+))?$/))) {
-      gradientTo = { color: m[1] }; continue;
+      gradientTo = { color: m[1] };
+      continue;
     }
     // Gradient variable bindings: from-{var}, via-{var}, to-{var}
     // Note: variable bindings for gradient stops are not yet supported —
     // the varName is not wired into node.bindings. Stored as placeholder color only.
     if ((m = cls.match(/^from-(.+)$/)) && !m[1].startsWith("[")) {
-      gradientFrom = { color: "#000000" }; continue;
+      gradientFrom = { color: "#000000" };
+      continue;
     }
     if ((m = cls.match(/^via-(.+)$/)) && !m[1].startsWith("[")) {
-      gradientVia = { color: "#000000" }; continue;
+      gradientVia = { color: "#000000" };
+      continue;
     }
     if ((m = cls.match(/^to-(.+)$/)) && !m[1].startsWith("[")) {
-      gradientTo = { color: "#000000" }; continue;
+      gradientTo = { color: "#000000" };
+      continue;
     }
 
     // bg-{color/var}
@@ -890,16 +1055,19 @@ function applyClassName(node: FigmaNodeData, className: string): void {
     // --- Strokes ---
     // Bare `border` → default 1px width
     if (cls === "border") {
-      node.strokeWeight = 1; continue;
+      node.strokeWeight = 1;
+      continue;
     }
     if ((m = cls.match(/^border-\[(\d+(?:\.\d+)?)px\]$/))) {
-      node.strokeWeight = Number(m[1]); continue;
+      node.strokeWeight = Number(m[1]);
+      continue;
     }
     // Standard border widths: border-0, border-2, border-4, border-8
     if ((m = cls.match(/^border-(\d+)$/))) {
       const resolved = resolveTwBorderWidth(m[1]);
       if (resolved !== undefined) {
-        node.strokeWeight = resolved; continue;
+        node.strokeWeight = resolved;
+        continue;
       }
     }
     if ((m = cls.match(/^border-\[(#[0-9a-fA-F]{3,8})\]$/))) {
@@ -922,30 +1090,45 @@ function applyClassName(node: FigmaNodeData, className: string): void {
     if (isText) {
       // Font size: text-[Npx]
       if ((m = cls.match(/^text-\[(\d+(?:\.\d+)?)px\]$/))) {
-        node.fontSize = Number(m[1]); continue;
+        node.fontSize = Number(m[1]);
+        continue;
       }
 
       // Text alignment
-      if (cls === "text-center") { node.textAlignHorizontal = "CENTER"; continue; }
-      if (cls === "text-right") { node.textAlignHorizontal = "RIGHT"; continue; }
-      if (cls === "text-justify") { node.textAlignHorizontal = "JUSTIFIED"; continue; }
+      if (cls === "text-center") {
+        node.textAlignHorizontal = "CENTER";
+        continue;
+      }
+      if (cls === "text-right") {
+        node.textAlignHorizontal = "RIGHT";
+        continue;
+      }
+      if (cls === "text-justify") {
+        node.textAlignHorizontal = "JUSTIFIED";
+        continue;
+      }
       if (cls === "text-left") continue; // default alignment, no-op
 
       // Font weight
       if (FONT_WEIGHT_MAP[cls] !== undefined) {
-        node.fontWeight = FONT_WEIGHT_MAP[cls]; continue;
+        node.fontWeight = FONT_WEIGHT_MAP[cls];
+        continue;
       }
       // Custom font weight: font-[N]
       if ((m = cls.match(/^font-\[(\d+)\]$/))) {
-        node.fontWeight = Number(m[1]); continue;
+        node.fontWeight = Number(m[1]);
+        continue;
       }
 
       // Line height: arbitrary values
       if ((m = cls.match(/^leading-\[(\d+(?:\.\d+)?)px\]$/))) {
-        node.lineHeight = Number(m[1]); continue;
+        node.lineHeight = Number(m[1]);
+        continue;
       }
       if ((m = cls.match(/^leading-\[(\d+(?:\.\d+)?)%\]$/))) {
-        node.lineHeight = Number(m[1]); node.lineHeightUnit = "percent"; continue;
+        node.lineHeight = Number(m[1]);
+        node.lineHeightUnit = "percent";
+        continue;
       }
       // Standard line heights: leading-tight, leading-6, etc.
       if ((m = cls.match(/^leading-(.+)$/)) && !m[1].startsWith("[")) {
@@ -959,17 +1142,21 @@ function applyClassName(node: FigmaNodeData, className: string): void {
 
       // Letter spacing: arbitrary values
       if ((m = cls.match(/^tracking-\[(-?\d+(?:\.\d+)?)px\]$/))) {
-        node.letterSpacing = Number(m[1]); continue;
+        node.letterSpacing = Number(m[1]);
+        continue;
       }
       if ((m = cls.match(/^tracking-\[(-?\d+(?:\.\d+)?)em\]$/))) {
-        node.letterSpacing = Number(m[1]) * 100; node.letterSpacingUnit = "percent"; continue;
+        node.letterSpacing = Number(m[1]) * 100;
+        node.letterSpacingUnit = "percent";
+        continue;
       }
       // Standard letter spacings: tracking-tight, tracking-wide, etc.
       if ((m = cls.match(/^tracking-(.+)$/)) && !m[1].startsWith("[")) {
         const resolved = resolveTwLetterSpacing(m[1]);
         if (resolved) {
           if (resolved.unit === "em") {
-            node.letterSpacing = resolved.value * 100; node.letterSpacingUnit = "percent";
+            node.letterSpacing = resolved.value * 100;
+            node.letterSpacingUnit = "percent";
           } else {
             node.letterSpacing = resolved.value;
           }
@@ -979,17 +1166,33 @@ function applyClassName(node: FigmaNodeData, className: string): void {
 
       // Font family
       if ((m = cls.match(/^font-\['(.+?)'\]$/))) {
-        node.fontFamily = m[1].replace(/_/g, " "); continue;
+        node.fontFamily = m[1].replace(/_/g, " ");
+        continue;
       }
 
       // Text case
-      if (cls === "uppercase") { node.textCase = "UPPER"; continue; }
-      if (cls === "lowercase") { node.textCase = "LOWER"; continue; }
-      if (cls === "capitalize") { node.textCase = "TITLE"; continue; }
+      if (cls === "uppercase") {
+        node.textCase = "UPPER";
+        continue;
+      }
+      if (cls === "lowercase") {
+        node.textCase = "LOWER";
+        continue;
+      }
+      if (cls === "capitalize") {
+        node.textCase = "TITLE";
+        continue;
+      }
 
       // Text decoration
-      if (cls === "underline") { node.textDecoration = "UNDERLINE"; continue; }
-      if (cls === "line-through") { node.textDecoration = "STRIKETHROUGH"; continue; }
+      if (cls === "underline") {
+        node.textDecoration = "UNDERLINE";
+        continue;
+      }
+      if (cls === "line-through") {
+        node.textDecoration = "STRIKETHROUGH";
+        continue;
+      }
 
       // text-{name}: font size, color, text style, or fill variable binding
       if ((m = cls.match(/^text-(.+)$/)) && !m[1].startsWith("[")) {
@@ -1040,22 +1243,31 @@ function applyClassName(node: FigmaNodeData, className: string): void {
       continue;
     }
     if ((m = cls.match(/^rounded-\[(\d+(?:\.\d+)?)px\]$/))) {
-      node.cornerRadius = Number(m[1]); continue;
+      node.cornerRadius = Number(m[1]);
+      continue;
     }
     if ((m = cls.match(/^rounded-tl-\[(\d+(?:\.\d+)?)px\]$/))) {
-      node.topLeftRadius = Number(m[1]); continue;
+      node.topLeftRadius = Number(m[1]);
+      continue;
     }
     if ((m = cls.match(/^rounded-tr-\[(\d+(?:\.\d+)?)px\]$/))) {
-      node.topRightRadius = Number(m[1]); continue;
+      node.topRightRadius = Number(m[1]);
+      continue;
     }
     if ((m = cls.match(/^rounded-br-\[(\d+(?:\.\d+)?)px\]$/))) {
-      node.bottomRightRadius = Number(m[1]); continue;
+      node.bottomRightRadius = Number(m[1]);
+      continue;
     }
     if ((m = cls.match(/^rounded-bl-\[(\d+(?:\.\d+)?)px\]$/))) {
-      node.bottomLeftRadius = Number(m[1]); continue;
+      node.bottomLeftRadius = Number(m[1]);
+      continue;
     }
     // rounded-{value/var}
-    if ((m = cls.match(/^rounded-(.+)$/)) && !m[1].startsWith("[") && !["tl-", "tr-", "bl-", "br-"].some(p => m![1].startsWith(p))) {
+    if (
+      (m = cls.match(/^rounded-(.+)$/)) &&
+      !m[1].startsWith("[") &&
+      !["tl-", "tr-", "bl-", "br-"].some((p) => m![1].startsWith(p))
+    ) {
       const value = m[1];
       const resolved = resolveTwBorderRadius(value);
       node.cornerRadius = resolved ?? 0;
@@ -1128,13 +1340,15 @@ function applyClassName(node: FigmaNodeData, className: string): void {
 
     // --- Opacity ---
     if ((m = cls.match(/^opacity-\[(\d+(?:\.\d+)?)\]$/))) {
-      node.opacity = Number(m[1]); continue;
+      node.opacity = Number(m[1]);
+      continue;
     }
     // Standard opacity: opacity-50, opacity-75, etc.
     if ((m = cls.match(/^opacity-(\d+)$/))) {
       const resolved = resolveTwOpacity(m[1]);
       if (resolved !== undefined) {
-        node.opacity = resolved; continue;
+        node.opacity = resolved;
+        continue;
       }
     }
   }
@@ -1208,7 +1422,7 @@ function applyStyleAttribute(node: FigmaNodeData, styleStr: string): void {
         const imageRef = m[1];
         // Find or create image fill
         if (node.fills) {
-          const imageFill = node.fills.find(f => f.isImage);
+          const imageFill = node.fills.find((f) => f.isImage);
           if (imageFill) {
             imageFill.imageRef = imageRef;
           } else {
@@ -1284,7 +1498,9 @@ function parseBoxShadow(value: string): FigmaNodeEffect[] {
     const rest = isInset ? trimmed.substring(6).trim() : trimmed;
 
     // Parse: Xpx Ypx Rpx Spx color
-    const m = rest.match(/^(-?\d+(?:\.\d+)?)px\s+(-?\d+(?:\.\d+)?)px\s+(\d+(?:\.\d+)?)px\s+(-?\d+(?:\.\d+)?)px\s+(.+)$/);
+    const m = rest.match(
+      /^(-?\d+(?:\.\d+)?)px\s+(-?\d+(?:\.\d+)?)px\s+(\d+(?:\.\d+)?)px\s+(-?\d+(?:\.\d+)?)px\s+(.+)$/,
+    );
     if (m) {
       effects.push({
         type: isInset ? "INNER_SHADOW" : "DROP_SHADOW",

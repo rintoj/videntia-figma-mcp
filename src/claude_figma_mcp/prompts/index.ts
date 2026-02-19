@@ -11,17 +11,14 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
  */
 export function registerPrompts(server: McpServer): void {
   // Design Strategy Prompt
-  server.prompt(
-    "design_strategy",
-    "Best practices for working with Figma designs",
-    (extra) => {
-      return {
-        messages: [
-          {
-            role: "assistant",
-            content: {
-              type: "text",
-              text: `When working with Figma designs, follow these best practices:
+  server.prompt("design_strategy", "Best practices for working with Figma designs", (extra) => {
+    return {
+      messages: [
+        {
+          role: "assistant",
+          content: {
+            type: "text",
+            text: `When working with Figma designs, follow these best practices:
 
 1. Start with Document Structure:
    - First use get_document_info() to understand the current document
@@ -90,26 +87,22 @@ Example Login Screen Structure:
   - Helper Links (frame)
     - Forgot Password (text)
     - Don't have account (text)`,
-            },
           },
-        ],
-        description: "Best practices for working with Figma designs",
-      };
-    }
-  );
+        },
+      ],
+      description: "Best practices for working with Figma designs",
+    };
+  });
 
   // Read Design Strategy Prompt
-  server.prompt(
-    "read_design_strategy",
-    "Best practices for reading Figma designs",
-    (extra) => {
-      return {
-        messages: [
-          {
-            role: "assistant",
-            content: {
-              type: "text",
-              text: `When reading Figma designs, follow these best practices:
+  server.prompt("read_design_strategy", "Best practices for reading Figma designs", (extra) => {
+    return {
+      messages: [
+        {
+          role: "assistant",
+          content: {
+            type: "text",
+            text: `When reading Figma designs, follow these best practices:
 
 1. Start with selection:
    - First use get_selection() to understand the current selection
@@ -119,26 +112,22 @@ Example Login Screen Structure:
    - Use get_nodes_info() to get the information of the selected nodes
    - If no selection ask user to select single or multiple nodes
 `,
-            },
           },
-        ],
-        description: "Best practices for reading Figma designs",
-      };
-    }
-  );
+        },
+      ],
+      description: "Best practices for reading Figma designs",
+    };
+  });
 
   // Text Replacement Strategy Prompt
-  server.prompt(
-    "text_replacement_strategy",
-    "Systematic approach for replacing text in Figma designs",
-    (extra) => {
-      return {
-        messages: [
-          {
-            role: "assistant",
-            content: {
-              type: "text",
-              text: `# Intelligent Text Replacement Strategy
+  server.prompt("text_replacement_strategy", "Systematic approach for replacing text in Figma designs", (extra) => {
+    return {
+      messages: [
+        {
+          role: "assistant",
+          content: {
+            type: "text",
+            text: `# Intelligent Text Replacement Strategy
 
 ## 1. Analyze Design & Identify Structure
 - Scan text nodes to understand the overall structure of the design
@@ -253,13 +242,12 @@ export_node_as_image(nodeId: "chunk-node-id", format: "PNG", scale: 0.5)
 - **Respect Content Relationships**: Keep related content consistent across chunks
 
 Remember that text is never just text—it's a core design element that must work harmoniously with the overall composition. This chunk-based strategy allows you to methodically transform text while maintaining design integrity.`,
-            },
           },
-        ],
-        description: "Systematic approach for replacing text in Figma designs",
-      };
-    }
-  );
+        },
+      ],
+      description: "Systematic approach for replacing text in Figma designs",
+    };
+  });
 
   // Theme Variables Instructions Prompt
   server.prompt(
@@ -470,40 +458,6 @@ After creation, verify:
         ],
         description: "Complete instructions for creating or fixing Figma theme variable collections",
       };
-    }
-  );
-}
-
-// Export individual prompt registration functions
-export function registerDesignStrategyPrompt(server: McpServer): void {
-  server.prompt(
-    "design_strategy",
-    "Best practices for working with Figma designs",
-    (extra) => {
-      // Implementation is the same as above
-      // This function is exported for individual usage if needed
-    }
-  );
-}
-
-export function registerReadDesignStrategyPrompt(server: McpServer): void {
-  server.prompt(
-    "read_design_strategy",
-    "Best practices for reading Figma designs",
-    (extra) => {
-      // Implementation is the same as above
-      // This function is exported for individual usage if needed
-    }
-  );
-}
-
-export function registerTextReplacementStrategyPrompt(server: McpServer): void {
-  server.prompt(
-    "text_replacement_strategy",
-    "Systematic approach for replacing text in Figma designs",
-    (extra) => {
-      // Implementation is the same as above
-      // This function is exported for individual usage if needed
-    }
+    },
   );
 }

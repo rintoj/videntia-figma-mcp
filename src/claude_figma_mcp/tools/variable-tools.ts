@@ -11,7 +11,7 @@ import {
   getContrastRecommendation,
   rgbaToHex,
   SCALE_MIX_PERCENTAGES,
-  RGBAColor
+  RGBAColor,
 } from "../utils/color-calculations.js";
 import {
   getStandardSchema,
@@ -21,7 +21,7 @@ import {
   DEFAULT_DARK_THEME,
   DEFAULT_CHART_COLORS,
   getScaleVariableNames,
-  getStandardVariableOrder
+  getStandardVariableOrder,
 } from "../utils/theme-schema.js";
 import {
   getSpacingPreset,
@@ -30,15 +30,47 @@ import {
   FONT_WEIGHTS,
   LINE_HEIGHTS,
   generateSemanticSpacing,
-  generateSemanticTypography
+  generateSemanticTypography,
 } from "../utils/token-presets.js";
+import { formatColorValue, formatVariableValue } from "../utils/format-helpers.js";
+import type {
+  VariablesResponse,
+  CreateVariableCollectionResult,
+  GetCollectionInfoResult,
+  RenameVariableCollectionResult,
+  DeleteVariableCollectionResult,
+  CreateVariableResult,
+  CreateVariablesBatchResult,
+  UpdateVariableValueResult,
+  RenameVariableResult,
+  DeleteVariableResult,
+  DeleteVariablesBatchResult,
+  AuditCollectionResult,
+  ValidateColorContrastResult,
+  SuggestMissingVariablesResult,
+  ApplyDefaultThemeResult,
+  CreateColorScaleSetResult,
+  ReorderVariablesResult,
+  GenerateAuditReportResult,
+  ExportCollectionSchemaResult,
+  ImportCollectionSchemaResult,
+  CreateAllScalesResult,
+  FixCollectionToStandardResult,
+  AddChartColorsResult,
+  AddModeResult,
+  RenameModeResult,
+  DeleteModeResult,
+  DuplicateModeValuesResult,
+  DesignSystemSubResult,
+  DesignSystemCollectionResult,
+} from "../types/index.js";
 
 // Zod schemas for color validation
 const RGBAColorSchema = z.object({
   r: z.number().min(0).max(1).describe("Red component (0-1)"),
   g: z.number().min(0).max(1).describe("Green component (0-1)"),
   b: z.number().min(0).max(1).describe("Blue component (0-1)"),
-  a: z.number().min(0).max(1).optional().describe("Alpha component (0-1, default: 1.0)")
+  a: z.number().min(0).max(1).optional().describe("Alpha component (0-1, default: 1.0)"),
 });
 
 /**
@@ -46,7 +78,6 @@ const RGBAColorSchema = z.object({
  * Implements 24 new tools for theme variable management
  */
 export function registerVariableTools(server: McpServer): void {
-
   // ========================================
   // 1. COLLECTION MANAGEMENT TOOLS (3 tools)
   // ========================================
@@ -60,26 +91,35 @@ export function registerVariableTools(server: McpServer): void {
     {},
     async () => {
       try {
-        const result = await sendCommandToFigma("get_variable_collections");
+        const result = await sendCommandToFigma<VariablesResponse>("get_variable_collections");
+        const collections = Array.isArray(result) ? result : (result?.collections ?? [result]);
+        const lines: string[] = [`Found ${collections.length} variable collection(s)`, ""];
+        lines.push("| Name | Modes | Variables | ID |");
+        lines.push("|------|-------|-----------|-----|");
+        for (const col of collections) {
+          const modes = (col.modes || []).map((m: any) => m.name || m).join(", ");
+          const varCount = col.variableCount ?? col.variableIds?.length ?? "-";
+          lines.push(`| ${col.name} | ${modes} | ${varCount} | ${col.id} |`);
+        }
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result, null, 2)
-            }
-          ]
+              text: lines.join("\n"),
+            },
+          ],
         };
       } catch (error) {
         return {
           content: [
             {
               type: "text",
-              text: `Error getting variable collections: ${error instanceof Error ? error.message : String(error)}`
-            }
-          ]
+              text: `Error getting variable collections: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
         };
       }
-    }
+    },
   );
 
   /**
@@ -90,33 +130,33 @@ export function registerVariableTools(server: McpServer): void {
     "Create a new variable collection",
     {
       name: z.string().describe("Collection name (e.g., 'Theme')"),
-      default_mode: z.string().optional().describe("Default mode name (default: 'dark')")
+      default_mode: z.string().optional().describe("Default mode name (default: 'dark')"),
     },
     async ({ name, default_mode }) => {
       try {
-        const result = await sendCommandToFigma("create_variable_collection", {
+        const result = await sendCommandToFigma<CreateVariableCollectionResult>("create_variable_collection", {
           name,
-          defaultMode: default_mode || "dark"
+          defaultMode: default_mode || "dark",
         });
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result, null, 2)
-            }
-          ]
+              text: `Created collection "${result.name || name}" (ID: ${result.collectionId || result.id || "-"})`,
+            },
+          ],
         };
       } catch (error) {
         return {
           content: [
             {
               type: "text",
-              text: `Error creating variable collection: ${error instanceof Error ? error.message : String(error)}`
-            }
-          ]
+              text: `Error creating variable collection "${name}": ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
         };
       }
-    }
+    },
   );
 
   /**
@@ -126,30 +166,36 @@ export function registerVariableTools(server: McpServer): void {
     "get_collection_info",
     "Get detailed metadata about a variable collection",
     {
-      collection_id: z.string().describe("Collection ID or name")
+      collection_id: z.string().describe("Collection ID or name"),
     },
     async ({ collection_id }) => {
       try {
-        const result = await sendCommandToFigma("get_collection_info", { collectionId: collection_id });
+        const result = await sendCommandToFigma<GetCollectionInfoResult>("get_collection_info", {
+          collectionId: collection_id,
+        });
+        const modes = (result.modes || []).map((m: any) => `${m.name} (${m.modeId})`).join(", ");
+        const varCount = result.variableCount ?? result.variableIds?.length ?? "-";
+        const lines = [`## Collection: ${result.name} (id: ${result.id})`, `Modes: ${modes}`, `Variables: ${varCount}`];
+        if (result.description) lines.push(`Description: ${result.description}`);
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result, null, 2)
-            }
-          ]
+              text: lines.join("\n"),
+            },
+          ],
         };
       } catch (error) {
         return {
           content: [
             {
               type: "text",
-              text: `Error getting collection info: ${error instanceof Error ? error.message : String(error)}`
-            }
-          ]
+              text: `Error getting collection info for "${collection_id}": ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
         };
       }
-    }
+    },
   );
 
   /**
@@ -160,33 +206,33 @@ export function registerVariableTools(server: McpServer): void {
     "Rename a variable collection",
     {
       collection_id: z.string().describe("Collection ID or name"),
-      new_name: z.string().describe("New name for the collection")
+      new_name: z.string().describe("New name for the collection"),
     },
     async ({ collection_id, new_name }) => {
       try {
-        const result = await sendCommandToFigma("rename_variable_collection", {
+        const result = await sendCommandToFigma<RenameVariableCollectionResult>("rename_variable_collection", {
           collectionId: collection_id,
-          newName: new_name
+          newName: new_name,
         });
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result, null, 2)
-            }
-          ]
+              text: `Renamed collection to "${result.newName || new_name}" (ID: ${result.collectionId || collection_id})`,
+            },
+          ],
         };
       } catch (error) {
         return {
           content: [
             {
               type: "text",
-              text: `Error renaming variable collection: ${error instanceof Error ? error.message : String(error)}`
-            }
-          ]
+              text: `Error renaming variable collection "${collection_id}" to "${new_name}": ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
         };
       }
-    }
+    },
   );
 
   /**
@@ -196,32 +242,32 @@ export function registerVariableTools(server: McpServer): void {
     "delete_variable_collection",
     "Delete a variable collection and all its variables (cannot be undone)",
     {
-      collection_id: z.string().describe("Collection ID or name")
+      collection_id: z.string().describe("Collection ID or name"),
     },
     async ({ collection_id }) => {
       try {
-        const result = await sendCommandToFigma("delete_variable_collection", {
-          collectionId: collection_id
+        const result = await sendCommandToFigma<DeleteVariableCollectionResult>("delete_variable_collection", {
+          collectionId: collection_id,
         });
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result, null, 2)
-            }
-          ]
+              text: `Deleted collection (ID: ${result.collectionId || collection_id})`,
+            },
+          ],
         };
       } catch (error) {
         return {
           content: [
             {
               type: "text",
-              text: `Error deleting variable collection: ${error instanceof Error ? error.message : String(error)}`
-            }
-          ]
+              text: `Error deleting variable collection "${collection_id}": ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
         };
       }
-    }
+    },
   );
 
   // ========================================
@@ -238,42 +284,39 @@ export function registerVariableTools(server: McpServer): void {
       collection_id: z.string().describe("Collection ID or name"),
       name: z.string().describe("Variable name (e.g., 'primary', 'spacing.4', 'font.family')"),
       type: z.enum(["COLOR", "FLOAT", "STRING", "BOOLEAN"]).describe("Variable type"),
-      value: z.union([
-        RGBAColorSchema,
-        z.number(),
-        z.string(),
-        z.boolean()
-      ]).describe("Variable value (type depends on variable type)"),
-      mode: z.string().optional().describe("Mode to set value for (default: all modes)")
+      value: z
+        .union([RGBAColorSchema, z.number(), z.string(), z.boolean()])
+        .describe("Variable value (type depends on variable type)"),
+      mode: z.string().optional().describe("Mode to set value for (default: all modes)"),
     },
     async ({ collection_id, name, type, value, mode }) => {
       try {
-        const result = await sendCommandToFigma("create_variable", {
+        const result = await sendCommandToFigma<CreateVariableResult>("create_variable", {
           collectionId: collection_id,
           name,
           type,
           value,
-          mode
+          mode,
         });
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result, null, 2)
-            }
-          ]
+              text: `Created ${type} variable "${result.name || name}" (ID: ${result.id || "-"})`,
+            },
+          ],
         };
       } catch (error) {
         return {
           content: [
             {
               type: "text",
-              text: `Error creating variable: ${error instanceof Error ? error.message : String(error)}`
-            }
-          ]
+              text: `Error creating variable "${name}": ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
         };
       }
-    }
+    },
   );
 
   /**
@@ -284,39 +327,45 @@ export function registerVariableTools(server: McpServer): void {
     "Create multiple variables at once (more efficient than individual calls, supports all types)",
     {
       collection_id: z.string().describe("Collection ID or name"),
-      variables: coerceArray(z.array(z.object({
-        name: z.string(),
-        type: z.enum(["COLOR", "FLOAT", "STRING", "BOOLEAN"]),
-        value: z.union([RGBAColorSchema, z.number(), z.string(), z.boolean()])
-      }))).describe("Array of variable definitions"),
-      mode: z.string().optional().describe("Mode to set values for")
+      variables: coerceArray(
+        z.array(
+          z.object({
+            name: z.string(),
+            type: z.enum(["COLOR", "FLOAT", "STRING", "BOOLEAN"]),
+            value: z.union([RGBAColorSchema, z.number(), z.string(), z.boolean()]),
+          }),
+        ),
+      ).describe("Array of variable definitions"),
+      mode: z.string().optional().describe("Mode to set values for"),
     },
     async ({ collection_id, variables, mode }) => {
       try {
-        const result = await sendCommandToFigma("create_variables_batch", {
+        const result = await sendCommandToFigma<CreateVariablesBatchResult>("create_variables_batch", {
           collectionId: collection_id,
           variables,
-          mode
+          mode,
         });
+        const created = result.created ?? result.variables?.length ?? variables.length;
+        const failed = result.errors?.length ?? 0;
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result, null, 2)
-            }
-          ]
+              text: `Created ${created} variable(s)${failed > 0 ? `, ${failed} failed` : ""}`,
+            },
+          ],
         };
       } catch (error) {
         return {
           content: [
             {
               type: "text",
-              text: `Error creating variables batch: ${error instanceof Error ? error.message : String(error)}`
-            }
-          ]
+              text: `Error creating variables batch in collection "${collection_id}": ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
         };
       }
-    }
+    },
   );
 
   /**
@@ -328,41 +377,38 @@ export function registerVariableTools(server: McpServer): void {
     {
       variable_id: z.string().describe("Variable ID or name"),
       collection_id: z.string().optional().describe("Collection ID (required if using variable name)"),
-      value: z.union([
-        RGBAColorSchema,
-        z.number(),
-        z.string(),
-        z.boolean()
-      ]).describe("New value (type must match variable type)"),
-      mode: z.string().optional().describe("Mode to update (default: first mode)")
+      value: z
+        .union([RGBAColorSchema, z.number(), z.string(), z.boolean()])
+        .describe("New value (type must match variable type)"),
+      mode: z.string().optional().describe("Mode to update (default: first mode)"),
     },
     async ({ variable_id, collection_id, value, mode }) => {
       try {
-        const result = await sendCommandToFigma("update_variable_value", {
+        const result = await sendCommandToFigma<UpdateVariableValueResult>("update_variable_value", {
           variableId: variable_id,
           collectionId: collection_id,
           value,
-          mode
+          mode,
         });
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result, null, 2)
-            }
-          ]
+              text: `Updated variable "${result.variableId || variable_id}" value${mode ? ` (mode: ${mode})` : ""}`,
+            },
+          ],
         };
       } catch (error) {
         return {
           content: [
             {
               type: "text",
-              text: `Error updating variable value: ${error instanceof Error ? error.message : String(error)}`
-            }
-          ]
+              text: `Error updating variable value for "${variable_id}": ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
         };
       }
-    }
+    },
   );
 
   /**
@@ -374,34 +420,34 @@ export function registerVariableTools(server: McpServer): void {
     {
       variable_id: z.string().describe("Variable ID or current name"),
       collection_id: z.string().optional().describe("Collection ID (required if using variable name)"),
-      new_name: z.string().describe("New variable name")
+      new_name: z.string().describe("New variable name"),
     },
     async ({ variable_id, collection_id, new_name }) => {
       try {
-        const result = await sendCommandToFigma("rename_variable", {
+        const result = await sendCommandToFigma<RenameVariableResult>("rename_variable", {
           variableId: variable_id,
           collectionId: collection_id,
-          newName: new_name
+          newName: new_name,
         });
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result, null, 2)
-            }
-          ]
+              text: `Renamed variable to "${result.newName || new_name}" (ID: ${result.variableId || variable_id})`,
+            },
+          ],
         };
       } catch (error) {
         return {
           content: [
             {
               type: "text",
-              text: `Error renaming variable: ${error instanceof Error ? error.message : String(error)}`
-            }
-          ]
+              text: `Error renaming variable "${variable_id}" to "${new_name}": ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
         };
       }
-    }
+    },
   );
 
   /**
@@ -412,33 +458,33 @@ export function registerVariableTools(server: McpServer): void {
     "Delete a single variable",
     {
       variable_id: z.string().describe("Variable ID or name"),
-      collection_id: z.string().optional().describe("Collection ID (required if using variable name)")
+      collection_id: z.string().optional().describe("Collection ID (required if using variable name)"),
     },
     async ({ variable_id, collection_id }) => {
       try {
-        const result = await sendCommandToFigma("delete_variable", {
+        const result = await sendCommandToFigma<DeleteVariableResult>("delete_variable", {
           variableId: variable_id,
-          collectionId: collection_id
+          collectionId: collection_id,
         });
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result, null, 2)
-            }
-          ]
+              text: `Deleted variable (ID: ${result.variableId || variable_id})`,
+            },
+          ],
         };
       } catch (error) {
         return {
           content: [
             {
               type: "text",
-              text: `Error deleting variable: ${error instanceof Error ? error.message : String(error)}`
-            }
-          ]
+              text: `Error deleting variable "${variable_id}": ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
         };
       }
-    }
+    },
   );
 
   /**
@@ -449,33 +495,34 @@ export function registerVariableTools(server: McpServer): void {
     "Delete multiple variables at once",
     {
       variable_ids: coerceArray(z.array(z.string())).describe("Array of variable IDs or names"),
-      collection_id: z.string().optional().describe("Collection ID (required if using names)")
+      collection_id: z.string().optional().describe("Collection ID (required if using names)"),
     },
     async ({ variable_ids, collection_id }) => {
       try {
-        const result = await sendCommandToFigma("delete_variables_batch", {
+        const result = await sendCommandToFigma<DeleteVariablesBatchResult>("delete_variables_batch", {
           variableIds: variable_ids,
-          collectionId: collection_id
+          collectionId: collection_id,
         });
+        const deleted = result.deleted ?? variable_ids.length;
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result, null, 2)
-            }
-          ]
+              text: `Deleted ${deleted} variable(s)`,
+            },
+          ],
         };
       } catch (error) {
         return {
           content: [
             {
               type: "text",
-              text: `Error deleting variables batch: ${error instanceof Error ? error.message : String(error)}`
-            }
-          ]
+              text: `Error deleting variables batch (${variable_ids.length} variables): ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
         };
       }
-    }
+    },
   );
 
   // ========================================
@@ -491,35 +538,46 @@ export function registerVariableTools(server: McpServer): void {
     {
       base_color: RGBAColorSchema.describe("Base color RGB"),
       background_color: RGBAColorSchema.describe("Background color RGB"),
-      input_format: z.enum(["normalized", "rgb255"]).optional().describe("Input format (default: normalized)")
+      input_format: z.enum(["normalized", "rgb255"]).optional().describe("Input format (default: normalized)"),
     },
     async ({ base_color, background_color, input_format }) => {
       try {
         const scale = calculateColorScale(base_color, background_color);
 
+        const lines: string[] = [
+          "## Color Scale",
+          "Formula: resultant RGB = (base x mix%) + (background x (1 - mix%))",
+          "",
+          "| Level | Color | Mix% |",
+          "|-------|-------|------|",
+        ];
+        const levels = ["50", "100", "200", "300", "400", "500", "600", "700", "800", "900"];
+        for (const level of levels) {
+          const color = (scale as any)[level];
+          const mix = (SCALE_MIX_PERCENTAGES as any)[level];
+          lines.push(
+            `| ${level} | ${color ? formatColorValue(color) : "-"} | ${mix != null ? `${Math.round(mix * 100)}%` : "-"} |`,
+          );
+        }
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify({
-                scale,
-                formula: "resultant RGB = (base × mix%) + (background × (1 - mix%))",
-                mixPercentages: SCALE_MIX_PERCENTAGES
-              }, null, 2)
-            }
-          ]
+              text: lines.join("\n"),
+            },
+          ],
         };
       } catch (error) {
         return {
           content: [
             {
               type: "text",
-              text: `Error calculating color scale: ${error instanceof Error ? error.message : String(error)}`
-            }
-          ]
+              text: `Error calculating color scale: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
         };
       }
-    }
+    },
   );
 
   /**
@@ -532,7 +590,7 @@ export function registerVariableTools(server: McpServer): void {
       base_color: RGBAColorSchema.describe("Base color RGB"),
       background_color: RGBAColorSchema.describe("Background color RGB"),
       mix_percentage: z.number().min(0).max(1).describe("Mix percentage (0.0 to 1.0)"),
-      input_format: z.enum(["normalized", "rgb255"]).optional().describe("Input format (default: normalized)")
+      input_format: z.enum(["normalized", "rgb255"]).optional().describe("Input format (default: normalized)"),
     },
     async ({ base_color, background_color, mix_percentage, input_format }) => {
       try {
@@ -543,25 +601,21 @@ export function registerVariableTools(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: JSON.stringify({
-                result,
-                formula: `(base × ${mix_percentage}) + (background × ${1 - mix_percentage})`,
-                hex
-              }, null, 2)
-            }
-          ]
+              text: `## Composite Color\n- **Formula**: (base x ${mix_percentage}) + (background x ${1 - mix_percentage})\n- **Result**: ${formatColorValue(result)}\n- **Hex**: ${hex}`,
+            },
+          ],
         };
       } catch (error) {
         return {
           content: [
             {
               type: "text",
-              text: `Error calculating composite color: ${error instanceof Error ? error.message : String(error)}`
-            }
-          ]
+              text: `Error calculating composite color: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
         };
       }
-    }
+    },
   );
 
   /**
@@ -573,36 +627,33 @@ export function registerVariableTools(server: McpServer): void {
     {
       color: z.union([RGBAColorSchema, z.string()]).describe("Color value to convert"),
       from_format: z.enum(["normalized", "rgb255", "hex"]).describe("Source format"),
-      to_format: z.enum(["normalized", "rgb255", "hex"]).describe("Target format")
+      to_format: z.enum(["normalized", "rgb255", "hex"]).describe("Target format"),
     },
     async ({ color, from_format, to_format }) => {
       try {
         const output = convertColorFormat(color as any, from_format, to_format);
+        const outputStr = typeof output === "object" ? formatColorValue(output) : String(output);
+        const inputStr = typeof color === "object" ? formatColorValue(color) : String(color);
 
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify({
-                input: color,
-                output,
-                fromFormat: from_format,
-                toFormat: to_format
-              }, null, 2)
-            }
-          ]
+              text: `## Color Conversion (${from_format} → ${to_format})\n- **Input**: ${inputStr}\n- **Output**: ${outputStr}`,
+            },
+          ],
         };
       } catch (error) {
         return {
           content: [
             {
               type: "text",
-              text: `Error converting color format: ${error instanceof Error ? error.message : String(error)}`
-            }
-          ]
+              text: `Error converting color format: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
         };
       }
-    }
+    },
   );
 
   /**
@@ -614,7 +665,7 @@ export function registerVariableTools(server: McpServer): void {
     {
       foreground: RGBAColorSchema.describe("Foreground color RGB"),
       background: RGBAColorSchema.describe("Background color RGB"),
-      input_format: z.enum(["normalized", "rgb255"]).optional().describe("Input format (default: normalized)")
+      input_format: z.enum(["normalized", "rgb255"]).optional().describe("Input format (default: normalized)"),
     },
     async ({ foreground, background, input_format }) => {
       try {
@@ -622,29 +673,28 @@ export function registerVariableTools(server: McpServer): void {
         const wcag = getWCAGCompliance(ratio);
         const recommendation = getContrastRecommendation(ratio);
 
+        const wcagLines = Object.entries(wcag)
+          .map(([level, passes]) => `${level}: ${passes ? "Pass" : "Fail"}`)
+          .join(", ");
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify({
-                ratio: parseFloat(ratio.toFixed(2)),
-                wcag,
-                recommendation
-              }, null, 2)
-            }
-          ]
+              text: `## Contrast Ratio: ${ratio.toFixed(2)}:1\n- **WCAG**: ${wcagLines}\n- **Recommendation**: ${recommendation}`,
+            },
+          ],
         };
       } catch (error) {
         return {
           content: [
             {
               type: "text",
-              text: `Error calculating contrast ratio: ${error instanceof Error ? error.message : String(error)}`
-            }
-          ]
+              text: `Error calculating contrast ratio: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
         };
       }
-    }
+    },
   );
 
   // ========================================
@@ -660,34 +710,66 @@ export function registerVariableTools(server: McpServer): void {
     {
       collection_id: z.string().describe("Collection ID or name"),
       include_chart_colors: z.boolean().optional().describe("Expect chart colors (default: false)"),
-      custom_schema: z.any().optional().describe("Custom schema definition to validate against")
+      custom_schema: z.any().optional().describe("Custom schema definition to validate against"),
     },
     async ({ collection_id, include_chart_colors, custom_schema }) => {
       try {
-        const result = await sendCommandToFigma("audit_collection", {
+        const result = await sendCommandToFigma<AuditCollectionResult>("audit_collection", {
           collectionId: collection_id,
           includeChartColors: include_chart_colors || false,
-          customSchema: custom_schema
+          customSchema: custom_schema,
         });
+        const lines: string[] = [];
+        const compliance = result.compliancePercent ?? result.compliance ?? "-";
+        lines.push(`## Audit Result — ${compliance}% compliant`);
+        const total = result.totalExpected ?? result.total ?? "-";
+        const found = result.found ?? result.matching ?? "-";
+        lines.push(`Expected: ${total} | Found: ${found}`);
+        lines.push("");
+        const missing = result.missing || [];
+        if (missing.length > 0) {
+          lines.push(`### Missing (${missing.length})`);
+          lines.push("| Name |");
+          lines.push("|------|");
+          for (const m of missing) lines.push(`| ${typeof m === "string" ? m : m.name} |`);
+          lines.push("");
+        }
+        const extra = result.extra || [];
+        if (extra.length > 0) {
+          lines.push(`### Extra (${extra.length})`);
+          lines.push("| Name |");
+          lines.push("|------|");
+          for (const e of extra) lines.push(`| ${typeof e === "string" ? e : e.name} |`);
+          lines.push("");
+        }
+        const mismatched: Array<Record<string, any>> =
+          result.typeMismatches || (result as any).mismatched || (result as any).typeErrors || [];
+        if (mismatched.length > 0) {
+          lines.push(`### Mismatched (${mismatched.length})`);
+          lines.push("| Name | Expected | Actual |");
+          lines.push("|------|----------|--------|");
+          for (const m of mismatched) lines.push(`| ${m.name} | ${m.expected || "-"} | ${m.actual || "-"} |`);
+          lines.push("");
+        }
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result, null, 2)
-            }
-          ]
+              text: lines.join("\n"),
+            },
+          ],
         };
       } catch (error) {
         return {
           content: [
             {
               type: "text",
-              text: `Error auditing collection: ${error instanceof Error ? error.message : String(error)}`
-            }
-          ]
+              text: `Error auditing collection "${collection_id}": ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
         };
       }
-    }
+    },
   );
 
   /**
@@ -699,34 +781,51 @@ export function registerVariableTools(server: McpServer): void {
     {
       collection_id: z.string().describe("Collection ID or name"),
       mode: z.string().optional().describe("Mode to validate"),
-      standard: z.enum(["AA", "AAA"]).optional().describe("WCAG standard (default: AA)")
+      standard: z.enum(["AA", "AAA"]).optional().describe("WCAG standard (default: AA)"),
     },
     async ({ collection_id, mode, standard }) => {
       try {
-        const result = await sendCommandToFigma("validate_color_contrast", {
+        const result = await sendCommandToFigma<ValidateColorContrastResult>("validate_color_contrast", {
           collectionId: collection_id,
           mode,
-          standard: standard || "AA"
+          standard: standard || "AA",
         });
+        const pairs: Array<Record<string, any>> =
+          result.pairs || (result as any).results || (Array.isArray(result) ? result : []);
+        const passCount = pairs.filter((p: any) => p.passes || p.pass).length;
+        const lines: string[] = [
+          `## Color Contrast Validation (${standard || "AA"})`,
+          `${passCount}/${pairs.length} pairs pass`,
+          "",
+          "| Foreground | Background | Ratio | Pass |",
+          "|------------|------------|-------|------|",
+        ];
+        for (const p of pairs) {
+          const fg = p.foregroundName || formatColorValue(p.foreground);
+          const bg = p.backgroundName || formatColorValue(p.background);
+          const ratio = typeof p.ratio === "number" ? p.ratio.toFixed(2) : (p.ratio ?? "-");
+          const pass = p.passes || p.pass ? "Yes" : "No";
+          lines.push(`| ${fg} | ${bg} | ${ratio}:1 | ${pass} |`);
+        }
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result, null, 2)
-            }
-          ]
+              text: lines.join("\n"),
+            },
+          ],
         };
       } catch (error) {
         return {
           content: [
             {
               type: "text",
-              text: `Error validating color contrast: ${error instanceof Error ? error.message : String(error)}`
-            }
-          ]
+              text: `Error validating color contrast for collection "${collection_id}": ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
         };
       }
-    }
+    },
   );
 
   /**
@@ -737,7 +836,7 @@ export function registerVariableTools(server: McpServer): void {
     "Return the complete standard schema definition",
     {
       include_chart_colors: z.boolean().optional().describe("Include chart colors (default: false)"),
-      format: z.enum(["structured", "flat"]).optional().describe("Output format (default: structured)")
+      format: z.enum(["structured", "flat"]).optional().describe("Output format (default: structured)"),
     },
     async ({ include_chart_colors, format }) => {
       try {
@@ -747,15 +846,15 @@ export function registerVariableTools(server: McpServer): void {
           const flatSchema = {
             version: schema.version,
             totalVariables: schema.totalVariables,
-            variables: getAllStandardVariableNames(include_chart_colors || false)
+            variables: getAllStandardVariableNames(include_chart_colors || false),
           };
           return {
             content: [
               {
                 type: "text",
-                text: JSON.stringify(flatSchema, null, 2)
-              }
-            ]
+                text: JSON.stringify(flatSchema, null, 2),
+              },
+            ],
           };
         }
 
@@ -763,21 +862,21 @@ export function registerVariableTools(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: JSON.stringify(schema, null, 2)
-            }
-          ]
+              text: JSON.stringify(schema, null, 2),
+            },
+          ],
         };
       } catch (error) {
         return {
           content: [
             {
               type: "text",
-              text: `Error getting schema definition: ${error instanceof Error ? error.message : String(error)}`
-            }
-          ]
+              text: `Error getting schema definition: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
         };
       }
-    }
+    },
   );
 
   /**
@@ -788,33 +887,50 @@ export function registerVariableTools(server: McpServer): void {
     "Get list of missing variables with suggested default values",
     {
       collection_id: z.string().describe("Collection ID or name"),
-      use_defaults: z.boolean().optional().describe("Include default values from reference theme (default: true)")
+      use_defaults: z.boolean().optional().describe("Include default values from reference theme (default: true)"),
     },
     async ({ collection_id, use_defaults }) => {
       try {
-        const result = await sendCommandToFigma("suggest_missing_variables", {
+        const result = await sendCommandToFigma<SuggestMissingVariablesResult>("suggest_missing_variables", {
           collectionId: collection_id,
-          useDefaults: use_defaults !== false
+          useDefaults: use_defaults !== false,
         });
+        const suggestions: Array<Record<string, any>> =
+          result.suggestions || (result as any).missing || (Array.isArray(result) ? result : []);
+        if (suggestions.length === 0) {
+          return { content: [{ type: "text", text: "No missing variables found — collection is complete." }] };
+        }
+        const lines: string[] = [
+          `## Missing Variables (${suggestions.length})`,
+          "",
+          "| Name | Category | Suggested Value |",
+          "|------|----------|-----------------|",
+        ];
+        for (const s of suggestions) {
+          const name = s.name || s.variableName || "-";
+          const cat = s.category || s.group || "-";
+          const val = s.suggestedValue != null ? formatVariableValue(s.type || "COLOR", s.suggestedValue) : "-";
+          lines.push(`| ${name} | ${cat} | ${val} |`);
+        }
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result, null, 2)
-            }
-          ]
+              text: lines.join("\n"),
+            },
+          ],
         };
       } catch (error) {
         return {
           content: [
             {
               type: "text",
-              text: `Error suggesting missing variables: ${error instanceof Error ? error.message : String(error)}`
-            }
-          ]
+              text: `Error suggesting missing variables for collection "${collection_id}": ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
         };
       }
-    }
+    },
   );
 
   // ========================================
@@ -830,34 +946,37 @@ export function registerVariableTools(server: McpServer): void {
     {
       collection_id: z.string().describe("Collection ID or name"),
       overwrite_existing: z.boolean().optional().describe("Overwrite existing variables (default: false)"),
-      include_chart_colors: z.boolean().optional().describe("Include chart colors (default: false)")
+      include_chart_colors: z.boolean().optional().describe("Include chart colors (default: false)"),
     },
     async ({ collection_id, overwrite_existing, include_chart_colors }) => {
       try {
-        const result = await sendCommandToFigma("apply_default_theme", {
+        const result = await sendCommandToFigma<ApplyDefaultThemeResult>("apply_default_theme", {
           collectionId: collection_id,
           overwriteExisting: overwrite_existing || false,
-          includeChartColors: include_chart_colors || false
+          includeChartColors: include_chart_colors || false,
         });
+        const created = result.created ?? "-";
+        const skipped = result.skipped ?? 0;
+        const updated = result.updated ?? 0;
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result, null, 2)
-            }
-          ]
+              text: `Applied default theme — ${created} created, ${updated} updated, ${skipped} skipped`,
+            },
+          ],
         };
       } catch (error) {
         return {
           content: [
             {
               type: "text",
-              text: `Error applying default theme: ${error instanceof Error ? error.message : String(error)}`
-            }
-          ]
+              text: `Error applying default theme to collection "${collection_id}": ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
         };
       }
-    }
+    },
   );
 
   /**
@@ -872,37 +991,38 @@ export function registerVariableTools(server: McpServer): void {
       base_color: RGBAColorSchema.describe("Base color RGB"),
       foreground_color: RGBAColorSchema.describe("Foreground color RGB"),
       background_color: RGBAColorSchema.describe("Background color for scale calculation"),
-      mode: z.string().optional().describe("Mode to create variables in")
+      mode: z.string().optional().describe("Mode to create variables in"),
     },
     async ({ collection_id, color_name, base_color, foreground_color, background_color, mode }) => {
       try {
-        const result = await sendCommandToFigma("create_color_scale_set", {
+        const result = await sendCommandToFigma<CreateColorScaleSetResult>("create_color_scale_set", {
           collectionId: collection_id,
           colorName: color_name,
           baseColor: base_color,
           foregroundColor: foreground_color,
           backgroundColor: background_color,
-          mode
+          mode,
         });
+        const created = result.created ?? result.variables?.length ?? "-";
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result, null, 2)
-            }
-          ]
+              text: `Created color scale "${color_name}" — ${created} variables (base + foreground + 10 scale levels)`,
+            },
+          ],
         };
       } catch (error) {
         return {
           content: [
             {
               type: "text",
-              text: `Error creating color scale set: ${error instanceof Error ? error.message : String(error)}`
-            }
-          ]
+              text: `Error creating color scale set "${color_name}": ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
         };
       }
-    }
+    },
   );
 
   /**
@@ -913,40 +1033,45 @@ export function registerVariableTools(server: McpServer): void {
     "Apply custom color values to base colors and regenerate scales",
     {
       collection_id: z.string().describe("Collection ID or name"),
-      palette: z.record(z.object({
-        base: RGBAColorSchema,
-        foreground: RGBAColorSchema
-      })).describe("Custom color values for each base color"),
+      palette: z
+        .record(
+          z.object({
+            base: RGBAColorSchema,
+            foreground: RGBAColorSchema,
+          }),
+        )
+        .describe("Custom color values for each base color"),
       background_color: RGBAColorSchema.describe("Background color for scale calculations"),
-      regenerate_scales: z.boolean().optional().describe("Auto-regenerate all scales (default: true)")
+      regenerate_scales: z.boolean().optional().describe("Auto-regenerate all scales (default: true)"),
     },
     async ({ collection_id, palette, background_color, regenerate_scales }) => {
       try {
-        const result = await sendCommandToFigma("apply_custom_palette", {
+        await sendCommandToFigma("apply_custom_palette", {
           collectionId: collection_id,
           palette,
           backgroundColor: background_color,
-          regenerateScales: regenerate_scales !== false
+          regenerateScales: regenerate_scales !== false,
         });
+        const colorCount = Object.keys(palette).length;
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result, null, 2)
-            }
-          ]
+              text: `Applied custom palette — ${colorCount} color(s) updated${regenerate_scales !== false ? ", scales regenerated" : ""}`,
+            },
+          ],
         };
       } catch (error) {
         return {
           content: [
             {
               type: "text",
-              text: `Error applying custom palette: ${error instanceof Error ? error.message : String(error)}`
-            }
-          ]
+              text: `Error applying custom palette to collection "${collection_id}": ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
         };
       }
-    }
+    },
   );
 
   // ========================================
@@ -961,33 +1086,37 @@ export function registerVariableTools(server: McpServer): void {
     "Reorder variables to match standard organization",
     {
       collection_id: z.string().describe("Collection ID or name"),
-      order: z.union([z.literal("standard"), coerceArray(z.array(z.string()))]).optional().describe("'standard' or custom order array")
+      order: z
+        .union([z.literal("standard"), coerceArray(z.array(z.string()))])
+        .optional()
+        .describe("'standard' or custom order array"),
     },
     async ({ collection_id, order }) => {
       try {
-        const result = await sendCommandToFigma("reorder_variables", {
+        const result = await sendCommandToFigma<ReorderVariablesResult>("reorder_variables", {
           collectionId: collection_id,
-          order: order || "standard"
+          order: order || "standard",
         });
+        const reordered = result.reordered ?? "-";
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result, null, 2)
-            }
-          ]
+              text: `Reordered ${reordered} variable(s) to ${order === "standard" || !order ? "standard" : "custom"} order`,
+            },
+          ],
         };
       } catch (error) {
         return {
           content: [
             {
               type: "text",
-              text: `Error reordering variables: ${error instanceof Error ? error.message : String(error)}`
-            }
-          ]
+              text: `Error reordering variables in collection "${collection_id}": ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
         };
       }
-    }
+    },
   );
 
   /**
@@ -999,34 +1128,34 @@ export function registerVariableTools(server: McpServer): void {
     {
       collection_id: z.string().describe("Collection ID or name"),
       include_chart_colors: z.boolean().optional().describe("Expect chart colors"),
-      format: z.enum(["markdown", "json"]).optional().describe("Output format (default: markdown)")
+      format: z.enum(["markdown", "json"]).optional().describe("Output format (default: markdown)"),
     },
     async ({ collection_id, include_chart_colors, format }) => {
       try {
-        const result = await sendCommandToFigma("generate_audit_report", {
+        const result = await sendCommandToFigma<GenerateAuditReportResult>("generate_audit_report", {
           collectionId: collection_id,
           includeChartColors: include_chart_colors || false,
-          format: format || "markdown"
+          format: format || "markdown",
         });
         return {
           content: [
             {
               type: "text",
-              text: typeof result === 'string' ? result : JSON.stringify(result, null, 2)
-            }
-          ]
+              text: typeof result === "string" ? result : JSON.stringify(result, null, 2),
+            },
+          ],
         };
       } catch (error) {
         return {
           content: [
             {
               type: "text",
-              text: `Error generating audit report: ${error instanceof Error ? error.message : String(error)}`
-            }
-          ]
+              text: `Error generating audit report for collection "${collection_id}": ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
         };
       }
-    }
+    },
   );
 
   /**
@@ -1038,34 +1167,34 @@ export function registerVariableTools(server: McpServer): void {
     {
       collection_id: z.string().describe("Collection ID or name"),
       mode: z.string().optional().describe("Mode to export"),
-      include_metadata: z.boolean().optional().describe("Include metadata (default: true)")
+      include_metadata: z.boolean().optional().describe("Include metadata (default: true)"),
     },
     async ({ collection_id, mode, include_metadata }) => {
       try {
-        const result = await sendCommandToFigma("export_collection_schema", {
+        const result = await sendCommandToFigma<ExportCollectionSchemaResult>("export_collection_schema", {
           collectionId: collection_id,
           mode,
-          includeMetadata: include_metadata !== false
+          includeMetadata: include_metadata !== false,
         });
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result, null, 2)
-            }
-          ]
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
         };
       } catch (error) {
         return {
           content: [
             {
               type: "text",
-              text: `Error exporting collection schema: ${error instanceof Error ? error.message : String(error)}`
-            }
-          ]
+              text: `Error exporting collection schema for "${collection_id}": ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
         };
       }
-    }
+    },
   );
 
   /**
@@ -1078,35 +1207,37 @@ export function registerVariableTools(server: McpServer): void {
       collection_id: z.string().describe("Collection ID or name"),
       schema: z.any().describe("JSON schema from export"),
       mode: z.string().optional().describe("Mode to import into"),
-      overwrite_existing: z.boolean().optional().describe("Overwrite existing (default: false)")
+      overwrite_existing: z.boolean().optional().describe("Overwrite existing (default: false)"),
     },
     async ({ collection_id, schema, mode, overwrite_existing }) => {
       try {
-        const result = await sendCommandToFigma("import_collection_schema", {
+        const result = await sendCommandToFigma<ImportCollectionSchemaResult>("import_collection_schema", {
           collectionId: collection_id,
           schema,
           mode,
-          overwriteExisting: overwrite_existing || false
+          overwriteExisting: overwrite_existing || false,
         });
+        const imported = result.imported ?? result.created ?? "-";
+        const skipped = result.skipped ?? 0;
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result, null, 2)
-            }
-          ]
+              text: `Imported schema — ${imported} variable(s) created${skipped > 0 ? `, ${skipped} skipped` : ""}`,
+            },
+          ],
         };
       } catch (error) {
         return {
           content: [
             {
               type: "text",
-              text: `Error importing collection schema: ${error instanceof Error ? error.message : String(error)}`
-            }
-          ]
+              text: `Error importing collection schema into "${collection_id}": ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
         };
       }
-    }
+    },
   );
 
   // ========================================
@@ -1122,34 +1253,36 @@ export function registerVariableTools(server: McpServer): void {
     {
       collection_id: z.string().describe("Collection ID or name"),
       base_colors: z.record(RGBAColorSchema).describe("Base colors for each scale"),
-      background_color: RGBAColorSchema.describe("Background color for calculations")
+      background_color: RGBAColorSchema.describe("Background color for calculations"),
     },
     async ({ collection_id, base_colors, background_color }) => {
       try {
-        const result = await sendCommandToFigma("create_all_scales", {
+        const result = await sendCommandToFigma<CreateAllScalesResult>("create_all_scales", {
           collectionId: collection_id,
           baseColors: base_colors,
-          backgroundColor: background_color
+          backgroundColor: background_color,
         });
+        const colorNames = Object.keys(base_colors);
+        const totalVars = result.totalVariables ?? result.created ?? colorNames.length * 10;
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result, null, 2)
-            }
-          ]
+              text: `Created all scales — ${colorNames.length} color(s) (${colorNames.join(", ")}), ${totalVars} variables total`,
+            },
+          ],
         };
       } catch (error) {
         return {
           content: [
             {
               type: "text",
-              text: `Error creating all scales: ${error instanceof Error ? error.message : String(error)}`
-            }
-          ]
+              text: `Error creating all scales for collection "${collection_id}": ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
         };
       }
-    }
+    },
   );
 
   /**
@@ -1163,36 +1296,40 @@ export function registerVariableTools(server: McpServer): void {
       preserve_custom: z.boolean().optional().describe("Keep non-standard variables (default: false)"),
       add_chart_colors: z.boolean().optional().describe("Add chart colors (default: false)"),
       use_default_values: z.boolean().optional().describe("Use default theme values (default: true)"),
-      dry_run: z.boolean().optional().describe("Preview changes without applying (default: false)")
+      dry_run: z.boolean().optional().describe("Preview changes without applying (default: false)"),
     },
     async ({ collection_id, preserve_custom, add_chart_colors, use_default_values, dry_run }) => {
       try {
-        const result = await sendCommandToFigma("fix_collection_to_standard", {
+        const result = await sendCommandToFigma<FixCollectionToStandardResult>("fix_collection_to_standard", {
           collectionId: collection_id,
           preserveCustom: preserve_custom || false,
           addChartColors: add_chart_colors || false,
           useDefaultValues: use_default_values !== false,
-          dryRun: dry_run || false
+          dryRun: dry_run || false,
         });
+        const added = result.added ?? result.fixed ?? "-";
+        const removed = result.removed ?? 0;
+        const status = result.status ?? "-";
+        const prefix = dry_run ? "[DRY RUN] " : "";
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result, null, 2)
-            }
-          ]
+              text: `${prefix}Fixed collection to standard — ${added} added, ${removed} removed, status: ${status}`,
+            },
+          ],
         };
       } catch (error) {
         return {
           content: [
             {
               type: "text",
-              text: `Error fixing collection to standard: ${error instanceof Error ? error.message : String(error)}`
-            }
-          ]
+              text: `Error fixing collection "${collection_id}" to standard: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
         };
       }
-    }
+    },
   );
 
   /**
@@ -1203,33 +1340,36 @@ export function registerVariableTools(server: McpServer): void {
     "Add 8 chart colors to collection",
     {
       collection_id: z.string().describe("Collection ID or name"),
-      chart_colors: coerceArray(z.array(RGBAColorSchema)).optional().describe("Custom chart colors (default: use standard palette)")
+      chart_colors: coerceArray(z.array(RGBAColorSchema))
+        .optional()
+        .describe("Custom chart colors (default: use standard palette)"),
     },
     async ({ collection_id, chart_colors }) => {
       try {
-        const result = await sendCommandToFigma("add_chart_colors", {
+        const result = await sendCommandToFigma<AddChartColorsResult>("add_chart_colors", {
           collectionId: collection_id,
-          chartColors: chart_colors
+          chartColors: chart_colors,
         });
+        const count = result.created ?? result.colors?.length ?? 8;
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result, null, 2)
-            }
-          ]
+              text: `Added ${count} chart color(s) to collection`,
+            },
+          ],
         };
       } catch (error) {
         return {
           content: [
             {
               type: "text",
-              text: `Error adding chart colors: ${error instanceof Error ? error.message : String(error)}`
-            }
-          ]
+              text: `Error adding chart colors to collection "${collection_id}": ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
         };
       }
-    }
+    },
   );
 
   // ========================================
@@ -1244,33 +1384,33 @@ export function registerVariableTools(server: McpServer): void {
     "Add a new mode to a variable collection (e.g., Light mode, Dark mode, High Contrast)",
     {
       collection_id: z.string().describe("Collection ID or name"),
-      mode_name: z.string().describe("Mode name (e.g., 'Light', 'Dark', 'High Contrast')")
+      mode_name: z.string().describe("Mode name (e.g., 'Light', 'Dark', 'High Contrast')"),
     },
     async ({ collection_id, mode_name }) => {
       try {
-        const result = await sendCommandToFigma("add_mode_to_collection", {
+        const result = await sendCommandToFigma<AddModeResult>("add_mode_to_collection", {
           collectionId: collection_id,
-          modeName: mode_name
+          modeName: mode_name,
         });
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result, null, 2)
-            }
-          ]
+              text: `Added mode "${result.modeName || mode_name}" to collection (ID: ${result.modeId || "-"})`,
+            },
+          ],
         };
       } catch (error) {
         return {
           content: [
             {
               type: "text",
-              text: `Error adding mode: ${error instanceof Error ? error.message : String(error)}`
-            }
-          ]
+              text: `Error adding mode "${mode_name}" to collection "${collection_id}": ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
         };
       }
-    }
+    },
   );
 
   /**
@@ -1282,34 +1422,34 @@ export function registerVariableTools(server: McpServer): void {
     {
       collection_id: z.string().describe("Collection ID or name"),
       old_mode_name: z.string().describe("Current mode name"),
-      new_mode_name: z.string().describe("New mode name")
+      new_mode_name: z.string().describe("New mode name"),
     },
     async ({ collection_id, old_mode_name, new_mode_name }) => {
       try {
-        const result = await sendCommandToFigma("rename_mode", {
+        const result = await sendCommandToFigma<RenameModeResult>("rename_mode", {
           collectionId: collection_id,
           oldModeName: old_mode_name,
-          newModeName: new_mode_name
+          newModeName: new_mode_name,
         });
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result, null, 2)
-            }
-          ]
+              text: `Renamed mode from "${old_mode_name}" to "${result.newName || new_mode_name}"`,
+            },
+          ],
         };
       } catch (error) {
         return {
           content: [
             {
               type: "text",
-              text: `Error renaming mode: ${error instanceof Error ? error.message : String(error)}`
-            }
-          ]
+              text: `Error renaming mode "${old_mode_name}" to "${new_mode_name}": ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
         };
       }
-    }
+    },
   );
 
   /**
@@ -1320,33 +1460,33 @@ export function registerVariableTools(server: McpServer): void {
     "Delete a mode from a collection (cannot delete last mode)",
     {
       collection_id: z.string().describe("Collection ID or name"),
-      mode_name: z.string().describe("Mode name to delete")
+      mode_name: z.string().describe("Mode name to delete"),
     },
     async ({ collection_id, mode_name }) => {
       try {
-        const result = await sendCommandToFigma("delete_mode", {
+        await sendCommandToFigma<DeleteModeResult>("delete_mode", {
           collectionId: collection_id,
-          modeName: mode_name
+          modeName: mode_name,
         });
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result, null, 2)
-            }
-          ]
+              text: `Deleted mode "${mode_name}" from collection`,
+            },
+          ],
         };
       } catch (error) {
         return {
           content: [
             {
               type: "text",
-              text: `Error deleting mode: ${error instanceof Error ? error.message : String(error)}`
-            }
-          ]
+              text: `Error deleting mode "${mode_name}" from collection "${collection_id}": ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
         };
       }
-    }
+    },
   );
 
   /**
@@ -1359,37 +1499,44 @@ export function registerVariableTools(server: McpServer): void {
       collection_id: z.string().describe("Collection ID or name"),
       source_mode: z.string().describe("Source mode name to copy from"),
       target_mode: z.string().describe("Target mode name to copy to"),
-      transform_colors: z.object({
-        brightness_adjustment: z.number().optional().describe("Brightness adjustment for colors (-1 to 1, e.g., 0.2 for lighter)")
-      }).optional().describe("Optional color transformations")
+      transform_colors: z
+        .object({
+          brightness_adjustment: z
+            .number()
+            .optional()
+            .describe("Brightness adjustment for colors (-1 to 1, e.g., 0.2 for lighter)"),
+        })
+        .optional()
+        .describe("Optional color transformations"),
     },
     async ({ collection_id, source_mode, target_mode, transform_colors }) => {
       try {
-        const result = await sendCommandToFigma("duplicate_mode_values", {
+        const result = await sendCommandToFigma<DuplicateModeValuesResult>("duplicate_mode_values", {
           collectionId: collection_id,
           sourceMode: source_mode,
           targetMode: target_mode,
-          transformColors: transform_colors
+          transformColors: transform_colors,
         });
+        const count = result.copied ?? result.variablesCopied ?? "-";
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result, null, 2)
-            }
-          ]
+              text: `Copied ${count} variable values from "${source_mode}" to "${target_mode}"`,
+            },
+          ],
         };
       } catch (error) {
         return {
           content: [
             {
               type: "text",
-              text: `Error duplicating mode values: ${error instanceof Error ? error.message : String(error)}`
-            }
-          ]
+              text: `Error duplicating mode values from "${source_mode}" to "${target_mode}": ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
         };
       }
-    }
+    },
   );
 
   // ========================================
@@ -1405,7 +1552,11 @@ export function registerVariableTools(server: McpServer): void {
     {
       collection_id: z.string().describe("Collection ID or name"),
       preset: z.enum(["8pt", "4pt", "tailwind", "material"]).describe("Spacing preset to use"),
-      include_semantic: z.boolean().optional().default(true).describe("Include semantic tokens (component.gap, layout.margin, etc.)")
+      include_semantic: z
+        .boolean()
+        .optional()
+        .default(true)
+        .describe("Include semantic tokens (component.gap, layout.margin, etc.)"),
     },
     async ({ collection_id, preset, include_semantic }) => {
       try {
@@ -1415,13 +1566,13 @@ export function registerVariableTools(server: McpServer): void {
         const primitiveVars = Object.entries(spacingPreset).map(([key, value]) => ({
           name: `spacing/${key}`,
           type: "FLOAT" as const,
-          value
+          value,
         }));
 
         // Create batch
-        const result = await sendCommandToFigma("create_variables_batch", {
+        await sendCommandToFigma<DesignSystemSubResult>("create_variables_batch", {
           collectionId: collection_id,
-          variables: primitiveVars
+          variables: primitiveVars,
         });
 
         let semanticCount = 0;
@@ -1430,33 +1581,38 @@ export function registerVariableTools(server: McpServer): void {
         const semanticTokens = include_semantic ? generateSemanticSpacing() : {};
         semanticCount = Object.keys(semanticTokens).length;
 
+        const varNames = primitiveVars.map((v) => v.name);
+        const lines: string[] = [
+          `## Spacing System (${preset})`,
+          `Created ${primitiveVars.length} primitive variable(s)`,
+          "",
+          "| Variable | Value |",
+          "|----------|-------|",
+        ];
+        for (const v of primitiveVars) lines.push(`| ${v.name} | ${v.value} |`);
+        if (semanticCount > 0) {
+          lines.push("");
+          lines.push(`${semanticCount} semantic token(s) available for manual aliasing`);
+        }
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify({
-                success: true,
-                primitiveCount: primitiveVars.length,
-                primitiveVariables: primitiveVars.map(v => v.name),
-                semanticTokensAvailable: semanticCount,
-                semanticTokens: include_semantic ? semanticTokens : undefined,
-                preset,
-                note: "Semantic tokens listed above should be created as aliases manually or wait for aliasing feature"
-              }, null, 2)
-            }
-          ]
+              text: lines.join("\n"),
+            },
+          ],
         };
       } catch (error) {
         return {
           content: [
             {
               type: "text",
-              text: `Error creating spacing system: ${error instanceof Error ? error.message : String(error)}`
-            }
-          ]
+              text: `Error creating spacing system "${preset}" for collection "${collection_id}": ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
         };
       }
-    }
+    },
   );
 
   /**
@@ -1471,20 +1627,20 @@ export function registerVariableTools(server: McpServer): void {
       base_size: z.number().optional().default(16).describe("Base font size in pixels"),
       include_weights: z.boolean().optional().default(true).describe("Include font weight tokens"),
       include_line_heights: z.boolean().optional().default(true).describe("Include line height tokens"),
-      include_semantic: z.boolean().optional().default(true).describe("Include semantic typography tokens")
+      include_semantic: z.boolean().optional().default(true).describe("Include semantic typography tokens"),
     },
     async ({ collection_id, scale_preset, base_size, include_weights, include_line_heights, include_semantic }) => {
       try {
         const typeScale = getTypographyPreset(scale_preset);
 
-        const variables = [];
+        const variables: Array<{ name: string; type: "FLOAT"; value: number }> = [];
 
         // Create font size variables
         Object.entries(typeScale).forEach(([key, value]) => {
           variables.push({
             name: `font.size.${key}`,
             type: "FLOAT" as const,
-            value
+            value,
           });
         });
 
@@ -1494,7 +1650,7 @@ export function registerVariableTools(server: McpServer): void {
             variables.push({
               name: `font.weight.${key}`,
               type: "FLOAT" as const,
-              value
+              value,
             });
           });
         }
@@ -1505,48 +1661,50 @@ export function registerVariableTools(server: McpServer): void {
             variables.push({
               name: `font.lineHeight.${key}`,
               type: "FLOAT" as const,
-              value
+              value,
             });
           });
         }
 
-        const result = await sendCommandToFigma("create_variables_batch", {
+        await sendCommandToFigma<DesignSystemSubResult>("create_variables_batch", {
           collectionId: collection_id,
-          variables
+          variables,
         });
 
         const semanticTokens = include_semantic ? generateSemanticTypography() : {};
 
+        const semanticCount = Object.keys(semanticTokens).length;
+        const lines: string[] = [
+          `## Typography System (${scale_preset})`,
+          `Created ${variables.length} variable(s) — ${Object.keys(typeScale).length} sizes, ${include_weights ? Object.keys(FONT_WEIGHTS).length : 0} weights, ${include_line_heights ? Object.keys(LINE_HEIGHTS).length : 0} line heights`,
+          "",
+          "| Variable | Value |",
+          "|----------|-------|",
+        ];
+        for (const v of variables) lines.push(`| ${v.name} | ${v.value} |`);
+        if (semanticCount > 0) {
+          lines.push("");
+          lines.push(`${semanticCount} semantic token(s) available for manual aliasing`);
+        }
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify({
-                success: true,
-                totalVariables: variables.length,
-                fontSizes: Object.keys(typeScale).length,
-                fontWeights: include_weights ? Object.keys(FONT_WEIGHTS).length : 0,
-                lineHeights: include_line_heights ? Object.keys(LINE_HEIGHTS).length : 0,
-                variables: variables.map(v => v.name),
-                semanticTokensAvailable: Object.keys(semanticTokens).length,
-                semanticTokens: include_semantic ? semanticTokens : undefined,
-                preset: scale_preset,
-                note: "Semantic tokens listed above should be created as aliases manually or wait for aliasing feature"
-              }, null, 2)
-            }
-          ]
+              text: lines.join("\n"),
+            },
+          ],
         };
       } catch (error) {
         return {
           content: [
             {
               type: "text",
-              text: `Error creating typography system: ${error instanceof Error ? error.message : String(error)}`
-            }
-          ]
+              text: `Error creating typography system "${scale_preset}" for collection "${collection_id}": ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
         };
       }
-    }
+    },
   );
 
   /**
@@ -1557,7 +1715,7 @@ export function registerVariableTools(server: McpServer): void {
     "Create border radius token system",
     {
       collection_id: z.string().describe("Collection ID or name"),
-      preset: z.enum(["standard", "subtle", "bold"]).describe("Border radius preset to use")
+      preset: z.enum(["standard", "subtle", "bold"]).describe("Border radius preset to use"),
     },
     async ({ collection_id, preset }) => {
       try {
@@ -1566,38 +1724,41 @@ export function registerVariableTools(server: McpServer): void {
         const variables = Object.entries(radiusPreset).map(([key, value]) => ({
           name: `radius/${key === "DEFAULT" ? "md" : key}`,
           type: "FLOAT" as const,
-          value
+          value,
         }));
 
-        const result = await sendCommandToFigma("create_variables_batch", {
+        await sendCommandToFigma<DesignSystemSubResult>("create_variables_batch", {
           collectionId: collection_id,
-          variables
+          variables,
         });
 
+        const lines: string[] = [
+          `## Radius System (${preset})`,
+          `Created ${variables.length} variable(s)`,
+          "",
+          "| Variable | Value |",
+          "|----------|-------|",
+        ];
+        for (const v of variables) lines.push(`| ${v.name} | ${v.value} |`);
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify({
-                success: true,
-                totalVariables: variables.length,
-                variables: variables.map(v => v.name),
-                preset
-              }, null, 2)
-            }
-          ]
+              text: lines.join("\n"),
+            },
+          ],
         };
       } catch (error) {
         return {
           content: [
             {
               type: "text",
-              text: `Error creating radius system: ${error instanceof Error ? error.message : String(error)}`
-            }
-          ]
+              text: `Error creating radius system "${preset}" for collection "${collection_id}": ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
         };
       }
-    }
+    },
   );
 
   // ========================================
@@ -1612,93 +1773,104 @@ export function registerVariableTools(server: McpServer): void {
     "Initialize a complete design system with colors, spacing, typography, and radius in one command",
     {
       collection_name: z.string().optional().default("Design Tokens").describe("Name for the collection"),
-      modes: coerceArray(z.array(z.string())).optional().default(["Light", "Dark"]).describe("Modes to create (e.g., ['Light', 'Dark'])"),
+      modes: coerceArray(z.array(z.string()))
+        .optional()
+        .default(["Light", "Dark"])
+        .describe("Modes to create (e.g., ['Light', 'Dark'])"),
       color_preset: z.enum(["default", "custom"]).optional().default("default").describe("Color preset to use"),
       custom_colors: z.any().optional().describe("Custom color values (if color_preset is 'custom')"),
-      spacing_preset: z.enum(["8pt", "4pt", "tailwind", "material"]).optional().default("8pt").describe("Spacing system preset"),
-      typography_preset: z.enum(["major-third", "minor-third", "perfect-fourth"]).optional().default("major-third").describe("Typography scale preset"),
-      radius_preset: z.enum(["standard", "subtle", "bold"]).optional().default("standard").describe("Border radius preset"),
-      include_semantic_tokens: z.boolean().optional().default(true).describe("Include semantic token suggestions")
+      spacing_preset: z
+        .enum(["8pt", "4pt", "tailwind", "material"])
+        .optional()
+        .default("8pt")
+        .describe("Spacing system preset"),
+      typography_preset: z
+        .enum(["major-third", "minor-third", "perfect-fourth"])
+        .optional()
+        .default("major-third")
+        .describe("Typography scale preset"),
+      radius_preset: z
+        .enum(["standard", "subtle", "bold"])
+        .optional()
+        .default("standard")
+        .describe("Border radius preset"),
+      include_semantic_tokens: z.boolean().optional().default(true).describe("Include semantic token suggestions"),
     },
     async (params) => {
       try {
         const startTime = Date.now();
-        const results: any = {
-          collectionId: "",
-          totalVariables: 0,
-          breakdown: {
-            colors: 0,
-            spacing: 0,
-            typography: 0,
-            radius: 0
-          },
-          modes: params.modes || ["Light", "Dark"]
+        const modes = params.modes || ["Light", "Dark"];
+        const breakdown = {
+          colors: 0,
+          spacing: 0,
+          typography: 0,
+          radius: 0,
         };
 
         // 1. Create collection with first mode
-        const collection = await sendCommandToFigma("create_variable_collection", {
+        const collection = await sendCommandToFigma<DesignSystemCollectionResult>("create_variable_collection", {
           name: params.collection_name,
-          defaultMode: results.modes[0]
+          defaultMode: modes[0],
         });
-        results.collectionId = collection.collectionId;
+        const collectionId = collection.collectionId ?? "";
 
         // 2. Add additional modes
-        for (let i = 1; i < results.modes.length; i++) {
-          await sendCommandToFigma("add_mode_to_collection", {
-            collectionId: collection.collectionId,
-            modeName: results.modes[i]
+        for (let i = 1; i < modes.length; i++) {
+          await sendCommandToFigma<AddModeResult>("add_mode_to_collection", {
+            collectionId,
+            modeName: modes[i],
           });
         }
 
         // 3. Create color system (use existing tools)
         if (params.color_preset === "default") {
-          const colorResult = await sendCommandToFigma("apply_default_theme", {
-            collectionId: collection.collectionId,
+          const colorResult = await sendCommandToFigma<ApplyDefaultThemeResult>("apply_default_theme", {
+            collectionId,
             overwriteExisting: false,
-            includeChartColors: false
+            includeChartColors: false,
           });
-          results.breakdown.colors = colorResult.created || 0;
+          breakdown.colors = colorResult.created || 0;
         }
 
         // 4. Create spacing system
-        const spacingResult = await sendCommandToFigma("create_spacing_system", {
-          collection_id: collection.collectionId,
+        const spacingResult = await sendCommandToFigma<DesignSystemSubResult>("create_spacing_system", {
+          collection_id: collectionId,
           preset: params.spacing_preset,
-          include_semantic: params.include_semantic_tokens
+          include_semantic: params.include_semantic_tokens,
         });
-        results.breakdown.spacing = spacingResult.primitiveCount || 0;
+        breakdown.spacing = spacingResult.primitiveCount || 0;
 
         // 5. Create typography system
-        const typoResult = await sendCommandToFigma("create_typography_system", {
-          collection_id: collection.collectionId,
+        const typoResult = await sendCommandToFigma<DesignSystemSubResult>("create_typography_system", {
+          collection_id: collectionId,
           scale_preset: params.typography_preset,
           include_weights: true,
           include_line_heights: true,
-          include_semantic: params.include_semantic_tokens
+          include_semantic: params.include_semantic_tokens,
         });
-        results.breakdown.typography = typoResult.totalVariables || 0;
+        breakdown.typography = typoResult.totalVariables || 0;
 
         // 6. Create radius system
-        const radiusResult = await sendCommandToFigma("create_radius_system", {
-          collection_id: collection.collectionId,
-          preset: params.radius_preset
+        const radiusResult = await sendCommandToFigma<DesignSystemSubResult>("create_radius_system", {
+          collection_id: collectionId,
+          preset: params.radius_preset,
         });
-        results.breakdown.radius = radiusResult.totalVariables || 0;
+        breakdown.radius = radiusResult.totalVariables || 0;
 
         // 7. If dark mode was created, duplicate values with adjustments
-        if (results.modes.length > 1 && results.modes.includes("Dark")) {
-          await sendCommandToFigma("duplicate_mode_values", {
-            collectionId: collection.collectionId,
-            sourceMode: results.modes[0],
+        if (modes.length > 1 && modes.includes("Dark")) {
+          await sendCommandToFigma<DuplicateModeValuesResult>("duplicate_mode_values", {
+            collectionId,
+            sourceMode: modes[0],
             targetMode: "Dark",
             transformColors: {
-              brightness_adjustment: -0.3
-            }
+              brightness_adjustment: -0.3,
+            },
           });
         }
 
         // 8. Calculate totals
-        results.totalVariables = Object.values(results.breakdown).reduce((a: number, b: number) => a + b, 0);
+        const totalVariables = Object.values(breakdown).reduce((a: number, b: number) => a + b, 0);
 
         const duration = Date.now() - startTime;
 
@@ -1706,41 +1878,39 @@ export function registerVariableTools(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: `✅ Complete Design System Created!
+              text: `Complete Design System Created!
 
-Collection: "${params.collection_name}" (ID: ${results.collectionId})
+Collection: "${params.collection_name}" (ID: ${collectionId})
 
-📊 Summary:
-- Total Variables: ${results.totalVariables}
-- Colors: ${results.breakdown.colors}
-- Spacing: ${results.breakdown.spacing}
-- Typography: ${results.breakdown.typography}
-- Border Radius: ${results.breakdown.radius}
+Summary:
+- Total Variables: ${totalVariables}
+- Colors: ${breakdown.colors}
+- Spacing: ${breakdown.spacing}
+- Typography: ${breakdown.typography}
+- Border Radius: ${breakdown.radius}
 
-🎨 Modes: ${results.modes.join(", ")}
+Modes: ${modes.join(", ")}
 
-⚙️ Configuration:
+Configuration:
 - Spacing: ${params.spacing_preset}
 - Typography: ${params.typography_preset}
 - Border Radius: ${params.radius_preset}
 - Semantic Tokens: ${params.include_semantic_tokens ? "Enabled" : "Disabled"}
 
-⏱️ Created in ${duration}ms
-
-🎉 Your design system is ready to use!`
-            }
-          ]
+Created in ${duration}ms`,
+            },
+          ],
         };
       } catch (error) {
         return {
           content: [
             {
               type: "text",
-              text: `Error creating complete design system: ${error instanceof Error ? error.message : String(error)}`
-            }
-          ]
+              text: `Error creating complete design system "${params.collection_name}": ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
         };
       }
-    }
+    },
   );
 }

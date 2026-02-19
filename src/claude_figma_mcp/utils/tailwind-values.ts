@@ -346,9 +346,7 @@ export const TAILWIND_BORDER_RADIUS: Record<string, number> = {
 
 // --- Shadows ---
 export const TAILWIND_SHADOWS: Record<string, FigmaNodeEffect[]> = {
-  sm: [
-    { type: "DROP_SHADOW", offset: { x: 0, y: 1 }, radius: 2, spread: 0, color: "rgba(0,0,0,0.05)" },
-  ],
+  sm: [{ type: "DROP_SHADOW", offset: { x: 0, y: 1 }, radius: 2, spread: 0, color: "rgba(0,0,0,0.05)" }],
   DEFAULT: [
     { type: "DROP_SHADOW", offset: { x: 0, y: 1 }, radius: 3, spread: 0, color: "rgba(0,0,0,0.1)" },
     { type: "DROP_SHADOW", offset: { x: 0, y: 1 }, radius: 2, spread: -1, color: "rgba(0,0,0,0.1)" },
@@ -365,12 +363,8 @@ export const TAILWIND_SHADOWS: Record<string, FigmaNodeEffect[]> = {
     { type: "DROP_SHADOW", offset: { x: 0, y: 20 }, radius: 25, spread: -5, color: "rgba(0,0,0,0.1)" },
     { type: "DROP_SHADOW", offset: { x: 0, y: 8 }, radius: 10, spread: -6, color: "rgba(0,0,0,0.1)" },
   ],
-  "2xl": [
-    { type: "DROP_SHADOW", offset: { x: 0, y: 25 }, radius: 50, spread: -12, color: "rgba(0,0,0,0.25)" },
-  ],
-  inner: [
-    { type: "INNER_SHADOW", offset: { x: 0, y: 2 }, radius: 4, spread: 0, color: "rgba(0,0,0,0.05)" },
-  ],
+  "2xl": [{ type: "DROP_SHADOW", offset: { x: 0, y: 25 }, radius: 50, spread: -12, color: "rgba(0,0,0,0.25)" }],
+  inner: [{ type: "INNER_SHADOW", offset: { x: 0, y: 2 }, radius: 4, spread: 0, color: "rgba(0,0,0,0.05)" }],
   none: [],
 };
 

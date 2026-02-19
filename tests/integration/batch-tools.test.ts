@@ -13,13 +13,9 @@ describe("batch_actions tool", () => {
   let toolSchemas: Map<string, z.ZodObject<any>>;
 
   beforeEach(() => {
-    server = new McpServer(
-      { name: "test-server", version: "1.0.0" },
-      { capabilities: { tools: {} } },
-    );
+    server = new McpServer({ name: "test-server", version: "1.0.0" }, { capabilities: { tools: {} } });
 
-    mockSendCommand =
-      require("../../src/claude_figma_mcp/utils/websocket").sendCommandToFigma;
+    mockSendCommand = require("../../src/claude_figma_mcp/utils/websocket").sendCommandToFigma;
     mockSendCommand.mockClear();
 
     toolHandlers = new Map();
@@ -141,9 +137,7 @@ describe("batch_actions tool", () => {
 
   describe("validation", () => {
     it("rejects empty actions array", async () => {
-      await expect(
-        callTool("batch_actions", { actions: [] }),
-      ).rejects.toThrow();
+      await expect(callTool("batch_actions", { actions: [] })).rejects.toThrow();
       expect(mockSendCommand).not.toHaveBeenCalled();
     });
 
@@ -153,9 +147,7 @@ describe("batch_actions tool", () => {
         params: { nodeId: `node-${i}` },
       }));
 
-      await expect(
-        callTool("batch_actions", { actions: tooMany }),
-      ).rejects.toThrow();
+      await expect(callTool("batch_actions", { actions: tooMany })).rejects.toThrow();
       expect(mockSendCommand).not.toHaveBeenCalled();
     });
 
@@ -204,11 +196,7 @@ describe("batch_actions tool", () => {
       await callTool("batch_actions", { actions });
 
       // 30000 + 10 * 2000 = 50000
-      expect(mockSendCommand).toHaveBeenCalledWith(
-        "batch_actions",
-        expect.any(Object),
-        50000,
-      );
+      expect(mockSendCommand).toHaveBeenCalledWith("batch_actions", expect.any(Object), 50000);
     });
 
     it("uses higher timeout for larger batches", async () => {
@@ -228,19 +216,13 @@ describe("batch_actions tool", () => {
       await callTool("batch_actions", { actions });
 
       // 30000 + 100 * 2000 = 230000
-      expect(mockSendCommand).toHaveBeenCalledWith(
-        "batch_actions",
-        expect.any(Object),
-        230000,
-      );
+      expect(mockSendCommand).toHaveBeenCalledWith("batch_actions", expect.any(Object), 230000);
     });
   });
 
   describe("WebSocket error handling", () => {
     it("handles WebSocket connection failure", async () => {
-      mockSendCommand.mockRejectedValue(
-        new Error("Not connected to Figma. Attempting to connect..."),
-      );
+      mockSendCommand.mockRejectedValue(new Error("Not connected to Figma. Attempting to connect..."));
 
       const response = await callTool("batch_actions", {
         actions: [{ action: "get_node_info", params: { nodeId: "1:2" } }],
@@ -251,9 +233,7 @@ describe("batch_actions tool", () => {
     });
 
     it("handles WebSocket timeout", async () => {
-      mockSendCommand.mockRejectedValue(
-        new Error("Request to Figma timed out"),
-      );
+      mockSendCommand.mockRejectedValue(new Error("Request to Figma timed out"));
 
       const response = await callTool("batch_actions", {
         actions: [{ action: "get_node_info", params: { nodeId: "1:2" } }],
@@ -324,9 +304,7 @@ describe("batch_actions tool", () => {
         totalActions: 1,
         succeeded: 1,
         failed: 0,
-        results: [
-          { index: 0, action: "get_selection", success: true, result: { nodes: [] } },
-        ],
+        results: [{ index: 0, action: "get_selection", success: true, result: { nodes: [] } }],
       });
 
       const response = await callTool("batch_actions", {
