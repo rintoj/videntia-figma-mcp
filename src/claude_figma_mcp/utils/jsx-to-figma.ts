@@ -22,8 +22,11 @@ export function parseJsx(jsx: string): FigmaNodeData[] {
   const trimmed = jsx.trim();
   if (!trimmed) return [];
 
+  // Strip HTML comments (<!-- ... -->) which are invalid JSX
+  const cleaned = trimmed.replace(/<!--[\s\S]*?-->/g, "");
+
   // Wrap in a fragment to make it a valid JSX expression
-  const wrapped = `(<>${trimmed}</>)`;
+  const wrapped = `(<>${cleaned}</>)`;
   let ast;
   try {
     ast = parse(wrapped, {
