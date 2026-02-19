@@ -4,11 +4,7 @@ import { sendCommandToFigma } from "../utils/websocket";
 import { applyColorDefaults, applyDefault, FIGMA_DEFAULTS } from "../utils/defaults";
 import { Color } from "../types/color";
 import { coerceArray } from "../utils/coerce-array.js";
-import {
-  DeleteMultipleNodesResult,
-  CreateEffectStyleResult,
-  UpdateEffectStyleResult,
-} from "../types";
+import { DeleteMultipleNodesResult, CreateEffectStyleResult, UpdateEffectStyleResult } from "../types";
 
 /**
  * Register modification tools to the MCP server

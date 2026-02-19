@@ -3,11 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { sendCommandToFigma } from "../utils/websocket";
 import { coerceArray } from "../utils/coerce-array.js";
 import { outputFormatSchema, fetchNodesAsJsx } from "../utils/output-format.js";
-import {
-  CreateComponentInstanceResult,
-  GetReactionsResult,
-  GetComponentPropertiesResult,
-} from "../types";
+import { CreateComponentInstanceResult, GetReactionsResult, GetComponentPropertiesResult } from "../types";
 
 /**
  * Register component-related tools to the MCP server
@@ -29,14 +25,11 @@ export function registerComponentTools(server: McpServer): void {
     },
     async ({ componentKey, x, y, output_format }) => {
       try {
-        const result = await sendCommandToFigma<CreateComponentInstanceResult>(
-          "create_component_instance",
-          {
-            componentKey,
-            x,
-            y,
-          },
-        );
+        const result = await sendCommandToFigma<CreateComponentInstanceResult>("create_component_instance", {
+          componentKey,
+          x,
+          y,
+        });
 
         if (output_format === "jsx" && result?.id) {
           const jsx = await fetchNodesAsJsx([result.id]);
@@ -584,12 +577,9 @@ export function registerComponentTools(server: McpServer): void {
     },
     async ({ nodeId }) => {
       try {
-        const result = await sendCommandToFigma<GetComponentPropertiesResult>(
-          "get_component_properties",
-          {
-            nodeId,
-          },
-        );
+        const result = await sendCommandToFigma<GetComponentPropertiesResult>("get_component_properties", {
+          nodeId,
+        });
         const typedResult = result as GetComponentPropertiesResult & {
           nodeId?: string;
           nodeName?: string;

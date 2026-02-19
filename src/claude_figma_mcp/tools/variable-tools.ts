@@ -170,7 +170,9 @@ export function registerVariableTools(server: McpServer): void {
     },
     async ({ collection_id }) => {
       try {
-        const result = await sendCommandToFigma<GetCollectionInfoResult>("get_collection_info", { collectionId: collection_id });
+        const result = await sendCommandToFigma<GetCollectionInfoResult>("get_collection_info", {
+          collectionId: collection_id,
+        });
         const modes = (result.modes || []).map((m: any) => `${m.name} (${m.modeId})`).join(", ");
         const varCount = result.variableCount ?? result.variableIds?.length ?? "-";
         const lines = [`## Collection: ${result.name} (id: ${result.id})`, `Modes: ${modes}`, `Variables: ${varCount}`];
