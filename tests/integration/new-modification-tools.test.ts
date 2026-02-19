@@ -1,9 +1,9 @@
-import { z } from 'zod';
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { registerModificationTools } from '../../src/claude_figma_mcp/tools/modification-tools';
+import { z } from "zod";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { registerModificationTools } from "../../src/claude_figma_mcp/tools/modification-tools";
 
-jest.mock('../../src/claude_figma_mcp/utils/websocket', () => ({
-  sendCommandToFigma: jest.fn()
+jest.mock("../../src/claude_figma_mcp/utils/websocket", () => ({
+  sendCommandToFigma: jest.fn(),
 }));
 
 describe("new modification tools integration", () => {
@@ -13,19 +13,16 @@ describe("new modification tools integration", () => {
   let toolSchemas: Map<string, z.ZodObject<any>>;
 
   beforeEach(() => {
-    server = new McpServer(
-      { name: 'test-server', version: '1.0.0' },
-      { capabilities: { tools: {} } }
-    );
+    server = new McpServer({ name: "test-server", version: "1.0.0" }, { capabilities: { tools: {} } });
 
-    mockSendCommand = require('../../src/claude_figma_mcp/utils/websocket').sendCommandToFigma;
+    mockSendCommand = require("../../src/claude_figma_mcp/utils/websocket").sendCommandToFigma;
     mockSendCommand.mockClear();
 
     toolHandlers = new Map();
     toolSchemas = new Map();
 
     const originalTool = server.tool.bind(server);
-    jest.spyOn(server, 'tool').mockImplementation((...args: any[]) => {
+    jest.spyOn(server, "tool").mockImplementation((...args: any[]) => {
       if (args.length === 4) {
         const [name, description, schema, handler] = args;
         toolHandlers.set(name, handler);
@@ -51,18 +48,18 @@ describe("new modification tools integration", () => {
     beforeEach(() => {
       mockSendCommand.mockResolvedValue({
         deleted: 3,
-        nodeIds: ["node-1", "node-2", "node-3"]
+        nodeIds: ["node-1", "node-2", "node-3"],
       });
     });
 
     it("successfully deletes multiple nodes", async () => {
       const response = await callTool("delete_multiple_nodes", {
-        nodeIds: ["node-1", "node-2", "node-3"]
+        nodeIds: ["node-1", "node-2", "node-3"],
       });
 
       expect(mockSendCommand).toHaveBeenCalledTimes(1);
       expect(mockSendCommand).toHaveBeenCalledWith("delete_multiple_nodes", {
-        nodeIds: ["node-1", "node-2", "node-3"]
+        nodeIds: ["node-1", "node-2", "node-3"],
       });
       expect(response.content[0].text).toContain("Deleted 3 node(s)");
     });
@@ -75,7 +72,7 @@ describe("new modification tools integration", () => {
     it("coerces string nodeIds into an array", async () => {
       mockSendCommand.mockResolvedValue({ deleted: ["node-1"] });
       const response = await callTool("delete_multiple_nodes", {
-        nodeIds: "node-1"
+        nodeIds: "node-1",
       });
       expect(mockSendCommand).toHaveBeenCalledWith("delete_multiple_nodes", { nodeIds: ["node-1"] });
     });
@@ -84,7 +81,7 @@ describe("new modification tools integration", () => {
       mockSendCommand.mockRejectedValue(new Error("Some nodes not found"));
 
       const response = await callTool("delete_multiple_nodes", {
-        nodeIds: ["invalid-1", "invalid-2"]
+        nodeIds: ["invalid-1", "invalid-2"],
       });
 
       expect(response.content[0].text).toContain("Error deleting multiple nodes");
@@ -95,21 +92,21 @@ describe("new modification tools integration", () => {
   describe("set_layout_mode", () => {
     beforeEach(() => {
       mockSendCommand.mockResolvedValue({
-        name: "Auto Layout Frame"
+        name: "Auto Layout Frame",
       });
     });
 
     it("successfully sets layout mode to HORIZONTAL", async () => {
       const response = await callTool("set_layout_mode", {
         nodeId: "frame-123",
-        layoutMode: "HORIZONTAL"
+        layoutMode: "HORIZONTAL",
       });
 
       expect(mockSendCommand).toHaveBeenCalledTimes(1);
       expect(mockSendCommand).toHaveBeenCalledWith("set_layout_mode", {
         nodeId: "frame-123",
         layoutMode: "HORIZONTAL",
-        layoutWrap: "NO_WRAP"
+        layoutWrap: "NO_WRAP",
       });
       expect(response.content[0].text).toContain("Set layout mode");
       expect(response.content[0].text).toContain("Auto Layout Frame");
@@ -119,26 +116,26 @@ describe("new modification tools integration", () => {
     it("successfully sets layout mode to VERTICAL", async () => {
       const response = await callTool("set_layout_mode", {
         nodeId: "frame-123",
-        layoutMode: "VERTICAL"
+        layoutMode: "VERTICAL",
       });
 
       expect(mockSendCommand).toHaveBeenCalledWith("set_layout_mode", {
         nodeId: "frame-123",
         layoutMode: "VERTICAL",
-        layoutWrap: "NO_WRAP"
+        layoutWrap: "NO_WRAP",
       });
     });
 
     it("successfully sets layout mode to NONE", async () => {
       const response = await callTool("set_layout_mode", {
         nodeId: "frame-123",
-        layoutMode: "NONE"
+        layoutMode: "NONE",
       });
 
       expect(mockSendCommand).toHaveBeenCalledWith("set_layout_mode", {
         nodeId: "frame-123",
         layoutMode: "NONE",
-        layoutWrap: "NO_WRAP"
+        layoutWrap: "NO_WRAP",
       });
     });
 
@@ -146,28 +143,32 @@ describe("new modification tools integration", () => {
       await callTool("set_layout_mode", {
         nodeId: "frame-123",
         layoutMode: "HORIZONTAL",
-        layoutWrap: "WRAP"
+        layoutWrap: "WRAP",
       });
 
       expect(mockSendCommand).toHaveBeenCalledWith("set_layout_mode", {
         nodeId: "frame-123",
         layoutMode: "HORIZONTAL",
-        layoutWrap: "WRAP"
+        layoutWrap: "WRAP",
       });
     });
 
     it("requires nodeId and layoutMode parameters", async () => {
-      await expect(callTool("set_layout_mode", {
-        nodeId: "frame-123"
-      })).rejects.toThrow();
+      await expect(
+        callTool("set_layout_mode", {
+          nodeId: "frame-123",
+        }),
+      ).rejects.toThrow();
       expect(mockSendCommand).not.toHaveBeenCalled();
     });
 
     it("rejects invalid layoutMode values", async () => {
-      await expect(callTool("set_layout_mode", {
-        nodeId: "frame-123",
-        layoutMode: "INVALID"
-      })).rejects.toThrow();
+      await expect(
+        callTool("set_layout_mode", {
+          nodeId: "frame-123",
+          layoutMode: "INVALID",
+        }),
+      ).rejects.toThrow();
       expect(mockSendCommand).not.toHaveBeenCalled();
     });
 
@@ -176,7 +177,7 @@ describe("new modification tools integration", () => {
 
       const response = await callTool("set_layout_mode", {
         nodeId: "text-123",
-        layoutMode: "HORIZONTAL"
+        layoutMode: "HORIZONTAL",
       });
 
       expect(response.content[0].text).toContain("Error setting layout mode");
@@ -187,7 +188,7 @@ describe("new modification tools integration", () => {
   describe("set_padding", () => {
     beforeEach(() => {
       mockSendCommand.mockResolvedValue({
-        name: "Padded Frame"
+        name: "Padded Frame",
       });
     });
 
@@ -197,7 +198,7 @@ describe("new modification tools integration", () => {
         paddingTop: 10,
         paddingRight: 20,
         paddingBottom: 10,
-        paddingLeft: 20
+        paddingLeft: 20,
       });
 
       expect(mockSendCommand).toHaveBeenCalledTimes(1);
@@ -206,7 +207,7 @@ describe("new modification tools integration", () => {
         paddingTop: 10,
         paddingRight: 20,
         paddingBottom: 10,
-        paddingLeft: 20
+        paddingLeft: 20,
       });
       expect(response.content[0].text).toContain("padding");
       expect(response.content[0].text).toContain("Padded Frame");
@@ -217,7 +218,7 @@ describe("new modification tools integration", () => {
     it("successfully sets individual padding values", async () => {
       const response = await callTool("set_padding", {
         nodeId: "frame-123",
-        paddingTop: 15
+        paddingTop: 15,
       });
 
       expect(mockSendCommand).toHaveBeenCalledWith("set_padding", {
@@ -225,15 +226,17 @@ describe("new modification tools integration", () => {
         paddingTop: 15,
         paddingRight: undefined,
         paddingBottom: undefined,
-        paddingLeft: undefined
+        paddingLeft: undefined,
       });
       expect(response.content[0].text).toContain("top: 15");
     });
 
     it("requires nodeId parameter", async () => {
-      await expect(callTool("set_padding", {
-        paddingTop: 10
-      })).rejects.toThrow();
+      await expect(
+        callTool("set_padding", {
+          paddingTop: 10,
+        }),
+      ).rejects.toThrow();
       expect(mockSendCommand).not.toHaveBeenCalled();
     });
 
@@ -242,7 +245,7 @@ describe("new modification tools integration", () => {
 
       const response = await callTool("set_padding", {
         nodeId: "frame-123",
-        paddingTop: 10
+        paddingTop: 10,
       });
 
       expect(response.content[0].text).toContain("Error setting padding");
@@ -253,21 +256,21 @@ describe("new modification tools integration", () => {
   describe("set_axis_align", () => {
     beforeEach(() => {
       mockSendCommand.mockResolvedValue({
-        name: "Aligned Frame"
+        name: "Aligned Frame",
       });
     });
 
     it("successfully sets primary axis alignment", async () => {
       const response = await callTool("set_axis_align", {
         nodeId: "frame-123",
-        primaryAxisAlignItems: "CENTER"
+        primaryAxisAlignItems: "CENTER",
       });
 
       expect(mockSendCommand).toHaveBeenCalledTimes(1);
       expect(mockSendCommand).toHaveBeenCalledWith("set_axis_align", {
         nodeId: "frame-123",
         primaryAxisAlignItems: "CENTER",
-        counterAxisAlignItems: undefined
+        counterAxisAlignItems: undefined,
       });
       expect(response.content[0].text).toContain("axis alignment");
       expect(response.content[0].text).toContain("primary: CENTER");
@@ -276,13 +279,13 @@ describe("new modification tools integration", () => {
     it("successfully sets counter axis alignment", async () => {
       const response = await callTool("set_axis_align", {
         nodeId: "frame-123",
-        counterAxisAlignItems: "MAX"
+        counterAxisAlignItems: "MAX",
       });
 
       expect(mockSendCommand).toHaveBeenCalledWith("set_axis_align", {
         nodeId: "frame-123",
         primaryAxisAlignItems: undefined,
-        counterAxisAlignItems: "MAX"
+        counterAxisAlignItems: "MAX",
       });
       expect(response.content[0].text).toContain("counter: MAX");
     });
@@ -291,30 +294,34 @@ describe("new modification tools integration", () => {
       const response = await callTool("set_axis_align", {
         nodeId: "frame-123",
         primaryAxisAlignItems: "SPACE_BETWEEN",
-        counterAxisAlignItems: "BASELINE"
+        counterAxisAlignItems: "BASELINE",
       });
 
       expect(mockSendCommand).toHaveBeenCalledWith("set_axis_align", {
         nodeId: "frame-123",
         primaryAxisAlignItems: "SPACE_BETWEEN",
-        counterAxisAlignItems: "BASELINE"
+        counterAxisAlignItems: "BASELINE",
       });
       expect(response.content[0].text).toContain("primary: SPACE_BETWEEN");
       expect(response.content[0].text).toContain("counter: BASELINE");
     });
 
     it("requires nodeId parameter", async () => {
-      await expect(callTool("set_axis_align", {
-        primaryAxisAlignItems: "CENTER"
-      })).rejects.toThrow();
+      await expect(
+        callTool("set_axis_align", {
+          primaryAxisAlignItems: "CENTER",
+        }),
+      ).rejects.toThrow();
       expect(mockSendCommand).not.toHaveBeenCalled();
     });
 
     it("rejects invalid alignment values", async () => {
-      await expect(callTool("set_axis_align", {
-        nodeId: "frame-123",
-        primaryAxisAlignItems: "INVALID"
-      })).rejects.toThrow();
+      await expect(
+        callTool("set_axis_align", {
+          nodeId: "frame-123",
+          primaryAxisAlignItems: "INVALID",
+        }),
+      ).rejects.toThrow();
       expect(mockSendCommand).not.toHaveBeenCalled();
     });
 
@@ -323,7 +330,7 @@ describe("new modification tools integration", () => {
 
       const response = await callTool("set_axis_align", {
         nodeId: "frame-123",
-        primaryAxisAlignItems: "CENTER"
+        primaryAxisAlignItems: "CENTER",
       });
 
       expect(response.content[0].text).toContain("Error setting axis alignment");
@@ -333,21 +340,21 @@ describe("new modification tools integration", () => {
   describe("set_layout_sizing", () => {
     beforeEach(() => {
       mockSendCommand.mockResolvedValue({
-        name: "Sized Frame"
+        name: "Sized Frame",
       });
     });
 
     it("successfully sets horizontal sizing", async () => {
       const response = await callTool("set_layout_sizing", {
         nodeId: "frame-123",
-        layoutSizingHorizontal: "HUG"
+        layoutSizingHorizontal: "HUG",
       });
 
       expect(mockSendCommand).toHaveBeenCalledTimes(1);
       expect(mockSendCommand).toHaveBeenCalledWith("set_layout_sizing", {
         nodeId: "frame-123",
         layoutSizingHorizontal: "HUG",
-        layoutSizingVertical: undefined
+        layoutSizingVertical: undefined,
       });
       expect(response.content[0].text).toContain("layout sizing");
       expect(response.content[0].text).toContain("horizontal: HUG");
@@ -356,13 +363,13 @@ describe("new modification tools integration", () => {
     it("successfully sets vertical sizing", async () => {
       const response = await callTool("set_layout_sizing", {
         nodeId: "frame-123",
-        layoutSizingVertical: "FILL"
+        layoutSizingVertical: "FILL",
       });
 
       expect(mockSendCommand).toHaveBeenCalledWith("set_layout_sizing", {
         nodeId: "frame-123",
         layoutSizingHorizontal: undefined,
-        layoutSizingVertical: "FILL"
+        layoutSizingVertical: "FILL",
       });
       expect(response.content[0].text).toContain("vertical: FILL");
     });
@@ -371,30 +378,34 @@ describe("new modification tools integration", () => {
       const response = await callTool("set_layout_sizing", {
         nodeId: "frame-123",
         layoutSizingHorizontal: "FIXED",
-        layoutSizingVertical: "HUG"
+        layoutSizingVertical: "HUG",
       });
 
       expect(mockSendCommand).toHaveBeenCalledWith("set_layout_sizing", {
         nodeId: "frame-123",
         layoutSizingHorizontal: "FIXED",
-        layoutSizingVertical: "HUG"
+        layoutSizingVertical: "HUG",
       });
       expect(response.content[0].text).toContain("horizontal: FIXED");
       expect(response.content[0].text).toContain("vertical: HUG");
     });
 
     it("requires nodeId parameter", async () => {
-      await expect(callTool("set_layout_sizing", {
-        layoutSizingHorizontal: "HUG"
-      })).rejects.toThrow();
+      await expect(
+        callTool("set_layout_sizing", {
+          layoutSizingHorizontal: "HUG",
+        }),
+      ).rejects.toThrow();
       expect(mockSendCommand).not.toHaveBeenCalled();
     });
 
     it("rejects invalid sizing values", async () => {
-      await expect(callTool("set_layout_sizing", {
-        nodeId: "frame-123",
-        layoutSizingHorizontal: "INVALID"
-      })).rejects.toThrow();
+      await expect(
+        callTool("set_layout_sizing", {
+          nodeId: "frame-123",
+          layoutSizingHorizontal: "INVALID",
+        }),
+      ).rejects.toThrow();
       expect(mockSendCommand).not.toHaveBeenCalled();
     });
 
@@ -403,7 +414,7 @@ describe("new modification tools integration", () => {
 
       const response = await callTool("set_layout_sizing", {
         nodeId: "frame-123",
-        layoutSizingHorizontal: "HUG"
+        layoutSizingHorizontal: "HUG",
       });
 
       expect(response.content[0].text).toContain("Error setting layout sizing");
@@ -415,20 +426,20 @@ describe("new modification tools integration", () => {
       mockSendCommand.mockResolvedValue({
         name: "Spaced Frame",
         itemSpacing: 10,
-        counterAxisSpacing: 20
+        counterAxisSpacing: 20,
       });
     });
 
     it("successfully sets item spacing", async () => {
       const response = await callTool("set_item_spacing", {
         nodeId: "frame-123",
-        itemSpacing: 10
+        itemSpacing: 10,
       });
 
       expect(mockSendCommand).toHaveBeenCalledTimes(1);
       expect(mockSendCommand).toHaveBeenCalledWith("set_item_spacing", {
         nodeId: "frame-123",
-        itemSpacing: 10
+        itemSpacing: 10,
       });
       expect(response.content[0].text).toContain("Updated spacing");
       expect(response.content[0].text).toContain("Spaced Frame");
@@ -438,12 +449,12 @@ describe("new modification tools integration", () => {
     it("successfully sets counter axis spacing", async () => {
       const response = await callTool("set_item_spacing", {
         nodeId: "frame-123",
-        counterAxisSpacing: 20
+        counterAxisSpacing: 20,
       });
 
       expect(mockSendCommand).toHaveBeenCalledWith("set_item_spacing", {
         nodeId: "frame-123",
-        counterAxisSpacing: 20
+        counterAxisSpacing: 20,
       });
       expect(response.content[0].text).toContain("counterAxisSpacing=20");
     });
@@ -452,22 +463,24 @@ describe("new modification tools integration", () => {
       const response = await callTool("set_item_spacing", {
         nodeId: "frame-123",
         itemSpacing: 10,
-        counterAxisSpacing: 20
+        counterAxisSpacing: 20,
       });
 
       expect(mockSendCommand).toHaveBeenCalledWith("set_item_spacing", {
         nodeId: "frame-123",
         itemSpacing: 10,
-        counterAxisSpacing: 20
+        counterAxisSpacing: 20,
       });
       expect(response.content[0].text).toContain("itemSpacing=10");
       expect(response.content[0].text).toContain("counterAxisSpacing=20");
     });
 
     it("requires nodeId parameter", async () => {
-      await expect(callTool("set_item_spacing", {
-        itemSpacing: 10
-      })).rejects.toThrow();
+      await expect(
+        callTool("set_item_spacing", {
+          itemSpacing: 10,
+        }),
+      ).rejects.toThrow();
       expect(mockSendCommand).not.toHaveBeenCalled();
     });
 
@@ -476,7 +489,7 @@ describe("new modification tools integration", () => {
 
       const response = await callTool("set_item_spacing", {
         nodeId: "frame-123",
-        itemSpacing: 10
+        itemSpacing: 10,
       });
 
       expect(response.content[0].text).toContain("Error setting item spacing");
@@ -491,14 +504,14 @@ describe("new modification tools integration", () => {
         name: "Image Rectangle",
         imageHash: "abc123def456",
         imageSize: { width: 800, height: 600 },
-        scaleMode: "FILL"
+        scaleMode: "FILL",
       });
     });
 
     it("successfully sets image fill from URL", async () => {
       const response = await callTool("set_image_fill", {
         nodeId: "rect-123",
-        imageUrl: "https://picsum.photos/800/600"
+        imageUrl: "https://picsum.photos/800/600",
       });
 
       expect(mockSendCommand).toHaveBeenCalledTimes(1);
@@ -513,7 +526,7 @@ describe("new modification tools integration", () => {
         temperature: undefined,
         tint: undefined,
         highlights: undefined,
-        shadows: undefined
+        shadows: undefined,
       });
       expect(response.content[0].text).toContain("Set image fill");
       expect(response.content[0].text).toContain("Image Rectangle");
@@ -527,20 +540,23 @@ describe("new modification tools integration", () => {
         name: "Image Rectangle",
         imageHash: "abc123def456",
         imageSize: { width: 800, height: 600 },
-        scaleMode: "FIT"
+        scaleMode: "FIT",
       });
 
       const response = await callTool("set_image_fill", {
         nodeId: "rect-123",
         imageUrl: "https://picsum.photos/800/600",
-        scaleMode: "FIT"
+        scaleMode: "FIT",
       });
 
-      expect(mockSendCommand).toHaveBeenCalledWith("set_image_fill", expect.objectContaining({
-        nodeId: "rect-123",
-        imageUrl: "https://picsum.photos/800/600",
-        scaleMode: "FIT"
-      }));
+      expect(mockSendCommand).toHaveBeenCalledWith(
+        "set_image_fill",
+        expect.objectContaining({
+          nodeId: "rect-123",
+          imageUrl: "https://picsum.photos/800/600",
+          scaleMode: "FIT",
+        }),
+      );
       expect(response.content[0].text).toContain("FIT");
     });
 
@@ -550,18 +566,21 @@ describe("new modification tools integration", () => {
         name: "Image Rectangle",
         imageHash: "abc123def456",
         imageSize: { width: 800, height: 600 },
-        scaleMode: "CROP"
+        scaleMode: "CROP",
       });
 
       const response = await callTool("set_image_fill", {
         nodeId: "rect-123",
         imageUrl: "https://picsum.photos/800/600",
-        scaleMode: "CROP"
+        scaleMode: "CROP",
       });
 
-      expect(mockSendCommand).toHaveBeenCalledWith("set_image_fill", expect.objectContaining({
-        scaleMode: "CROP"
-      }));
+      expect(mockSendCommand).toHaveBeenCalledWith(
+        "set_image_fill",
+        expect.objectContaining({
+          scaleMode: "CROP",
+        }),
+      );
     });
 
     it("successfully sets image fill with TILE scale mode", async () => {
@@ -570,18 +589,21 @@ describe("new modification tools integration", () => {
         name: "Image Rectangle",
         imageHash: "abc123def456",
         imageSize: { width: 800, height: 600 },
-        scaleMode: "TILE"
+        scaleMode: "TILE",
       });
 
       const response = await callTool("set_image_fill", {
         nodeId: "rect-123",
         imageUrl: "https://picsum.photos/800/600",
-        scaleMode: "TILE"
+        scaleMode: "TILE",
       });
 
-      expect(mockSendCommand).toHaveBeenCalledWith("set_image_fill", expect.objectContaining({
-        scaleMode: "TILE"
-      }));
+      expect(mockSendCommand).toHaveBeenCalledWith(
+        "set_image_fill",
+        expect.objectContaining({
+          scaleMode: "TILE",
+        }),
+      );
     });
 
     it("successfully sets image fill with filters", async () => {
@@ -590,64 +612,79 @@ describe("new modification tools integration", () => {
         imageUrl: "https://picsum.photos/800/600",
         exposure: 0.2,
         contrast: 0.1,
-        saturation: -0.3
+        saturation: -0.3,
       });
 
-      expect(mockSendCommand).toHaveBeenCalledWith("set_image_fill", expect.objectContaining({
-        nodeId: "rect-123",
-        imageUrl: "https://picsum.photos/800/600",
-        exposure: 0.2,
-        contrast: 0.1,
-        saturation: -0.3
-      }));
+      expect(mockSendCommand).toHaveBeenCalledWith(
+        "set_image_fill",
+        expect.objectContaining({
+          nodeId: "rect-123",
+          imageUrl: "https://picsum.photos/800/600",
+          exposure: 0.2,
+          contrast: 0.1,
+          saturation: -0.3,
+        }),
+      );
     });
 
     it("requires nodeId parameter", async () => {
-      await expect(callTool("set_image_fill", {
-        imageUrl: "https://picsum.photos/800/600"
-      })).rejects.toThrow();
+      await expect(
+        callTool("set_image_fill", {
+          imageUrl: "https://picsum.photos/800/600",
+        }),
+      ).rejects.toThrow();
       expect(mockSendCommand).not.toHaveBeenCalled();
     });
 
     it("requires imageUrl parameter", async () => {
-      await expect(callTool("set_image_fill", {
-        nodeId: "rect-123"
-      })).rejects.toThrow();
+      await expect(
+        callTool("set_image_fill", {
+          nodeId: "rect-123",
+        }),
+      ).rejects.toThrow();
       expect(mockSendCommand).not.toHaveBeenCalled();
     });
 
     it("requires valid URL for imageUrl", async () => {
-      await expect(callTool("set_image_fill", {
-        nodeId: "rect-123",
-        imageUrl: "not-a-valid-url"
-      })).rejects.toThrow();
+      await expect(
+        callTool("set_image_fill", {
+          nodeId: "rect-123",
+          imageUrl: "not-a-valid-url",
+        }),
+      ).rejects.toThrow();
       expect(mockSendCommand).not.toHaveBeenCalled();
     });
 
     it("rejects invalid scaleMode values", async () => {
-      await expect(callTool("set_image_fill", {
-        nodeId: "rect-123",
-        imageUrl: "https://picsum.photos/800/600",
-        scaleMode: "INVALID"
-      })).rejects.toThrow();
+      await expect(
+        callTool("set_image_fill", {
+          nodeId: "rect-123",
+          imageUrl: "https://picsum.photos/800/600",
+          scaleMode: "INVALID",
+        }),
+      ).rejects.toThrow();
       expect(mockSendCommand).not.toHaveBeenCalled();
     });
 
     it("rejects filter values outside valid range", async () => {
-      await expect(callTool("set_image_fill", {
-        nodeId: "rect-123",
-        imageUrl: "https://picsum.photos/800/600",
-        exposure: 2.0  // Must be between -1 and 1
-      })).rejects.toThrow();
+      await expect(
+        callTool("set_image_fill", {
+          nodeId: "rect-123",
+          imageUrl: "https://picsum.photos/800/600",
+          exposure: 2.0, // Must be between -1 and 1
+        }),
+      ).rejects.toThrow();
       expect(mockSendCommand).not.toHaveBeenCalled();
     });
 
     it("handles CORS/network errors gracefully", async () => {
-      mockSendCommand.mockRejectedValue(new Error("Failed to fetch image from URL. This may be due to CORS restrictions"));
+      mockSendCommand.mockRejectedValue(
+        new Error("Failed to fetch image from URL. This may be due to CORS restrictions"),
+      );
 
       const response = await callTool("set_image_fill", {
         nodeId: "rect-123",
-        imageUrl: "https://blocked-domain.com/image.png"
+        imageUrl: "https://blocked-domain.com/image.png",
       });
 
       expect(response.content[0].text).toContain("Error setting image fill");
@@ -659,7 +696,7 @@ describe("new modification tools integration", () => {
 
       const response = await callTool("set_image_fill", {
         nodeId: "invalid-123",
-        imageUrl: "https://picsum.photos/800/600"
+        imageUrl: "https://picsum.photos/800/600",
       });
 
       expect(response.content[0].text).toContain("Error setting image fill");
@@ -671,7 +708,7 @@ describe("new modification tools integration", () => {
 
       const response = await callTool("set_image_fill", {
         nodeId: "text-123",
-        imageUrl: "https://picsum.photos/800/600"
+        imageUrl: "https://picsum.photos/800/600",
       });
 
       expect(response.content[0].text).toContain("Error setting image fill");

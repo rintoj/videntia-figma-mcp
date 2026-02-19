@@ -7,7 +7,18 @@ import { coerceArray } from "../utils/coerce-array.js";
 import { convertToJsx } from "../utils/figma-to-jsx.js";
 import { parseJsx } from "../utils/jsx-to-figma.js";
 import { outputFormatSchema, fetchNodesAsJsx, fetchSelectionAsJsx } from "../utils/output-format.js";
-import type { ReadMyDesignResult } from "../types/index.js";
+import type {
+  ReadMyDesignResult,
+  DocumentInfoResult,
+  AnnotationsResult,
+  SetAnnotationResult,
+  AnnotationCategoriesResult,
+  CreateAnnotationCategoryResult,
+  UpdateAnnotationCategoryResult,
+  StylesResult,
+  RemoteComponentsResult,
+  BoundVariablesResult,
+} from "../types/index.js";
 import { formatColorValue, formatVariableValue, truncate } from "../utils/format-helpers.js";
 
 /**
@@ -16,44 +27,36 @@ import { formatColorValue, formatVariableValue, truncate } from "../utils/format
  */
 export function registerDocumentTools(server: McpServer): void {
   // Document Info Tool
-  server.tool(
-    "get_document_info",
-    "Get detailed information about the current Figma document",
-    {},
-    async () => {
-      try {
-        const result = await sendCommandToFigma("get_document_info") as any;
-        const pages = result.pages || [];
-        const lines: string[] = [
-          `## ${result.name || "Untitled"} (ID: ${result.id || "-"})`,
-          `Pages: ${pages.length}`,
-        ];
-        if (pages.length > 0) {
-          lines.push("");
-          lines.push("| Page | ID |");
-          lines.push("|------|----|");
-          for (const p of pages) lines.push(`| ${p.name || "-"} | ${p.id || "-"} |`);
-        }
-        return {
-          content: [
-            {
-              type: "text",
-              text: lines.join("\n")
-            }
-          ]
-        };
-      } catch (error) {
-        return {
-          content: [
-            {
-              type: "text",
-              text: `Error getting document info: ${error instanceof Error ? error.message : String(error)}`,
-            },
-          ],
-        };
+  server.tool("get_document_info", "Get detailed information about the current Figma document", {}, async () => {
+    try {
+      const result = await sendCommandToFigma<DocumentInfoResult>("get_document_info");
+      const pages = result.pages || [];
+      const lines: string[] = [`## ${result.name || "Untitled"} (ID: ${result.id || "-"})`, `Pages: ${pages.length}`];
+      if (pages.length > 0) {
+        lines.push("");
+        lines.push("| Page | ID |");
+        lines.push("|------|----|");
+        for (const p of pages) lines.push(`| ${p.name || "-"} | ${p.id || "-"} |`);
       }
+      return {
+        content: [
+          {
+            type: "text",
+            text: lines.join("\n"),
+          },
+        ],
+      };
+    } catch (error) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Error getting document info: ${error instanceof Error ? error.message : String(error)}`,
+          },
+        ],
+      };
     }
-  );
+  });
 
   // Read My Design Tool
   server.tool(
@@ -61,32 +64,32 @@ export function registerDocumentTools(server: McpServer): void {
     "Read the current Figma selection (or a specific node) as JSX with Tailwind CSS classes. Returns compact, Claude-readable markup instead of verbose JSON.",
     {
       nodeId: z.string().optional().describe("Specific node ID to read (defaults to current selection)"),
-      depth: z.number().optional().describe("Max depth to traverse (default: unlimited)")
+      depth: z.number().optional().describe("Max depth to traverse (default: unlimited)"),
     },
     async ({ nodeId, depth }) => {
       try {
-        const result = await sendCommandToFigma("read_my_design", { nodeId, depth }) as ReadMyDesignResult;
+        const result = (await sendCommandToFigma("read_my_design", { nodeId, depth })) as ReadMyDesignResult;
         const selection = result?.selection ?? [];
         const jsx = convertToJsx(selection);
         return {
           content: [
             {
               type: "text",
-              text: jsx
-            }
-          ]
+              text: jsx,
+            },
+          ],
         };
       } catch (error) {
         return {
           content: [
             {
               type: "text",
-              text: `Error reading design: ${error instanceof Error ? error.message : String(error)}`,
+              text: `Error reading design${nodeId ? ` for node "${nodeId}"` : ""}: ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };
       }
-    }
+    },
   );
 
   // JSX to Figma Tool
@@ -105,20 +108,24 @@ export function registerDocumentTools(server: McpServer): void {
         const result = await sendCommandToFigma("create_from_data", { data, parentId, x, y });
         const typedResult = result as { createdNodes: Array<{ id: string; name: string; type: string }> };
         return {
-          content: [{
-            type: "text",
-            text: `Created ${typedResult.createdNodes.length} node(s): ${typedResult.createdNodes.map(n => `"${n.name}" (${n.id})`).join(", ")}`
-          }]
+          content: [
+            {
+              type: "text",
+              text: `Created ${typedResult.createdNodes.length} node(s): ${typedResult.createdNodes.map((n) => `"${n.name}" (${n.id})`).join(", ")}`,
+            },
+          ],
         };
       } catch (error) {
         return {
-          content: [{
-            type: "text",
-            text: `Error creating from JSX: ${error instanceof Error ? error.message : String(error)}`
-          }]
+          content: [
+            {
+              type: "text",
+              text: `Error creating from JSX: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
         };
       }
-    }
+    },
   );
 
   // Set Focus Tool
@@ -126,7 +133,7 @@ export function registerDocumentTools(server: McpServer): void {
     "set_focus",
     "Set focus on a specific node in Figma by selecting it and scrolling viewport to it",
     {
-      nodeId: z.string().describe("The ID of the node to focus on")
+      nodeId: z.string().describe("The ID of the node to focus on"),
     },
     async ({ nodeId }) => {
       try {
@@ -136,21 +143,21 @@ export function registerDocumentTools(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: `Focused on node "${typedResult.name}" (ID: ${typedResult.id})`
-            }
-          ]
+              text: `Focused on node "${typedResult.name}" (ID: ${typedResult.id})`,
+            },
+          ],
         };
       } catch (error) {
         return {
           content: [
             {
               type: "text",
-              text: `Error setting focus: ${error instanceof Error ? error.message : String(error)}`,
+              text: `Error setting focus on node "${nodeId}": ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };
       }
-    }
+    },
   );
 
   // Set Selections Tool
@@ -158,36 +165,36 @@ export function registerDocumentTools(server: McpServer): void {
     "set_selections",
     "Set selection to multiple nodes in Figma and scroll viewport to show them",
     {
-      nodeIds: coerceArray(z.array(z.string())).describe("Array of node IDs to select")
+      nodeIds: coerceArray(z.array(z.string())).describe("Array of node IDs to select"),
     },
     async ({ nodeIds }) => {
       try {
         const result = await sendCommandToFigma("set_selections", { nodeIds });
         const typedResult = result as {
           selectedNodes: Array<{ name: string; id: string }>;
-          count: number
+          count: number;
         };
         return {
           content: [
             {
               type: "text",
               text: `Selected ${typedResult.count} nodes: ${typedResult.selectedNodes
-                .map(n => `"${n.name}" (${n.id})`)
-                .join(', ')}`
-            }
-          ]
+                .map((n) => `"${n.name}" (${n.id})`)
+                .join(", ")}`,
+            },
+          ],
         };
       } catch (error) {
         return {
           content: [
             {
               type: "text",
-              text: `Error setting selections: ${error instanceof Error ? error.message : String(error)}`,
+              text: `Error setting selections for ${nodeIds.length} node(s): ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };
       }
-    }
+    },
   );
 
   // Get Annotations Tool
@@ -196,17 +203,14 @@ export function registerDocumentTools(server: McpServer): void {
     "Get all annotations in the current document or specific node",
     {
       nodeId: z.string().describe("Node ID to get annotations for specific node"),
-      includeCategories: z.boolean()
-        .optional()
-        .default(true)
-        .describe("Whether to include category information")
+      includeCategories: z.boolean().optional().default(true).describe("Whether to include category information"),
     },
     async ({ nodeId, includeCategories }) => {
       try {
-        const result = await sendCommandToFigma("get_annotations", {
+        const result = await sendCommandToFigma<AnnotationsResult>("get_annotations", {
           nodeId,
-          includeCategories
-        }) as any;
+          includeCategories,
+        });
         const annotations = result.annotations || (Array.isArray(result) ? result : []);
         if (annotations.length === 0) {
           return { content: [{ type: "text", text: "No annotations found." }] };
@@ -226,21 +230,21 @@ export function registerDocumentTools(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: lines.join("\n")
-            }
-          ]
+              text: lines.join("\n"),
+            },
+          ],
         };
       } catch (error) {
         return {
           content: [
             {
               type: "text",
-              text: `Error getting annotations: ${error instanceof Error ? error.message : String(error)}`,
+              text: `Error getting annotations for node "${nodeId}": ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };
       }
-    }
+    },
   );
 
   // Set Annotation Tool
@@ -249,44 +253,45 @@ export function registerDocumentTools(server: McpServer): void {
     "Create or update an annotation",
     {
       nodeId: z.string().describe("The ID of the node to annotate"),
-      annotationId: z.string().optional()
+      annotationId: z
+        .string()
+        .optional()
         .describe("The index of the annotation to update (0-based). Omit to append a new annotation."),
       labelMarkdown: z.string().describe("The annotation text in markdown format"),
-      categoryId: z.string().optional()
-        .describe("The ID of the annotation category"),
+      categoryId: z.string().optional().describe("The ID of the annotation category"),
       properties: coerceArray(z.array(z.object({ type: z.string() })))
         .optional()
-        .describe("Additional properties for the annotation")
+        .describe("Additional properties for the annotation"),
     },
     async ({ nodeId, annotationId, labelMarkdown, categoryId, properties }) => {
       try {
-        const result = await sendCommandToFigma("set_annotation", {
+        const result = await sendCommandToFigma<SetAnnotationResult>("set_annotation", {
           nodeId,
           annotationId,
           labelMarkdown,
           categoryId,
-          properties
-        }) as any;
+          properties,
+        });
         const action = annotationId != null ? "Updated" : "Created";
         return {
           content: [
             {
               type: "text",
-              text: `${action} annotation on node "${result.nodeName || nodeId}" (index: ${result.annotationIndex ?? annotationId ?? 0})`
-            }
-          ]
+              text: `${action} annotation on node "${result.nodeName || nodeId}" (index: ${result.annotationIndex ?? annotationId ?? 0})`,
+            },
+          ],
         };
       } catch (error) {
         return {
           content: [
             {
               type: "text",
-              text: `Error setting annotation: ${error instanceof Error ? error.message : String(error)}`,
+              text: `Error setting annotation on node "${nodeId}": ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };
       }
-    }
+    },
   );
 
   // Set Multiple Annotations Tool
@@ -294,22 +299,20 @@ export function registerDocumentTools(server: McpServer): void {
     "set_multiple_annotations",
     "Set multiple annotations parallelly in a node",
     {
-      nodeId: z.string()
-        .describe("The ID of the node containing elements to annotate"),
-      annotations: coerceArray(z.array(
-        z.object({
-          nodeId: z.string().describe("The ID of the node to annotate"),
-          labelMarkdown: z.string()
-            .describe("The annotation text in markdown format"),
-          categoryId: z.string().optional()
-            .describe("The ID of the annotation category"),
-          annotationId: z.string().optional()
-            .describe("The ID of the annotation to update"),
-          properties: coerceArray(z.array(z.object({ type: z.string() })))
-            .optional()
-            .describe("Additional properties for the annotation")
-        })
-      )).describe("Array of annotations to apply")
+      nodeId: z.string().describe("The ID of the node containing elements to annotate"),
+      annotations: coerceArray(
+        z.array(
+          z.object({
+            nodeId: z.string().describe("The ID of the node to annotate"),
+            labelMarkdown: z.string().describe("The annotation text in markdown format"),
+            categoryId: z.string().optional().describe("The ID of the annotation category"),
+            annotationId: z.string().optional().describe("The ID of the annotation to update"),
+            properties: coerceArray(z.array(z.object({ type: z.string() })))
+              .optional()
+              .describe("Additional properties for the annotation"),
+          }),
+        ),
+      ).describe("Array of annotations to apply"),
     },
     async ({ nodeId, annotations }) => {
       try {
@@ -318,15 +321,15 @@ export function registerDocumentTools(server: McpServer): void {
             content: [
               {
                 type: "text",
-                text: "No annotations provided"
-              }
-            ]
+                text: "No annotations provided",
+              },
+            ],
           };
         }
 
         const result = await sendCommandToFigma("set_multiple_annotations", {
           nodeId,
-          annotations
+          annotations,
         });
 
         interface AnnotationResult {
@@ -340,75 +343,67 @@ export function registerDocumentTools(server: McpServer): void {
         const typedResult = result as AnnotationResult;
         const progressText = `Annotation process completed: ${typedResult.annotationsApplied || 0} successfully applied, ${typedResult.annotationsFailed || 0} failed, processed in ${typedResult.completedInChunks || 1} batches`;
 
-        const failedResults = (typedResult.results || [])
-          .filter(item => !item.success);
+        const failedResults = (typedResult.results || []).filter((item) => !item.success);
 
         let detailedResponse = "";
         if (failedResults.length > 0) {
           detailedResponse = `\n\nFailed nodes:\n${failedResults
-            .map(item => `- ${item.nodeId}: ${item.error || "Unknown error"}`)
-            .join('\n')}`;
+            .map((item) => `- ${item.nodeId}: ${item.error || "Unknown error"}`)
+            .join("\n")}`;
         }
 
         return {
-          content: [
-            { type: "text" as const, text: progressText + detailedResponse }
-          ]
+          content: [{ type: "text" as const, text: progressText + detailedResponse }],
         };
       } catch (error) {
         return {
           content: [
             {
               type: "text",
-              text: `Error setting multiple annotations: ${error instanceof Error ? error.message : String(error)}`,
+              text: `Error setting multiple annotations on node "${nodeId}" (${annotations?.length ?? 0} annotations): ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };
       }
-    }
+    },
   );
 
   // Get Annotation Categories Tool
-  server.tool(
-    "get_annotation_categories",
-    "Get all annotation categories in the current document",
-    {},
-    async () => {
-      try {
-        const result = await sendCommandToFigma("get_annotation_categories") as any;
-        const categories = result.categories || (Array.isArray(result) ? result : []);
-        if (categories.length === 0) {
-          return { content: [{ type: "text", text: "No annotation categories found." }] };
-        }
-        const lines: string[] = [
-          `Found ${categories.length} annotation category/categories`,
-          "",
-          "| Label | Color | Preset | ID |",
-          "|-------|-------|--------|----|",
-        ];
-        for (const c of categories) {
-          lines.push(`| ${c.label || "-"} | ${c.color || "-"} | ${c.isPreset ? "Yes" : "No"} | ${c.id} |`);
-        }
-        return {
-          content: [
-            {
-              type: "text",
-              text: lines.join("\n")
-            }
-          ]
-        };
-      } catch (error) {
-        return {
-          content: [
-            {
-              type: "text",
-              text: `Error getting annotation categories: ${error instanceof Error ? error.message : String(error)}`,
-            },
-          ],
-        };
+  server.tool("get_annotation_categories", "Get all annotation categories in the current document", {}, async () => {
+    try {
+      const result = await sendCommandToFigma<AnnotationCategoriesResult>("get_annotation_categories");
+      const categories = result.categories || (Array.isArray(result) ? result : []);
+      if (categories.length === 0) {
+        return { content: [{ type: "text", text: "No annotation categories found." }] };
       }
+      const lines: string[] = [
+        `Found ${categories.length} annotation category/categories`,
+        "",
+        "| Label | Color | Preset | ID |",
+        "|-------|-------|--------|----|",
+      ];
+      for (const c of categories) {
+        lines.push(`| ${c.label || "-"} | ${c.color || "-"} | ${c.isPreset ? "Yes" : "No"} | ${c.id} |`);
+      }
+      return {
+        content: [
+          {
+            type: "text",
+            text: lines.join("\n"),
+          },
+        ],
+      };
+    } catch (error) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Error getting annotation categories: ${error instanceof Error ? error.message : String(error)}`,
+          },
+        ],
+      };
     }
-  );
+  });
 
   // Create Annotation Category Tool
   server.tool(
@@ -416,37 +411,37 @@ export function registerDocumentTools(server: McpServer): void {
     "Create a new annotation category",
     {
       label: z.string().describe("The label for the new category"),
-      color: z.enum(["blue", "green", "yellow", "orange", "red", "purple", "gray", "teal"])
+      color: z
+        .enum(["blue", "green", "yellow", "orange", "red", "purple", "gray", "teal"])
         .optional()
         .default("blue")
-        .describe("The color for the category")
+        .describe("The color for the category"),
     },
     async ({ label, color }) => {
       try {
-        const result = await sendCommandToFigma("create_annotation_category", {
+        const result = await sendCommandToFigma<CreateAnnotationCategoryResult>("create_annotation_category", {
           label,
-          color
+          color,
         });
-        const r = result as any;
         return {
           content: [
             {
               type: "text",
-              text: `Created annotation category "${r.label || label}" (ID: ${r.categoryId || r.id || "-"}, color: ${r.color || color})`,
-            }
-          ]
+              text: `Created annotation category "${result.name || label}" (ID: ${result.id || "-"}, color: ${result.color || color})`,
+            },
+          ],
         };
       } catch (error) {
         return {
           content: [
             {
               type: "text",
-              text: `Error creating annotation category: ${error instanceof Error ? error.message : String(error)}`,
+              text: `Error creating annotation category "${label}": ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };
       }
-    }
+    },
   );
 
   // Update Annotation Category Tool
@@ -456,37 +451,37 @@ export function registerDocumentTools(server: McpServer): void {
     {
       categoryId: z.string().describe("The ID of the category to update"),
       label: z.string().optional().describe("New label for the category"),
-      color: z.enum(["blue", "green", "yellow", "orange", "red", "purple", "gray", "teal"])
+      color: z
+        .enum(["blue", "green", "yellow", "orange", "red", "purple", "gray", "teal"])
         .optional()
-        .describe("New color for the category")
+        .describe("New color for the category"),
     },
     async ({ categoryId, label, color }) => {
       try {
-        const result = await sendCommandToFigma("update_annotation_category", {
+        const result = await sendCommandToFigma<UpdateAnnotationCategoryResult>("update_annotation_category", {
           categoryId,
           label,
-          color
+          color,
         });
-        const r = result as any;
         return {
           content: [
             {
               type: "text",
-              text: `Updated annotation category "${r.label || label || "-"}" (ID: ${r.categoryId || categoryId})`,
-            }
-          ]
+              text: `Updated annotation category "${result.name || label || "-"}" (ID: ${result.id || categoryId})`,
+            },
+          ],
         };
       } catch (error) {
         return {
           content: [
             {
               type: "text",
-              text: `Error updating annotation category: ${error instanceof Error ? error.message : String(error)}`,
+              text: `Error updating annotation category "${categoryId}": ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };
       }
-    }
+    },
   );
 
   // Delete Annotation Category Tool
@@ -494,32 +489,32 @@ export function registerDocumentTools(server: McpServer): void {
     "delete_annotation_category",
     "Delete a custom annotation category (preset categories cannot be deleted)",
     {
-      categoryId: z.string().describe("The ID of the category to delete")
+      categoryId: z.string().describe("The ID of the category to delete"),
     },
     async ({ categoryId }) => {
       try {
         const result = await sendCommandToFigma("delete_annotation_category", {
-          categoryId
+          categoryId,
         });
         return {
           content: [
             {
               type: "text",
               text: `Deleted annotation category (ID: ${categoryId})`,
-            }
-          ]
+            },
+          ],
         };
       } catch (error) {
         return {
           content: [
             {
               type: "text",
-              text: `Error deleting annotation category: ${error instanceof Error ? error.message : String(error)}`,
+              text: `Error deleting annotation category "${categoryId}": ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };
       }
-    }
+    },
   );
 
   // Scan Nodes By Types Tool
@@ -528,18 +523,17 @@ export function registerDocumentTools(server: McpServer): void {
     "Scan for child nodes with specific types in the selected Figma node. Returns JSX+Tailwind by default; use output_format='json' for raw Figma JSON.",
     {
       nodeId: z.string().describe("ID of the node to scan"),
-      types: coerceArray(z.array(z.string()))
-        .describe("Array of node types (e.g. ['COMPONENT', 'FRAME'])"),
+      types: coerceArray(z.array(z.string())).describe("Array of node types (e.g. ['COMPONENT', 'FRAME'])"),
       output_format: outputFormatSchema,
     },
     async ({ nodeId, types, output_format }) => {
       try {
         const result = await sendCommandToFigma("scan_nodes_by_types", {
           nodeId,
-          types
+          types,
         });
 
-        if (result && typeof result === 'object' && 'matchingNodes' in result) {
+        if (result && typeof result === "object" && "matchingNodes" in result) {
           const typedResult = result as {
             success: boolean;
             count: number;
@@ -547,7 +541,7 @@ export function registerDocumentTools(server: McpServer): void {
             searchedTypes: Array<string>;
           };
 
-          const summaryText = `Found ${typedResult.count} nodes matching types: ${typedResult.searchedTypes.join(', ')}`;
+          const summaryText = `Found ${typedResult.count} nodes matching types: ${typedResult.searchedTypes.join(", ")}`;
 
           if (output_format === "jsx" && typedResult.matchingNodes.length > 0) {
             const ids = typedResult.matchingNodes.map((n: any) => n.id);
@@ -555,23 +549,20 @@ export function registerDocumentTools(server: McpServer): void {
             return {
               content: [
                 { type: "text" as const, text: summaryText },
-                { type: "text" as const, text: jsx }
-              ]
+                { type: "text" as const, text: jsx },
+              ],
             };
           }
 
-          const nodeLines: string[] = [
-            "| Name | Type | ID |",
-            "|------|------|----|",
-          ];
+          const nodeLines: string[] = ["| Name | Type | ID |", "|------|------|----|"];
           for (const n of typedResult.matchingNodes) {
             nodeLines.push(`| ${n.name || "-"} | ${n.type || "-"} | ${n.id} |`);
           }
           return {
             content: [
               { type: "text" as const, text: summaryText },
-              { type: "text" as const, text: nodeLines.join("\n") }
-            ]
+              { type: "text" as const, text: nodeLines.join("\n") },
+            ],
           };
         }
 
@@ -579,21 +570,21 @@ export function registerDocumentTools(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: typeof result === "string" ? result : JSON.stringify(result, null, 2)
-            }
-          ]
+              text: typeof result === "string" ? result : JSON.stringify(result, null, 2),
+            },
+          ],
         };
       } catch (error) {
         return {
           content: [
             {
               type: "text",
-              text: `Error scanning nodes by types: ${error instanceof Error ? error.message : String(error)}`,
+              text: `Error scanning nodes by types [${types.join(", ")}] in node "${nodeId}": ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };
       }
-    }
+    },
   );
 
   // Selection Tool
@@ -614,9 +605,9 @@ export function registerDocumentTools(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result)
-            }
-          ]
+              text: JSON.stringify(result),
+            },
+          ],
         };
       } catch (error) {
         return {
@@ -628,7 +619,7 @@ export function registerDocumentTools(server: McpServer): void {
           ],
         };
       }
-    }
+    },
   );
 
   // Node Info Tool
@@ -637,17 +628,39 @@ export function registerDocumentTools(server: McpServer): void {
     "Get detailed information about a specific node in Figma. Returns JSX+Tailwind by default; use output_format='json' for raw Figma JSON.",
     {
       nodeId: z.string().describe("The ID of the node to get information about"),
-      fields: coerceArray(z.array(z.enum([
-        "id", "name", "type", "fills", "strokes", "cornerRadius",
-        "absoluteBoundingBox", "characters", "style", "children",
-        "effects", "opacity", "blendMode", "constraints", "layoutMode",
-        "padding", "itemSpacing", "componentProperties"
-      ]))).optional().describe(
-        "Optional array of fields to include in the response (only used when output_format='json'). If not specified, returns: id, name, type, fills, strokes, cornerRadius, absoluteBoundingBox, characters, style. Available fields: id, name, type, fills, strokes, cornerRadius, absoluteBoundingBox, characters, style, children, effects, opacity, blendMode, constraints, layoutMode, padding, itemSpacing, componentProperties"
-      ),
-      stripImages: z.boolean().optional().default(true).describe(
-        "Whether to strip image data (only used when output_format='json'). Defaults to true."
-      ),
+      fields: coerceArray(
+        z.array(
+          z.enum([
+            "id",
+            "name",
+            "type",
+            "fills",
+            "strokes",
+            "cornerRadius",
+            "absoluteBoundingBox",
+            "characters",
+            "style",
+            "children",
+            "effects",
+            "opacity",
+            "blendMode",
+            "constraints",
+            "layoutMode",
+            "padding",
+            "itemSpacing",
+            "componentProperties",
+          ]),
+        ),
+      )
+        .optional()
+        .describe(
+          "Optional array of fields to include in the response (only used when output_format='json'). If not specified, returns: id, name, type, fills, strokes, cornerRadius, absoluteBoundingBox, characters, style. Available fields: id, name, type, fills, strokes, cornerRadius, absoluteBoundingBox, characters, style, children, effects, opacity, blendMode, constraints, layoutMode, padding, itemSpacing, componentProperties",
+        ),
+      stripImages: z
+        .boolean()
+        .optional()
+        .default(true)
+        .describe("Whether to strip image data (only used when output_format='json'). Defaults to true."),
       output_format: outputFormatSchema,
     },
     async ({ nodeId, fields, stripImages, output_format }) => {
@@ -661,21 +674,21 @@ export function registerDocumentTools(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: JSON.stringify(filterFigmaNode(result, fields))
-            }
-          ]
+              text: JSON.stringify(filterFigmaNode(result, fields)),
+            },
+          ],
         };
       } catch (error) {
         return {
           content: [
             {
               type: "text",
-              text: `Error getting node info: ${error instanceof Error ? error.message : String(error)}`,
+              text: `Error getting node info for "${nodeId}": ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };
       }
-    }
+    },
   );
 
   // Nodes Info Tool
@@ -684,17 +697,39 @@ export function registerDocumentTools(server: McpServer): void {
     "Get detailed information about multiple nodes in Figma. Returns JSX+Tailwind by default; use output_format='json' for raw Figma JSON.",
     {
       nodeIds: coerceArray(z.array(z.string())).describe("Array of node IDs to get information about"),
-      fields: coerceArray(z.array(z.enum([
-        "id", "name", "type", "fills", "strokes", "cornerRadius",
-        "absoluteBoundingBox", "characters", "style", "children",
-        "effects", "opacity", "blendMode", "constraints", "layoutMode",
-        "padding", "itemSpacing", "componentProperties"
-      ]))).optional().describe(
-        "Optional array of fields to include in the response (only used when output_format='json'). If not specified, returns: id, name, type, fills, strokes, cornerRadius, absoluteBoundingBox, characters, style. Available fields: id, name, type, fills, strokes, cornerRadius, absoluteBoundingBox, characters, style, children, effects, opacity, blendMode, constraints, layoutMode, padding, itemSpacing, componentProperties"
-      ),
-      stripImages: z.boolean().optional().default(true).describe(
-        "Whether to strip image data (only used when output_format='json'). Defaults to true."
-      ),
+      fields: coerceArray(
+        z.array(
+          z.enum([
+            "id",
+            "name",
+            "type",
+            "fills",
+            "strokes",
+            "cornerRadius",
+            "absoluteBoundingBox",
+            "characters",
+            "style",
+            "children",
+            "effects",
+            "opacity",
+            "blendMode",
+            "constraints",
+            "layoutMode",
+            "padding",
+            "itemSpacing",
+            "componentProperties",
+          ]),
+        ),
+      )
+        .optional()
+        .describe(
+          "Optional array of fields to include in the response (only used when output_format='json'). If not specified, returns: id, name, type, fills, strokes, cornerRadius, absoluteBoundingBox, characters, style. Available fields: id, name, type, fills, strokes, cornerRadius, absoluteBoundingBox, characters, style, children, effects, opacity, blendMode, constraints, layoutMode, padding, itemSpacing, componentProperties",
+        ),
+      stripImages: z
+        .boolean()
+        .optional()
+        .default(true)
+        .describe("Whether to strip image data (only used when output_format='json'). Defaults to true."),
       output_format: outputFormatSchema,
     },
     async ({ nodeIds, fields, stripImages, output_format }) => {
@@ -705,81 +740,76 @@ export function registerDocumentTools(server: McpServer): void {
         }
         const results = await Promise.all(
           nodeIds.map(async (nodeId) => {
-            const result = await sendCommandToFigma('get_node_info', { nodeId, stripImages });
+            const result = await sendCommandToFigma("get_node_info", { nodeId, stripImages });
             return { nodeId, info: result };
-          })
+          }),
         );
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(results.map((result) => filterFigmaNode(result.info, fields)))
-            }
-          ]
+              text: JSON.stringify(results.map((result) => filterFigmaNode(result.info, fields))),
+            },
+          ],
         };
       } catch (error) {
         return {
           content: [
             {
               type: "text",
-              text: `Error getting nodes info: ${error instanceof Error ? error.message : String(error)}`
-            }
-          ]
-        };
-      }
-    }
-  );
-
-  // Get Styles Tool
-  server.tool(
-    "get_styles",
-    "Get all styles from the current Figma document",
-    {},
-    async () => {
-      try {
-        const result = await sendCommandToFigma("get_styles") as any;
-        const styles = Array.isArray(result) ? result : result?.styles || [];
-        if (styles.length === 0) {
-          return { content: [{ type: "text", text: "No styles found." }] };
-        }
-        // Group by style type
-        const grouped = new Map<string, any[]>();
-        for (const s of styles) {
-          const type = s.type || "UNKNOWN";
-          const list = grouped.get(type) || [];
-          list.push(s);
-          grouped.set(type, list);
-        }
-        const lines: string[] = [`Found ${styles.length} style(s)`, ""];
-        for (const [type, items] of grouped) {
-          lines.push(`### ${type} Styles (${items.length})`);
-          lines.push("| Name | ID | Key |");
-          lines.push("|------|----|-----|");
-          for (const s of items) {
-            lines.push(`| ${s.name || "-"} | ${s.id || "-"} | ${s.key || "-"} |`);
-          }
-          lines.push("");
-        }
-        return {
-          content: [
-            {
-              type: "text",
-              text: lines.join("\n")
-            }
-          ]
-        };
-      } catch (error) {
-        return {
-          content: [
-            {
-              type: "text",
-              text: `Error getting styles: ${error instanceof Error ? error.message : String(error)}`,
+              text: `Error getting nodes info for ${nodeIds.length} node(s): ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };
       }
-    }
+    },
   );
+
+  // Get Styles Tool
+  server.tool("get_styles", "Get all styles from the current Figma document", {}, async () => {
+    try {
+      const result = await sendCommandToFigma<StylesResult>("get_styles");
+      const styles = Array.isArray(result) ? result : result?.styles || [];
+      if (styles.length === 0) {
+        return { content: [{ type: "text", text: "No styles found." }] };
+      }
+      // Group by style type
+      const grouped = new Map<string, any[]>();
+      for (const s of styles) {
+        const type = s.type || "UNKNOWN";
+        const list = grouped.get(type) || [];
+        list.push(s);
+        grouped.set(type, list);
+      }
+      const lines: string[] = [`Found ${styles.length} style(s)`, ""];
+      for (const [type, items] of grouped) {
+        lines.push(`### ${type} Styles (${items.length})`);
+        lines.push("| Name | ID | Key |");
+        lines.push("|------|----|-----|");
+        for (const s of items) {
+          lines.push(`| ${s.name || "-"} | ${s.id || "-"} | ${s.key || "-"} |`);
+        }
+        lines.push("");
+      }
+      return {
+        content: [
+          {
+            type: "text",
+            text: lines.join("\n"),
+          },
+        ],
+      };
+    } catch (error) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Error getting styles: ${error instanceof Error ? error.message : String(error)}`,
+          },
+        ],
+      };
+    }
+  });
 
   // Get Local Components Tool
   server.tool(
@@ -792,21 +822,21 @@ export function registerDocumentTools(server: McpServer): void {
       try {
         const result = await sendCommandToFigma("get_local_components");
 
-        if (output_format === "jsx" && result && typeof result === 'object') {
-          const components = Array.isArray(result) ? result : (result as any).components ?? [];
+        if (output_format === "jsx" && result && typeof result === "object") {
+          const components = Array.isArray(result) ? result : ((result as any).components ?? []);
           if (components.length > 0) {
             const ids = components.map((c: any) => c.id);
             const jsx = await fetchNodesAsJsx(ids);
             return {
               content: [
                 { type: "text" as const, text: `Found ${components.length} local components` },
-                { type: "text" as const, text: jsx }
-              ]
+                { type: "text" as const, text: jsx },
+              ],
             };
           }
         }
 
-        const components = Array.isArray(result) ? result : (result as any)?.components ?? [];
+        const components = Array.isArray(result) ? result : ((result as any)?.components ?? []);
         if (components.length === 0) {
           return { content: [{ type: "text", text: "No local components found." }] };
         }
@@ -823,9 +853,9 @@ export function registerDocumentTools(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: lines.join("\n")
-            }
-          ]
+              text: lines.join("\n"),
+            },
+          ],
         };
       } catch (error) {
         return {
@@ -837,50 +867,45 @@ export function registerDocumentTools(server: McpServer): void {
           ],
         };
       }
-    }
+    },
   );
 
   // Get Remote Components Tool
-  server.tool(
-    "get_remote_components",
-    "Get available components from team libraries in Figma",
-    {},
-    async () => {
-      try {
-        const result = await sendCommandToFigma("get_remote_components") as any;
-        const components = Array.isArray(result) ? result : result?.components ?? [];
-        if (components.length === 0) {
-          return { content: [{ type: "text", text: "No remote components found." }] };
-        }
-        const lines: string[] = [
-          `Found ${components.length} remote component(s)`,
-          "",
-          "| Name | ID | Key | Library |",
-          "|------|----|-----|---------|",
-        ];
-        for (const c of components) {
-          lines.push(`| ${c.name || "-"} | ${c.id || "-"} | ${c.key || "-"} | ${c.libraryName || c.library || "-"} |`);
-        }
-        return {
-          content: [
-            {
-              type: "text",
-              text: lines.join("\n")
-            }
-          ]
-        };
-      } catch (error) {
-        return {
-          content: [
-            {
-              type: "text",
-              text: `Error getting remote components: ${error instanceof Error ? error.message : String(error)}`
-            }
-          ]
-        };
+  server.tool("get_remote_components", "Get available components from team libraries in Figma", {}, async () => {
+    try {
+      const result = await sendCommandToFigma<RemoteComponentsResult>("get_remote_components");
+      const components = Array.isArray(result) ? result : (result?.components ?? []);
+      if (components.length === 0) {
+        return { content: [{ type: "text", text: "No remote components found." }] };
       }
+      const lines: string[] = [
+        `Found ${components.length} remote component(s)`,
+        "",
+        "| Name | ID | Key | Library |",
+        "|------|----|-----|---------|",
+      ];
+      for (const c of components) {
+        lines.push(`| ${c.name || "-"} | ${c.id || "-"} | ${c.key || "-"} | ${c.libraryName || c.library || "-"} |`);
+      }
+      return {
+        content: [
+          {
+            type: "text",
+            text: lines.join("\n"),
+          },
+        ],
+      };
+    } catch (error) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Error getting remote components: ${error instanceof Error ? error.message : String(error)}`,
+          },
+        ],
+      };
     }
-  );
+  });
 
   // Text Node Scanning Tool
   server.tool(
@@ -895,18 +920,18 @@ export function registerDocumentTools(server: McpServer): void {
         // Use the plugin's scan_text_nodes function with chunking flag
         const result = await sendCommandToFigma("scan_text_nodes", {
           nodeId,
-          useChunking: true,  // Enable chunking on the plugin side
-          chunkSize: 10       // Process 10 nodes at a time
+          useChunking: true, // Enable chunking on the plugin side
+          chunkSize: 10, // Process 10 nodes at a time
         });
 
         // If the result indicates chunking was used, format the response accordingly
-        if (result && typeof result === 'object' && 'chunks' in result) {
+        if (result && typeof result === "object" && "chunks" in result) {
           const typedResult = result as {
-            success: boolean,
-            totalNodes: number,
-            processedNodes: number,
-            chunks: number,
-            textNodes: Array<any>
+            success: boolean;
+            totalNodes: number;
+            processedNodes: number;
+            chunks: number;
+            textNodes: Array<any>;
           };
 
           const summaryText = `Found ${typedResult.totalNodes} text nodes (processed in ${typedResult.chunks} chunks)`;
@@ -917,7 +942,7 @@ export function registerDocumentTools(server: McpServer): void {
             return {
               content: [
                 { type: "text" as const, text: summaryText },
-                { type: "text" as const, text: jsx }
+                { type: "text" as const, text: jsx },
               ],
             };
           }
@@ -928,20 +953,22 @@ export function registerDocumentTools(server: McpServer): void {
           ];
           for (const n of typedResult.textNodes) {
             const chars = truncate((n.characters || "").replace(/\n/g, " "), 40);
-            const font = n.fontName ? `${n.fontName.family} ${n.fontName.style || ""}`.trim() : n.style?.fontFamily || "-";
+            const font = n.fontName
+              ? `${n.fontName.family} ${n.fontName.style || ""}`.trim()
+              : n.style?.fontFamily || "-";
             const size = n.fontSize ?? n.style?.fontSize ?? "-";
             nodeLines.push(`| ${n.name || "-"} | ${chars} | ${font} | ${size} | ${n.id} |`);
           }
           return {
             content: [
               { type: "text" as const, text: summaryText },
-              { type: "text" as const, text: nodeLines.join("\n") }
+              { type: "text" as const, text: nodeLines.join("\n") },
             ],
           };
         }
 
         // If chunking wasn't used, try to extract IDs for JSX mode
-        if (output_format === "jsx" && result && typeof result === 'object' && 'textNodes' in result) {
+        if (output_format === "jsx" && result && typeof result === "object" && "textNodes" in result) {
           const typedResult = result as { textNodes: Array<any> };
           if (typedResult.textNodes.length > 0) {
             const ids = typedResult.textNodes.map((n: any) => n.id);
@@ -949,7 +976,7 @@ export function registerDocumentTools(server: McpServer): void {
             return {
               content: [
                 { type: "text" as const, text: `Found ${typedResult.textNodes.length} text nodes` },
-                { type: "text" as const, text: jsx }
+                { type: "text" as const, text: jsx },
               ],
             };
           }
@@ -968,12 +995,12 @@ export function registerDocumentTools(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: `Error scanning text nodes: ${error instanceof Error ? error.message : String(error)}`,
+              text: `Error scanning text nodes in node "${nodeId}": ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };
       }
-    }
+    },
   );
 
   // Join Channel Tool
@@ -1003,7 +1030,7 @@ export function registerDocumentTools(server: McpServer): void {
 
         // Use joinChannel instead of sendCommandToFigma to ensure currentChannel is updated
         await joinChannel(channel);
-        
+
         return {
           content: [
             {
@@ -1017,12 +1044,12 @@ export function registerDocumentTools(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: `Error joining channel: ${error instanceof Error ? error.message : String(error)}`,
+              text: `Error joining channel "${channel}": ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };
       }
-    }
+    },
   );
 
   // Get Open Channels Tool
@@ -1050,7 +1077,9 @@ export function registerDocumentTools(server: McpServer): void {
           "|-----------|------------|",
         ];
         for (const ch of channels) {
-          lines.push(`| ${(ch as any).fileName || (ch as any).name || "-"} | ${(ch as any).channelId || (ch as any).id || "-"} |`);
+          lines.push(
+            `| ${(ch as any).fileName || (ch as any).name || "-"} | ${(ch as any).channelId || (ch as any).id || "-"} |`,
+          );
         }
         return {
           content: [
@@ -1070,7 +1099,7 @@ export function registerDocumentTools(server: McpServer): void {
           ],
         };
       }
-    }
+    },
   );
 
   // Export Node as Image Tool
@@ -1079,10 +1108,7 @@ export function registerDocumentTools(server: McpServer): void {
     "Export a node as a base64 image from Figma. For large images (>4000px), consider using export_node_as_image_url instead which returns a CDN URL.",
     {
       nodeId: z.string().describe("The ID of the node to export"),
-      format: z
-        .enum(["PNG", "JPG", "SVG", "PDF"])
-        .optional()
-        .describe("Export format"),
+      format: z.enum(["PNG", "JPG", "SVG", "PDF"]).optional().describe("Export format"),
       scale: z.number().positive().optional().describe("Export scale"),
     },
     async ({ nodeId, format, scale }) => {
@@ -1133,12 +1159,12 @@ export function registerDocumentTools(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: `Error exporting node as image: ${error instanceof Error ? error.message : String(error)}`,
+              text: `Error exporting node "${nodeId}" as image (${format || "PNG"}): ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };
       }
-    }
+    },
   );
 
   // Export Node as Image URL Tool (using Figma REST API)
@@ -1147,23 +1173,9 @@ export function registerDocumentTools(server: McpServer): void {
     "Export a node as an image URL using Figma REST API. Returns a CDN URL instead of base64 data. Requires FIGMA_ACCESS_TOKEN environment variable or --figma-token CLI argument.",
     {
       nodeId: z.string().describe("The ID of the node to export"),
-      format: z
-        .enum(["png", "jpg", "svg", "pdf"])
-        .optional()
-        .default("png")
-        .describe("Export format (lowercase)"),
-      scale: z
-        .number()
-        .positive()
-        .min(0.01)
-        .max(4)
-        .optional()
-        .default(1)
-        .describe("Export scale (0.01 to 4)"),
-      fileKey: z
-        .string()
-        .optional()
-        .describe("Figma file key. If not provided, will be fetched from the plugin."),
+      format: z.enum(["png", "jpg", "svg", "pdf"]).optional().default("png").describe("Export format (lowercase)"),
+      scale: z.number().positive().min(0.01).max(4).optional().default(1).describe("Export scale (0.01 to 4)"),
+      fileKey: z.string().optional().describe("Figma file key. If not provided, will be fetched from the plugin."),
     },
     async ({ nodeId, format, scale, fileKey }) => {
       try {
@@ -1230,7 +1242,7 @@ export function registerDocumentTools(server: McpServer): void {
           };
         }
 
-        const data = await response.json() as {
+        const data = (await response.json()) as {
           err?: string;
           images?: Record<string, string | null>;
         };
@@ -1274,12 +1286,12 @@ export function registerDocumentTools(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: `Error exporting node as image URL: ${error instanceof Error ? error.message : String(error)}`,
+              text: `Error exporting node "${nodeId}" as image URL (${format}): ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };
       }
-    }
+    },
   );
 
   // Get Variables Tool
@@ -1321,10 +1333,12 @@ export function registerDocumentTools(server: McpServer): void {
         const name = v.description ? `${v.name} — ${v.description}` : v.name;
 
         if (multiMode) {
-          const values = modes.map((m) => {
-            const entry = v.values?.find((val: any) => val.modeId === m.modeId);
-            return entry ? formatVariableValue(v.type, entry.value) : "-";
-          }).join(" | ");
+          const values = modes
+            .map((m) => {
+              const entry = v.values?.find((val: any) => val.modeId === m.modeId);
+              return entry ? formatVariableValue(v.type, entry.value) : "-";
+            })
+            .join(" | ");
           lines.push(`| ${name} | ${v.type} | ${values} | ${v.id} |`);
         } else {
           const value = v.values?.[0]?.value;
@@ -1349,21 +1363,21 @@ export function registerDocumentTools(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: formatVariablesAsText(result as { variables: any[]; collections: any[] })
-            }
-          ]
+              text: formatVariablesAsText(result as { variables: any[]; collections: any[] }),
+            },
+          ],
         };
       } catch (error) {
         return {
           content: [
             {
               type: "text",
-              text: `Error getting variables: ${error instanceof Error ? error.message : String(error)}`
-            }
-          ]
+              text: `Error getting variables: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
         };
       }
-    }
+    },
   );
 
   // Get Bound Variables Tool
@@ -1371,11 +1385,11 @@ export function registerDocumentTools(server: McpServer): void {
     "get_bound_variables",
     "Get all variable bindings for a specific node in Figma",
     {
-      nodeId: z.string().describe("The ID of the node to check for variable bindings")
+      nodeId: z.string().describe("The ID of the node to check for variable bindings"),
     },
     async ({ nodeId }) => {
       try {
-        const result = await sendCommandToFigma("get_bound_variables", { nodeId }) as any;
+        const result = await sendCommandToFigma<BoundVariablesResult>("get_bound_variables", { nodeId });
         // Result can be an object map {property: binding} or {bindings: [...]}
         const bindings = result.bindings || (Array.isArray(result) ? result : null);
         if (bindings) {
@@ -1390,7 +1404,9 @@ export function registerDocumentTools(server: McpServer): void {
             "|----------|----------|------------|----|",
           ];
           for (const b of bindings) {
-            lines.push(`| ${b.property || "-"} | ${b.name || b.variableName || "-"} | ${b.collectionName || "-"} | ${b.variableId || b.id || "-"} |`);
+            lines.push(
+              `| ${b.property || "-"} | ${b.name || b.variableName || "-"} | ${b.collectionName || "-"} | ${b.variableId || b.id || "-"} |`,
+            );
           }
           return { content: [{ type: "text", text: lines.join("\n") }] };
         }
@@ -1413,21 +1429,21 @@ export function registerDocumentTools(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: lines.join("\n")
-            }
-          ]
+              text: lines.join("\n"),
+            },
+          ],
         };
       } catch (error) {
         return {
           content: [
             {
               type: "text",
-              text: `Error getting bound variables: ${error instanceof Error ? error.message : String(error)}`
-            }
-          ]
+              text: `Error getting bound variables for node "${nodeId}": ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
         };
       }
-    }
+    },
   );
 
   // Create Page Tool
@@ -1454,12 +1470,12 @@ export function registerDocumentTools(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: `Error creating page: ${error instanceof Error ? error.message : String(error)}`,
+              text: `Error creating page "${name}": ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };
       }
-    }
+    },
   );
 
   // Rename Page Tool
@@ -1487,12 +1503,12 @@ export function registerDocumentTools(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: `Error renaming page: ${error instanceof Error ? error.message : String(error)}`,
+              text: `Error renaming page "${pageId}" to "${name}": ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };
       }
-    }
+    },
   );
 
   // Delete Page Tool
@@ -1519,11 +1535,11 @@ export function registerDocumentTools(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: `Error deleting page: ${error instanceof Error ? error.message : String(error)}`,
+              text: `Error deleting page "${pageId}": ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };
       }
-    }
+    },
   );
 }

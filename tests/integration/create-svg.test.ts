@@ -1,9 +1,9 @@
-import { z } from 'zod';
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { registerCreationTools } from '../../src/claude_figma_mcp/tools/creation-tools';
+import { z } from "zod";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { registerCreationTools } from "../../src/claude_figma_mcp/tools/creation-tools";
 
-jest.mock('../../src/claude_figma_mcp/utils/websocket', () => ({
-  sendCommandToFigma: jest.fn()
+jest.mock("../../src/claude_figma_mcp/utils/websocket", () => ({
+  sendCommandToFigma: jest.fn(),
 }));
 
 describe("create_svg tool", () => {
@@ -13,19 +13,16 @@ describe("create_svg tool", () => {
   let toolSchemas: Map<string, z.ZodObject<any>>;
 
   beforeEach(() => {
-    server = new McpServer(
-      { name: 'test-server', version: '1.0.0' },
-      { capabilities: { tools: {} } }
-    );
+    server = new McpServer({ name: "test-server", version: "1.0.0" }, { capabilities: { tools: {} } });
 
-    mockSendCommand = require('../../src/claude_figma_mcp/utils/websocket').sendCommandToFigma;
+    mockSendCommand = require("../../src/claude_figma_mcp/utils/websocket").sendCommandToFigma;
     mockSendCommand.mockClear();
 
     toolHandlers = new Map();
     toolSchemas = new Map();
 
     const originalTool = server.tool.bind(server);
-    jest.spyOn(server, 'tool').mockImplementation((...args: any[]) => {
+    jest.spyOn(server, "tool").mockImplementation((...args: any[]) => {
       if (args.length === 4) {
         const [name, description, schema, handler] = args;
         toolHandlers.set(name, handler);
@@ -60,13 +57,13 @@ describe("create_svg tool", () => {
         width: 24,
         height: 24,
         childCount: 1,
-        parentId: undefined
+        parentId: undefined,
       });
     });
 
     it("creates SVG with minimal parameters", async () => {
       const response = await callTool("create_svg", {
-        svgString: sampleSvg
+        svgString: sampleSvg,
       });
 
       expect(mockSendCommand).toHaveBeenCalledTimes(1);
@@ -76,7 +73,7 @@ describe("create_svg tool", () => {
         y: 0,
         name: undefined,
         parentId: undefined,
-        flatten: false
+        flatten: false,
       });
       expect(response.content[0].text).toContain("Created SVG node");
       expect(response.content[0].text).toContain("svg-node-123");
@@ -86,7 +83,7 @@ describe("create_svg tool", () => {
       const response = await callTool("create_svg", {
         svgString: sampleSvg,
         x: 100,
-        y: 200
+        y: 200,
       });
 
       expect(mockSendCommand).toHaveBeenCalledWith("create_svg", {
@@ -95,14 +92,14 @@ describe("create_svg tool", () => {
         y: 200,
         name: undefined,
         parentId: undefined,
-        flatten: false
+        flatten: false,
       });
     });
 
     it("creates SVG with custom name", async () => {
       const response = await callTool("create_svg", {
         svgString: sampleSvg,
-        name: "My Icon"
+        name: "My Icon",
       });
 
       expect(mockSendCommand).toHaveBeenCalledWith("create_svg", {
@@ -111,7 +108,7 @@ describe("create_svg tool", () => {
         y: 0,
         name: "My Icon",
         parentId: undefined,
-        flatten: false
+        flatten: false,
       });
     });
 
@@ -125,12 +122,12 @@ describe("create_svg tool", () => {
         width: 24,
         height: 24,
         childCount: 1,
-        parentId: "frame-123"
+        parentId: "frame-123",
       });
 
       const response = await callTool("create_svg", {
         svgString: sampleSvg,
-        parentId: "frame-123"
+        parentId: "frame-123",
       });
 
       expect(mockSendCommand).toHaveBeenCalledWith("create_svg", {
@@ -139,7 +136,7 @@ describe("create_svg tool", () => {
         y: 0,
         name: undefined,
         parentId: "frame-123",
-        flatten: false
+        flatten: false,
       });
       expect(response.content[0].text).toContain("inside parent frame-123");
     });
@@ -154,12 +151,12 @@ describe("create_svg tool", () => {
         width: 24,
         height: 24,
         childCount: 0,
-        parentId: undefined
+        parentId: undefined,
       });
 
       const response = await callTool("create_svg", {
         svgString: sampleSvg,
-        flatten: true
+        flatten: true,
       });
 
       expect(mockSendCommand).toHaveBeenCalledWith("create_svg", {
@@ -168,7 +165,7 @@ describe("create_svg tool", () => {
         y: 0,
         name: undefined,
         parentId: undefined,
-        flatten: true
+        flatten: true,
       });
       expect(response.content[0].text).toContain("0 children");
     });
@@ -180,7 +177,7 @@ describe("create_svg tool", () => {
         y: 75,
         name: "Complete Icon",
         parentId: "frame-abc",
-        flatten: true
+        flatten: true,
       });
 
       expect(mockSendCommand).toHaveBeenCalledWith("create_svg", {
@@ -189,7 +186,7 @@ describe("create_svg tool", () => {
         y: 75,
         name: "Complete Icon",
         parentId: "frame-abc",
-        flatten: true
+        flatten: true,
       });
     });
   });
@@ -201,9 +198,11 @@ describe("create_svg tool", () => {
     });
 
     it("rejects non-string svgString", async () => {
-      await expect(callTool("create_svg", {
-        svgString: 123
-      })).rejects.toThrow();
+      await expect(
+        callTool("create_svg", {
+          svgString: 123,
+        }),
+      ).rejects.toThrow();
       expect(mockSendCommand).not.toHaveBeenCalled();
     });
 
@@ -217,11 +216,11 @@ describe("create_svg tool", () => {
         y: 0,
         width: 24,
         height: 24,
-        childCount: 1
+        childCount: 1,
       });
 
       const response = await callTool("create_svg", {
-        svgString: xmlSvg
+        svgString: xmlSvg,
       });
 
       expect(mockSendCommand).toHaveBeenCalledTimes(1);
@@ -233,7 +232,7 @@ describe("create_svg tool", () => {
       mockSendCommand.mockRejectedValue(new Error("Failed to parse SVG: Invalid markup"));
 
       const response = await callTool("create_svg", {
-        svgString: sampleSvg
+        svgString: sampleSvg,
       });
 
       expect(response.content[0].text).toContain("Error creating SVG");
@@ -245,7 +244,7 @@ describe("create_svg tool", () => {
 
       const response = await callTool("create_svg", {
         svgString: sampleSvg,
-        parentId: "invalid-parent"
+        parentId: "invalid-parent",
       });
 
       expect(response.content[0].text).toContain("Error creating SVG");
@@ -256,7 +255,7 @@ describe("create_svg tool", () => {
       mockSendCommand.mockRejectedValue(new Error("Invalid SVG: must start with <svg"));
 
       const response = await callTool("create_svg", {
-        svgString: "<div>not an svg</div>"
+        svgString: "<div>not an svg</div>",
       });
 
       expect(response.content[0].text).toContain("Error creating SVG");

@@ -16,14 +16,8 @@ export function registerBatchTools(server: McpServer): void {
       actions: z
         .array(
           z.object({
-            action: z
-              .string()
-              .describe("Command name (e.g., 'clone_node', 'set_fill_color')"),
-            params: z
-              .record(z.unknown())
-              .optional()
-              .default({})
-              .describe("Parameters for the command"),
+            action: z.string().describe("Command name (e.g., 'clone_node', 'set_fill_color')"),
+            params: z.record(z.unknown()).optional().default({}).describe("Parameters for the command"),
           }),
         )
         .min(1)
@@ -33,9 +27,7 @@ export function registerBatchTools(server: McpServer): void {
         .boolean()
         .optional()
         .default(false)
-        .describe(
-          "Stop processing remaining actions after the first failure (default: false)",
-        ),
+        .describe("Stop processing remaining actions after the first failure (default: false)"),
     },
     async ({ actions, stopOnError }) => {
       try {

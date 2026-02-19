@@ -44,9 +44,7 @@ export function toPascalCase(name: string): string {
  * "Show Icon" → "showIcon", "Size" → "size", "show-icon" → "showIcon"
  */
 export function toCamelCase(name: string): string {
-  const parts = name
-    .split(/[\s\-_]+/)
-    .filter((s) => s.length > 0);
+  const parts = name.split(/[\s\-_]+/).filter((s) => s.length > 0);
   if (parts.length === 0) return name;
   return parts
     .map((s, i) => (i === 0 ? s.charAt(0).toLowerCase() + s.slice(1) : s.charAt(0).toUpperCase() + s.slice(1)))
@@ -113,7 +111,13 @@ function buildTailwindClasses(node: FigmaNodeData): string[] {
   }
 
   // Cross-axis spacing (gap-x/gap-y in wrapped layouts)
-  if (node.layoutMode && node.layoutMode !== "NONE" && node.layoutWrap === "WRAP" && node.counterAxisSpacing !== undefined && node.counterAxisSpacing > 0) {
+  if (
+    node.layoutMode &&
+    node.layoutMode !== "NONE" &&
+    node.layoutWrap === "WRAP" &&
+    node.counterAxisSpacing !== undefined &&
+    node.counterAxisSpacing > 0
+  ) {
     const crossGapDir = node.layoutMode === "HORIZONTAL" ? "gap-y" : "gap-x";
     if (bindings["counterAxisSpacing"]) {
       classes.push(`${crossGapDir}-${normalizeName(bindings["counterAxisSpacing"])}`);
@@ -178,9 +182,12 @@ function buildTailwindClasses(node: FigmaNodeData): string[] {
       }
     } else {
       if (pt > 0) classes.push(bindings["paddingTop"] ? `pt-${normalizeName(bindings["paddingTop"])}` : `pt-[${pt}px]`);
-      if (pr > 0) classes.push(bindings["paddingRight"] ? `pr-${normalizeName(bindings["paddingRight"])}` : `pr-[${pr}px]`);
-      if (pb > 0) classes.push(bindings["paddingBottom"] ? `pb-${normalizeName(bindings["paddingBottom"])}` : `pb-[${pb}px]`);
-      if (pl > 0) classes.push(bindings["paddingLeft"] ? `pl-${normalizeName(bindings["paddingLeft"])}` : `pl-[${pl}px]`);
+      if (pr > 0)
+        classes.push(bindings["paddingRight"] ? `pr-${normalizeName(bindings["paddingRight"])}` : `pr-[${pr}px]`);
+      if (pb > 0)
+        classes.push(bindings["paddingBottom"] ? `pb-${normalizeName(bindings["paddingBottom"])}` : `pb-[${pb}px]`);
+      if (pl > 0)
+        classes.push(bindings["paddingLeft"] ? `pl-${normalizeName(bindings["paddingLeft"])}` : `pl-[${pl}px]`);
     }
   }
 
@@ -191,9 +198,7 @@ function buildTailwindClasses(node: FigmaNodeData): string[] {
       const fill = node.fills[i];
       const fillBinding = bindings[`fills/${i}`];
       const fillOpacitySuffix =
-        !fillBinding && fill.opacity !== undefined && fill.opacity < 1
-          ? `/${Math.round(fill.opacity * 100)}`
-          : "";
+        !fillBinding && fill.opacity !== undefined && fill.opacity < 1 ? `/${Math.round(fill.opacity * 100)}` : "";
 
       if (isText) {
         if (fillBinding) {
@@ -410,10 +415,7 @@ function buildStyleAstAttr(style: Record<string, string>): t.JSXAttribute {
   const properties = Object.entries(style).map(([key, value]) =>
     t.objectProperty(t.identifier(key), t.stringLiteral(value)),
   );
-  return t.jsxAttribute(
-    t.jsxIdentifier("style"),
-    t.jsxExpressionContainer(t.objectExpression(properties)),
-  );
+  return t.jsxAttribute(t.jsxIdentifier("style"), t.jsxExpressionContainer(t.objectExpression(properties)));
 }
 
 /**
@@ -511,16 +513,14 @@ function buildComponentAstAttrs(node: FigmaNodeData): t.JSXAttribute[] {
       if (camelKey !== key) nameMap[camelKey] = key;
     }
     if (Object.keys(defs).length > 0) {
-      attrs.push(t.jsxAttribute(
-        t.jsxIdentifier("propertyDefinitions"),
-        t.jsxExpressionContainer(buildObjectExpr(defs)),
-      ));
+      attrs.push(
+        t.jsxAttribute(t.jsxIdentifier("propertyDefinitions"), t.jsxExpressionContainer(buildObjectExpr(defs))),
+      );
     }
     if (Object.keys(nameMap).length > 0) {
-      attrs.push(t.jsxAttribute(
-        t.jsxIdentifier("propertyNameMap"),
-        t.jsxExpressionContainer(buildObjectExpr(nameMap)),
-      ));
+      attrs.push(
+        t.jsxAttribute(t.jsxIdentifier("propertyNameMap"), t.jsxExpressionContainer(buildObjectExpr(nameMap))),
+      );
     }
   }
 
@@ -533,10 +533,9 @@ function buildComponentAstAttrs(node: FigmaNodeData): t.JSXAttribute[] {
       if (camelKey !== key) nameMap[camelKey] = key;
     }
     if (Object.keys(nameMap).length > 0) {
-      attrs.push(t.jsxAttribute(
-        t.jsxIdentifier("propertyNameMap"),
-        t.jsxExpressionContainer(buildObjectExpr(nameMap)),
-      ));
+      attrs.push(
+        t.jsxAttribute(t.jsxIdentifier("propertyNameMap"), t.jsxExpressionContainer(buildObjectExpr(nameMap))),
+      );
     }
   }
 
@@ -546,10 +545,7 @@ function buildComponentAstAttrs(node: FigmaNodeData): t.JSXAttribute[] {
     for (const [key, prop] of Object.entries(node.componentProperties) as Array<[string, any]>) {
       const camelKey = toCamelCase(key);
       if (prop.type === "BOOLEAN") {
-        attrs.push(t.jsxAttribute(
-          t.jsxIdentifier(camelKey),
-          t.jsxExpressionContainer(t.booleanLiteral(prop.value)),
-        ));
+        attrs.push(t.jsxAttribute(t.jsxIdentifier(camelKey), t.jsxExpressionContainer(t.booleanLiteral(prop.value))));
       } else if (prop.type === "TEXT") {
         attrs.push(t.jsxAttribute(t.jsxIdentifier(camelKey), t.stringLiteral(escapeJsx(String(prop.value)))));
       } else if (prop.type === "VARIANT") {
@@ -561,10 +557,9 @@ function buildComponentAstAttrs(node: FigmaNodeData): t.JSXAttribute[] {
       }
     }
     if (Object.keys(nameMap).length > 0) {
-      attrs.push(t.jsxAttribute(
-        t.jsxIdentifier("propertyNameMap"),
-        t.jsxExpressionContainer(buildObjectExpr(nameMap)),
-      ));
+      attrs.push(
+        t.jsxAttribute(t.jsxIdentifier("propertyNameMap"), t.jsxExpressionContainer(buildObjectExpr(nameMap))),
+      );
     }
   }
 
@@ -610,7 +605,8 @@ function nodeToAst(node: FigmaNodeData): t.JSXElement | null {
     attrs.push(t.jsxAttribute(t.jsxIdentifier("height"), t.stringLiteral(String(h))));
   }
 
-  const isSelfClosing = tag === "svg" ||
+  const isSelfClosing =
+    tag === "svg" ||
     (node.type !== "TEXT" && (!node.children || node.children.filter((c) => c.visible !== false).length === 0));
 
   const opening = t.jsxOpeningElement(t.jsxIdentifier(tag), attrs, isSelfClosing);

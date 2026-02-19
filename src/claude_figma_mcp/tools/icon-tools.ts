@@ -7,17 +7,16 @@ import { searchIcons, getIcon, listIcons } from "../utils/icon-search.js";
  * Pure server-side — no Figma communication required.
  */
 export function registerIconTools(server: McpServer): void {
-
   /**
    * search_icon — fuzzy search for Lucide icons by keyword.
    * Supports multi-pattern queries with "|" separator.
    */
   server.tool(
     "search_icon",
-    "Search for Lucide icons by keyword with fuzzy matching. Use | for multi-pattern search (e.g. \"arrow|chevron\"). Supports aliases like \"notification\" → bell, \"hamburger\" → menu.",
+    'Search for Lucide icons by keyword with fuzzy matching. Use | for multi-pattern search (e.g. "arrow|chevron"). Supports aliases like "notification" → bell, "hamburger" → menu.',
     {
-      query: z.string().describe("Search query. Use | for multiple patterns (e.g. \"arrow|chevron\")"),
-      limit: z.number().min(1).max(20).optional().describe("Max results to return (default 5, max 20)")
+      query: z.string().describe('Search query. Use | for multiple patterns (e.g. "arrow|chevron")'),
+      limit: z.number().min(1).max(20).optional().describe("Max results to return (default 5, max 20)"),
     },
     async ({ query, limit }) => {
       try {
@@ -34,21 +33,21 @@ export function registerIconTools(server: McpServer): void {
           content: [
             {
               type: "text" as const,
-              text: parts.join("\n")
-            }
-          ]
+              text: parts.join("\n"),
+            },
+          ],
         };
       } catch (error) {
         return {
           content: [
             {
               type: "text" as const,
-              text: `Error searching icons: ${error instanceof Error ? error.message : String(error)}`
-            }
-          ]
+              text: `Error searching icons: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
         };
       }
-    }
+    },
   );
 
   /**
@@ -59,7 +58,7 @@ export function registerIconTools(server: McpServer): void {
     "get_icon",
     "Get a Lucide icon SVG by exact name. Returns the SVG markup directly. If not found, suggests similar icons.",
     {
-      name: z.string().describe("Exact icon name (e.g. \"arrow-left\", \"bell\", \"check\")")
+      name: z.string().describe('Exact icon name (e.g. "arrow-left", "bell", "check")'),
     },
     async ({ name }) => {
       try {
@@ -70,9 +69,9 @@ export function registerIconTools(server: McpServer): void {
             content: [
               {
                 type: "text" as const,
-                text: JSON.stringify({ name: result.name, svg: result.svg }, null, 2)
-              }
-            ]
+                text: JSON.stringify({ name: result.name, svg: result.svg }, null, 2),
+              },
+            ],
           };
         }
 
@@ -82,24 +81,28 @@ export function registerIconTools(server: McpServer): void {
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify({
-                error: `Icon "${name}" not found`,
-                suggestions: suggestions.map(({ name, matchType }) => ({ name, matchType }))
-              }, null, 2)
-            }
-          ]
+              text: JSON.stringify(
+                {
+                  error: `Icon "${name}" not found`,
+                  suggestions: suggestions.map(({ name, matchType }) => ({ name, matchType })),
+                },
+                null,
+                2,
+              ),
+            },
+          ],
         };
       } catch (error) {
         return {
           content: [
             {
               type: "text" as const,
-              text: `Error getting icon: ${error instanceof Error ? error.message : String(error)}`
-            }
-          ]
+              text: `Error getting icon: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
         };
       }
-    }
+    },
   );
 
   /**
@@ -110,9 +113,9 @@ export function registerIconTools(server: McpServer): void {
     "list_icons",
     "List available Lucide icon names with optional prefix filter and pagination. Returns names only (use get_icon to fetch SVG).",
     {
-      prefix: z.string().optional().describe("Filter icons by name prefix (e.g. \"arrow\", \"circle\")"),
+      prefix: z.string().optional().describe('Filter icons by name prefix (e.g. "arrow", "circle")'),
       offset: z.number().min(0).optional().describe("Start index for pagination (default 0)"),
-      limit: z.number().min(1).max(200).optional().describe("Max results per page (default 50, max 200)")
+      limit: z.number().min(1).max(200).optional().describe("Max results per page (default 50, max 200)"),
     },
     async ({ prefix, offset, limit }) => {
       try {
@@ -127,26 +130,26 @@ export function registerIconTools(server: McpServer): void {
         const lines = [
           `Icons ${r.offset + 1}-${end} of ${r.total}${prefix ? ` (prefix: "${prefix}")` : ""}`,
           "",
-          r.names.join(", ")
+          r.names.join(", "),
         ];
         return {
           content: [
             {
               type: "text" as const,
-              text: lines.join("\n")
-            }
-          ]
+              text: lines.join("\n"),
+            },
+          ],
         };
       } catch (error) {
         return {
           content: [
             {
               type: "text" as const,
-              text: `Error listing icons: ${error instanceof Error ? error.message : String(error)}`
-            }
-          ]
+              text: `Error listing icons: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
         };
       }
-    }
+    },
   );
 }

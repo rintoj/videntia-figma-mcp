@@ -31,25 +31,25 @@ async function main() {
     const server = new McpServer(SERVER_CONFIG, {
       instructions: SERVER_INSTRUCTIONS,
     });
-    
+
     // Register all tools with the server
     registerTools(server);
-    
+
     // Register all prompts with the server
     registerPrompts(server);
-    
+
     // Try to connect to Figma socket server
     try {
       connectToFigma();
     } catch (error) {
       logger.warn(`Could not connect to Figma initially: ${error instanceof Error ? error.message : String(error)}`);
-      logger.warn('Will try to connect when the first command is sent');
+      logger.warn("Will try to connect when the first command is sent");
     }
 
     // Start the MCP server with stdio transport
     const transport = new StdioServerTransport();
     await server.connect(transport);
-    logger.info('FigmaMCP server running on stdio');
+    logger.info("FigmaMCP server running on stdio");
   } catch (error) {
     logger.error(`Error starting FigmaMCP server: ${error instanceof Error ? error.message : String(error)}`);
     process.exit(1);
@@ -57,8 +57,7 @@ async function main() {
 }
 
 // Run the server
-main().catch(error => {
+main().catch((error) => {
   logger.error(`Error starting FigmaMCP server: ${error instanceof Error ? error.message : String(error)}`);
   process.exit(1);
 });
-

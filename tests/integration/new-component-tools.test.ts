@@ -1,9 +1,9 @@
-import { z } from 'zod';
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { registerComponentTools } from '../../src/claude_figma_mcp/tools/component-tools';
+import { z } from "zod";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { registerComponentTools } from "../../src/claude_figma_mcp/tools/component-tools";
 
-jest.mock('../../src/claude_figma_mcp/utils/websocket', () => ({
-  sendCommandToFigma: jest.fn()
+jest.mock("../../src/claude_figma_mcp/utils/websocket", () => ({
+  sendCommandToFigma: jest.fn(),
 }));
 
 describe("new component tools integration", () => {
@@ -13,19 +13,16 @@ describe("new component tools integration", () => {
   let toolSchemas: Map<string, z.ZodObject<any>>;
 
   beforeEach(() => {
-    server = new McpServer(
-      { name: 'test-server', version: '1.0.0' },
-      { capabilities: { tools: {} } }
-    );
+    server = new McpServer({ name: "test-server", version: "1.0.0" }, { capabilities: { tools: {} } });
 
-    mockSendCommand = require('../../src/claude_figma_mcp/utils/websocket').sendCommandToFigma;
+    mockSendCommand = require("../../src/claude_figma_mcp/utils/websocket").sendCommandToFigma;
     mockSendCommand.mockClear();
 
     toolHandlers = new Map();
     toolSchemas = new Map();
 
     const originalTool = server.tool.bind(server);
-    jest.spyOn(server, 'tool').mockImplementation((...args: any[]) => {
+    jest.spyOn(server, "tool").mockImplementation((...args: any[]) => {
       if (args.length === 4) {
         const [name, description, schema, handler] = args;
         toolHandlers.set(name, handler);
@@ -52,19 +49,19 @@ describe("new component tools integration", () => {
       mockSendCommand.mockResolvedValue({
         reactions: [
           { nodeId: "btn-1", action: "NAVIGATE", destination: "frame-2" },
-          { nodeId: "btn-2", action: "NAVIGATE", destination: "frame-3" }
-        ]
+          { nodeId: "btn-2", action: "NAVIGATE", destination: "frame-3" },
+        ],
       });
     });
 
     it("successfully gets reactions from multiple nodes", async () => {
       const response = await callTool("get_reactions", {
-        nodeIds: ["btn-1", "btn-2"]
+        nodeIds: ["btn-1", "btn-2"],
       });
 
       expect(mockSendCommand).toHaveBeenCalledTimes(1);
       expect(mockSendCommand).toHaveBeenCalledWith("get_reactions", {
-        nodeIds: ["btn-1", "btn-2"]
+        nodeIds: ["btn-1", "btn-2"],
       });
       expect(response.content[0].text).toContain("reaction(s)");
       expect(response.content[0].text).toContain("reaction_to_connector_strategy");
@@ -78,7 +75,7 @@ describe("new component tools integration", () => {
     it("coerces string nodeIds into an array", async () => {
       mockSendCommand.mockResolvedValue({ reactions: [] });
       const response = await callTool("get_reactions", {
-        nodeIds: "btn-1"
+        nodeIds: "btn-1",
       });
       expect(mockSendCommand).toHaveBeenCalledWith("get_reactions", { nodeIds: ["btn-1"] });
     });
@@ -87,7 +84,7 @@ describe("new component tools integration", () => {
       mockSendCommand.mockRejectedValue(new Error("Nodes not found"));
 
       const response = await callTool("get_reactions", {
-        nodeIds: ["invalid-1"]
+        nodeIds: ["invalid-1"],
       });
 
       expect(response.content[0].text).toContain("Error getting reactions");
@@ -99,18 +96,18 @@ describe("new component tools integration", () => {
     beforeEach(() => {
       mockSendCommand.mockResolvedValue({
         success: true,
-        connectorId: "connector-123"
+        connectorId: "connector-123",
       });
     });
 
     it("successfully sets default connector with ID", async () => {
       const response = await callTool("set_default_connector", {
-        connectorId: "connector-123"
+        connectorId: "connector-123",
       });
 
       expect(mockSendCommand).toHaveBeenCalledTimes(1);
       expect(mockSendCommand).toHaveBeenCalledWith("set_default_connector", {
-        connectorId: "connector-123"
+        connectorId: "connector-123",
       });
       expect(response.content[0].text).toContain("Default connector set");
     });
@@ -119,7 +116,7 @@ describe("new component tools integration", () => {
       const response = await callTool("set_default_connector", {});
 
       expect(mockSendCommand).toHaveBeenCalledWith("set_default_connector", {
-        connectorId: undefined
+        connectorId: undefined,
       });
     });
 
@@ -127,7 +124,7 @@ describe("new component tools integration", () => {
       mockSendCommand.mockRejectedValue(new Error("Invalid connector"));
 
       const response = await callTool("set_default_connector", {
-        connectorId: "invalid-123"
+        connectorId: "invalid-123",
       });
 
       expect(response.content[0].text).toContain("Error setting default connector");
@@ -139,7 +136,7 @@ describe("new component tools integration", () => {
     beforeEach(() => {
       mockSendCommand.mockResolvedValue({
         success: true,
-        connectionsCreated: 2
+        connectionsCreated: 2,
       });
     });
 
@@ -147,23 +144,23 @@ describe("new component tools integration", () => {
       const response = await callTool("create_connections", {
         connections: [
           { startNodeId: "frame-1", endNodeId: "frame-2" },
-          { startNodeId: "frame-2", endNodeId: "frame-3", text: "Next" }
-        ]
+          { startNodeId: "frame-2", endNodeId: "frame-3", text: "Next" },
+        ],
       });
 
       expect(mockSendCommand).toHaveBeenCalledTimes(1);
       expect(mockSendCommand).toHaveBeenCalledWith("create_connections", {
         connections: [
           { startNodeId: "frame-1", endNodeId: "frame-2" },
-          { startNodeId: "frame-2", endNodeId: "frame-3", text: "Next" }
-        ]
+          { startNodeId: "frame-2", endNodeId: "frame-3", text: "Next" },
+        ],
       });
       expect(response.content[0].text).toContain("Created 2 connections");
     });
 
     it("returns early if no connections provided", async () => {
       const response = await callTool("create_connections", {
-        connections: []
+        connections: [],
       });
 
       expect(mockSendCommand).not.toHaveBeenCalled();
@@ -176,9 +173,11 @@ describe("new component tools integration", () => {
     });
 
     it("requires startNodeId and endNodeId for each connection", async () => {
-      await expect(callTool("create_connections", {
-        connections: [{ startNodeId: "frame-1" }]
-      })).rejects.toThrow();
+      await expect(
+        callTool("create_connections", {
+          connections: [{ startNodeId: "frame-1" }],
+        }),
+      ).rejects.toThrow();
       expect(mockSendCommand).not.toHaveBeenCalled();
     });
 
@@ -186,9 +185,7 @@ describe("new component tools integration", () => {
       mockSendCommand.mockRejectedValue(new Error("Connection failed"));
 
       const response = await callTool("create_connections", {
-        connections: [
-          { startNodeId: "frame-1", endNodeId: "frame-2" }
-        ]
+        connections: [{ startNodeId: "frame-1", endNodeId: "frame-2" }],
       });
 
       expect(response.content[0].text).toContain("Error creating connections");
@@ -200,18 +197,18 @@ describe("new component tools integration", () => {
     beforeEach(() => {
       mockSendCommand.mockResolvedValue({
         success: true,
-        message: "Found 5 overrides"
+        message: "Found 5 overrides",
       });
     });
 
     it("successfully gets instance overrides with nodeId", async () => {
       const response = await callTool("get_instance_overrides", {
-        nodeId: "instance-123"
+        nodeId: "instance-123",
       });
 
       expect(mockSendCommand).toHaveBeenCalledTimes(1);
       expect(mockSendCommand).toHaveBeenCalledWith("get_instance_overrides", {
-        instanceNodeId: "instance-123"
+        instanceNodeId: "instance-123",
       });
       expect(response.content[0].text).toContain("Successfully got instance overrides");
       expect(response.content[0].text).toContain("Found 5 overrides");
@@ -221,14 +218,14 @@ describe("new component tools integration", () => {
       const response = await callTool("get_instance_overrides", {});
 
       expect(mockSendCommand).toHaveBeenCalledWith("get_instance_overrides", {
-        instanceNodeId: null
+        instanceNodeId: null,
       });
     });
 
     it("reports failure when success is false", async () => {
       mockSendCommand.mockResolvedValue({
         success: false,
-        message: "No instance selected"
+        message: "No instance selected",
       });
 
       const response = await callTool("get_instance_overrides", {});
@@ -241,7 +238,7 @@ describe("new component tools integration", () => {
       mockSendCommand.mockRejectedValue(new Error("Instance not found"));
 
       const response = await callTool("get_instance_overrides", {
-        nodeId: "invalid-123"
+        nodeId: "invalid-123",
       });
 
       expect(response.content[0].text).toContain("Error getting instance overrides");
@@ -255,24 +252,20 @@ describe("new component tools integration", () => {
         success: true,
         message: "Overrides applied",
         totalCount: 5,
-        results: [
-          { success: true },
-          { success: true },
-          { success: true }
-        ]
+        results: [{ success: true }, { success: true }, { success: true }],
       });
     });
 
     it("successfully sets instance overrides", async () => {
       const response = await callTool("set_instance_overrides", {
         sourceInstanceId: "source-123",
-        targetNodeIds: ["target-1", "target-2", "target-3"]
+        targetNodeIds: ["target-1", "target-2", "target-3"],
       });
 
       expect(mockSendCommand).toHaveBeenCalledTimes(1);
       expect(mockSendCommand).toHaveBeenCalledWith("set_instance_overrides", {
         sourceInstanceId: "source-123",
-        targetNodeIds: ["target-1", "target-2", "target-3"]
+        targetNodeIds: ["target-1", "target-2", "target-3"],
       });
       expect(response.content[0].text).toContain("Successfully applied 5 overrides to 3 instances");
     });
@@ -280,12 +273,12 @@ describe("new component tools integration", () => {
     it("reports failure when success is false", async () => {
       mockSendCommand.mockResolvedValue({
         success: false,
-        message: "Source instance not found"
+        message: "Source instance not found",
       });
 
       const response = await callTool("set_instance_overrides", {
         sourceInstanceId: "invalid-source",
-        targetNodeIds: ["target-1"]
+        targetNodeIds: ["target-1"],
       });
 
       expect(response.content[0].text).toContain("Failed to set instance overrides");
@@ -293,16 +286,20 @@ describe("new component tools integration", () => {
     });
 
     it("requires sourceInstanceId parameter", async () => {
-      await expect(callTool("set_instance_overrides", {
-        targetNodeIds: ["target-1"]
-      })).rejects.toThrow();
+      await expect(
+        callTool("set_instance_overrides", {
+          targetNodeIds: ["target-1"],
+        }),
+      ).rejects.toThrow();
       expect(mockSendCommand).not.toHaveBeenCalled();
     });
 
     it("requires targetNodeIds parameter", async () => {
-      await expect(callTool("set_instance_overrides", {
-        sourceInstanceId: "source-123"
-      })).rejects.toThrow();
+      await expect(
+        callTool("set_instance_overrides", {
+          sourceInstanceId: "source-123",
+        }),
+      ).rejects.toThrow();
       expect(mockSendCommand).not.toHaveBeenCalled();
     });
 
@@ -310,9 +307,12 @@ describe("new component tools integration", () => {
       mockSendCommand.mockResolvedValue({ success: true, message: "OK", totalCount: 1, results: [{ success: true }] });
       const response = await callTool("set_instance_overrides", {
         sourceInstanceId: "source-123",
-        targetNodeIds: "target-1"
+        targetNodeIds: "target-1",
       });
-      expect(mockSendCommand).toHaveBeenCalledWith("set_instance_overrides", { sourceInstanceId: "source-123", targetNodeIds: ["target-1"] });
+      expect(mockSendCommand).toHaveBeenCalledWith("set_instance_overrides", {
+        sourceInstanceId: "source-123",
+        targetNodeIds: ["target-1"],
+      });
     });
 
     it("handles errors gracefully", async () => {
@@ -320,7 +320,7 @@ describe("new component tools integration", () => {
 
       const response = await callTool("set_instance_overrides", {
         sourceInstanceId: "source-123",
-        targetNodeIds: ["target-1"]
+        targetNodeIds: ["target-1"],
       });
 
       expect(response.content[0].text).toContain("Error setting instance overrides");
@@ -335,7 +335,7 @@ describe("new component tools integration", () => {
         nodeName: "Button",
         propertyName: "Show Icon#456:789",
         type: "BOOLEAN",
-        defaultValue: true
+        defaultValue: true,
       });
     });
 
@@ -344,7 +344,7 @@ describe("new component tools integration", () => {
         nodeId: "component-123",
         propertyName: "Show Icon",
         type: "BOOLEAN",
-        defaultValue: true
+        defaultValue: true,
       });
 
       expect(mockSendCommand).toHaveBeenCalledTimes(1);
@@ -352,7 +352,7 @@ describe("new component tools integration", () => {
         nodeId: "component-123",
         propertyName: "Show Icon",
         type: "BOOLEAN",
-        defaultValue: true
+        defaultValue: true,
       });
       expect(response.content[0].text).toContain("Added BOOLEAN property");
       expect(response.content[0].text).toContain("Show Icon#456:789");
@@ -364,47 +364,53 @@ describe("new component tools integration", () => {
         nodeName: "Button",
         propertyName: "Label#456:789",
         type: "TEXT",
-        defaultValue: "Click me"
+        defaultValue: "Click me",
       });
 
       const response = await callTool("add_component_property", {
         nodeId: "component-123",
         propertyName: "Label",
         type: "TEXT",
-        defaultValue: "Click me"
+        defaultValue: "Click me",
       });
 
       expect(mockSendCommand).toHaveBeenCalledWith("add_component_property", {
         nodeId: "component-123",
         propertyName: "Label",
         type: "TEXT",
-        defaultValue: "Click me"
+        defaultValue: "Click me",
       });
       expect(response.content[0].text).toContain("Added TEXT property");
     });
 
     it("requires nodeId parameter", async () => {
-      await expect(callTool("add_component_property", {
-        propertyName: "Show Icon",
-        type: "BOOLEAN"
-      })).rejects.toThrow();
+      await expect(
+        callTool("add_component_property", {
+          propertyName: "Show Icon",
+          type: "BOOLEAN",
+        }),
+      ).rejects.toThrow();
       expect(mockSendCommand).not.toHaveBeenCalled();
     });
 
     it("requires propertyName parameter", async () => {
-      await expect(callTool("add_component_property", {
-        nodeId: "component-123",
-        type: "BOOLEAN"
-      })).rejects.toThrow();
+      await expect(
+        callTool("add_component_property", {
+          nodeId: "component-123",
+          type: "BOOLEAN",
+        }),
+      ).rejects.toThrow();
       expect(mockSendCommand).not.toHaveBeenCalled();
     });
 
     it("requires valid type parameter", async () => {
-      await expect(callTool("add_component_property", {
-        nodeId: "component-123",
-        propertyName: "Show Icon",
-        type: "INVALID"
-      })).rejects.toThrow();
+      await expect(
+        callTool("add_component_property", {
+          nodeId: "component-123",
+          propertyName: "Show Icon",
+          type: "INVALID",
+        }),
+      ).rejects.toThrow();
       expect(mockSendCommand).not.toHaveBeenCalled();
     });
 
@@ -414,7 +420,7 @@ describe("new component tools integration", () => {
       const response = await callTool("add_component_property", {
         nodeId: "frame-123",
         propertyName: "Show Icon",
-        type: "BOOLEAN"
+        type: "BOOLEAN",
       });
 
       expect(response.content[0].text).toContain("Error adding component property");
@@ -429,7 +435,7 @@ describe("new component tools integration", () => {
         nodeName: "Button",
         oldPropertyName: "Show Icon#456:789",
         newPropertyName: "Display Icon#456:789",
-        updates: { name: "Display Icon" }
+        updates: { name: "Display Icon" },
       });
     });
 
@@ -437,7 +443,7 @@ describe("new component tools integration", () => {
       const response = await callTool("edit_component_property", {
         nodeId: "component-123",
         propertyName: "Show Icon#456:789",
-        newName: "Display Icon"
+        newName: "Display Icon",
       });
 
       expect(mockSendCommand).toHaveBeenCalledTimes(1);
@@ -446,7 +452,7 @@ describe("new component tools integration", () => {
         propertyName: "Show Icon#456:789",
         newName: "Display Icon",
         newDefaultValue: undefined,
-        preferredValues: undefined
+        preferredValues: undefined,
       });
       expect(response.content[0].text).toContain("Updated property");
     });
@@ -457,13 +463,13 @@ describe("new component tools integration", () => {
         nodeName: "Button",
         oldPropertyName: "Show Icon#456:789",
         newPropertyName: "Show Icon#456:789",
-        updates: { defaultValue: false }
+        updates: { defaultValue: false },
       });
 
       const response = await callTool("edit_component_property", {
         nodeId: "component-123",
         propertyName: "Show Icon#456:789",
-        newDefaultValue: false
+        newDefaultValue: false,
       });
 
       expect(mockSendCommand).toHaveBeenCalledWith("edit_component_property", {
@@ -471,23 +477,27 @@ describe("new component tools integration", () => {
         propertyName: "Show Icon#456:789",
         newName: undefined,
         newDefaultValue: false,
-        preferredValues: undefined
+        preferredValues: undefined,
       });
     });
 
     it("requires nodeId parameter", async () => {
-      await expect(callTool("edit_component_property", {
-        propertyName: "Show Icon#456:789",
-        newName: "Display Icon"
-      })).rejects.toThrow();
+      await expect(
+        callTool("edit_component_property", {
+          propertyName: "Show Icon#456:789",
+          newName: "Display Icon",
+        }),
+      ).rejects.toThrow();
       expect(mockSendCommand).not.toHaveBeenCalled();
     });
 
     it("requires propertyName parameter", async () => {
-      await expect(callTool("edit_component_property", {
-        nodeId: "component-123",
-        newName: "Display Icon"
-      })).rejects.toThrow();
+      await expect(
+        callTool("edit_component_property", {
+          nodeId: "component-123",
+          newName: "Display Icon",
+        }),
+      ).rejects.toThrow();
       expect(mockSendCommand).not.toHaveBeenCalled();
     });
 
@@ -497,7 +507,7 @@ describe("new component tools integration", () => {
       const response = await callTool("edit_component_property", {
         nodeId: "component-123",
         propertyName: "Invalid#000:000",
-        newName: "New Name"
+        newName: "New Name",
       });
 
       expect(response.content[0].text).toContain("Error editing component property");
@@ -510,36 +520,40 @@ describe("new component tools integration", () => {
       mockSendCommand.mockResolvedValue({
         nodeId: "component-123",
         nodeName: "Button",
-        deletedPropertyName: "Show Icon#456:789"
+        deletedPropertyName: "Show Icon#456:789",
       });
     });
 
     it("successfully deletes a component property", async () => {
       const response = await callTool("delete_component_property", {
         nodeId: "component-123",
-        propertyName: "Show Icon#456:789"
+        propertyName: "Show Icon#456:789",
       });
 
       expect(mockSendCommand).toHaveBeenCalledTimes(1);
       expect(mockSendCommand).toHaveBeenCalledWith("delete_component_property", {
         nodeId: "component-123",
-        propertyName: "Show Icon#456:789"
+        propertyName: "Show Icon#456:789",
       });
       expect(response.content[0].text).toContain("Deleted property");
       expect(response.content[0].text).toContain("Show Icon#456:789");
     });
 
     it("requires nodeId parameter", async () => {
-      await expect(callTool("delete_component_property", {
-        propertyName: "Show Icon#456:789"
-      })).rejects.toThrow();
+      await expect(
+        callTool("delete_component_property", {
+          propertyName: "Show Icon#456:789",
+        }),
+      ).rejects.toThrow();
       expect(mockSendCommand).not.toHaveBeenCalled();
     });
 
     it("requires propertyName parameter", async () => {
-      await expect(callTool("delete_component_property", {
-        nodeId: "component-123"
-      })).rejects.toThrow();
+      await expect(
+        callTool("delete_component_property", {
+          nodeId: "component-123",
+        }),
+      ).rejects.toThrow();
       expect(mockSendCommand).not.toHaveBeenCalled();
     });
 
@@ -548,7 +562,7 @@ describe("new component tools integration", () => {
 
       const response = await callTool("delete_component_property", {
         nodeId: "component-123",
-        propertyName: "Variant#456:789"
+        propertyName: "Variant#456:789",
       });
 
       expect(response.content[0].text).toContain("Error deleting component property");
@@ -561,20 +575,20 @@ describe("new component tools integration", () => {
       mockSendCommand.mockResolvedValue({
         nodeId: "icon-layer-123",
         nodeName: "Icon",
-        references: { visible: "Show Icon#456:789" }
+        references: { visible: "Show Icon#456:789" },
       });
     });
 
     it("successfully sets visibility reference", async () => {
       const response = await callTool("set_component_property_references", {
         nodeId: "icon-layer-123",
-        references: { visible: "Show Icon#456:789" }
+        references: { visible: "Show Icon#456:789" },
       });
 
       expect(mockSendCommand).toHaveBeenCalledTimes(1);
       expect(mockSendCommand).toHaveBeenCalledWith("set_component_property_references", {
         nodeId: "icon-layer-123",
-        references: { visible: "Show Icon#456:789" }
+        references: { visible: "Show Icon#456:789" },
       });
       expect(response.content[0].text).toContain("Set property references");
       expect(response.content[0].text).toContain("visible");
@@ -584,32 +598,36 @@ describe("new component tools integration", () => {
       mockSendCommand.mockResolvedValue({
         nodeId: "text-layer-123",
         nodeName: "Label",
-        references: { characters: "Label Text#456:789" }
+        references: { characters: "Label Text#456:789" },
       });
 
       const response = await callTool("set_component_property_references", {
         nodeId: "text-layer-123",
-        references: { characters: "Label Text#456:789" }
+        references: { characters: "Label Text#456:789" },
       });
 
       expect(mockSendCommand).toHaveBeenCalledWith("set_component_property_references", {
         nodeId: "text-layer-123",
-        references: { characters: "Label Text#456:789" }
+        references: { characters: "Label Text#456:789" },
       });
       expect(response.content[0].text).toContain("characters");
     });
 
     it("requires nodeId parameter", async () => {
-      await expect(callTool("set_component_property_references", {
-        references: { visible: "Show Icon#456:789" }
-      })).rejects.toThrow();
+      await expect(
+        callTool("set_component_property_references", {
+          references: { visible: "Show Icon#456:789" },
+        }),
+      ).rejects.toThrow();
       expect(mockSendCommand).not.toHaveBeenCalled();
     });
 
     it("requires references parameter", async () => {
-      await expect(callTool("set_component_property_references", {
-        nodeId: "icon-layer-123"
-      })).rejects.toThrow();
+      await expect(
+        callTool("set_component_property_references", {
+          nodeId: "icon-layer-123",
+        }),
+      ).rejects.toThrow();
       expect(mockSendCommand).not.toHaveBeenCalled();
     });
 
@@ -618,7 +636,7 @@ describe("new component tools integration", () => {
 
       const response = await callTool("set_component_property_references", {
         nodeId: "frame-123",
-        references: { visible: "Show Icon#456:789" }
+        references: { visible: "Show Icon#456:789" },
       });
 
       expect(response.content[0].text).toContain("Error setting component property references");
@@ -634,19 +652,19 @@ describe("new component tools integration", () => {
         nodeType: "COMPONENT",
         properties: {
           "Show Icon#456:789": { type: "BOOLEAN", defaultValue: true },
-          "Label#456:790": { type: "TEXT", defaultValue: "Click me" }
-        }
+          "Label#456:790": { type: "TEXT", defaultValue: "Click me" },
+        },
       });
     });
 
     it("successfully gets component properties", async () => {
       const response = await callTool("get_component_properties", {
-        nodeId: "component-123"
+        nodeId: "component-123",
       });
 
       expect(mockSendCommand).toHaveBeenCalledTimes(1);
       expect(mockSendCommand).toHaveBeenCalledWith("get_component_properties", {
-        nodeId: "component-123"
+        nodeId: "component-123",
       });
       expect(response.content[0].text).toContain("Button");
       expect(response.content[0].text).toContain("BOOLEAN");
@@ -662,7 +680,7 @@ describe("new component tools integration", () => {
       mockSendCommand.mockRejectedValue(new Error("Node is not a component"));
 
       const response = await callTool("get_component_properties", {
-        nodeId: "frame-123"
+        nodeId: "frame-123",
       });
 
       expect(response.content[0].text).toContain("Error getting component properties");

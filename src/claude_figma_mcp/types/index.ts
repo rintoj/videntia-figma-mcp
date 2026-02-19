@@ -7,10 +7,10 @@ export interface FigmaResponse {
 
 // Define interface for command progress updates
 export interface CommandProgressUpdate {
-  type: 'command_progress';
+  type: "command_progress";
   commandId: string;
   commandType: string;
-  status: 'started' | 'in_progress' | 'completed' | 'error';
+  status: "started" | "in_progress" | "completed" | "error";
   progress: number;
   totalItems: number;
   processedItems: number;
@@ -327,4 +327,288 @@ export interface FigmaNodeData {
 export interface ReadMyDesignResult {
   selectionCount: number;
   selection: FigmaNodeData[];
+}
+
+// ── Result interfaces for sendCommandToFigma<T> typed calls ──
+
+// Document tools
+export interface DocumentInfoResult {
+  name?: string;
+  currentPage?: string;
+  pages?: Array<{ id: string; name: string; childCount?: number }>;
+  selection?: Array<{ id: string; name: string; type: string }>;
+}
+
+export interface AnnotationsResult {
+  annotations?: Array<{ id?: string; label?: string; description?: string; [key: string]: unknown }>;
+  [key: string]: unknown;
+}
+
+export interface SetAnnotationResult {
+  success?: boolean;
+  nodeId?: string;
+  label?: string;
+  [key: string]: unknown;
+}
+
+export interface AnnotationCategoriesResult {
+  categories?: Array<{ id?: string; name?: string; color?: string; [key: string]: unknown }>;
+  [key: string]: unknown;
+}
+
+export interface CreateAnnotationCategoryResult {
+  id?: string;
+  name?: string;
+  color?: string;
+  [key: string]: unknown;
+}
+
+export interface UpdateAnnotationCategoryResult {
+  id?: string;
+  name?: string;
+  color?: string;
+  [key: string]: unknown;
+}
+
+export interface StylesResult {
+  styles?: Array<{ id?: string; name?: string; type?: string; [key: string]: unknown }>;
+  [key: string]: unknown;
+}
+
+export interface RemoteComponentsResult {
+  components?: Array<{ key?: string; name?: string; description?: string; [key: string]: unknown }>;
+  [key: string]: unknown;
+}
+
+export interface BoundVariablesResult {
+  nodeId?: string;
+  nodeName?: string;
+  bindings?: VariableBinding[];
+  [key: string]: unknown;
+}
+
+// Variable tools
+export interface CreateVariableCollectionResult {
+  collectionId?: string;
+  id?: string;
+  name?: string;
+  defaultMode?: string;
+}
+
+export interface GetCollectionInfoResult {
+  id?: string;
+  name?: string;
+  modes?: Array<{ modeId: string; name: string }>;
+  variableIds?: string[];
+  variableCount?: number;
+  [key: string]: unknown;
+}
+
+export interface RenameVariableCollectionResult {
+  success?: boolean;
+  collectionId?: string;
+  newName?: string;
+}
+
+export interface DeleteVariableCollectionResult {
+  success?: boolean;
+  collectionId?: string;
+}
+
+export interface CreateVariableResult {
+  id?: string;
+  name?: string;
+  type?: string;
+  collectionId?: string;
+}
+
+export interface CreateVariablesBatchResult {
+  created?: number;
+  variables?: Array<{ id?: string; name?: string; type?: string }>;
+  errors?: Array<{ name?: string; error?: string }>;
+}
+
+export interface UpdateVariableValueResult {
+  success?: boolean;
+  variableId?: string;
+  modeId?: string;
+}
+
+export interface RenameVariableResult {
+  success?: boolean;
+  variableId?: string;
+  newName?: string;
+}
+
+export interface DeleteVariableResult {
+  success?: boolean;
+  variableId?: string;
+}
+
+export interface DeleteVariablesBatchResult {
+  deleted?: number;
+  errors?: Array<{ id?: string; error?: string }>;
+}
+
+export interface AuditCollectionResult {
+  collectionName?: string;
+  totalVariables?: number;
+  missing?: string[];
+  extra?: string[];
+  typeMismatches?: Array<{ name?: string; expected?: string; actual?: string }>;
+  compliant?: boolean;
+  [key: string]: unknown;
+}
+
+export interface ValidateColorContrastResult {
+  pairs?: Array<{
+    foreground?: string;
+    background?: string;
+    ratio?: number;
+    aa?: boolean;
+    aaa?: boolean;
+    [key: string]: unknown;
+  }>;
+  [key: string]: unknown;
+}
+
+export interface SuggestMissingVariablesResult {
+  suggestions?: Array<{ name?: string; type?: string; description?: string }>;
+  [key: string]: unknown;
+}
+
+export interface ApplyDefaultThemeResult {
+  created?: number;
+  skipped?: number;
+  errors?: Array<{ name?: string; error?: string }>;
+  collectionId?: string;
+  [key: string]: unknown;
+}
+
+export interface CreateColorScaleSetResult {
+  created?: number;
+  variables?: Array<{ name?: string; id?: string }>;
+  [key: string]: unknown;
+}
+
+export interface ReorderVariablesResult {
+  success?: boolean;
+  reordered?: number;
+  [key: string]: unknown;
+}
+
+export interface GenerateAuditReportResult {
+  report?: string;
+  [key: string]: unknown;
+}
+
+export interface ExportCollectionSchemaResult {
+  schema?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+export interface ImportCollectionSchemaResult {
+  created?: number;
+  updated?: number;
+  skipped?: number;
+  errors?: Array<{ name?: string; error?: string }>;
+  [key: string]: unknown;
+}
+
+export interface CreateAllScalesResult {
+  created?: number;
+  totalVariables?: number;
+  scales?: Array<{ color?: string; count?: number }>;
+  [key: string]: unknown;
+}
+
+export interface FixCollectionToStandardResult {
+  added?: number;
+  removed?: number;
+  fixed?: number;
+  [key: string]: unknown;
+}
+
+export interface AddChartColorsResult {
+  created?: number;
+  colors?: Array<{ name?: string; id?: string }>;
+  [key: string]: unknown;
+}
+
+export interface AddModeResult {
+  success?: boolean;
+  modeId?: string;
+  modeName?: string;
+  collectionId?: string;
+  [key: string]: unknown;
+}
+
+export interface RenameModeResult {
+  success?: boolean;
+  modeId?: string;
+  newName?: string;
+  [key: string]: unknown;
+}
+
+export interface DeleteModeResult {
+  success?: boolean;
+  modeId?: string;
+  [key: string]: unknown;
+}
+
+export interface DuplicateModeValuesResult {
+  success?: boolean;
+  copied?: number;
+  [key: string]: unknown;
+}
+
+export interface DesignSystemSubResult {
+  collectionId?: string;
+  created?: number;
+  primitiveCount?: number;
+  totalVariables?: number;
+  [key: string]: unknown;
+}
+
+export interface DesignSystemCollectionResult {
+  collectionId?: string;
+  created?: number;
+  [key: string]: unknown;
+}
+
+// Component tools
+export interface CreateComponentInstanceResult {
+  id?: string;
+  name?: string;
+  componentKey?: string;
+  [key: string]: unknown;
+}
+
+export interface GetReactionsResult {
+  reactions?: Array<{ trigger?: string; action?: string; [key: string]: unknown }>;
+  [key: string]: unknown;
+}
+
+export interface GetComponentPropertiesResult {
+  properties?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+// Modification tools
+export interface DeleteMultipleNodesResult {
+  deleted?: number;
+  errors?: Array<{ id?: string; error?: string }>;
+  [key: string]: unknown;
+}
+
+export interface CreateEffectStyleResult {
+  id?: string;
+  name?: string;
+  [key: string]: unknown;
+}
+
+export interface UpdateEffectStyleResult {
+  success?: boolean;
+  id?: string;
+  [key: string]: unknown;
 }

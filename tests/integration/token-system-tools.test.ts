@@ -1,9 +1,9 @@
-import { z } from 'zod';
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { registerVariableTools } from '../../src/claude_figma_mcp/tools/variable-tools';
+import { z } from "zod";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { registerVariableTools } from "../../src/claude_figma_mcp/tools/variable-tools";
 
-jest.mock('../../src/claude_figma_mcp/utils/websocket', () => ({
-  sendCommandToFigma: jest.fn()
+jest.mock("../../src/claude_figma_mcp/utils/websocket", () => ({
+  sendCommandToFigma: jest.fn(),
 }));
 
 describe("token system tools", () => {
@@ -13,19 +13,16 @@ describe("token system tools", () => {
   let toolSchemas: Map<string, z.ZodObject<any>>;
 
   beforeEach(() => {
-    server = new McpServer(
-      { name: 'test-server', version: '1.0.0' },
-      { capabilities: { tools: {} } }
-    );
+    server = new McpServer({ name: "test-server", version: "1.0.0" }, { capabilities: { tools: {} } });
 
-    mockSendCommand = require('../../src/claude_figma_mcp/utils/websocket').sendCommandToFigma;
+    mockSendCommand = require("../../src/claude_figma_mcp/utils/websocket").sendCommandToFigma;
     mockSendCommand.mockClear();
 
     toolHandlers = new Map();
     toolSchemas = new Map();
 
     const originalTool = server.tool.bind(server);
-    jest.spyOn(server, 'tool').mockImplementation((...args: any[]) => {
+    jest.spyOn(server, "tool").mockImplementation((...args: any[]) => {
       if (args.length === 4) {
         const [name, description, schema, handler] = args;
         toolHandlers.set(name, handler);
@@ -60,27 +57,28 @@ describe("token system tools", () => {
       mockSendCommand.mockResolvedValue({
         created: 17,
         failed: 0,
-        variableIds: ['var-1', 'var-2', 'var-3'],
-        errors: []
+        variableIds: ["var-1", "var-2", "var-3"],
+        errors: [],
       });
     });
 
     it("successfully creates 8pt spacing system", async () => {
       const response = await callTool("create_spacing_system", {
         collection_id: "Design Tokens",
-        preset: "8pt"
+        preset: "8pt",
       });
 
       expect(mockSendCommand).toHaveBeenCalledTimes(1);
-      expect(mockSendCommand).toHaveBeenCalledWith("create_variables_batch",
+      expect(mockSendCommand).toHaveBeenCalledWith(
+        "create_variables_batch",
         expect.objectContaining({
           collectionId: "Design Tokens",
           variables: expect.arrayContaining([
             expect.objectContaining({ name: "spacing/0", type: "FLOAT", value: 0 }),
             expect.objectContaining({ name: "spacing/1", type: "FLOAT", value: 4 }),
-            expect.objectContaining({ name: "spacing/2", type: "FLOAT", value: 8 })
-          ])
-        })
+            expect.objectContaining({ name: "spacing/2", type: "FLOAT", value: 8 }),
+          ]),
+        }),
       );
       expect(response.content[0].text).toContain("spacing");
       expect(response.content[0].text).toContain("8pt");
@@ -89,22 +87,21 @@ describe("token system tools", () => {
     it("successfully creates 4pt spacing system", async () => {
       const response = await callTool("create_spacing_system", {
         collection_id: "Design Tokens",
-        preset: "4pt"
+        preset: "4pt",
       });
 
-      expect(mockSendCommand).toHaveBeenCalledWith("create_variables_batch",
+      expect(mockSendCommand).toHaveBeenCalledWith(
+        "create_variables_batch",
         expect.objectContaining({
-          variables: expect.arrayContaining([
-            expect.objectContaining({ name: "spacing/5", type: "FLOAT", value: 20 })
-          ])
-        })
+          variables: expect.arrayContaining([expect.objectContaining({ name: "spacing/5", type: "FLOAT", value: 20 })]),
+        }),
       );
     });
 
     it("successfully creates Tailwind spacing system", async () => {
       await callTool("create_spacing_system", {
         collection_id: "Design Tokens",
-        preset: "tailwind"
+        preset: "tailwind",
       });
 
       expect(mockSendCommand).toHaveBeenCalled();
@@ -113,7 +110,7 @@ describe("token system tools", () => {
     it("successfully creates Material spacing system", async () => {
       await callTool("create_spacing_system", {
         collection_id: "Design Tokens",
-        preset: "material"
+        preset: "material",
       });
 
       expect(mockSendCommand).toHaveBeenCalled();
@@ -123,8 +120,8 @@ describe("token system tools", () => {
       await expect(
         callTool("create_spacing_system", {
           collection_id: "Design Tokens",
-          preset: "invalid"
-        })
+          preset: "invalid",
+        }),
       ).rejects.toThrow();
     });
   });
@@ -138,27 +135,28 @@ describe("token system tools", () => {
       mockSendCommand.mockResolvedValue({
         created: 28,
         failed: 0,
-        variableIds: Array(28).fill('var-id'),
-        errors: []
+        variableIds: Array(28).fill("var-id"),
+        errors: [],
       });
     });
 
     it("successfully creates major-third typography system", async () => {
       const response = await callTool("create_typography_system", {
         collection_id: "Design Tokens",
-        scale_preset: "major-third"
+        scale_preset: "major-third",
       });
 
       expect(mockSendCommand).toHaveBeenCalledTimes(1);
-      expect(mockSendCommand).toHaveBeenCalledWith("create_variables_batch",
+      expect(mockSendCommand).toHaveBeenCalledWith(
+        "create_variables_batch",
         expect.objectContaining({
           collectionId: "Design Tokens",
           variables: expect.arrayContaining([
             expect.objectContaining({ name: "font.size.base", type: "FLOAT", value: 16 }),
             expect.objectContaining({ name: "font.weight.normal", type: "FLOAT", value: 400 }),
-            expect.objectContaining({ name: "font.lineHeight.normal", type: "FLOAT", value: 1.5 })
-          ])
-        })
+            expect.objectContaining({ name: "font.lineHeight.normal", type: "FLOAT", value: 1.5 }),
+          ]),
+        }),
       );
       expect(response.content[0].text).toContain("font.size");
     });
@@ -166,7 +164,7 @@ describe("token system tools", () => {
     it("successfully creates minor-third typography system", async () => {
       await callTool("create_typography_system", {
         collection_id: "Design Tokens",
-        scale_preset: "minor-third"
+        scale_preset: "minor-third",
       });
 
       expect(mockSendCommand).toHaveBeenCalled();
@@ -175,7 +173,7 @@ describe("token system tools", () => {
     it("successfully creates perfect-fourth typography system", async () => {
       await callTool("create_typography_system", {
         collection_id: "Design Tokens",
-        scale_preset: "perfect-fourth"
+        scale_preset: "perfect-fourth",
       });
 
       expect(mockSendCommand).toHaveBeenCalled();
@@ -185,8 +183,8 @@ describe("token system tools", () => {
       await expect(
         callTool("create_typography_system", {
           collection_id: "Design Tokens",
-          scale_preset: "invalid"
-        })
+          scale_preset: "invalid",
+        }),
       ).rejects.toThrow();
     });
   });
@@ -200,27 +198,28 @@ describe("token system tools", () => {
       mockSendCommand.mockResolvedValue({
         created: 8,
         failed: 0,
-        variableIds: Array(8).fill('var-id'),
-        errors: []
+        variableIds: Array(8).fill("var-id"),
+        errors: [],
       });
     });
 
     it("successfully creates standard radius system", async () => {
       const response = await callTool("create_radius_system", {
         collection_id: "Design Tokens",
-        preset: "standard"
+        preset: "standard",
       });
 
       expect(mockSendCommand).toHaveBeenCalledTimes(1);
-      expect(mockSendCommand).toHaveBeenCalledWith("create_variables_batch",
+      expect(mockSendCommand).toHaveBeenCalledWith(
+        "create_variables_batch",
         expect.objectContaining({
           collectionId: "Design Tokens",
           variables: expect.arrayContaining([
             expect.objectContaining({ name: "radius/none", type: "FLOAT", value: 0 }),
             expect.objectContaining({ name: "radius/sm", type: "FLOAT", value: 4 }),
-            expect.objectContaining({ name: "radius/full", type: "FLOAT", value: 9999 })
-          ])
-        })
+            expect.objectContaining({ name: "radius/full", type: "FLOAT", value: 9999 }),
+          ]),
+        }),
       );
       expect(response.content[0].text).toContain("radius");
     });
@@ -228,7 +227,7 @@ describe("token system tools", () => {
     it("successfully creates subtle radius system", async () => {
       await callTool("create_radius_system", {
         collection_id: "Design Tokens",
-        preset: "subtle"
+        preset: "subtle",
       });
 
       expect(mockSendCommand).toHaveBeenCalled();
@@ -237,7 +236,7 @@ describe("token system tools", () => {
     it("successfully creates bold radius system", async () => {
       await callTool("create_radius_system", {
         collection_id: "Design Tokens",
-        preset: "bold"
+        preset: "bold",
       });
 
       expect(mockSendCommand).toHaveBeenCalled();
@@ -247,8 +246,8 @@ describe("token system tools", () => {
       await expect(
         callTool("create_radius_system", {
           collection_id: "Design Tokens",
-          preset: "invalid"
-        })
+          preset: "invalid",
+        }),
       ).rejects.toThrow();
     });
   });
@@ -263,7 +262,7 @@ describe("token system tools", () => {
 
       const response = await callTool("create_spacing_system", {
         collection_id: "NonExistent",
-        preset: "8pt"
+        preset: "8pt",
       });
 
       expect(response.content[0].text).toContain("Error");

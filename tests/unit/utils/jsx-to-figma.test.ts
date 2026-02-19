@@ -385,7 +385,9 @@ describe("parseJsx", () => {
   });
 
   it("should parse text- as fill binding when individual typography is present", () => {
-    const nodes = parseJsx('<span id="1:1" name="T" className="text-card-foreground text-[18px] font-semibold leading-[24px]">\n  Hello\n</span>');
+    const nodes = parseJsx(
+      '<span id="1:1" name="T" className="text-card-foreground text-[18px] font-semibold leading-[24px]">\n  Hello\n</span>',
+    );
     expect(nodes[0].textStyleName).toBeUndefined();
     expect(nodes[0].bindings?.["fills/0"]).toBe("card/foreground");
     expect(nodes[0].fontSize).toBe(18);
@@ -411,7 +413,9 @@ describe("parseJsx", () => {
   });
 
   it("should parse individual corner radii", () => {
-    const nodes = parseJsx('<div id="1:1" name="T" className="rounded-tl-[4px] rounded-tr-[8px] rounded-br-[12px] rounded-bl-[16px]" />');
+    const nodes = parseJsx(
+      '<div id="1:1" name="T" className="rounded-tl-[4px] rounded-tr-[8px] rounded-br-[12px] rounded-bl-[16px]" />',
+    );
     expect(nodes[0].topLeftRadius).toBe(4);
     expect(nodes[0].topRightRadius).toBe(8);
     expect(nodes[0].bottomRightRadius).toBe(12);
@@ -454,7 +458,8 @@ describe("parseJsx", () => {
   });
 
   it("should parse multiple shadows", () => {
-    const jsx = '<div id="1:1" name="T" style={{ boxShadow: "0px 2px 4px 0px rgba(0,0,0,0.1), 0px 8px 16px 0px rgba(0,0,0,0.2)" }} />';
+    const jsx =
+      '<div id="1:1" name="T" style={{ boxShadow: "0px 2px 4px 0px rgba(0,0,0,0.1), 0px 8px 16px 0px rgba(0,0,0,0.2)" }} />';
     const nodes = parseJsx(jsx);
     expect(nodes[0].effects).toHaveLength(2);
     expect(nodes[0].effects![0].type).toBe("DROP_SHADOW");
@@ -466,20 +471,23 @@ describe("parseJsx", () => {
   it("should parse linear-gradient from style", () => {
     const jsx = '<div id="1:1" name="T" style={{ background: "linear-gradient(#ff0000 0%, #0000ff 100%)" }} />';
     const nodes = parseJsx(jsx);
-    expect(nodes[0].fills).toEqual([{
-      type: "GRADIENT_LINEAR",
-      gradient: {
+    expect(nodes[0].fills).toEqual([
+      {
         type: "GRADIENT_LINEAR",
-        stops: [
-          { color: "#ff0000", position: 0 },
-          { color: "#0000ff", position: 1 },
-        ],
+        gradient: {
+          type: "GRADIENT_LINEAR",
+          stops: [
+            { color: "#ff0000", position: 0 },
+            { color: "#0000ff", position: 1 },
+          ],
+        },
       },
-    }]);
+    ]);
   });
 
   it("should parse gradient with rgba colors", () => {
-    const jsx = '<div id="1:1" name="T" style={{ background: "linear-gradient(rgba(255,0,0,0.5) 0%, rgba(0,0,255,1) 100%)" }} />';
+    const jsx =
+      '<div id="1:1" name="T" style={{ background: "linear-gradient(rgba(255,0,0,0.5) 0%, rgba(0,0,255,1) 100%)" }} />';
     const nodes = parseJsx(jsx);
     expect(nodes[0].fills![0].gradient?.stops).toHaveLength(2);
     expect(nodes[0].fills![0].gradient?.stops[0].color).toBe("rgba(255,0,0,0.5)");
@@ -505,9 +513,10 @@ describe("parseJsx", () => {
   // --- Style attribute: backgroundImage ---
 
   it("should parse backgroundImage from style", () => {
-    const jsx = '<div id="1:1" name="T" className="bg-cover bg-center" style={{ backgroundImage: "url(img-ref-123)" }} />';
+    const jsx =
+      '<div id="1:1" name="T" className="bg-cover bg-center" style={{ backgroundImage: "url(img-ref-123)" }} />';
     const nodes = parseJsx(jsx);
-    const imageFill = nodes[0].fills?.find(f => f.isImage);
+    const imageFill = nodes[0].fills?.find((f) => f.isImage);
     expect(imageFill).toBeDefined();
     expect(imageFill!.imageRef).toBe("img-ref-123");
   });
@@ -650,7 +659,7 @@ describe("parseJsx", () => {
 
     // Shadow
     expect(parsed[0].effects).toBeDefined();
-    const shadow = parsed[0].effects!.find(e => e.type === "DROP_SHADOW");
+    const shadow = parsed[0].effects!.find((e) => e.type === "DROP_SHADOW");
     expect(shadow).toBeDefined();
 
     // Title child
@@ -695,16 +704,18 @@ describe("parseJsx", () => {
 
   it("should round-trip gradient fills", () => {
     const original = makeNode({
-      fills: [{
-        type: "GRADIENT_LINEAR",
-        gradient: {
+      fills: [
+        {
           type: "GRADIENT_LINEAR",
-          stops: [
-            { color: "#ff0000", position: 0 },
-            { color: "#0000ff", position: 1 },
-          ],
+          gradient: {
+            type: "GRADIENT_LINEAR",
+            stops: [
+              { color: "#ff0000", position: 0 },
+              { color: "#0000ff", position: 1 },
+            ],
+          },
         },
-      }],
+      ],
     });
     const jsx = convertToJsx([original]);
     const parsed = parseJsx(jsx);
@@ -727,7 +738,7 @@ describe("parseJsx", () => {
     });
     const jsx = convertToJsx([original]);
     const parsed = parseJsx(jsx);
-    const imageFill = parsed[0].fills?.find(f => f.isImage);
+    const imageFill = parsed[0].fills?.find((f) => f.isImage);
     expect(imageFill).toBeDefined();
     expect(imageFill!.imageRef).toBe("img-ref-123");
   });
@@ -779,7 +790,9 @@ describe("parseJsx - Tailwind gradients", () => {
   });
 
   it("should parse gradient with via (3 stops)", () => {
-    const nodes = parseJsx('<div id="1:1" name="T" className="bg-gradient-to-b from-[#FF0000] via-[#00FF00] to-[#0000FF]" />');
+    const nodes = parseJsx(
+      '<div id="1:1" name="T" className="bg-gradient-to-b from-[#FF0000] via-[#00FF00] to-[#0000FF]" />',
+    );
     const fill = nodes[0].fills![0];
     expect(fill.gradient?.stops).toHaveLength(3);
     expect(fill.gradient?.stops[0]).toEqual({ color: "#FF0000", position: 0 });
@@ -820,12 +833,12 @@ describe("parseJsx - Tailwind gradients", () => {
   it("should not produce a gradient fill with only from (no to)", () => {
     const nodes = parseJsx('<div id="1:1" name="T" className="bg-gradient-to-r from-[#FF0000]" />');
     // Single stop is invalid; should produce no gradient fill
-    expect(nodes[0].fills?.some(f => f.gradient)).toBeFalsy();
+    expect(nodes[0].fills?.some((f) => f.gradient)).toBeFalsy();
   });
 
   it("should not produce a gradient fill with only to (no from)", () => {
     const nodes = parseJsx('<div id="1:1" name="T" className="to-[#0000FF]" />');
-    expect(nodes[0].fills?.some(f => f.gradient)).toBeFalsy();
+    expect(nodes[0].fills?.some((f) => f.gradient)).toBeFalsy();
   });
 
   it("should not store opacity in gradient stops from /N suffix", () => {
@@ -870,7 +883,8 @@ describe("parseJsx - multiple fills/strokes accumulation", () => {
   });
 
   it("should accumulate solid fill + gradient fill from style", () => {
-    const jsx = '<div id="1:1" name="T" className="bg-[#ffffff]" style={{ background: "linear-gradient(#ff0000 0%, #0000ff 100%)" }} />';
+    const jsx =
+      '<div id="1:1" name="T" className="bg-[#ffffff]" style={{ background: "linear-gradient(#ff0000 0%, #0000ff 100%)" }} />';
     const nodes = parseJsx(jsx);
     expect(nodes[0].fills).toHaveLength(2);
     expect(nodes[0].fills![0].color).toBe("#ffffff");
@@ -930,7 +944,8 @@ describe("parseJsx - component tags", () => {
   });
 
   it("should restore original names from propertyNameMap in COMPONENT_SET", () => {
-    const jsx = '<ButtonSet id="1:1" propertyDefinitions={{ showIcon: true }} propertyNameMap={{ showIcon: "Show Icon" }} />';
+    const jsx =
+      '<ButtonSet id="1:1" propertyDefinitions={{ showIcon: true }} propertyNameMap={{ showIcon: "Show Icon" }} />';
     const nodes = parseJsx(jsx);
     const defs = nodes[0].componentPropertyDefinitions!;
     expect(defs["Show Icon"]).toBeDefined();
@@ -1044,8 +1059,8 @@ describe("parseJsx - component tags", () => {
       type: "COMPONENT_SET",
       visible: true,
       componentPropertyDefinitions: {
-        "Size": { type: "VARIANT", options: ["sm", "md", "lg"] },
-        "Disabled": { type: "BOOLEAN", default: false },
+        Size: { type: "VARIANT", options: ["sm", "md", "lg"] },
+        Disabled: { type: "BOOLEAN", default: false },
       },
       children: [
         {
@@ -1054,7 +1069,7 @@ describe("parseJsx - component tags", () => {
           type: "COMPONENT",
           visible: true,
           componentSetName: "Button",
-          variantProperties: { "Size": "md", "Disabled": "false" },
+          variantProperties: { Size: "md", Disabled: "false" },
         },
       ],
     };
@@ -1102,8 +1117,8 @@ describe("parseJsx - component tags", () => {
       visible: true,
       mainComponentName: "Button",
       componentProperties: {
-        "Size": { type: "VARIANT", value: "lg" },
-        "Disabled": { type: "BOOLEAN", value: true },
+        Size: { type: "VARIANT", value: "lg" },
+        Disabled: { type: "BOOLEAN", value: true },
       },
     };
     const jsx = convertToJsx([original]);

@@ -25,15 +25,15 @@ export interface ColorScale {
 
 export const SCALE_MIX_PERCENTAGES = {
   50: 0.05,
-  100: 0.10,
-  200: 0.20,
-  300: 0.30,
-  400: 0.40,
-  500: 0.50,
-  600: 0.60,
-  700: 0.70,
-  800: 0.80,
-  900: 0.90
+  100: 0.1,
+  200: 0.2,
+  300: 0.3,
+  400: 0.4,
+  500: 0.5,
+  600: 0.6,
+  700: 0.7,
+  800: 0.8,
+  900: 0.9,
 };
 
 /**
@@ -43,7 +43,7 @@ export const SCALE_MIX_PERCENTAGES = {
 export function calculateCompositeColor(
   baseColor: RGBAColor,
   backgroundColor: RGBAColor,
-  mixPercentage: number
+  mixPercentage: number,
 ): RGBAColor {
   const mix = Math.max(0, Math.min(1, mixPercentage));
   const invMix = 1 - mix;
@@ -52,25 +52,18 @@ export function calculateCompositeColor(
     r: baseColor.r * mix + backgroundColor.r * invMix,
     g: baseColor.g * mix + backgroundColor.g * invMix,
     b: baseColor.b * mix + backgroundColor.b * invMix,
-    a: 1.0
+    a: 1.0,
   };
 }
 
 /**
  * Calculate all 10 scale variants (-50 to -900) for a base color
  */
-export function calculateColorScale(
-  baseColor: RGBAColor,
-  backgroundColor: RGBAColor
-): ColorScale {
+export function calculateColorScale(baseColor: RGBAColor, backgroundColor: RGBAColor): ColorScale {
   const scale: any = {};
 
   for (const [level, mixPercentage] of Object.entries(SCALE_MIX_PERCENTAGES)) {
-    scale[level] = calculateCompositeColor(
-      baseColor,
-      backgroundColor,
-      mixPercentage
-    );
+    scale[level] = calculateCompositeColor(baseColor, backgroundColor, mixPercentage);
   }
 
   return scale as ColorScale;
@@ -84,7 +77,7 @@ export function normalizedToRgb255(color: RGBAColor): { r: number; g: number; b:
     r: Math.round(color.r * 255),
     g: Math.round(color.g * 255),
     b: Math.round(color.b * 255),
-    a: color.a ?? 1
+    a: color.a ?? 1,
   };
 }
 
@@ -96,7 +89,7 @@ export function rgb255ToNormalized(color: { r: number; g: number; b: number; a?:
     r: color.r / 255,
     g: color.g / 255,
     b: color.b / 255,
-    a: color.a ?? 1
+    a: color.a ?? 1,
   };
 }
 
@@ -105,7 +98,7 @@ export function rgb255ToNormalized(color: { r: number; g: number; b: number; a?:
  */
 export function rgbaToHex(color: RGBAColor): string {
   const rgb255 = normalizedToRgb255(color);
-  const toHex = (n: number) => n.toString(16).padStart(2, '0').toUpperCase();
+  const toHex = (n: number) => n.toString(16).padStart(2, "0").toUpperCase();
   return `#${toHex(rgb255.r)}${toHex(rgb255.g)}${toHex(rgb255.b)}`;
 }
 
@@ -113,7 +106,7 @@ export function rgbaToHex(color: RGBAColor): string {
  * Convert hex color string to RGBA
  */
 export function hexToRgba(hex: string): RGBAColor {
-  const cleanHex = hex.replace('#', '');
+  const cleanHex = hex.replace("#", "");
   const r = parseInt(cleanHex.substring(0, 2), 16);
   const g = parseInt(cleanHex.substring(2, 4), 16);
   const b = parseInt(cleanHex.substring(4, 6), 16);
@@ -122,7 +115,7 @@ export function hexToRgba(hex: string): RGBAColor {
     r: r / 255,
     g: g / 255,
     b: b / 255,
-    a: 1
+    a: 1,
   };
 }
 
@@ -169,29 +162,29 @@ export function getWCAGCompliance(ratio: number): WCAGCompliance {
     aa_normal: ratio >= 4.5,
     aa_large: ratio >= 3.0,
     aaa_normal: ratio >= 7.0,
-    aaa_large: ratio >= 4.5
+    aaa_large: ratio >= 4.5,
   };
 }
 
 /**
  * Get recommendation text for a contrast ratio
  */
-export function getContrastRecommendation(ratio: number, standard: 'AA' | 'AAA' = 'AA'): string {
+export function getContrastRecommendation(ratio: number, standard: "AA" | "AAA" = "AA"): string {
   const compliance = getWCAGCompliance(ratio);
 
-  if (standard === 'AA') {
+  if (standard === "AA") {
     if (compliance.aa_normal) {
-      return 'Pass WCAG AA for normal text';
+      return "Pass WCAG AA for normal text";
     } else if (compliance.aa_large) {
-      return 'Pass WCAG AA for large text only';
+      return "Pass WCAG AA for large text only";
     } else {
       return `Fail WCAG AA - needs ${(4.5 / ratio).toFixed(2)}× more contrast (4.5:1 required)`;
     }
   } else {
     if (compliance.aaa_normal) {
-      return 'Pass WCAG AAA for normal text';
+      return "Pass WCAG AAA for normal text";
     } else if (compliance.aaa_large) {
-      return 'Pass WCAG AAA for large text only';
+      return "Pass WCAG AAA for large text only";
     } else {
       return `Fail WCAG AAA - needs ${(7.0 / ratio).toFixed(2)}× more contrast (7:1 required)`;
     }
@@ -203,24 +196,24 @@ export function getContrastRecommendation(ratio: number, standard: 'AA' | 'AAA' 
  */
 export function convertColorFormat(
   color: RGBAColor | string,
-  fromFormat: 'normalized' | 'rgb255' | 'hex',
-  toFormat: 'normalized' | 'rgb255' | 'hex'
+  fromFormat: "normalized" | "rgb255" | "hex",
+  toFormat: "normalized" | "rgb255" | "hex",
 ): RGBAColor | { r: number; g: number; b: number; a: number } | string {
   let normalized: RGBAColor;
 
   // Convert to normalized first
-  if (fromFormat === 'hex') {
+  if (fromFormat === "hex") {
     normalized = hexToRgba(color as string);
-  } else if (fromFormat === 'rgb255') {
+  } else if (fromFormat === "rgb255") {
     normalized = rgb255ToNormalized(color as any);
   } else {
     normalized = color as RGBAColor;
   }
 
   // Convert from normalized to target format
-  if (toFormat === 'hex') {
+  if (toFormat === "hex") {
     return rgbaToHex(normalized);
-  } else if (toFormat === 'rgb255') {
+  } else if (toFormat === "rgb255") {
     return normalizedToRgb255(normalized);
   } else {
     return normalized;

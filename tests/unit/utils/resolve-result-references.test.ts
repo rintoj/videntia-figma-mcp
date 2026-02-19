@@ -38,9 +38,7 @@ describe("resolveResultReferences", () => {
     });
 
     it("returns strings containing $result in the middle as-is", () => {
-      expect(resolveResultReferences("use $result[0].id here", [])).toBe(
-        "use $result[0].id here",
-      );
+      expect(resolveResultReferences("use $result[0].id here", [])).toBe("use $result[0].id here");
     });
   });
 
@@ -55,9 +53,7 @@ describe("resolveResultReferences", () => {
     });
 
     it("resolves $result[1].name", () => {
-      expect(resolveResultReferences("$result[1].name", results)).toBe(
-        "Circle",
-      );
+      expect(resolveResultReferences("$result[1].name", results)).toBe("Circle");
     });
 
     it("resolves $result[0] to entire result object", () => {
@@ -80,29 +76,20 @@ describe("resolveResultReferences", () => {
     ];
 
     it("resolves nested array + field path", () => {
-      expect(
-        resolveResultReferences("$result[0].children[1].name", results),
-      ).toBe("Second");
+      expect(resolveResultReferences("$result[0].children[1].name", results)).toBe("Second");
     });
 
     it("resolves deeply nested path", () => {
-      expect(
-        resolveResultReferences("$result[0].children[1].bounds.x", results),
-      ).toBe(10);
+      expect(resolveResultReferences("$result[0].children[1].bounds.x", results)).toBe(10);
     });
 
     it("resolves array index on children", () => {
-      expect(
-        resolveResultReferences("$result[0].children[0].id", results),
-      ).toBe("child-0");
+      expect(resolveResultReferences("$result[0].children[0].id", results)).toBe("child-0");
     });
   });
 
   describe("object and array recursion", () => {
-    const results = [
-      successResult(0, { id: "node-1" }),
-      successResult(1, { id: "node-2" }),
-    ];
+    const results = [successResult(0, { id: "node-1" }), successResult(1, { id: "node-2" })];
 
     it("resolves references inside objects", () => {
       const params = {
@@ -119,11 +106,7 @@ describe("resolveResultReferences", () => {
 
     it("resolves references inside arrays", () => {
       const params = ["$result[0].id", "$result[1].id", "static"];
-      expect(resolveResultReferences(params, results)).toEqual([
-        "node-1",
-        "node-2",
-        "static",
-      ]);
+      expect(resolveResultReferences(params, results)).toEqual(["node-1", "node-2", "static"]);
     });
 
     it("resolves references in nested objects", () => {
@@ -159,12 +142,8 @@ describe("resolveResultReferences", () => {
         successResult(2, { id: "cloned", name: "Renamed" }),
       ];
 
-      expect(resolveResultReferences("$result[2].name", results)).toBe(
-        "Renamed",
-      );
-      expect(resolveResultReferences("$result[1].parentId", results)).toBe(
-        "original",
-      );
+      expect(resolveResultReferences("$result[2].name", results)).toBe("Renamed");
+      expect(resolveResultReferences("$result[1].parentId", results)).toBe("original");
     });
   });
 
@@ -198,17 +177,17 @@ describe("resolveResultReferences", () => {
     it("throws when accessing field on null", () => {
       const results = [successResult(0, { child: null })];
 
-      expect(() =>
-        resolveResultReferences("$result[0].child.name", results),
-      ).toThrow("Cannot access '.name' on null/undefined");
+      expect(() => resolveResultReferences("$result[0].child.name", results)).toThrow(
+        "Cannot access '.name' on null/undefined",
+      );
     });
 
     it("throws when accessing field on undefined", () => {
       const results = [successResult(0, { data: {} })];
 
-      expect(() =>
-        resolveResultReferences("$result[0].data.missing.deep", results),
-      ).toThrow("Cannot access '.deep' on null/undefined");
+      expect(() => resolveResultReferences("$result[0].data.missing.deep", results)).toThrow(
+        "Cannot access '.deep' on null/undefined",
+      );
     });
   });
 
@@ -223,14 +202,9 @@ describe("resolveResultReferences", () => {
       current.value = "deep";
 
       const results = [successResult(0, deepObj)];
-      const deepPath =
-        "$result[0]" +
-        Array.from({ length: 11 }, (_, i) => `.level${i}`).join("") +
-        ".value";
+      const deepPath = "$result[0]" + Array.from({ length: 11 }, (_, i) => `.level${i}`).join("") + ".value";
 
-      expect(() => resolveResultReferences(deepPath, results)).toThrow(
-        "Field path exceeds maximum depth of 10",
-      );
+      expect(() => resolveResultReferences(deepPath, results)).toThrow("Field path exceeds maximum depth of 10");
     });
 
     it("allows paths at exactly depth 10", () => {
@@ -243,10 +217,7 @@ describe("resolveResultReferences", () => {
       current.val = "found";
 
       const results = [successResult(0, deepObj)];
-      const path =
-        "$result[0]" +
-        Array.from({ length: 9 }, (_, i) => `.l${i}`).join("") +
-        ".val";
+      const path = "$result[0]" + Array.from({ length: 9 }, (_, i) => `.l${i}`).join("") + ".val";
 
       expect(resolveResultReferences(path, results)).toBe("found");
     });
@@ -265,16 +236,12 @@ describe("resolveResultReferences", () => {
 
     it("handles result value of false", () => {
       const results = [successResult(0, { visible: false })];
-      expect(resolveResultReferences("$result[0].visible", results)).toBe(
-        false,
-      );
+      expect(resolveResultReferences("$result[0].visible", results)).toBe(false);
     });
 
     it("returns undefined for missing field without throwing", () => {
       const results = [successResult(0, { id: "node-1" })];
-      expect(
-        resolveResultReferences("$result[0].nonexistent", results),
-      ).toBeUndefined();
+      expect(resolveResultReferences("$result[0].nonexistent", results)).toBeUndefined();
     });
 
     it("handles array result at top level", () => {
@@ -291,16 +258,12 @@ describe("resolveResultReferences", () => {
     });
 
     it("does not resolve partial $result patterns in longer strings", () => {
-      expect(
-        resolveResultReferences("prefix $result[0].id suffix", []),
-      ).toBe("prefix $result[0].id suffix");
+      expect(resolveResultReferences("prefix $result[0].id suffix", [])).toBe("prefix $result[0].id suffix");
     });
 
     it("handles string result value", () => {
       const results = [successResult(0, "just a string")];
-      expect(resolveResultReferences("$result[0]", results)).toBe(
-        "just a string",
-      );
+      expect(resolveResultReferences("$result[0]", results)).toBe("just a string");
     });
   });
 });

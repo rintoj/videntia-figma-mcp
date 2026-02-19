@@ -13,7 +13,7 @@ const logger = {
   },
   error: (message: string, ...args: any[]) => {
     console.error(`[ERROR] ${message}`, ...args);
-  }
+  },
 };
 
 // Store clients by channel
@@ -31,7 +31,7 @@ const stats = {
   activeConnections: 0,
   messagesSent: 0,
   messagesReceived: 0,
-  errors: 0
+  errors: 0,
 };
 
 function cleanupDeadConnections(): number {
@@ -65,25 +65,26 @@ function handleConnection(ws: ServerWebSocket<any>) {
   // Track connection statistics
   stats.totalConnections++;
   stats.activeConnections++;
-  
+
   // Assign a unique client ID for better tracking
   const clientId = `client_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
   ws.data = { clientId };
-  
+
   // Don't add to clients immediately - wait for channel join
   logger.info(`New client connected: ${clientId}`);
 
   // Send welcome message to the new client
   try {
-    ws.send(JSON.stringify({
-      type: "system",
-      message: "Please join a channel to start communicating with Figma",
-    }));
+    ws.send(
+      JSON.stringify({
+        type: "system",
+        message: "Please join a channel to start communicating with Figma",
+      }),
+    );
   } catch (error) {
     logger.error(`Failed to send welcome message to client ${clientId}:`, error);
     stats.errors++;
   }
-
 }
 
 const server = Bun.serve({
@@ -92,10 +93,10 @@ const server = Bun.serve({
   // hostname: "0.0.0.0",
   fetch(req: Request, server: Server<any>) {
     const url = new URL(req.url);
-    
+
     // Log incoming requests
     logger.debug(`Received ${req.method} request to ${url.pathname}`);
-    
+
     // Handle CORS preflight
     if (req.method === "OPTIONS") {
       return new Response(null, {
@@ -109,16 +110,19 @@ const server = Bun.serve({
 
     // Handle status endpoint
     if (url.pathname === "/status") {
-      return new Response(JSON.stringify({
-        status: "running",
-        uptime: process.uptime(),
-        stats
-      }), {
-        headers: {
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*"
-        }
-      });
+      return new Response(
+        JSON.stringify({
+          status: "running",
+          uptime: process.uptime(),
+          stats,
+        }),
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+          },
+        },
+      );
     }
 
     // Handle channels endpoint - list all active channels with metadata
@@ -171,18 +175,20 @@ const server = Bun.serve({
       try {
         stats.messagesReceived++;
         const clientId = ws.data?.clientId || "unknown";
-        
-        logger.debug(`Received message from client ${clientId}:`, typeof message === 'string' ? message : '<binary>');
+
+        logger.debug(`Received message from client ${clientId}:`, typeof message === "string" ? message : "<binary>");
         const data = JSON.parse(message as string);
 
         if (data.type === "join") {
           const channelName = data.channel;
           if (!channelName || typeof channelName !== "string") {
             logger.warn(`Client ${clientId} attempted to join without a valid channel name`);
-            ws.send(JSON.stringify({
-              type: "error",
-              message: "Channel name is required"
-            }));
+            ws.send(
+              JSON.stringify({
+                type: "error",
+                message: "Channel name is required",
+              }),
+            );
             stats.messagesSent++;
             return;
           }
@@ -193,9 +199,7 @@ const server = Bun.serve({
               if (existingChannel === channelName) continue;
               const meta = channelMetadata.get(existingChannel);
               if (meta?.fileName === data.fileName) {
-                const hasActiveClient = Array.from(existingClients).some(
-                  (c) => c.readyState === WS_OPEN,
-                );
+                const hasActiveClient = Array.from(existingClients).some((c) => c.readyState === WS_OPEN);
                 if (!hasActiveClient) {
                   channels.delete(existingChannel);
                   channelMetadata.delete(existingChannel);
@@ -232,23 +236,27 @@ const server = Bun.serve({
 
           // Notify client they joined successfully
           try {
-            ws.send(JSON.stringify({
-              type: "system",
-              message: `Joined channel: ${channelName}`,
-              channel: channelName
-            }));
+            ws.send(
+              JSON.stringify({
+                type: "system",
+                message: `Joined channel: ${channelName}`,
+                channel: channelName,
+              }),
+            );
             stats.messagesSent++;
 
-            ws.send(JSON.stringify({
-              type: "system",
-              message: {
-                id: data.id,
-                result: "Connected to channel: " + channelName,
-              },
-              channel: channelName
-            }));
+            ws.send(
+              JSON.stringify({
+                type: "system",
+                message: {
+                  id: data.id,
+                  result: "Connected to channel: " + channelName,
+                },
+                channel: channelName,
+              }),
+            );
             stats.messagesSent++;
-            
+
             logger.debug(`Connection confirmation sent to client ${clientId} for channel ${channelName}`);
           } catch (error) {
             logger.error(`Failed to send join confirmation to client ${clientId}:`, error);
@@ -260,11 +268,13 @@ const server = Bun.serve({
             let notificationCount = 0;
             channelClients.forEach((client) => {
               if (client !== ws && client.readyState === WS_OPEN) {
-                client.send(JSON.stringify({
-                  type: "system",
-                  message: "A new client has joined the channel",
-                  channel: channelName
-                }));
+                client.send(
+                  JSON.stringify({
+                    type: "system",
+                    message: "A new client has joined the channel",
+                    channel: channelName,
+                  }),
+                );
                 stats.messagesSent++;
                 notificationCount++;
               }
@@ -276,7 +286,7 @@ const server = Bun.serve({
             logger.error(`Error notifying channel about new client:`, error);
             stats.errors++;
           }
-          
+
           return;
         }
 
@@ -285,10 +295,12 @@ const server = Bun.serve({
           const channelName = data.channel;
           if (!channelName || typeof channelName !== "string") {
             logger.warn(`Client ${clientId} sent message without a valid channel name`);
-            ws.send(JSON.stringify({
-              type: "error",
-              message: "Channel name is required"
-            }));
+            ws.send(
+              JSON.stringify({
+                type: "error",
+                message: "Channel name is required",
+              }),
+            );
             stats.messagesSent++;
             return;
           }
@@ -296,10 +308,12 @@ const server = Bun.serve({
           const channelClients = channels.get(channelName);
           if (!channelClients || !channelClients.has(ws)) {
             logger.warn(`Client ${clientId} attempted to send to channel ${channelName} without joining first`);
-            ws.send(JSON.stringify({
-              type: "error",
-              message: "You must join the channel first"
-            }));
+            ws.send(
+              JSON.stringify({
+                type: "error",
+                message: "You must join the channel first",
+              }),
+            );
             stats.messagesSent++;
             return;
           }
@@ -311,12 +325,14 @@ const server = Bun.serve({
               // Only send to other clients, not back to the sender
               if (client !== ws && client.readyState === WS_OPEN) {
                 logger.debug(`Broadcasting message to peer in channel ${channelName}`);
-                client.send(JSON.stringify({
-                  type: "broadcast",
-                  message: data.message,
-                  sender: "User",
-                  channel: channelName
-                }));
+                client.send(
+                  JSON.stringify({
+                    type: "broadcast",
+                    message: data.message,
+                    sender: "User",
+                    channel: channelName,
+                  }),
+                );
                 stats.messagesSent++;
                 broadcastCount++;
               }
@@ -326,14 +342,17 @@ const server = Bun.serve({
             if (broadcastCount === 0) {
               logger.warn(`No recipients for message in channel ${channelName}`);
               try {
-                ws.send(JSON.stringify({
-                  type: "broadcast",
-                  message: {
-                    id: data.message?.id,
-                    error: "No Figma plugin is connected on this channel. The plugin may have been closed or reloaded."
-                  },
-                  channel: channelName
-                }));
+                ws.send(
+                  JSON.stringify({
+                    type: "broadcast",
+                    message: {
+                      id: data.message?.id,
+                      error:
+                        "No Figma plugin is connected on this channel. The plugin may have been closed or reloaded.",
+                    },
+                    channel: channelName,
+                  }),
+                );
                 stats.messagesSent++;
               } catch (sendError) {
                 logger.error(`Failed to send no-recipient error:`, sendError);
@@ -345,7 +364,7 @@ const server = Bun.serve({
             stats.errors++;
           }
         }
-        
+
         // Handle progress updates
         if (data.type === "progress_update") {
           const channelName = data.channel;
@@ -360,8 +379,10 @@ const server = Bun.serve({
             return;
           }
 
-          logger.debug(`Progress update for command ${data.id} in channel ${channelName}: ${data.message?.data?.status || 'unknown'} - ${data.message?.data?.progress || 0}%`);
-          
+          logger.debug(
+            `Progress update for command ${data.id} in channel ${channelName}: ${data.message?.data?.status || "unknown"} - ${data.message?.data?.progress || 0}%`,
+          );
+
           // Broadcast progress update to all clients in the channel
           try {
             channelClients.forEach((client) => {
@@ -375,16 +396,17 @@ const server = Bun.serve({
             stats.errors++;
           }
         }
-        
       } catch (err) {
         stats.errors++;
         logger.error("Error handling message:", err);
         try {
           // Send error back to client
-          ws.send(JSON.stringify({
-            type: "error",
-            message: "Error processing your message: " + (err instanceof Error ? err.message : String(err))
-          }));
+          ws.send(
+            JSON.stringify({
+              type: "error",
+              message: "Error processing your message: " + (err instanceof Error ? err.message : String(err)),
+            }),
+          );
           stats.messagesSent++;
         } catch (sendError) {
           logger.error("Failed to send error message to client:", sendError);
@@ -393,7 +415,7 @@ const server = Bun.serve({
     },
     close(ws: ServerWebSocket<any>, code: number, reason: string) {
       const clientId = ws.data?.clientId || "unknown";
-      logger.info(`WebSocket closed for client ${clientId}: Code ${code}, Reason: ${reason || 'No reason provided'}`);
+      logger.info(`WebSocket closed for client ${clientId}: Code ${code}, Reason: ${reason || "No reason provided"}`);
 
       // Remove client from their channel
       const channelName = ws.data?.channel;
@@ -415,8 +437,8 @@ const server = Bun.serve({
     drain(ws: ServerWebSocket<any>) {
       const clientId = ws.data?.clientId || "unknown";
       logger.debug(`WebSocket backpressure relieved for client ${clientId}`);
-    }
-  }
+    },
+  },
 });
 
 logger.info(`Claude to Figma WebSocket server running on port ${server.port}`);

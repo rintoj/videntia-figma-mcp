@@ -126,9 +126,7 @@ export function searchIcons(query: string, limit: number = 5): IconSearchResult[
   }
 
   // Sort by score descending, then by name for stability
-  return [...bestResults.values()]
-    .sort((a, b) => b.score - a.score || a.name.localeCompare(b.name))
-    .slice(0, limit);
+  return [...bestResults.values()].sort((a, b) => b.score - a.score || a.name.localeCompare(b.name)).slice(0, limit);
 }
 
 // Cap to avoid building huge intermediate arrays for common patterns
@@ -270,11 +268,7 @@ export interface ListIconsResult {
 /**
  * List available icon names with optional prefix filter and pagination.
  */
-export function listIcons(options: {
-  prefix?: string;
-  offset?: number;
-  limit?: number;
-}): ListIconsResult {
+export function listIcons(options: { prefix?: string; offset?: number; limit?: number }): ListIconsResult {
   const { prefix, offset = 0, limit = 50 } = options;
 
   let names = LUCIDE_ICON_NAMES;

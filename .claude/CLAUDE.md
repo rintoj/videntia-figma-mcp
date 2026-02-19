@@ -27,6 +27,10 @@ bun test                 # Run all tests
 bun test --watch         # Watch mode
 bun run test:coverage    # Generate coverage report
 
+# Linting & Formatting
+bun run lint             # Type-check + format check
+bun run format           # Auto-fix formatting
+
 # Running
 bun run start            # Start MCP server
 bun run socket           # Start WebSocket server

@@ -13,7 +13,7 @@ export function rgbaToHex(color: any): string {
   const b = Math.round(color.b * 255);
   const a = Math.round(color.a * 255);
 
-  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}${a === 255 ? '' : a.toString(16).padStart(2, '0')}`;
+  return `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}${a === 255 ? "" : a.toString(16).padStart(2, "0")}`;
 }
 
 /**
@@ -21,18 +21,39 @@ export function rgbaToHex(color: any): string {
  * This provides a good balance between useful information and response size.
  */
 export const DEFAULT_NODE_FIELDS = [
-  "id", "name", "type", "fills", "strokes", "cornerRadius",
-  "absoluteBoundingBox", "characters", "style"
+  "id",
+  "name",
+  "type",
+  "fills",
+  "strokes",
+  "cornerRadius",
+  "absoluteBoundingBox",
+  "characters",
+  "style",
 ] as const;
 
 /**
  * All available fields that can be requested from a Figma node.
  */
 export type NodeField =
-  | "id" | "name" | "type" | "fills" | "strokes" | "cornerRadius"
-  | "absoluteBoundingBox" | "characters" | "style" | "children"
-  | "effects" | "opacity" | "blendMode" | "constraints" | "layoutMode"
-  | "padding" | "itemSpacing" | "componentProperties";
+  | "id"
+  | "name"
+  | "type"
+  | "fills"
+  | "strokes"
+  | "cornerRadius"
+  | "absoluteBoundingBox"
+  | "characters"
+  | "style"
+  | "children"
+  | "effects"
+  | "opacity"
+  | "blendMode"
+  | "constraints"
+  | "layoutMode"
+  | "padding"
+  | "itemSpacing"
+  | "componentProperties";
 
 /**
  * Filtra un nodo de Figma para reducir su complejidad y tamaño.
@@ -48,7 +69,7 @@ export function filterFigmaNode(node: any, fields?: NodeField[]): any {
   }
 
   // Use provided fields or default fields
-  const requestedFields = fields || DEFAULT_NODE_FIELDS as unknown as NodeField[];
+  const requestedFields = fields || (DEFAULT_NODE_FIELDS as unknown as NodeField[]);
   const fieldSet = new Set(requestedFields);
 
   const filtered: any = {};
@@ -128,7 +149,7 @@ export function filterFigmaNode(node: any, fields?: NodeField[]): any {
       fontSize: node.style.fontSize,
       textAlignHorizontal: node.style.textAlignHorizontal,
       letterSpacing: node.style.letterSpacing,
-      lineHeightPx: node.style.lineHeightPx
+      lineHeightPx: node.style.lineHeightPx,
     };
   }
 
@@ -192,9 +213,7 @@ export function processFigmaNodeResponse(result: unknown): any {
   const resultObj = result as Record<string, unknown>;
   if ("id" in resultObj && typeof resultObj.id === "string") {
     // It appears to be a node response, log the details
-    console.info(
-      `Processed Figma node: ${resultObj.name || "Unknown"} (ID: ${resultObj.id})`
-    );
+    console.info(`Processed Figma node: ${resultObj.name || "Unknown"} (ID: ${resultObj.id})`);
 
     if ("x" in resultObj && "y" in resultObj) {
       console.debug(`Node position: (${resultObj.x}, ${resultObj.y})`);
