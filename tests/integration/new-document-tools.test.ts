@@ -569,6 +569,7 @@ describe("new document tools integration", () => {
       expect(mockSendCommand).toHaveBeenCalledWith("scan_nodes_by_types", {
         nodeId: "parent-123",
         types: ["FRAME", "COMPONENT"],
+        topLevelOnly: true,
       });
       expect(response.content[0].text).toContain("Found 3 nodes");
       expect(response.content[0].text).toContain("FRAME");
@@ -600,7 +601,7 @@ describe("new document tools integration", () => {
         nodeId: "parent-123",
         types: "FRAME",
       });
-      expect(mockSendCommand).toHaveBeenCalledWith("scan_nodes_by_types", { nodeId: "parent-123", types: ["FRAME"] });
+      expect(mockSendCommand).toHaveBeenCalledWith("scan_nodes_by_types", { nodeId: "parent-123", types: ["FRAME"], topLevelOnly: true });
     });
 
     it("handles non-standard result format", async () => {

@@ -7762,7 +7762,7 @@ async function readMyDesign(params) {
 // SCAN COMMANDS
 
 async function scanNodesByTypes(params) {
-  const { nodeId, types } = params;
+  const { nodeId, types, topLevelOnly = true } = params;
 
   if (!Array.isArray(types) || types.length === 0) {
     throw new Error('types must be a non-empty array');
@@ -7776,7 +7776,8 @@ async function scanNodesByTypes(params) {
   const results = [];
 
   const scanNode = (n, depth = 0) => {
-    if (types.includes(n.type)) {
+    const matched = types.includes(n.type);
+    if (matched) {
       const nodeInfo = {
         id: n.id,
         name: n.name,
@@ -7790,6 +7791,9 @@ async function scanNodesByTypes(params) {
       results.push(nodeInfo);
     }
 
+    // Skip children of matched nodes when topLevelOnly is true
+    if (topLevelOnly && matched) return;
+
     // Recursively scan children
     if ('children' in n) {
       for (const child of n.children) {
@@ -7801,11 +7805,10 @@ async function scanNodesByTypes(params) {
   scanNode(node);
 
   return {
-    rootNodeId: nodeId,
-    rootNodeName: node.name,
-    types: types,
-    foundCount: results.length,
-    nodes: results
+    success: true,
+    count: results.length,
+    matchingNodes: results,
+    searchedTypes: types
   };
 }
 
@@ -8238,8 +8241,16 @@ async function createPage(params) {
     throw new Error("Missing or empty name parameter");
   }
 
+  const trimmedName = name.trim();
+  const existing = figma.root.children.find(
+    (p) => p.name.toLowerCase() === trimmedName.toLowerCase()
+  );
+  if (existing) {
+    throw new Error(`A page named "${existing.name}" already exists (ID: ${existing.id})`);
+  }
+
   const page = figma.createPage();
-  page.name = name.trim();
+  page.name = trimmedName;
 
   return {
     id: page.id,
