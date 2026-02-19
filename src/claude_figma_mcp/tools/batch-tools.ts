@@ -41,11 +41,18 @@ export function registerBatchTools(server: McpServer): void {
         const summary = `Batch completed: ${result.succeeded}/${result.totalActions} succeeded${result.failed > 0 ? `, ${result.failed} failed` : ""}`;
         const lines: string[] = [summary];
         if (result.results?.length) {
-          lines.push("", "| # | Action | Status | Detail |", "|---|--------|--------|--------|");
-          for (const r of result.results) {
-            const status = r.success ? "OK" : "FAIL";
-            const detail = r.error || (r.result?.id ? `ID: ${r.result.id}` : "done");
-            lines.push(`| ${r.index} | ${r.action} | ${status} | ${detail} |`);
+          const failedResults = result.results.filter((r) => !r.success);
+          if (failedResults.length > 0) {
+            lines.push(
+              "",
+              "| # | Action | Status | Detail |",
+              "|---|--------|--------|--------|",
+            );
+            for (const r of failedResults) {
+              lines.push(
+                `| ${r.index} | ${r.action} | FAIL | ${r.error || "unknown error"} |`,
+              );
+            }
           }
         }
 
