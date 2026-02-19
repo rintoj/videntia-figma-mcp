@@ -6847,11 +6847,17 @@ async function createFromData(params) {
   }
 
   // Build variable name → variable object map (reverse of readMyDesign)
+  // Also index by fully-hyphenated name so "semantic/success/subtle" finds "semantic/success-subtle"
   const varNameMap = new Map();
   try {
     const localVars = await figma.variables.getLocalVariablesAsync();
     for (const v of localVars) {
       varNameMap.set(v.name, v);
+      // Add hyphen→slash normalized key: "semantic/success-subtle" → "semantic/success/subtle"
+      const normalized = v.name.replace(/-/g, "/");
+      if (normalized !== v.name) {
+        varNameMap.set(normalized, v);
+      }
     }
   } catch (e) {
     console.warn("Failed to load local variables:", e);
