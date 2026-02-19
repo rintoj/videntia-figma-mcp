@@ -83,7 +83,10 @@ function jsxElementToNode(el: t.JSXElement, parentType?: string, source?: string
 
   // SVG: extract raw markup and skip child processing entirely
   if (tag === "svg" && source && el.start != null && el.end != null) {
-    node.svgString = source.substring(el.start, el.end);
+    // Strip non-SVG attributes (name, id, className) that are Figma JSX metadata
+    node.svgString = source
+      .substring(el.start, el.end)
+      .replace(/\s+(?:name|id|className)="[^"]*"/g, "");
     if (attrs.width !== undefined) node.width = Number(attrs.width);
     if (attrs.height !== undefined) node.height = Number(attrs.height);
     return node;

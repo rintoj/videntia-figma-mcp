@@ -1735,4 +1735,16 @@ describe("parseJsx - bare flex defaults to HORIZONTAL", () => {
     expect(nodes[0].children![0].type).toBe("SVG");
     expect(nodes[0].children![0].svgString).toContain("<svg");
   });
+
+  it("should strip non-SVG attributes (name, id, className) from svgString", () => {
+    const svg = '<svg name="Icon" id="1:1" className="icon-class" width="24" height="24" viewBox="0 0 24 24"><path d="M0 0" /></svg>';
+    const nodes = parseJsx(svg);
+    expect(nodes[0].svgString).not.toContain('name=');
+    expect(nodes[0].svgString).not.toContain('id=');
+    expect(nodes[0].svgString).not.toContain('className=');
+    expect(nodes[0].svgString).toContain('width="24"');
+    expect(nodes[0].svgString).toContain('viewBox="0 0 24 24"');
+    // The name should still be set on the node data
+    expect(nodes[0].name).toBe("Icon");
+  });
 });
