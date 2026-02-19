@@ -145,6 +145,12 @@ function jsxElementToNode(el: t.JSXElement, parentType?: string): FigmaNodeData 
   // Apply HTML tag defaults (only set values that weren't already set by classes)
   applyHtmlTagDefaults(node, tag);
 
+  // Auto-layout frames default to HUG sizing (matching Figma UI behavior)
+  if (node.layoutMode) {
+    if (!node.layoutSizingHorizontal) node.layoutSizingHorizontal = "HUG";
+    if (!node.layoutSizingVertical) node.layoutSizingVertical = "HUG";
+  }
+
   // Propagate text-related style properties from FRAME to child TEXT nodes
   propagateTextStyles(node);
 
