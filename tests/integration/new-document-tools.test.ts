@@ -911,5 +911,40 @@ describe("new document tools integration", () => {
       expect(text).toContain('Created 1 node(s): "Card" (1:100)');
       expect(text).not.toContain("Updated");
     });
+
+    it("passes replaceChildren param to plugin", async () => {
+      mockSendCommand.mockResolvedValue({
+        createdNodes: [{ id: "1:100", name: "Card", type: "FRAME", action: "updated" }],
+      });
+
+      await callTool("jsx_to_figma", {
+        jsx: '<div id="1:100" name="Card"><p>New child</p></div>',
+        replaceChildren: true,
+      });
+
+      expect(mockSendCommand).toHaveBeenCalledWith(
+        "create_from_data",
+        expect.objectContaining({
+          replaceChildren: true,
+        }),
+      );
+    });
+
+    it("defaults replaceChildren to undefined (preserve children)", async () => {
+      mockSendCommand.mockResolvedValue({
+        createdNodes: [{ id: "1:100", name: "Card", type: "FRAME", action: "updated" }],
+      });
+
+      await callTool("jsx_to_figma", {
+        jsx: '<div id="1:100" name="Card" className="bg-red-500" />',
+      });
+
+      expect(mockSendCommand).toHaveBeenCalledWith(
+        "create_from_data",
+        expect.objectContaining({
+          replaceChildren: undefined,
+        }),
+      );
+    });
   });
 });

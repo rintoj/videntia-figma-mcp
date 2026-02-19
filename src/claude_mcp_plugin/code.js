@@ -6841,7 +6841,7 @@ async function setSelections(params) {
 }
 
 async function createFromData(params) {
-  const { data, parentId, nextToId, x, y } = params || {};
+  const { data, parentId, nextToId, x, y, replaceChildren } = params || {};
   if (!Array.isArray(data) || data.length === 0) {
     throw new Error("create_from_data requires a non-empty 'data' array");
   }
@@ -7069,8 +7069,8 @@ async function createFromData(params) {
             node = undefined;
             isUpdate = false;
           } else {
-            // If the element has children in JSX, remove existing children first
-            if (nodeData.children && nodeData.children.length > 0 && "children" in node) {
+            // Only replace children when explicitly requested via replaceChildren param
+            if (replaceChildren && nodeData.children && nodeData.children.length > 0 && "children" in node) {
               for (let i = node.children.length - 1; i >= 0; i--) {
                 node.children[i].remove();
               }
@@ -7365,7 +7365,9 @@ async function createFromData(params) {
     }
 
     // Recursively create children (unless already handled, e.g. COMPONENT_SET)
-    if (!skipChildRecursion && nodeData.children && nodeData.children.length > 0) {
+    // When updating without replaceChildren, skip child creation to preserve existing children
+    const skipChildrenForUpdate = isUpdate && !replaceChildren;
+    if (!skipChildRecursion && !skipChildrenForUpdate && nodeData.children && nodeData.children.length > 0) {
       for (const child of nodeData.children) {
         await createNode(child, node, false);
       }
