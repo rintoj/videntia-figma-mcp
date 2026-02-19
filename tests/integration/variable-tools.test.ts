@@ -95,7 +95,7 @@ describe("variable tools integration", () => {
         defaultMode: "dark"
       });
       expect(response.content[0].text).toContain("Theme");
-      expect(response.content[0].text).toContain("success");
+      expect(response.content[0].text).toContain("Created collection");
     });
 
     it("accepts custom default mode", async () => {
@@ -191,7 +191,7 @@ describe("variable tools integration", () => {
         variables: expect.any(Array),
         mode: undefined
       });
-      expect(response.content[0].text).toContain('"created": 2');
+      expect(response.content[0].text).toContain("Created 2 variable(s)");
     });
   });
 
@@ -221,8 +221,8 @@ describe("variable tools integration", () => {
         mix_percentage: 0.5
       });
 
-      expect(response.content[0].text).toContain("result");
-      expect(response.content[0].text).toContain("hex");
+      expect(response.content[0].text).toContain("Composite Color");
+      expect(response.content[0].text).toContain("Hex");
     });
   });
 
@@ -245,9 +245,9 @@ describe("variable tools integration", () => {
         background: { r: 0.0, g: 0.0, b: 0.0 }
       });
 
-      expect(response.content[0].text).toContain("ratio");
-      expect(response.content[0].text).toContain("wcag");
-      expect(response.content[0].text).toContain("recommendation");
+      expect(response.content[0].text).toContain("Contrast Ratio");
+      expect(response.content[0].text).toContain("WCAG");
+      expect(response.content[0].text).toContain("Recommendation");
     });
   });
 
@@ -326,7 +326,7 @@ describe("variable tools integration", () => {
         overwriteExisting: false,
         includeChartColors: false
       });
-      expect(response.content[0].text).toContain("success");
+      expect(response.content[0].text).toContain("Applied default theme");
     });
   });
 
@@ -353,7 +353,7 @@ describe("variable tools integration", () => {
       });
 
       expect(mockSendCommand).toHaveBeenCalled();
-      expect(response.content[0].text).toContain("success");
+      expect(response.content[0].text).toContain("Created color scale");
     });
   });
 
@@ -383,7 +383,7 @@ describe("variable tools integration", () => {
         useDefaultValues: true,
         dryRun: false
       });
-      expect(response.content[0].text).toContain("success");
+      expect(response.content[0].text).toContain("Fixed collection to standard");
     });
 
     it("supports dry run mode", async () => {

@@ -222,12 +222,13 @@ export function registerModificationTools(server: McpServer): void {
     },
     async ({ nodeIds }) => {
       try {
-        const result = await sendCommandToFigma("delete_multiple_nodes", { nodeIds });
+        const result = await sendCommandToFigma("delete_multiple_nodes", { nodeIds }) as any;
+        const deleted = result?.deletedCount ?? result?.deleted ?? nodeIds.length;
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result)
+              text: `Deleted ${deleted} node(s)`,
             }
           ]
         };
@@ -737,12 +738,12 @@ export function registerModificationTools(server: McpServer): void {
           name,
           effects,
           description
-        });
+        }) as any;
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result, null, 2)
+              text: `Created effect style "${result.name || name}" (ID: ${result.styleId || result.id || "-"})`,
             }
           ]
         };
@@ -776,12 +777,12 @@ export function registerModificationTools(server: McpServer): void {
           name,
           effects,
           description
-        });
+        }) as any;
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result, null, 2)
+              text: `Updated effect style "${result.name || name || "-"}" (ID: ${result.styleId || styleId})`,
             }
           ]
         };
@@ -807,14 +808,14 @@ export function registerModificationTools(server: McpServer): void {
     },
     async ({ styleId }) => {
       try {
-        const result = await sendCommandToFigma("delete_effect_style", {
+        await sendCommandToFigma("delete_effect_style", {
           styleId
         });
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result, null, 2)
+              text: `Deleted effect style (ID: ${styleId})`,
             }
           ]
         };

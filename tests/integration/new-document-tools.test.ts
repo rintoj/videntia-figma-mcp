@@ -254,7 +254,7 @@ describe("new document tools integration", () => {
         categoryId: undefined,
         properties: undefined
       });
-      expect(response.content[0].text).toContain('"success":true');
+      expect(response.content[0].text).toContain("Created annotation");
     });
 
     it("accepts optional parameters", async () => {

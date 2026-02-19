@@ -64,7 +64,7 @@ describe("new modification tools integration", () => {
       expect(mockSendCommand).toHaveBeenCalledWith("delete_multiple_nodes", {
         nodeIds: ["node-1", "node-2", "node-3"]
       });
-      expect(response.content[0].text).toContain("node-1");
+      expect(response.content[0].text).toContain("Deleted 3 node(s)");
     });
 
     it("requires nodeIds parameter", async () => {

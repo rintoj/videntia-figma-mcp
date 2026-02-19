@@ -162,14 +162,24 @@ export function registerComponentTools(server: McpServer): void {
     },
     async ({ nodeIds }) => {
       try {
-        const result = await sendCommandToFigma("get_reactions", { nodeIds });
+        const result = await sendCommandToFigma("get_reactions", { nodeIds }) as any;
+        const nodes = Array.isArray(result) ? result : result?.nodes || [];
+        const total = nodes.reduce((sum: number, n: any) => sum + (n.reactions?.length || 0), 0);
+        const lines: string[] = [`Found ${total} reaction(s) across ${nodes.length} node(s)`];
+        for (const n of nodes) {
+          if (!n.reactions?.length) continue;
+          lines.push(`\n**${n.nodeName || n.nodeId}** (${n.reactions.length} reaction${n.reactions.length > 1 ? "s" : ""}):`);
+          for (const r of n.reactions) {
+            const trigger = r.trigger?.type || "unknown";
+            const action = r.action?.type || "unknown";
+            const dest = r.action?.destinationId || "-";
+            lines.push(`- ${trigger} → ${action} (dest: ${dest})`);
+          }
+        }
+        lines.push("", "Use 'reaction_to_connector_strategy' prompt to prepare parameters");
         return {
           content: [
-            { type: "text", text: JSON.stringify(result) },
-            {
-              type: "text",
-              text: "Use 'reaction_to_connector_strategy' prompt to prepare parameters"
-            }
+            { type: "text", text: lines.join("\n") },
           ]
         };
       } catch (error) {
@@ -562,11 +572,24 @@ export function registerComponentTools(server: McpServer): void {
           nodeType: string;
           properties: Record<string, object>;
         };
+        const props = typedResult.properties || {};
+        const propEntries = Object.entries(props);
+        const lines: string[] = [
+          `## ${typedResult.nodeName || "-"} (${typedResult.nodeType || "-"})`,
+          `Properties: ${propEntries.length}`,
+        ];
+        if (propEntries.length > 0) {
+          lines.push("", "| Property | Type | Default |", "|----------|------|---------|");
+          for (const [name, prop] of propEntries) {
+            const p = prop as any;
+            lines.push(`| ${name} | ${p.type || "-"} | ${p.defaultValue ?? "-"} |`);
+          }
+        }
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(typedResult, null, 2),
+              text: lines.join("\n"),
             },
           ],
         };

@@ -66,8 +66,8 @@ describe("new component tools integration", () => {
       expect(mockSendCommand).toHaveBeenCalledWith("get_reactions", {
         nodeIds: ["btn-1", "btn-2"]
       });
-      expect(response.content[0].text).toContain("btn-1");
-      expect(response.content[1].text).toContain("reaction_to_connector_strategy");
+      expect(response.content[0].text).toContain("reaction(s)");
+      expect(response.content[0].text).toContain("reaction_to_connector_strategy");
     });
 
     it("requires nodeIds parameter", async () => {

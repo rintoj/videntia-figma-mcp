@@ -22,12 +22,23 @@ export function registerDocumentTools(server: McpServer): void {
     {},
     async () => {
       try {
-        const result = await sendCommandToFigma("get_document_info");
+        const result = await sendCommandToFigma("get_document_info") as any;
+        const pages = result.pages || [];
+        const lines: string[] = [
+          `## ${result.name || "Untitled"} (ID: ${result.id || "-"})`,
+          `Pages: ${pages.length}`,
+        ];
+        if (pages.length > 0) {
+          lines.push("");
+          lines.push("| Page | ID |");
+          lines.push("|------|----|");
+          for (const p of pages) lines.push(`| ${p.name || "-"} | ${p.id || "-"} |`);
+        }
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result)
+              text: lines.join("\n")
             }
           ]
         };
@@ -255,12 +266,13 @@ export function registerDocumentTools(server: McpServer): void {
           labelMarkdown,
           categoryId,
           properties
-        });
+        }) as any;
+        const action = annotationId != null ? "Updated" : "Created";
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result)
+              text: `${action} annotation on node "${result.nodeName || nodeId}" (index: ${result.annotationIndex ?? annotationId ?? 0})`
             }
           ]
         };
@@ -415,11 +427,12 @@ export function registerDocumentTools(server: McpServer): void {
           label,
           color
         });
+        const r = result as any;
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result)
+              text: `Created annotation category "${r.label || label}" (ID: ${r.categoryId || r.id || "-"}, color: ${r.color || color})`,
             }
           ]
         };
@@ -454,11 +467,12 @@ export function registerDocumentTools(server: McpServer): void {
           label,
           color
         });
+        const r = result as any;
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result)
+              text: `Updated annotation category "${r.label || label || "-"}" (ID: ${r.categoryId || categoryId})`,
             }
           ]
         };
@@ -491,7 +505,7 @@ export function registerDocumentTools(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result)
+              text: `Deleted annotation category (ID: ${categoryId})`,
             }
           ]
         };
@@ -1251,15 +1265,7 @@ export function registerDocumentTools(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: JSON.stringify({
-                success: true,
-                nodeId,
-                fileKey: resolvedFileKey,
-                format,
-                scale,
-                imageUrl,
-                expiresIn: "30 days (Figma CDN URLs are temporary)",
-              }, null, 2),
+              text: `Exported node ${nodeId} as ${format.toUpperCase()} (scale: ${scale}x)\n\nURL: ${imageUrl}\n\nNote: CDN URL expires in ~30 days.`,
             },
           ],
         };

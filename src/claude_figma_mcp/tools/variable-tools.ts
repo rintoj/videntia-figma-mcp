@@ -107,12 +107,12 @@ export function registerVariableTools(server: McpServer): void {
         const result = await sendCommandToFigma("create_variable_collection", {
           name,
           defaultMode: default_mode || "dark"
-        });
+        }) as any;
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result, null, 2)
+              text: `Created collection "${result.name || name}" (ID: ${result.collectionId || result.id || "-"})`
             }
           ]
         };
@@ -185,12 +185,12 @@ export function registerVariableTools(server: McpServer): void {
         const result = await sendCommandToFigma("rename_variable_collection", {
           collectionId: collection_id,
           newName: new_name
-        });
+        }) as any;
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result, null, 2)
+              text: `Renamed collection to "${result.newName || new_name}" (ID: ${result.collectionId || collection_id})`
             }
           ]
         };
@@ -220,12 +220,12 @@ export function registerVariableTools(server: McpServer): void {
       try {
         const result = await sendCommandToFigma("delete_variable_collection", {
           collectionId: collection_id
-        });
+        }) as any;
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result, null, 2)
+              text: `Deleted collection (ID: ${result.collectionId || collection_id})`
             }
           ]
         };
@@ -272,12 +272,12 @@ export function registerVariableTools(server: McpServer): void {
           type,
           value,
           mode
-        });
+        }) as any;
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result, null, 2)
+              text: `Created ${type} variable "${result.name || name}" (ID: ${result.variableId || result.id || "-"})`
             }
           ]
         };
@@ -315,12 +315,14 @@ export function registerVariableTools(server: McpServer): void {
           collectionId: collection_id,
           variables,
           mode
-        });
+        }) as any;
+        const created = result.created ?? result.variableIds?.length ?? variables.length;
+        const failed = result.failed ?? 0;
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result, null, 2)
+              text: `Created ${created} variable(s)${failed > 0 ? `, ${failed} failed` : ""}`
             }
           ]
         };
@@ -361,12 +363,12 @@ export function registerVariableTools(server: McpServer): void {
           collectionId: collection_id,
           value,
           mode
-        });
+        }) as any;
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result, null, 2)
+              text: `Updated variable "${result.name || variable_id}" value${mode ? ` (mode: ${mode})` : ""}`
             }
           ]
         };
@@ -400,12 +402,12 @@ export function registerVariableTools(server: McpServer): void {
           variableId: variable_id,
           collectionId: collection_id,
           newName: new_name
-        });
+        }) as any;
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result, null, 2)
+              text: `Renamed variable to "${result.newName || new_name}" (ID: ${result.variableId || variable_id})`
             }
           ]
         };
@@ -437,12 +439,12 @@ export function registerVariableTools(server: McpServer): void {
         const result = await sendCommandToFigma("delete_variable", {
           variableId: variable_id,
           collectionId: collection_id
-        });
+        }) as any;
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result, null, 2)
+              text: `Deleted variable (ID: ${result.variableId || variable_id})`
             }
           ]
         };
@@ -474,12 +476,13 @@ export function registerVariableTools(server: McpServer): void {
         const result = await sendCommandToFigma("delete_variables_batch", {
           variableIds: variable_ids,
           collectionId: collection_id
-        });
+        }) as any;
+        const deleted = result.deleted ?? result.deletedCount ?? variable_ids.length;
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result, null, 2)
+              text: `Deleted ${deleted} variable(s)`
             }
           ]
         };
@@ -570,11 +573,7 @@ export function registerVariableTools(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: JSON.stringify({
-                result,
-                formula: `(base × ${mix_percentage}) + (background × ${1 - mix_percentage})`,
-                hex
-              }, null, 2)
+              text: `## Composite Color\n- **Formula**: (base x ${mix_percentage}) + (background x ${1 - mix_percentage})\n- **Result**: ${formatColorValue(result)}\n- **Hex**: ${hex}`
             }
           ]
         };
@@ -605,17 +604,14 @@ export function registerVariableTools(server: McpServer): void {
     async ({ color, from_format, to_format }) => {
       try {
         const output = convertColorFormat(color as any, from_format, to_format);
+        const outputStr = typeof output === "object" ? formatColorValue(output) : String(output);
+        const inputStr = typeof color === "object" ? formatColorValue(color) : String(color);
 
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify({
-                input: color,
-                output,
-                fromFormat: from_format,
-                toFormat: to_format
-              }, null, 2)
+              text: `## Color Conversion (${from_format} → ${to_format})\n- **Input**: ${inputStr}\n- **Output**: ${outputStr}`
             }
           ]
         };
@@ -649,15 +645,12 @@ export function registerVariableTools(server: McpServer): void {
         const wcag = getWCAGCompliance(ratio);
         const recommendation = getContrastRecommendation(ratio);
 
+        const wcagLines = Object.entries(wcag).map(([level, passes]) => `${level}: ${passes ? "Pass" : "Fail"}`).join(", ");
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify({
-                ratio: parseFloat(ratio.toFixed(2)),
-                wcag,
-                recommendation
-              }, null, 2)
+              text: `## Contrast Ratio: ${ratio.toFixed(2)}:1\n- **WCAG**: ${wcagLines}\n- **Recommendation**: ${recommendation}`
             }
           ]
         };
@@ -928,12 +921,15 @@ export function registerVariableTools(server: McpServer): void {
           collectionId: collection_id,
           overwriteExisting: overwrite_existing || false,
           includeChartColors: include_chart_colors || false
-        });
+        }) as any;
+        const created = result.created ?? "-";
+        const skipped = result.skipped ?? 0;
+        const updated = result.updated ?? 0;
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result, null, 2)
+              text: `Applied default theme — ${created} created, ${updated} updated, ${skipped} skipped`
             }
           ]
         };
@@ -973,12 +969,13 @@ export function registerVariableTools(server: McpServer): void {
           foregroundColor: foreground_color,
           backgroundColor: background_color,
           mode
-        });
+        }) as any;
+        const created = result.created ?? result.variableCount ?? "-";
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result, null, 2)
+              text: `Created color scale "${color_name}" — ${created} variables (base + foreground + 10 scale levels)`
             }
           ]
         };
@@ -1017,12 +1014,13 @@ export function registerVariableTools(server: McpServer): void {
           palette,
           backgroundColor: background_color,
           regenerateScales: regenerate_scales !== false
-        });
+        }) as any;
+        const colorCount = Object.keys(palette).length;
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result, null, 2)
+              text: `Applied custom palette — ${colorCount} color(s) updated${regenerate_scales !== false ? ", scales regenerated" : ""}`
             }
           ]
         };
@@ -1058,12 +1056,13 @@ export function registerVariableTools(server: McpServer): void {
         const result = await sendCommandToFigma("reorder_variables", {
           collectionId: collection_id,
           order: order || "standard"
-        });
+        }) as any;
+        const reordered = result.reordered ?? result.count ?? "-";
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result, null, 2)
+              text: `Reordered ${reordered} variable(s) to ${order === "standard" || !order ? "standard" : "custom"} order`
             }
           ]
         };
@@ -1177,12 +1176,14 @@ export function registerVariableTools(server: McpServer): void {
           schema,
           mode,
           overwriteExisting: overwrite_existing || false
-        });
+        }) as any;
+        const imported = result.imported ?? result.created ?? "-";
+        const skipped = result.skipped ?? 0;
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result, null, 2)
+              text: `Imported schema — ${imported} variable(s) created${skipped > 0 ? `, ${skipped} skipped` : ""}`
             }
           ]
         };
@@ -1220,12 +1221,14 @@ export function registerVariableTools(server: McpServer): void {
           collectionId: collection_id,
           baseColors: base_colors,
           backgroundColor: background_color
-        });
+        }) as any;
+        const colorNames = Object.keys(base_colors);
+        const totalVars = result.totalCreated ?? colorNames.length * 10;
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result, null, 2)
+              text: `Created all scales — ${colorNames.length} color(s) (${colorNames.join(", ")}), ${totalVars} variables total`
             }
           ]
         };
@@ -1263,12 +1266,17 @@ export function registerVariableTools(server: McpServer): void {
           addChartColors: add_chart_colors || false,
           useDefaultValues: use_default_values !== false,
           dryRun: dry_run || false
-        });
+        }) as any;
+        const actions = result.actions || {};
+        const added = actions.variablesAdded ?? result.added ?? "-";
+        const removed = actions.variablesRemoved ?? result.removed ?? 0;
+        const status = result.result?.status ?? result.status ?? "-";
+        const prefix = dry_run ? "[DRY RUN] " : "";
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result, null, 2)
+              text: `${prefix}Fixed collection to standard — ${added} added, ${removed} removed, status: ${status}`
             }
           ]
         };
@@ -1300,12 +1308,13 @@ export function registerVariableTools(server: McpServer): void {
         const result = await sendCommandToFigma("add_chart_colors", {
           collectionId: collection_id,
           chartColors: chart_colors
-        });
+        }) as any;
+        const count = result.created ?? result.count ?? 8;
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result, null, 2)
+              text: `Added ${count} chart color(s) to collection`
             }
           ]
         };
@@ -1341,12 +1350,12 @@ export function registerVariableTools(server: McpServer): void {
         const result = await sendCommandToFigma("add_mode_to_collection", {
           collectionId: collection_id,
           modeName: mode_name
-        });
+        }) as any;
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result, null, 2)
+              text: `Added mode "${result.modeName || mode_name}" to collection (ID: ${result.modeId || "-"})`
             }
           ]
         };
@@ -1380,12 +1389,12 @@ export function registerVariableTools(server: McpServer): void {
           collectionId: collection_id,
           oldModeName: old_mode_name,
           newModeName: new_mode_name
-        });
+        }) as any;
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result, null, 2)
+              text: `Renamed mode from "${old_mode_name}" to "${result.newModeName || new_mode_name}"`
             }
           ]
         };
@@ -1417,12 +1426,12 @@ export function registerVariableTools(server: McpServer): void {
         const result = await sendCommandToFigma("delete_mode", {
           collectionId: collection_id,
           modeName: mode_name
-        });
+        }) as any;
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result, null, 2)
+              text: `Deleted mode "${mode_name}" from collection`
             }
           ]
         };
@@ -1460,12 +1469,13 @@ export function registerVariableTools(server: McpServer): void {
           sourceMode: source_mode,
           targetMode: target_mode,
           transformColors: transform_colors
-        });
+        }) as any;
+        const count = result.variablesCopied ?? result.count ?? "-";
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result, null, 2)
+              text: `Copied ${count} variable values from "${source_mode}" to "${target_mode}"`
             }
           ]
         };
@@ -1520,19 +1530,24 @@ export function registerVariableTools(server: McpServer): void {
         const semanticTokens = include_semantic ? generateSemanticSpacing() : {};
         semanticCount = Object.keys(semanticTokens).length;
 
+        const varNames = primitiveVars.map(v => v.name);
+        const lines: string[] = [
+          `## Spacing System (${preset})`,
+          `Created ${primitiveVars.length} primitive variable(s)`,
+          "",
+          "| Variable | Value |",
+          "|----------|-------|",
+        ];
+        for (const v of primitiveVars) lines.push(`| ${v.name} | ${v.value} |`);
+        if (semanticCount > 0) {
+          lines.push("");
+          lines.push(`${semanticCount} semantic token(s) available for manual aliasing`);
+        }
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify({
-                success: true,
-                primitiveCount: primitiveVars.length,
-                primitiveVariables: primitiveVars.map(v => v.name),
-                semanticTokensAvailable: semanticCount,
-                semanticTokens: include_semantic ? semanticTokens : undefined,
-                preset,
-                note: "Semantic tokens listed above should be created as aliases manually or wait for aliasing feature"
-              }, null, 2)
+              text: lines.join("\n")
             }
           ]
         };
@@ -1607,22 +1622,24 @@ export function registerVariableTools(server: McpServer): void {
 
         const semanticTokens = include_semantic ? generateSemanticTypography() : {};
 
+        const semanticCount = Object.keys(semanticTokens).length;
+        const lines: string[] = [
+          `## Typography System (${scale_preset})`,
+          `Created ${variables.length} variable(s) — ${Object.keys(typeScale).length} sizes, ${include_weights ? Object.keys(FONT_WEIGHTS).length : 0} weights, ${include_line_heights ? Object.keys(LINE_HEIGHTS).length : 0} line heights`,
+          "",
+          "| Variable | Value |",
+          "|----------|-------|",
+        ];
+        for (const v of variables) lines.push(`| ${v.name} | ${v.value} |`);
+        if (semanticCount > 0) {
+          lines.push("");
+          lines.push(`${semanticCount} semantic token(s) available for manual aliasing`);
+        }
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify({
-                success: true,
-                totalVariables: variables.length,
-                fontSizes: Object.keys(typeScale).length,
-                fontWeights: include_weights ? Object.keys(FONT_WEIGHTS).length : 0,
-                lineHeights: include_line_heights ? Object.keys(LINE_HEIGHTS).length : 0,
-                variables: variables.map(v => v.name),
-                semanticTokensAvailable: Object.keys(semanticTokens).length,
-                semanticTokens: include_semantic ? semanticTokens : undefined,
-                preset: scale_preset,
-                note: "Semantic tokens listed above should be created as aliases manually or wait for aliasing feature"
-              }, null, 2)
+              text: lines.join("\n")
             }
           ]
         };
@@ -1664,16 +1681,19 @@ export function registerVariableTools(server: McpServer): void {
           variables
         });
 
+        const lines: string[] = [
+          `## Radius System (${preset})`,
+          `Created ${variables.length} variable(s)`,
+          "",
+          "| Variable | Value |",
+          "|----------|-------|",
+        ];
+        for (const v of variables) lines.push(`| ${v.name} | ${v.value} |`);
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify({
-                success: true,
-                totalVariables: variables.length,
-                variables: variables.map(v => v.name),
-                preset
-              }, null, 2)
+              text: lines.join("\n")
             }
           ]
         };

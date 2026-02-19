@@ -79,8 +79,7 @@ describe("mode management tools", () => {
         modeName: "Dark"
       });
       expect(response.content[0].text).toContain("Dark");
-      expect(response.content[0].text).toContain("success");
-      expect(response.content[0].text).toContain("totalModes");
+      expect(response.content[0].text).toContain("Added mode");
     });
 
     it("accepts collection name instead of ID", async () => {
@@ -135,7 +134,7 @@ describe("mode management tools", () => {
       });
       expect(response.content[0].text).toContain("Mode 1");
       expect(response.content[0].text).toContain("Light");
-      expect(response.content[0].text).toContain("success");
+      expect(response.content[0].text).toContain("Renamed mode");
     });
 
     it("validates both old and new names are provided", async () => {
@@ -182,8 +181,7 @@ describe("mode management tools", () => {
         modeName: "Deprecated"
       });
       expect(response.content[0].text).toContain("Deprecated");
-      expect(response.content[0].text).toContain("success");
-      expect(response.content[0].text).toContain("remainingModes");
+      expect(response.content[0].text).toContain("Deleted mode");
     });
 
     it("handles error when trying to delete last mode", async () => {
@@ -241,7 +239,7 @@ describe("mode management tools", () => {
       expect(response.content[0].text).toContain("Light");
       expect(response.content[0].text).toContain("Dark");
       expect(response.content[0].text).toContain("50");
-      expect(response.content[0].text).toContain("success");
+      expect(response.content[0].text).toContain("Copied");
     });
 
     it("successfully duplicates with brightness adjustment", async () => {
@@ -262,7 +260,7 @@ describe("mode management tools", () => {
           brightness_adjustment: -0.2
         }
       });
-      expect(response.content[0].text).toContain("variablesTransformed");
+      expect(response.content[0].text).toContain("Copied");
     });
 
     it("validates source and target modes are different", async () => {
