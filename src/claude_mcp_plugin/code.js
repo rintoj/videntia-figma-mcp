@@ -6994,13 +6994,40 @@ async function createFromData(params) {
 
   // Build a Figma effect from FigmaNodeEffect data
   function buildFigmaEffect(effectData) {
-    const effect = { type: effectData.type, visible: true };
+    const type = effectData.type;
+
+    if (type === "DROP_SHADOW" || type === "INNER_SHADOW") {
+      const color = effectData.color
+        ? Object.assign(parseColor(effectData.color), { a: parseOpacity(effectData.color) })
+        : { r: 0, g: 0, b: 0, a: 0.25 };
+      return {
+        type,
+        color,
+        offset: effectData.offset || { x: 0, y: 0 },
+        radius: effectData.radius || 0,
+        spread: effectData.spread || 0,
+        visible: effectData.visible !== undefined ? effectData.visible : true,
+        blendMode: effectData.blendMode || "NORMAL",
+      };
+    }
+
+    if (type === "LAYER_BLUR" || type === "BACKGROUND_BLUR") {
+      return {
+        type,
+        radius: effectData.radius || 0,
+        visible: effectData.visible !== undefined ? effectData.visible : true,
+      };
+    }
+
+    // Fallback for other effect types
+    const effect = { type, visible: true };
     if (effectData.radius !== undefined) effect.radius = effectData.radius;
     if (effectData.offset) effect.offset = { x: effectData.offset.x, y: effectData.offset.y };
     if (effectData.spread !== undefined) effect.spread = effectData.spread;
     if (effectData.color) {
       effect.color = Object.assign(parseColor(effectData.color), { a: parseOpacity(effectData.color) });
     }
+    if (effectData.blendMode) effect.blendMode = effectData.blendMode;
     return effect;
   }
 
