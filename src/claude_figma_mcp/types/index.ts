@@ -314,6 +314,7 @@ export interface FigmaNodeData {
   textCase?: "ORIGINAL" | "UPPER" | "LOWER" | "TITLE";
   textDecoration?: "NONE" | "UNDERLINE" | "STRIKETHROUGH";
   textStyleName?: string;
+  effectStyleName?: string;
   // Appearance
   opacity?: number;
   rotation?: number;

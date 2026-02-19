@@ -6870,6 +6870,17 @@ async function createFromData(params) {
     console.warn("Failed to load local text styles:", e);
   }
 
+  // Build effect style name → style object map
+  const effectStyleMap = new Map();
+  try {
+    const localEffects = await figma.getLocalEffectStylesAsync();
+    for (const s of localEffects) {
+      effectStyleMap.set(s.name, s);
+    }
+  } catch (e) {
+    console.warn("Failed to load local effect styles:", e);
+  }
+
   // Resolve parent
   let parent;
   if (parentId) {
@@ -7319,6 +7330,12 @@ async function createFromData(params) {
       node.effects = nodeData.effects.map(e => buildFigmaEffect(e));
     }
 
+    // Apply effect style if present
+    if (nodeData.effectStyleName) {
+      const eStyle = effectStyleMap.get(nodeData.effectStyleName);
+      if (eStyle) node.effectStyleId = eStyle.id;
+    }
+
     // Opacity
     if (nodeData.opacity !== undefined) node.opacity = nodeData.opacity;
 
@@ -7434,6 +7451,17 @@ async function readMyDesign(params) {
     }
   } catch (e) {
     // Text styles API may not be available
+  }
+
+  // Build effect style ID → name map once
+  const effectStyleMap = new Map();
+  try {
+    const localEffects = await figma.getLocalEffectStylesAsync();
+    for (const s of localEffects) {
+      effectStyleMap.set(s.id, s.name);
+    }
+  } catch (e) {
+    // Effect styles API may not be available
   }
 
   // Helper: convert Figma color {r,g,b,a} (0-1) to hex or rgba string
@@ -7600,6 +7628,12 @@ async function readMyDesign(params) {
     // Effects
     const effects = extractEffects(node);
     if (effects) info.effects = effects;
+
+    // Resolve effect style name
+    if (node.effectStyleId && node.effectStyleId !== '' && node.effectStyleId !== figma.mixed) {
+      var esName = effectStyleMap.get(node.effectStyleId);
+      if (esName) info.effectStyleName = esName;
+    }
 
     // Text properties
     if (node.type === 'TEXT') {
