@@ -8691,6 +8691,9 @@ async function setupDesignSystem(params) {
   var requiredPages = (params && Array.isArray(params.pages) && params.pages.length > 0)
     ? params.pages
     : ["Screens", "Components", "Draft"];
+
+  // Load all pages so we can inspect children
+  await figma.loadAllPagesAsync();
   var existingPages = figma.root.children;
 
   // Build lowercase lookup of existing page names
