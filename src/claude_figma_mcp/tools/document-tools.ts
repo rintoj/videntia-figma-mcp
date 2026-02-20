@@ -36,6 +36,106 @@ import {
   truncate,
 } from "../utils/format-helpers.js";
 
+/**
+ * Purpose descriptions for known design tokens.
+ * Used as fallback when Figma variable/style has no description set.
+ */
+export const TOKEN_PURPOSE_MAP: Record<string, string> = {
+  // Background
+  "background/primary": "Main app background, root screen fill",
+  "background/secondary": "Cards, elevated sections, sidebar panels",
+  "background/tertiary": "Subtle fills, image placeholders, input fields",
+  "background/inverse": "Inverted hero sections, highlight banners",
+  // Text
+  "text/primary": "Headings, primary labels, high-emphasis content",
+  "text/secondary": "Descriptions, subtitles, supporting copy",
+  "text/tertiary": "Hints, placeholders, disabled labels",
+  "text/inverse": "Text on bright backgrounds (brand/primary, inverse)",
+  "text/body": "Long-form body paragraphs, readable content",
+  "text/muted": "De-emphasized metadata, timestamps, footnotes",
+  "text/link": "Clickable links, inline actions",
+  // Brand
+  "brand/primary": "Primary brand accent, hero highlights, key CTAs",
+  "brand/secondary": "Secondary accent, badges, notifications, emphasis",
+  "brand/accent": "Cool accent, data visualization, progress indicators",
+  "brand/button": "Primary button fills, prominent action backgrounds",
+  "brand/primary/subtle": "Soft brand tint for tags, selected states, hover fills",
+  "brand/accent/subtle": "Soft accent tint for info badges, active indicators",
+  // Semantic
+  "semantic/success": "Success icons, confirmation text, positive indicators",
+  "semantic/warning": "Warning icons, caution text, attention signals",
+  "semantic/error": "Error text, destructive actions, validation failures",
+  "semantic/info": "Info icons, help text, neutral status indicators",
+  "semantic/success/subtle": "Success banner backgrounds, positive row highlights",
+  "semantic/warning/subtle": "Warning banner backgrounds, caution row highlights",
+  "semantic/error/subtle": "Error banner backgrounds, destructive row highlights",
+  "semantic/info/subtle": "Info banner backgrounds, neutral row highlights",
+  // Border
+  "border/default": "Standard card/input borders, dividers",
+  "border/subtle": "Soft dividers, section separators",
+  "border/strong": "Emphasized borders, active input outlines",
+  "border/strong/light": "High-contrast borders, focused states",
+  "border/subtle/dark": "Near-invisible separators, nested card edges",
+  "border/success": "Success state borders, confirmation outlines",
+  "border/warning": "Warning state borders, caution outlines",
+  "border/error": "Error state borders, validation outlines",
+  "border/info": "Info state borders, help outlines",
+  // Preview
+  "preview/sidebar": "Sidebar background in preview/demo mode",
+  "preview/nav/inactive": "Inactive nav items in preview/demo mode",
+  "preview/content/bg": "Content area background in preview/demo mode",
+  // Spacing
+  "space/0": "No spacing, flush elements",
+  "space/1": "Tight — icon-to-label, badge padding",
+  "space/2": "Small — inline elements, compact lists",
+  "space/3": "Default — form field gaps, card inner padding",
+  "space/4": "Medium — standard card padding, section inner gaps",
+  "space/5": "Comfortable — generous card padding",
+  "space/6": "Relaxed — section padding, group separation",
+  "space/8": "Large — major section breaks",
+  "space/10": "XL — hero padding, dramatic breathing room",
+  "space/12": "Section — top-level section dividers",
+  "space/16": "Page — page-level vertical rhythm, hero whitespace",
+  // Radius
+  "radius/none": "Sharp corners — dividers, full-bleed sections",
+  "radius/sm": "Inputs, small buttons, chips, tags",
+  "radius/md": "Cards, standard buttons, dropdowns",
+  "radius/lg": "Large cards, image containers, panels",
+  "radius/xl": "Modals, bottom sheets, feature cards",
+  "radius/2xl": "Large modals, hero containers",
+  "radius/full": "Pills, avatars, circular buttons",
+  // Text styles
+  "text/display/lg": "Hero headlines, splash screens, landing page titles",
+  "text/display/md": "Feature section headlines, onboarding titles",
+  "text/display/sm": "Sub-hero text, promotional headings",
+  "text/heading/h1": "Page titles, primary screen headings",
+  "text/heading/h2": "Section titles, card group headers",
+  "text/heading/h3": "Card titles, list group headers",
+  "text/heading/h4": "Sub-section headers, field group labels",
+  "text/body/lg": "Featured descriptions, intro paragraphs",
+  "text/body/md": "Standard body copy, descriptions",
+  "text/body/sm": "Secondary body text, supporting details",
+  "text/label/lg": "Primary button labels, nav items",
+  "text/label/md": "Secondary button labels, tab labels, form labels",
+  "text/label/sm": "Chip labels, badge text, overline text",
+  "text/caption/l1": "Timestamps, metadata, helper text",
+  "text/caption/l2": "Fine print, legal text, footnotes",
+  // Effect styles
+  "shadow/subtle": "Slight lift — hover states, subtle card edges",
+  "shadow/sm": "Cards, tiles, content panels",
+  "shadow/md": "Dropdowns, popovers, floating menus",
+  "shadow/lg": "Modals, dialogs, bottom sheets",
+  "shadow/xl": "Toasts, snackbars, high-priority alerts",
+};
+
+/**
+ * Get purpose for a token name. Falls back to "-" if not found.
+ */
+export function getTokenPurpose(name: string, figmaDescription?: string): string {
+  if (figmaDescription) return figmaDescription;
+  return TOKEN_PURPOSE_MAP[name] || "-";
+}
+
 /** Parsed style guide reference with expected names */
 interface StyleGuideReference {
   variables: string[];
@@ -1383,7 +1483,7 @@ export function registerDocumentTools(server: McpServer): void {
           lines.push("|---------------|----------------|---------|----|");
           for (const v of colorVars) {
             const tw = deriveTailwindClass(v.name, "color");
-            const purpose = v.description || "-";
+            const purpose = getTokenPurpose(v.name, v.description);
             lines.push(`| ${sanitizeCell(v.name)} | ${tw} | ${sanitizeCell(purpose)} | ${v.id} |`);
           }
         }
@@ -1399,7 +1499,7 @@ export function registerDocumentTools(server: McpServer): void {
           lines.push("|---------------|----------------|---------|----|");
           for (const v of spacingVars) {
             const tw = deriveTailwindClass(v.name, "spacing");
-            const purpose = v.description || "-";
+            const purpose = getTokenPurpose(v.name, v.description);
             lines.push(`| ${sanitizeCell(v.name)} | ${tw} | ${sanitizeCell(purpose)} | ${v.id} |`);
           }
         }
@@ -1415,7 +1515,7 @@ export function registerDocumentTools(server: McpServer): void {
           lines.push("|---------------|----------------|---------|----|");
           for (const v of radiusVars) {
             const tw = deriveTailwindClass(v.name, "radius");
-            const purpose = v.description || "-";
+            const purpose = getTokenPurpose(v.name, v.description);
             lines.push(`| ${sanitizeCell(v.name)} | ${tw} | ${sanitizeCell(purpose)} | ${v.id} |`);
           }
         }
@@ -1427,12 +1527,13 @@ export function registerDocumentTools(server: McpServer): void {
         if (result.textStyles.length === 0) {
           lines.push("No text styles found.");
         } else {
-          lines.push("| Style Name | Tailwind Class | Font | Size | ID |");
-          lines.push("|------------|----------------|------|------|----|");
+          lines.push("| Style Name | Tailwind Class | Font | Size | Purpose | ID |");
+          lines.push("|------------|----------------|------|------|---------|----|");
           for (const ts of result.textStyles) {
             const tw = deriveTailwindClass(ts.name, "text");
             const font = ts.fontName ? `${ts.fontName.family} ${ts.fontName.style}` : "-";
-            lines.push(`| ${sanitizeCell(ts.name)} | ${tw} | ${font} | ${ts.fontSize} | ${ts.id} |`);
+            const purpose = getTokenPurpose(ts.name);
+            lines.push(`| ${sanitizeCell(ts.name)} | ${tw} | ${font} | ${ts.fontSize} | ${sanitizeCell(purpose)} | ${ts.id} |`);
           }
         }
         lines.push("");
@@ -1443,12 +1544,12 @@ export function registerDocumentTools(server: McpServer): void {
         if (result.effectStyles.length === 0) {
           lines.push("No effect styles found.");
         } else {
-          lines.push("| Style Name | Tailwind Class | Description | ID |");
-          lines.push("|------------|----------------|-------------|----|");
+          lines.push("| Style Name | Tailwind Class | Purpose | ID |");
+          lines.push("|------------|----------------|---------|----|");
           for (const es of result.effectStyles) {
             const tw = deriveTailwindClass(es.name, "effect");
-            const desc = es.description || "-";
-            lines.push(`| ${sanitizeCell(es.name)} | ${tw} | ${sanitizeCell(desc)} | ${es.id} |`);
+            const purpose = getTokenPurpose(es.name, es.description);
+            lines.push(`| ${sanitizeCell(es.name)} | ${tw} | ${sanitizeCell(purpose)} | ${es.id} |`);
           }
         }
         lines.push("");
@@ -1460,7 +1561,7 @@ export function registerDocumentTools(server: McpServer): void {
           lines.push("| Variable Name | Type | Purpose | ID |");
           lines.push("|---------------|------|---------|----|");
           for (const v of otherVars) {
-            const purpose = v.description || "-";
+            const purpose = getTokenPurpose(v.name, v.description);
             lines.push(`| ${sanitizeCell(v.name)} | ${v.resolvedType} | ${sanitizeCell(purpose)} | ${v.id} |`);
           }
           lines.push("");
