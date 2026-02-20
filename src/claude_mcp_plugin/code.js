@@ -8464,10 +8464,31 @@ async function getDesignSystem() {
   var mappedEffectStyles = [];
   for (var ei = 0; ei < effectStyles.length; ei++) {
     var es = effectStyles[ei];
+    var mappedEffects = [];
+    if (es.effects && es.effects.length > 0) {
+      for (var efi = 0; efi < es.effects.length; efi++) {
+        var eff = es.effects[efi];
+        var mappedEff = { type: eff.type, visible: eff.visible };
+        if (eff.color) {
+          mappedEff.color = { r: eff.color.r, g: eff.color.g, b: eff.color.b, a: eff.color.a };
+        }
+        if (eff.offset) {
+          mappedEff.offset = { x: eff.offset.x, y: eff.offset.y };
+        }
+        if (eff.radius !== undefined) {
+          mappedEff.radius = eff.radius;
+        }
+        if (eff.spread !== undefined) {
+          mappedEff.spread = eff.spread;
+        }
+        mappedEffects.push(mappedEff);
+      }
+    }
     mappedEffectStyles.push({
       id: es.id,
       name: es.name,
-      description: es.description !== undefined ? es.description : ""
+      description: es.description !== undefined ? es.description : "",
+      effects: mappedEffects
     });
   }
 
@@ -8489,68 +8510,77 @@ async function getDesignSystem() {
 // ── setup_design_system: create/update entire design system in one call ─────
 
 async function setupDesignSystem(params) {
-  var collectionName = (params && params.collectionName) ? params.collectionName : "Design Tokens";
-  var inputVariables = (params && params.variables) ? params.variables : [];
+  // Support both new multi-collection format and legacy single-collection format
+  var inputCollections = (params && Array.isArray(params.collections) && params.collections.length > 0)
+    ? params.collections
+    : [];
   var inputTextStyles = (params && params.textStyles) ? params.textStyles : [];
   var inputEffectStyles = (params && params.effectStyles) ? params.effectStyles : [];
 
   var varResult = { created: 0, updated: 0, failed: 0, errors: [] };
   var tsResult = { created: 0, updated: 0, failed: 0, errors: [] };
   var esResult = { created: 0, updated: 0, failed: 0, errors: [] };
-  var collectionId = "";
+  var createdCollections = [];
 
-  // --- Variables ---
-  if (inputVariables.length > 0) {
-    // Find or create collection
-    var collections = await figma.variables.getLocalVariableCollectionsAsync();
-    var targetCollection = null;
-    for (var ci = 0; ci < collections.length; ci++) {
-      if (collections[ci].name === collectionName) {
-        targetCollection = collections[ci];
-        break;
-      }
-    }
-    if (!targetCollection) {
-      targetCollection = figma.variables.createVariableCollection(collectionName);
-    }
-    collectionId = targetCollection.id;
-    var defaultModeId = targetCollection.modes[0].modeId;
+  // --- Variables (multiple collections) ---
+  if (inputCollections.length > 0) {
+    var allLocalCollections = await figma.variables.getLocalVariableCollectionsAsync();
+    var allLocalVars = await figma.variables.getLocalVariablesAsync();
 
-    // Build lookup of existing variables in this collection
-    var existingVars = await figma.variables.getLocalVariablesAsync();
-    var varByName = {};
-    for (var evi = 0; evi < existingVars.length; evi++) {
-      var ev = existingVars[evi];
-      if (ev.variableCollectionId === targetCollection.id) {
-        varByName[ev.name] = ev;
-      }
-    }
+    for (var colIdx = 0; colIdx < inputCollections.length; colIdx++) {
+      var colDef = inputCollections[colIdx];
+      var colName = colDef.name || "Design Tokens";
+      var colVars = (colDef.variables && Array.isArray(colDef.variables)) ? colDef.variables : [];
 
-    for (var vi = 0; vi < inputVariables.length; vi++) {
-      var vDef = inputVariables[vi];
-      try {
-        var existing = varByName[vDef.name];
-        if (existing) {
-          // Update existing
-          existing.setValueForMode(defaultModeId, vDef.value);
-          if (vDef.description !== undefined) {
-            existing.description = vDef.description;
-          }
-          varResult.updated++;
-        } else {
-          // Create new
-          var resolvedType = vDef.type === "COLOR" ? "COLOR" : "FLOAT";
-          var newVar = figma.variables.createVariable(vDef.name, targetCollection, resolvedType);
-          newVar.setValueForMode(defaultModeId, vDef.value);
-          if (vDef.description !== undefined) {
-            newVar.description = vDef.description;
-          }
-          varByName[vDef.name] = newVar;
-          varResult.created++;
+      // Find or create collection
+      var targetCollection = null;
+      for (var ci = 0; ci < allLocalCollections.length; ci++) {
+        if (allLocalCollections[ci].name === colName) {
+          targetCollection = allLocalCollections[ci];
+          break;
         }
-      } catch (e) {
-        varResult.failed++;
-        varResult.errors.push({ name: vDef.name, error: e.message || String(e) });
+      }
+      if (!targetCollection) {
+        targetCollection = figma.variables.createVariableCollection(colName);
+        allLocalCollections.push(targetCollection);
+      }
+      createdCollections.push({ id: targetCollection.id, name: colName });
+      var defaultModeId = targetCollection.modes[0].modeId;
+
+      // Build lookup of existing variables in this collection
+      var varByName = {};
+      for (var evi = 0; evi < allLocalVars.length; evi++) {
+        var ev = allLocalVars[evi];
+        if (ev.variableCollectionId === targetCollection.id) {
+          varByName[ev.name] = ev;
+        }
+      }
+
+      for (var vi = 0; vi < colVars.length; vi++) {
+        var vDef = colVars[vi];
+        try {
+          var existing = varByName[vDef.name];
+          if (existing) {
+            existing.setValueForMode(defaultModeId, vDef.value);
+            if (vDef.description !== undefined) {
+              existing.description = vDef.description;
+            }
+            varResult.updated++;
+          } else {
+            var resolvedType = vDef.type === "COLOR" ? "COLOR" : "FLOAT";
+            var newVar = figma.variables.createVariable(vDef.name, targetCollection, resolvedType);
+            newVar.setValueForMode(defaultModeId, vDef.value);
+            if (vDef.description !== undefined) {
+              newVar.description = vDef.description;
+            }
+            varByName[vDef.name] = newVar;
+            allLocalVars.push(newVar);
+            varResult.created++;
+          }
+        } catch (e) {
+          varResult.failed++;
+          varResult.errors.push({ name: colName + "/" + vDef.name, error: e.message || String(e) });
+        }
       }
     }
   }
@@ -8698,7 +8728,7 @@ async function setupDesignSystem(params) {
   }
 
   return {
-    collectionId: collectionId,
+    collections: createdCollections,
     pages: finalPages,
     variables: varResult,
     textStyles: tsResult,

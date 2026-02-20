@@ -23,6 +23,7 @@ import type {
   GetDesignSystemResult,
   DesignSystemVariable,
   DesignSystemTextStyle,
+  DesignSystemEffect,
   DesignSystemEffectStyle,
   SetupDesignSystemResult,
 } from "../types/index.js";
@@ -184,6 +185,32 @@ export function deriveTailwindClass(name: string, type: "color" | "spacing" | "r
     default:
       return `bg-${normalized.replace(/\//g, "-")}`;
   }
+}
+
+/**
+ * Format effect style effects into a compact CSS-like string.
+ * e.g. "drop-shadow(0 2 4 0 rgba(0,0,0,0.10))"
+ */
+function formatEffectValue(effects: DesignSystemEffect[]): string {
+  if (!effects || effects.length === 0) return "-";
+  return effects.map((e) => {
+    const type = e.type === "DROP_SHADOW" ? "drop-shadow"
+      : e.type === "INNER_SHADOW" ? "inner-shadow"
+      : e.type === "LAYER_BLUR" ? "blur"
+      : e.type === "BACKGROUND_BLUR" ? "bg-blur"
+      : e.type;
+    if (e.type === "LAYER_BLUR" || e.type === "BACKGROUND_BLUR") {
+      return `${type}(${e.radius !== undefined ? e.radius : 0})`;
+    }
+    const ox = e.offset ? e.offset.x : 0;
+    const oy = e.offset ? e.offset.y : 0;
+    const r = e.radius !== undefined ? e.radius : 0;
+    const s = e.spread !== undefined ? e.spread : 0;
+    const c = e.color
+      ? `rgba(${Math.round(e.color.r * 255)},${Math.round(e.color.g * 255)},${Math.round(e.color.b * 255)},${e.color.a.toFixed(2)})`
+      : "rgba(0,0,0,1)";
+    return `${type}(${ox} ${oy} ${r} ${s} ${c})`;
+  }).join(", ");
 }
 
 /**
@@ -1470,12 +1497,13 @@ export function registerDocumentTools(server: McpServer): void {
     if (result.effectStyles.length === 0) {
       lines.push("No effect styles found.");
     } else {
-      lines.push("| Style Name | Tailwind Class | Purpose | ID |");
-      lines.push("|------------|----------------|---------|----|");
+      lines.push("| Style Name | Tailwind Class | Value | Purpose | ID |");
+      lines.push("|------------|----------------|-------|---------|----|");
       for (const es of result.effectStyles) {
         const tw = deriveTailwindClass(es.name, "effect");
         const purpose = getTokenPurpose(es.name, es.description);
-        lines.push(`| ${sanitizeCell(es.name)} | ${tw} | ${sanitizeCell(purpose)} | ${es.id} |`);
+        const value = formatEffectValue(es.effects);
+        lines.push(`| ${sanitizeCell(es.name)} | ${tw} | ${sanitizeCell(value)} | ${sanitizeCell(purpose)} | ${es.id} |`);
       }
     }
     lines.push("");
@@ -2008,16 +2036,18 @@ export function registerDocumentTools(server: McpServer): void {
 
   server.tool(
     "setup_design_system",
-    "Create or update an entire design system in a single call. Accepts variables (colors, spacing, radius), text styles, and effect styles. Idempotent — existing items with the same name are updated, not duplicated.",
+    "Create or update an entire design system in a single call. Accepts multiple variable collections, text styles, and effect styles. Idempotent — existing items with the same name are updated, not duplicated.",
     {
       pages: z.array(z.string()).optional().describe("Page names to ensure exist (default: ['Screens', 'Components', 'Draft']). If only 'Page 1' exists and is empty, it is renamed to the first page."),
-      collection_name: z.string().optional().describe("Variable collection name (default: 'Design Tokens')"),
-      variables: z.array(z.object({
-        name: z.string().describe("Variable name, e.g. 'background/primary' or 'space/md'"),
-        type: z.enum(["COLOR", "FLOAT"]).describe("COLOR for colors, FLOAT for spacing/radius numbers"),
-        value: z.union([rgbaColorSchema, z.number()]).describe("RGBA object for COLOR type, number for FLOAT type"),
-        description: z.string().optional().describe("Token description/purpose"),
-      })).optional().describe("Variables to create/update in the collection"),
+      collections: z.array(z.object({
+        name: z.string().describe("Collection name, e.g. 'Colors', 'Spacing', 'Radius'"),
+        variables: z.array(z.object({
+          name: z.string().describe("Variable name, e.g. 'background/primary' or 'space/md'"),
+          type: z.enum(["COLOR", "FLOAT"]).describe("COLOR for colors, FLOAT for spacing/radius numbers"),
+          value: z.union([rgbaColorSchema, z.number()]).describe("RGBA object for COLOR type, number for FLOAT type"),
+          description: z.string().optional().describe("Token description/purpose"),
+        })),
+      })).optional().describe("Variable collections to create/update, each with its own name and variables"),
       text_styles: z.array(z.object({
         name: z.string().describe("Style name, e.g. 'text/display/lg'"),
         font_family: z.string().describe("Font family, e.g. 'Manrope'"),
@@ -2045,12 +2075,11 @@ export function registerDocumentTools(server: McpServer): void {
         description: z.string().optional().describe("Effect style description/purpose"),
       })).optional().describe("Effect styles to create/update"),
     },
-    async ({ pages, collection_name, variables, text_styles, effect_styles }) => {
+    async ({ pages, collections, text_styles, effect_styles }) => {
       try {
         const params: Record<string, unknown> = {};
         if (pages) params.pages = pages;
-        if (collection_name) params.collectionName = collection_name;
-        if (variables) params.variables = variables;
+        if (collections) params.collections = collections;
         if (text_styles) {
           params.textStyles = text_styles.map((ts) => ({
             name: ts.name,

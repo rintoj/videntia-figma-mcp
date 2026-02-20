@@ -634,10 +634,20 @@ export interface DesignSystemTextStyle {
   lineHeight: unknown;
 }
 
+export interface DesignSystemEffect {
+  type: string;
+  visible: boolean;
+  color?: { r: number; g: number; b: number; a: number };
+  offset?: { x: number; y: number };
+  radius?: number;
+  spread?: number;
+}
+
 export interface DesignSystemEffectStyle {
   id: string;
   name: string;
   description: string;
+  effects: DesignSystemEffect[];
 }
 
 export interface DesignSystemPage {
@@ -653,12 +663,19 @@ export interface GetDesignSystemResult {
 }
 
 // Setup design system result
+export interface SetupDesignSystemCounters {
+  created: number;
+  updated: number;
+  failed: number;
+  errors?: Array<{ name: string; error: string }>;
+}
+
 export interface SetupDesignSystemResult {
-  collectionId: string;
+  collections: Array<{ id: string; name: string }>;
   pages: DesignSystemPage[];
-  variables: { created: number; updated: number; failed: number; errors?: Array<{ name: string; error: string }> };
-  textStyles: { created: number; updated: number; failed: number; errors?: Array<{ name: string; error: string }> };
-  effectStyles: { created: number; updated: number; failed: number; errors?: Array<{ name: string; error: string }> };
+  variables: SetupDesignSystemCounters;
+  textStyles: SetupDesignSystemCounters;
+  effectStyles: SetupDesignSystemCounters;
 }
 
 // Modification tools
