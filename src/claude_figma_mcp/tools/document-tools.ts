@@ -188,6 +188,55 @@ export function deriveTailwindClass(name: string, type: "color" | "spacing" | "r
 }
 
 /**
+ * Format a variable's value from its mode values array.
+ * Colors → hex, numbers → raw number.
+ */
+function formatVariableDisplayValue(values: Array<{ modeId: string; modeName: string; value: unknown }>): string {
+  if (!values || values.length === 0) return "-";
+  const parts: string[] = [];
+  for (const mv of values) {
+    const v = mv.value;
+    let formatted: string;
+    if (v && typeof v === "object" && "r" in v && "g" in v && "b" in v) {
+      const c = v as { r: number; g: number; b: number; a?: number };
+      const r = Math.round(c.r * 255);
+      const g = Math.round(c.g * 255);
+      const b = Math.round(c.b * 255);
+      const a = c.a !== undefined ? c.a : 1;
+      if (a < 1) {
+        formatted = `rgba(${r},${g},${b},${a.toFixed(2)})`;
+      } else {
+        formatted = `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
+      }
+    } else if (typeof v === "number") {
+      formatted = String(v);
+    } else if (typeof v === "string") {
+      formatted = v;
+    } else {
+      formatted = "-";
+    }
+    if (values.length > 1) {
+      parts.push(`${mv.modeName}: ${formatted}`);
+    } else {
+      parts.push(formatted);
+    }
+  }
+  return parts.join(", ");
+}
+
+/**
+ * Format a Figma lineHeight value into a readable string.
+ */
+function formatLineHeight(lh: unknown): string {
+  if (!lh || typeof lh !== "object") return "-";
+  const obj = lh as { unit?: string; value?: number };
+  if (obj.unit === "AUTO") return "auto";
+  if (obj.unit === "PERCENT" && obj.value !== undefined) return `${obj.value}%`;
+  if (obj.unit === "PIXELS" && obj.value !== undefined) return `${obj.value}px`;
+  return "-";
+}
+
+/**
  * Format effect style effects into a compact CSS-like string.
  * e.g. "drop-shadow(0 2 4 0 rgba(0,0,0,0.10))"
  */
@@ -1432,12 +1481,13 @@ export function registerDocumentTools(server: McpServer): void {
     if (colorVars.length === 0) {
       lines.push("No color variables found.");
     } else {
-      lines.push("| Variable Name | Tailwind Class | Purpose | ID |");
-      lines.push("|---------------|----------------|---------|----|");
+      lines.push("| Variable Name | Tailwind Class | Value | Purpose | ID |");
+      lines.push("|---------------|----------------|-------|---------|----|");
       for (const v of colorVars) {
         const tw = deriveTailwindClass(v.name, "color");
         const purpose = getTokenPurpose(v.name, v.description);
-        lines.push(`| ${sanitizeCell(v.name)} | ${tw} | ${sanitizeCell(purpose)} | ${v.id} |`);
+        const val = formatVariableDisplayValue(v.values);
+        lines.push(`| ${sanitizeCell(v.name)} | ${tw} | ${sanitizeCell(val)} | ${sanitizeCell(purpose)} | ${v.id} |`);
       }
     }
     lines.push("");
@@ -1448,12 +1498,13 @@ export function registerDocumentTools(server: McpServer): void {
     if (spacingVars.length === 0) {
       lines.push("No spacing variables found.");
     } else {
-      lines.push("| Variable Name | Tailwind Class | Purpose | ID |");
-      lines.push("|---------------|----------------|---------|----|");
+      lines.push("| Variable Name | Tailwind Class | Value | Purpose | ID |");
+      lines.push("|---------------|----------------|-------|---------|----|");
       for (const v of spacingVars) {
         const tw = deriveTailwindClass(v.name, "spacing");
         const purpose = getTokenPurpose(v.name, v.description);
-        lines.push(`| ${sanitizeCell(v.name)} | ${tw} | ${sanitizeCell(purpose)} | ${v.id} |`);
+        const val = formatVariableDisplayValue(v.values);
+        lines.push(`| ${sanitizeCell(v.name)} | ${tw} | ${sanitizeCell(val)} | ${sanitizeCell(purpose)} | ${v.id} |`);
       }
     }
     lines.push("");
@@ -1464,12 +1515,13 @@ export function registerDocumentTools(server: McpServer): void {
     if (radiusVars.length === 0) {
       lines.push("No radius variables found.");
     } else {
-      lines.push("| Variable Name | Tailwind Class | Purpose | ID |");
-      lines.push("|---------------|----------------|---------|----|");
+      lines.push("| Variable Name | Tailwind Class | Value | Purpose | ID |");
+      lines.push("|---------------|----------------|-------|---------|----|");
       for (const v of radiusVars) {
         const tw = deriveTailwindClass(v.name, "radius");
         const purpose = getTokenPurpose(v.name, v.description);
-        lines.push(`| ${sanitizeCell(v.name)} | ${tw} | ${sanitizeCell(purpose)} | ${v.id} |`);
+        const val = formatVariableDisplayValue(v.values);
+        lines.push(`| ${sanitizeCell(v.name)} | ${tw} | ${sanitizeCell(val)} | ${sanitizeCell(purpose)} | ${v.id} |`);
       }
     }
     lines.push("");
@@ -1480,13 +1532,14 @@ export function registerDocumentTools(server: McpServer): void {
     if (result.textStyles.length === 0) {
       lines.push("No text styles found.");
     } else {
-      lines.push("| Style Name | Tailwind Class | Font | Size | Purpose | ID |");
-      lines.push("|------------|----------------|------|------|---------|----|");
+      lines.push("| Style Name | Tailwind Class | Font | Size | Line Height | Purpose | ID |");
+      lines.push("|------------|----------------|------|------|-------------|---------|----|");
       for (const ts of result.textStyles) {
         const tw = deriveTailwindClass(ts.name, "text");
         const font = ts.fontName ? `${ts.fontName.family} ${ts.fontName.style}` : "-";
+        const lh = formatLineHeight(ts.lineHeight);
         const purpose = getTokenPurpose(ts.name);
-        lines.push(`| ${sanitizeCell(ts.name)} | ${tw} | ${font} | ${ts.fontSize} | ${sanitizeCell(purpose)} | ${ts.id} |`);
+        lines.push(`| ${sanitizeCell(ts.name)} | ${tw} | ${font} | ${ts.fontSize} | ${lh} | ${sanitizeCell(purpose)} | ${ts.id} |`);
       }
     }
     lines.push("");
@@ -1512,11 +1565,12 @@ export function registerDocumentTools(server: McpServer): void {
     if (otherVars.length > 0) {
       lines.push("## Other Variables");
       lines.push("");
-      lines.push("| Variable Name | Type | Purpose | ID |");
-      lines.push("|---------------|------|---------|----|");
+      lines.push("| Variable Name | Type | Value | Purpose | ID |");
+      lines.push("|---------------|------|-------|---------|----|");
       for (const v of otherVars) {
         const purpose = getTokenPurpose(v.name, v.description);
-        lines.push(`| ${sanitizeCell(v.name)} | ${v.resolvedType} | ${sanitizeCell(purpose)} | ${v.id} |`);
+        const val = formatVariableDisplayValue(v.values);
+        lines.push(`| ${sanitizeCell(v.name)} | ${v.resolvedType} | ${sanitizeCell(val)} | ${sanitizeCell(purpose)} | ${v.id} |`);
       }
       lines.push("");
     }
