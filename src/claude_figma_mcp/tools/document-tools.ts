@@ -1355,6 +1355,147 @@ export function registerDocumentTools(server: McpServer): void {
     },
   );
 
+  // Format design system result into markdown tables
+  function formatDesignSystemMarkdown(result: GetDesignSystemResult): string {
+    // Categorize variables
+    const colorVars: DesignSystemVariable[] = [];
+    const spacingVars: DesignSystemVariable[] = [];
+    const radiusVars: DesignSystemVariable[] = [];
+    const otherVars: DesignSystemVariable[] = [];
+
+    for (const v of result.variables) {
+      const name = v.name.toLowerCase();
+      if (
+        name.startsWith("space/") ||
+        name.startsWith("spacing/")
+      ) {
+        spacingVars.push(v);
+      } else if (
+        name.startsWith("radius/")
+      ) {
+        radiusVars.push(v);
+      } else if (v.resolvedType === "COLOR") {
+        colorVars.push(v);
+      } else {
+        otherVars.push(v);
+      }
+    }
+
+    const lines: string[] = [];
+    lines.push("# Design System");
+    lines.push("");
+
+    // Pages
+    lines.push("## Pages");
+    lines.push("");
+    if (result.pages.length === 0) {
+      lines.push("No pages found.");
+    } else {
+      lines.push("| Page Name | ID |");
+      lines.push("|-----------|-----|");
+      for (const page of result.pages) {
+        lines.push(`| ${sanitizeCell(page.name)} | ${page.id} |`);
+      }
+    }
+    lines.push("");
+
+    // Color Variables
+    lines.push("## Color Variables");
+    lines.push("");
+    if (colorVars.length === 0) {
+      lines.push("No color variables found.");
+    } else {
+      lines.push("| Variable Name | Tailwind Class | Purpose | ID |");
+      lines.push("|---------------|----------------|---------|----|");
+      for (const v of colorVars) {
+        const tw = deriveTailwindClass(v.name, "color");
+        const purpose = getTokenPurpose(v.name, v.description);
+        lines.push(`| ${sanitizeCell(v.name)} | ${tw} | ${sanitizeCell(purpose)} | ${v.id} |`);
+      }
+    }
+    lines.push("");
+
+    // Spacing Variables
+    lines.push("## Spacing Variables");
+    lines.push("");
+    if (spacingVars.length === 0) {
+      lines.push("No spacing variables found.");
+    } else {
+      lines.push("| Variable Name | Tailwind Class | Purpose | ID |");
+      lines.push("|---------------|----------------|---------|----|");
+      for (const v of spacingVars) {
+        const tw = deriveTailwindClass(v.name, "spacing");
+        const purpose = getTokenPurpose(v.name, v.description);
+        lines.push(`| ${sanitizeCell(v.name)} | ${tw} | ${sanitizeCell(purpose)} | ${v.id} |`);
+      }
+    }
+    lines.push("");
+
+    // Radius Variables
+    lines.push("## Radius Variables");
+    lines.push("");
+    if (radiusVars.length === 0) {
+      lines.push("No radius variables found.");
+    } else {
+      lines.push("| Variable Name | Tailwind Class | Purpose | ID |");
+      lines.push("|---------------|----------------|---------|----|");
+      for (const v of radiusVars) {
+        const tw = deriveTailwindClass(v.name, "radius");
+        const purpose = getTokenPurpose(v.name, v.description);
+        lines.push(`| ${sanitizeCell(v.name)} | ${tw} | ${sanitizeCell(purpose)} | ${v.id} |`);
+      }
+    }
+    lines.push("");
+
+    // Text Styles
+    lines.push("## Text Styles");
+    lines.push("");
+    if (result.textStyles.length === 0) {
+      lines.push("No text styles found.");
+    } else {
+      lines.push("| Style Name | Tailwind Class | Font | Size | Purpose | ID |");
+      lines.push("|------------|----------------|------|------|---------|----|");
+      for (const ts of result.textStyles) {
+        const tw = deriveTailwindClass(ts.name, "text");
+        const font = ts.fontName ? `${ts.fontName.family} ${ts.fontName.style}` : "-";
+        const purpose = getTokenPurpose(ts.name);
+        lines.push(`| ${sanitizeCell(ts.name)} | ${tw} | ${font} | ${ts.fontSize} | ${sanitizeCell(purpose)} | ${ts.id} |`);
+      }
+    }
+    lines.push("");
+
+    // Effect Styles
+    lines.push("## Effect Styles");
+    lines.push("");
+    if (result.effectStyles.length === 0) {
+      lines.push("No effect styles found.");
+    } else {
+      lines.push("| Style Name | Tailwind Class | Purpose | ID |");
+      lines.push("|------------|----------------|---------|----|");
+      for (const es of result.effectStyles) {
+        const tw = deriveTailwindClass(es.name, "effect");
+        const purpose = getTokenPurpose(es.name, es.description);
+        lines.push(`| ${sanitizeCell(es.name)} | ${tw} | ${sanitizeCell(purpose)} | ${es.id} |`);
+      }
+    }
+    lines.push("");
+
+    // Other Variables (if any)
+    if (otherVars.length > 0) {
+      lines.push("## Other Variables");
+      lines.push("");
+      lines.push("| Variable Name | Type | Purpose | ID |");
+      lines.push("|---------------|------|---------|----|");
+      for (const v of otherVars) {
+        const purpose = getTokenPurpose(v.name, v.description);
+        lines.push(`| ${sanitizeCell(v.name)} | ${v.resolvedType} | ${sanitizeCell(purpose)} | ${v.id} |`);
+      }
+      lines.push("");
+    }
+
+    return lines.join("\n");
+  }
+
   // Get Design System Tool
   server.tool(
     "get_design_system",
@@ -1363,145 +1504,8 @@ export function registerDocumentTools(server: McpServer): void {
     async () => {
       try {
         const result = await sendCommandToFigma<GetDesignSystemResult>("get_design_system", {}, 60000);
-
-        // Categorize variables
-        const colorVars: DesignSystemVariable[] = [];
-        const spacingVars: DesignSystemVariable[] = [];
-        const radiusVars: DesignSystemVariable[] = [];
-        const otherVars: DesignSystemVariable[] = [];
-
-        for (const v of result.variables) {
-          const name = v.name.toLowerCase();
-          if (
-            name.startsWith("space/") ||
-            name.startsWith("spacing/")
-          ) {
-            spacingVars.push(v);
-          } else if (
-            name.startsWith("radius/")
-          ) {
-            radiusVars.push(v);
-          } else if (v.resolvedType === "COLOR") {
-            colorVars.push(v);
-          } else {
-            otherVars.push(v);
-          }
-        }
-
-        const lines: string[] = [];
-        lines.push("# Design System");
-        lines.push("");
-
-        // Pages
-        lines.push("## Pages");
-        lines.push("");
-        if (result.pages.length === 0) {
-          lines.push("No pages found.");
-        } else {
-          lines.push("| Page Name | ID |");
-          lines.push("|-----------|-----|");
-          for (const page of result.pages) {
-            lines.push(`| ${sanitizeCell(page.name)} | ${page.id} |`);
-          }
-        }
-        lines.push("");
-
-        // Color Variables
-        lines.push("## Color Variables");
-        lines.push("");
-        if (colorVars.length === 0) {
-          lines.push("No color variables found.");
-        } else {
-          lines.push("| Variable Name | Tailwind Class | Purpose | ID |");
-          lines.push("|---------------|----------------|---------|----|");
-          for (const v of colorVars) {
-            const tw = deriveTailwindClass(v.name, "color");
-            const purpose = getTokenPurpose(v.name, v.description);
-            lines.push(`| ${sanitizeCell(v.name)} | ${tw} | ${sanitizeCell(purpose)} | ${v.id} |`);
-          }
-        }
-        lines.push("");
-
-        // Spacing Variables
-        lines.push("## Spacing Variables");
-        lines.push("");
-        if (spacingVars.length === 0) {
-          lines.push("No spacing variables found.");
-        } else {
-          lines.push("| Variable Name | Tailwind Class | Purpose | ID |");
-          lines.push("|---------------|----------------|---------|----|");
-          for (const v of spacingVars) {
-            const tw = deriveTailwindClass(v.name, "spacing");
-            const purpose = getTokenPurpose(v.name, v.description);
-            lines.push(`| ${sanitizeCell(v.name)} | ${tw} | ${sanitizeCell(purpose)} | ${v.id} |`);
-          }
-        }
-        lines.push("");
-
-        // Radius Variables
-        lines.push("## Radius Variables");
-        lines.push("");
-        if (radiusVars.length === 0) {
-          lines.push("No radius variables found.");
-        } else {
-          lines.push("| Variable Name | Tailwind Class | Purpose | ID |");
-          lines.push("|---------------|----------------|---------|----|");
-          for (const v of radiusVars) {
-            const tw = deriveTailwindClass(v.name, "radius");
-            const purpose = getTokenPurpose(v.name, v.description);
-            lines.push(`| ${sanitizeCell(v.name)} | ${tw} | ${sanitizeCell(purpose)} | ${v.id} |`);
-          }
-        }
-        lines.push("");
-
-        // Text Styles
-        lines.push("## Text Styles");
-        lines.push("");
-        if (result.textStyles.length === 0) {
-          lines.push("No text styles found.");
-        } else {
-          lines.push("| Style Name | Tailwind Class | Font | Size | Purpose | ID |");
-          lines.push("|------------|----------------|------|------|---------|----|");
-          for (const ts of result.textStyles) {
-            const tw = deriveTailwindClass(ts.name, "text");
-            const font = ts.fontName ? `${ts.fontName.family} ${ts.fontName.style}` : "-";
-            const purpose = getTokenPurpose(ts.name);
-            lines.push(`| ${sanitizeCell(ts.name)} | ${tw} | ${font} | ${ts.fontSize} | ${sanitizeCell(purpose)} | ${ts.id} |`);
-          }
-        }
-        lines.push("");
-
-        // Effect Styles
-        lines.push("## Effect Styles");
-        lines.push("");
-        if (result.effectStyles.length === 0) {
-          lines.push("No effect styles found.");
-        } else {
-          lines.push("| Style Name | Tailwind Class | Purpose | ID |");
-          lines.push("|------------|----------------|---------|----|");
-          for (const es of result.effectStyles) {
-            const tw = deriveTailwindClass(es.name, "effect");
-            const purpose = getTokenPurpose(es.name, es.description);
-            lines.push(`| ${sanitizeCell(es.name)} | ${tw} | ${sanitizeCell(purpose)} | ${es.id} |`);
-          }
-        }
-        lines.push("");
-
-        // Other Variables (if any)
-        if (otherVars.length > 0) {
-          lines.push("## Other Variables");
-          lines.push("");
-          lines.push("| Variable Name | Type | Purpose | ID |");
-          lines.push("|---------------|------|---------|----|");
-          for (const v of otherVars) {
-            const purpose = getTokenPurpose(v.name, v.description);
-            lines.push(`| ${sanitizeCell(v.name)} | ${v.resolvedType} | ${sanitizeCell(purpose)} | ${v.id} |`);
-          }
-          lines.push("");
-        }
-
         return {
-          content: [{ type: "text", text: lines.join("\n") }],
+          content: [{ type: "text", text: formatDesignSystemMarkdown(result) }],
         };
       } catch (error) {
         return {
@@ -2060,61 +2064,42 @@ export function registerDocumentTools(server: McpServer): void {
           params.effectStyles = effect_styles;
         }
 
-        const result = await sendCommandToFigma<SetupDesignSystemResult>(
+        const setupResult = await sendCommandToFigma<SetupDesignSystemResult>(
           "setup_design_system",
           params,
           120000,
         );
 
-        const lines: string[] = [];
-        lines.push("# Design System Setup Complete");
-        lines.push("");
-
-        if (result.collectionId) {
-          lines.push(`**Collection ID:** ${result.collectionId}`);
-          lines.push("");
-        }
-
-        // Pages
-        if (result.pages && result.pages.length > 0) {
-          lines.push("## Pages");
-          lines.push("");
-          lines.push("| Page Name | ID |");
-          lines.push("|-----------|-----|");
-          for (const page of result.pages) {
-            lines.push(`| ${sanitizeCell(page.name)} | ${page.id} |`);
-          }
-          lines.push("");
-        }
-
+        // Collect setup errors
+        const errorLines: string[] = [];
         const sections = [
-          { label: "Variables", data: result.variables },
-          { label: "Text Styles", data: result.textStyles },
-          { label: "Effect Styles", data: result.effectStyles },
+          { label: "Variables", data: setupResult.variables },
+          { label: "Text Styles", data: setupResult.textStyles },
+          { label: "Effect Styles", data: setupResult.effectStyles },
         ];
 
         for (const section of sections) {
           const d = section.data;
-          if (d.created > 0 || d.updated > 0 || d.failed > 0) {
-            lines.push(`## ${section.label}`);
-            lines.push(`- Created: ${d.created}`);
-            lines.push(`- Updated: ${d.updated}`);
-            if (d.failed > 0) {
-              lines.push(`- Failed: ${d.failed}`);
-              if (d.errors) {
-                for (const err of d.errors) {
-                  lines.push(`  - ${err.name}: ${err.error}`);
-                }
-              }
+          if (d.failed > 0 && d.errors) {
+            for (const err of d.errors) {
+              errorLines.push(`- **${section.label}** — ${err.name}: ${err.error}`);
             }
-            lines.push("");
           }
         }
 
-        const totalCreated = result.variables.created + result.textStyles.created + result.effectStyles.created;
-        const totalUpdated = result.variables.updated + result.textStyles.updated + result.effectStyles.updated;
-        const totalFailed = result.variables.failed + result.textStyles.failed + result.effectStyles.failed;
-        lines.push(`**Total:** ${totalCreated} created, ${totalUpdated} updated, ${totalFailed} failed`);
+        // Fetch the current design system state
+        const dsResult = await sendCommandToFigma<GetDesignSystemResult>("get_design_system", {}, 60000);
+        const dsMarkdown = formatDesignSystemMarkdown(dsResult);
+
+        // Prepend errors if any
+        const lines: string[] = [];
+        if (errorLines.length > 0) {
+          lines.push("## Setup Errors");
+          lines.push("");
+          lines.push(...errorLines);
+          lines.push("");
+        }
+        lines.push(dsMarkdown);
 
         return {
           content: [{ type: "text", text: lines.join("\n") }],
