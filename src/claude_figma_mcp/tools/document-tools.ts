@@ -24,6 +24,7 @@ import type {
   DesignSystemVariable,
   DesignSystemTextStyle,
   DesignSystemEffectStyle,
+  SetupDesignSystemResult,
 } from "../types/index.js";
 import {
   formatColorValue,
@@ -2067,6 +2068,132 @@ export function registerDocumentTools(server: McpServer): void {
             {
               type: "text",
               text: `Error deleting page "${pageId}": ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  // Setup Design System Tool
+  const rgbaColorSchema = z.object({
+    r: z.number().min(0).max(1).describe("Red channel (0-1)"),
+    g: z.number().min(0).max(1).describe("Green channel (0-1)"),
+    b: z.number().min(0).max(1).describe("Blue channel (0-1)"),
+    a: z.number().min(0).max(1).optional().describe("Alpha channel (0-1), defaults to 1"),
+  });
+
+  server.tool(
+    "setup_design_system",
+    "Create or update an entire design system in a single call. Accepts variables (colors, spacing, radius), text styles, and effect styles. Idempotent — existing items with the same name are updated, not duplicated.",
+    {
+      collection_name: z.string().optional().describe("Variable collection name (default: 'Design Tokens')"),
+      variables: z.array(z.object({
+        name: z.string().describe("Variable name, e.g. 'background/primary' or 'space/md'"),
+        type: z.enum(["COLOR", "FLOAT"]).describe("COLOR for colors, FLOAT for spacing/radius numbers"),
+        value: z.union([rgbaColorSchema, z.number()]).describe("RGBA object for COLOR type, number for FLOAT type"),
+        description: z.string().optional().describe("Token description/purpose"),
+      })).optional().describe("Variables to create/update in the collection"),
+      text_styles: z.array(z.object({
+        name: z.string().describe("Style name, e.g. 'text/display/lg'"),
+        font_family: z.string().describe("Font family, e.g. 'Manrope'"),
+        font_style: z.string().describe("Font style, e.g. 'Bold', 'SemiBold', 'Regular'"),
+        font_size: z.number().describe("Font size in pixels"),
+        line_height: z.object({
+          value: z.number(),
+          unit: z.enum(["PIXELS", "PERCENT", "AUTO"]),
+        }).optional().describe("Line height specification"),
+        letter_spacing: z.object({
+          value: z.number(),
+          unit: z.enum(["PIXELS", "PERCENT"]),
+        }).optional().describe("Letter spacing specification"),
+        description: z.string().optional().describe("Style description/purpose"),
+      })).optional().describe("Text styles to create/update"),
+      effect_styles: z.array(z.object({
+        name: z.string().describe("Effect style name, e.g. 'shadow/subtle'"),
+        effects: z.array(z.object({
+          type: z.enum(["DROP_SHADOW", "INNER_SHADOW", "LAYER_BLUR", "BACKGROUND_BLUR"]).describe("Effect type"),
+          color: rgbaColorSchema.optional().describe("Effect color (for shadows)"),
+          offset: z.object({ x: z.number(), y: z.number() }).optional().describe("Shadow offset (for shadows)"),
+          radius: z.number().optional().describe("Blur radius"),
+          spread: z.number().optional().describe("Spread (for shadows)"),
+        })).describe("Array of effects for this style"),
+        description: z.string().optional().describe("Effect style description/purpose"),
+      })).optional().describe("Effect styles to create/update"),
+    },
+    async ({ collection_name, variables, text_styles, effect_styles }) => {
+      try {
+        const params: Record<string, unknown> = {};
+        if (collection_name) params.collectionName = collection_name;
+        if (variables) params.variables = variables;
+        if (text_styles) {
+          params.textStyles = text_styles.map((ts) => ({
+            name: ts.name,
+            fontFamily: ts.font_family,
+            fontStyle: ts.font_style,
+            fontSize: ts.font_size,
+            lineHeight: ts.line_height,
+            letterSpacing: ts.letter_spacing,
+            description: ts.description,
+          }));
+        }
+        if (effect_styles) {
+          params.effectStyles = effect_styles;
+        }
+
+        const result = await sendCommandToFigma<SetupDesignSystemResult>(
+          "setup_design_system",
+          params,
+          120000,
+        );
+
+        const lines: string[] = [];
+        lines.push("# Design System Setup Complete");
+        lines.push("");
+
+        if (result.collectionId) {
+          lines.push(`**Collection ID:** ${result.collectionId}`);
+          lines.push("");
+        }
+
+        const sections = [
+          { label: "Variables", data: result.variables },
+          { label: "Text Styles", data: result.textStyles },
+          { label: "Effect Styles", data: result.effectStyles },
+        ];
+
+        for (const section of sections) {
+          const d = section.data;
+          if (d.created > 0 || d.updated > 0 || d.failed > 0) {
+            lines.push(`## ${section.label}`);
+            lines.push(`- Created: ${d.created}`);
+            lines.push(`- Updated: ${d.updated}`);
+            if (d.failed > 0) {
+              lines.push(`- Failed: ${d.failed}`);
+              if (d.errors) {
+                for (const err of d.errors) {
+                  lines.push(`  - ${err.name}: ${err.error}`);
+                }
+              }
+            }
+            lines.push("");
+          }
+        }
+
+        const totalCreated = result.variables.created + result.textStyles.created + result.effectStyles.created;
+        const totalUpdated = result.variables.updated + result.textStyles.updated + result.effectStyles.updated;
+        const totalFailed = result.variables.failed + result.textStyles.failed + result.effectStyles.failed;
+        lines.push(`**Total:** ${totalCreated} created, ${totalUpdated} updated, ${totalFailed} failed`);
+
+        return {
+          content: [{ type: "text", text: lines.join("\n") }],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error setting up design system: ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };

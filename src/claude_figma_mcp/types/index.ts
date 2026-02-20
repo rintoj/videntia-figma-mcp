@@ -171,7 +171,8 @@ export type FigmaCommand =
   | "create_from_data"
   | "batch_actions"
   | "lint_frame"
-  | "get_design_system";
+  | "get_design_system"
+  | "setup_design_system";
 
 // Batch actions types
 export interface BatchActionResult {
@@ -643,6 +644,14 @@ export interface GetDesignSystemResult {
   variables: DesignSystemVariable[];
   textStyles: DesignSystemTextStyle[];
   effectStyles: DesignSystemEffectStyle[];
+}
+
+// Setup design system result
+export interface SetupDesignSystemResult {
+  collectionId: string;
+  variables: { created: number; updated: number; failed: number; errors?: Array<{ name: string; error: string }> };
+  textStyles: { created: number; updated: number; failed: number; errors?: Array<{ name: string; error: string }> };
+  effectStyles: { created: number; updated: number; failed: number; errors?: Array<{ name: string; error: string }> };
 }
 
 // Modification tools

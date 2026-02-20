@@ -387,6 +387,8 @@ async function handleCommand(command, params) {
       return await lintFrame(params);
     case "get_design_system":
       return await getDesignSystem();
+    case "setup_design_system":
+      return await setupDesignSystem(params);
     default:
       throw new Error(`Unknown command: ${command}`);
   }
@@ -8473,6 +8475,185 @@ async function getDesignSystem() {
     variables: variables,
     textStyles: mappedTextStyles,
     effectStyles: mappedEffectStyles
+  };
+}
+
+// ── setup_design_system: create/update entire design system in one call ─────
+
+async function setupDesignSystem(params) {
+  var collectionName = (params && params.collectionName) ? params.collectionName : "Design Tokens";
+  var inputVariables = (params && params.variables) ? params.variables : [];
+  var inputTextStyles = (params && params.textStyles) ? params.textStyles : [];
+  var inputEffectStyles = (params && params.effectStyles) ? params.effectStyles : [];
+
+  var varResult = { created: 0, updated: 0, failed: 0, errors: [] };
+  var tsResult = { created: 0, updated: 0, failed: 0, errors: [] };
+  var esResult = { created: 0, updated: 0, failed: 0, errors: [] };
+  var collectionId = "";
+
+  // --- Variables ---
+  if (inputVariables.length > 0) {
+    // Find or create collection
+    var collections = await figma.variables.getLocalVariableCollectionsAsync();
+    var targetCollection = null;
+    for (var ci = 0; ci < collections.length; ci++) {
+      if (collections[ci].name === collectionName) {
+        targetCollection = collections[ci];
+        break;
+      }
+    }
+    if (!targetCollection) {
+      targetCollection = figma.variables.createVariableCollection(collectionName);
+    }
+    collectionId = targetCollection.id;
+    var defaultModeId = targetCollection.modes[0].modeId;
+
+    // Build lookup of existing variables in this collection
+    var existingVars = await figma.variables.getLocalVariablesAsync();
+    var varByName = {};
+    for (var evi = 0; evi < existingVars.length; evi++) {
+      var ev = existingVars[evi];
+      if (ev.variableCollectionId === targetCollection.id) {
+        varByName[ev.name] = ev;
+      }
+    }
+
+    for (var vi = 0; vi < inputVariables.length; vi++) {
+      var vDef = inputVariables[vi];
+      try {
+        var existing = varByName[vDef.name];
+        if (existing) {
+          // Update existing
+          existing.setValueForMode(defaultModeId, vDef.value);
+          if (vDef.description !== undefined) {
+            existing.description = vDef.description;
+          }
+          varResult.updated++;
+        } else {
+          // Create new
+          var resolvedType = vDef.type === "COLOR" ? "COLOR" : "FLOAT";
+          var newVar = figma.variables.createVariable(vDef.name, targetCollection, resolvedType);
+          newVar.setValueForMode(defaultModeId, vDef.value);
+          if (vDef.description !== undefined) {
+            newVar.description = vDef.description;
+          }
+          varByName[vDef.name] = newVar;
+          varResult.created++;
+        }
+      } catch (e) {
+        varResult.failed++;
+        varResult.errors.push({ name: vDef.name, error: e.message || String(e) });
+      }
+    }
+  }
+
+  // --- Text Styles ---
+  if (inputTextStyles.length > 0) {
+    var existingTextStyles = await figma.getLocalTextStylesAsync();
+    var tsByName = {};
+    for (var eti = 0; eti < existingTextStyles.length; eti++) {
+      tsByName[existingTextStyles[eti].name] = existingTextStyles[eti];
+    }
+
+    for (var ti = 0; ti < inputTextStyles.length; ti++) {
+      var tsDef = inputTextStyles[ti];
+      try {
+        var fontFamily = tsDef.fontFamily || "Inter";
+        var fontStyle = tsDef.fontStyle || "Regular";
+        await figma.loadFontAsync({ family: fontFamily, style: fontStyle });
+
+        var existingTs = tsByName[tsDef.name];
+        if (existingTs) {
+          // Update existing
+          existingTs.fontName = { family: fontFamily, style: fontStyle };
+          existingTs.fontSize = tsDef.fontSize;
+          if (tsDef.lineHeight !== undefined) {
+            existingTs.lineHeight = tsDef.lineHeight;
+          }
+          if (tsDef.letterSpacing !== undefined) {
+            existingTs.letterSpacing = tsDef.letterSpacing;
+          }
+          if (tsDef.description !== undefined) {
+            existingTs.description = tsDef.description;
+          }
+          tsResult.updated++;
+        } else {
+          // Create new
+          var newTs = figma.createTextStyle();
+          newTs.name = tsDef.name;
+          newTs.fontName = { family: fontFamily, style: fontStyle };
+          newTs.fontSize = tsDef.fontSize;
+          if (tsDef.lineHeight !== undefined) {
+            newTs.lineHeight = tsDef.lineHeight;
+          }
+          if (tsDef.letterSpacing !== undefined) {
+            newTs.letterSpacing = tsDef.letterSpacing;
+          }
+          if (tsDef.description !== undefined) {
+            newTs.description = tsDef.description;
+          }
+          tsByName[tsDef.name] = newTs;
+          tsResult.created++;
+        }
+      } catch (e) {
+        tsResult.failed++;
+        tsResult.errors.push({ name: tsDef.name, error: e.message || String(e) });
+      }
+    }
+  }
+
+  // --- Effect Styles ---
+  if (inputEffectStyles.length > 0) {
+    var existingEffectStyles = await figma.getLocalEffectStylesAsync();
+    var esByName = {};
+    for (var eei = 0; eei < existingEffectStyles.length; eei++) {
+      esByName[existingEffectStyles[eei].name] = existingEffectStyles[eei];
+    }
+
+    for (var ei = 0; ei < inputEffectStyles.length; ei++) {
+      var esDef = inputEffectStyles[ei];
+      try {
+        if (!esDef.effects || !Array.isArray(esDef.effects) || esDef.effects.length === 0) {
+          throw new Error("effects must be a non-empty array");
+        }
+        var validEffects = esDef.effects.map(buildValidStyleEffect);
+
+        var existingEs = esByName[esDef.name];
+        if (existingEs) {
+          // Update existing
+          existingEs.effects = validEffects;
+          if (esDef.description !== undefined) {
+            existingEs.description = esDef.description;
+          }
+          esResult.updated++;
+        } else {
+          // Create new
+          var newEs = figma.createEffectStyle();
+          newEs.name = esDef.name;
+          newEs.effects = validEffects;
+          if (esDef.description !== undefined) {
+            newEs.description = esDef.description;
+          }
+          esByName[esDef.name] = newEs;
+          esResult.created++;
+        }
+      } catch (e) {
+        esResult.failed++;
+        esResult.errors.push({ name: esDef.name, error: e.message || String(e) });
+      }
+    }
+  }
+
+  // Clean up empty error arrays
+  if (varResult.errors.length === 0) { delete varResult.errors; }
+  if (tsResult.errors.length === 0) { delete tsResult.errors; }
+  if (esResult.errors.length === 0) { delete esResult.errors; }
+
+  return {
+    collectionId: collectionId,
+    variables: varResult,
+    textStyles: tsResult,
+    effectStyles: esResult
   };
 }
 
