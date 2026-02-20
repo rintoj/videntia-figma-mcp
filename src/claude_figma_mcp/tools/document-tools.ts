@@ -1431,6 +1431,20 @@ export function registerDocumentTools(server: McpServer): void {
         lines.push("# Design System");
         lines.push("");
 
+        // Pages
+        lines.push("## Pages");
+        lines.push("");
+        if (result.pages.length === 0) {
+          lines.push("No pages found.");
+        } else {
+          lines.push("| Page Name | ID |");
+          lines.push("|-----------|-----|");
+          for (const page of result.pages) {
+            lines.push(`| ${sanitizeCell(page.name)} | ${page.id} |`);
+          }
+        }
+        lines.push("");
+
         // Color Variables
         lines.push("## Color Variables");
         lines.push("");
@@ -2153,6 +2167,18 @@ export function registerDocumentTools(server: McpServer): void {
 
         if (result.collectionId) {
           lines.push(`**Collection ID:** ${result.collectionId}`);
+          lines.push("");
+        }
+
+        // Pages
+        if (result.pages && result.pages.length > 0) {
+          lines.push("## Pages");
+          lines.push("");
+          lines.push("| Page Name | ID |");
+          lines.push("|-----------|-----|");
+          for (const page of result.pages) {
+            lines.push(`| ${sanitizeCell(page.name)} | ${page.id} |`);
+          }
           lines.push("");
         }
 

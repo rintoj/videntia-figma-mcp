@@ -640,7 +640,13 @@ export interface DesignSystemEffectStyle {
   description: string;
 }
 
+export interface DesignSystemPage {
+  id: string;
+  name: string;
+}
+
 export interface GetDesignSystemResult {
+  pages: DesignSystemPage[];
   variables: DesignSystemVariable[];
   textStyles: DesignSystemTextStyle[];
   effectStyles: DesignSystemEffectStyle[];
@@ -649,6 +655,7 @@ export interface GetDesignSystemResult {
 // Setup design system result
 export interface SetupDesignSystemResult {
   collectionId: string;
+  pages: DesignSystemPage[];
   variables: { created: number; updated: number; failed: number; errors?: Array<{ name: string; error: string }> };
   textStyles: { created: number; updated: number; failed: number; errors?: Array<{ name: string; error: string }> };
   effectStyles: { created: number; updated: number; failed: number; errors?: Array<{ name: string; error: string }> };

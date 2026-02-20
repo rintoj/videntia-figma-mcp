@@ -8471,7 +8471,15 @@ async function getDesignSystem() {
     });
   }
 
+  // Map pages
+  var pages = [];
+  for (var pi = 0; pi < figma.root.children.length; pi++) {
+    var pg = figma.root.children[pi];
+    pages.push({ id: pg.id, name: pg.name });
+  }
+
   return {
+    pages: pages,
     variables: variables,
     textStyles: mappedTextStyles,
     effectStyles: mappedEffectStyles
@@ -8649,8 +8657,47 @@ async function setupDesignSystem(params) {
   if (tsResult.errors.length === 0) { delete tsResult.errors; }
   if (esResult.errors.length === 0) { delete esResult.errors; }
 
+  // --- Pages: ensure "Screens", "Components", "Draft" exist ---
+  var requiredPages = ["Screens", "Components", "Draft"];
+  var existingPages = figma.root.children;
+
+  // Build lowercase lookup of existing page names
+  var existingPageNames = {};
+  for (var epi = 0; epi < existingPages.length; epi++) {
+    existingPageNames[existingPages[epi].name.toLowerCase()] = existingPages[epi];
+  }
+
+  // If there's only the default "Page 1" and it's empty, rename it to the first required page
+  var firstRequired = requiredPages[0];
+  if (
+    existingPages.length === 1 &&
+    existingPages[0].name === "Page 1" &&
+    existingPages[0].children.length === 0 &&
+    !existingPageNames[firstRequired.toLowerCase()]
+  ) {
+    existingPages[0].name = firstRequired;
+    existingPageNames[firstRequired.toLowerCase()] = existingPages[0];
+  }
+
+  for (var rpi = 0; rpi < requiredPages.length; rpi++) {
+    var reqName = requiredPages[rpi];
+    if (!existingPageNames[reqName.toLowerCase()]) {
+      var newPage = figma.createPage();
+      newPage.name = reqName;
+      existingPageNames[reqName.toLowerCase()] = newPage;
+    }
+  }
+
+  // Collect final page list
+  var finalPages = [];
+  var allPages = figma.root.children;
+  for (var fpi = 0; fpi < allPages.length; fpi++) {
+    finalPages.push({ id: allPages[fpi].id, name: allPages[fpi].name });
+  }
+
   return {
     collectionId: collectionId,
+    pages: finalPages,
     variables: varResult,
     textStyles: tsResult,
     effectStyles: esResult

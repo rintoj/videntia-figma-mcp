@@ -49,6 +49,11 @@ describe("get_design_system tool", () => {
 
   function makeResult(overrides?: Partial<GetDesignSystemResult>): GetDesignSystemResult {
     return {
+      pages: [
+        { id: "page:1", name: "Screens" },
+        { id: "page:2", name: "Components" },
+        { id: "page:3", name: "Draft" },
+      ],
       variables: [
         {
           id: "v:1",
@@ -207,6 +212,7 @@ describe("get_design_system tool", () => {
 
   it("reports all items as missing for empty design system", async () => {
     mockSendCommand.mockResolvedValue({
+      pages: [],
       variables: [],
       textStyles: [],
       effectStyles: [],
