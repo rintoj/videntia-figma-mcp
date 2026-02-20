@@ -134,42 +134,6 @@ export function getTokenPurpose(name: string, figmaDescription?: string): string
   return TOKEN_PURPOSE_MAP[name] || "-";
 }
 
-/** Reference lists derived from TOKEN_PURPOSE_MAP */
-interface StyleGuideReference {
-  variables: string[];
-  textStyles: string[];
-  effectStyles: string[];
-}
-
-/**
- * Derive the expected design system reference from TOKEN_PURPOSE_MAP.
- * Categorizes keys by prefix into variables, text styles, and effect styles.
- */
-export function getStyleGuideReference(): StyleGuideReference {
-  const variables: string[] = [];
-  const textStyles: string[] = [];
-  const effectStyles: string[] = [];
-
-  for (const name of Object.keys(TOKEN_PURPOSE_MAP)) {
-    if (name.startsWith("shadow/")) {
-      effectStyles.push(name);
-    } else if (name.startsWith("text/") && name.includes("/")) {
-      // text/display/lg, text/heading/h1, etc. are text styles (have 3 segments)
-      // text/primary, text/link etc. are color variables (have 2 segments)
-      const segments = name.split("/");
-      if (segments.length >= 3) {
-        textStyles.push(name);
-      } else {
-        variables.push(name);
-      }
-    } else {
-      variables.push(name);
-    }
-  }
-
-  return { variables, textStyles, effectStyles };
-}
-
 /**
  * Derive Tailwind CSS class from a Figma variable/style name.
  */
@@ -1394,14 +1358,11 @@ export function registerDocumentTools(server: McpServer): void {
   // Get Design System Tool
   server.tool(
     "get_design_system",
-    "Aggregate all design system tokens (color variables, spacing, radius, text styles, effect styles) from the active Figma file. Returns formatted markdown tables and reports what is missing compared to the reference style guide.",
+    "Aggregate all design system tokens (pages, color variables, spacing, radius, text styles, effect styles) from the active Figma file. Returns formatted markdown tables.",
     {},
     async () => {
       try {
         const result = await sendCommandToFigma<GetDesignSystemResult>("get_design_system", {}, 60000);
-
-        // Get style guide reference from TOKEN_PURPOSE_MAP
-        const styleGuideRef = getStyleGuideReference();
 
         // Categorize variables
         const colorVars: DesignSystemVariable[] = [];
@@ -1536,62 +1497,6 @@ export function registerDocumentTools(server: McpServer): void {
             const purpose = getTokenPurpose(v.name, v.description);
             lines.push(`| ${sanitizeCell(v.name)} | ${v.resolvedType} | ${sanitizeCell(purpose)} | ${v.id} |`);
           }
-          lines.push("");
-        }
-
-        // Missing items comparison
-        const foundVarNames = new Set(result.variables.map((v) => v.name.toLowerCase()));
-        const foundTextStyleNames = new Set(result.textStyles.map((ts) => ts.name.toLowerCase()));
-        const foundEffectStyleNames = new Set(result.effectStyles.map((es) => es.name.toLowerCase()));
-
-        const missingVars = styleGuideRef.variables.filter((name) => !foundVarNames.has(name.toLowerCase()));
-        const missingTextStyles = styleGuideRef.textStyles.filter(
-          (name) => !foundTextStyleNames.has(name.toLowerCase()),
-        );
-        const missingEffectStyles = styleGuideRef.effectStyles.filter(
-          (name) => !foundEffectStyleNames.has(name.toLowerCase()),
-        );
-
-        const totalMissing = missingVars.length + missingTextStyles.length + missingEffectStyles.length;
-
-        if (totalMissing > 0) {
-          lines.push("## Missing Items");
-          lines.push("");
-          lines.push(
-            `Found ${totalMissing} missing item(s) compared to the style guide reference.`,
-          );
-          lines.push("");
-
-          if (missingVars.length > 0) {
-            lines.push(`### Missing Variables (${missingVars.length})`);
-            lines.push("");
-            for (const name of missingVars) {
-              lines.push(`- ${name}`);
-            }
-            lines.push("");
-          }
-
-          if (missingTextStyles.length > 0) {
-            lines.push(`### Missing Text Styles (${missingTextStyles.length})`);
-            lines.push("");
-            for (const name of missingTextStyles) {
-              lines.push(`- ${name}`);
-            }
-            lines.push("");
-          }
-
-          if (missingEffectStyles.length > 0) {
-            lines.push(`### Missing Effect Styles (${missingEffectStyles.length})`);
-            lines.push("");
-            for (const name of missingEffectStyles) {
-              lines.push(`- ${name}`);
-            }
-            lines.push("");
-          }
-        } else {
-          lines.push("## Missing Items");
-          lines.push("");
-          lines.push("All items from the style guide reference are present.");
           lines.push("");
         }
 

@@ -184,33 +184,7 @@ describe("get_design_system tool", () => {
     expect(colorSection).not.toContain("radius/md");
   });
 
-  it("reports missing items compared to style guide", async () => {
-    mockSendCommand.mockResolvedValue(makeResult());
-
-    const response = await callTool("get_design_system");
-    const text = response.content[0].text;
-
-    // Should report missing items since we only have a small subset
-    expect(text).toContain("## Missing Items");
-    expect(text).toContain("Missing Variables");
-    expect(text).toContain("Missing Text Styles");
-    expect(text).toContain("Missing Effect Styles");
-  });
-
-  it("lists specific missing variable names", async () => {
-    mockSendCommand.mockResolvedValue(makeResult());
-
-    const response = await callTool("get_design_system");
-    const text = response.content[0].text;
-
-    // We have background/primary and text/primary, but many others are missing
-    expect(text).toContain("background/secondary");
-    expect(text).toContain("brand/primary");
-    expect(text).toContain("semantic/success");
-    expect(text).toContain("border/default");
-  });
-
-  it("reports all items as missing for empty design system", async () => {
+  it("handles empty design system", async () => {
     mockSendCommand.mockResolvedValue({
       pages: [],
       variables: [],
@@ -226,10 +200,6 @@ describe("get_design_system tool", () => {
     expect(text).toContain("No radius variables found.");
     expect(text).toContain("No text styles found.");
     expect(text).toContain("No effect styles found.");
-    expect(text).toContain("## Missing Items");
-    expect(text).toContain("Missing Variables");
-    expect(text).toContain("Missing Text Styles");
-    expect(text).toContain("Missing Effect Styles");
   });
 
   it("handles errors gracefully", async () => {
