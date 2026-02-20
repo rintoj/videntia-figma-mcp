@@ -1,8 +1,5 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { readFileSync } from "node:fs";
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
 import { sendCommandToFigma, joinChannel, getOpenChannels } from "../utils/websocket.js";
 import { filterFigmaNode } from "../utils/figma-helpers.js";
 import { figmaAccessToken, FIGMA_API_BASE_URL } from "../config/config.js";
@@ -136,7 +133,7 @@ export function getTokenPurpose(name: string, figmaDescription?: string): string
   return TOKEN_PURPOSE_MAP[name] || "-";
 }
 
-/** Parsed style guide reference with expected names */
+/** Reference lists derived from TOKEN_PURPOSE_MAP */
 interface StyleGuideReference {
   variables: string[];
   textStyles: string[];
@@ -144,72 +141,32 @@ interface StyleGuideReference {
 }
 
 /**
- * Parse the style guide markdown to extract expected variable/style names.
- * Extracts the first column from tables under known section headings.
+ * Derive the expected design system reference from TOKEN_PURPOSE_MAP.
+ * Categorizes keys by prefix into variables, text styles, and effect styles.
  */
-export function parseStyleGuide(content: string): StyleGuideReference {
+export function getStyleGuideReference(): StyleGuideReference {
   const variables: string[] = [];
   const textStyles: string[] = [];
   const effectStyles: string[] = [];
 
-  let currentSection = "";
-  const lines = content.split("\n");
-
-  for (const line of lines) {
-    const trimmed = line.trim();
-
-    // Detect section headings
-    if (trimmed.startsWith("## ")) {
-      const heading = trimmed.slice(3).trim().toLowerCase();
-      if (heading.includes("color") && heading.includes("variable")) {
-        currentSection = "color-vars";
-      } else if (heading.includes("spacing") && heading.includes("variable")) {
-        currentSection = "spacing-vars";
-      } else if (heading.includes("radius") && heading.includes("variable")) {
-        currentSection = "radius-vars";
-      } else if (heading.includes("text") && heading.includes("style")) {
-        currentSection = "text-styles";
-      } else if (heading.includes("effect") && heading.includes("style")) {
-        currentSection = "effect-styles";
-      } else {
-        currentSection = "";
-      }
-      continue;
-    }
-
-    // Parse table rows (skip header and separator)
-    if (!currentSection || !trimmed.startsWith("|") || trimmed.startsWith("|--") || trimmed.startsWith("| Variable Name") || trimmed.startsWith("| Style Name")) {
-      continue;
-    }
-
-    const cells = trimmed.split("|").map((c) => c.trim()).filter(Boolean);
-    if (cells.length === 0) continue;
-
-    const name = cells[0];
-    if (currentSection === "text-styles") {
-      textStyles.push(name);
-    } else if (currentSection === "effect-styles") {
+  for (const name of Object.keys(TOKEN_PURPOSE_MAP)) {
+    if (name.startsWith("shadow/")) {
       effectStyles.push(name);
+    } else if (name.startsWith("text/") && name.includes("/")) {
+      // text/display/lg, text/heading/h1, etc. are text styles (have 3 segments)
+      // text/primary, text/link etc. are color variables (have 2 segments)
+      const segments = name.split("/");
+      if (segments.length >= 3) {
+        textStyles.push(name);
+      } else {
+        variables.push(name);
+      }
     } else {
       variables.push(name);
     }
   }
 
   return { variables, textStyles, effectStyles };
-}
-
-/** Load and parse the style guide template. Returns null if not found. */
-export function loadStyleGuide(): StyleGuideReference | null {
-  try {
-    const currentDir = typeof __dirname !== "undefined" ? __dirname : dirname(fileURLToPath(import.meta.url));
-    // Navigate from src/claude_figma_mcp/tools/ or dist/ to project root
-    const projectRoot = resolve(currentDir, "..", "..", "..");
-    const styleGuidePath = resolve(projectRoot, "templates", "style-guide.md");
-    const content = readFileSync(styleGuidePath, "utf-8");
-    return parseStyleGuide(content);
-  } catch {
-    return null;
-  }
 }
 
 /**
@@ -1442,8 +1399,8 @@ export function registerDocumentTools(server: McpServer): void {
       try {
         const result = await sendCommandToFigma<GetDesignSystemResult>("get_design_system", {}, 60000);
 
-        // Load style guide reference
-        const styleGuideRef = loadStyleGuide();
+        // Get style guide reference from TOKEN_PURPOSE_MAP
+        const styleGuideRef = getStyleGuideReference();
 
         // Categorize variables
         const colorVars: DesignSystemVariable[] = [];
@@ -1568,61 +1525,59 @@ export function registerDocumentTools(server: McpServer): void {
         }
 
         // Missing items comparison
-        if (styleGuideRef) {
-          const foundVarNames = new Set(result.variables.map((v) => v.name.toLowerCase()));
-          const foundTextStyleNames = new Set(result.textStyles.map((ts) => ts.name.toLowerCase()));
-          const foundEffectStyleNames = new Set(result.effectStyles.map((es) => es.name.toLowerCase()));
+        const foundVarNames = new Set(result.variables.map((v) => v.name.toLowerCase()));
+        const foundTextStyleNames = new Set(result.textStyles.map((ts) => ts.name.toLowerCase()));
+        const foundEffectStyleNames = new Set(result.effectStyles.map((es) => es.name.toLowerCase()));
 
-          const missingVars = styleGuideRef.variables.filter((name) => !foundVarNames.has(name.toLowerCase()));
-          const missingTextStyles = styleGuideRef.textStyles.filter(
-            (name) => !foundTextStyleNames.has(name.toLowerCase()),
+        const missingVars = styleGuideRef.variables.filter((name) => !foundVarNames.has(name.toLowerCase()));
+        const missingTextStyles = styleGuideRef.textStyles.filter(
+          (name) => !foundTextStyleNames.has(name.toLowerCase()),
+        );
+        const missingEffectStyles = styleGuideRef.effectStyles.filter(
+          (name) => !foundEffectStyleNames.has(name.toLowerCase()),
+        );
+
+        const totalMissing = missingVars.length + missingTextStyles.length + missingEffectStyles.length;
+
+        if (totalMissing > 0) {
+          lines.push("## Missing Items");
+          lines.push("");
+          lines.push(
+            `Found ${totalMissing} missing item(s) compared to the style guide reference.`,
           );
-          const missingEffectStyles = styleGuideRef.effectStyles.filter(
-            (name) => !foundEffectStyleNames.has(name.toLowerCase()),
-          );
+          lines.push("");
 
-          const totalMissing = missingVars.length + missingTextStyles.length + missingEffectStyles.length;
-
-          if (totalMissing > 0) {
-            lines.push("## Missing Items");
+          if (missingVars.length > 0) {
+            lines.push(`### Missing Variables (${missingVars.length})`);
             lines.push("");
-            lines.push(
-              `Found ${totalMissing} missing item(s) compared to the style guide reference.`,
-            );
-            lines.push("");
-
-            if (missingVars.length > 0) {
-              lines.push(`### Missing Variables (${missingVars.length})`);
-              lines.push("");
-              for (const name of missingVars) {
-                lines.push(`- ${name}`);
-              }
-              lines.push("");
+            for (const name of missingVars) {
+              lines.push(`- ${name}`);
             }
-
-            if (missingTextStyles.length > 0) {
-              lines.push(`### Missing Text Styles (${missingTextStyles.length})`);
-              lines.push("");
-              for (const name of missingTextStyles) {
-                lines.push(`- ${name}`);
-              }
-              lines.push("");
-            }
-
-            if (missingEffectStyles.length > 0) {
-              lines.push(`### Missing Effect Styles (${missingEffectStyles.length})`);
-              lines.push("");
-              for (const name of missingEffectStyles) {
-                lines.push(`- ${name}`);
-              }
-              lines.push("");
-            }
-          } else {
-            lines.push("## Missing Items");
-            lines.push("");
-            lines.push("All items from the style guide reference are present.");
             lines.push("");
           }
+
+          if (missingTextStyles.length > 0) {
+            lines.push(`### Missing Text Styles (${missingTextStyles.length})`);
+            lines.push("");
+            for (const name of missingTextStyles) {
+              lines.push(`- ${name}`);
+            }
+            lines.push("");
+          }
+
+          if (missingEffectStyles.length > 0) {
+            lines.push(`### Missing Effect Styles (${missingEffectStyles.length})`);
+            lines.push("");
+            for (const name of missingEffectStyles) {
+              lines.push(`- ${name}`);
+            }
+            lines.push("");
+          }
+        } else {
+          lines.push("## Missing Items");
+          lines.push("");
+          lines.push("All items from the style guide reference are present.");
+          lines.push("");
         }
 
         return {

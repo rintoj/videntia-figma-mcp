@@ -202,7 +202,7 @@ describe("get_design_system tool", () => {
     expect(text).toContain("background/secondary");
     expect(text).toContain("brand/primary");
     expect(text).toContain("semantic/success");
-    expect(text).toContain("border/primary");
+    expect(text).toContain("border/default");
   });
 
   it("reports all items as missing for empty design system", async () => {
@@ -282,5 +282,69 @@ describe("get_design_system tool", () => {
 
     expect(text).toContain("bg-semantic-success-subtle");
     expect(text).toContain("text-semantic-error");
+  });
+
+  it("derives purpose from TOKEN_PURPOSE_MAP when Figma description is empty", async () => {
+    mockSendCommand.mockResolvedValue(
+      makeResult({
+        variables: [
+          {
+            id: "v:20",
+            name: "background/primary",
+            description: "",
+            resolvedType: "COLOR",
+            collectionName: "Colors",
+            values: [{ modeId: "m1", modeName: "Light", value: { r: 1, g: 1, b: 1, a: 1 } }],
+          },
+        ],
+        textStyles: [
+          {
+            id: "ts:20",
+            name: "text/heading/h1",
+            fontSize: 24,
+            fontName: { family: "Manrope", style: "Bold" },
+            lineHeight: { unit: "PERCENT", value: 130 },
+          },
+        ],
+        effectStyles: [
+          {
+            id: "es:20",
+            name: "shadow/lg",
+            description: "",
+          },
+        ],
+      }),
+    );
+
+    const response = await callTool("get_design_system");
+    const text = response.content[0].text;
+
+    // Should derive purpose from the map, not show "-"
+    expect(text).toContain("Main app background, root screen fill");
+    expect(text).toContain("Page titles, primary screen headings");
+    expect(text).toContain("Modals, dialogs, bottom sheets");
+  });
+
+  it("prefers Figma description over map when both exist", async () => {
+    mockSendCommand.mockResolvedValue(
+      makeResult({
+        variables: [
+          {
+            id: "v:30",
+            name: "background/primary",
+            description: "Custom description from Figma",
+            resolvedType: "COLOR",
+            collectionName: "Colors",
+            values: [{ modeId: "m1", modeName: "Light", value: { r: 1, g: 1, b: 1, a: 1 } }],
+          },
+        ],
+      }),
+    );
+
+    const response = await callTool("get_design_system");
+    const text = response.content[0].text;
+
+    expect(text).toContain("Custom description from Figma");
+    expect(text).not.toContain("Main app background, root screen fill");
   });
 });
