@@ -8657,8 +8657,10 @@ async function setupDesignSystem(params) {
   if (tsResult.errors.length === 0) { delete tsResult.errors; }
   if (esResult.errors.length === 0) { delete esResult.errors; }
 
-  // --- Pages: ensure "Screens", "Components", "Draft" exist ---
-  var requiredPages = ["Screens", "Components", "Draft"];
+  // --- Pages: ensure required pages exist ---
+  var requiredPages = (params && Array.isArray(params.pages) && params.pages.length > 0)
+    ? params.pages
+    : ["Screens", "Components", "Draft"];
   var existingPages = figma.root.children;
 
   // Build lowercase lookup of existing page names

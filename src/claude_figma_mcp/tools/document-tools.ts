@@ -2010,6 +2010,7 @@ export function registerDocumentTools(server: McpServer): void {
     "setup_design_system",
     "Create or update an entire design system in a single call. Accepts variables (colors, spacing, radius), text styles, and effect styles. Idempotent — existing items with the same name are updated, not duplicated.",
     {
+      pages: z.array(z.string()).optional().describe("Page names to ensure exist (default: ['Screens', 'Components', 'Draft']). If only 'Page 1' exists and is empty, it is renamed to the first page."),
       collection_name: z.string().optional().describe("Variable collection name (default: 'Design Tokens')"),
       variables: z.array(z.object({
         name: z.string().describe("Variable name, e.g. 'background/primary' or 'space/md'"),
@@ -2044,9 +2045,10 @@ export function registerDocumentTools(server: McpServer): void {
         description: z.string().optional().describe("Effect style description/purpose"),
       })).optional().describe("Effect styles to create/update"),
     },
-    async ({ collection_name, variables, text_styles, effect_styles }) => {
+    async ({ pages, collection_name, variables, text_styles, effect_styles }) => {
       try {
         const params: Record<string, unknown> = {};
+        if (pages) params.pages = pages;
         if (collection_name) params.collectionName = collection_name;
         if (variables) params.variables = variables;
         if (text_styles) {
