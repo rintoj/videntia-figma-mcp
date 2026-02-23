@@ -8869,6 +8869,7 @@ var MAX_LINT_VIOLATIONS = 500;
 async function lintFrame(params) {
   var nodeId = params ? params.nodeId : undefined;
   var checks = params ? params.checks : undefined;
+  var fix = params ? (params.fix === true) : false;
 
   if (!nodeId) throw new Error("nodeId is required");
 
@@ -9425,6 +9426,67 @@ async function lintFrame(params) {
   // Run the traversal
   scanNode(rootNode, 0, null, null);
 
+  // ── Auto-fix pass (only when fix=true) ──
+  // Fixes violations whose correct value is fully deterministic:
+  //   rootFrame.layoutSizingHorizontal → "FIXED"
+  //   rootFrame.layoutSizingVertical   → "HUG"
+  //   rootFrame.minHeight              → device-standard height (inferred from width)
+  if (fix) {
+    var DEVICE_FIX_SPECS = [
+      { width: 1440, minHeight: 900 },
+      { width: 768,  minHeight: 1024 },
+      { width: 375,  minHeight: 812 }
+    ];
+    var DIM_TOL = 2;
+
+    for (var fxi = 0; fxi < violations.length; fxi++) {
+      var fv = violations[fxi];
+      fv.fixed = false;
+
+      if (fv.category !== "rootFrame") continue;
+
+      var fixNode = null;
+      try { fixNode = await figma.getNodeByIdAsync(fv.nodeId); } catch (e) {}
+      if (!fixNode) continue;
+
+      if (fv.property === "layoutSizingHorizontal") {
+        try {
+          fixNode.layoutSizingHorizontal = "FIXED";
+          fv.fixed = true;
+          // Update tally: move from unbound → bound
+          categories.rootFrame.unbound = Math.max(0, categories.rootFrame.unbound - 1);
+          categories.rootFrame.bound++;
+        } catch (e) {}
+
+      } else if (fv.property === "layoutSizingVertical") {
+        try {
+          fixNode.layoutSizingVertical = "HUG";
+          fv.fixed = true;
+          categories.rootFrame.unbound = Math.max(0, categories.rootFrame.unbound - 1);
+          categories.rootFrame.bound++;
+        } catch (e) {}
+
+      } else if (fv.property === "minHeight") {
+        try {
+          var fwWidth = fixNode.width !== undefined ? fixNode.width : 0;
+          var fwExpected = 0;
+          for (var fwdi = 0; fwdi < DEVICE_FIX_SPECS.length; fwdi++) {
+            if (Math.abs(fwWidth - DEVICE_FIX_SPECS[fwdi].width) <= DIM_TOL) {
+              fwExpected = DEVICE_FIX_SPECS[fwdi].minHeight;
+              break;
+            }
+          }
+          if (fwExpected > 0) {
+            fixNode.minHeight = fwExpected;
+            fv.fixed = true;
+            categories.rootFrame.unbound = Math.max(0, categories.rootFrame.unbound - 1);
+            categories.rootFrame.bound++;
+          }
+        } catch (e) {}
+      }
+    }
+  }
+
   // Compute compliance percentages
   var catKeys = ["rootFrame", "typography", "spacing", "borderRadius", "iconColors", "strokesBorders", "backgroundFills", "effectStyles", "overflow"];
   for (var ck = 0; ck < catKeys.length; ck++) {
@@ -9442,7 +9504,12 @@ async function lintFrame(params) {
   var summaryHigh = 0;
   var summaryMedium = 0;
   var summaryLow = 0;
+  var summaryFixed = 0;
   for (var sv = 0; sv < violations.length; sv++) {
+    if (violations[sv].fixed === true) {
+      summaryFixed++;
+      continue; // Fixed violations are excluded from severity counts
+    }
     switch (violations[sv].severity) {
       case "CRITICAL": summaryCritical++; break;
       case "HIGH": summaryHigh++; break;
@@ -9474,7 +9541,8 @@ async function lintFrame(params) {
       high: summaryHigh,
       medium: summaryMedium,
       low: summaryLow,
-      compliance: overallCompliance
+      compliance: overallCompliance,
+      fixed: summaryFixed
     }
   };
 }

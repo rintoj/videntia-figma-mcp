@@ -705,6 +705,8 @@ export interface LintViolation {
   property: string;
   message: string;
   details?: Record<string, unknown>;
+  /** Present when lint_frame was called with fix=true. True = auto-fixed, false = could not be auto-fixed. */
+  fixed?: boolean;
 }
 
 export interface LintCategoryResult {
@@ -739,5 +741,7 @@ export interface LintFrameResult {
     medium: number;
     low: number;
     compliance: number;
+    /** Number of violations auto-fixed (only present when fix=true was passed). */
+    fixed?: number;
   };
 }
