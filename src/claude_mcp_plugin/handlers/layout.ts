@@ -1,22 +1,4 @@
-// ---------------------------------------------------------------------------
-// Internal helpers
-// ---------------------------------------------------------------------------
-
-async function findCollection(collectionIdOrName: string): Promise<VariableCollection> {
-  const collections = await figma.variables.getLocalVariableCollectionsAsync();
-
-  let collection = collections.find((c) => c.id === collectionIdOrName);
-
-  if (!collection) {
-    collection = collections.find((c) => c.name === collectionIdOrName);
-  }
-
-  if (!collection) {
-    throw new Error(`Collection not found: ${collectionIdOrName}`);
-  }
-
-  return collection;
-}
+import { findCollection } from './variables';
 
 // ---------------------------------------------------------------------------
 // Layout system creation
@@ -24,9 +6,11 @@ async function findCollection(collectionIdOrName: string): Promise<VariableColle
 
 export async function createSpacingSystem(params: Record<string, unknown>): Promise<Record<string, unknown>> {
   const collection_id = params['collection_id'] as string;
+  if (!collection_id) throw new Error('Missing collection_id parameter');
   const preset = params['preset'] as string;
 
   const collection = await findCollection(collection_id);
+  if (!collection.modes.length) throw new Error('Collection has no modes');
 
   const presets: Record<string, Record<number, number>> = {
     '8pt': { 0: 0, 1: 4, 2: 8, 3: 12, 4: 16, 5: 20, 6: 24, 7: 28, 8: 32, 10: 40, 12: 48, 16: 64, 20: 80, 24: 96, 32: 128, 40: 160, 48: 192, 56: 224, 64: 256 },
@@ -55,12 +39,14 @@ export async function createSpacingSystem(params: Record<string, unknown>): Prom
 
 export async function createTypographySystem(params: Record<string, unknown>): Promise<Record<string, unknown>> {
   const collection_id = params['collection_id'] as string;
+  if (!collection_id) throw new Error('Missing collection_id parameter');
   const scale_preset = params['scale_preset'] as string;
   const base_size = params['base_size'] as number | undefined;
   const include_weights = params['include_weights'] as boolean | undefined;
   const include_line_heights = params['include_line_heights'] as boolean | undefined;
 
   const collection = await findCollection(collection_id);
+  if (!collection.modes.length) throw new Error('Collection has no modes');
 
   const ratios: Record<string, number> = {
     'minor-third': 1.2,
@@ -120,9 +106,11 @@ export async function createTypographySystem(params: Record<string, unknown>): P
 
 export async function createRadiusSystem(params: Record<string, unknown>): Promise<Record<string, unknown>> {
   const collection_id = params['collection_id'] as string;
+  if (!collection_id) throw new Error('Missing collection_id parameter');
   const preset = params['preset'] as string;
 
   const collection = await findCollection(collection_id);
+  if (!collection.modes.length) throw new Error('Collection has no modes');
 
   const presets: Record<string, Record<string, number>> = {
     standard: { none: 0, sm: 4, md: 8, lg: 12, xl: 16, '2xl': 24, '3xl': 32, full: 9999 },

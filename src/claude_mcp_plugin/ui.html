@@ -612,11 +612,15 @@
         );
       }
 
-      // Helper to generate unique IDs
+      // Helper to generate unique IDs (uses crypto for collision resistance)
       function generateId() {
-        return (
-          Date.now().toString(36) + Math.random().toString(36).substr(2, 5)
-        );
+        const bytes = new Uint8Array(6);
+        crypto.getRandomValues(bytes);
+        let hex = "";
+        for (let i = 0; i < bytes.length; i++) {
+          hex += bytes[i].toString(16).padStart(2, "0");
+        }
+        return Date.now().toString(36) + hex;
       }
 
       // Add this function after the generateId() function
@@ -640,7 +644,8 @@
         } else {
           cancelReconnect();
           state.reconnectAttempt = 0;
-          const port = parseInt(portInput.value, 10) || 3055;
+          const parsedPort = parseInt(portInput.value, 10);
+          const port = (parsedPort >= 1024 && parsedPort <= 65535) ? parsedPort : 3055;
           updateConnectionStatus(false, "Connecting...");
           connectionStatus.className = "status info";
           connectButton.disabled = true;

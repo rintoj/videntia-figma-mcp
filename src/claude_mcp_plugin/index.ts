@@ -180,7 +180,7 @@ figma.on('run', function () {
 // ---------------------------------------------------------------------------
 
 function updateSettings(settings: Record<string, unknown>): void {
-  if (settings['serverPort']) {
+  if (settings['serverPort'] !== undefined && settings['serverPort'] !== null) {
     state.serverPort = settings['serverPort'] as number;
   }
   figma.clientStorage.setAsync('settings', {
@@ -193,7 +193,7 @@ function updateSettings(settings: Record<string, unknown>): void {
   try {
     const savedSettings = await figma.clientStorage.getAsync('settings') as Record<string, unknown> | undefined;
     if (savedSettings) {
-      if (savedSettings['serverPort']) {
+      if (savedSettings['serverPort'] !== undefined && savedSettings['serverPort'] !== null) {
         state.serverPort = savedSettings['serverPort'] as number;
       }
     }

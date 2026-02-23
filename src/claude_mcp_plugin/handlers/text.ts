@@ -338,7 +338,6 @@ export async function setTextContent(params: Record<string, unknown>): Promise<R
   }
 
   try {
-    await figma.loadFontAsync((node as TextNode).fontName as FontName);
     await setCharacters(node as TextNode, text as string);
 
     return {
@@ -437,27 +436,6 @@ async function processTextNode(
       depth,
     };
 
-    try {
-      const originalFills = JSON.parse(JSON.stringify(textNode.fills));
-      textNode.fills = [
-        {
-          type: 'SOLID',
-          color: { r: 1, g: 0.5, b: 0 },
-          opacity: 0.3,
-        },
-      ];
-
-      await delay(100);
-
-      try {
-        textNode.fills = originalFills;
-      } catch (err) {
-        console.error('Error resetting fills:', err);
-      }
-    } catch (highlightErr) {
-      console.error('Error highlighting text node:', highlightErr);
-    }
-
     return safeTextNode;
   } catch (nodeErr) {
     console.error('Error processing text node:', nodeErr);
@@ -507,27 +485,6 @@ async function findTextNodes(
         path: nodePath.join(' > '),
         depth,
       };
-
-      try {
-        const originalFills = JSON.parse(JSON.stringify(textNode.fills));
-        textNode.fills = [
-          {
-            type: 'SOLID',
-            color: { r: 1, g: 0.5, b: 0 },
-            opacity: 0.3,
-          },
-        ];
-
-        await delay(500);
-
-        try {
-          textNode.fills = originalFills;
-        } catch (err) {
-          console.error('Error resetting fills:', err);
-        }
-      } catch (highlightErr) {
-        console.error('Error highlighting text node:', highlightErr);
-      }
 
       textNodes.push(safeTextNode);
     } catch (nodeErr) {

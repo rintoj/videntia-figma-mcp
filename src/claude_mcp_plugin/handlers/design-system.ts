@@ -997,9 +997,7 @@ export async function createFromData(
   // Create each root node
   let xOffset = 0;
   for (let i = 0; i < data.length; i++) {
-    const isExistingUpdate = data[i]['id']
-      ? await figma.getNodeByIdAsync(data[i]['id'] as string).catch(() => null)
-      : null;
+    const prevCount = createdNodes.length;
     const node = await createNode(
       data[i],
       parent,
@@ -1007,7 +1005,14 @@ export async function createFromData(
       resolvedX !== undefined ? resolvedX + xOffset : undefined,
       resolvedY,
     );
-    if (!isExistingUpdate) {
+    // createNode always pushes the root entry last (after all children),
+    // so createdNodes[last] reflects the root's create-vs-update action.
+    // This avoids a redundant getNodeByIdAsync call in the outer loop.
+    const rootAction =
+      createdNodes.length > prevCount
+        ? createdNodes[createdNodes.length - 1]['action']
+        : 'created';
+    if (rootAction !== 'updated') {
       xOffset += ((node as LayoutMixin).width !== undefined ? (node as LayoutMixin).width : 100) + 40;
     }
   }
@@ -1206,9 +1211,10 @@ export async function setupDesignSystem(
 
   // --- Variables (multiple collections) ---
   if (inputCollections.length > 0) {
-    const allLocalCollections =
-      await figma.variables.getLocalVariableCollectionsAsync();
-    const allLocalVars = await figma.variables.getLocalVariablesAsync();
+    const [allLocalCollections, allLocalVars] = await Promise.all([
+      figma.variables.getLocalVariableCollectionsAsync(),
+      figma.variables.getLocalVariablesAsync(),
+    ]);
 
     for (let colIdx = 0; colIdx < inputCollections.length; colIdx++) {
       const colDef = inputCollections[colIdx];

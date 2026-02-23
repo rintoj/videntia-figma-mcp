@@ -225,6 +225,30 @@ export async function setImageFill(params: Record<string, unknown>): Promise<unk
   if (!/^https?:\/\//i.test(imageUrl)) {
     throw new Error('imageUrl must use http:// or https:// scheme');
   }
+  // Block loopback, private IPv4 ranges (RFC-1918), and link-local addresses.
+  const hostMatch = imageUrl.match(/^https?:\/\/([^/:?#]+)/i);
+  if (hostMatch) {
+    const host = hostMatch[1].toLowerCase();
+    if (host === 'localhost' || host === '127.0.0.1' || host === '::1') {
+      throw new Error('imageUrl must not reference a loopback address');
+    }
+    if (host.endsWith('.local')) {
+      throw new Error('imageUrl must not reference a .local domain');
+    }
+    const ipv4 = host.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
+    if (ipv4) {
+      const a = parseInt(ipv4[1], 10);
+      const b = parseInt(ipv4[2], 10);
+      if (
+        a === 10 ||
+        (a === 172 && b >= 16 && b <= 31) ||
+        (a === 192 && b === 168) ||
+        (a === 169 && b === 254)
+      ) {
+        throw new Error('imageUrl must not reference a private network address');
+      }
+    }
+  }
 
   const validScaleModes = ['FILL', 'FIT', 'CROP', 'TILE'];
   if (!validScaleModes.includes(scaleMode)) {

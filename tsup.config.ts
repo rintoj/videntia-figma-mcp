@@ -21,7 +21,7 @@ export default defineConfig([
     format: ['iife'],
     target: 'es2017',
     bundle: true,
-    minify: false,
+    minify: true,
     sourcemap: false,
     splitting: false,
     clean: false, // don't wipe manifest.json / ui.html

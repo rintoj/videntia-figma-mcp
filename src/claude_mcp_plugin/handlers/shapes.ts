@@ -63,7 +63,7 @@ export async function createEllipse(params: Record<string, unknown>): Promise<un
     };
     ellipse.strokes = [strokeStyle];
 
-    if (strokeWeight) {
+    if (strokeWeight !== undefined) {
       ellipse.strokeWeight = strokeWeight;
     }
   }

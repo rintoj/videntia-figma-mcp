@@ -63,7 +63,7 @@ function findVariableIn(
 
 // Legacy single-arg helpers kept for callers that only need a collection
 // and don't require variables in the same call.
-async function findCollection(
+export async function findCollection(
   collectionIdOrName: string,
 ): Promise<VariableCollection> {
   const collections =
@@ -790,16 +790,10 @@ export async function updateVariableValue(
   const value = params['value'];
   const mode = params['mode'] as string | undefined;
 
-  const variable = await findVariable(variableId, collectionId);
-  const collection = await figma.variables.getVariableCollectionByIdAsync(
-    variable.variableCollectionId,
-  );
-
-  if (!collection) {
-    throw new Error(
-      `Variable collection not found for variable ${variable.name}`,
-    );
-  }
+  // Single parallel fetch — avoids the sequential findVariable() + getVariableCollectionByIdAsync() round-trip
+  const { collections, variables } = await fetchVariableData();
+  const variable = findVariableIn(variables, collections, variableId, collectionId);
+  const collection = findCollectionIn(collections, variable.variableCollectionId);
 
   const targetMode =
     mode !== undefined && mode !== null
@@ -917,9 +911,12 @@ export async function deleteVariablesBatch(
   let failed = 0;
   const errors: Array<{ variableId: string; error: string }> = [];
 
+  // Fetch once — avoids N×2 Figma IPC calls (one fetchVariableData per loop iter)
+  const { collections, variables } = await fetchVariableData();
+
   for (const varId of variableIds) {
     try {
-      const variable = await findVariable(varId, collectionId);
+      const variable = findVariableIn(variables, collections, varId, collectionId);
       variable.remove();
       deleted++;
     } catch (error) {
@@ -1043,13 +1040,12 @@ export async function validateColorContrast(
 
   const pairs: Array<Record<string, unknown>> = [];
   const fgSuffix = '-foreground';
+  const varByName = new Map(collectionVariables.map(v => [v.name, v]));
 
   for (const variable of collectionVariables) {
     if (variable.name.endsWith(fgSuffix)) {
       const baseName = variable.name.slice(0, -fgSuffix.length);
-      const baseVariable = collectionVariables.find(
-        v => v.name === baseName,
-      );
+      const baseVariable = varByName.get(baseName);
 
       if (baseVariable) {
         const fgValue = variable.valuesByMode[modeId];
@@ -1583,7 +1579,8 @@ export async function importCollectionSchema(
   const collectionVariables = allVariables.filter(
     v => v.variableCollectionId === collection.id,
   );
-  const existingNames = new Set(collectionVariables.map(v => v.name));
+  // Map for O(1) lookup and direct variable access — replaces Set + find() O(n)
+  const varByName = new Map(collectionVariables.map(v => [v.name, v]));
 
   const targetMode =
     mode !== undefined && mode !== null
@@ -1618,10 +1615,25 @@ export async function importCollectionSchema(
         errors.push({ name, error: 'Missing or invalid value' });
         continue;
       }
+      // Validate that value is an RGBA color object {r, g, b, a} with numeric components.
+      const colorValue = varData.value;
+      if (
+        colorValue === null ||
+        colorValue === undefined ||
+        typeof colorValue !== 'object' ||
+        typeof colorValue['r'] !== 'number' ||
+        typeof colorValue['g'] !== 'number' ||
+        typeof colorValue['b'] !== 'number' ||
+        typeof colorValue['a'] !== 'number'
+      ) {
+        failed++;
+        errors.push({ name, error: 'Variable value must be an RGBA color object {r, g, b, a}' });
+        continue;
+      }
 
-      if (existingNames.has(name)) {
+      if (varByName.has(name)) {
         if (overwriteExisting === true) {
-          const variable = collectionVariables.find(v => v.name === name);
+          const variable = varByName.get(name);
           if (variable !== undefined) {
             variable.setValueForMode(modeId, varData.value);
           }
