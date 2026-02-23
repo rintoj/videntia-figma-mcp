@@ -28,13 +28,12 @@ export async function getDocumentInfo(): Promise<Record<string, unknown>> {
       name: page.name,
       childCount: page.children.length,
     },
-    // Note: childCount for non-current pages may be 0 if the page has not been
-    // loaded yet (Figma only loads the current page automatically). Use
-    // get_node_info on a specific page to get accurate child counts.
+    // Only the current page is guaranteed to be loaded; other pages must not
+    // have their `.children` accessed without calling `loadAsync()` first.
     pages: figma.root.children.map((p) => ({
       id: p.id,
       name: p.name,
-      childCount: 'children' in p ? (p as PageNode).children.length : 0,
+      childCount: p.id === page.id ? page.children.length : 0,
     })),
   };
 }
@@ -87,6 +86,38 @@ function stripImageData(obj: unknown): unknown {
   return result;
 }
 
+/**
+ * Truncates the node tree to one level of children.
+ * For each direct child that itself has children, replaces the nested
+ * `children` array with a `_children` note so callers know to drill in
+ * with get_node_info using that child's id.
+ */
+function truncateToFirstLevelChildren(doc: unknown): unknown {
+  if (!doc || typeof doc !== 'object' || Array.isArray(doc)) {
+    return doc;
+  }
+  const node = doc as Record<string, unknown>;
+  if (!Array.isArray(node.children)) {
+    return node;
+  }
+  const truncatedChildren = node.children.map((child: unknown) => {
+    if (!child || typeof child !== 'object' || Array.isArray(child)) {
+      return child;
+    }
+    const childNode = child as Record<string, unknown>;
+    if (!Array.isArray(childNode.children) || childNode.children.length === 0) {
+      return childNode;
+    }
+    const count = (childNode.children as unknown[]).length;
+    const { children: _omitted, ...rest } = childNode;
+    return {
+      ...rest,
+      _children: count + ' children \u2014 call get_node_info with id="' + rest['id'] + '" to explore',
+    };
+  });
+  return { ...node, children: truncatedChildren };
+}
+
 export interface GetNodeInfoOptions {
   stripImages?: boolean;
 }
@@ -113,6 +144,9 @@ export async function getNodeInfo(
   if (stripImages) {
     document = stripImageData(document);
   }
+
+  // Return only first-level children; nested children are replaced with a note
+  document = truncateToFirstLevelChildren(document);
 
   return document;
 }
@@ -144,6 +178,9 @@ export async function getNodesInfo(
         if (stripImages) {
           document = stripImageData(document);
         }
+
+        // Return only first-level children; nested children are replaced with a note
+        document = truncateToFirstLevelChildren(document);
 
         return {
           nodeId: node.id,
