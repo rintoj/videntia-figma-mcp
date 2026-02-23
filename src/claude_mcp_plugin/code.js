@@ -9116,6 +9116,25 @@ async function lintFrame(params) {
         if (childCount > 0) {
           addViolation(node, depth, "MEDIUM", "autoLayout", "layoutMode", "Frame has " + childCount + " children but no auto-layout set");
         }
+      } else {
+        // layoutMode is active — check for absolute-positioned children which can break layout flow
+        var alChildren = null;
+        try { alChildren = node.children; } catch (e) {}
+        if (alChildren && alChildren.length > 0) {
+          var absChildCount = 0;
+          for (var alci = 0; alci < alChildren.length; alci++) {
+            var alChild = alChildren[alci];
+            var alChildPos = null;
+            try { alChildPos = alChild.layoutPositioning; } catch (e) {}
+            if (alChildPos === "ABSOLUTE") {
+              absChildCount++;
+            }
+          }
+          if (absChildCount > 0) {
+            addViolation(node, depth, "LOW", "autoLayout", "layoutPositioning",
+              "Auto-layout frame has " + absChildCount + " absolute-positioned " + (absChildCount === 1 ? "child" : "children") + " — verify intentional");
+          }
+        }
       }
     }
 

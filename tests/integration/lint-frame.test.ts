@@ -271,6 +271,31 @@ describe("lint_frame tool", () => {
     await expect(callTool("lint_frame", {})).rejects.toThrow();
   });
 
+  it("flags absolute-positioned children inside auto-layout frames as LOW violation", async () => {
+    const result = makeResult({
+      violations: [
+        {
+          nodeId: "1:200",
+          nodeName: "Card",
+          nodeType: "FRAME",
+          depth: 1,
+          severity: "LOW",
+          category: "autoLayout",
+          property: "layoutPositioning",
+          message: "Auto-layout frame has 2 absolute-positioned children — verify intentional",
+        },
+      ],
+      summary: { total: 1, critical: 0, high: 0, medium: 0, low: 1, compliance: 95 },
+    });
+    mockSendCommand.mockResolvedValue(result);
+
+    const response = await callTool("lint_frame", { node_id: "1:100" });
+    const text = response.content[0].text;
+
+    expect(text).toContain("Auto-layout frame has 2 absolute-positioned children");
+    expect(text).toContain("### LOW (1)");
+  });
+
   it("skips severity sections with zero violations", async () => {
     const result = makeResult({
       violations: [
