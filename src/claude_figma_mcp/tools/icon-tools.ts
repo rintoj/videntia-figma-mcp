@@ -1,6 +1,20 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { searchIcons, getIcon, listIcons } from "../utils/icon-search.js";
+import { sendCommandToFigma } from "../utils/websocket.js";
+
+/**
+ * Inject a color and size into a Lucide SVG string.
+ * - Replaces `currentColor` with the provided color value.
+ * - Updates the root width/height attributes to the target size.
+ */
+function buildIconSvg(svg: string, color: string, size: number): string {
+  let result = svg;
+  result = result.replace(/\bwidth="[^"]*"/, `width="${size}"`);
+  result = result.replace(/\bheight="[^"]*"/, `height="${size}"`);
+  result = result.replace(/currentColor/g, color);
+  return result;
+}
 
 /**
  * Register icon lookup tools to the MCP server.
@@ -146,6 +160,179 @@ export function registerIconTools(server: McpServer): void {
             {
               type: "text" as const,
               text: `Error listing icons: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  /**
+   * create_icon — resolves a Lucide icon server-side, injects color and size,
+   * then creates it in Figma inside the specified parent at the given index.
+   */
+  server.tool(
+    "create_icon",
+    "Create a Lucide icon in Figma with a specific color and size. Resolves the SVG server-side and places it inside the given parent node at the specified index.",
+    {
+      parentId: z.string().describe("Parent node ID to insert the icon into"),
+      index: z
+        .number()
+        .int()
+        .min(0)
+        .optional()
+        .describe("Zero-based position within the parent's children array (omit to append at the end)"),
+      iconName: z.string().describe('Lucide icon name (e.g. "arrow-left", "bell", "check")'),
+      color: z.string().describe('Icon color as a CSS color string (e.g. "#FF0000", "#333", "rgba(0,0,0,0.5)")'),
+      size: z.coerce.number().positive().describe("Icon size in pixels applied to both width and height"),
+    },
+    async ({ parentId, index, iconName, color, size }) => {
+      const icon = getIcon(iconName);
+      if (!icon) {
+        const suggestions = searchIcons(iconName, 5);
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify(
+                {
+                  error: `Icon "${iconName}" not found`,
+                  suggestions: suggestions.map(({ name, matchType }) => ({ name, matchType })),
+                },
+                null,
+                2,
+              ),
+            },
+          ],
+        };
+      }
+
+      try {
+        const svgString = buildIconSvg(icon.svg, color, size);
+
+        const createResult = await sendCommandToFigma("create_svg", {
+          svgString,
+          x: 0,
+          y: 0,
+          name: icon.name,
+          parentId,
+          flatten: false,
+        });
+
+        const typedResult = createResult as { id: string; name: string; width: number; height: number };
+
+        if (index !== undefined) {
+          await sendCommandToFigma("insert_child", {
+            parentId,
+            childId: typedResult.id,
+            index,
+          });
+        }
+
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify(
+                {
+                  id: typedResult.id,
+                  name: typedResult.name,
+                  iconName: icon.name,
+                  color,
+                  size,
+                  parentId,
+                  index,
+                },
+                null,
+                2,
+              ),
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: `Error creating icon: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  /**
+   * update_icon — replaces an existing icon node with a new Lucide icon,
+   * preserving its parent container and position (index) automatically.
+   */
+  server.tool(
+    "update_icon",
+    "Replace an existing icon node in Figma with a new Lucide icon. The replacement is inserted at the same parent and position as the original node.",
+    {
+      nodeId: z.string().describe("ID of the existing icon node to replace"),
+      iconName: z.string().describe('New Lucide icon name (e.g. "arrow-left", "bell", "check")'),
+      color: z.string().describe('Icon color as a CSS color string (e.g. "#FF0000", "#333", "rgba(0,0,0,0.5)")'),
+      size: z.coerce.number().positive().describe("Icon size in pixels applied to both width and height"),
+    },
+    async ({ nodeId, iconName, color, size }) => {
+      const icon = getIcon(iconName);
+      if (!icon) {
+        const suggestions = searchIcons(iconName, 5);
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify(
+                {
+                  error: `Icon "${iconName}" not found`,
+                  suggestions: suggestions.map(({ name, matchType }) => ({ name, matchType })),
+                },
+                null,
+                2,
+              ),
+            },
+          ],
+        };
+      }
+
+      try {
+        const svgString = buildIconSvg(icon.svg, color, size);
+
+        const result = await sendCommandToFigma("update_icon", {
+          nodeId,
+          svgString,
+          name: icon.name,
+        });
+
+        const typedResult = result as { id: string; name: string; parentId: string; index: number };
+
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify(
+                {
+                  id: typedResult.id,
+                  name: typedResult.name,
+                  iconName: icon.name,
+                  color,
+                  size,
+                  parentId: typedResult.parentId,
+                  index: typedResult.index,
+                },
+                null,
+                2,
+              ),
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: `Error updating icon: ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };

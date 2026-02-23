@@ -250,6 +250,8 @@ async function handleCommand(command, params) {
       return await createStar(params);
     case "create_svg":
       return await createSvg(params);
+    case "update_icon":
+      return await updateIcon(params);
     case "create_vector":
       return await createVector(params);
     case "create_line":
@@ -9474,5 +9476,101 @@ async function lintFrame(params) {
       low: summaryLow,
       compliance: overallCompliance
     }
+  };
+}
+
+// Replace an existing icon node with a new SVG, preserving parent and position.
+// The server resolves the icon SVG and injects color/size before calling this.
+async function updateIcon(params) {
+  var nodeId = params ? params.nodeId : undefined;
+  var svgString = params ? params.svgString : undefined;
+  var name = params ? params.name : undefined;
+
+  if (!nodeId) {
+    throw new Error("Missing nodeId parameter");
+  }
+  if (!svgString) {
+    throw new Error("Missing svgString parameter");
+  }
+
+  var trimmedSvg = svgString.trim();
+  if (trimmedSvg.indexOf("<svg") !== 0 && trimmedSvg.indexOf("<?xml") !== 0) {
+    throw new Error("Invalid SVG: must start with <svg or <?xml declaration");
+  }
+
+  // Get the existing node to read its parent and position
+  var node = await figma.getNodeByIdAsync(nodeId);
+  if (!node) {
+    throw new Error("Node not found with ID: " + nodeId);
+  }
+
+  var parent = node.parent;
+  if (!parent) {
+    throw new Error("Node has no parent");
+  }
+
+  // Find the current index within the parent's children
+  var index = -1;
+  if (parent.children) {
+    for (var i = 0; i < parent.children.length; i++) {
+      if (parent.children[i].id === nodeId) {
+        index = i;
+        break;
+      }
+    }
+  }
+
+  // Remove the old node
+  node.remove();
+
+  // Create the replacement SVG node
+  var svgNode = figma.createNodeFromSvg(svgString);
+  svgNode.x = 0;
+  svgNode.y = 0;
+  if (name) {
+    svgNode.name = name;
+  }
+
+  // Propagate root-level stroke to individual shape children (same logic as createSvg)
+  var rootStroke = parseSvgRootStroke(svgString);
+  if (rootStroke) {
+    var strokeRgb = svgColorToFigmaRgb(rootStroke.color);
+    if (strokeRgb) {
+      var strokePaint = { type: 'SOLID', color: strokeRgb, opacity: rootStroke.opacity };
+      propagateStrokeToShapes(svgNode, strokePaint, rootStroke.width);
+    }
+    if ('strokes' in svgNode) {
+      svgNode.strokes = [];
+    }
+  }
+
+  // Insert at the original position, or append if no index was found
+  if ('insertChild' in parent && index >= 0) {
+    parent.insertChild(index, svgNode);
+  } else if ('appendChild' in parent) {
+    parent.appendChild(svgNode);
+  } else {
+    figma.currentPage.appendChild(svgNode);
+  }
+
+  // If placed inside an Icon/* placeholder frame, resize to fill it exactly
+  if (parent.name && parent.name.indexOf("Icon/") === 0) {
+    if ('strokes' in parent) {
+      parent.strokes = [];
+    }
+    var parentW = parent.width !== undefined ? parent.width : 0;
+    var parentH = parent.height !== undefined ? parent.height : 0;
+    if (parentW > 0 && parentH > 0 && svgNode.resize) {
+      svgNode.resize(parentW, parentH);
+      svgNode.x = 0;
+      svgNode.y = 0;
+    }
+  }
+
+  return {
+    id: svgNode.id,
+    name: svgNode.name,
+    parentId: svgNode.parent ? svgNode.parent.id : undefined,
+    index: index
   };
 }
