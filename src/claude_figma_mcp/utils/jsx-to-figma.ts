@@ -99,7 +99,9 @@ function jsxElementToNode(el: t.JSXElement, parentType?: string, source?: string
       name = tag;
     }
   } else {
-    name = decodeEntities(attrs.name || HTML_TAG_NAMES[tag] || "Node");
+    // data-name takes priority over name — enables the Icon/* placeholder pattern:
+    //   <div data-name="Icon/save" className="w-[24px] h-[24px] shrink-0" />
+    name = decodeEntities(attrs["data-name"] || attrs.name || HTML_TAG_NAMES[tag] || "Node");
   }
 
   const node: FigmaNodeData = {
@@ -172,6 +174,23 @@ function jsxElementToNode(el: t.JSXElement, parentType?: string, source?: string
 
   applyClassName(node, attrs.className || "");
   applyStyleAttribute(node, attrs.style || "");
+
+  // Icon/* frames are pure layout placeholders — strip any border-derived strokes.
+  // A designer may write `border border-border-default` on the placeholder div for
+  // visual alignment during authoring, but the stroke must not bleed into Figma.
+  if (node.name.startsWith("Icon/")) {
+    node.strokes = undefined;
+    node.strokeWeight = undefined;
+    node.strokeTopWeight = undefined;
+    node.strokeBottomWeight = undefined;
+    node.strokeLeftWeight = undefined;
+    node.strokeRightWeight = undefined;
+    if (node.bindings) {
+      for (const key of Object.keys(node.bindings)) {
+        if (key.startsWith("strokes/")) delete node.bindings[key];
+      }
+    }
+  }
 
   // Apply HTML tag defaults (only set values that weren't already set by classes)
   applyHtmlTagDefaults(node, tag);
