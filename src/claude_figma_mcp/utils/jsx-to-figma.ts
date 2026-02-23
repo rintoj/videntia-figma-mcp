@@ -1311,15 +1311,35 @@ function applyClassName(node: FigmaNodeData, className: string): void {
           continue;
         }
 
-        // 3. Disambiguate: if individual typography props exist (fontSize set), it's a fill binding
-        // If no individual typography, it's a textStyleName
-        if (hasFontSize || hasIndividualTypography) {
-          // Fill variable binding
+        // 3. Disambiguate using the design-system's known semantic color namespaces.
+        //    Names whose first path segment is a known color namespace (e.g. text/primary,
+        //    semantic/error) are fill variable bindings.
+        //    Everything else (e.g. body/md, heading/h1, card/foreground) may be a text style
+        //    name or a font-size-dependent color binding — defer for later resolution.
+        const denormalized = denormalizeVarName(name);
+        const slashIdx = denormalized.indexOf("/");
+        const firstSegment = slashIdx >= 0 ? denormalized.substring(0, slashIdx) : "";
+        const slashCount = (denormalized.match(/\//g) || []).length;
+        const isSemanticColorVar =
+          slashCount === 1 &&
+          (firstSegment === "text" ||
+            firstSegment === "semantic" ||
+            firstSegment === "background" ||
+            firstSegment === "brand" ||
+            firstSegment === "border" ||
+            firstSegment === "interactive" ||
+            firstSegment === "feedback" ||
+            firstSegment === "surface" ||
+            firstSegment === "utility" ||
+            firstSegment === "chart");
+        if (isSemanticColorVar) {
+          // Semantic color variable → always create fill binding immediately
           node.fills = node.fills || [];
           const idx = node.fills.length;
           node.fills.push({ type: "SOLID", color: "#000000" });
-          bindings[`fills/${idx}`] = denormalizeVarName(name);
+          bindings[`fills/${idx}`] = denormalized;
         } else {
+          // Potential text style name or font-size-dependent fill color — defer
           deferredTextClasses.push(name);
         }
         continue;
@@ -1468,17 +1488,17 @@ function applyClassName(node: FigmaNodeData, className: string): void {
     }
   }
 
-  // Process deferred text- classes
+  // Process deferred text- classes (3+ segment names deferred from the class loop)
   if (isText && deferredTextClasses.length > 0) {
     for (const name of deferredTextClasses) {
       if (node.fontSize || hasIndividualTypography) {
-        // Fill variable binding
+        // Explicit font size was set → this is a fill color variable binding
         node.fills = node.fills || [];
         const idx = node.fills.length;
         node.fills.push({ type: "SOLID", color: "#000000" });
         bindings[`fills/${idx}`] = denormalizeVarName(name);
       } else {
-        // Text style name
+        // No explicit font size → treat as named text style (last one wins)
         node.textStyleName = denormalizeVarName(name);
       }
     }

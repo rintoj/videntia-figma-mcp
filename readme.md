@@ -13,6 +13,8 @@ AI-powered design tool that enables Claude Desktop and other AI tools (GitHub Co
 
 ### Step 1: Install Figma Plugin
 
+> **If using from source:** `code.js` is auto-generated — run `bun run build` before importing the plugin.
+
 1. Open Figma Desktop
 2. Go to **Menu → Plugins → Development → Import plugin from manifest...**
 3. Navigate to `src/claude_mcp_plugin/manifest.json` in this project and select it
