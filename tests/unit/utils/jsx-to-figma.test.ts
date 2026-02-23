@@ -1969,4 +1969,50 @@ describe("parseJsx - CSS string format in style attribute", () => {
     expect(nodes[0].width).toBe(100);
     expect(nodes[0].height).toBe(50);
   });
+
+  // --- Icon/* placeholder frame fixes ---
+
+  describe("Icon/* placeholder frames", () => {
+    it("should use data-name attribute for node naming", () => {
+      const nodes = parseJsx('<div data-name="Icon/save" className="w-[24px] h-[24px] shrink-0" />');
+      expect(nodes[0].name).toBe("Icon/save");
+    });
+
+    it("data-name should take priority over name attribute", () => {
+      const nodes = parseJsx('<div data-name="Icon/bell" name="Fallback" className="w-[24px] h-[24px]" />');
+      expect(nodes[0].name).toBe("Icon/bell");
+    });
+
+    it("should strip strokes from Icon/* frames when border class is present", () => {
+      const nodes = parseJsx(
+        '<div data-name="Icon/arrow-left" className="w-[24px] h-[24px] border border-border-default shrink-0" />',
+      );
+      expect(nodes[0].name).toBe("Icon/arrow-left");
+      expect(nodes[0].strokes).toBeUndefined();
+      expect(nodes[0].strokeWeight).toBeUndefined();
+    });
+
+    it("should strip stroke bindings from Icon/* frames", () => {
+      const nodes = parseJsx(
+        '<div data-name="Icon/undo-2" className="w-[24px] h-[24px] border border-primary-500 shrink-0" />',
+      );
+      expect(nodes[0].strokes).toBeUndefined();
+      const bindings = nodes[0].bindings ?? {};
+      const hasStrokeBinding = Object.keys(bindings).some((k) => k.startsWith("strokes/"));
+      expect(hasStrokeBinding).toBe(false);
+    });
+
+    it("should NOT strip strokes from non-Icon frames with borders", () => {
+      const nodes = parseJsx('<div id="1:1" name="Card" className="border border-border-default" />');
+      expect(nodes[0].strokeWeight).toBeDefined();
+    });
+
+    it("should still apply size classes on Icon/* frames", () => {
+      const nodes = parseJsx(
+        '<div data-name="Icon/save" className="w-[24px] h-[24px] border border-border-default shrink-0" />',
+      );
+      expect(nodes[0].width).toBe(24);
+      expect(nodes[0].height).toBe(24);
+    });
+  });
 });

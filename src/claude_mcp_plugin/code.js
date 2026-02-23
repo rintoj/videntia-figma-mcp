@@ -4764,6 +4764,26 @@ async function createSvg(params) {
       throw new Error(`Parent node does not support children: ${parentId}`);
     }
     parentNode.appendChild(svgNode);
+
+    // Icon/* frames are layout-only placeholder containers.
+    // After inserting the SVG, clear any stroke that bled through from the JSX
+    // border classes, and resize the SVG node to fill the parent frame exactly.
+    if (parentNode.name && parentNode.name.indexOf("Icon/") === 0) {
+      parentNode.strokes = [];
+      parentNode.strokeWeight = 0;
+      parentNode.strokeTopWeight = 0;
+      parentNode.strokeBottomWeight = 0;
+      parentNode.strokeLeftWeight = 0;
+      parentNode.strokeRightWeight = 0;
+
+      var parentW = parentNode.width !== undefined ? parentNode.width : 0;
+      var parentH = parentNode.height !== undefined ? parentNode.height : 0;
+      if (parentW > 0 && parentH > 0 && svgNode.resize) {
+        svgNode.resize(parentW, parentH);
+        svgNode.x = 0;
+        svgNode.y = 0;
+      }
+    }
   } else {
     figma.currentPage.appendChild(svgNode);
   }
