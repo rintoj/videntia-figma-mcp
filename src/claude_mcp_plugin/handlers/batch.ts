@@ -2,6 +2,7 @@
 // handleCommand is injected to avoid a circular module dependency.
 
 import { sendProgressUpdate } from '../utils/helpers';
+import type { BatchAction, BatchActionResult } from '../types';
 
 // Max depth for field path navigation to prevent abuse.
 // NOTE: This logic is mirrored in src/claude_figma_mcp/utils/resolve-result-references.ts
@@ -12,19 +13,6 @@ export type HandleCommandFn = (
   command: string,
   params: Record<string, unknown>,
 ) => Promise<unknown>;
-
-interface BatchAction {
-  action: string;
-  params: Record<string, unknown>;
-}
-
-interface BatchActionResult {
-  index: number;
-  action: string;
-  success: boolean;
-  result?: unknown;
-  error?: string;
-}
 
 // Resolves $result[N].field references in action params against previous results.
 function resolveResultReferences(

@@ -1,27 +1,11 @@
 // Design-system handler functions for the Claude Figma MCP plugin.
 
-import { debugLog, sendProgressUpdate, generateCommandId } from '../utils/helpers';
+import { debugLog, sendProgressUpdate, generateCommandId, getFontStyle } from '../utils/helpers';
 import { parseSvgRootStroke, propagateStrokeToShapes } from '../utils/svg';
 
 // ---------------------------------------------------------------------------
 // Internal helpers (shared by createFromData / setupDesignSystem)
 // ---------------------------------------------------------------------------
-
-/** Map a CSS/numeric font weight to a Figma font style name. */
-function getFontStyle(weight: number): string {
-  switch (weight) {
-    case 100: return 'Thin';
-    case 200: return 'Extra Light';
-    case 300: return 'Light';
-    case 400: return 'Regular';
-    case 500: return 'Medium';
-    case 600: return 'Semi Bold';
-    case 700: return 'Bold';
-    case 800: return 'Extra Bold';
-    case 900: return 'Black';
-    default:  return 'Regular';
-  }
-}
 
 /** Expand 3-char hex shorthand to 6-char (e.g. "fff" → "ffffff"). */
 function expandHex(hex: string): string {

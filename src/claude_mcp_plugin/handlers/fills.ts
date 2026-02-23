@@ -185,7 +185,7 @@ export async function setStrokeColor(params: Record<string, unknown>): Promise<u
     id: node.id,
     name: node.name,
     strokes: (node as GeometryMixin).strokes,
-    strokeWeight: 'strokeWeight' in node ? (node as IndividualStrokesMixin).strokeTopWeight : undefined,
+    strokeWeight: 'strokeWeight' in node ? (node as unknown as { strokeWeight: number }).strokeWeight : undefined,
   };
 }
 

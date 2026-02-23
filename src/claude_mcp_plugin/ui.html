@@ -238,7 +238,8 @@
       // Minimum time (ms) to display "Running: X..." before flipping to "completed".
       // Prevents fast commands from flashing too quickly to be readable.
       const MIN_PROGRESS_DISPLAY_MS = 600;
-      let progressStartTime = null;
+      // Per-command start times (keyed by command ID) to handle concurrent commands
+      const progressStartTimes = new Map();
 
       // UI Elements
       const portInput = document.getElementById("port");
@@ -468,7 +469,7 @@
         // If it's a new command
         if (data.command) {
           const name = formatCommandName(data.command);
-          progressStartTime = Date.now();
+          progressStartTimes.set(data.id, Date.now());
           showOperationStatus(`Running: ${name}...`, "running");
           try {
             // Send the command to the plugin code
@@ -684,10 +685,11 @@
           case "command-result": {
             // Ensure "Running: X..." is visible for at least MIN_PROGRESS_DISPLAY_MS
             const resultName = formatCommandName(message.command || "");
-            const resultDelay = progressStartTime !== null
-              ? Math.max(0, MIN_PROGRESS_DISPLAY_MS - (Date.now() - progressStartTime))
+            const resultStart = progressStartTimes.get(message.id);
+            const resultDelay = resultStart !== undefined
+              ? Math.max(0, MIN_PROGRESS_DISPLAY_MS - (Date.now() - resultStart))
               : 0;
-            progressStartTime = null;
+            progressStartTimes.delete(message.id);
             setTimeout(() => {
               showOperationStatus(`${resultName} completed`, "success");
               hideOperationStatusAfter(3000);
@@ -698,10 +700,11 @@
           }
           case "command-error": {
             const errorName = formatCommandName(message.command || "");
-            const errorDelay = progressStartTime !== null
-              ? Math.max(0, MIN_PROGRESS_DISPLAY_MS - (Date.now() - progressStartTime))
+            const errorStart = progressStartTimes.get(message.id);
+            const errorDelay = errorStart !== undefined
+              ? Math.max(0, MIN_PROGRESS_DISPLAY_MS - (Date.now() - errorStart))
               : 0;
-            progressStartTime = null;
+            progressStartTimes.delete(message.id);
             setTimeout(() => {
               showOperationStatus(`${errorName} failed`, "error");
               hideOperationStatusAfter(5000);
