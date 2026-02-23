@@ -1,4 +1,11 @@
-import { debugLog, sendProgressUpdate } from '../utils/helpers';
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+// Structural type for nodes that carry the Figma annotations mixin.
+// Using this instead of FrameNode avoids the incorrect assumption that
+// only frames support annotations — all ANNOTATION_SUPPORTED_TYPES do.
+type AnnotatableNode = BaseNode & { readonly annotations: ReadonlyArray<Annotation> };
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -53,8 +60,8 @@ export async function getAnnotations(params: Record<string, unknown>): Promise<R
     };
   }
 
-  const annotatedNode = targetNode as FrameNode;
-  const rawAnnotations: Annotation[] = (annotatedNode.annotations as Annotation[]) || [];
+  const annotatedNode = targetNode as unknown as AnnotatableNode;
+  const rawAnnotations: Annotation[] = Array.from(annotatedNode.annotations) || [];
   const annotations: Record<string, unknown>[] = [];
 
   for (let i = 0; i < rawAnnotations.length; i++) {
@@ -127,8 +134,8 @@ export async function setAnnotation(params: Record<string, unknown>): Promise<Re
     annotation['properties'] = properties;
   }
 
-  const annotatedNode = node as FrameNode;
-  const rawAnnotations: Annotation[] = (annotatedNode.annotations as Annotation[]) || [];
+  const annotatedNode = node as unknown as AnnotatableNode;
+  const rawAnnotations: Annotation[] = Array.from(annotatedNode.annotations) || [];
 
   // Deep-copy existing annotations (readonly objects from Figma)
   const existingAnnotations: Record<string, unknown>[] = rawAnnotations.map((a) => {
@@ -324,6 +331,4 @@ export async function deleteAnnotationCategory(params: Record<string, unknown>):
   };
 }
 
-// Suppress unused import warning — these may be used by the broader plugin
-void debugLog;
-void sendProgressUpdate;
+

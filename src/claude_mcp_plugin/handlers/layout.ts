@@ -1,5 +1,3 @@
-import { debugLog, sendProgressUpdate } from '../utils/helpers';
-
 // ---------------------------------------------------------------------------
 // Internal helpers
 // ---------------------------------------------------------------------------
@@ -326,6 +324,4 @@ export async function setLayoutSizing(params: Record<string, unknown>): Promise<
   };
 }
 
-// Suppress unused import warning — these may be used by the broader plugin
-void debugLog;
-void sendProgressUpdate;
+

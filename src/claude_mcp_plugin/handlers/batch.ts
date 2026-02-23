@@ -184,7 +184,7 @@ export async function batchActions(
           progress,
           totalActions,
           i + 1,
-          `Action ${i} (${action}) failed. Processed ${i + 1}/${totalActions} (${succeeded} succeeded, ${failed} failed)`,
+          `Action ${i + 1} (${action}) failed. Processed ${i + 1}/${totalActions} (${succeeded} succeeded, ${failed} failed)`,
         );
       }
 

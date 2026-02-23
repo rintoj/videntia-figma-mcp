@@ -270,27 +270,29 @@ export async function setImageFill(params: Record<string, unknown>): Promise<unk
 
   debugLog(`setImageFill: Image size ${width}x${height}`);
 
-  // Build the image paint object
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const imagePaint: any = {
+  // Build image filters if any were provided (values range from -1.0 to 1.0, default 0)
+  const hasFilters = exposure !== undefined || contrast !== undefined ||
+    saturation !== undefined || temperature !== undefined ||
+    tint !== undefined || highlights !== undefined || shadows !== undefined;
+  const imageFilters: ImageFilters | undefined = hasFilters ? {
+    ...(exposure !== undefined ? { exposure } : {}),
+    ...(contrast !== undefined ? { contrast } : {}),
+    ...(saturation !== undefined ? { saturation } : {}),
+    ...(temperature !== undefined ? { temperature } : {}),
+    ...(tint !== undefined ? { tint } : {}),
+    ...(highlights !== undefined ? { highlights } : {}),
+    ...(shadows !== undefined ? { shadows } : {}),
+  } : undefined;
+
+  // Build the image paint object using the typed ImagePaint interface
+  const imagePaint: ImagePaint = {
     type: 'IMAGE',
     imageHash: image.hash,
-    scaleMode: scaleMode,
+    scaleMode: scaleMode as ImagePaint['scaleMode'],
+    // rotation is only valid for TILE, FILL, FIT scale modes
+    ...(rotation !== undefined && ['TILE', 'FILL', 'FIT'].includes(scaleMode) ? { rotation } : {}),
+    ...(imageFilters !== undefined ? { filters: imageFilters } : {}),
   };
-
-  // Add optional rotation (only for TILE, FILL, FIT)
-  if (rotation !== undefined && ['TILE', 'FILL', 'FIT'].includes(scaleMode)) {
-    imagePaint.rotation = rotation;
-  }
-
-  // Add image filters if provided (all range from -1.0 to 1.0, default 0)
-  if (exposure !== undefined) { imagePaint.exposure = exposure; }
-  if (contrast !== undefined) { imagePaint.contrast = contrast; }
-  if (saturation !== undefined) { imagePaint.saturation = saturation; }
-  if (temperature !== undefined) { imagePaint.temperature = temperature; }
-  if (tint !== undefined) { imagePaint.tint = tint; }
-  if (highlights !== undefined) { imagePaint.highlights = highlights; }
-  if (shadows !== undefined) { imagePaint.shadows = shadows; }
 
   // Apply the image fill
   try {

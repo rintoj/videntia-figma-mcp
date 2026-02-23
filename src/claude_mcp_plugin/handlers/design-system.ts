@@ -1,6 +1,6 @@
 // Design-system handler functions for the Claude Figma MCP plugin.
 
-import { debugLog, sendProgressUpdate, generateCommandId, getFontStyle } from '../utils/helpers';
+import { debugLog, sendProgressUpdate, getFontStyle } from '../utils/helpers';
 import { parseSvgRootStroke, propagateStrokeToShapes } from '../utils/svg';
 
 // ---------------------------------------------------------------------------
@@ -657,6 +657,10 @@ export async function createFromData(
     ) {
       node = figma.createRectangle();
     } else if (node === null) {
+      // Known limitation: ELLIPSE, POLYGON, STAR, and other unsupported node types
+      // fall through here and are silently created as FRAME. Callers that pass these
+      // types will receive an empty frame without an error. Future work: add explicit
+      // handlers for ellipses (figma.createEllipse), polygons, and stars.
       const frame = figma.createFrame();
       frame.fills = [];
       node = frame;

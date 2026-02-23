@@ -676,6 +676,13 @@
           case "connection-status":
             updateConnectionStatus(message.connected, message.message);
             break;
+          case "init-settings":
+            // Restore saved server port to the input field on plugin startup
+            if (message.settings && message.settings.serverPort) {
+              state.serverPort = message.settings.serverPort;
+              portInput.value = message.settings.serverPort;
+            }
+            break;
           case "auto-connect":
             connectButton.click();
             break;

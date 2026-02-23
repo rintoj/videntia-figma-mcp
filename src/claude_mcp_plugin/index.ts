@@ -524,6 +524,12 @@ async function handleCommand(
     case 'lint_frame':
       return await lintFrame(params);
 
+    // Not yet implemented — handlers exist in MCP server but have no plugin-side logic
+    case 'get_instance_overrides':
+      throw new Error('get_instance_overrides is not yet implemented in the Figma plugin');
+    case 'set_instance_overrides':
+      throw new Error('set_instance_overrides is not yet implemented in the Figma plugin');
+
     default:
       throw new Error(`Unknown command: ${command}`);
   }

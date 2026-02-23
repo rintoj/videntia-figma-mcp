@@ -1208,10 +1208,16 @@ export async function setFontWeight(params: Record<string, unknown>): Promise<Re
   }
 
   try {
-    const family = ((node as TextNode).fontName as FontName).family;
+    // When the node has mixed fonts across segments, fontName returns figma.mixed.
+    // Fall back to the font of the first character range.
+    const rawFontName = (node as TextNode).fontName;
+    const family = rawFontName === figma.mixed
+      ? (node as TextNode).getRangeFontName(0, 1) as FontName
+      : (rawFontName as FontName);
+    const resolvedFamily = (family as FontName).family;
     const style = getFontStyle(weight as number);
-    await figma.loadFontAsync({ family, style });
-    (node as TextNode).fontName = { family, style };
+    await figma.loadFontAsync({ family: resolvedFamily, style });
+    (node as TextNode).fontName = { family: resolvedFamily, style };
     return {
       id: node.id,
       name: node.name,
@@ -1247,7 +1253,11 @@ export async function setLetterSpacing(params: Record<string, unknown>): Promise
   }
 
   try {
-    await figma.loadFontAsync((node as TextNode).fontName as FontName);
+    const lsFontName = (node as TextNode).fontName;
+    const lsFont = lsFontName === figma.mixed
+      ? (node as TextNode).getRangeFontName(0, 1) as FontName
+      : lsFontName as FontName;
+    await figma.loadFontAsync(lsFont);
     (node as TextNode).letterSpacing = {
       value: letterSpacing as number,
       unit: unit as LetterSpacing['unit'],
@@ -1286,7 +1296,11 @@ export async function setLineHeight(params: Record<string, unknown>): Promise<Re
   }
 
   try {
-    await figma.loadFontAsync((node as TextNode).fontName as FontName);
+    const lhFontName = (node as TextNode).fontName;
+    const lhFont = lhFontName === figma.mixed
+      ? (node as TextNode).getRangeFontName(0, 1) as FontName
+      : lhFontName as FontName;
+    await figma.loadFontAsync(lhFont);
     (node as TextNode).lineHeight = {
       value: lineHeight as number,
       unit: unit as LineHeight['unit'],
@@ -1324,7 +1338,11 @@ export async function setParagraphSpacing(params: Record<string, unknown>): Prom
   }
 
   try {
-    await figma.loadFontAsync((node as TextNode).fontName as FontName);
+    const psFontName = (node as TextNode).fontName;
+    const psFont = psFontName === figma.mixed
+      ? (node as TextNode).getRangeFontName(0, 1) as FontName
+      : psFontName as FontName;
+    await figma.loadFontAsync(psFont);
     (node as TextNode).paragraphSpacing = paragraphSpacing as number;
     return {
       id: node.id,
@@ -1365,7 +1383,11 @@ export async function setTextCase(params: Record<string, unknown>): Promise<Reco
   }
 
   try {
-    await figma.loadFontAsync((node as TextNode).fontName as FontName);
+    const tcFontName = (node as TextNode).fontName;
+    const tcFont = tcFontName === figma.mixed
+      ? (node as TextNode).getRangeFontName(0, 1) as FontName
+      : tcFontName as FontName;
+    await figma.loadFontAsync(tcFont);
     (node as TextNode).textCase = textCase as TextCase;
     return {
       id: node.id,
@@ -1406,7 +1428,11 @@ export async function setTextDecoration(params: Record<string, unknown>): Promis
   }
 
   try {
-    await figma.loadFontAsync((node as TextNode).fontName as FontName);
+    const tdFontName = (node as TextNode).fontName;
+    const tdFont = tdFontName === figma.mixed
+      ? (node as TextNode).getRangeFontName(0, 1) as FontName
+      : tdFontName as FontName;
+    await figma.loadFontAsync(tdFont);
     (node as TextNode).textDecoration = textDecoration as TextDecoration;
     return {
       id: node.id,

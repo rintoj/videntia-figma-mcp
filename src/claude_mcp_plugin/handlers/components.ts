@@ -178,8 +178,7 @@ export async function getRemoteComponents(): Promise<Record<string, unknown>> {
     debugLog('Starting remote components retrieval...');
 
     // Set up a manual timeout to detect deadlocks
-    let timeoutId: ReturnType<typeof setTimeout> = setTimeout(() => { /* placeholder */ }, 0);
-    clearTimeout(timeoutId); // clear the placeholder immediately
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
     const timeoutPromise = new Promise<never>((_, reject) => {
       timeoutId = setTimeout(() => {
         reject(
@@ -190,7 +189,9 @@ export async function getRemoteComponents(): Promise<Record<string, unknown>> {
       }, 15000);
     });
 
-    // Execute the request with a manual timeout
+    // Execute the request with a manual timeout.
+    // `any[]` is required because @figma/plugin-typings does not expose a typed
+    // return for getAvailableComponentsAsync (it is not in the public typings).
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const fetchPromise: Promise<any[]> = teamLibraryAny.getAvailableComponentsAsync();
 
@@ -200,7 +201,7 @@ export async function getRemoteComponents(): Promise<Record<string, unknown>> {
     try {
       teamComponents = await Promise.race([fetchPromise, timeoutPromise]);
     } finally {
-      clearTimeout(timeoutId);
+      if (timeoutId !== undefined) clearTimeout(timeoutId);
     }
 
     debugLog(`Retrieved ${teamComponents.length} remote components`);

@@ -1,5 +1,3 @@
-import { debugLog, sendProgressUpdate } from '../utils/helpers';
-
 // ---------------------------------------------------------------------------
 // Focus and selection
 // ---------------------------------------------------------------------------
@@ -525,6 +523,4 @@ export async function scanNodesByTypes(params: Record<string, unknown>): Promise
   };
 }
 
-// Suppress unused import warning — these may be used by the broader plugin
-void debugLog;
-void sendProgressUpdate;
+

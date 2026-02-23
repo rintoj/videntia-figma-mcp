@@ -5,6 +5,7 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "strict": true,
+    "isolatedModules": true,
     "skipLibCheck": true,
     "types": ["@figma/plugin-typings"]
   },
