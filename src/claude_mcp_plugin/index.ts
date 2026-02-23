@@ -180,13 +180,35 @@ figma.on('run', function () {
 // ---------------------------------------------------------------------------
 
 function updateSettings(settings: Record<string, unknown>): void {
-  if (settings['serverPort'] !== undefined) {
+  if (settings['serverPort']) {
     state.serverPort = settings['serverPort'] as number;
   }
   figma.clientStorage.setAsync('settings', {
     serverPort: state.serverPort,
   });
 }
+
+// Initialize settings from clientStorage on plugin load
+(async function initializePlugin() {
+  try {
+    const savedSettings = await figma.clientStorage.getAsync('settings') as Record<string, unknown> | undefined;
+    if (savedSettings) {
+      if (savedSettings['serverPort']) {
+        state.serverPort = savedSettings['serverPort'] as number;
+      }
+    }
+
+    // Send initial settings to UI
+    figma.ui.postMessage({
+      type: 'init-settings',
+      settings: {
+        serverPort: state.serverPort,
+      },
+    });
+  } catch (error) {
+    console.error('Error loading settings:', error);
+  }
+})();
 
 // ---------------------------------------------------------------------------
 // Command dispatch
