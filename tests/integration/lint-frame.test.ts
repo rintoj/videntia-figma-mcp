@@ -55,7 +55,6 @@ describe("lint_frame tool", () => {
       totalNodes: 25,
       categories: {
         typography: { total: 3, bound: 3, unbound: 0, compliance: 100 },
-        colors: { total: 0, bound: 0, unbound: 0, compliance: 100 },
         spacing: { total: 5, bound: 4, unbound: 1, compliance: 80 },
         borderRadius: { total: 2, bound: 2, unbound: 0, compliance: 100 },
         iconColors: { total: 1, bound: 1, unbound: 0, compliance: 100 },
@@ -90,7 +89,7 @@ describe("lint_frame tool", () => {
     expect(mockSendCommand).toHaveBeenCalledWith("lint_frame", { nodeId: "1:100", checks }, 60000);
   });
 
-  it("formats compliance table with all 8 categories", async () => {
+  it("formats compliance table with all 7 categories", async () => {
     mockSendCommand.mockResolvedValue(makeResult());
 
     const response = await callTool("lint_frame", { node_id: "1:100" });
@@ -100,7 +99,6 @@ describe("lint_frame tool", () => {
     expect(text).toContain("## Compliance by Category");
     expect(text).toContain("| Typography |");
     expect(text).toContain("| Background Fills |");
-    expect(text).toContain("| Colors |");
     expect(text).toContain("| Icon Colors |");
     expect(text).toContain("| Strokes/Borders |");
     expect(text).toContain("| Spacing |");

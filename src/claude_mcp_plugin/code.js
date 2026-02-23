@@ -11,7 +11,7 @@ const DEBUG = false;
 
 // Debug logging helper - only logs when DEBUG is true
 function debugLog(...args) {
-  if (DEBUG) debugLog(...args);
+  if (DEBUG) console.log(...args);
 }
 
 // Helper function for progress updates
@@ -8741,6 +8741,9 @@ async function setupDesignSystem(params) {
 
 // ── lint_frame: one-shot compliance audit ──────────────────────────────────
 
+var MAX_LINT_DEPTH = 50;
+var MAX_LINT_VIOLATIONS = 500;
+
 async function lintFrame(params) {
   var nodeId = params ? params.nodeId : undefined;
   var checks = params ? params.checks : undefined;
@@ -8748,7 +8751,7 @@ async function lintFrame(params) {
   if (!nodeId) throw new Error("nodeId is required");
 
   var rootNode = await figma.getNodeByIdAsync(nodeId);
-  if (!rootNode) throw new Error("Node not found: " + nodeId);
+  if (!rootNode) throw new Error("Node not found: " + String(nodeId).substring(0, 50));
 
   // Default checks — all on
   var chk = {
@@ -8768,26 +8771,33 @@ async function lintFrame(params) {
     if (checks.autoLayout === false) chk.autoLayout = false;
   }
 
-  // Pre-load lookup maps
-  var localVars = await figma.variables.getLocalVariablesAsync();
+  // Pre-load lookup maps (parallel)
+  var preloadResults = await Promise.all([
+    figma.variables.getLocalVariablesAsync(),
+    figma.getLocalTextStylesAsync(),
+    figma.getLocalEffectStylesAsync(),
+    figma.getLocalPaintStylesAsync()
+  ]);
+  var localVars = preloadResults[0];
+  var localTextStyles = preloadResults[1];
+  var localEffectStyles = preloadResults[2];
+  var localPaintStyles = preloadResults[3];
+
   var variableMap = {};
   for (var vi = 0; vi < localVars.length; vi++) {
     variableMap[localVars[vi].id] = localVars[vi];
   }
 
-  var localTextStyles = await figma.getLocalTextStylesAsync();
   var textStyleMap = {};
   for (var ti = 0; ti < localTextStyles.length; ti++) {
     textStyleMap[localTextStyles[ti].id] = localTextStyles[ti];
   }
 
-  var localEffectStyles = await figma.getLocalEffectStylesAsync();
   var effectStyleMap = {};
   for (var ei = 0; ei < localEffectStyles.length; ei++) {
     effectStyleMap[localEffectStyles[ei].id] = localEffectStyles[ei];
   }
 
-  var localPaintStyles = await figma.getLocalPaintStylesAsync();
   var paintStyleMap = {};
   for (var pi = 0; pi < localPaintStyles.length; pi++) {
     paintStyleMap[localPaintStyles[pi].id] = localPaintStyles[pi];
@@ -8796,7 +8806,6 @@ async function lintFrame(params) {
   // Category tallies
   var categories = {
     typography:      { total: 0, bound: 0, unbound: 0, compliance: 100 },
-    colors:          { total: 0, bound: 0, unbound: 0, compliance: 100 },
     spacing:         { total: 0, bound: 0, unbound: 0, compliance: 100 },
     borderRadius:    { total: 0, bound: 0, unbound: 0, compliance: 100 },
     iconColors:      { total: 0, bound: 0, unbound: 0, compliance: 100 },
@@ -8897,7 +8906,13 @@ async function lintFrame(params) {
     return false;
   }
 
+  var violationsCapped = false;
+
   function addViolation(node, depth, severity, category, property, message) {
+    if (violations.length >= MAX_LINT_VIOLATIONS) {
+      violationsCapped = true;
+      return;
+    }
     violations.push({
       nodeId: node.id,
       nodeName: node.name,
@@ -8914,6 +8929,9 @@ async function lintFrame(params) {
   function scanNode(node, depth) {
     // Skip invisible nodes
     if (node.visible === false) return;
+
+    // Depth limit to prevent stack overflow in deeply nested designs
+    if (depth > MAX_LINT_DEPTH) return;
 
     totalNodes++;
     var nodeType = node.type;
@@ -9113,7 +9131,7 @@ async function lintFrame(params) {
   scanNode(rootNode, 0);
 
   // Compute compliance percentages
-  var catKeys = ["typography", "colors", "spacing", "borderRadius", "iconColors", "strokesBorders", "backgroundFills", "effectStyles"];
+  var catKeys = ["typography", "spacing", "borderRadius", "iconColors", "strokesBorders", "backgroundFills", "effectStyles"];
   for (var ck = 0; ck < catKeys.length; ck++) {
     var cat = categories[catKeys[ck]];
     if (cat.total > 0) {
@@ -9154,6 +9172,7 @@ async function lintFrame(params) {
     totalNodes: totalNodes,
     categories: categories,
     violations: violations,
+    violationsCapped: violationsCapped,
     summary: {
       total: summaryTotal,
       critical: summaryCritical,

@@ -256,7 +256,7 @@ function formatEffectValue(effects: DesignSystemEffect[]): string {
     const r = e.radius !== undefined ? e.radius : 0;
     const s = e.spread !== undefined ? e.spread : 0;
     const c = e.color
-      ? `rgba(${Math.round(e.color.r * 255)},${Math.round(e.color.g * 255)},${Math.round(e.color.b * 255)},${e.color.a.toFixed(2)})`
+      ? `rgba(${Math.round(e.color.r * 255)},${Math.round(e.color.g * 255)},${Math.round(e.color.b * 255)},${(e.color.a !== undefined ? e.color.a : 1).toFixed(2)})`
       : "rgba(0,0,0,1)";
     return `${type}(${ox} ${oy} ${r} ${s} ${c})`;
   }).join(", ");
@@ -1347,7 +1347,6 @@ export function registerDocumentTools(server: McpServer): void {
         const catLabels: { key: keyof typeof result.categories; label: string }[] = [
           { key: "typography", label: "Typography" },
           { key: "backgroundFills", label: "Background Fills" },
-          { key: "colors", label: "Colors" },
           { key: "iconColors", label: "Icon Colors" },
           { key: "strokesBorders", label: "Strokes/Borders" },
           { key: "spacing", label: "Spacing" },
@@ -1395,12 +1394,17 @@ export function registerDocumentTools(server: McpServer): void {
             lines.push("| Node | Type | Category | Property | Message |");
             lines.push("|------|------|----------|----------|---------|");
             for (const v of sevViolations) {
-              const name = (v.nodeName || "-").replace(/\|/g, "\\|");
+              const esc = (s: string) => (s || "-").replace(/\|/g, "\\|");
               lines.push(
-                `| ${name} (${v.nodeId}) | ${v.nodeType} | ${v.category} | ${v.property} | ${v.message} |`,
+                `| ${esc(v.nodeName)} (${esc(v.nodeId)}) | ${esc(v.nodeType)} | ${esc(v.category)} | ${esc(v.property)} | ${esc(v.message)} |`,
               );
             }
           }
+        }
+
+        if (result.violationsCapped) {
+          lines.push("");
+          lines.push("**Note:** Violations list was capped at 500 entries. Additional violations may exist.");
         }
 
         // Verdict
@@ -1804,7 +1808,7 @@ export function registerDocumentTools(server: McpServer): void {
         // Build the Figma REST API URL
         // Node IDs in Figma use ":" separator, but REST API expects "-" separator
         const encodedNodeId = encodeURIComponent(nodeId.replace(/:/g, "-"));
-        const apiUrl = `${FIGMA_API_BASE_URL}/images/${resolvedFileKey}?ids=${encodedNodeId}&format=${format}&scale=${scale}`;
+        const apiUrl = `${FIGMA_API_BASE_URL}/images/${encodeURIComponent(resolvedFileKey)}?ids=${encodedNodeId}&format=${format}&scale=${scale}`;
 
         // Make the API request
         const response = await fetch(apiUrl, {

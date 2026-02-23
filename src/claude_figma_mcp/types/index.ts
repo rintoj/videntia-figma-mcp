@@ -723,7 +723,6 @@ export interface LintFrameResult {
   totalNodes: number;
   categories: {
     typography: LintCategoryResult;
-    colors: LintCategoryResult;
     spacing: LintCategoryResult;
     borderRadius: LintCategoryResult;
     iconColors: LintCategoryResult;
@@ -732,6 +731,7 @@ export interface LintFrameResult {
     effectStyles: LintCategoryResult;
   };
   violations: LintViolation[];
+  violationsCapped?: boolean;
   summary: {
     total: number;
     critical: number;
