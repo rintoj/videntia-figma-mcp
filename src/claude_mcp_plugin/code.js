@@ -250,6 +250,8 @@ async function handleCommand(command, params) {
       return await createStar(params);
     case "create_svg":
       return await createSvg(params);
+    case "update_icon":
+      return await updateIcon(params);
     case "create_vector":
       return await createVector(params);
     case "create_line":
@@ -8867,6 +8869,7 @@ var MAX_LINT_VIOLATIONS = 500;
 async function lintFrame(params) {
   var nodeId = params ? params.nodeId : undefined;
   var checks = params ? params.checks : undefined;
+  var fix = params ? (params.fix === true) : false;
 
   if (!nodeId) throw new Error("nodeId is required");
 
@@ -9423,6 +9426,347 @@ async function lintFrame(params) {
   // Run the traversal
   scanNode(rootNode, 0, null, null);
 
+  // ── Auto-fix pass (only when fix=true) ──
+  // Deterministic fixes:
+  //   rootFrame.layoutSizingHorizontal → "FIXED"
+  //   rootFrame.layoutSizingVertical   → "HUG"
+  //   rootFrame.minHeight              → device-standard height (inferred from width)
+  // Semantic color fixes:
+  //   backgroundFills / iconColors / strokesBorders → bind to the closest COLOR variable,
+  //   preferring variables whose name semantically matches the usage context.
+  if (fix) {
+    var DEVICE_FIX_SPECS = [
+      { width: 1440, minHeight: 900 },
+      { width: 768,  minHeight: 1024 },
+      { width: 375,  minHeight: 812 }
+    ];
+    var DIM_TOL = 2;
+
+    // ── Build color variable lookup for semantic matching ──
+    // Semantic keywords guide variable selection by usage context.
+    // Priority: exact color match → semantic name match + near color → closest near color.
+    var COLOR_SEMANTIC_KEYWORDS = {
+      backgroundFills: ["surface", "background", "bg", "fill", "base", "canvas", "card", "overlay", "panel", "container", "layer", "level"],
+      iconColors:      ["icon", "foreground", "fg", "on-", "content", "symbol", "glyph"],
+      strokesBorders:  ["stroke", "border", "outline", "divider", "separator", "line", "ring", "frame"]
+    };
+    var COLOR_EXACT_THRESHOLD = 0.005; // ~1/255 per channel — treat as identical
+    var COLOR_NEAR_THRESHOLD  = 0.18;  // ~46/255 across channels — reasonable match
+    var COLOR_SEMANTIC_BONUS  = 0.08;  // effective distance reduction for semantic names
+
+    // Collect all local COLOR variables with literal (non-alias) values
+    var colorVarEntries = [];
+    for (var cvi = 0; cvi < localVars.length; cvi++) {
+      var cv = localVars[cvi];
+      if (cv.resolvedType !== "COLOR") continue;
+      var cvModeIds = Object.keys(cv.valuesByMode);
+      if (cvModeIds.length === 0) continue;
+      var cvVal = cv.valuesByMode[cvModeIds[0]];
+      // Skip alias variables (value is a variable reference, not a literal {r,g,b})
+      if (!cvVal || typeof cvVal.r !== "number") continue;
+      colorVarEntries.push({
+        id: cv.id,
+        nameLower: cv.name.toLowerCase(),
+        color: { r: cvVal.r, g: cvVal.g, b: cvVal.b }
+      });
+    }
+
+    function colorDist(c1, c2) {
+      var dr = c1.r - c2.r, dg = c1.g - c2.g, db = c1.b - c2.b;
+      return Math.sqrt(dr * dr + dg * dg + db * db);
+    }
+
+    function isSemanticMatch(nameLower, category) {
+      var kws = COLOR_SEMANTIC_KEYWORDS[category];
+      if (!kws) return false;
+      for (var ki = 0; ki < kws.length; ki++) {
+        if (nameLower.indexOf(kws[ki]) !== -1) return true;
+      }
+      return false;
+    }
+
+    // Return the best-matching colorVarEntry for a raw {r,g,b} color and usage category.
+    // Returns null when no variable is close enough to bind with confidence.
+    function findBestColorVar(rawColor, category) {
+      var bestEntry = null;
+      var bestEffDist = Infinity;
+      for (var bfi = 0; bfi < colorVarEntries.length; bfi++) {
+        var entry = colorVarEntries[bfi];
+        var dist = colorDist(rawColor, entry.color);
+        if (dist < COLOR_EXACT_THRESHOLD) return entry; // exact — stop immediately
+        if (dist > COLOR_NEAR_THRESHOLD) continue;
+        var rawEffDist = dist - (isSemanticMatch(entry.nameLower, category) ? COLOR_SEMANTIC_BONUS : 0);
+        var effDist = rawEffDist < 0 ? 0 : rawEffDist; // clamp — semantic bonus never beats exact matches
+        if (effDist < bestEffDist) {
+          bestEffDist = effDist;
+          bestEntry = entry;
+        }
+      }
+      return bestEntry;
+    }
+
+    // ── Build FLOAT variable lookup for spacing / radius / fontSize fixes ──
+    // Nearest-value matching with semantic keyword preference.
+    var FLOAT_SEMANTIC_KEYWORDS = {
+      spacing:      ["spacing", "space", "gap", "padding", "margin", "indent", "inset", "gutter"],
+      borderRadius: ["radius", "round", "corner", "rounded", "curve"],
+      typography:   ["font-size", "fontsize", "font-scale", "text-size", "size", "scale", "type"]
+    };
+
+    var floatVarEntries = [];
+    for (var flvi = 0; flvi < localVars.length; flvi++) {
+      var flv = localVars[flvi];
+      if (flv.resolvedType !== "FLOAT") continue;
+      var flvModeIds = Object.keys(flv.valuesByMode);
+      if (flvModeIds.length === 0) continue;
+      var flvVal = flv.valuesByMode[flvModeIds[0]];
+      if (typeof flvVal !== "number") continue; // skip alias variables
+      floatVarEntries.push({
+        id: flv.id,
+        nameLower: flv.name.toLowerCase(),
+        value: flvVal
+      });
+    }
+
+    // Return the nearest-value FLOAT variable for a raw number and usage category.
+    // Prefers semantically-named variables; falls back to any FLOAT within a tighter threshold.
+    // For rawValue === 0 only an exact zero-value match is accepted (prevents binding 0 to nearby tokens).
+    function findBestFloatVar(rawValue, category) {
+      // Zero special-case: only accept an exact zero-value variable to avoid spurious bindings
+      if (rawValue === 0) {
+        for (var zi = 0; zi < floatVarEntries.length; zi++) {
+          if (floatVarEntries[zi].value === 0) return floatVarEntries[zi];
+        }
+        return null;
+      }
+
+      var kws = FLOAT_SEMANTIC_KEYWORDS[category];
+      var bestSemantic = null;
+      var bestSemanticDist = Infinity;
+      var bestAny = null;
+      var bestAnyDist = Infinity;
+
+      for (var fli = 0; fli < floatVarEntries.length; fli++) {
+        var entry = floatVarEntries[fli];
+        var dist = Math.abs(rawValue - entry.value);
+
+        // Check semantic match
+        var hasSemantic = false;
+        if (kws) {
+          for (var fki = 0; fki < kws.length; fki++) {
+            if (entry.nameLower.indexOf(kws[fki]) !== -1) { hasSemantic = true; break; }
+          }
+        }
+
+        if (hasSemantic && dist < bestSemanticDist) {
+          bestSemanticDist = dist;
+          bestSemantic = entry;
+        }
+        if (dist < bestAnyDist) {
+          bestAnyDist = dist;
+          bestAny = entry;
+        }
+      }
+
+      // Accept a semantic match within ±30% of the raw value (or 4 units minimum)
+      var semanticThreshold = Math.max(rawValue * 0.3, 4);
+      if (bestSemantic && bestSemanticDist <= semanticThreshold) return bestSemantic;
+
+      // Fall back to any variable within ±10% (or 2 units), only if very close
+      var anyThreshold = Math.max(rawValue * 0.1, 2);
+      if (bestAny && bestAnyDist <= anyThreshold) return bestAny;
+
+      return null;
+    }
+
+    // ── Build text style lookup for typography fixes ──
+    // Keyed by "fontFamily|fontStyle|roundedFontSize" — only applies when all three match exactly.
+    var textStyleExactMap = {};
+    for (var tsi = 0; tsi < localTextStyles.length; tsi++) {
+      var ts = localTextStyles[tsi];
+      try {
+        if (ts.fontName && typeof ts.fontSize === "number") {
+          var tsKey = ts.fontName.family.toLowerCase() + "|" + ts.fontName.style.toLowerCase() + "|" + Math.round(ts.fontSize);
+          if (!textStyleExactMap[tsKey]) {
+            textStyleExactMap[tsKey] = ts;
+          }
+        }
+      } catch (e) {}
+    }
+
+    // Cache last resolved node to avoid redundant getNodeByIdAsync calls for the same node
+    var lastFixNodeId = null;
+    var lastFixNode = null;
+
+    for (var fxi = 0; fxi < violations.length; fxi++) {
+      var fv = violations[fxi];
+      fv.fixed = false;
+
+      var fvCat = fv.category;
+      var isRootFrameViol  = fvCat === "rootFrame";
+      var isColorViol      = fvCat === "backgroundFills" || fvCat === "iconColors" || fvCat === "strokesBorders";
+      var isSpacingViol    = fvCat === "spacing";
+      var isRadiusViol     = fvCat === "borderRadius";
+      var isTypographyViol = fvCat === "typography";
+      if (!isRootFrameViol && !isColorViol && !isSpacingViol && !isRadiusViol && !isTypographyViol) continue;
+
+      // Resolve node (cached per nodeId)
+      var fixNode = null;
+      if (fv.nodeId === lastFixNodeId) {
+        fixNode = lastFixNode;
+      } else {
+        try { fixNode = await figma.getNodeByIdAsync(fv.nodeId); } catch (e) {}
+        lastFixNodeId = fv.nodeId;
+        lastFixNode = fixNode;
+      }
+      if (!fixNode) continue;
+
+      // ── Root frame sizing fixes ──
+      if (isRootFrameViol) {
+        if (fv.property === "layoutSizingHorizontal") {
+          try {
+            fixNode.layoutSizingHorizontal = "FIXED";
+            fv.fixed = true;
+            fv.fixedWith = "layoutSizingHorizontal = FIXED";
+            categories.rootFrame.unbound = Math.max(0, categories.rootFrame.unbound - 1);
+            categories.rootFrame.bound++;
+          } catch (e) {}
+
+        } else if (fv.property === "layoutSizingVertical") {
+          try {
+            fixNode.layoutSizingVertical = "HUG";
+            fv.fixed = true;
+            fv.fixedWith = "layoutSizingVertical = HUG";
+            categories.rootFrame.unbound = Math.max(0, categories.rootFrame.unbound - 1);
+            categories.rootFrame.bound++;
+          } catch (e) {}
+
+        } else if (fv.property === "minHeight") {
+          try {
+            var fwWidth = fixNode.width !== undefined ? fixNode.width : 0;
+            var fwExpected = 0;
+            for (var fwdi = 0; fwdi < DEVICE_FIX_SPECS.length; fwdi++) {
+              if (Math.abs(fwWidth - DEVICE_FIX_SPECS[fwdi].width) <= DIM_TOL) {
+                fwExpected = DEVICE_FIX_SPECS[fwdi].minHeight;
+                break;
+              }
+            }
+            if (fwExpected > 0) {
+              fixNode.minHeight = fwExpected;
+              fv.fixed = true;
+              fv.fixedWith = "minHeight = " + fwExpected + "px";
+              categories.rootFrame.unbound = Math.max(0, categories.rootFrame.unbound - 1);
+              categories.rootFrame.bound++;
+            }
+          } catch (e) {}
+        }
+
+      // ── Color / fill / stroke fixes ──
+      // Property format: "fills[N]" or "strokes[N]"
+      } else if (isColorViol) {
+        var propPartsMatch = fv.property.match(/^(fills|strokes)\[(\d+)\]$/);
+        if (propPartsMatch) {
+          var propName = propPartsMatch[1];
+          var propIdx  = parseInt(propPartsMatch[2], 10);
+          try {
+            var paints = fixNode[propName];
+            if (paints && Array.isArray(paints) && paints.length > propIdx) {
+              var paint = paints[propIdx];
+              if (paint && paint.type === "SOLID" && paint.color) {
+                var bestEntry = findBestColorVar(paint.color, fvCat);
+                if (bestEntry) {
+                  var varObj = variableMap[bestEntry.id];
+                  if (varObj) {
+                    var paintsCopy = paints.slice();
+                    paintsCopy[propIdx] = figma.variables.setBoundVariableForPaint(paintsCopy[propIdx], "color", varObj);
+                    fixNode[propName] = paintsCopy;
+                    fv.fixed = true;
+                    fv.fixedWith = varObj.name;
+                    categories[fvCat].unbound = Math.max(0, categories[fvCat].unbound - 1);
+                    categories[fvCat].bound++;
+                  }
+                }
+              }
+            }
+          } catch (e) {}
+        }
+
+      // ── Spacing fixes (itemSpacing, paddingTop/Right/Bottom/Left) ──
+      } else if (isSpacingViol) {
+        var spacingProp = fv.property;
+        try {
+          var rawSpacing = fixNode[spacingProp];
+          if (typeof rawSpacing === "number") {
+            var bestSpacingVar = findBestFloatVar(rawSpacing, "spacing");
+            if (bestSpacingVar) {
+              var spacingVarObj = variableMap[bestSpacingVar.id];
+              if (spacingVarObj) {
+                fixNode.setBoundVariable(spacingProp, spacingVarObj);
+                fv.fixed = true;
+                fv.fixedWith = spacingVarObj.name;
+                categories.spacing.unbound = Math.max(0, categories.spacing.unbound - 1);
+                categories.spacing.bound++;
+              }
+            }
+          }
+        } catch (e) {}
+
+      // ── Border radius fixes (cornerRadius, topLeftRadius, topRightRadius, etc.) ──
+      } else if (isRadiusViol) {
+        var radiusProp = fv.property;
+        try {
+          var rawRadius = fixNode[radiusProp];
+          if (typeof rawRadius === "number") {
+            var bestRadiusVar = findBestFloatVar(rawRadius, "borderRadius");
+            if (bestRadiusVar) {
+              var radiusVarObj = variableMap[bestRadiusVar.id];
+              if (radiusVarObj) {
+                fixNode.setBoundVariable(radiusProp, radiusVarObj);
+                fv.fixed = true;
+                fv.fixedWith = radiusVarObj.name;
+                categories.borderRadius.unbound = Math.max(0, categories.borderRadius.unbound - 1);
+                categories.borderRadius.bound++;
+              }
+            }
+          }
+        } catch (e) {}
+
+      // ── Typography fixes: exact text style match by fontFamily + fontStyle + fontSize ──
+      // Fallback: bind fontSize to the nearest font-size FLOAT variable.
+      } else if (isTypographyViol && fv.property === "textStyleId") {
+        try {
+          var tnFontName = fixNode.fontName;
+          var tnFontSize = fixNode.fontSize;
+          if (tnFontName && tnFontName !== figma.mixed && tnFontSize && tnFontSize !== figma.mixed) {
+            var tsKey = tnFontName.family.toLowerCase() + "|" + tnFontName.style.toLowerCase() + "|" + Math.round(tnFontSize);
+            var matchingStyle = textStyleExactMap[tsKey];
+            if (matchingStyle) {
+              fixNode.textStyleId = matchingStyle.id;
+              fv.fixed = true;
+              fv.fixedWith = matchingStyle.name;
+              categories.typography.unbound = Math.max(0, categories.typography.unbound - 1);
+              categories.typography.bound++;
+            } else {
+              // Partial fix: bind fontSize to nearest font-size FLOAT variable.
+              // The textStyleId violation is NOT resolved — the violation stays in remainingViolations
+              // so the user knows a matching text style still needs to be applied.
+              var bestFontSizeVar = findBestFloatVar(tnFontSize, "typography");
+              if (bestFontSizeVar) {
+                var fontSizeVarObj = variableMap[bestFontSizeVar.id];
+                if (fontSizeVarObj) {
+                  fixNode.setBoundVariable("fontSize", fontSizeVarObj);
+                  // Update the message to surface partial progress in the Pending Violations table
+                  fv.message = fv.message + " (fontSize bound to " + fontSizeVarObj.name + ")";
+                  // Do NOT set fv.fixed = true — the text style violation is still pending
+                }
+              }
+            }
+          }
+        } catch (e) {}
+      }
+    }
+  }
+
   // Compute compliance percentages
   var catKeys = ["rootFrame", "typography", "spacing", "borderRadius", "iconColors", "strokesBorders", "backgroundFills", "effectStyles", "overflow"];
   for (var ck = 0; ck < catKeys.length; ck++) {
@@ -9435,12 +9779,16 @@ async function lintFrame(params) {
   }
 
   // Compute summary
-  var summaryTotal = violations.length;
   var summaryCritical = 0;
   var summaryHigh = 0;
   var summaryMedium = 0;
   var summaryLow = 0;
+  var summaryFixed = 0;
   for (var sv = 0; sv < violations.length; sv++) {
+    if (violations[sv].fixed === true) {
+      summaryFixed++;
+      continue; // Fixed violations are excluded from severity counts
+    }
     switch (violations[sv].severity) {
       case "CRITICAL": summaryCritical++; break;
       case "HIGH": summaryHigh++; break;
@@ -9448,6 +9796,8 @@ async function lintFrame(params) {
       case "LOW": summaryLow++; break;
     }
   }
+  // total reflects only remaining (unfixed) violations
+  var summaryTotal = violations.length - summaryFixed;
 
   // Overall compliance: ratio of bound to total across all categories
   var overallTotal = 0;
@@ -9472,7 +9822,111 @@ async function lintFrame(params) {
       high: summaryHigh,
       medium: summaryMedium,
       low: summaryLow,
-      compliance: overallCompliance
+      compliance: overallCompliance,
+      fixed: summaryFixed
     }
+  };
+}
+
+// Replace an existing icon node with a new SVG, preserving parent and position.
+// The server resolves the icon SVG and injects color/size before calling this.
+async function updateIcon(params) {
+  var nodeId = params ? params.nodeId : undefined;
+  var svgString = params ? params.svgString : undefined;
+  var name = params ? params.name : undefined;
+
+  if (!nodeId) {
+    throw new Error("Missing nodeId parameter");
+  }
+  if (!svgString) {
+    throw new Error("Missing svgString parameter");
+  }
+
+  var trimmedSvg = svgString.trim();
+  if (trimmedSvg.indexOf("<svg") !== 0 && trimmedSvg.indexOf("<?xml") !== 0) {
+    throw new Error("Invalid SVG: must start with <svg or <?xml declaration");
+  }
+
+  // Get the existing node to read its parent and position
+  var node = await figma.getNodeByIdAsync(nodeId);
+  if (!node) {
+    throw new Error("Node not found with ID: " + nodeId);
+  }
+
+  var parent = node.parent;
+  if (!parent) {
+    throw new Error("Node has no parent");
+  }
+
+  // Parent must support child insertion; bail out early to avoid losing the node
+  if (!('insertChild' in parent) && !('appendChild' in parent)) {
+    throw new Error("Parent node does not support child insertion");
+  }
+
+  // Find the current index within the parent's children
+  var index = -1;
+  if (parent.children) {
+    for (var i = 0; i < parent.children.length; i++) {
+      if (parent.children[i].id === nodeId) {
+        index = i;
+        break;
+      }
+    }
+  }
+
+  // Capture original position for free-positioned nodes (non-Icon/* parents)
+  var origX = node.x !== undefined ? node.x : 0;
+  var origY = node.y !== undefined ? node.y : 0;
+
+  // Remove the old node
+  node.remove();
+
+  // Create the replacement SVG node
+  var svgNode = figma.createNodeFromSvg(svgString);
+  svgNode.x = origX;
+  svgNode.y = origY;
+  if (name) {
+    svgNode.name = name;
+  }
+
+  // Propagate root-level stroke to individual shape children (same logic as createSvg)
+  var rootStroke = parseSvgRootStroke(svgString);
+  if (rootStroke) {
+    var strokeRgb = svgColorToFigmaRgb(rootStroke.color);
+    if (strokeRgb) {
+      var strokePaint = { type: 'SOLID', color: strokeRgb, opacity: rootStroke.opacity };
+      propagateStrokeToShapes(svgNode, strokePaint, rootStroke.width);
+    }
+    if ('strokes' in svgNode) {
+      svgNode.strokes = [];
+    }
+  }
+
+  // Insert at the original position, or append if no index was found
+  if ('insertChild' in parent && index >= 0) {
+    parent.insertChild(index, svgNode);
+  } else {
+    parent.appendChild(svgNode);
+  }
+
+  // If placed inside an Icon/* placeholder frame, resize to fill it exactly
+  if (parent.name && parent.name.indexOf("Icon/") === 0) {
+    if ('strokes' in parent) {
+      parent.strokes = [];
+    }
+    var parentW = parent.width !== undefined ? parent.width : 0;
+    var parentH = parent.height !== undefined ? parent.height : 0;
+    if (parentW > 0 && parentH > 0 && svgNode.resize) {
+      svgNode.resize(parentW, parentH);
+      svgNode.x = 0;
+      svgNode.y = 0;
+    }
+  }
+
+  return {
+    id: svgNode.id,
+    name: svgNode.name,
+    parentId: svgNode.parent ? svgNode.parent.id : undefined,
+    index: index
   };
 }

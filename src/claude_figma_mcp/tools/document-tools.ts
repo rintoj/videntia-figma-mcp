@@ -1308,9 +1308,15 @@ export function registerDocumentTools(server: McpServer): void {
   // Lint Frame Tool
   server.tool(
     "lint_frame",
-    "Run a comprehensive compliance audit on a frame (or any node with children). Checks color tokens, spacing tokens, border radius tokens, text styles, effect styles, auto-layout compliance, and child overflow in a single traversal. Returns a structured report with violations by severity (CRITICAL/HIGH/MEDIUM/LOW) and compliance percentages across 9 categories.",
+    "Run a comprehensive compliance audit on a frame (or any node with children). Checks color tokens, spacing tokens, border radius tokens, text styles, effect styles, auto-layout compliance, and child overflow in a single traversal. Returns a structured report with violations by severity (CRITICAL/HIGH/MEDIUM/LOW) and compliance percentages across 9 categories. Pass fix=true to auto-fix deterministic violations (root frame sizing: layoutSizingHorizontal→FIXED, layoutSizingVertical→HUG, minHeight→device standard) and report only the remaining issues.",
     {
       node_id: z.string().describe("The ID of the root node to lint"),
+      fix: z
+        .boolean()
+        .optional()
+        .describe(
+          "When true, automatically fix violations where the correct value is unambiguous (root frame sizing rules). Fixed violations are excluded from the output; only pending issues remain.",
+        ),
       checks: z
         .object({
           rootFrame: z
@@ -1330,19 +1336,27 @@ export function registerDocumentTools(server: McpServer): void {
         .optional()
         .describe("Toggle individual check categories (all enabled by default)"),
     },
-    async ({ node_id, checks }) => {
+    async ({ node_id, fix, checks }) => {
       try {
         const result = await sendCommandToFigma<LintFrameResult>(
           "lint_frame",
-          { nodeId: node_id, checks },
+          { nodeId: node_id, fix: fix ?? false, checks },
           60000,
         );
+
+        // Partition violations into fixed vs remaining (only meaningful when fix=true)
+        const fixedViolations = result.violations.filter((v: LintViolation) => v.fixed === true);
+        const remainingViolations = result.violations.filter((v: LintViolation) => v.fixed !== true);
 
         // Format as markdown compliance report
         const lines: string[] = [];
 
-        lines.push(`# Compliance Audit: ${result.nodeName}`);
+        const modeLabel = fix ? " (fix mode)" : "";
+        lines.push(`# Compliance Audit: ${result.nodeName}${modeLabel}`);
         lines.push(`**Node:** ${result.nodeId} (${result.nodeType}) | **Nodes scanned:** ${result.totalNodes}`);
+        if (fix && fixedViolations.length > 0) {
+          lines.push(`**Auto-fixed:** ${fixedViolations.length} violation${fixedViolations.length !== 1 ? "s" : ""}`);
+        }
         lines.push("");
 
         // Compliance table
@@ -1377,24 +1391,51 @@ export function registerDocumentTools(server: McpServer): void {
         lines.push("");
         lines.push(`**Overall Compliance: ${s.compliance}%**`);
         lines.push("");
-        if (s.total === 0) {
+        if (remainingViolations.length === 0 && fixedViolations.length === 0) {
           lines.push("No violations found.");
         } else {
-          lines.push(`Total violations: ${s.total}`);
-          if (s.critical > 0) lines.push(`- CRITICAL: ${s.critical}`);
-          if (s.high > 0) lines.push(`- HIGH: ${s.high}`);
-          if (s.medium > 0) lines.push(`- MEDIUM: ${s.medium}`);
-          if (s.low > 0) lines.push(`- LOW: ${s.low}`);
+          if (remainingViolations.length > 0) {
+            const rc = remainingViolations.reduce(
+              (acc, v: LintViolation) => {
+                acc[v.severity] = (acc[v.severity] || 0) + 1;
+                return acc;
+              },
+              {} as Record<string, number>,
+            );
+            lines.push(`Pending violations: ${remainingViolations.length}`);
+            if (rc["CRITICAL"]) lines.push(`- CRITICAL: ${rc["CRITICAL"]}`);
+            if (rc["HIGH"]) lines.push(`- HIGH: ${rc["HIGH"]}`);
+            if (rc["MEDIUM"]) lines.push(`- MEDIUM: ${rc["MEDIUM"]}`);
+            if (rc["LOW"]) lines.push(`- LOW: ${rc["LOW"]}`);
+          } else if (fix) {
+            lines.push("No pending violations — all fixable issues were resolved.");
+          }
         }
 
-        // Violations list (grouped by severity)
-        if (result.violations.length > 0) {
+        // Fixed violations (shown only in fix mode)
+        if (fix && fixedViolations.length > 0) {
           lines.push("");
-          lines.push("## Violations");
+          lines.push("## Auto-Fixed");
+          lines.push("");
+          lines.push("| Node | Category | Property | Bound To |");
+          lines.push("|------|----------|----------|----------|");
+          for (const v of fixedViolations) {
+            const esc = (str: string) => (str || "-").replace(/\|/g, "\\|");
+            const boundTo = v.fixedWith ? esc(v.fixedWith) : esc(v.message);
+            lines.push(
+              `| ${esc(v.nodeName)} (${esc(v.nodeId)}) | ${esc(v.category)} | ${esc(v.property)} | ${boundTo} |`,
+            );
+          }
+        }
+
+        // Remaining violations list (grouped by severity)
+        if (remainingViolations.length > 0) {
+          lines.push("");
+          lines.push(fix ? "## Pending Violations" : "## Violations");
 
           const severities: Array<"CRITICAL" | "HIGH" | "MEDIUM" | "LOW"> = ["CRITICAL", "HIGH", "MEDIUM", "LOW"];
           for (const sev of severities) {
-            const sevViolations = result.violations.filter((v: LintViolation) => v.severity === sev);
+            const sevViolations = remainingViolations.filter((v: LintViolation) => v.severity === sev);
             if (sevViolations.length === 0) continue;
 
             lines.push("");
@@ -1403,7 +1444,7 @@ export function registerDocumentTools(server: McpServer): void {
             lines.push("| Node | Type | Category | Property | Message |");
             lines.push("|------|------|----------|----------|---------|");
             for (const v of sevViolations) {
-              const esc = (s: string) => (s || "-").replace(/\|/g, "\\|");
+              const esc = (str: string) => (str || "-").replace(/\|/g, "\\|");
               lines.push(
                 `| ${esc(v.nodeName)} (${esc(v.nodeId)}) | ${esc(v.nodeType)} | ${esc(v.category)} | ${esc(v.property)} | ${esc(v.message)} |`,
               );
@@ -1411,21 +1452,28 @@ export function registerDocumentTools(server: McpServer): void {
           }
         }
 
+        // Verdict (based on remaining violations only)
+        lines.push("");
+        if (remainingViolations.length === 0) {
+          lines.push(
+            fix && fixedViolations.length > 0
+              ? `**Verdict: PASS** — All violations fixed (${fixedViolations.length} auto-fixed).`
+              : "**Verdict: PASS** — All checks passed.",
+          );
+        } else {
+          const hasCritical = remainingViolations.some((v: LintViolation) => v.severity === "CRITICAL");
+          if (hasCritical) {
+            lines.push("**Verdict: FAIL** — Critical violations must be resolved.");
+          } else if (s.compliance >= 80) {
+            lines.push("**Verdict: WARN** — Minor issues to address.");
+          } else {
+            lines.push("**Verdict: FAIL** — Significant compliance gaps.");
+          }
+        }
+
         if (result.violationsCapped) {
           lines.push("");
           lines.push("**Note:** Violations list was capped at 500 entries. Additional violations may exist.");
-        }
-
-        // Verdict
-        lines.push("");
-        if (s.compliance === 100) {
-          lines.push("**Verdict: PASS** — All checks passed.");
-        } else if (s.critical > 0) {
-          lines.push("**Verdict: FAIL** — Critical violations must be resolved.");
-        } else if (s.compliance >= 80) {
-          lines.push("**Verdict: WARN** — Minor issues to address.");
-        } else {
-          lines.push("**Verdict: FAIL** — Significant compliance gaps.");
         }
 
         return {

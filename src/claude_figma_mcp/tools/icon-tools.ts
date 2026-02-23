@@ -1,6 +1,43 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { searchIcons, getIcon, listIcons } from "../utils/icon-search.js";
+import { sendCommandToFigma } from "../utils/websocket.js";
+
+/**
+ * Allowlist for CSS color values — permits only safe characters used in hex, rgb/rgba/hsl/hsla,
+ * and named colors. Blocks `"`, `<`, `>`, `;` etc. that could break SVG markup.
+ */
+const CSS_COLOR_SAFE_RE = /^[a-zA-Z0-9#(),.\s%+-]+$/;
+
+function isValidCssColor(color: string): boolean {
+  return CSS_COLOR_SAFE_RE.test(color.trim());
+}
+
+/**
+ * Inject a color and size into a Lucide SVG string.
+ * - Validates `color` against a safe allowlist before injection.
+ * - Updates width/height only on the root `<svg>` opening tag (not child elements).
+ * - Replaces `currentColor` throughout the SVG (stroke/fill attributes).
+ */
+function buildIconSvg(svg: string, color: string, size: number): string {
+  if (!isValidCssColor(color)) {
+    throw new Error(`Invalid CSS color "${color}" — use hex, rgb(), rgba(), hsl(), or a named color`);
+  }
+  // Scope width/height replacement to the root opening tag only
+  const tagEnd = svg.indexOf(">");
+  let result: string;
+  if (tagEnd !== -1) {
+    const openTag = svg.slice(0, tagEnd + 1);
+    const body = svg.slice(tagEnd + 1);
+    const fixedTag = openTag
+      .replace(/\bwidth="[^"]*"/, `width="${size}"`)
+      .replace(/\bheight="[^"]*"/, `height="${size}"`);
+    result = fixedTag + body;
+  } else {
+    result = svg;
+  }
+  return result.replace(/currentColor/g, color);
+}
 
 /**
  * Register icon lookup tools to the MCP server.
@@ -146,6 +183,191 @@ export function registerIconTools(server: McpServer): void {
             {
               type: "text" as const,
               text: `Error listing icons: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  /**
+   * create_icon — resolves a Lucide icon server-side, injects color and size,
+   * then creates it in Figma inside the specified parent at the given index.
+   */
+  server.tool(
+    "create_icon",
+    "Create a Lucide icon in Figma with a specific color and size. Resolves the SVG server-side and places it inside the given parent node at the specified index. Note: when the parent is an Icon/* placeholder frame, the icon is resized to fill the frame and the size parameter controls the SVG dimensions only.",
+    {
+      parentId: z.string().describe("Parent node ID to insert the icon into"),
+      index: z
+        .number()
+        .int()
+        .min(0)
+        .optional()
+        .describe("Zero-based position within the parent's children array (omit to append at the end)"),
+      iconName: z.string().describe('Lucide icon name (e.g. "arrow-left", "bell", "check")'),
+      color: z.string().describe('Icon color as a CSS color string (e.g. "#FF0000", "#333", "rgba(0,0,0,0.5)")'),
+      size: z.coerce.number().positive().describe("Icon size in pixels applied to both width and height"),
+    },
+    async ({ parentId, index, iconName, color, size }) => {
+      const icon = getIcon(iconName);
+      if (!icon) {
+        const suggestions = searchIcons(iconName, 5);
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify(
+                {
+                  error: `Icon "${iconName}" not found`,
+                  suggestions: suggestions.map(({ name, matchType }) => ({ name, matchType })),
+                },
+                null,
+                2,
+              ),
+            },
+          ],
+        };
+      }
+
+      try {
+        const svgString = buildIconSvg(icon.svg, color, size);
+
+        const createResult = await sendCommandToFigma("create_svg", {
+          svgString,
+          x: 0,
+          y: 0,
+          name: icon.name,
+          parentId,
+          flatten: false,
+        });
+
+        const typedResult = createResult as { id: string; name: string; width: number; height: number };
+
+        let finalIndex: number | null = null;
+        if (index !== undefined) {
+          try {
+            await sendCommandToFigma("insert_child", {
+              parentId,
+              childId: typedResult.id,
+              index,
+            });
+            finalIndex = index;
+          } catch (insertError) {
+            // insert_child failed — clean up the orphaned node, then surface the error
+            try {
+              await sendCommandToFigma("delete_node", { nodeId: typedResult.id });
+            } catch (_) {
+              // best-effort cleanup
+            }
+            throw insertError;
+          }
+        }
+
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify(
+                {
+                  id: typedResult.id,
+                  name: typedResult.name,
+                  iconName: icon.name,
+                  color,
+                  size,
+                  parentId,
+                  index: finalIndex,
+                },
+                null,
+                2,
+              ),
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: `Error creating icon: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  /**
+   * update_icon — replaces an existing icon node with a new Lucide icon,
+   * preserving its parent container and position (index) automatically.
+   */
+  server.tool(
+    "update_icon",
+    "Replace an existing icon node in Figma with a new Lucide icon. The replacement is inserted at the same parent and position as the original node.",
+    {
+      nodeId: z.string().describe("ID of the existing icon node to replace"),
+      iconName: z.string().describe('New Lucide icon name (e.g. "arrow-left", "bell", "check")'),
+      color: z.string().describe('Icon color as a CSS color string (e.g. "#FF0000", "#333", "rgba(0,0,0,0.5)")'),
+      size: z.coerce.number().positive().describe("Icon size in pixels applied to both width and height"),
+    },
+    async ({ nodeId, iconName, color, size }) => {
+      const icon = getIcon(iconName);
+      if (!icon) {
+        const suggestions = searchIcons(iconName, 5);
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify(
+                {
+                  error: `Icon "${iconName}" not found`,
+                  suggestions: suggestions.map(({ name, matchType }) => ({ name, matchType })),
+                },
+                null,
+                2,
+              ),
+            },
+          ],
+        };
+      }
+
+      try {
+        const svgString = buildIconSvg(icon.svg, color, size);
+
+        const result = await sendCommandToFigma("update_icon", {
+          nodeId,
+          svgString,
+          name: icon.name,
+        });
+
+        const typedResult = result as { id: string; name: string; parentId: string; index: number };
+
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify(
+                {
+                  id: typedResult.id,
+                  name: typedResult.name,
+                  iconName: icon.name,
+                  color,
+                  size,
+                  parentId: typedResult.parentId,
+                  index: typedResult.index,
+                },
+                null,
+                2,
+              ),
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: `Error updating icon: ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };
