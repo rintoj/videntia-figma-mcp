@@ -268,13 +268,19 @@ bun run pub:release
 
 ### After Merging to Main
 
-After every merge to `main`, **restart the WebSocket socket server** so it picks up the new code:
+After every merge to `main`, **build and restart** so both the Figma plugin and the MCP server pick up the new code:
 
 ```bash
 bun run build && launchctl stop com.claude-figma-mcp.socket && launchctl start com.claude-figma-mcp.socket
 ```
 
-This restarts the launchd-managed socket service (`~/Library/LaunchAgents/com.claude-figma-mcp.socket.plist`).
+`bun run build` does two things:
+1. **Regenerates `src/claude_mcp_plugin/code.js`** from the TypeScript source modules — this is what Figma loads.
+2. **Rebuilds the MCP server** (`dist/`) — this is what Claude connects to.
+
+Then the `launchctl` commands restart the launchd-managed socket service (`~/Library/LaunchAgents/com.claude-figma-mcp.socket.plist`) so it picks up the new MCP server build.
+
+> **Reload in Figma:** After the build, re-run the plugin in Figma (close and reopen from Plugins menu) to load the new `code.js`.
 
 ### Debug
 ```bash
