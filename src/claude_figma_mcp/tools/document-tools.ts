@@ -1417,12 +1417,13 @@ export function registerDocumentTools(server: McpServer): void {
           lines.push("");
           lines.push("## Auto-Fixed");
           lines.push("");
-          lines.push("| Node | Category | Property | Fix Applied |");
-          lines.push("|------|----------|----------|-------------|");
+          lines.push("| Node | Category | Property | Bound To |");
+          lines.push("|------|----------|----------|----------|");
           for (const v of fixedViolations) {
             const esc = (str: string) => (str || "-").replace(/\|/g, "\\|");
+            const boundTo = v.fixedWith ? esc(v.fixedWith) : esc(v.message);
             lines.push(
-              `| ${esc(v.nodeName)} (${esc(v.nodeId)}) | ${esc(v.category)} | ${esc(v.property)} | ${esc(v.message)} |`,
+              `| ${esc(v.nodeName)} (${esc(v.nodeId)}) | ${esc(v.category)} | ${esc(v.property)} | ${boundTo} |`,
             );
           }
         }

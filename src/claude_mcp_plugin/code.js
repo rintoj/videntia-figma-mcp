@@ -9427,10 +9427,13 @@ async function lintFrame(params) {
   scanNode(rootNode, 0, null, null);
 
   // ── Auto-fix pass (only when fix=true) ──
-  // Fixes violations whose correct value is fully deterministic:
+  // Deterministic fixes:
   //   rootFrame.layoutSizingHorizontal → "FIXED"
   //   rootFrame.layoutSizingVertical   → "HUG"
   //   rootFrame.minHeight              → device-standard height (inferred from width)
+  // Semantic color fixes:
+  //   backgroundFills / iconColors / strokesBorders → bind to the closest COLOR variable,
+  //   preferring variables whose name semantically matches the usage context.
   if (fix) {
     var DEVICE_FIX_SPECS = [
       { width: 1440, minHeight: 900 },
@@ -9439,51 +9442,316 @@ async function lintFrame(params) {
     ];
     var DIM_TOL = 2;
 
+    // ── Build color variable lookup for semantic matching ──
+    // Semantic keywords guide variable selection by usage context.
+    // Priority: exact color match → semantic name match + near color → closest near color.
+    var COLOR_SEMANTIC_KEYWORDS = {
+      backgroundFills: ["surface", "background", "bg", "fill", "base", "canvas", "card", "overlay", "panel", "container", "layer", "level"],
+      iconColors:      ["icon", "foreground", "fg", "on-", "content", "symbol", "glyph"],
+      strokesBorders:  ["stroke", "border", "outline", "divider", "separator", "line", "ring", "frame"]
+    };
+    var COLOR_EXACT_THRESHOLD = 0.005; // ~1/255 per channel — treat as identical
+    var COLOR_NEAR_THRESHOLD  = 0.18;  // ~46/255 across channels — reasonable match
+    var COLOR_SEMANTIC_BONUS  = 0.08;  // effective distance reduction for semantic names
+
+    // Collect all local COLOR variables with literal (non-alias) values
+    var colorVarEntries = [];
+    for (var cvi = 0; cvi < localVars.length; cvi++) {
+      var cv = localVars[cvi];
+      if (cv.resolvedType !== "COLOR") continue;
+      var cvModeIds = Object.keys(cv.valuesByMode);
+      if (cvModeIds.length === 0) continue;
+      var cvVal = cv.valuesByMode[cvModeIds[0]];
+      // Skip alias variables (value is a variable reference, not a literal {r,g,b})
+      if (!cvVal || typeof cvVal.r !== "number") continue;
+      colorVarEntries.push({
+        id: cv.id,
+        nameLower: cv.name.toLowerCase(),
+        color: { r: cvVal.r, g: cvVal.g, b: cvVal.b }
+      });
+    }
+
+    function colorDist(c1, c2) {
+      var dr = c1.r - c2.r, dg = c1.g - c2.g, db = c1.b - c2.b;
+      return Math.sqrt(dr * dr + dg * dg + db * db);
+    }
+
+    function isSemanticMatch(nameLower, category) {
+      var kws = COLOR_SEMANTIC_KEYWORDS[category];
+      if (!kws) return false;
+      for (var ki = 0; ki < kws.length; ki++) {
+        if (nameLower.indexOf(kws[ki]) !== -1) return true;
+      }
+      return false;
+    }
+
+    // Return the best-matching colorVarEntry for a raw {r,g,b} color and usage category.
+    // Returns null when no variable is close enough to bind with confidence.
+    function findBestColorVar(rawColor, category) {
+      var bestEntry = null;
+      var bestEffDist = Infinity;
+      for (var bfi = 0; bfi < colorVarEntries.length; bfi++) {
+        var entry = colorVarEntries[bfi];
+        var dist = colorDist(rawColor, entry.color);
+        if (dist < COLOR_EXACT_THRESHOLD) return entry; // exact — stop immediately
+        if (dist > COLOR_NEAR_THRESHOLD) continue;
+        var effDist = dist - (isSemanticMatch(entry.nameLower, category) ? COLOR_SEMANTIC_BONUS : 0);
+        if (effDist < bestEffDist) {
+          bestEffDist = effDist;
+          bestEntry = entry;
+        }
+      }
+      return bestEntry;
+    }
+
+    // ── Build FLOAT variable lookup for spacing / radius / fontSize fixes ──
+    // Nearest-value matching with semantic keyword preference.
+    var FLOAT_SEMANTIC_KEYWORDS = {
+      spacing:      ["spacing", "space", "gap", "padding", "margin", "indent", "inset", "gutter"],
+      borderRadius: ["radius", "round", "corner", "rounded", "curve"],
+      typography:   ["font-size", "fontsize", "font-scale", "text-size", "size", "scale", "type"]
+    };
+
+    var floatVarEntries = [];
+    for (var flvi = 0; flvi < localVars.length; flvi++) {
+      var flv = localVars[flvi];
+      if (flv.resolvedType !== "FLOAT") continue;
+      var flvModeIds = Object.keys(flv.valuesByMode);
+      if (flvModeIds.length === 0) continue;
+      var flvVal = flv.valuesByMode[flvModeIds[0]];
+      if (typeof flvVal !== "number") continue; // skip alias variables
+      floatVarEntries.push({
+        id: flv.id,
+        nameLower: flv.name.toLowerCase(),
+        value: flvVal
+      });
+    }
+
+    // Return the nearest-value FLOAT variable for a raw number and usage category.
+    // Prefers semantically-named variables; falls back to any FLOAT within a tighter threshold.
+    function findBestFloatVar(rawValue, category) {
+      var kws = FLOAT_SEMANTIC_KEYWORDS[category];
+      var bestSemantic = null;
+      var bestSemanticDist = Infinity;
+      var bestAny = null;
+      var bestAnyDist = Infinity;
+
+      for (var fli = 0; fli < floatVarEntries.length; fli++) {
+        var entry = floatVarEntries[fli];
+        var dist = Math.abs(rawValue - entry.value);
+
+        // Check semantic match
+        var hasSemantic = false;
+        if (kws) {
+          for (var fki = 0; fki < kws.length; fki++) {
+            if (entry.nameLower.indexOf(kws[fki]) !== -1) { hasSemantic = true; break; }
+          }
+        }
+
+        if (hasSemantic && dist < bestSemanticDist) {
+          bestSemanticDist = dist;
+          bestSemantic = entry;
+        }
+        if (dist < bestAnyDist) {
+          bestAnyDist = dist;
+          bestAny = entry;
+        }
+      }
+
+      // Accept a semantic match within ±30% of the raw value (or 4 units minimum)
+      var semanticThreshold = Math.max(rawValue * 0.3, 4);
+      if (bestSemantic && bestSemanticDist <= semanticThreshold) return bestSemantic;
+
+      // Fall back to any variable within ±10% (or 2 units), only if very close
+      var anyThreshold = Math.max(rawValue * 0.1, 2);
+      if (bestAny && bestAnyDist <= anyThreshold) return bestAny;
+
+      return null;
+    }
+
+    // ── Build text style lookup for typography fixes ──
+    // Keyed by "fontFamily|fontStyle|roundedFontSize" — only applies when all three match exactly.
+    var textStyleExactMap = {};
+    for (var tsi = 0; tsi < localTextStyles.length; tsi++) {
+      var ts = localTextStyles[tsi];
+      try {
+        if (ts.fontName && typeof ts.fontSize === "number") {
+          var tsKey = ts.fontName.family.toLowerCase() + "|" + ts.fontName.style.toLowerCase() + "|" + Math.round(ts.fontSize);
+          if (!textStyleExactMap[tsKey]) {
+            textStyleExactMap[tsKey] = ts;
+          }
+        }
+      } catch (e) {}
+    }
+
+    // Cache last resolved node to avoid redundant getNodeByIdAsync calls for the same node
+    var lastFixNodeId = null;
+    var lastFixNode = null;
+
     for (var fxi = 0; fxi < violations.length; fxi++) {
       var fv = violations[fxi];
       fv.fixed = false;
 
-      if (fv.category !== "rootFrame") continue;
+      var fvCat = fv.category;
+      var isRootFrameViol  = fvCat === "rootFrame";
+      var isColorViol      = fvCat === "backgroundFills" || fvCat === "iconColors" || fvCat === "strokesBorders";
+      var isSpacingViol    = fvCat === "spacing";
+      var isRadiusViol     = fvCat === "borderRadius";
+      var isTypographyViol = fvCat === "typography";
+      if (!isRootFrameViol && !isColorViol && !isSpacingViol && !isRadiusViol && !isTypographyViol) continue;
 
+      // Resolve node (cached per nodeId)
       var fixNode = null;
-      try { fixNode = await figma.getNodeByIdAsync(fv.nodeId); } catch (e) {}
+      if (fv.nodeId === lastFixNodeId) {
+        fixNode = lastFixNode;
+      } else {
+        try { fixNode = await figma.getNodeByIdAsync(fv.nodeId); } catch (e) {}
+        lastFixNodeId = fv.nodeId;
+        lastFixNode = fixNode;
+      }
       if (!fixNode) continue;
 
-      if (fv.property === "layoutSizingHorizontal") {
-        try {
-          fixNode.layoutSizingHorizontal = "FIXED";
-          fv.fixed = true;
-          // Update tally: move from unbound → bound
-          categories.rootFrame.unbound = Math.max(0, categories.rootFrame.unbound - 1);
-          categories.rootFrame.bound++;
-        } catch (e) {}
-
-      } else if (fv.property === "layoutSizingVertical") {
-        try {
-          fixNode.layoutSizingVertical = "HUG";
-          fv.fixed = true;
-          categories.rootFrame.unbound = Math.max(0, categories.rootFrame.unbound - 1);
-          categories.rootFrame.bound++;
-        } catch (e) {}
-
-      } else if (fv.property === "minHeight") {
-        try {
-          var fwWidth = fixNode.width !== undefined ? fixNode.width : 0;
-          var fwExpected = 0;
-          for (var fwdi = 0; fwdi < DEVICE_FIX_SPECS.length; fwdi++) {
-            if (Math.abs(fwWidth - DEVICE_FIX_SPECS[fwdi].width) <= DIM_TOL) {
-              fwExpected = DEVICE_FIX_SPECS[fwdi].minHeight;
-              break;
-            }
-          }
-          if (fwExpected > 0) {
-            fixNode.minHeight = fwExpected;
+      // ── Root frame sizing fixes ──
+      if (isRootFrameViol) {
+        if (fv.property === "layoutSizingHorizontal") {
+          try {
+            fixNode.layoutSizingHorizontal = "FIXED";
             fv.fixed = true;
+            fv.fixedWith = "layoutSizingHorizontal = FIXED";
             categories.rootFrame.unbound = Math.max(0, categories.rootFrame.unbound - 1);
             categories.rootFrame.bound++;
+          } catch (e) {}
+
+        } else if (fv.property === "layoutSizingVertical") {
+          try {
+            fixNode.layoutSizingVertical = "HUG";
+            fv.fixed = true;
+            fv.fixedWith = "layoutSizingVertical = HUG";
+            categories.rootFrame.unbound = Math.max(0, categories.rootFrame.unbound - 1);
+            categories.rootFrame.bound++;
+          } catch (e) {}
+
+        } else if (fv.property === "minHeight") {
+          try {
+            var fwWidth = fixNode.width !== undefined ? fixNode.width : 0;
+            var fwExpected = 0;
+            for (var fwdi = 0; fwdi < DEVICE_FIX_SPECS.length; fwdi++) {
+              if (Math.abs(fwWidth - DEVICE_FIX_SPECS[fwdi].width) <= DIM_TOL) {
+                fwExpected = DEVICE_FIX_SPECS[fwdi].minHeight;
+                break;
+              }
+            }
+            if (fwExpected > 0) {
+              fixNode.minHeight = fwExpected;
+              fv.fixed = true;
+              fv.fixedWith = "minHeight = " + fwExpected + "px";
+              categories.rootFrame.unbound = Math.max(0, categories.rootFrame.unbound - 1);
+              categories.rootFrame.bound++;
+            }
+          } catch (e) {}
+        }
+
+      // ── Color / fill / stroke fixes ──
+      // Property format: "fills[N]" or "strokes[N]"
+      } else if (isColorViol) {
+        var propPartsMatch = fv.property.match(/^(fills|strokes)\[(\d+)\]$/);
+        if (propPartsMatch) {
+          var propName = propPartsMatch[1];
+          var propIdx  = parseInt(propPartsMatch[2], 10);
+          try {
+            var paints = fixNode[propName];
+            if (paints && Array.isArray(paints) && paints.length > propIdx) {
+              var paint = paints[propIdx];
+              if (paint && paint.type === "SOLID" && paint.color) {
+                var bestEntry = findBestColorVar(paint.color, fvCat);
+                if (bestEntry) {
+                  var varObj = variableMap[bestEntry.id];
+                  if (varObj) {
+                    var paintsCopy = paints.slice();
+                    paintsCopy[propIdx] = figma.variables.setBoundVariableForPaint(paintsCopy[propIdx], "color", varObj);
+                    fixNode[propName] = paintsCopy;
+                    fv.fixed = true;
+                    fv.fixedWith = varObj.name;
+                    categories[fvCat].unbound = Math.max(0, categories[fvCat].unbound - 1);
+                    categories[fvCat].bound++;
+                  }
+                }
+              }
+            }
+          } catch (e) {}
+        }
+
+      // ── Spacing fixes (itemSpacing, paddingTop/Right/Bottom/Left) ──
+      } else if (isSpacingViol) {
+        var spacingProp = fv.property;
+        try {
+          var rawSpacing = fixNode[spacingProp];
+          if (typeof rawSpacing === "number" && rawSpacing > 0) {
+            var bestSpacingVar = findBestFloatVar(rawSpacing, "spacing");
+            if (bestSpacingVar) {
+              var spacingVarObj = variableMap[bestSpacingVar.id];
+              if (spacingVarObj) {
+                fixNode.setBoundVariable(spacingProp, spacingVarObj);
+                fv.fixed = true;
+                fv.fixedWith = spacingVarObj.name;
+                categories.spacing.unbound = Math.max(0, categories.spacing.unbound - 1);
+                categories.spacing.bound++;
+              }
+            }
           }
         } catch (e) {}
-      }
+
+      // ── Border radius fixes (cornerRadius, topLeftRadius, topRightRadius, etc.) ──
+      } else if (isRadiusViol) {
+        var radiusProp = fv.property;
+        try {
+          var rawRadius = fixNode[radiusProp];
+          if (typeof rawRadius === "number" && rawRadius > 0) {
+            var bestRadiusVar = findBestFloatVar(rawRadius, "borderRadius");
+            if (bestRadiusVar) {
+              var radiusVarObj = variableMap[bestRadiusVar.id];
+              if (radiusVarObj) {
+                fixNode.setBoundVariable(radiusProp, radiusVarObj);
+                fv.fixed = true;
+                fv.fixedWith = radiusVarObj.name;
+                categories.borderRadius.unbound = Math.max(0, categories.borderRadius.unbound - 1);
+                categories.borderRadius.bound++;
+              }
+            }
+          }
+        } catch (e) {}
+
+      // ── Typography fixes: exact text style match by fontFamily + fontStyle + fontSize ──
+      // Fallback: bind fontSize to the nearest font-size FLOAT variable.
+      } else if (isTypographyViol && fv.property === "textStyleId") {
+      try {
+        var tnFontName = fixNode.fontName;
+        var tnFontSize = fixNode.fontSize;
+        if (tnFontName && tnFontName !== figma.mixed && tnFontSize && tnFontSize !== figma.mixed) {
+          var tsKey = tnFontName.family.toLowerCase() + "|" + tnFontName.style.toLowerCase() + "|" + Math.round(tnFontSize);
+          var matchingStyle = textStyleExactMap[tsKey];
+          if (matchingStyle) {
+            fixNode.textStyleId = matchingStyle.id;
+            fv.fixed = true;
+            fv.fixedWith = matchingStyle.name;
+            categories.typography.unbound = Math.max(0, categories.typography.unbound - 1);
+            categories.typography.bound++;
+          } else {
+            // Fallback: bind fontSize to nearest font-size FLOAT variable
+            var bestFontSizeVar = findBestFloatVar(tnFontSize, "typography");
+            if (bestFontSizeVar) {
+              var fontSizeVarObj = variableMap[bestFontSizeVar.id];
+              if (fontSizeVarObj) {
+                fixNode.setBoundVariable("fontSize", fontSizeVarObj);
+                fv.fixed = true;
+                fv.fixedWith = "fontSize \u2192 " + fontSizeVarObj.name + " (text style still needed)";
+                // Partial fix: textStyleId violation remains; tallies are not updated
+              }
+            }
+          }
+        }
+      } catch (e) {}
+    }
     }
   }
 

@@ -707,6 +707,8 @@ export interface LintViolation {
   details?: Record<string, unknown>;
   /** Present when lint_frame was called with fix=true. True = auto-fixed, false = could not be auto-fixed. */
   fixed?: boolean;
+  /** Name of the variable/style that was applied when fixed=true. */
+  fixedWith?: string;
 }
 
 export interface LintCategoryResult {
