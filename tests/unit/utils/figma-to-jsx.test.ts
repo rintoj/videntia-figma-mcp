@@ -542,9 +542,20 @@ describe("convertToJsx", () => {
 
   // --- Corners ---
 
-  it("should render uniform corner radius", () => {
+  it("should render uniform corner radius as named Tailwind class", () => {
     const jsx = convertToJsx([makeNode({ cornerRadius: 12 })]);
-    expect(jsx).toContain("rounded-[12px]");
+    expect(jsx).toContain("rounded-xl");
+  });
+
+  it("should render rounded-full for cornerRadius 9999 (pill/circle)", () => {
+    const jsx = convertToJsx([makeNode({ cornerRadius: 9999 })]);
+    expect(jsx).toContain("rounded-full");
+    expect(jsx).not.toContain("rounded-[9999px]");
+  });
+
+  it("should use arbitrary syntax for non-standard radius values", () => {
+    const jsx = convertToJsx([makeNode({ cornerRadius: 7 })]);
+    expect(jsx).toContain("rounded-[7px]");
   });
 
   it("should render corner radius with variable", () => {
@@ -888,7 +899,7 @@ describe("convertToJsx", () => {
     expect(jsx).toContain("gap-[16px]");
     expect(jsx).toContain("p-[16px]");
     expect(jsx).toContain("bg-card");
-    expect(jsx).toContain("rounded-[12px]");
+    expect(jsx).toContain("rounded-xl");
     expect(jsx).toContain("w-[320px]");
     expect(jsx).toContain("boxShadow:");
 
@@ -901,7 +912,7 @@ describe("convertToJsx", () => {
 
     // Button
     expect(jsx).toContain("bg-primary");
-    expect(jsx).toContain("rounded-[8px]");
+    expect(jsx).toContain("rounded-lg");
 
     // Button label
     expect(jsx).toContain("text-primary-foreground");

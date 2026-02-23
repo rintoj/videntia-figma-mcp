@@ -460,6 +460,19 @@ export function resolveTwBorderRadius(name: string): number | undefined {
   return TAILWIND_BORDER_RADIUS[name];
 }
 
+const TAILWIND_BORDER_RADIUS_REVERSE: Record<number, string> = Object.fromEntries(
+  Object.entries(TAILWIND_BORDER_RADIUS)
+    .filter(([k]) => k !== "none") // 0 → no class needed
+    .map(([k, v]) => [v, k]),
+) as Record<number, string>;
+
+/** Map a raw pixel value back to a Tailwind class, e.g. 9999 → "rounded-full", 8 → "rounded-lg" */
+export function reverseTwBorderRadius(px: number): string | undefined {
+  const name = TAILWIND_BORDER_RADIUS_REVERSE[px];
+  if (name === undefined) return undefined;
+  return name === "DEFAULT" ? "rounded" : `rounded-${name}`;
+}
+
 export function resolveTwShadow(name: string): FigmaNodeEffect[] | undefined {
   return TAILWIND_SHADOWS[name];
 }

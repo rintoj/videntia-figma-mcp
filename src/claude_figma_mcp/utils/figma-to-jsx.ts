@@ -1,5 +1,6 @@
 import * as t from "@babel/types";
 import type { FigmaNodeData } from "../types/index.js";
+import { reverseTwBorderRadius } from "./tailwind-values.js";
 
 const COMPONENT_TYPES = new Set(["COMPONENT", "COMPONENT_SET", "INSTANCE"]);
 
@@ -300,7 +301,8 @@ function buildTailwindClasses(node: FigmaNodeData): string[] {
     if (crBinding) {
       classes.push(`rounded-${normalizeName(crBinding)}`);
     } else {
-      classes.push(`rounded-[${node.cornerRadius}px]`);
+      const namedClass = reverseTwBorderRadius(node.cornerRadius);
+      classes.push(namedClass ?? `rounded-[${node.cornerRadius}px]`);
     }
   } else if (
     node.topLeftRadius !== undefined ||
