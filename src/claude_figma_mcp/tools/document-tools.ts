@@ -1313,6 +1313,12 @@ export function registerDocumentTools(server: McpServer): void {
       node_id: z.string().describe("The ID of the root node to lint"),
       checks: z
         .object({
+          rootFrame: z
+            .boolean()
+            .optional()
+            .describe(
+              "Check root frame sizing: width=FIXED at device width (desktop=1440, tablet=768, mobile=375), height=HUG with minHeight set to device height (default: true)",
+            ),
           colors: z.boolean().optional().describe("Check fill/stroke color bindings (default: true)"),
           spacing: z.boolean().optional().describe("Check padding/itemSpacing bindings (default: true)"),
           radius: z.boolean().optional().describe("Check cornerRadius bindings (default: true)"),
@@ -1346,6 +1352,7 @@ export function registerDocumentTools(server: McpServer): void {
         lines.push("|----------|-------|-------|---------|------------|");
 
         const catLabels: { key: keyof typeof result.categories; label: string }[] = [
+          { key: "rootFrame", label: "Root Frame" },
           { key: "typography", label: "Typography" },
           { key: "backgroundFills", label: "Background Fills" },
           { key: "iconColors", label: "Icon Colors" },

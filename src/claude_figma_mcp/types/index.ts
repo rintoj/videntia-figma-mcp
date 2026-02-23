@@ -719,6 +719,7 @@ export interface LintFrameResult {
   nodeType: string;
   totalNodes: number;
   categories: {
+    rootFrame: LintCategoryResult;
     typography: LintCategoryResult;
     spacing: LintCategoryResult;
     borderRadius: LintCategoryResult;

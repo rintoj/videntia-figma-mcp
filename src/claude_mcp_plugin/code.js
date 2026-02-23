@@ -8775,6 +8775,7 @@ async function lintFrame(params) {
 
   // Default checks — all on
   var chk = {
+    rootFrame: true,
     colors: true,
     spacing: true,
     radius: true,
@@ -8784,6 +8785,7 @@ async function lintFrame(params) {
     overflow: true
   };
   if (checks) {
+    if (checks.rootFrame === false) chk.rootFrame = false;
     if (checks.colors === false) chk.colors = false;
     if (checks.spacing === false) chk.spacing = false;
     if (checks.radius === false) chk.radius = false;
@@ -8827,6 +8829,7 @@ async function lintFrame(params) {
 
   // Category tallies
   var categories = {
+    rootFrame:       { total: 0, bound: 0, unbound: 0, compliance: 100 },
     typography:      { total: 0, bound: 0, unbound: 0, compliance: 100 },
     spacing:         { total: 0, bound: 0, unbound: 0, compliance: 100 },
     borderRadius:    { total: 0, bound: 0, unbound: 0, compliance: 100 },
@@ -8960,6 +8963,94 @@ async function lintFrame(params) {
 
     totalNodes++;
     var nodeType = node.type;
+
+    // ── ROOT FRAME checks (depth === 0 only) ──
+    if (chk.rootFrame && depth === 0 && (nodeType === "FRAME" || nodeType === "COMPONENT")) {
+      var DEVICE_SPECS = [
+        { name: "desktop", width: 1440, minHeight: 900 },
+        { name: "tablet",  width: 768,  minHeight: 1024 },
+        { name: "mobile",  width: 375,  minHeight: 812 }
+      ];
+      var DIM_TOLERANCE = 2;
+
+      var rfLayoutMode = null;
+      try { rfLayoutMode = node.layoutMode; } catch (e) {}
+      var rfHasLayout = rfLayoutMode && rfLayoutMode !== "NONE";
+
+      var rfWidth = 0;
+      try { rfWidth = node.width; } catch (e) {}
+
+      // Detect device from width
+      var rfDevice = null;
+      for (var rfdi = 0; rfdi < DEVICE_SPECS.length; rfdi++) {
+        if (Math.abs(rfWidth - DEVICE_SPECS[rfdi].width) <= DIM_TOLERANCE) {
+          rfDevice = DEVICE_SPECS[rfdi];
+          break;
+        }
+      }
+
+      if (rfHasLayout) {
+        // Check 1: width sizing must be FIXED
+        var rfSizingH = null;
+        try { rfSizingH = node.layoutSizingHorizontal; } catch (e) {}
+        categories.rootFrame.total++;
+        if (rfSizingH === "FIXED") {
+          categories.rootFrame.bound++;
+        } else {
+          categories.rootFrame.unbound++;
+          addViolation(node, depth, "CRITICAL", "rootFrame", "layoutSizingHorizontal",
+            "Root frame width must be FIXED (currently: " + (rfSizingH !== null && rfSizingH !== undefined ? rfSizingH : "unknown") + ")");
+        }
+      }
+
+      // Check 2: width must match a standard device width
+      categories.rootFrame.total++;
+      if (rfDevice) {
+        categories.rootFrame.bound++;
+      } else {
+        categories.rootFrame.unbound++;
+        addViolation(node, depth, "HIGH", "rootFrame", "width",
+          "Root frame width (" + rfWidth + "px) does not match a standard device width — expected: desktop=1440, tablet=768, mobile=375");
+      }
+
+      if (rfHasLayout) {
+        // Check 3: height sizing must be HUG
+        var rfSizingV = null;
+        try { rfSizingV = node.layoutSizingVertical; } catch (e) {}
+        categories.rootFrame.total++;
+        if (rfSizingV === "HUG") {
+          categories.rootFrame.bound++;
+        } else {
+          categories.rootFrame.unbound++;
+          addViolation(node, depth, "HIGH", "rootFrame", "layoutSizingVertical",
+            "Root frame height must be HUG (currently: " + (rfSizingV !== null && rfSizingV !== undefined ? rfSizingV : "unknown") + ") — use minHeight for the minimum height constraint");
+        }
+
+        // Check 4: minHeight must be set (and should match device height)
+        var rfMinHeight = null;
+        try { rfMinHeight = node.minHeight; } catch (e) {}
+        var rfMinHeightNum = (rfMinHeight !== null && rfMinHeight !== undefined) ? rfMinHeight : 0;
+        var rfExpectedMinH = rfDevice ? rfDevice.minHeight : 0;
+
+        categories.rootFrame.total++;
+        if (rfMinHeightNum > 0) {
+          categories.rootFrame.bound++;
+          if (rfDevice && Math.abs(rfMinHeightNum - rfExpectedMinH) > DIM_TOLERANCE) {
+            addViolation(node, depth, "MEDIUM", "rootFrame", "minHeight",
+              "Root frame minHeight (" + rfMinHeightNum + "px) does not match expected " + rfDevice.name + " height (" + rfExpectedMinH + "px)");
+          }
+        } else {
+          categories.rootFrame.unbound++;
+          var rfMinHMsg = "Root frame minHeight not set";
+          if (rfDevice) {
+            rfMinHMsg += " — expected " + rfExpectedMinH + "px for " + rfDevice.name;
+          } else {
+            rfMinHMsg += " — set to the device viewport height";
+          }
+          addViolation(node, depth, "HIGH", "rootFrame", "minHeight", rfMinHMsg);
+        }
+      }
+    }
 
     // ── TEXT STYLE checks ──
     if (chk.textStyles && nodeType === "TEXT") {
@@ -9229,7 +9320,7 @@ async function lintFrame(params) {
   scanNode(rootNode, 0, null, null);
 
   // Compute compliance percentages
-  var catKeys = ["typography", "spacing", "borderRadius", "iconColors", "strokesBorders", "backgroundFills", "effectStyles", "overflow"];
+  var catKeys = ["rootFrame", "typography", "spacing", "borderRadius", "iconColors", "strokesBorders", "backgroundFills", "effectStyles", "overflow"];
   for (var ck = 0; ck < catKeys.length; ck++) {
     var cat = categories[catKeys[ck]];
     if (cat.total > 0) {
