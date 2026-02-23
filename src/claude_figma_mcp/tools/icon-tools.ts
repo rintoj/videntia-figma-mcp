@@ -4,16 +4,39 @@ import { searchIcons, getIcon, listIcons } from "../utils/icon-search.js";
 import { sendCommandToFigma } from "../utils/websocket.js";
 
 /**
+ * Allowlist for CSS color values — permits only safe characters used in hex, rgb/rgba/hsl/hsla,
+ * and named colors. Blocks `"`, `<`, `>`, `;` etc. that could break SVG markup.
+ */
+const CSS_COLOR_SAFE_RE = /^[a-zA-Z0-9#(),.\s%+-]+$/;
+
+function isValidCssColor(color: string): boolean {
+  return CSS_COLOR_SAFE_RE.test(color.trim());
+}
+
+/**
  * Inject a color and size into a Lucide SVG string.
- * - Replaces `currentColor` with the provided color value.
- * - Updates the root width/height attributes to the target size.
+ * - Validates `color` against a safe allowlist before injection.
+ * - Updates width/height only on the root `<svg>` opening tag (not child elements).
+ * - Replaces `currentColor` throughout the SVG (stroke/fill attributes).
  */
 function buildIconSvg(svg: string, color: string, size: number): string {
-  let result = svg;
-  result = result.replace(/\bwidth="[^"]*"/, `width="${size}"`);
-  result = result.replace(/\bheight="[^"]*"/, `height="${size}"`);
-  result = result.replace(/currentColor/g, color);
-  return result;
+  if (!isValidCssColor(color)) {
+    throw new Error(`Invalid CSS color "${color}" — use hex, rgb(), rgba(), hsl(), or a named color`);
+  }
+  // Scope width/height replacement to the root opening tag only
+  const tagEnd = svg.indexOf(">");
+  let result: string;
+  if (tagEnd !== -1) {
+    const openTag = svg.slice(0, tagEnd + 1);
+    const body = svg.slice(tagEnd + 1);
+    const fixedTag = openTag
+      .replace(/\bwidth="[^"]*"/, `width="${size}"`)
+      .replace(/\bheight="[^"]*"/, `height="${size}"`);
+    result = fixedTag + body;
+  } else {
+    result = svg;
+  }
+  return result.replace(/currentColor/g, color);
 }
 
 /**
@@ -173,7 +196,7 @@ export function registerIconTools(server: McpServer): void {
    */
   server.tool(
     "create_icon",
-    "Create a Lucide icon in Figma with a specific color and size. Resolves the SVG server-side and places it inside the given parent node at the specified index.",
+    "Create a Lucide icon in Figma with a specific color and size. Resolves the SVG server-side and places it inside the given parent node at the specified index. Note: when the parent is an Icon/* placeholder frame, the icon is resized to fill the frame and the size parameter controls the SVG dimensions only.",
     {
       parentId: z.string().describe("Parent node ID to insert the icon into"),
       index: z
@@ -221,12 +244,24 @@ export function registerIconTools(server: McpServer): void {
 
         const typedResult = createResult as { id: string; name: string; width: number; height: number };
 
+        let finalIndex: number | null = null;
         if (index !== undefined) {
-          await sendCommandToFigma("insert_child", {
-            parentId,
-            childId: typedResult.id,
-            index,
-          });
+          try {
+            await sendCommandToFigma("insert_child", {
+              parentId,
+              childId: typedResult.id,
+              index,
+            });
+            finalIndex = index;
+          } catch (insertError) {
+            // insert_child failed — clean up the orphaned node, then surface the error
+            try {
+              await sendCommandToFigma("delete_node", { nodeId: typedResult.id });
+            } catch (_) {
+              // best-effort cleanup
+            }
+            throw insertError;
+          }
         }
 
         return {
@@ -241,7 +276,7 @@ export function registerIconTools(server: McpServer): void {
                   color,
                   size,
                   parentId,
-                  index,
+                  index: finalIndex,
                 },
                 null,
                 2,

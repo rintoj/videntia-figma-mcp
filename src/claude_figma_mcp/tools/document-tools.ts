@@ -1452,11 +1452,6 @@ export function registerDocumentTools(server: McpServer): void {
           }
         }
 
-        if (result.violationsCapped) {
-          lines.push("");
-          lines.push("**Note:** Violations list was capped at 500 entries. Additional violations may exist.");
-        }
-
         // Verdict (based on remaining violations only)
         lines.push("");
         if (remainingViolations.length === 0) {
@@ -1474,6 +1469,11 @@ export function registerDocumentTools(server: McpServer): void {
           } else {
             lines.push("**Verdict: FAIL** — Significant compliance gaps.");
           }
+        }
+
+        if (result.violationsCapped) {
+          lines.push("");
+          lines.push("**Note:** Violations list was capped at 500 entries. Additional violations may exist.");
         }
 
         return {

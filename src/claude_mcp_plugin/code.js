@@ -9495,7 +9495,8 @@ async function lintFrame(params) {
         var dist = colorDist(rawColor, entry.color);
         if (dist < COLOR_EXACT_THRESHOLD) return entry; // exact — stop immediately
         if (dist > COLOR_NEAR_THRESHOLD) continue;
-        var effDist = dist - (isSemanticMatch(entry.nameLower, category) ? COLOR_SEMANTIC_BONUS : 0);
+        var rawEffDist = dist - (isSemanticMatch(entry.nameLower, category) ? COLOR_SEMANTIC_BONUS : 0);
+        var effDist = rawEffDist < 0 ? 0 : rawEffDist; // clamp — semantic bonus never beats exact matches
         if (effDist < bestEffDist) {
           bestEffDist = effDist;
           bestEntry = entry;
@@ -9529,7 +9530,16 @@ async function lintFrame(params) {
 
     // Return the nearest-value FLOAT variable for a raw number and usage category.
     // Prefers semantically-named variables; falls back to any FLOAT within a tighter threshold.
+    // For rawValue === 0 only an exact zero-value match is accepted (prevents binding 0 to nearby tokens).
     function findBestFloatVar(rawValue, category) {
+      // Zero special-case: only accept an exact zero-value variable to avoid spurious bindings
+      if (rawValue === 0) {
+        for (var zi = 0; zi < floatVarEntries.length; zi++) {
+          if (floatVarEntries[zi].value === 0) return floatVarEntries[zi];
+        }
+        return null;
+      }
+
       var kws = FLOAT_SEMANTIC_KEYWORDS[category];
       var bestSemantic = null;
       var bestSemanticDist = Infinity;
@@ -9686,7 +9696,7 @@ async function lintFrame(params) {
         var spacingProp = fv.property;
         try {
           var rawSpacing = fixNode[spacingProp];
-          if (typeof rawSpacing === "number" && rawSpacing > 0) {
+          if (typeof rawSpacing === "number") {
             var bestSpacingVar = findBestFloatVar(rawSpacing, "spacing");
             if (bestSpacingVar) {
               var spacingVarObj = variableMap[bestSpacingVar.id];
@@ -9706,7 +9716,7 @@ async function lintFrame(params) {
         var radiusProp = fv.property;
         try {
           var rawRadius = fixNode[radiusProp];
-          if (typeof rawRadius === "number" && rawRadius > 0) {
+          if (typeof rawRadius === "number") {
             var bestRadiusVar = findBestFloatVar(rawRadius, "borderRadius");
             if (bestRadiusVar) {
               var radiusVarObj = variableMap[bestRadiusVar.id];
@@ -9724,34 +9734,36 @@ async function lintFrame(params) {
       // ── Typography fixes: exact text style match by fontFamily + fontStyle + fontSize ──
       // Fallback: bind fontSize to the nearest font-size FLOAT variable.
       } else if (isTypographyViol && fv.property === "textStyleId") {
-      try {
-        var tnFontName = fixNode.fontName;
-        var tnFontSize = fixNode.fontSize;
-        if (tnFontName && tnFontName !== figma.mixed && tnFontSize && tnFontSize !== figma.mixed) {
-          var tsKey = tnFontName.family.toLowerCase() + "|" + tnFontName.style.toLowerCase() + "|" + Math.round(tnFontSize);
-          var matchingStyle = textStyleExactMap[tsKey];
-          if (matchingStyle) {
-            fixNode.textStyleId = matchingStyle.id;
-            fv.fixed = true;
-            fv.fixedWith = matchingStyle.name;
-            categories.typography.unbound = Math.max(0, categories.typography.unbound - 1);
-            categories.typography.bound++;
-          } else {
-            // Fallback: bind fontSize to nearest font-size FLOAT variable
-            var bestFontSizeVar = findBestFloatVar(tnFontSize, "typography");
-            if (bestFontSizeVar) {
-              var fontSizeVarObj = variableMap[bestFontSizeVar.id];
-              if (fontSizeVarObj) {
-                fixNode.setBoundVariable("fontSize", fontSizeVarObj);
-                fv.fixed = true;
-                fv.fixedWith = "fontSize \u2192 " + fontSizeVarObj.name + " (text style still needed)";
-                // Partial fix: textStyleId violation remains; tallies are not updated
+        try {
+          var tnFontName = fixNode.fontName;
+          var tnFontSize = fixNode.fontSize;
+          if (tnFontName && tnFontName !== figma.mixed && tnFontSize && tnFontSize !== figma.mixed) {
+            var tsKey = tnFontName.family.toLowerCase() + "|" + tnFontName.style.toLowerCase() + "|" + Math.round(tnFontSize);
+            var matchingStyle = textStyleExactMap[tsKey];
+            if (matchingStyle) {
+              fixNode.textStyleId = matchingStyle.id;
+              fv.fixed = true;
+              fv.fixedWith = matchingStyle.name;
+              categories.typography.unbound = Math.max(0, categories.typography.unbound - 1);
+              categories.typography.bound++;
+            } else {
+              // Partial fix: bind fontSize to nearest font-size FLOAT variable.
+              // The textStyleId violation is NOT resolved — the violation stays in remainingViolations
+              // so the user knows a matching text style still needs to be applied.
+              var bestFontSizeVar = findBestFloatVar(tnFontSize, "typography");
+              if (bestFontSizeVar) {
+                var fontSizeVarObj = variableMap[bestFontSizeVar.id];
+                if (fontSizeVarObj) {
+                  fixNode.setBoundVariable("fontSize", fontSizeVarObj);
+                  // Update the message to surface partial progress in the Pending Violations table
+                  fv.message = fv.message + " (fontSize bound to " + fontSizeVarObj.name + ")";
+                  // Do NOT set fv.fixed = true — the text style violation is still pending
+                }
               }
             }
           }
-        }
-      } catch (e) {}
-    }
+        } catch (e) {}
+      }
     }
   }
 
@@ -9767,7 +9779,6 @@ async function lintFrame(params) {
   }
 
   // Compute summary
-  var summaryTotal = violations.length;
   var summaryCritical = 0;
   var summaryHigh = 0;
   var summaryMedium = 0;
@@ -9785,6 +9796,8 @@ async function lintFrame(params) {
       case "LOW": summaryLow++; break;
     }
   }
+  // total reflects only remaining (unfixed) violations
+  var summaryTotal = violations.length - summaryFixed;
 
   // Overall compliance: ratio of bound to total across all categories
   var overallTotal = 0;
@@ -9845,6 +9858,11 @@ async function updateIcon(params) {
     throw new Error("Node has no parent");
   }
 
+  // Parent must support child insertion; bail out early to avoid losing the node
+  if (!('insertChild' in parent) && !('appendChild' in parent)) {
+    throw new Error("Parent node does not support child insertion");
+  }
+
   // Find the current index within the parent's children
   var index = -1;
   if (parent.children) {
@@ -9856,13 +9874,17 @@ async function updateIcon(params) {
     }
   }
 
+  // Capture original position for free-positioned nodes (non-Icon/* parents)
+  var origX = node.x !== undefined ? node.x : 0;
+  var origY = node.y !== undefined ? node.y : 0;
+
   // Remove the old node
   node.remove();
 
   // Create the replacement SVG node
   var svgNode = figma.createNodeFromSvg(svgString);
-  svgNode.x = 0;
-  svgNode.y = 0;
+  svgNode.x = origX;
+  svgNode.y = origY;
   if (name) {
     svgNode.name = name;
   }
@@ -9883,10 +9905,8 @@ async function updateIcon(params) {
   // Insert at the original position, or append if no index was found
   if ('insertChild' in parent && index >= 0) {
     parent.insertChild(index, svgNode);
-  } else if ('appendChild' in parent) {
-    parent.appendChild(svgNode);
   } else {
-    figma.currentPage.appendChild(svgNode);
+    parent.appendChild(svgNode);
   }
 
   // If placed inside an Icon/* placeholder frame, resize to fill it exactly

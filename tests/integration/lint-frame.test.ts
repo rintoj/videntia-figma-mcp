@@ -54,6 +54,7 @@ describe("lint_frame tool", () => {
       nodeType: "FRAME",
       totalNodes: 25,
       categories: {
+        rootFrame: { total: 1, bound: 1, unbound: 0, compliance: 100 },
         typography: { total: 3, bound: 3, unbound: 0, compliance: 100 },
         spacing: { total: 5, bound: 4, unbound: 1, compliance: 80 },
         borderRadius: { total: 2, bound: 2, unbound: 0, compliance: 100 },
@@ -78,7 +79,7 @@ describe("lint_frame tool", () => {
 
     await callTool("lint_frame", { node_id: "1:100" });
 
-    expect(mockSendCommand).toHaveBeenCalledWith("lint_frame", { nodeId: "1:100", checks: undefined }, 60000);
+    expect(mockSendCommand).toHaveBeenCalledWith("lint_frame", { nodeId: "1:100", fix: false, checks: undefined }, 60000);
   });
 
   it("passes checks parameter through to plugin", async () => {
@@ -87,7 +88,7 @@ describe("lint_frame tool", () => {
     const checks = { colors: true, spacing: false, autoLayout: false };
     await callTool("lint_frame", { node_id: "1:100", checks });
 
-    expect(mockSendCommand).toHaveBeenCalledWith("lint_frame", { nodeId: "1:100", checks }, 60000);
+    expect(mockSendCommand).toHaveBeenCalledWith("lint_frame", { nodeId: "1:100", fix: false, checks }, 60000);
   });
 
   it("formats compliance table with all 7 categories", async () => {
@@ -225,7 +226,7 @@ describe("lint_frame tool", () => {
     const response = await callTool("lint_frame", { node_id: "1:100" });
     const text = response.content[0].text;
 
-    expect(text).toContain("Total violations: 3");
+    expect(text).toContain("Pending violations: 3");
     expect(text).toContain("- CRITICAL: 1");
     expect(text).toContain("- HIGH: 2");
     // MEDIUM and LOW are 0, should not appear
@@ -339,7 +340,7 @@ describe("lint_frame tool", () => {
     const checks = { overflow: false };
     await callTool("lint_frame", { node_id: "1:100", checks });
 
-    expect(mockSendCommand).toHaveBeenCalledWith("lint_frame", { nodeId: "1:100", checks }, 60000);
+    expect(mockSendCommand).toHaveBeenCalledWith("lint_frame", { nodeId: "1:100", fix: false, checks }, 60000);
   });
 
   it("shows PASS for Overflow when no overflow violations", async () => {
