@@ -23,18 +23,21 @@ function buildIconSvg(svg: string, color: string, size: number): string {
   if (!isValidCssColor(color)) {
     throw new Error(`Invalid CSS color "${color}" — use hex, rgb(), rgba(), hsl(), or a named color`);
   }
+  // Strip any leading content before <svg (e.g. Lucide license comments)
+  const svgStart = svg.indexOf("<svg");
+  const stripped = svgStart > 0 ? svg.slice(svgStart) : svg;
   // Scope width/height replacement to the root opening tag only
-  const tagEnd = svg.indexOf(">");
+  const tagEnd = stripped.indexOf(">");
   let result: string;
   if (tagEnd !== -1) {
-    const openTag = svg.slice(0, tagEnd + 1);
-    const body = svg.slice(tagEnd + 1);
+    const openTag = stripped.slice(0, tagEnd + 1);
+    const body = stripped.slice(tagEnd + 1);
     const fixedTag = openTag
       .replace(/\bwidth="[^"]*"/, `width="${size}"`)
       .replace(/\bheight="[^"]*"/, `height="${size}"`);
     result = fixedTag + body;
   } else {
-    result = svg;
+    result = stripped;
   }
   return result.replace(/currentColor/g, color);
 }

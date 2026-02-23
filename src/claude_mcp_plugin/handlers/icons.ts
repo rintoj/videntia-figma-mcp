@@ -34,7 +34,11 @@ export async function updateIcon(
     throw new Error('Missing svgString parameter');
   }
 
-  const trimmedSvg = svgString.trim();
+  // Strip any leading content before <svg (e.g. license comments)
+  const svgStart = svgString.indexOf('<svg');
+  const cleanedSvg = svgStart > 0 ? svgString.slice(svgStart) : svgString;
+
+  const trimmedSvg = cleanedSvg.trim();
   if (
     trimmedSvg.indexOf('<svg') !== 0 &&
     trimmedSvg.indexOf('<?xml') !== 0
@@ -85,7 +89,7 @@ export async function updateIcon(
   (node as SceneNode).remove();
 
   // Create the replacement SVG node
-  let svgNode = figma.createNodeFromSvg(svgString);
+  let svgNode = figma.createNodeFromSvg(cleanedSvg);
   (svgNode as LayoutMixin).x = origX;
   (svgNode as LayoutMixin).y = origY;
   if (name) {
@@ -93,7 +97,7 @@ export async function updateIcon(
   }
 
   // Propagate root-level stroke to individual shape children (same logic as createSvg)
-  const rootStroke = parseSvgRootStroke(svgString);
+  const rootStroke = parseSvgRootStroke(cleanedSvg);
   if (rootStroke) {
     propagateStrokeToShapes(svgNode as SceneNode, rootStroke);
     if ('strokes' in svgNode) {
