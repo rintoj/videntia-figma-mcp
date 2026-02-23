@@ -657,6 +657,30 @@ describe("convertToJsx", () => {
     expect(match![1]).toContain(", ");
   });
 
+  it("should emit effect style name as shadow class", () => {
+    const jsx = convertToJsx([
+      makeNode({
+        effectStyleName: "shadow/subtle",
+        effects: [
+          { type: "DROP_SHADOW", offset: { x: 0, y: 1 }, radius: 2, spread: 0, color: "#000000" },
+        ],
+      }),
+    ]);
+    expect(jsx).toContain("shadow-shadow-subtle");
+    expect(jsx).not.toContain("boxShadow");
+  });
+
+  it("should not emit blur classes when effectStyleName is present", () => {
+    const jsx = convertToJsx([
+      makeNode({
+        effectStyleName: "shadow/subtle",
+        effects: [{ type: "LAYER_BLUR", radius: 10 }],
+      }),
+    ]);
+    expect(jsx).toContain("shadow-shadow-subtle");
+    expect(jsx).not.toContain("blur-[10px]");
+  });
+
   it("should render layer blur as class", () => {
     const jsx = convertToJsx([makeNode({ effects: [{ type: "LAYER_BLUR", radius: 10 }] })]);
     expect(jsx).toContain("blur-[10px]");

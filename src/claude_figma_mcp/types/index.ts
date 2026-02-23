@@ -169,7 +169,10 @@ export type FigmaCommand =
   | "rename_page"
   | "delete_page"
   | "create_from_data"
-  | "batch_actions";
+  | "batch_actions"
+  | "lint_frame"
+  | "get_design_system"
+  | "setup_design_system";
 
 // Batch actions types
 export interface BatchActionResult {
@@ -313,6 +316,7 @@ export interface FigmaNodeData {
   textCase?: "ORIGINAL" | "UPPER" | "LOWER" | "TITLE";
   textDecoration?: "NONE" | "UNDERLINE" | "STRIKETHROUGH";
   textStyleName?: string;
+  effectStyleName?: string;
   // Appearance
   opacity?: number;
   rotation?: number;
@@ -612,6 +616,68 @@ export interface GetComponentPropertiesResult {
   [key: string]: unknown;
 }
 
+// Design system aggregation result
+export interface DesignSystemVariable {
+  id: string;
+  name: string;
+  description: string;
+  resolvedType: string;
+  collectionName: string;
+  values: Array<{ modeId: string; modeName: string; value: unknown }>;
+}
+
+export interface DesignSystemTextStyle {
+  id: string;
+  name: string;
+  fontSize: number;
+  fontName: { family: string; style: string };
+  lineHeight: unknown;
+}
+
+export interface DesignSystemEffect {
+  type: string;
+  visible: boolean;
+  color?: { r: number; g: number; b: number; a: number };
+  offset?: { x: number; y: number };
+  radius?: number;
+  spread?: number;
+}
+
+export interface DesignSystemEffectStyle {
+  id: string;
+  name: string;
+  description: string;
+  effects: DesignSystemEffect[];
+}
+
+export interface DesignSystemPage {
+  id: string;
+  name: string;
+}
+
+export interface GetDesignSystemResult {
+  pages: DesignSystemPage[];
+  variables: DesignSystemVariable[];
+  textStyles: DesignSystemTextStyle[];
+  effectStyles: DesignSystemEffectStyle[];
+}
+
+// Setup design system result
+export interface SetupDesignSystemCounters {
+  created: number;
+  updated: number;
+  failed: number;
+  errors?: Array<{ name: string; error: string }>;
+}
+
+export interface SetupDesignSystemResult {
+  collections: Array<{ id: string; name: string }>;
+  pages: DesignSystemPage[];
+  variables: SetupDesignSystemCounters;
+  textStyles: SetupDesignSystemCounters;
+  effectStyles: SetupDesignSystemCounters;
+}
+
 // Modification tools
 export interface DeleteMultipleNodesResult {
   deleted?: number;
@@ -629,4 +695,49 @@ export interface UpdateEffectStyleResult {
   success?: boolean;
   id?: string;
   [key: string]: unknown;
+}
+
+// Lint frame result
+export interface LintViolation {
+  nodeId: string;
+  nodeName: string;
+  nodeType: string;
+  depth: number;
+  severity: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
+  category: string;
+  property: string;
+  message: string;
+}
+
+export interface LintCategoryResult {
+  total: number;
+  bound: number;
+  unbound: number;
+  compliance: number;
+}
+
+export interface LintFrameResult {
+  nodeId: string;
+  nodeName: string;
+  nodeType: string;
+  totalNodes: number;
+  categories: {
+    typography: LintCategoryResult;
+    spacing: LintCategoryResult;
+    borderRadius: LintCategoryResult;
+    iconColors: LintCategoryResult;
+    strokesBorders: LintCategoryResult;
+    backgroundFills: LintCategoryResult;
+    effectStyles: LintCategoryResult;
+  };
+  violations: LintViolation[];
+  violationsCapped?: boolean;
+  summary: {
+    total: number;
+    critical: number;
+    high: number;
+    medium: number;
+    low: number;
+    compliance: number;
+  };
 }

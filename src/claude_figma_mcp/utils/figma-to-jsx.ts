@@ -314,8 +314,13 @@ function buildTailwindClasses(node: FigmaNodeData): string[] {
     if (node.bottomLeftRadius) classes.push(`rounded-bl-[${node.bottomLeftRadius}px]`);
   }
 
+  // --- Effect style as class ---
+  if (node.effectStyleName) {
+    classes.push(`shadow-${normalizeName(node.effectStyleName)}`);
+  }
+
   // --- Blur effects as classes ---
-  if (node.effects) {
+  if (node.effects && !node.effectStyleName) {
     for (const effect of node.effects) {
       if (effect.type === "LAYER_BLUR" && effect.radius !== undefined) {
         classes.push(`blur-[${effect.radius}px]`);
@@ -339,8 +344,8 @@ function buildTailwindClasses(node: FigmaNodeData): string[] {
 function buildStyleAttribute(node: FigmaNodeData): Record<string, string> | null {
   const style: Record<string, string> = {};
 
-  // Shadows → boxShadow
-  if (node.effects) {
+  // Shadows → boxShadow (skip if effect style name is present)
+  if (node.effects && !node.effectStyleName) {
     const shadows: string[] = [];
     for (const effect of node.effects) {
       if (effect.type === "DROP_SHADOW" || effect.type === "INNER_SHADOW") {

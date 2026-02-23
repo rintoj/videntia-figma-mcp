@@ -686,6 +686,19 @@ describe("parseJsx", () => {
     expect(parsed[0].textStyleName).toBe("body/md");
   });
 
+  it("should round-trip effect style name", () => {
+    const original = makeNode({
+      effectStyleName: "shadow/subtle",
+      effects: [
+        { type: "DROP_SHADOW", offset: { x: 0, y: 1 }, radius: 2, spread: 0, color: "#000000" },
+      ],
+    });
+    const jsx = convertToJsx([original]);
+    expect(jsx).toContain("shadow-shadow-subtle");
+    const parsed = parseJsx(jsx);
+    expect(parsed[0].effectStyleName).toBe("shadow/subtle");
+  });
+
   it("should round-trip corner radius with variable", () => {
     const original = makeNode({
       cornerRadius: 8,
@@ -1379,6 +1392,23 @@ describe("parseJsx - standard Tailwind shadows", () => {
   it("should resolve shadow-none to empty effects", () => {
     const nodes = parseJsx('<div id="1:1" name="T" className="shadow-none" />');
     expect(nodes[0].effects).toEqual([]);
+  });
+});
+
+// --- Effect style name via shadow class ---
+
+describe("parseJsx - effect style name", () => {
+  it("should parse unresolved shadow class as effectStyleName", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="shadow-shadow-subtle" />');
+    expect(nodes[0].effectStyleName).toBe("shadow/subtle");
+    expect(nodes[0].effects).toBeUndefined();
+  });
+
+  it("should still resolve standard shadow-md as effects", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="shadow-md" />');
+    expect(nodes[0].effectStyleName).toBeUndefined();
+    expect(nodes[0].effects).toBeDefined();
+    expect(nodes[0].effects![0].type).toBe("DROP_SHADOW");
   });
 });
 

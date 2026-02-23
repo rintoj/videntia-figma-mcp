@@ -18,6 +18,14 @@ import type {
   StylesResult,
   RemoteComponentsResult,
   BoundVariablesResult,
+  LintFrameResult,
+  LintViolation,
+  GetDesignSystemResult,
+  DesignSystemVariable,
+  DesignSystemTextStyle,
+  DesignSystemEffect,
+  DesignSystemEffectStyle,
+  SetupDesignSystemResult,
 } from "../types/index.js";
 import {
   formatColorValue,
@@ -26,6 +34,233 @@ import {
   sanitizeCell,
   truncate,
 } from "../utils/format-helpers.js";
+
+/**
+ * Purpose descriptions for known design tokens.
+ * Used as fallback when Figma variable/style has no description set.
+ */
+export const TOKEN_PURPOSE_MAP: Record<string, string> = {
+  // Background
+  "background/primary": "Main app background, root screen fill",
+  "background/secondary": "Cards, elevated sections, sidebar panels",
+  "background/tertiary": "Subtle fills, image placeholders, input fields",
+  "background/inverse": "Inverted hero sections, highlight banners",
+  // Text
+  "text/primary": "Headings, primary labels, high-emphasis content",
+  "text/secondary": "Descriptions, subtitles, supporting copy",
+  "text/tertiary": "Hints, placeholders, disabled labels",
+  "text/inverse": "Text on bright backgrounds (brand/primary, inverse)",
+  "text/body": "Long-form body paragraphs, readable content",
+  "text/muted": "De-emphasized metadata, timestamps, footnotes",
+  "text/link": "Clickable links, inline actions",
+  // Brand
+  "brand/primary": "Primary brand accent, hero highlights, key CTAs",
+  "brand/secondary": "Secondary accent, badges, notifications, emphasis",
+  "brand/accent": "Cool accent, data visualization, progress indicators",
+  "brand/button": "Primary button fills, prominent action backgrounds",
+  "brand/primary/subtle": "Soft brand tint for tags, selected states, hover fills",
+  "brand/accent/subtle": "Soft accent tint for info badges, active indicators",
+  // Semantic
+  "semantic/success": "Success icons, confirmation text, positive indicators",
+  "semantic/warning": "Warning icons, caution text, attention signals",
+  "semantic/error": "Error text, destructive actions, validation failures",
+  "semantic/info": "Info icons, help text, neutral status indicators",
+  "semantic/success/subtle": "Success banner backgrounds, positive row highlights",
+  "semantic/warning/subtle": "Warning banner backgrounds, caution row highlights",
+  "semantic/error/subtle": "Error banner backgrounds, destructive row highlights",
+  "semantic/info/subtle": "Info banner backgrounds, neutral row highlights",
+  // Border
+  "border/default": "Standard card/input borders, dividers",
+  "border/subtle": "Soft dividers, section separators",
+  "border/strong": "Emphasized borders, active input outlines",
+  "border/strong/light": "High-contrast borders, focused states",
+  "border/subtle/dark": "Near-invisible separators, nested card edges",
+  "border/success": "Success state borders, confirmation outlines",
+  "border/warning": "Warning state borders, caution outlines",
+  "border/error": "Error state borders, validation outlines",
+  "border/info": "Info state borders, help outlines",
+  // Preview
+  "preview/sidebar": "Sidebar background in preview/demo mode",
+  "preview/nav/inactive": "Inactive nav items in preview/demo mode",
+  "preview/content/bg": "Content area background in preview/demo mode",
+  // Spacing
+  "space/0": "No spacing, flush elements",
+  "space/1": "Tight — icon-to-label, badge padding",
+  "space/2": "Small — inline elements, compact lists",
+  "space/3": "Default — form field gaps, card inner padding",
+  "space/4": "Medium — standard card padding, section inner gaps",
+  "space/5": "Comfortable — generous card padding",
+  "space/6": "Relaxed — section padding, group separation",
+  "space/8": "Large — major section breaks",
+  "space/10": "XL — hero padding, dramatic breathing room",
+  "space/12": "Section — top-level section dividers",
+  "space/16": "Page — page-level vertical rhythm, hero whitespace",
+  // Radius
+  "radius/none": "Sharp corners — dividers, full-bleed sections",
+  "radius/sm": "Inputs, small buttons, chips, tags",
+  "radius/md": "Cards, standard buttons, dropdowns",
+  "radius/lg": "Large cards, image containers, panels",
+  "radius/xl": "Modals, bottom sheets, feature cards",
+  "radius/2xl": "Large modals, hero containers",
+  "radius/full": "Pills, avatars, circular buttons",
+  // Text styles
+  "text/display/lg": "Hero headlines, splash screens, landing page titles",
+  "text/display/md": "Feature section headlines, onboarding titles",
+  "text/display/sm": "Sub-hero text, promotional headings",
+  "text/heading/h1": "Page titles, primary screen headings",
+  "text/heading/h2": "Section titles, card group headers",
+  "text/heading/h3": "Card titles, list group headers",
+  "text/heading/h4": "Sub-section headers, field group labels",
+  "text/body/lg": "Featured descriptions, intro paragraphs",
+  "text/body/md": "Standard body copy, descriptions",
+  "text/body/sm": "Secondary body text, supporting details",
+  "text/label/lg": "Primary button labels, nav items",
+  "text/label/md": "Secondary button labels, tab labels, form labels",
+  "text/label/sm": "Chip labels, badge text, overline text",
+  "text/caption/l1": "Timestamps, metadata, helper text",
+  "text/caption/l2": "Fine print, legal text, footnotes",
+  // Effect styles
+  "shadow/subtle": "Slight lift — hover states, subtle card edges",
+  "shadow/sm": "Cards, tiles, content panels",
+  "shadow/md": "Dropdowns, popovers, floating menus",
+  "shadow/lg": "Modals, dialogs, bottom sheets",
+  "shadow/xl": "Toasts, snackbars, high-priority alerts",
+};
+
+/**
+ * Get purpose for a token name. Falls back to "-" if not found.
+ */
+export function getTokenPurpose(name: string, figmaDescription?: string): string {
+  if (figmaDescription) return figmaDescription;
+  return TOKEN_PURPOSE_MAP[name] || "-";
+}
+
+/**
+ * Derive Tailwind CSS class from a Figma variable/style name.
+ */
+export function deriveTailwindClass(name: string, type: "color" | "spacing" | "radius" | "text" | "effect"): string {
+  const normalized = name.replace(/\s+/g, "-").toLowerCase();
+
+  if (type === "text") {
+    return `text-${normalized.replace(/\//g, "-")}`;
+  }
+  if (type === "effect") {
+    return `shadow-${normalized.replace(/\//g, "-")}`;
+  }
+  if (type === "spacing") {
+    // space/4 → p-space-4, gap-space-4
+    const cls = normalized.replace(/\//g, "-");
+    return `p-${cls}, gap-${cls}`;
+  }
+  if (type === "radius") {
+    return `rounded-${normalized.replace(/\//g, "-")}`;
+  }
+
+  // Color type - derive from prefix
+  const parts = normalized.split("/");
+  const prefix = parts[0];
+  const rest = parts.slice(1).join("-");
+
+  switch (prefix) {
+    case "background":
+      return `bg-background-${rest}`;
+    case "text":
+      return `text-text-${rest}`;
+    case "brand":
+      return `bg-brand-${rest}`;
+    case "semantic": {
+      if (rest.endsWith("-subtle") || rest.endsWith("subtle")) {
+        return `bg-semantic-${rest}`;
+      }
+      return `text-semantic-${rest}`;
+    }
+    case "border":
+      return `border-border-${rest}`;
+    case "interactive":
+      return `bg-interactive-${rest}`;
+    case "overlay":
+      return `bg-overlay-${rest}`;
+    case "preview":
+      return `bg-preview-${rest}`;
+    default:
+      return `bg-${normalized.replace(/\//g, "-")}`;
+  }
+}
+
+/**
+ * Format a variable's value from its mode values array.
+ * Colors → hex, numbers → raw number.
+ */
+function formatVariableDisplayValue(values: Array<{ modeId: string; modeName: string; value: unknown }>): string {
+  if (!values || values.length === 0) return "-";
+  const parts: string[] = [];
+  for (const mv of values) {
+    const v = mv.value;
+    let formatted: string;
+    if (v && typeof v === "object" && "r" in v && "g" in v && "b" in v) {
+      const c = v as { r: number; g: number; b: number; a?: number };
+      const r = Math.round(c.r * 255);
+      const g = Math.round(c.g * 255);
+      const b = Math.round(c.b * 255);
+      const a = c.a !== undefined ? c.a : 1;
+      if (a < 1) {
+        formatted = `rgba(${r},${g},${b},${a.toFixed(2)})`;
+      } else {
+        formatted = `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
+      }
+    } else if (typeof v === "number") {
+      formatted = String(v);
+    } else if (typeof v === "string") {
+      formatted = v;
+    } else {
+      formatted = "-";
+    }
+    if (values.length > 1) {
+      parts.push(`${mv.modeName}: ${formatted}`);
+    } else {
+      parts.push(formatted);
+    }
+  }
+  return parts.join(", ");
+}
+
+/**
+ * Format a Figma lineHeight value into a readable string.
+ */
+function formatLineHeight(lh: unknown): string {
+  if (!lh || typeof lh !== "object") return "-";
+  const obj = lh as { unit?: string; value?: number };
+  if (obj.unit === "AUTO") return "auto";
+  if (obj.unit === "PERCENT" && obj.value !== undefined) return `${obj.value}%`;
+  if (obj.unit === "PIXELS" && obj.value !== undefined) return `${obj.value}px`;
+  return "-";
+}
+
+/**
+ * Format effect style effects into a compact CSS-like string.
+ * e.g. "drop-shadow(0 2 4 0 rgba(0,0,0,0.10))"
+ */
+function formatEffectValue(effects: DesignSystemEffect[]): string {
+  if (!effects || effects.length === 0) return "-";
+  return effects.map((e) => {
+    const type = e.type === "DROP_SHADOW" ? "drop-shadow"
+      : e.type === "INNER_SHADOW" ? "inner-shadow"
+      : e.type === "LAYER_BLUR" ? "blur"
+      : e.type === "BACKGROUND_BLUR" ? "bg-blur"
+      : e.type;
+    if (e.type === "LAYER_BLUR" || e.type === "BACKGROUND_BLUR") {
+      return `${type}(${e.radius !== undefined ? e.radius : 0})`;
+    }
+    const ox = e.offset ? e.offset.x : 0;
+    const oy = e.offset ? e.offset.y : 0;
+    const r = e.radius !== undefined ? e.radius : 0;
+    const s = e.spread !== undefined ? e.spread : 0;
+    const c = e.color
+      ? `rgba(${Math.round(e.color.r * 255)},${Math.round(e.color.g * 255)},${Math.round(e.color.b * 255)},${(e.color.a !== undefined ? e.color.a : 1).toFixed(2)})`
+      : "rgba(0,0,0,1)";
+    return `${type}(${ox} ${oy} ${r} ${s} ${c})`;
+  }).join(", ");
+}
 
 /**
  * Register document-related tools to the MCP server
@@ -1070,6 +1305,307 @@ export function registerDocumentTools(server: McpServer): void {
     },
   );
 
+  // Lint Frame Tool
+  server.tool(
+    "lint_frame",
+    "Run a comprehensive compliance audit on a frame (or any node with children). Checks color tokens, spacing tokens, border radius tokens, text styles, effect styles, and auto-layout compliance in a single traversal. Returns a structured report with violations by severity (CRITICAL/HIGH/MEDIUM/LOW) and compliance percentages across 8 categories.",
+    {
+      node_id: z.string().describe("The ID of the root node to lint"),
+      checks: z
+        .object({
+          colors: z.boolean().optional().describe("Check fill/stroke color bindings (default: true)"),
+          spacing: z.boolean().optional().describe("Check padding/itemSpacing bindings (default: true)"),
+          radius: z.boolean().optional().describe("Check cornerRadius bindings (default: true)"),
+          textStyles: z.boolean().optional().describe("Check text style application (default: true)"),
+          effectStyles: z.boolean().optional().describe("Check effect style application (default: true)"),
+          autoLayout: z.boolean().optional().describe("Check auto-layout on frames (default: true)"),
+        })
+        .optional()
+        .describe("Toggle individual check categories (all enabled by default)"),
+    },
+    async ({ node_id, checks }) => {
+      try {
+        const result = await sendCommandToFigma<LintFrameResult>(
+          "lint_frame",
+          { nodeId: node_id, checks },
+          60000,
+        );
+
+        // Format as markdown compliance report
+        const lines: string[] = [];
+
+        lines.push(`# Compliance Audit: ${result.nodeName}`);
+        lines.push(`**Node:** ${result.nodeId} (${result.nodeType}) | **Nodes scanned:** ${result.totalNodes}`);
+        lines.push("");
+
+        // Compliance table
+        lines.push("## Compliance by Category");
+        lines.push("");
+        lines.push("| Category | Total | Bound | Unbound | Compliance |");
+        lines.push("|----------|-------|-------|---------|------------|");
+
+        const catLabels: { key: keyof typeof result.categories; label: string }[] = [
+          { key: "typography", label: "Typography" },
+          { key: "backgroundFills", label: "Background Fills" },
+          { key: "iconColors", label: "Icon Colors" },
+          { key: "strokesBorders", label: "Strokes/Borders" },
+          { key: "spacing", label: "Spacing" },
+          { key: "borderRadius", label: "Border Radius" },
+          { key: "effectStyles", label: "Effect Styles" },
+        ];
+
+        for (const { key, label } of catLabels) {
+          const cat = result.categories[key];
+          const pct = cat.compliance;
+          const status = pct === 100 ? "PASS" : pct >= 80 ? "WARN" : "FAIL";
+          lines.push(`| ${label} | ${cat.total} | ${cat.bound} | ${cat.unbound} | ${status} ${pct}% |`);
+        }
+        lines.push("");
+
+        // Summary
+        const s = result.summary;
+        lines.push("## Summary");
+        lines.push("");
+        lines.push(`**Overall Compliance: ${s.compliance}%**`);
+        lines.push("");
+        if (s.total === 0) {
+          lines.push("No violations found.");
+        } else {
+          lines.push(`Total violations: ${s.total}`);
+          if (s.critical > 0) lines.push(`- CRITICAL: ${s.critical}`);
+          if (s.high > 0) lines.push(`- HIGH: ${s.high}`);
+          if (s.medium > 0) lines.push(`- MEDIUM: ${s.medium}`);
+          if (s.low > 0) lines.push(`- LOW: ${s.low}`);
+        }
+
+        // Violations list (grouped by severity)
+        if (result.violations.length > 0) {
+          lines.push("");
+          lines.push("## Violations");
+
+          const severities: Array<"CRITICAL" | "HIGH" | "MEDIUM" | "LOW"> = ["CRITICAL", "HIGH", "MEDIUM", "LOW"];
+          for (const sev of severities) {
+            const sevViolations = result.violations.filter((v: LintViolation) => v.severity === sev);
+            if (sevViolations.length === 0) continue;
+
+            lines.push("");
+            lines.push(`### ${sev} (${sevViolations.length})`);
+            lines.push("");
+            lines.push("| Node | Type | Category | Property | Message |");
+            lines.push("|------|------|----------|----------|---------|");
+            for (const v of sevViolations) {
+              const esc = (s: string) => (s || "-").replace(/\|/g, "\\|");
+              lines.push(
+                `| ${esc(v.nodeName)} (${esc(v.nodeId)}) | ${esc(v.nodeType)} | ${esc(v.category)} | ${esc(v.property)} | ${esc(v.message)} |`,
+              );
+            }
+          }
+        }
+
+        if (result.violationsCapped) {
+          lines.push("");
+          lines.push("**Note:** Violations list was capped at 500 entries. Additional violations may exist.");
+        }
+
+        // Verdict
+        lines.push("");
+        if (s.compliance === 100) {
+          lines.push("**Verdict: PASS** — All checks passed.");
+        } else if (s.critical > 0) {
+          lines.push("**Verdict: FAIL** — Critical violations must be resolved.");
+        } else if (s.compliance >= 80) {
+          lines.push("**Verdict: WARN** — Minor issues to address.");
+        } else {
+          lines.push("**Verdict: FAIL** — Significant compliance gaps.");
+        }
+
+        return {
+          content: [{ type: "text", text: lines.join("\n") }],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error running lint_frame on node "${node_id}": ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  // Format design system result into markdown tables
+  function formatDesignSystemMarkdown(result: GetDesignSystemResult): string {
+    // Categorize variables
+    const colorVars: DesignSystemVariable[] = [];
+    const spacingVars: DesignSystemVariable[] = [];
+    const radiusVars: DesignSystemVariable[] = [];
+    const otherVars: DesignSystemVariable[] = [];
+
+    for (const v of result.variables) {
+      const name = v.name.toLowerCase();
+      if (
+        name.startsWith("space/") ||
+        name.startsWith("spacing/")
+      ) {
+        spacingVars.push(v);
+      } else if (
+        name.startsWith("radius/")
+      ) {
+        radiusVars.push(v);
+      } else if (v.resolvedType === "COLOR") {
+        colorVars.push(v);
+      } else {
+        otherVars.push(v);
+      }
+    }
+
+    const lines: string[] = [];
+    lines.push("# Design System");
+    lines.push("");
+
+    // Pages
+    lines.push("## Pages");
+    lines.push("");
+    if (result.pages.length === 0) {
+      lines.push("No pages found.");
+    } else {
+      lines.push("| Page Name | ID |");
+      lines.push("|-----------|-----|");
+      for (const page of result.pages) {
+        lines.push(`| ${sanitizeCell(page.name)} | ${page.id} |`);
+      }
+    }
+    lines.push("");
+
+    // Color Variables
+    lines.push("## Color Variables");
+    lines.push("");
+    if (colorVars.length === 0) {
+      lines.push("No color variables found.");
+    } else {
+      lines.push("| Variable Name | Tailwind Class | Value | Purpose | ID |");
+      lines.push("|---------------|----------------|-------|---------|----|");
+      for (const v of colorVars) {
+        const tw = deriveTailwindClass(v.name, "color");
+        const purpose = getTokenPurpose(v.name, v.description);
+        const val = formatVariableDisplayValue(v.values);
+        lines.push(`| ${sanitizeCell(v.name)} | ${tw} | ${sanitizeCell(val)} | ${sanitizeCell(purpose)} | ${v.id} |`);
+      }
+    }
+    lines.push("");
+
+    // Spacing Variables
+    lines.push("## Spacing Variables");
+    lines.push("");
+    if (spacingVars.length === 0) {
+      lines.push("No spacing variables found.");
+    } else {
+      lines.push("| Variable Name | Tailwind Class | Value | Purpose | ID |");
+      lines.push("|---------------|----------------|-------|---------|----|");
+      for (const v of spacingVars) {
+        const tw = deriveTailwindClass(v.name, "spacing");
+        const purpose = getTokenPurpose(v.name, v.description);
+        const val = formatVariableDisplayValue(v.values);
+        lines.push(`| ${sanitizeCell(v.name)} | ${tw} | ${sanitizeCell(val)} | ${sanitizeCell(purpose)} | ${v.id} |`);
+      }
+    }
+    lines.push("");
+
+    // Radius Variables
+    lines.push("## Radius Variables");
+    lines.push("");
+    if (radiusVars.length === 0) {
+      lines.push("No radius variables found.");
+    } else {
+      lines.push("| Variable Name | Tailwind Class | Value | Purpose | ID |");
+      lines.push("|---------------|----------------|-------|---------|----|");
+      for (const v of radiusVars) {
+        const tw = deriveTailwindClass(v.name, "radius");
+        const purpose = getTokenPurpose(v.name, v.description);
+        const val = formatVariableDisplayValue(v.values);
+        lines.push(`| ${sanitizeCell(v.name)} | ${tw} | ${sanitizeCell(val)} | ${sanitizeCell(purpose)} | ${v.id} |`);
+      }
+    }
+    lines.push("");
+
+    // Text Styles
+    lines.push("## Text Styles");
+    lines.push("");
+    if (result.textStyles.length === 0) {
+      lines.push("No text styles found.");
+    } else {
+      lines.push("| Style Name | Tailwind Class | Font | Size | Line Height | Purpose | ID |");
+      lines.push("|------------|----------------|------|------|-------------|---------|----|");
+      for (const ts of result.textStyles) {
+        const tw = deriveTailwindClass(ts.name, "text");
+        const font = ts.fontName ? `${ts.fontName.family} ${ts.fontName.style}` : "-";
+        const lh = formatLineHeight(ts.lineHeight);
+        const purpose = getTokenPurpose(ts.name);
+        lines.push(`| ${sanitizeCell(ts.name)} | ${tw} | ${font} | ${ts.fontSize} | ${lh} | ${sanitizeCell(purpose)} | ${ts.id} |`);
+      }
+    }
+    lines.push("");
+
+    // Effect Styles
+    lines.push("## Effect Styles");
+    lines.push("");
+    if (result.effectStyles.length === 0) {
+      lines.push("No effect styles found.");
+    } else {
+      lines.push("| Style Name | Tailwind Class | Value | Purpose | ID |");
+      lines.push("|------------|----------------|-------|---------|----|");
+      for (const es of result.effectStyles) {
+        const tw = deriveTailwindClass(es.name, "effect");
+        const purpose = getTokenPurpose(es.name, es.description);
+        const value = formatEffectValue(es.effects);
+        lines.push(`| ${sanitizeCell(es.name)} | ${tw} | ${sanitizeCell(value)} | ${sanitizeCell(purpose)} | ${es.id} |`);
+      }
+    }
+    lines.push("");
+
+    // Other Variables (if any)
+    if (otherVars.length > 0) {
+      lines.push("## Other Variables");
+      lines.push("");
+      lines.push("| Variable Name | Type | Value | Purpose | ID |");
+      lines.push("|---------------|------|-------|---------|----|");
+      for (const v of otherVars) {
+        const purpose = getTokenPurpose(v.name, v.description);
+        const val = formatVariableDisplayValue(v.values);
+        lines.push(`| ${sanitizeCell(v.name)} | ${v.resolvedType} | ${sanitizeCell(val)} | ${sanitizeCell(purpose)} | ${v.id} |`);
+      }
+      lines.push("");
+    }
+
+    return lines.join("\n");
+  }
+
+  // Get Design System Tool
+  server.tool(
+    "get_design_system",
+    "Aggregate all design system tokens (pages, color variables, spacing, radius, text styles, effect styles) from the active Figma file. Returns formatted markdown tables.",
+    {},
+    async () => {
+      try {
+        const result = await sendCommandToFigma<GetDesignSystemResult>("get_design_system", {}, 60000);
+        return {
+          content: [{ type: "text", text: formatDesignSystemMarkdown(result) }],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error getting design system: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
   // Join Channel Tool
   server.tool(
     "join_channel",
@@ -1272,7 +1808,7 @@ export function registerDocumentTools(server: McpServer): void {
         // Build the Figma REST API URL
         // Node IDs in Figma use ":" separator, but REST API expects "-" separator
         const encodedNodeId = encodeURIComponent(nodeId.replace(/:/g, "-"));
-        const apiUrl = `${FIGMA_API_BASE_URL}/images/${resolvedFileKey}?ids=${encodedNodeId}&format=${format}&scale=${scale}`;
+        const apiUrl = `${FIGMA_API_BASE_URL}/images/${encodeURIComponent(resolvedFileKey)}?ids=${encodedNodeId}&format=${format}&scale=${scale}`;
 
         // Make the API request
         const response = await fetch(apiUrl, {
@@ -1541,6 +2077,128 @@ export function registerDocumentTools(server: McpServer): void {
             {
               type: "text",
               text: `Error deleting page "${pageId}": ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  // Setup Design System Tool
+  const rgbaColorSchema = z.object({
+    r: z.number().min(0).max(1).describe("Red channel (0-1)"),
+    g: z.number().min(0).max(1).describe("Green channel (0-1)"),
+    b: z.number().min(0).max(1).describe("Blue channel (0-1)"),
+    a: z.number().min(0).max(1).optional().describe("Alpha channel (0-1), defaults to 1"),
+  });
+
+  server.tool(
+    "setup_design_system",
+    "Create or update an entire design system in a single call. Accepts multiple variable collections, text styles, and effect styles. Idempotent — existing items with the same name are updated, not duplicated.",
+    {
+      pages: z.array(z.string()).optional().describe("Page names to ensure exist (default: ['Screens', 'Components', 'Draft']). If only 'Page 1' exists and is empty, it is renamed to the first page."),
+      collections: z.array(z.object({
+        name: z.string().describe("Collection name, e.g. 'Colors', 'Spacing', 'Radius'"),
+        variables: z.array(z.object({
+          name: z.string().describe("Variable name, e.g. 'background/primary' or 'space/md'"),
+          type: z.enum(["COLOR", "FLOAT"]).describe("COLOR for colors, FLOAT for spacing/radius numbers"),
+          value: z.union([rgbaColorSchema, z.number()]).describe("RGBA object for COLOR type, number for FLOAT type"),
+          description: z.string().optional().describe("Token description/purpose"),
+        })),
+      })).optional().describe("Variable collections to create/update, each with its own name and variables"),
+      text_styles: z.array(z.object({
+        name: z.string().describe("Style name, e.g. 'text/display/lg'"),
+        font_family: z.string().describe("Font family, e.g. 'Manrope'"),
+        font_style: z.string().describe("Font style, e.g. 'Bold', 'SemiBold', 'Regular'"),
+        font_size: z.number().describe("Font size in pixels"),
+        line_height: z.object({
+          value: z.number(),
+          unit: z.enum(["PIXELS", "PERCENT", "AUTO"]),
+        }).optional().describe("Line height specification"),
+        letter_spacing: z.object({
+          value: z.number(),
+          unit: z.enum(["PIXELS", "PERCENT"]),
+        }).optional().describe("Letter spacing specification"),
+        description: z.string().optional().describe("Style description/purpose"),
+      })).optional().describe("Text styles to create/update"),
+      effect_styles: z.array(z.object({
+        name: z.string().describe("Effect style name, e.g. 'shadow/subtle'"),
+        effects: z.array(z.object({
+          type: z.enum(["DROP_SHADOW", "INNER_SHADOW", "LAYER_BLUR", "BACKGROUND_BLUR"]).describe("Effect type"),
+          color: rgbaColorSchema.optional().describe("Effect color (for shadows)"),
+          offset: z.object({ x: z.number(), y: z.number() }).optional().describe("Shadow offset (for shadows)"),
+          radius: z.number().optional().describe("Blur radius"),
+          spread: z.number().optional().describe("Spread (for shadows)"),
+        })).describe("Array of effects for this style"),
+        description: z.string().optional().describe("Effect style description/purpose"),
+      })).optional().describe("Effect styles to create/update"),
+    },
+    async ({ pages, collections, text_styles, effect_styles }) => {
+      try {
+        const params: Record<string, unknown> = {};
+        if (pages) params.pages = pages;
+        if (collections) params.collections = collections;
+        if (text_styles) {
+          params.textStyles = text_styles.map((ts) => ({
+            name: ts.name,
+            fontFamily: ts.font_family,
+            fontStyle: ts.font_style,
+            fontSize: ts.font_size,
+            lineHeight: ts.line_height,
+            letterSpacing: ts.letter_spacing,
+            description: ts.description,
+          }));
+        }
+        if (effect_styles) {
+          params.effectStyles = effect_styles;
+        }
+
+        const setupResult = await sendCommandToFigma<SetupDesignSystemResult>(
+          "setup_design_system",
+          params,
+          120000,
+        );
+
+        // Collect setup errors
+        const errorLines: string[] = [];
+        const sections = [
+          { label: "Variables", data: setupResult.variables },
+          { label: "Text Styles", data: setupResult.textStyles },
+          { label: "Effect Styles", data: setupResult.effectStyles },
+        ];
+
+        for (const section of sections) {
+          const d = section.data;
+          if (d.failed > 0 && d.errors) {
+            for (const err of d.errors) {
+              errorLines.push(`- **${section.label}** — ${err.name}: ${err.error}`);
+            }
+          }
+        }
+
+        // Fetch the current design system state
+        const dsResult = await sendCommandToFigma<GetDesignSystemResult>("get_design_system", {}, 60000);
+        const dsMarkdown = formatDesignSystemMarkdown(dsResult);
+
+        // Prepend errors if any
+        const lines: string[] = [];
+        if (errorLines.length > 0) {
+          lines.push("## Setup Errors");
+          lines.push("");
+          lines.push(...errorLines);
+          lines.push("");
+        }
+        lines.push(dsMarkdown);
+
+        return {
+          content: [{ type: "text", text: lines.join("\n") }],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error setting up design system: ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };

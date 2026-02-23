@@ -11,7 +11,7 @@ const DEBUG = false;
 
 // Debug logging helper - only logs when DEBUG is true
 function debugLog(...args) {
-  if (DEBUG) debugLog(...args);
+  if (DEBUG) console.log(...args);
 }
 
 // Helper function for progress updates
@@ -383,6 +383,12 @@ async function handleCommand(command, params) {
       return await createFromData(params);
     case "batch_actions":
       return await batchActions(params);
+    case "lint_frame":
+      return await lintFrame(params);
+    case "get_design_system":
+      return await getDesignSystem();
+    case "setup_design_system":
+      return await setupDesignSystem(params);
     default:
       throw new Error(`Unknown command: ${command}`);
   }
@@ -6868,6 +6874,17 @@ async function createFromData(params) {
     console.warn("Failed to load local text styles:", e);
   }
 
+  // Build effect style name → style object map
+  const effectStyleMap = new Map();
+  try {
+    const localEffects = await figma.getLocalEffectStylesAsync();
+    for (const s of localEffects) {
+      effectStyleMap.set(s.name, s);
+    }
+  } catch (e) {
+    console.warn("Failed to load local effect styles:", e);
+  }
+
   // Resolve parent
   let parent;
   if (parentId) {
@@ -7317,6 +7334,12 @@ async function createFromData(params) {
       node.effects = nodeData.effects.map(e => buildFigmaEffect(e));
     }
 
+    // Apply effect style if present
+    if (nodeData.effectStyleName) {
+      const eStyle = effectStyleMap.get(nodeData.effectStyleName);
+      if (eStyle) node.effectStyleId = eStyle.id;
+    }
+
     // Opacity
     if (nodeData.opacity !== undefined) node.opacity = nodeData.opacity;
 
@@ -7432,6 +7455,17 @@ async function readMyDesign(params) {
     }
   } catch (e) {
     // Text styles API may not be available
+  }
+
+  // Build effect style ID → name map once
+  const effectStyleMap = new Map();
+  try {
+    const localEffects = await figma.getLocalEffectStylesAsync();
+    for (const s of localEffects) {
+      effectStyleMap.set(s.id, s.name);
+    }
+  } catch (e) {
+    // Effect styles API may not be available
   }
 
   // Helper: convert Figma color {r,g,b,a} (0-1) to hex or rgba string
@@ -7598,6 +7632,12 @@ async function readMyDesign(params) {
     // Effects
     const effects = extractEffects(node);
     if (effects) info.effects = effects;
+
+    // Resolve effect style name
+    if (node.effectStyleId && node.effectStyleId !== '' && node.effectStyleId !== figma.mixed) {
+      var esName = effectStyleMap.get(node.effectStyleId);
+      if (esName) info.effectStyleName = esName;
+    }
 
     // Text properties
     if (node.type === 'TEXT') {
@@ -8345,4 +8385,801 @@ async function deletePage(params) {
   node.remove();
 
   return pageInfo;
+}
+
+// ── get_design_system: aggregate all design tokens ─────────────────────────
+
+async function getDesignSystem() {
+  // Fetch all data in parallel
+  var results = await Promise.all([
+    figma.variables.getLocalVariablesAsync(),
+    figma.variables.getLocalVariableCollectionsAsync(),
+    figma.getLocalTextStylesAsync(),
+    figma.getLocalEffectStylesAsync()
+  ]);
+
+  var allVariables = results[0];
+  var allCollections = results[1];
+  var textStyles = results[2];
+  var effectStyles = results[3];
+
+  // Build collection lookup
+  var collectionMap = {};
+  for (var ci = 0; ci < allCollections.length; ci++) {
+    var col = allCollections[ci];
+    collectionMap[col.id] = col;
+  }
+
+  // Map variables with collection info and mode values
+  var variables = [];
+  for (var vi = 0; vi < allVariables.length; vi++) {
+    var v = allVariables[vi];
+    var collection = collectionMap[v.variableCollectionId];
+    var collectionName = collection ? collection.name : "";
+    var modes = collection ? collection.modes : [];
+
+    var values = [];
+    for (var mi = 0; mi < modes.length; mi++) {
+      var mode = modes[mi];
+      var rawValue = v.valuesByMode[mode.modeId];
+      var resolvedValue = rawValue;
+
+      // If the value is an alias (variable reference), resolve it
+      if (rawValue && typeof rawValue === "object" && rawValue.type === "VARIABLE_ALIAS") {
+        var aliasVar = figma.variables.getVariableById(rawValue.id);
+        resolvedValue = aliasVar ? aliasVar.name : rawValue.id;
+      }
+
+      values.push({
+        modeId: mode.modeId,
+        modeName: mode.name,
+        value: resolvedValue
+      });
+    }
+
+    variables.push({
+      id: v.id,
+      name: v.name,
+      description: v.description !== undefined ? v.description : "",
+      resolvedType: v.resolvedType,
+      collectionName: collectionName,
+      values: values
+    });
+  }
+
+  // Map text styles
+  var mappedTextStyles = [];
+  for (var ti = 0; ti < textStyles.length; ti++) {
+    var ts = textStyles[ti];
+    mappedTextStyles.push({
+      id: ts.id,
+      name: ts.name,
+      fontSize: ts.fontSize,
+      fontName: ts.fontName ? { family: ts.fontName.family, style: ts.fontName.style } : { family: "", style: "" },
+      lineHeight: ts.lineHeight
+    });
+  }
+
+  // Map effect styles
+  var mappedEffectStyles = [];
+  for (var ei = 0; ei < effectStyles.length; ei++) {
+    var es = effectStyles[ei];
+    var mappedEffects = [];
+    if (es.effects && es.effects.length > 0) {
+      for (var efi = 0; efi < es.effects.length; efi++) {
+        var eff = es.effects[efi];
+        var mappedEff = { type: eff.type, visible: eff.visible };
+        if (eff.color) {
+          mappedEff.color = { r: eff.color.r, g: eff.color.g, b: eff.color.b, a: eff.color.a };
+        }
+        if (eff.offset) {
+          mappedEff.offset = { x: eff.offset.x, y: eff.offset.y };
+        }
+        if (eff.radius !== undefined) {
+          mappedEff.radius = eff.radius;
+        }
+        if (eff.spread !== undefined) {
+          mappedEff.spread = eff.spread;
+        }
+        mappedEffects.push(mappedEff);
+      }
+    }
+    mappedEffectStyles.push({
+      id: es.id,
+      name: es.name,
+      description: es.description !== undefined ? es.description : "",
+      effects: mappedEffects
+    });
+  }
+
+  // Map pages
+  var pages = [];
+  for (var pi = 0; pi < figma.root.children.length; pi++) {
+    var pg = figma.root.children[pi];
+    pages.push({ id: pg.id, name: pg.name });
+  }
+
+  return {
+    pages: pages,
+    variables: variables,
+    textStyles: mappedTextStyles,
+    effectStyles: mappedEffectStyles
+  };
+}
+
+// ── setup_design_system: create/update entire design system in one call ─────
+
+async function setupDesignSystem(params) {
+  // Support both new multi-collection format and legacy single-collection format
+  var inputCollections = (params && Array.isArray(params.collections) && params.collections.length > 0)
+    ? params.collections
+    : [];
+  var inputTextStyles = (params && params.textStyles) ? params.textStyles : [];
+  var inputEffectStyles = (params && params.effectStyles) ? params.effectStyles : [];
+
+  var varResult = { created: 0, updated: 0, failed: 0, errors: [] };
+  var tsResult = { created: 0, updated: 0, failed: 0, errors: [] };
+  var esResult = { created: 0, updated: 0, failed: 0, errors: [] };
+  var createdCollections = [];
+
+  // --- Variables (multiple collections) ---
+  if (inputCollections.length > 0) {
+    var allLocalCollections = await figma.variables.getLocalVariableCollectionsAsync();
+    var allLocalVars = await figma.variables.getLocalVariablesAsync();
+
+    for (var colIdx = 0; colIdx < inputCollections.length; colIdx++) {
+      var colDef = inputCollections[colIdx];
+      var colName = colDef.name || "Design Tokens";
+      var colVars = (colDef.variables && Array.isArray(colDef.variables)) ? colDef.variables : [];
+
+      // Find or create collection
+      var targetCollection = null;
+      for (var ci = 0; ci < allLocalCollections.length; ci++) {
+        if (allLocalCollections[ci].name === colName) {
+          targetCollection = allLocalCollections[ci];
+          break;
+        }
+      }
+      if (!targetCollection) {
+        targetCollection = figma.variables.createVariableCollection(colName);
+        allLocalCollections.push(targetCollection);
+      }
+      createdCollections.push({ id: targetCollection.id, name: colName });
+      var defaultModeId = targetCollection.modes[0].modeId;
+
+      // Build lookup of existing variables in this collection
+      var varByName = {};
+      for (var evi = 0; evi < allLocalVars.length; evi++) {
+        var ev = allLocalVars[evi];
+        if (ev.variableCollectionId === targetCollection.id) {
+          varByName[ev.name] = ev;
+        }
+      }
+
+      for (var vi = 0; vi < colVars.length; vi++) {
+        var vDef = colVars[vi];
+        try {
+          var existing = varByName[vDef.name];
+          if (existing) {
+            existing.setValueForMode(defaultModeId, vDef.value);
+            if (vDef.description !== undefined) {
+              existing.description = vDef.description;
+            }
+            varResult.updated++;
+          } else {
+            var resolvedType = vDef.type === "COLOR" ? "COLOR" : "FLOAT";
+            var newVar = figma.variables.createVariable(vDef.name, targetCollection, resolvedType);
+            newVar.setValueForMode(defaultModeId, vDef.value);
+            if (vDef.description !== undefined) {
+              newVar.description = vDef.description;
+            }
+            varByName[vDef.name] = newVar;
+            allLocalVars.push(newVar);
+            varResult.created++;
+          }
+        } catch (e) {
+          varResult.failed++;
+          varResult.errors.push({ name: colName + "/" + vDef.name, error: e.message || String(e) });
+        }
+      }
+    }
+  }
+
+  // --- Text Styles ---
+  if (inputTextStyles.length > 0) {
+    var existingTextStyles = await figma.getLocalTextStylesAsync();
+    var tsByName = {};
+    for (var eti = 0; eti < existingTextStyles.length; eti++) {
+      tsByName[existingTextStyles[eti].name] = existingTextStyles[eti];
+    }
+
+    for (var ti = 0; ti < inputTextStyles.length; ti++) {
+      var tsDef = inputTextStyles[ti];
+      try {
+        var fontFamily = tsDef.fontFamily || "Inter";
+        var fontStyle = tsDef.fontStyle || "Regular";
+        await figma.loadFontAsync({ family: fontFamily, style: fontStyle });
+
+        var existingTs = tsByName[tsDef.name];
+        if (existingTs) {
+          // Update existing
+          existingTs.fontName = { family: fontFamily, style: fontStyle };
+          existingTs.fontSize = tsDef.fontSize;
+          if (tsDef.lineHeight !== undefined) {
+            existingTs.lineHeight = tsDef.lineHeight;
+          }
+          if (tsDef.letterSpacing !== undefined) {
+            existingTs.letterSpacing = tsDef.letterSpacing;
+          }
+          if (tsDef.description !== undefined) {
+            existingTs.description = tsDef.description;
+          }
+          tsResult.updated++;
+        } else {
+          // Create new
+          var newTs = figma.createTextStyle();
+          newTs.name = tsDef.name;
+          newTs.fontName = { family: fontFamily, style: fontStyle };
+          newTs.fontSize = tsDef.fontSize;
+          if (tsDef.lineHeight !== undefined) {
+            newTs.lineHeight = tsDef.lineHeight;
+          }
+          if (tsDef.letterSpacing !== undefined) {
+            newTs.letterSpacing = tsDef.letterSpacing;
+          }
+          if (tsDef.description !== undefined) {
+            newTs.description = tsDef.description;
+          }
+          tsByName[tsDef.name] = newTs;
+          tsResult.created++;
+        }
+      } catch (e) {
+        tsResult.failed++;
+        tsResult.errors.push({ name: tsDef.name, error: e.message || String(e) });
+      }
+    }
+  }
+
+  // --- Effect Styles ---
+  if (inputEffectStyles.length > 0) {
+    var existingEffectStyles = await figma.getLocalEffectStylesAsync();
+    var esByName = {};
+    for (var eei = 0; eei < existingEffectStyles.length; eei++) {
+      esByName[existingEffectStyles[eei].name] = existingEffectStyles[eei];
+    }
+
+    for (var ei = 0; ei < inputEffectStyles.length; ei++) {
+      var esDef = inputEffectStyles[ei];
+      try {
+        if (!esDef.effects || !Array.isArray(esDef.effects) || esDef.effects.length === 0) {
+          throw new Error("effects must be a non-empty array");
+        }
+        var validEffects = esDef.effects.map(buildValidStyleEffect);
+
+        var existingEs = esByName[esDef.name];
+        if (existingEs) {
+          // Update existing
+          existingEs.effects = validEffects;
+          if (esDef.description !== undefined) {
+            existingEs.description = esDef.description;
+          }
+          esResult.updated++;
+        } else {
+          // Create new
+          var newEs = figma.createEffectStyle();
+          newEs.name = esDef.name;
+          newEs.effects = validEffects;
+          if (esDef.description !== undefined) {
+            newEs.description = esDef.description;
+          }
+          esByName[esDef.name] = newEs;
+          esResult.created++;
+        }
+      } catch (e) {
+        esResult.failed++;
+        esResult.errors.push({ name: esDef.name, error: e.message || String(e) });
+      }
+    }
+  }
+
+  // Clean up empty error arrays
+  if (varResult.errors.length === 0) { delete varResult.errors; }
+  if (tsResult.errors.length === 0) { delete tsResult.errors; }
+  if (esResult.errors.length === 0) { delete esResult.errors; }
+
+  // --- Pages: ensure required pages exist ---
+  var requiredPages = (params && Array.isArray(params.pages) && params.pages.length > 0)
+    ? params.pages
+    : ["Screens", "Components", "Draft"];
+
+  // Load all pages so we can inspect children
+  await figma.loadAllPagesAsync();
+  var existingPages = figma.root.children;
+
+  // Build lowercase lookup of existing page names
+  var existingPageNames = {};
+  for (var epi = 0; epi < existingPages.length; epi++) {
+    existingPageNames[existingPages[epi].name.toLowerCase()] = existingPages[epi];
+  }
+
+  // If there's only the default "Page 1" and it's empty, rename it to the first required page
+  var firstRequired = requiredPages[0];
+  if (
+    existingPages.length === 1 &&
+    existingPages[0].name === "Page 1" &&
+    existingPages[0].children.length === 0 &&
+    !existingPageNames[firstRequired.toLowerCase()]
+  ) {
+    existingPages[0].name = firstRequired;
+    existingPageNames[firstRequired.toLowerCase()] = existingPages[0];
+  }
+
+  for (var rpi = 0; rpi < requiredPages.length; rpi++) {
+    var reqName = requiredPages[rpi];
+    if (!existingPageNames[reqName.toLowerCase()]) {
+      var newPage = figma.createPage();
+      newPage.name = reqName;
+      existingPageNames[reqName.toLowerCase()] = newPage;
+    }
+  }
+
+  // Collect final page list
+  var finalPages = [];
+  var allPages = figma.root.children;
+  for (var fpi = 0; fpi < allPages.length; fpi++) {
+    finalPages.push({ id: allPages[fpi].id, name: allPages[fpi].name });
+  }
+
+  return {
+    collections: createdCollections,
+    pages: finalPages,
+    variables: varResult,
+    textStyles: tsResult,
+    effectStyles: esResult
+  };
+}
+
+// ── lint_frame: one-shot compliance audit ──────────────────────────────────
+
+var MAX_LINT_DEPTH = 50;
+var MAX_LINT_VIOLATIONS = 500;
+
+async function lintFrame(params) {
+  var nodeId = params ? params.nodeId : undefined;
+  var checks = params ? params.checks : undefined;
+
+  if (!nodeId) throw new Error("nodeId is required");
+
+  var rootNode = await figma.getNodeByIdAsync(nodeId);
+  if (!rootNode) throw new Error("Node not found: " + String(nodeId).substring(0, 50));
+
+  // Default checks — all on
+  var chk = {
+    colors: true,
+    spacing: true,
+    radius: true,
+    textStyles: true,
+    effectStyles: true,
+    autoLayout: true
+  };
+  if (checks) {
+    if (checks.colors === false) chk.colors = false;
+    if (checks.spacing === false) chk.spacing = false;
+    if (checks.radius === false) chk.radius = false;
+    if (checks.textStyles === false) chk.textStyles = false;
+    if (checks.effectStyles === false) chk.effectStyles = false;
+    if (checks.autoLayout === false) chk.autoLayout = false;
+  }
+
+  // Pre-load lookup maps (parallel)
+  var preloadResults = await Promise.all([
+    figma.variables.getLocalVariablesAsync(),
+    figma.getLocalTextStylesAsync(),
+    figma.getLocalEffectStylesAsync(),
+    figma.getLocalPaintStylesAsync()
+  ]);
+  var localVars = preloadResults[0];
+  var localTextStyles = preloadResults[1];
+  var localEffectStyles = preloadResults[2];
+  var localPaintStyles = preloadResults[3];
+
+  var variableMap = {};
+  for (var vi = 0; vi < localVars.length; vi++) {
+    variableMap[localVars[vi].id] = localVars[vi];
+  }
+
+  var textStyleMap = {};
+  for (var ti = 0; ti < localTextStyles.length; ti++) {
+    textStyleMap[localTextStyles[ti].id] = localTextStyles[ti];
+  }
+
+  var effectStyleMap = {};
+  for (var ei = 0; ei < localEffectStyles.length; ei++) {
+    effectStyleMap[localEffectStyles[ei].id] = localEffectStyles[ei];
+  }
+
+  var paintStyleMap = {};
+  for (var pi = 0; pi < localPaintStyles.length; pi++) {
+    paintStyleMap[localPaintStyles[pi].id] = localPaintStyles[pi];
+  }
+
+  // Category tallies
+  var categories = {
+    typography:      { total: 0, bound: 0, unbound: 0, compliance: 100 },
+    spacing:         { total: 0, bound: 0, unbound: 0, compliance: 100 },
+    borderRadius:    { total: 0, bound: 0, unbound: 0, compliance: 100 },
+    iconColors:      { total: 0, bound: 0, unbound: 0, compliance: 100 },
+    strokesBorders:  { total: 0, bound: 0, unbound: 0, compliance: 100 },
+    backgroundFills: { total: 0, bound: 0, unbound: 0, compliance: 100 },
+    effectStyles:    { total: 0, bound: 0, unbound: 0, compliance: 100 }
+  };
+  var violations = [];
+  var totalNodes = 0;
+
+  // Helper: check if a fill/stroke property is bound to a variable or uses a paint style
+  function isFillBound(node, propKey, idx) {
+    var bv = node.boundVariables;
+    if (bv) {
+      var binding = bv[propKey];
+      if (binding) {
+        // Could be a single binding or array of bindings
+        if (Array.isArray(binding)) {
+          if (binding[idx] && binding[idx].id) return true;
+        } else if (binding.id) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  // Helper: check if a scalar property is bound to a variable
+  function isScalarBound(node, propKey) {
+    var bv = node.boundVariables;
+    if (bv && bv[propKey]) {
+      var binding = bv[propKey];
+      if (binding.id) return true;
+      if (Array.isArray(binding) && binding.length > 0 && binding[0] && binding[0].id) return true;
+    }
+    return false;
+  }
+
+  // Helper: check if node has a paint style applied for fills
+  function hasFillPaintStyle(node) {
+    try {
+      if (node.fillStyleId && node.fillStyleId !== "" && node.fillStyleId !== figma.mixed) return true;
+    } catch (e) {}
+    return false;
+  }
+
+  // Helper: check if node has a paint style applied for strokes
+  function hasStrokePaintStyle(node) {
+    try {
+      if (node.strokeStyleId && node.strokeStyleId !== "" && node.strokeStyleId !== figma.mixed) return true;
+    } catch (e) {}
+    return false;
+  }
+
+  // Helper: check if node has text style applied
+  function hasTextStyle(node) {
+    try {
+      if (node.textStyleId && node.textStyleId !== "" && node.textStyleId !== figma.mixed) return true;
+    } catch (e) {}
+    return false;
+  }
+
+  // Helper: check if node has effect style applied
+  function hasEffectStyle(node) {
+    try {
+      if (node.effectStyleId && node.effectStyleId !== "" && node.effectStyleId !== figma.mixed) return true;
+    } catch (e) {}
+    return false;
+  }
+
+  // Helper: check if TEXT node has font-related variable bindings (CRITICAL violation)
+  function hasFontVariableBindings(node) {
+    var bv = node.boundVariables;
+    if (!bv) return false;
+    var fontProps = ["fontFamily", "fontSize", "fontStyle", "fontWeight", "lineHeight", "letterSpacing", "paragraphSpacing"];
+    for (var fi = 0; fi < fontProps.length; fi++) {
+      if (bv[fontProps[fi]] && bv[fontProps[fi]].id) return true;
+    }
+    return false;
+  }
+
+  // Helper: is this an icon-like node (VECTOR, LINE, or small component with only vector children)
+  function isIconLike(node) {
+    if (node.type === "VECTOR" || node.type === "LINE" || node.type === "BOOLEAN_OPERATION") return true;
+    if (node.type === "INSTANCE" || node.type === "COMPONENT") {
+      // Small size heuristic for icons
+      try {
+        if (node.width <= 48 && node.height <= 48) return true;
+      } catch (e) {}
+    }
+    return false;
+  }
+
+  // Helper: check if a fill is a visible solid/gradient color (not image)
+  function isColorFill(fill) {
+    if (!fill || fill.visible === false) return false;
+    if (fill.type === "SOLID" || fill.type === "GRADIENT_LINEAR" || fill.type === "GRADIENT_RADIAL" || fill.type === "GRADIENT_ANGULAR" || fill.type === "GRADIENT_DIAMOND") return true;
+    return false;
+  }
+
+  var violationsCapped = false;
+
+  function addViolation(node, depth, severity, category, property, message) {
+    if (violations.length >= MAX_LINT_VIOLATIONS) {
+      violationsCapped = true;
+      return;
+    }
+    violations.push({
+      nodeId: node.id,
+      nodeName: node.name,
+      nodeType: node.type,
+      depth: depth,
+      severity: severity,
+      category: category,
+      property: property,
+      message: message
+    });
+  }
+
+  // ── Main traversal ──
+  function scanNode(node, depth) {
+    // Skip invisible nodes
+    if (node.visible === false) return;
+
+    // Depth limit to prevent stack overflow in deeply nested designs
+    if (depth > MAX_LINT_DEPTH) return;
+
+    totalNodes++;
+    var nodeType = node.type;
+
+    // ── TEXT STYLE checks ──
+    if (chk.textStyles && nodeType === "TEXT") {
+      categories.typography.total++;
+
+      if (hasTextStyle(node)) {
+        categories.typography.bound++;
+        // Check for text style overrides (LOW)
+        // If textStyleId is mixed, there's a partial override
+        try {
+          if (node.textStyleId === figma.mixed) {
+            addViolation(node, depth, "LOW", "typography", "textStyleId", "Text style override present (mixed styles in segments)");
+          }
+        } catch (e) {}
+      } else {
+        categories.typography.unbound++;
+        addViolation(node, depth, "HIGH", "typography", "textStyleId", "Text node without textStyleId applied");
+      }
+
+      // Check for direct font variable bindings (CRITICAL)
+      if (hasFontVariableBindings(node)) {
+        addViolation(node, depth, "CRITICAL", "typography", "fontVariables", "Font variable bound directly to text (should use text style instead)");
+      }
+    }
+
+    // ── FILL / COLOR checks ──
+    if (chk.colors) {
+      var fills = null;
+      try { fills = node.fills; } catch (e) {}
+      if (fills && fills !== figma.mixed && Array.isArray(fills)) {
+        for (var fi = 0; fi < fills.length; fi++) {
+          if (!isColorFill(fills[fi])) continue;
+
+          var isIcon = isIconLike(node);
+          var catName = isIcon ? "iconColors" : "backgroundFills";
+          categories[catName].total++;
+
+          var fillBound = isFillBound(node, "fills", fi) || hasFillPaintStyle(node);
+          if (fillBound) {
+            categories[catName].bound++;
+          } else {
+            categories[catName].unbound++;
+            var sevFill = "HIGH";
+            addViolation(node, depth, sevFill, catName, "fills[" + fi + "]", "Color using raw hex value (no variable or paint style bound)");
+          }
+        }
+      }
+    }
+
+    // ── STROKE checks ──
+    if (chk.colors) {
+      var strokes = null;
+      try { strokes = node.strokes; } catch (e) {}
+      if (strokes && strokes !== figma.mixed && Array.isArray(strokes) && strokes.length > 0) {
+        for (var si = 0; si < strokes.length; si++) {
+          if (!isColorFill(strokes[si])) continue;
+
+          categories.strokesBorders.total++;
+          var strokeBound = isFillBound(node, "strokes", si) || hasStrokePaintStyle(node);
+          if (strokeBound) {
+            categories.strokesBorders.bound++;
+          } else {
+            categories.strokesBorders.unbound++;
+            addViolation(node, depth, "HIGH", "strokesBorders", "strokes[" + si + "]", "Stroke color using raw hex value (no variable or paint style bound)");
+          }
+        }
+      }
+    }
+
+    // ── SPACING checks (auto-layout frames) ──
+    if (chk.spacing && (nodeType === "FRAME" || nodeType === "COMPONENT" || nodeType === "COMPONENT_SET" || nodeType === "INSTANCE")) {
+      var layoutMode = null;
+      try { layoutMode = node.layoutMode; } catch (e) {}
+
+      if (layoutMode && layoutMode !== "NONE") {
+        // Check itemSpacing
+        var itemSpacing = 0;
+        try { itemSpacing = node.itemSpacing; } catch (e) {}
+        if (itemSpacing > 0) {
+          categories.spacing.total++;
+          if (isScalarBound(node, "itemSpacing")) {
+            categories.spacing.bound++;
+          } else {
+            categories.spacing.unbound++;
+            addViolation(node, depth, "MEDIUM", "spacing", "itemSpacing", "Item spacing using raw number (" + itemSpacing + ") — no variable bound");
+          }
+        }
+
+        // Check padding
+        var paddingProps = ["paddingTop", "paddingRight", "paddingBottom", "paddingLeft"];
+        for (var ppi = 0; ppi < paddingProps.length; ppi++) {
+          var padVal = 0;
+          try { padVal = node[paddingProps[ppi]]; } catch (e) {}
+          if (padVal > 0) {
+            categories.spacing.total++;
+            if (isScalarBound(node, paddingProps[ppi])) {
+              categories.spacing.bound++;
+            } else {
+              categories.spacing.unbound++;
+              addViolation(node, depth, "MEDIUM", "spacing", paddingProps[ppi], paddingProps[ppi] + " using raw number (" + padVal + ") — no variable bound");
+            }
+          }
+        }
+      }
+    }
+
+    // ── BORDER RADIUS checks ──
+    if (chk.radius && (nodeType === "FRAME" || nodeType === "RECTANGLE" || nodeType === "COMPONENT" || nodeType === "INSTANCE" || nodeType === "ELLIPSE")) {
+      var cornerRadius = 0;
+      try { cornerRadius = node.cornerRadius; } catch (e) {}
+
+      if (cornerRadius && cornerRadius !== figma.mixed && cornerRadius > 0) {
+        categories.borderRadius.total++;
+        if (isScalarBound(node, "topLeftRadius") || isScalarBound(node, "topRightRadius") || isScalarBound(node, "bottomLeftRadius") || isScalarBound(node, "bottomRightRadius") || isScalarBound(node, "cornerRadius")) {
+          categories.borderRadius.bound++;
+        } else {
+          categories.borderRadius.unbound++;
+          addViolation(node, depth, "MEDIUM", "borderRadius", "cornerRadius", "Border radius using raw number (" + cornerRadius + ") — no variable bound");
+        }
+      } else if (cornerRadius === figma.mixed) {
+        // Individual corners set — check each
+        var radiusProps = ["topLeftRadius", "topRightRadius", "bottomLeftRadius", "bottomRightRadius"];
+        for (var ri = 0; ri < radiusProps.length; ri++) {
+          var rVal = 0;
+          try { rVal = node[radiusProps[ri]]; } catch (e) {}
+          if (rVal > 0) {
+            categories.borderRadius.total++;
+            if (isScalarBound(node, radiusProps[ri])) {
+              categories.borderRadius.bound++;
+            } else {
+              categories.borderRadius.unbound++;
+              addViolation(node, depth, "MEDIUM", "borderRadius", radiusProps[ri], radiusProps[ri] + " using raw number (" + rVal + ") — no variable bound");
+            }
+          }
+        }
+      }
+    }
+
+    // ── EFFECT STYLE checks ──
+    if (chk.effectStyles) {
+      var effects = null;
+      try { effects = node.effects; } catch (e) {}
+      if (effects && Array.isArray(effects) && effects.length > 0) {
+        // Check for visible effects
+        var hasVisibleEffects = false;
+        for (var efi = 0; efi < effects.length; efi++) {
+          if (effects[efi].visible !== false) { hasVisibleEffects = true; break; }
+        }
+        if (hasVisibleEffects) {
+          categories.effectStyles.total++;
+          if (hasEffectStyle(node)) {
+            categories.effectStyles.bound++;
+          } else {
+            categories.effectStyles.unbound++;
+            var effectTypes = [];
+            for (var eti = 0; eti < effects.length; eti++) {
+              if (effects[eti].visible !== false && effectTypes.indexOf(effects[eti].type) === -1) {
+                effectTypes.push(effects[eti].type);
+              }
+            }
+            addViolation(node, depth, "CRITICAL", "effectStyles", "effectStyleId", "Raw " + effectTypes.join("/") + " effect (no effect style applied)");
+          }
+        }
+      }
+    }
+
+    // ── AUTO-LAYOUT compliance ──
+    if (chk.autoLayout && (nodeType === "FRAME" || nodeType === "COMPONENT" || nodeType === "COMPONENT_SET")) {
+      var hasLayout = false;
+      try {
+        var lm = node.layoutMode;
+        hasLayout = lm && lm !== "NONE";
+      } catch (e) {}
+
+      if (!hasLayout) {
+        // Only flag frames that have children (empty frames are fine)
+        var childCount = 0;
+        try { childCount = node.children ? node.children.length : 0; } catch (e) {}
+        if (childCount > 0) {
+          addViolation(node, depth, "MEDIUM", "autoLayout", "layoutMode", "Frame has " + childCount + " children but no auto-layout set");
+        }
+      }
+    }
+
+    // ── Recurse into children ──
+    if ("children" in node && node.children) {
+      for (var ci = 0; ci < node.children.length; ci++) {
+        scanNode(node.children[ci], depth + 1);
+      }
+    }
+  }
+
+  // Run the traversal
+  scanNode(rootNode, 0);
+
+  // Compute compliance percentages
+  var catKeys = ["typography", "spacing", "borderRadius", "iconColors", "strokesBorders", "backgroundFills", "effectStyles"];
+  for (var ck = 0; ck < catKeys.length; ck++) {
+    var cat = categories[catKeys[ck]];
+    if (cat.total > 0) {
+      cat.compliance = Math.round((cat.bound / cat.total) * 100);
+    } else {
+      cat.compliance = 100;
+    }
+  }
+
+  // Compute summary
+  var summaryTotal = violations.length;
+  var summaryCritical = 0;
+  var summaryHigh = 0;
+  var summaryMedium = 0;
+  var summaryLow = 0;
+  for (var sv = 0; sv < violations.length; sv++) {
+    switch (violations[sv].severity) {
+      case "CRITICAL": summaryCritical++; break;
+      case "HIGH": summaryHigh++; break;
+      case "MEDIUM": summaryMedium++; break;
+      case "LOW": summaryLow++; break;
+    }
+  }
+
+  // Overall compliance: ratio of bound to total across all categories
+  var overallTotal = 0;
+  var overallBound = 0;
+  for (var ok = 0; ok < catKeys.length; ok++) {
+    overallTotal += categories[catKeys[ok]].total;
+    overallBound += categories[catKeys[ok]].bound;
+  }
+  var overallCompliance = overallTotal > 0 ? Math.round((overallBound / overallTotal) * 100) : 100;
+
+  return {
+    nodeId: rootNode.id,
+    nodeName: rootNode.name,
+    nodeType: rootNode.type,
+    totalNodes: totalNodes,
+    categories: categories,
+    violations: violations,
+    violationsCapped: violationsCapped,
+    summary: {
+      total: summaryTotal,
+      critical: summaryCritical,
+      high: summaryHigh,
+      medium: summaryMedium,
+      low: summaryLow,
+      compliance: overallCompliance
+    }
+  };
 }

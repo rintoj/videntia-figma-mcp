@@ -1408,6 +1408,9 @@ function applyClassName(node: FigmaNodeData, className: string): void {
         node.effects.push(...resolved);
         continue;
       }
+      // Unresolved shadow class → treat as effect style name
+      node.effectStyleName = denormalizeVarName(m[1]);
+      continue;
     }
 
     // --- Opacity ---
