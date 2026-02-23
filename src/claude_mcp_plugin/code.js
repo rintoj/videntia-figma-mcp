@@ -4698,6 +4698,72 @@ async function createStar(params) {
   };
 }
 
+// Parse stroke attributes from the root <svg> element.
+// Returns { color, width, opacity } or null if no root stroke.
+function parseSvgRootStroke(svgString) {
+  var tagMatch = svgString.match(/<svg(\s[^>]*)?>/i);
+  if (!tagMatch || !tagMatch[1]) return null;
+  var svgAttrs = tagMatch[1];
+  var strokeMatch = svgAttrs.match(/\bstroke\s*=\s*"([^"]*)"/);
+  if (!strokeMatch || strokeMatch[1] === 'none' || strokeMatch[1] === '') return null;
+  var strokeWidthMatch = svgAttrs.match(/\bstroke-width\s*=\s*"([^"]*)"/);
+  var strokeOpacityMatch = svgAttrs.match(/\bstroke-opacity\s*=\s*"([^"]*)"/);
+  return {
+    color: strokeMatch[1],
+    width: strokeWidthMatch ? parseFloat(strokeWidthMatch[1]) : 1,
+    opacity: strokeOpacityMatch ? parseFloat(strokeOpacityMatch[1]) : 1
+  };
+}
+
+// Convert an SVG color string (hex / rgb / rgba / named) to a Figma {r,g,b} object (0–1 range).
+function svgColorToFigmaRgb(colorStr) {
+  if (!colorStr) return { r: 0, g: 0, b: 0 };
+  var s = colorStr.trim().toLowerCase();
+  if (s.charAt(0) === '#') {
+    var hex = s.slice(1);
+    if (hex.length === 3) { hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2]; }
+    return {
+      r: parseInt(hex.substring(0, 2), 16) / 255,
+      g: parseInt(hex.substring(2, 4), 16) / 255,
+      b: parseInt(hex.substring(4, 6), 16) / 255
+    };
+  }
+  var rgbMatch = s.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/);
+  if (rgbMatch) {
+    return {
+      r: parseInt(rgbMatch[1]) / 255,
+      g: parseInt(rgbMatch[2]) / 255,
+      b: parseInt(rgbMatch[3]) / 255
+    };
+  }
+  var named = {
+    'black': {r:0,g:0,b:0}, 'white': {r:1,g:1,b:1},
+    'red': {r:1,g:0,b:0}, 'green': {r:0,g:0.5,b:0},
+    'blue': {r:0,g:0,b:1}, 'gray': {r:0.5,g:0.5,b:0.5},
+    'grey': {r:0.5,g:0.5,b:0.5}
+  };
+  return named[s] !== undefined ? named[s] : { r: 0, g: 0, b: 0 };
+}
+
+// Recursively apply a stroke paint to all shape-type descendants.
+// Skips nodes that already carry their own stroke so per-shape overrides are preserved.
+function propagateStrokeToShapes(node, strokePaint, strokeWeight) {
+  var shapeTypes = ['VECTOR', 'BOOLEAN_OPERATION', 'ELLIPSE', 'STAR', 'POLYGON', 'LINE', 'RECTANGLE'];
+  if (shapeTypes.indexOf(node.type) !== -1) {
+    if (!node.strokes || node.strokes.length === 0) {
+      node.strokes = [strokePaint];
+      if ('strokeWeight' in node) {
+        node.strokeWeight = strokeWeight;
+      }
+    }
+  }
+  if (node.children) {
+    for (var i = 0; i < node.children.length; i++) {
+      propagateStrokeToShapes(node.children[i], strokePaint, strokeWeight);
+    }
+  }
+}
+
 async function createSvg(params) {
   const {
     svgString,
@@ -4737,6 +4803,22 @@ async function createSvg(params) {
   // Set name if provided
   if (name) {
     svgNode.name = name;
+  }
+
+  // If the root <svg> element carries a stroke, propagate it to individual vector
+  // children rather than leaving it on the root frame, which does not render strokes
+  // the same way as SVG shape nodes do.
+  var rootStroke = parseSvgRootStroke(svgString);
+  if (rootStroke) {
+    var strokeRgb = svgColorToFigmaRgb(rootStroke.color);
+    if (strokeRgb) {
+      var strokePaint = { type: 'SOLID', color: strokeRgb, opacity: rootStroke.opacity };
+      propagateStrokeToShapes(svgNode, strokePaint, rootStroke.width);
+    }
+    // Clear any stroke that was incorrectly placed on the root frame
+    if ('strokes' in svgNode) {
+      svgNode.strokes = [];
+    }
   }
 
   // Flatten to single vector if requested
@@ -7245,8 +7327,10 @@ async function createFromData(params) {
         console.warn(`Component "${componentName}" not found — created frame as fallback`);
       }
     } else if (!node && nodeData.type === "SVG" && nodeData.svgString) {
+      var svgCreatedFromString = false;
       try {
         node = figma.createNodeFromSvg(nodeData.svgString);
+        svgCreatedFromString = true;
       } catch (e) {
         console.warn("Failed to create SVG node, falling back to frame:", e);
         node = figma.createFrame();
@@ -7254,6 +7338,22 @@ async function createFromData(params) {
       }
       // SVG is an opaque unit — set name, append to parent, resize, and return early
       node.name = nodeData.name || "SVG";
+      // Propagate root-level stroke to individual vector children.
+      // Skip if SVG creation failed (fallback frame has no children to propagate to).
+      if (svgCreatedFromString) {
+        var svgRootStroke = parseSvgRootStroke(nodeData.svgString);
+        if (svgRootStroke) {
+          var svgStrokeRgb = svgColorToFigmaRgb(svgRootStroke.color);
+          if (svgStrokeRgb) {
+            var svgStrokePaint = { type: 'SOLID', color: svgStrokeRgb, opacity: svgRootStroke.opacity };
+            propagateStrokeToShapes(node, svgStrokePaint, svgRootStroke.width);
+          }
+          // Clear any stroke that was incorrectly placed on the root frame
+          if ('strokes' in node) {
+            node.strokes = [];
+          }
+        }
+      }
       if (nodeData.type !== "COMPONENT_SET" && node.parent !== parentNode) {
         parentNode.appendChild(node);
       }
@@ -8773,9 +8873,12 @@ async function lintFrame(params) {
   var rootNode = await figma.getNodeByIdAsync(nodeId);
   if (!rootNode) throw new Error("Node not found: " + String(nodeId).substring(0, 50));
 
+  // rootFrame check only applies when the node is a direct child of a PAGE
+  var isPageChild = rootNode.parent !== null && rootNode.parent !== undefined && rootNode.parent.type === "PAGE";
+
   // Default checks — all on
   var chk = {
-    rootFrame: true,
+    rootFrame: isPageChild,
     colors: true,
     spacing: true,
     radius: true,
@@ -8786,6 +8889,7 @@ async function lintFrame(params) {
   };
   if (checks) {
     if (checks.rootFrame === false) chk.rootFrame = false;
+    if (checks.rootFrame === true) chk.rootFrame = true;
     if (checks.colors === false) chk.colors = false;
     if (checks.spacing === false) chk.spacing = false;
     if (checks.radius === false) chk.radius = false;

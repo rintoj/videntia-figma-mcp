@@ -1780,6 +1780,36 @@ describe("parseJsx - bare flex defaults to HORIZONTAL", () => {
     // The name should still be set on the node data
     expect(nodes[0].name).toBe("Icon");
   });
+
+  it("should preserve root stroke attribute in svgString", () => {
+    const svg =
+      '<svg width="24" height="24" viewBox="0 0 24 24" stroke="#ff0000"><path d="M0 0" /></svg>';
+    const nodes = parseJsx(svg);
+    expect(nodes[0].type).toBe("SVG");
+    expect(nodes[0].svgString).toContain('stroke="#ff0000"');
+  });
+
+  it("should preserve root stroke-width attribute in svgString", () => {
+    const svg =
+      '<svg width="24" height="24" viewBox="0 0 24 24" stroke="#000000" stroke-width="2"><path d="M0 0" /></svg>';
+    const nodes = parseJsx(svg);
+    expect(nodes[0].svgString).toContain('stroke="#000000"');
+    expect(nodes[0].svgString).toContain('stroke-width="2"');
+  });
+
+  it("should preserve root stroke-opacity attribute in svgString", () => {
+    const svg =
+      '<svg width="24" height="24" stroke="#333333" stroke-width="1.5" stroke-opacity="0.5"><path d="M0 0" /></svg>';
+    const nodes = parseJsx(svg);
+    expect(nodes[0].svgString).toContain('stroke="#333333"');
+    expect(nodes[0].svgString).toContain('stroke-opacity="0.5"');
+  });
+
+  it("should preserve stroke=\"none\" in svgString (no-stroke marker is passed through)", () => {
+    const svg = '<svg width="24" height="24" stroke="none"><path d="M0 0" /></svg>';
+    const nodes = parseJsx(svg);
+    expect(nodes[0].svgString).toContain('stroke="none"');
+  });
 });
 
 // --- CSS string format in style attribute ---
