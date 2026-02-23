@@ -235,6 +235,11 @@
       const RECONNECT_BASE_DELAY = 1000;
       const RECONNECT_MAX_DELAY = 30000;
 
+      // Minimum time (ms) to display "Running: X..." before flipping to "completed".
+      // Prevents fast commands from flashing too quickly to be readable.
+      const MIN_PROGRESS_DISPLAY_MS = 600;
+      let progressStartTime = null;
+
       // UI Elements
       const portInput = document.getElementById("port");
       const connectButton = document.getElementById("btn-connect");
@@ -463,6 +468,7 @@
         // If it's a new command
         if (data.command) {
           const name = formatCommandName(data.command);
+          progressStartTime = Date.now();
           showOperationStatus(`Running: ${name}...`, "running");
           try {
             // Send the command to the plugin code
@@ -675,24 +681,35 @@
           case "auto-disconnect":
             disconnectFromServer();
             break;
-          case "command-result":
-            showOperationStatus(
-              `${formatCommandName(message.command || "")} completed`,
-              "success"
-            );
-            hideOperationStatusAfter(3000);
-            // Forward the result from plugin code back to WebSocket
+          case "command-result": {
+            // Ensure "Running: X..." is visible for at least MIN_PROGRESS_DISPLAY_MS
+            const resultName = formatCommandName(message.command || "");
+            const resultDelay = progressStartTime !== null
+              ? Math.max(0, MIN_PROGRESS_DISPLAY_MS - (Date.now() - progressStartTime))
+              : 0;
+            progressStartTime = null;
+            setTimeout(() => {
+              showOperationStatus(`${resultName} completed`, "success");
+              hideOperationStatusAfter(3000);
+            }, resultDelay);
+            // Forward the result from plugin code back to WebSocket (no delay needed)
             sendSuccessResponse(message.id, message.result);
             break;
-          case "command-error":
-            showOperationStatus(
-              `${formatCommandName(message.command || "")} failed`,
-              "error"
-            );
-            hideOperationStatusAfter(5000);
-            // Forward the error from plugin code back to WebSocket
+          }
+          case "command-error": {
+            const errorName = formatCommandName(message.command || "");
+            const errorDelay = progressStartTime !== null
+              ? Math.max(0, MIN_PROGRESS_DISPLAY_MS - (Date.now() - progressStartTime))
+              : 0;
+            progressStartTime = null;
+            setTimeout(() => {
+              showOperationStatus(`${errorName} failed`, "error");
+              hideOperationStatusAfter(5000);
+            }, errorDelay);
+            // Forward the error from plugin code back to WebSocket (no delay needed)
             sendErrorResponse(message.id, message.error);
             break;
+          }
           case "file-name":
             state.fileName = message.fileName;
             console.log("File name received:", state.fileName);
