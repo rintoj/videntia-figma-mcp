@@ -757,7 +757,9 @@ describe("parseJsx", () => {
     expect(imageFill!.imageRef).toBe("img-ref-123");
   });
 
-  it("should round-trip multiple fills via duplicate classes", () => {
+  it("should round-trip single fill (last fill wins when multiple bg classes present)", () => {
+    // jsx_to_figma uses replace-not-accumulate: each bg-* class replaces the previous fill.
+    // When convertToJsx serialises a multi-fill node, parseJsx only keeps the last one.
     const original = makeNode({
       fills: [
         { type: "SOLID", color: "#ffffff" },
@@ -766,10 +768,9 @@ describe("parseJsx", () => {
     });
     const jsx = convertToJsx([original]);
     const parsed = parseJsx(jsx);
-    expect(parsed[0].fills).toHaveLength(2);
-    expect(parsed[0].fills![0].color).toBe("#ffffff");
-    expect(parsed[0].fills![1].color).toBe("#FF0000");
-    expect(parsed[0].fills![1].opacity).toBe(0.5);
+    expect(parsed[0].fills).toHaveLength(1);
+    expect(parsed[0].fills![0].color).toBe("#FF0000");
+    expect(parsed[0].fills![0].opacity).toBe(0.5);
   });
 
   it("should round-trip multiple strokes via duplicate classes", () => {
@@ -864,15 +865,15 @@ describe("parseJsx - Tailwind gradients", () => {
   });
 });
 
-// --- Multiple fills/strokes accumulation ---
+// --- Fill replace-not-accumulate semantics ---
 
 describe("parseJsx - multiple fills/strokes accumulation", () => {
-  it("should accumulate multiple bg-[#hex] into fills array", () => {
+  it("should keep only the last bg-[#hex] when multiple are provided (replace-not-accumulate)", () => {
+    // Each bg-* class replaces the previous fill — last one wins.
     const nodes = parseJsx('<div id="1:1" name="T" className="bg-[#ffffff] bg-[#FF0000]/50" />');
-    expect(nodes[0].fills).toHaveLength(2);
-    expect(nodes[0].fills![0].color).toBe("#ffffff");
-    expect(nodes[0].fills![1].color).toBe("#FF0000");
-    expect(nodes[0].fills![1].opacity).toBe(0.5);
+    expect(nodes[0].fills).toHaveLength(1);
+    expect(nodes[0].fills![0].color).toBe("#FF0000");
+    expect(nodes[0].fills![0].opacity).toBe(0.5);
   });
 
   it("should accumulate multiple border-[#hex] into strokes array", () => {
@@ -882,11 +883,12 @@ describe("parseJsx - multiple fills/strokes accumulation", () => {
     expect(nodes[0].strokes![1].color).toBe("#00FF00");
   });
 
-  it("should use correct binding indices for multiple bg variables", () => {
+  it("should keep only the last bg variable binding (replace-not-accumulate)", () => {
+    // Last bg-* class wins; the binding is always at fills/0.
     const nodes = parseJsx('<div id="1:1" name="T" className="bg-primary bg-secondary" />');
-    expect(nodes[0].fills).toHaveLength(2);
-    expect(nodes[0].bindings?.["fills/0"]).toBe("primary");
-    expect(nodes[0].bindings?.["fills/1"]).toBe("secondary");
+    expect(nodes[0].fills).toHaveLength(1);
+    expect(nodes[0].bindings?.["fills/0"]).toBe("secondary");
+    expect(nodes[0].bindings?.["fills/1"]).toBeUndefined();
   });
 
   it("should use correct binding indices for multiple border variables", () => {
@@ -896,13 +898,13 @@ describe("parseJsx - multiple fills/strokes accumulation", () => {
     expect(nodes[0].bindings?.["strokes/1"]).toBe("secondary");
   });
 
-  it("should accumulate solid fill + gradient fill from style", () => {
+  it("should use style gradient fill when both className bg and style background are present (style wins)", () => {
+    // applyStyleAttribute runs after applyClassName, so the gradient replaces the solid fill.
     const jsx =
       '<div id="1:1" name="T" className="bg-[#ffffff]" style={{ background: "linear-gradient(#ff0000 0%, #0000ff 100%)" }} />';
     const nodes = parseJsx(jsx);
-    expect(nodes[0].fills).toHaveLength(2);
-    expect(nodes[0].fills![0].color).toBe("#ffffff");
-    expect(nodes[0].fills![1].gradient?.type).toBe("GRADIENT_LINEAR");
+    expect(nodes[0].fills).toHaveLength(1);
+    expect(nodes[0].fills![0].gradient?.type).toBe("GRADIENT_LINEAR");
   });
 
   it("should skip JSX comments gracefully without interpreting them", () => {
@@ -923,12 +925,10 @@ describe("parseJsx - multiple fills/strokes accumulation", () => {
     expect(nodes[0].children![0].fills).toHaveLength(1);
   });
 
-  it("should accumulate 3 solid fills from duplicate classes", () => {
+  it("should keep only the last fill when 3 bg classes are present (replace-not-accumulate)", () => {
     const nodes = parseJsx('<div id="1:1" name="T" className="bg-[#111111] bg-[#222222] bg-[#333333]" />');
-    expect(nodes[0].fills).toHaveLength(3);
-    expect(nodes[0].fills![0].color).toBe("#111111");
-    expect(nodes[0].fills![1].color).toBe("#222222");
-    expect(nodes[0].fills![2].color).toBe("#333333");
+    expect(nodes[0].fills).toHaveLength(1);
+    expect(nodes[0].fills![0].color).toBe("#333333");
   });
 });
 

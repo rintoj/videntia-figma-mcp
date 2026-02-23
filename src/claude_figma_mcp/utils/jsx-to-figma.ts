@@ -698,9 +698,8 @@ function applyHtmlTagDefaults(node: FigmaNodeData, tag: string): void {
   if (defaults.fontSize !== undefined && node.fontSize === undefined) node.fontSize = defaults.fontSize;
   if (defaults.fontWeight !== undefined && node.fontWeight === undefined) node.fontWeight = defaults.fontWeight;
 
-  if (defaults.imageFill && (!node.fills || !node.fills.some((f) => f.isImage))) {
-    node.fills = node.fills || [];
-    node.fills.push({ type: "IMAGE", isImage: true });
+  if (defaults.imageFill) {
+    node.fills = [{ type: "IMAGE", isImage: true }];
   }
 }
 
@@ -730,6 +729,37 @@ const FONT_WEIGHT_MAP: Record<string, number> = {
   "font-extrabold": 800,
   "font-black": 900,
 };
+
+/**
+ * Replace the fill on a node with a single fill during className processing.
+ * Clears any previous fills and their associated variable bindings so that
+ * every node ends up with at most one fill — accumulation is never intentional.
+ */
+function setFill(
+  node: FigmaNodeData,
+  fill: FigmaNodeFill,
+  bindings: Record<string, string>,
+  varName?: string,
+): void {
+  for (const key of Object.keys(bindings)) {
+    if (key.startsWith("fills/")) delete bindings[key];
+  }
+  node.fills = [fill];
+  if (varName) bindings["fills/0"] = varName;
+}
+
+/**
+ * Replace the fill on a node during style-attribute processing (after applyClassName).
+ * Also clears any fill variable binding that applyClassName may have set on node.bindings.
+ */
+function setStyleFill(node: FigmaNodeData, fill: FigmaNodeFill): void {
+  node.fills = [fill];
+  if (node.bindings) {
+    for (const key of Object.keys(node.bindings)) {
+      if (key.startsWith("fills/")) delete node.bindings[key];
+    }
+  }
+}
 
 function applyClassName(node: FigmaNodeData, className: string): void {
   if (!className) return;
@@ -1034,11 +1064,8 @@ function applyClassName(node: FigmaNodeData, className: string): void {
     // --- Background colors ---
     if (cls === "bg-cover") continue; // Image fill indicator (handled with bg-center)
     if (cls === "bg-center") {
-      // Image fill
-      if (!node.fills || !node.fills.some((f) => f.isImage)) {
-        node.fills = node.fills || [];
-        node.fills.push({ type: "IMAGE", isImage: true });
-      }
+      // Image fill — replace any existing fill.
+      setFill(node, { type: "IMAGE", isImage: true }, bindings);
       continue;
     }
     if ((m = cls.match(/^bg-\[(#[0-9a-fA-F]{3,8})\](?:\/(\d+))?$/))) {
@@ -1046,8 +1073,7 @@ function applyClassName(node: FigmaNodeData, className: string): void {
       const opacity = m[2] ? Number(m[2]) / 100 : undefined;
       const fill: FigmaNodeFill = { type: "SOLID", color };
       if (opacity !== undefined) fill.opacity = opacity;
-      node.fills = node.fills || [];
-      node.fills.push(fill);
+      setFill(node, fill, bindings);
       continue;
     }
     // --- Tailwind gradient classes (must come BEFORE catch-all bg-*) ---
@@ -1085,13 +1111,13 @@ function applyClassName(node: FigmaNodeData, className: string): void {
 
     // bg-{color/var}
     if ((m = cls.match(/^bg-(.+)$/)) && !m[1].startsWith("[")) {
+      // TEXT and SVG nodes don't have background fills in Figma — skip bg-* classes.
+      // The background belongs on the parent FRAME node.
+      if (isText || node.type === "SVG") continue;
       const name = m[1];
       const resolvedColor = resolveTwColor(name);
       const varName = denormalizeVarName(name);
-      node.fills = node.fills || [];
-      const idx = node.fills.length;
-      node.fills.push({ type: "SOLID", color: resolvedColor ?? "#000000" });
-      bindings[`fills/${idx}`] = varName;
+      setFill(node, { type: "SOLID", color: resolvedColor ?? "#000000" }, bindings, varName);
       continue;
     }
 
@@ -1101,8 +1127,7 @@ function applyClassName(node: FigmaNodeData, className: string): void {
       const opacity = m[2] ? Number(m[2]) / 100 : undefined;
       const fill: FigmaNodeFill = { type: "SOLID", color };
       if (opacity !== undefined) fill.opacity = opacity;
-      node.fills = node.fills || [];
-      node.fills.push(fill);
+      setFill(node, fill, bindings);
       continue;
     }
 
@@ -1304,10 +1329,7 @@ function applyClassName(node: FigmaNodeData, className: string): void {
         // 2. Check standard Tailwind color (white, black, red-500, etc.)
         const colorMatch = resolveTwColor(name);
         if (colorMatch) {
-          node.fills = node.fills || [];
-          const idx = node.fills.length;
-          node.fills.push({ type: "SOLID", color: colorMatch });
-          bindings[`fills/${idx}`] = denormalizeVarName(name);
+          setFill(node, { type: "SOLID", color: colorMatch }, bindings, denormalizeVarName(name));
           continue;
         }
 
@@ -1333,11 +1355,8 @@ function applyClassName(node: FigmaNodeData, className: string): void {
             firstSegment === "utility" ||
             firstSegment === "chart");
         if (isSemanticColorVar) {
-          // Semantic color variable → always create fill binding immediately
-          node.fills = node.fills || [];
-          const idx = node.fills.length;
-          node.fills.push({ type: "SOLID", color: "#000000" });
-          bindings[`fills/${idx}`] = denormalized;
+          // Semantic color variable → always create fill binding immediately.
+          setFill(node, { type: "SOLID", color: "#000000" }, bindings, denormalized);
         } else {
           // Potential text style name or font-size-dependent fill color — defer
           deferredTextClasses.push(name);
@@ -1483,8 +1502,7 @@ function applyClassName(node: FigmaNodeData, className: string): void {
           ...(gradientDir ? { direction: gradientDir } : {}),
         },
       };
-      node.fills = node.fills || [];
-      node.fills.push(gradientFill);
+      setFill(node, gradientFill, bindings);
     }
   }
 
@@ -1493,10 +1511,7 @@ function applyClassName(node: FigmaNodeData, className: string): void {
     for (const name of deferredTextClasses) {
       if (node.fontSize || hasIndividualTypography) {
         // Explicit font size was set → this is a fill color variable binding
-        node.fills = node.fills || [];
-        const idx = node.fills.length;
-        node.fills.push({ type: "SOLID", color: "#000000" });
-        bindings[`fills/${idx}`] = denormalizeVarName(name);
+        setFill(node, { type: "SOLID", color: "#000000" }, bindings, denormalizeVarName(name));
       } else {
         // No explicit font size → treat as named text style (last one wins)
         node.textStyleName = denormalizeVarName(name);
@@ -1526,24 +1541,18 @@ function applyStyleAttribute(node: FigmaNodeData, styleStr: string): void {
     } else if (key === "background") {
       const fill = parseGradient(value);
       if (fill) {
-        node.fills = node.fills || [];
-        node.fills.push(fill);
+        setStyleFill(node, fill);
       }
     } else if (key === "backgroundImage") {
-      // url(...) reference
+      // url(...) reference — update imageRef on existing image fill or replace with new one.
       const m = value.match(/^url\((.+?)\)$/);
       if (m) {
         const imageRef = m[1];
-        // Find or create image fill
-        if (node.fills) {
-          const imageFill = node.fills.find((f) => f.isImage);
-          if (imageFill) {
-            imageFill.imageRef = imageRef;
-          } else {
-            node.fills.push({ type: "IMAGE", isImage: true, imageRef });
-          }
+        const imageFill = node.fills && node.fills.find((f) => f.isImage);
+        if (imageFill) {
+          imageFill.imageRef = imageRef;
         } else {
-          node.fills = [{ type: "IMAGE", isImage: true, imageRef }];
+          setStyleFill(node, { type: "IMAGE", isImage: true, imageRef });
         }
       }
     } else if (key === "transform") {
@@ -1552,16 +1561,15 @@ function applyStyleAttribute(node: FigmaNodeData, styleStr: string): void {
         node.rotation = Number(m[1]);
       }
     } else if (key === "backgroundColor") {
-      // Solid background color from style
+      // Solid background color from style — replace any fill (and its binding) set by className.
       if (value !== "transparent") {
-        node.fills = node.fills || [];
-        node.fills.push({ type: "SOLID", color: value });
+        setStyleFill(node, { type: "SOLID", color: value });
       }
     } else if (key === "color") {
-      // Text color — applied to TEXT nodes or stored for propagation to child TEXT
+      // Text color — applied to TEXT nodes or stored for propagation to child TEXT.
+      // Replace any existing fill (and its binding) set by className.
       if (node.type === "TEXT") {
-        node.fills = node.fills || [];
-        node.fills.push({ type: "SOLID", color: value });
+        setStyleFill(node, { type: "SOLID", color: value });
       } else {
         // Store for later propagation to child TEXT nodes
         (node as any)._styleColor = value;
