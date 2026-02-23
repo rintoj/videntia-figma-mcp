@@ -3681,9 +3681,9 @@ async function setEffectStyleId(params) {
       }
       
       debugLog(`Effect style found, applying to node...`);
-      
+
       // Apply the effect style to the node
-      node.effectStyleId = effectStyleId;
+      await node.setEffectStyleIdAsync(effectStyleId);
       
       return {
         id: node.id,
@@ -7357,7 +7357,7 @@ async function createFromData(params) {
     // Apply effect style if present
     if (nodeData.effectStyleName) {
       const eStyle = effectStyleMap.get(nodeData.effectStyleName);
-      if (eStyle) node.effectStyleId = eStyle.id;
+      if (eStyle) await node.setEffectStyleIdAsync(eStyle.id);
     }
 
     // Opacity
@@ -7385,7 +7385,7 @@ async function createFromData(params) {
       // Apply text style if present
       if (nodeData.textStyleName) {
         const style = textStyleMap.get(nodeData.textStyleName);
-        if (style) node.textStyleId = style.id;
+        if (style) await node.setTextStyleIdAsync(style.id);
       }
     }
 
