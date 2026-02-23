@@ -8931,7 +8931,7 @@ async function lintFrame(params) {
   }
 
   // ── Main traversal ──
-  function scanNode(node, depth, parent) {
+  function scanNode(node, depth, parent, parentBBox) {
     // Skip invisible nodes
     if (node.visible === false) return;
 
@@ -9155,9 +9155,7 @@ async function lintFrame(params) {
                    ovName.indexOf("Image/") === 0;
       if (!skipOv) {
         var childBBox = null;
-        var parentBBox = null;
         try { childBBox = node.absoluteBoundingBox; } catch (e) {}
-        try { parentBBox = parent.absoluteBoundingBox; } catch (e) {}
         if (childBBox && parentBBox) {
           var OV_TOL = 1;
           categories.overflow.total++;
@@ -9174,7 +9172,7 @@ async function lintFrame(params) {
           if (hasHOv || hasVOv) {
             categories.overflow.unbound++;
             if (hasHOv) {
-              var hAmt = Math.round(hOverflow);
+              var hAmt = Math.ceil(hOverflow);
               addViolation(node, depth, "CRITICAL", "overflow", "absoluteBoundingBox",
                 "Horizontal overflow: child extends " + hAmt + "px beyond parent right edge",
                 { axis: "horizontal", overflowAmount: hAmt,
@@ -9182,7 +9180,7 @@ async function lintFrame(params) {
                   parentRight: Math.round(parentBBox.x + parentBBox.width) });
             }
             if (hasVOv) {
-              var vAmt = Math.round(vOverflow);
+              var vAmt = Math.ceil(vOverflow);
               addViolation(node, depth, "CRITICAL", "overflow", "absoluteBoundingBox",
                 "Vertical overflow: child extends " + vAmt + "px beyond parent bottom edge",
                 { axis: "vertical", overflowAmount: vAmt,
@@ -9198,14 +9196,17 @@ async function lintFrame(params) {
 
     // ── Recurse into children ──
     if ("children" in node && node.children) {
+      // Read bbox once per parent for overflow checks (avoid N reads per child)
+      var nodeBBox = null;
+      if (chk.overflow) { try { nodeBBox = node.absoluteBoundingBox; } catch (e) {} }
       for (var ci = 0; ci < node.children.length; ci++) {
-        scanNode(node.children[ci], depth + 1, node);
+        scanNode(node.children[ci], depth + 1, node, nodeBBox);
       }
     }
   }
 
   // Run the traversal
-  scanNode(rootNode, 0, null);
+  scanNode(rootNode, 0, null, null);
 
   // Compute compliance percentages
   var catKeys = ["typography", "spacing", "borderRadius", "iconColors", "strokesBorders", "backgroundFills", "effectStyles", "overflow"];
