@@ -14,6 +14,26 @@ function isValidCssColor(color: string): boolean {
 }
 
 /**
+ * Return true if `value` looks like a CSS color rather than a design token / variable name.
+ *
+ * CSS colors:
+ *   - Hex:           #rgb  #rrggbb  #rrggbbaa
+ *   - Functional:    rgb(…)  rgba(…)  hsl(…)  hsla(…)
+ *   - Named (single word, no hyphens or slashes): red, blue, transparent, currentColor
+ *
+ * Anything containing a hyphen (gray-500, text-primary) or slash (semantic/text/secondary)
+ * is treated as a design token and routed to variable resolution.
+ */
+function looksLikeCssColor(value: string): boolean {
+  const v = value.trim();
+  if (v.startsWith("#")) return true;
+  if (/^(rgb|rgba|hsl|hsla)\s*\(/i.test(v)) return true;
+  // Single-word named CSS color (no hyphens, no slashes)
+  if (/^[a-zA-Z]+$/.test(v)) return true;
+  return false;
+}
+
+/**
  * Inject a color and size into a Lucide SVG string.
  * - Validates `color` against a safe allowlist before injection.
  * - Updates width/height only on the root `<svg>` opening tag (not child elements).
@@ -209,10 +229,11 @@ export function registerIconTools(server: McpServer): void {
         .optional()
         .describe("Zero-based position within the parent's children array (omit to append at the end)"),
       iconName: z.string().describe('Lucide icon name (e.g. "arrow-left", "bell", "check")'),
-      color: z.string().describe('Icon color as a CSS color string (e.g. "#FF0000", "#333", "rgba(0,0,0,0.5)")'),
+      color: z.string().optional().describe('Icon color. Accepts a CSS color ("#6b7280", "rgb(…)") OR a design token name ("gray-500", "text-text-secondary", "semantic/icon/muted"). Token names (anything with a hyphen or slash) are automatically routed to variable binding — no need to use colorVariable separately.'),
+      colorVariable: z.string().optional().describe('Explicit Figma variable name for the icon stroke color. Only needed if color is also a valid CSS color and you still want variable binding. Supports Tailwind-style ("gray-500"), semantic paths ("text/secondary"), or exact names.'),
       size: z.coerce.number().positive().describe("Icon size in pixels applied to both width and height"),
     },
-    async ({ parentId, index, iconName, color, size }) => {
+    async ({ parentId, index, iconName, color, colorVariable, size }) => {
       const icon = getIcon(iconName);
       if (!icon) {
         const suggestions = searchIcons(iconName, 5);
@@ -234,7 +255,17 @@ export function registerIconTools(server: McpServer): void {
       }
 
       try {
-        const svgString = buildIconSvg(icon.svg, color, size);
+        // Auto-detect: if color looks like a token (e.g. "gray-500", "text-text-secondary"),
+        // treat it as a colorVariable even if the caller passed it via the color param.
+        const effectiveColorVar =
+          colorVariable ??
+          (color !== undefined && color !== null && color !== "" && !looksLikeCssColor(color) ? color : undefined);
+        const effectiveCssColor =
+          color !== undefined && color !== null && color !== "" && looksLikeCssColor(color)
+            ? color
+            : "#000000";
+
+        const svgString = buildIconSvg(icon.svg, effectiveCssColor, size);
 
         const createResult = await sendCommandToFigma("create_svg", {
           svgString,
@@ -243,6 +274,7 @@ export function registerIconTools(server: McpServer): void {
           name: icon.name,
           parentId,
           flatten: false,
+          colorVariable: effectiveColorVar,
         });
 
         const typedResult = createResult as { id: string; name: string; width: number; height: number };
@@ -310,10 +342,11 @@ export function registerIconTools(server: McpServer): void {
     {
       nodeId: z.string().describe("ID of the existing icon node to replace"),
       iconName: z.string().describe('New Lucide icon name (e.g. "arrow-left", "bell", "check")'),
-      color: z.string().describe('Icon color as a CSS color string (e.g. "#FF0000", "#333", "rgba(0,0,0,0.5)")'),
+      color: z.string().optional().describe('Icon color. Accepts a CSS color ("#6b7280", "rgb(…)") OR a design token name ("gray-500", "text-text-secondary"). Token names (anything with a hyphen or slash) are automatically routed to variable binding.'),
+      colorVariable: z.string().optional().describe('Explicit Figma variable name for the icon stroke color. Only needed when color is also a valid CSS color and you still want variable binding.'),
       size: z.coerce.number().positive().describe("Icon size in pixels applied to both width and height"),
     },
-    async ({ nodeId, iconName, color, size }) => {
+    async ({ nodeId, iconName, color, colorVariable, size }) => {
       const icon = getIcon(iconName);
       if (!icon) {
         const suggestions = searchIcons(iconName, 5);
@@ -335,12 +368,21 @@ export function registerIconTools(server: McpServer): void {
       }
 
       try {
-        const svgString = buildIconSvg(icon.svg, color, size);
+        const effectiveColorVar =
+          colorVariable ??
+          (color !== undefined && color !== null && color !== "" && !looksLikeCssColor(color) ? color : undefined);
+        const effectiveCssColor =
+          color !== undefined && color !== null && color !== "" && looksLikeCssColor(color)
+            ? color
+            : "#000000";
+
+        const svgString = buildIconSvg(icon.svg, effectiveCssColor, size);
 
         const result = await sendCommandToFigma("update_icon", {
           nodeId,
           svgString,
           name: icon.name,
+          colorVariable: effectiveColorVar,
         });
 
         const typedResult = result as { id: string; name: string; parentId: string; index: number };

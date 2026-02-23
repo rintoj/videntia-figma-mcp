@@ -2,6 +2,7 @@
 
 import { parseSvgRootStroke, propagateStrokeToShapes } from '../utils/svg';
 import { debugLog, parseNum } from '../utils/helpers';
+import { resolveColorVariable, bindVariableToStrokes } from './icons';
 
 // ---------------------------------------------------------------------------
 // createEllipse
@@ -322,14 +323,15 @@ export async function createSvg(params: Record<string, unknown>): Promise<unknow
   const parentId = paramsObj['parentId'] as string | undefined;
   const flatten =
     paramsObj['flatten'] !== undefined ? (paramsObj['flatten'] as boolean) : false;
+  const colorVariable = paramsObj['colorVariable'] as string | undefined;
 
   if (!svgString) {
     throw new Error('Missing svgString parameter');
   }
 
-  // Validate SVG string - must start with <svg or <?xml
-  const trimmedSvg = svgString.trim();
-  if (!trimmedSvg.startsWith('<svg') && !trimmedSvg.startsWith('<?xml')) {
+  // Strip any leading HTML comments (e.g. Lucide license headers) before validating
+  const cleanSvg = svgString.replace(/^<!--[\s\S]*?-->\s*/m, '').trim();
+  if (!cleanSvg.startsWith('<svg') && !cleanSvg.startsWith('<?xml')) {
     throw new Error('Invalid SVG: must start with <svg or <?xml declaration');
   }
 
@@ -338,7 +340,7 @@ export async function createSvg(params: Record<string, unknown>): Promise<unknow
   // Create node from SVG string
   let svgNode: FrameNode | VectorNode;
   try {
-    svgNode = figma.createNodeFromSvg(svgString);
+    svgNode = figma.createNodeFromSvg(cleanSvg);
   } catch (parseError) {
     const errorMsg = parseError instanceof Error ? parseError.message : String(parseError);
     console.error(`createSvg: Failed to parse SVG: ${errorMsg}`);
@@ -357,12 +359,20 @@ export async function createSvg(params: Record<string, unknown>): Promise<unknow
   // If the root <svg> element carries a stroke, propagate it to individual vector
   // children rather than leaving it on the root frame, which does not render strokes
   // the same way as SVG shape nodes do.
-  const rootStroke = parseSvgRootStroke(svgString);
+  const rootStroke = parseSvgRootStroke(cleanSvg);
   if (rootStroke) {
     propagateStrokeToShapes(svgNode as SceneNode, rootStroke);
     // Clear any stroke that was incorrectly placed on the root frame
     if ('strokes' in svgNode) {
       (svgNode as GeometryMixin).strokes = [];
+    }
+  }
+
+  // Bind color variable to all child strokes if requested
+  if (colorVariable !== undefined && colorVariable !== null && colorVariable !== '') {
+    const variable = await resolveColorVariable(colorVariable);
+    if (variable !== null) {
+      bindVariableToStrokes(svgNode as SceneNode, variable);
     }
   }
 
