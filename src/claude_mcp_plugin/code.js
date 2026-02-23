@@ -8760,7 +8760,8 @@ async function lintFrame(params) {
     radius: true,
     textStyles: true,
     effectStyles: true,
-    autoLayout: true
+    autoLayout: true,
+    overflow: true
   };
   if (checks) {
     if (checks.colors === false) chk.colors = false;
@@ -8769,6 +8770,7 @@ async function lintFrame(params) {
     if (checks.textStyles === false) chk.textStyles = false;
     if (checks.effectStyles === false) chk.effectStyles = false;
     if (checks.autoLayout === false) chk.autoLayout = false;
+    if (checks.overflow === false) chk.overflow = false;
   }
 
   // Pre-load lookup maps (parallel)
@@ -8811,7 +8813,8 @@ async function lintFrame(params) {
     iconColors:      { total: 0, bound: 0, unbound: 0, compliance: 100 },
     strokesBorders:  { total: 0, bound: 0, unbound: 0, compliance: 100 },
     backgroundFills: { total: 0, bound: 0, unbound: 0, compliance: 100 },
-    effectStyles:    { total: 0, bound: 0, unbound: 0, compliance: 100 }
+    effectStyles:    { total: 0, bound: 0, unbound: 0, compliance: 100 },
+    overflow:        { total: 0, bound: 0, unbound: 0, compliance: 100 }
   };
   var violations = [];
   var totalNodes = 0;
@@ -8908,12 +8911,12 @@ async function lintFrame(params) {
 
   var violationsCapped = false;
 
-  function addViolation(node, depth, severity, category, property, message) {
+  function addViolation(node, depth, severity, category, property, message, details) {
     if (violations.length >= MAX_LINT_VIOLATIONS) {
       violationsCapped = true;
       return;
     }
-    violations.push({
+    var v = {
       nodeId: node.id,
       nodeName: node.name,
       nodeType: node.type,
@@ -8922,11 +8925,13 @@ async function lintFrame(params) {
       category: category,
       property: property,
       message: message
-    });
+    };
+    if (details !== undefined) v.details = details;
+    violations.push(v);
   }
 
   // ── Main traversal ──
-  function scanNode(node, depth) {
+  function scanNode(node, depth, parent) {
     // Skip invisible nodes
     if (node.visible === false) return;
 
@@ -9138,19 +9143,72 @@ async function lintFrame(params) {
       }
     }
 
+    // ── OVERFLOW check ──
+    // Compare child's absoluteBoundingBox against parent's; skip root's direct children
+    if (chk.overflow && parent !== null && parent !== undefined && depth > 1) {
+      var ovPositioning = null;
+      try { ovPositioning = node.layoutPositioning; } catch (e) {}
+      var ovName = "";
+      try { ovName = node.name || ""; } catch (e) {}
+      var skipOv = ovPositioning === "ABSOLUTE" ||
+                   ovName.indexOf("Icon/") === 0 ||
+                   ovName.indexOf("Image/") === 0;
+      if (!skipOv) {
+        var childBBox = null;
+        var parentBBox = null;
+        try { childBBox = node.absoluteBoundingBox; } catch (e) {}
+        try { parentBBox = parent.absoluteBoundingBox; } catch (e) {}
+        if (childBBox && parentBBox) {
+          var OV_TOL = 1;
+          categories.overflow.total++;
+          var hOverflow = (childBBox.x + childBBox.width) - (parentBBox.x + parentBBox.width);
+          var hasHOv = hOverflow > OV_TOL;
+          var hasVOv = false;
+          var vOverflow = 0;
+          var parentSizingV = null;
+          try { parentSizingV = parent.layoutSizingVertical; } catch (e) {}
+          if (parentSizingV === "FIXED") {
+            vOverflow = (childBBox.y + childBBox.height) - (parentBBox.y + parentBBox.height);
+            hasVOv = vOverflow > OV_TOL;
+          }
+          if (hasHOv || hasVOv) {
+            categories.overflow.unbound++;
+            if (hasHOv) {
+              var hAmt = Math.round(hOverflow);
+              addViolation(node, depth, "CRITICAL", "overflow", "absoluteBoundingBox",
+                "Horizontal overflow: child extends " + hAmt + "px beyond parent right edge",
+                { axis: "horizontal", overflowAmount: hAmt,
+                  childRight: Math.round(childBBox.x + childBBox.width),
+                  parentRight: Math.round(parentBBox.x + parentBBox.width) });
+            }
+            if (hasVOv) {
+              var vAmt = Math.round(vOverflow);
+              addViolation(node, depth, "CRITICAL", "overflow", "absoluteBoundingBox",
+                "Vertical overflow: child extends " + vAmt + "px beyond parent bottom edge",
+                { axis: "vertical", overflowAmount: vAmt,
+                  childBottom: Math.round(childBBox.y + childBBox.height),
+                  parentBottom: Math.round(parentBBox.y + parentBBox.height) });
+            }
+          } else {
+            categories.overflow.bound++;
+          }
+        }
+      }
+    }
+
     // ── Recurse into children ──
     if ("children" in node && node.children) {
       for (var ci = 0; ci < node.children.length; ci++) {
-        scanNode(node.children[ci], depth + 1);
+        scanNode(node.children[ci], depth + 1, node);
       }
     }
   }
 
   // Run the traversal
-  scanNode(rootNode, 0);
+  scanNode(rootNode, 0, null);
 
   // Compute compliance percentages
-  var catKeys = ["typography", "spacing", "borderRadius", "iconColors", "strokesBorders", "backgroundFills", "effectStyles"];
+  var catKeys = ["typography", "spacing", "borderRadius", "iconColors", "strokesBorders", "backgroundFills", "effectStyles", "overflow"];
   for (var ck = 0; ck < catKeys.length; ck++) {
     var cat = categories[catKeys[ck]];
     if (cat.total > 0) {

@@ -1308,7 +1308,7 @@ export function registerDocumentTools(server: McpServer): void {
   // Lint Frame Tool
   server.tool(
     "lint_frame",
-    "Run a comprehensive compliance audit on a frame (or any node with children). Checks color tokens, spacing tokens, border radius tokens, text styles, effect styles, and auto-layout compliance in a single traversal. Returns a structured report with violations by severity (CRITICAL/HIGH/MEDIUM/LOW) and compliance percentages across 8 categories.",
+    "Run a comprehensive compliance audit on a frame (or any node with children). Checks color tokens, spacing tokens, border radius tokens, text styles, effect styles, auto-layout compliance, and child overflow in a single traversal. Returns a structured report with violations by severity (CRITICAL/HIGH/MEDIUM/LOW) and compliance percentages across 9 categories.",
     {
       node_id: z.string().describe("The ID of the root node to lint"),
       checks: z
@@ -1319,6 +1319,7 @@ export function registerDocumentTools(server: McpServer): void {
           textStyles: z.boolean().optional().describe("Check text style application (default: true)"),
           effectStyles: z.boolean().optional().describe("Check effect style application (default: true)"),
           autoLayout: z.boolean().optional().describe("Check auto-layout on frames (default: true)"),
+          overflow: z.boolean().optional().describe("Check child overflow beyond parent bounds (default: true)"),
         })
         .optional()
         .describe("Toggle individual check categories (all enabled by default)"),
@@ -1352,6 +1353,7 @@ export function registerDocumentTools(server: McpServer): void {
           { key: "spacing", label: "Spacing" },
           { key: "borderRadius", label: "Border Radius" },
           { key: "effectStyles", label: "Effect Styles" },
+          { key: "overflow", label: "Overflow" },
         ];
 
         for (const { key, label } of catLabels) {

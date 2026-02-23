@@ -707,6 +707,7 @@ export interface LintViolation {
   category: string;
   property: string;
   message: string;
+  details?: Record<string, unknown>;
 }
 
 export interface LintCategoryResult {
@@ -729,6 +730,7 @@ export interface LintFrameResult {
     strokesBorders: LintCategoryResult;
     backgroundFills: LintCategoryResult;
     effectStyles: LintCategoryResult;
+    overflow: LintCategoryResult;
   };
   violations: LintViolation[];
   violationsCapped?: boolean;

@@ -61,6 +61,7 @@ describe("lint_frame tool", () => {
         strokesBorders: { total: 0, bound: 0, unbound: 0, compliance: 100 },
         backgroundFills: { total: 4, bound: 3, unbound: 1, compliance: 75 },
         effectStyles: { total: 1, bound: 1, unbound: 0, compliance: 100 },
+        overflow: { total: 10, bound: 10, unbound: 0, compliance: 100 },
       },
       violations: [],
       summary: { total: 0, critical: 0, high: 0, medium: 0, low: 0, compliance: 94 },
@@ -269,6 +270,85 @@ describe("lint_frame tool", () => {
 
   it("validates node_id is required", async () => {
     await expect(callTool("lint_frame", {})).rejects.toThrow();
+  });
+
+  it("shows Overflow category in compliance table", async () => {
+    mockSendCommand.mockResolvedValue(makeResult());
+
+    const response = await callTool("lint_frame", { node_id: "1:100" });
+    const text = response.content[0].text;
+
+    expect(text).toContain("| Overflow |");
+  });
+
+  it("reports CRITICAL violation for horizontal overflow", async () => {
+    const result = makeResult({
+      violations: [
+        {
+          nodeId: "1:200",
+          nodeName: "Content Section",
+          nodeType: "FRAME",
+          depth: 2,
+          severity: "CRITICAL",
+          category: "overflow",
+          property: "absoluteBoundingBox",
+          message: "Horizontal overflow: child extends 24px beyond parent right edge",
+          details: { axis: "horizontal", overflowAmount: 24, childRight: 399, parentRight: 375 },
+        },
+      ],
+      summary: { total: 1, critical: 1, high: 0, medium: 0, low: 0, compliance: 80 },
+    });
+    mockSendCommand.mockResolvedValue(result);
+
+    const response = await callTool("lint_frame", { node_id: "1:100" });
+    const text = response.content[0].text;
+
+    expect(text).toContain("Horizontal overflow: child extends 24px beyond parent right edge");
+    expect(text).toContain("### CRITICAL (1)");
+  });
+
+  it("reports CRITICAL violation for vertical overflow on FIXED-height parent", async () => {
+    const result = makeResult({
+      violations: [
+        {
+          nodeId: "1:201",
+          nodeName: "Footer",
+          nodeType: "FRAME",
+          depth: 3,
+          severity: "CRITICAL",
+          category: "overflow",
+          property: "absoluteBoundingBox",
+          message: "Vertical overflow: child extends 16px beyond parent bottom edge",
+          details: { axis: "vertical", overflowAmount: 16, childBottom: 828, parentBottom: 812 },
+        },
+      ],
+      summary: { total: 1, critical: 1, high: 0, medium: 0, low: 0, compliance: 80 },
+    });
+    mockSendCommand.mockResolvedValue(result);
+
+    const response = await callTool("lint_frame", { node_id: "1:100" });
+    const text = response.content[0].text;
+
+    expect(text).toContain("Vertical overflow: child extends 16px beyond parent bottom edge");
+    expect(text).toContain("### CRITICAL (1)");
+  });
+
+  it("passes overflow: false check toggle through to plugin", async () => {
+    mockSendCommand.mockResolvedValue(makeResult());
+
+    const checks = { overflow: false };
+    await callTool("lint_frame", { node_id: "1:100", checks });
+
+    expect(mockSendCommand).toHaveBeenCalledWith("lint_frame", { nodeId: "1:100", checks }, 60000);
+  });
+
+  it("shows PASS for Overflow when no overflow violations", async () => {
+    mockSendCommand.mockResolvedValue(makeResult());
+
+    const response = await callTool("lint_frame", { node_id: "1:100" });
+    const text = response.content[0].text;
+
+    expect(text).toContain("| Overflow | 10 | 10 | 0 | PASS 100% |");
   });
 
   it("flags absolute-positioned children inside auto-layout frames as LOW violation", async () => {
