@@ -1,4 +1,4 @@
-import { debugLog, sendProgressUpdate, uniqBy, delay, generateCommandId, getFontStyle } from '../utils/helpers';
+import { debugLog, sendProgressUpdate, uniqBy, delay, generateCommandId, getFontStyle, parseNum } from '../utils/helpers';
 
 // ---------------------------------------------------------------------------
 // setCharacters helpers (internal — not exported)
@@ -58,7 +58,7 @@ const buildLinearOrder = (
         if (spacesRangeFont === figma.mixed) {
           const firstCharFont = node.getRangeFontName(
             spacesRangeStart,
-            (spacesRangeStart as unknown as number[])[0],
+            spacesRangeStart + 1,
           );
           fontTree.push({
             start: spacesRangeStart,
@@ -273,11 +273,11 @@ export async function createText(params: Record<string, unknown>): Promise<Recor
   const paintStyle: SolidPaint = {
     type: 'SOLID',
     color: {
-      r: parseFloat(String(fontColor.r)) || 0,
-      g: parseFloat(String(fontColor.g)) || 0,
-      b: parseFloat(String(fontColor.b)) || 0,
+      r: parseNum(fontColor.r, 0),
+      g: parseNum(fontColor.g, 0),
+      b: parseNum(fontColor.b, 0),
     },
-    opacity: parseFloat(String(fontColor.a)) || 1,
+    opacity: parseNum(fontColor.a, 1),
   };
   textNode.fills = [paintStyle];
 
@@ -1513,9 +1513,10 @@ export async function getStyledTextSegments(params: Record<string, unknown>): Pr
       } else if (property === 'letterSpacing' || property === 'lineHeight') {
         const val = (segment as Record<string, unknown>)[property];
         if (val !== null && val !== undefined && typeof val === 'object') {
+          const typedVal = val as { value: number; unit: string };
           safeSegment[property] = {
-            value: (val as { value: number; unit: string }).value || 0,
-            unit: (val as { value: number; unit: string }).unit || 'PIXELS',
+            value: typedVal.value !== null && typedVal.value !== undefined ? typedVal.value : 0,
+            unit: typedVal.unit !== null && typedVal.unit !== undefined && typedVal.unit !== '' ? typedVal.unit : 'PIXELS',
           };
         } else {
           safeSegment[property] = { value: 0, unit: 'PIXELS' };

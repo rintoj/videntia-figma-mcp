@@ -28,14 +28,23 @@ export async function getDocumentInfo(): Promise<Record<string, unknown>> {
       name: page.name,
       childCount: page.children.length,
     },
-    pages: [
-      {
-        id: page.id,
-        name: page.name,
-        childCount: page.children.length,
-      },
-    ],
+    // Note: childCount for non-current pages may be 0 if the page has not been
+    // loaded yet (Figma only loads the current page automatically). Use
+    // get_node_info on a specific page to get accurate child counts.
+    pages: figma.root.children.map((p) => ({
+      id: p.id,
+      name: p.name,
+      childCount: 'children' in p ? (p as PageNode).children.length : 0,
+    })),
   };
+}
+
+// Centralized helper for the JSON_REST_V1 export format which is not in
+// the standard @figma/plugin-typings definitions and requires a cast.
+type JsonRestExportable = { exportAsync: (opts: { format: string }) => Promise<{ document: unknown }> };
+
+function exportAsJsonV1(node: BaseNode): Promise<{ document: unknown }> {
+  return (node as unknown as JsonRestExportable).exportAsync({ format: 'JSON_REST_V1' });
 }
 
 export async function getSelection(): Promise<Record<string, unknown>> {
@@ -96,9 +105,7 @@ export async function getNodeInfo(
     throw new Error(`Node not found with ID: ${nodeId}`);
   }
 
-  const response = await (node as unknown as { exportAsync: (opts: { format: string }) => Promise<{ document: unknown }> }).exportAsync({
-    format: 'JSON_REST_V1',
-  });
+  const response = await exportAsJsonV1(node);
 
   let document = response.document;
 
@@ -130,9 +137,7 @@ export async function getNodesInfo(
     // Export all valid nodes in parallel
     const responses = await Promise.all(
       validNodes.map(async (node) => {
-        const response = await (node as unknown as { exportAsync: (opts: { format: string }) => Promise<{ document: unknown }> }).exportAsync({
-          format: 'JSON_REST_V1',
-        });
+        const response = await exportAsJsonV1(node);
         let document = response.document;
 
         // Strip image data by default to prevent large responses

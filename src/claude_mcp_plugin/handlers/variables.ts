@@ -10,35 +10,43 @@ import type { RgbaColor, VariableResolvedType, VariableValue } from '../types';
 // Private helpers
 // ---------------------------------------------------------------------------
 
-async function findCollection(
+// Fetches both collections and variables in a single parallel round-trip,
+// avoiding the 2× sequential IPC cost of calling each API separately.
+async function fetchVariableData(): Promise<{
+  collections: VariableCollection[];
+  variables: Variable[];
+}> {
+  const [collections, variables] = await Promise.all([
+    figma.variables.getLocalVariableCollectionsAsync(),
+    figma.variables.getLocalVariablesAsync(),
+  ]);
+  return { collections, variables };
+}
+
+function findCollectionIn(
+  collections: VariableCollection[],
   collectionIdOrName: string,
-): Promise<VariableCollection> {
-  const collections =
-    await figma.variables.getLocalVariableCollectionsAsync();
-
+): VariableCollection {
   let collection = collections.find(c => c.id === collectionIdOrName);
-
   if (!collection) {
     collection = collections.find(c => c.name === collectionIdOrName);
   }
-
   if (!collection) {
     throw new Error(`Collection not found: ${collectionIdOrName}`);
   }
-
   return collection;
 }
 
-async function findVariable(
+function findVariableIn(
+  variables: Variable[],
+  collections: VariableCollection[],
   variableIdOrName: string,
   collectionId?: string,
-): Promise<Variable> {
-  const variables = await figma.variables.getLocalVariablesAsync();
-
+): Variable {
   let variable = variables.find(v => v.id === variableIdOrName);
 
   if (!variable && collectionId !== undefined && collectionId !== null) {
-    const collection = await findCollection(collectionId);
+    const collection = findCollectionIn(collections, collectionId);
     variable = variables.find(
       v =>
         v.name === variableIdOrName &&
@@ -51,6 +59,24 @@ async function findVariable(
   }
 
   return variable;
+}
+
+// Legacy single-arg helpers kept for callers that only need a collection
+// and don't require variables in the same call.
+async function findCollection(
+  collectionIdOrName: string,
+): Promise<VariableCollection> {
+  const collections =
+    await figma.variables.getLocalVariableCollectionsAsync();
+  return findCollectionIn(collections, collectionIdOrName);
+}
+
+async function findVariable(
+  variableIdOrName: string,
+  collectionId?: string,
+): Promise<Variable> {
+  const { collections, variables } = await fetchVariableData();
+  return findVariableIn(variables, collections, variableIdOrName, collectionId);
 }
 
 function calculateColorScaleFigma(
@@ -252,8 +278,7 @@ function getDescriptionForVariable(name: string): string {
 // ---------------------------------------------------------------------------
 
 export async function getVariables(): Promise<Record<string, unknown>> {
-  const variables = await figma.variables.getLocalVariablesAsync();
-  const collections = await figma.variables.getLocalVariableCollectionsAsync();
+  const { variables, collections } = await fetchVariableData();
 
   return {
     variables: variables.map(v => ({
@@ -263,10 +288,16 @@ export async function getVariables(): Promise<Record<string, unknown>> {
       type: v.resolvedType,
       description: v.description || '',
       collectionId: v.variableCollectionId,
-      values: Object.entries(v.valuesByMode).map(([modeId, value]) => ({
-        modeId,
-        value: formatVariableValue(value as VariableValue, v.resolvedType as VariableResolvedType),
-      })),
+      values: Object.entries(v.valuesByMode).map(([modeId, value]) => {
+        const knownTypes: VariableResolvedType[] = ['COLOR', 'FLOAT', 'STRING', 'BOOLEAN'];
+        const resolvedType = knownTypes.includes(v.resolvedType as VariableResolvedType)
+          ? (v.resolvedType as VariableResolvedType)
+          : 'STRING' as VariableResolvedType;
+        return {
+          modeId,
+          value: formatVariableValue(value as VariableValue, resolvedType),
+        };
+      }),
     })),
     collections: collections.map(c => ({
       id: c.id,
@@ -507,8 +538,7 @@ export async function unbindVariable(
 
 // 1. get_variable_collections
 export async function getVariableCollections(): Promise<Record<string, unknown>> {
-  const collections = await figma.variables.getLocalVariableCollectionsAsync();
-  const variables = await figma.variables.getLocalVariablesAsync();
+  const { collections, variables } = await fetchVariableData();
 
   return {
     collections: collections.map(c => {
@@ -551,8 +581,8 @@ export async function getCollectionInfo(
   params: Record<string, unknown>,
 ): Promise<Record<string, unknown>> {
   const collectionId = params['collectionId'] as string;
-  const collection = await findCollection(collectionId);
-  const allVariables = await figma.variables.getLocalVariablesAsync();
+  const { collections: _cols, variables: allVariables } = await fetchVariableData();
+  const collection = findCollectionIn(_cols, collectionId);
   const collectionVariables = allVariables.filter(
     v => v.variableCollectionId === collection.id,
   );
@@ -613,11 +643,10 @@ export async function deleteVariableCollection(
 ): Promise<Record<string, unknown>> {
   const collectionId = params['collectionId'] as string;
 
-  const collection = await findCollection(collectionId);
+  const { collections: _colsDvc, variables: allVariables } = await fetchVariableData();
+  const collection = findCollectionIn(_colsDvc, collectionId);
   const collectionName = collection.name;
   const collectionIdValue = collection.id;
-
-  const allVariables = await figma.variables.getLocalVariablesAsync();
   const variableCount = allVariables.filter(
     v => v.variableCollectionId === collection.id,
   ).length;
@@ -915,8 +944,8 @@ export async function auditCollection(
   const includeChartColors = params['includeChartColors'] as boolean | undefined;
   const customSchema = params['customSchema'] as string[] | undefined;
 
-  const collection = await findCollection(collectionId);
-  const allVariables = await figma.variables.getLocalVariablesAsync();
+  const { collections: _cols, variables: allVariables } = await fetchVariableData();
+  const collection = findCollectionIn(_cols, collectionId);
   const collectionVariables = allVariables.filter(
     v => v.variableCollectionId === collection.id,
   );
@@ -928,12 +957,10 @@ export async function auditCollection(
   const existingNames = collectionVariables.map(v => v.name);
   const expectedCount = includeChartColors === true ? 110 : 102;
 
-  const missing = standardVariables.filter(
-    name => !existingNames.includes(name),
-  );
-  const nonStandard = existingNames.filter(
-    name => !standardVariables.includes(name),
-  );
+  const existingSet = new Set(existingNames);
+  const standardSet = new Set(standardVariables);
+  const missing = standardVariables.filter(name => !existingSet.has(name));
+  const nonStandard = existingNames.filter(name => !standardSet.has(name));
 
   const compliancePercentage = (
     ((existingNames.length - nonStandard.length) / expectedCount) *
@@ -976,8 +1003,8 @@ export async function validateColorContrast(
   const mode = params['mode'] as string | undefined;
   const standard = params['standard'] as string | undefined;
 
-  const collection = await findCollection(collectionId);
-  const allVariables = await figma.variables.getLocalVariablesAsync();
+  const { collections: _cols, variables: allVariables } = await fetchVariableData();
+  const collection = findCollectionIn(_cols, collectionId);
   const collectionVariables = allVariables.filter(
     v => v.variableCollectionId === collection.id,
   );
@@ -1073,17 +1100,16 @@ export async function suggestMissingVariables(
   const collectionId = params['collectionId'] as string;
   const useDefaults = params['useDefaults'];
 
-  const collection = await findCollection(collectionId);
-  const allVariables = await figma.variables.getLocalVariablesAsync();
+  const { collections: _cols, variables: allVariables } = await fetchVariableData();
+  const collection = findCollectionIn(_cols, collectionId);
   const collectionVariables = allVariables.filter(
     v => v.variableCollectionId === collection.id,
   );
 
   const standardVariables = getStandardSchemaFigma(false);
   const existingNames = collectionVariables.map(v => v.name);
-  const missing = standardVariables.filter(
-    name => !existingNames.includes(name),
-  );
+  const existingNamesSet = new Set(existingNames);
+  const missing = standardVariables.filter(name => !existingNamesSet.has(name));
 
   const defaultTheme = getDefaultDarkTheme();
   const backgroundColor = defaultTheme['background'];
@@ -1132,12 +1158,18 @@ export async function applyDefaultTheme(
   const overwriteExisting = params['overwriteExisting'] as boolean | undefined;
   const includeChartColors = params['includeChartColors'] as boolean | undefined;
 
-  const collection = await findCollection(collectionId);
-  const allVariables = await figma.variables.getLocalVariablesAsync();
+  const { collections: _cols, variables: allVariables } = await fetchVariableData();
+  const collection = findCollectionIn(_cols, collectionId);
   const collectionVariables = allVariables.filter(
     v => v.variableCollectionId === collection.id,
   );
   const existingNames = new Set(collectionVariables.map(v => v.name));
+
+  // Build a Map for O(1) lookups during overwrite passes.
+  const varByName = new Map<string, Variable>();
+  for (const v of collectionVariables) {
+    varByName.set(v.name, v);
+  }
 
   const defaultTheme = getDefaultDarkTheme();
   const backgroundColor = defaultTheme['background'];
@@ -1150,7 +1182,7 @@ export async function applyDefaultTheme(
   for (const [name, value] of Object.entries(defaultTheme)) {
     if (existingNames.has(name)) {
       if (overwriteExisting === true) {
-        const variable = collectionVariables.find(v => v.name === name);
+        const variable = varByName.get(name);
         if (variable !== undefined) {
           variable.setValueForMode(modeId, value);
         }
@@ -1161,6 +1193,7 @@ export async function applyDefaultTheme(
     } else {
       const variable = figma.variables.createVariable(name, collection, 'COLOR');
       variable.setValueForMode(modeId, value);
+      varByName.set(name, variable);
       created++;
     }
   }
@@ -1184,7 +1217,7 @@ export async function applyDefaultTheme(
 
         if (existingNames.has(varName)) {
           if (overwriteExisting === true) {
-            const variable = collectionVariables.find(v => v.name === varName);
+            const variable = varByName.get(varName);
             if (variable !== undefined) {
               variable.setValueForMode(modeId, value);
             }
@@ -1195,6 +1228,7 @@ export async function applyDefaultTheme(
         } else {
           const variable = figma.variables.createVariable(varName, collection, 'COLOR');
           variable.setValueForMode(modeId, value);
+          varByName.set(varName, variable);
           created++;
         }
       }
@@ -1316,34 +1350,37 @@ export async function applyCustomPalette(
   const backgroundColor = params['backgroundColor'] as RgbaColor;
   const regenerateScales = params['regenerateScales'];
 
-  const collection = await findCollection(collectionId);
-  const allVariables = await figma.variables.getLocalVariablesAsync();
+  const { collections: _cols, variables: allVariables } = await fetchVariableData();
+  const collection = findCollectionIn(_cols, collectionId);
   const collectionVariables = allVariables.filter(
     v => v.variableCollectionId === collection.id,
   );
   const modeId = collection.modes[0].modeId;
+
+  // Build a map for O(1) lookups instead of repeated O(n) find() calls.
+  const varByName = new Map<string, Variable>();
+  for (const v of collectionVariables) {
+    varByName.set(v.name, v);
+  }
 
   let baseColorsUpdated = 0;
   let foregroundsUpdated = 0;
   let scalesRegenerated = 0;
 
   for (const [colorName, colors] of Object.entries(palette)) {
-    let baseVar = collectionVariables.find(v => v.name === colorName);
+    let baseVar = varByName.get(colorName);
     if (baseVar === undefined) {
       baseVar = figma.variables.createVariable(colorName, collection, 'COLOR');
+      varByName.set(colorName, baseVar);
     }
     baseVar.setValueForMode(modeId, colors.base);
     baseColorsUpdated++;
 
-    let fgVar = collectionVariables.find(
-      v => v.name === `${colorName}-foreground`,
-    );
+    const fgKey = `${colorName}-foreground`;
+    let fgVar = varByName.get(fgKey);
     if (fgVar === undefined) {
-      fgVar = figma.variables.createVariable(
-        `${colorName}-foreground`,
-        collection,
-        'COLOR',
-      );
+      fgVar = figma.variables.createVariable(fgKey, collection, 'COLOR');
+      varByName.set(fgKey, fgVar);
     }
     fgVar.setValueForMode(modeId, colors.foreground);
     foregroundsUpdated++;
@@ -1353,10 +1390,11 @@ export async function applyCustomPalette(
 
       for (const [level, value] of Object.entries(scale)) {
         const varName = `${colorName}-${level}`;
-        let scaleVar = collectionVariables.find(v => v.name === varName);
+        let scaleVar = varByName.get(varName);
 
         if (scaleVar === undefined) {
           scaleVar = figma.variables.createVariable(varName, collection, 'COLOR');
+          varByName.set(varName, scaleVar);
         }
         scaleVar.setValueForMode(modeId, value);
         scalesRegenerated++;
@@ -1462,8 +1500,8 @@ export async function exportCollectionSchema(
   const mode = params['mode'] as string | undefined;
   const includeMetadata = params['includeMetadata'];
 
-  const collection = await findCollection(collectionId);
-  const allVariables = await figma.variables.getLocalVariablesAsync();
+  const { collections: _cols, variables: allVariables } = await fetchVariableData();
+  const collection = findCollectionIn(_cols, collectionId);
   const collectionVariables = allVariables.filter(
     v => v.variableCollectionId === collection.id,
   );
@@ -1528,8 +1566,20 @@ export async function importCollectionSchema(
   const mode = params['mode'] as string | undefined;
   const overwriteExisting = params['overwriteExisting'] as boolean | undefined;
 
-  const collection = await findCollection(collectionId);
-  const allVariables = await figma.variables.getLocalVariablesAsync();
+  if (!schema || typeof schema !== 'object' || typeof schema.variables !== 'object') {
+    throw new Error('Invalid schema: expected an object with a "variables" map');
+  }
+
+  const MAX_IMPORT_VARIABLES = 1000;
+  const entries = Object.entries(schema.variables);
+  if (entries.length > MAX_IMPORT_VARIABLES) {
+    throw new Error(
+      `Schema contains ${entries.length} variables, which exceeds the maximum of ${MAX_IMPORT_VARIABLES} per import`,
+    );
+  }
+
+  const { collections: _cols, variables: allVariables } = await fetchVariableData();
+  const collection = findCollectionIn(_cols, collectionId);
   const collectionVariables = allVariables.filter(
     v => v.variableCollectionId === collection.id,
   );
@@ -1554,8 +1604,21 @@ export async function importCollectionSchema(
   let failed = 0;
   const errors: Array<{ name: string; error: string }> = [];
 
-  for (const [name, varData] of Object.entries(schema.variables)) {
+  for (const [name, varData] of entries) {
     try {
+      // Validate name: must be a non-empty string with no control characters or
+      // path separators (protects against prototype pollution and API misuse).
+      if (typeof name !== 'string' || name.length === 0 || name.length > 256 || /[\x00-\x1f/\\]/.test(name)) {
+        failed++;
+        errors.push({ name, error: 'Invalid variable name' });
+        continue;
+      }
+      if (!varData || typeof varData !== 'object' || !('value' in varData)) {
+        failed++;
+        errors.push({ name, error: 'Missing or invalid value' });
+        continue;
+      }
+
       if (existingNames.has(name)) {
         if (overwriteExisting === true) {
           const variable = collectionVariables.find(v => v.name === name);

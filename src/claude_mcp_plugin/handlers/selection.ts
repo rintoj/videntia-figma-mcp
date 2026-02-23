@@ -64,37 +64,31 @@ export async function readMyDesign(params: Record<string, unknown>): Promise<Rec
   const nodeId = (params !== null && params !== undefined) ? (params['nodeId'] as string | undefined) : undefined;
   const depth = (params !== null && params !== undefined) ? (params['depth'] as number | undefined) : undefined;
 
-  // Build variable ID to name map once
+  // Build lookup maps in parallel — avoids 3 sequential Figma API round-trips.
   const variableMap = new Map<string, string>();
-  try {
-    const localVars = await figma.variables.getLocalVariablesAsync();
-    for (const v of localVars) {
+  const textStyleMap = new Map<string, string>();
+  const effectStyleMap = new Map<string, string>();
+
+  const [localVarsResult, localStylesResult, localEffectsResult] = await Promise.all([
+    figma.variables.getLocalVariablesAsync().catch(() => null),
+    figma.getLocalTextStylesAsync().catch(() => null),
+    figma.getLocalEffectStylesAsync().catch(() => null),
+  ]);
+
+  if (localVarsResult !== null) {
+    for (const v of localVarsResult) {
       variableMap.set(v.id, v.name);
     }
-  } catch (e) {
-    // Variables API may not be available in all contexts
   }
-
-  // Build text style ID to name map once
-  const textStyleMap = new Map<string, string>();
-  try {
-    const localStyles = await figma.getLocalTextStylesAsync();
-    for (const s of localStyles) {
+  if (localStylesResult !== null) {
+    for (const s of localStylesResult) {
       textStyleMap.set(s.id, s.name);
     }
-  } catch (e) {
-    // Text styles API may not be available
   }
-
-  // Build effect style ID to name map once
-  const effectStyleMap = new Map<string, string>();
-  try {
-    const localEffects = await figma.getLocalEffectStylesAsync();
-    for (const s of localEffects) {
+  if (localEffectsResult !== null) {
+    for (const s of localEffectsResult) {
       effectStyleMap.set(s.id, s.name);
     }
-  } catch (e) {
-    // Effect styles API may not be available
   }
 
   // Helper: convert Figma color {r,g,b,a} (0-1) to hex or rgba string
@@ -273,7 +267,7 @@ export async function readMyDesign(params: Record<string, unknown>): Promise<Rec
     // Strokes
     const strokes = extractStrokes(node);
     if (strokes) info['strokes'] = strokes;
-    if ('strokeWeight' in node && (node as GeometryMixin).strokeWeight !== figma.mixed && (node as IndividualStrokesMixin).strokeTopWeight > 0) {
+    if ('strokeWeight' in node && 'strokes' in node && (node as GeometryMixin).strokes.length > 0 && (node as GeometryMixin).strokeWeight !== figma.mixed) {
       info['strokeWeight'] = (node as GeometryMixin).strokeWeight;
     }
 
@@ -411,14 +405,18 @@ export async function readMyDesign(params: Record<string, unknown>): Promise<Rec
       }
     }
 
-    // Children (respect depth limit)
+    // Children (respect depth limit) — processed in parallel to avoid
+    // sequential round-trips for INSTANCE nodes with getMainComponentAsync.
     if ('children' in node && (node as ChildrenMixin).children.length > 0) {
       if (depth === undefined || currentDepth < depth) {
-        const childInfos: Record<string, unknown>[] = [];
-        for (const child of (node as ChildrenMixin).children) {
-          const childInfo = await processNode(child as SceneNode, currentDepth + 1);
-          if (childInfo) childInfos.push(childInfo);
-        }
+        const childResults = await Promise.all(
+          (node as ChildrenMixin).children.map(
+            child => processNode(child as SceneNode, currentDepth + 1),
+          ),
+        );
+        const childInfos = childResults.filter(
+          (c): c is Record<string, unknown> => c !== null,
+        );
         if (childInfos.length > 0) info['children'] = childInfos;
       }
     }

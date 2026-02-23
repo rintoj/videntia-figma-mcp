@@ -1,7 +1,7 @@
 // Shape creation handler functions for the Claude Figma MCP plugin.
 
 import { parseSvgRootStroke, propagateStrokeToShapes } from '../utils/svg';
-import { debugLog } from '../utils/helpers';
+import { debugLog, parseNum } from '../utils/helpers';
 
 // ---------------------------------------------------------------------------
 // createEllipse
@@ -41,11 +41,11 @@ export async function createEllipse(params: Record<string, unknown>): Promise<un
     const fillStyle: SolidPaint = {
       type: 'SOLID',
       color: {
-        r: parseFloat(fillColor['r'] as string) || 0,
-        g: parseFloat(fillColor['g'] as string) || 0,
-        b: parseFloat(fillColor['b'] as string) || 0,
+        r: parseNum(fillColor['r'], 0),
+        g: parseNum(fillColor['g'], 0),
+        b: parseNum(fillColor['b'], 0),
       },
-      opacity: parseFloat(fillColor['a'] as string) || 1,
+      opacity: parseNum(fillColor['a'], 1),
     };
     ellipse.fills = [fillStyle];
   }
@@ -55,11 +55,11 @@ export async function createEllipse(params: Record<string, unknown>): Promise<un
     const strokeStyle: SolidPaint = {
       type: 'SOLID',
       color: {
-        r: parseFloat(strokeColor['r'] as string) || 0,
-        g: parseFloat(strokeColor['g'] as string) || 0,
-        b: parseFloat(strokeColor['b'] as string) || 0,
+        r: parseNum(strokeColor['r'], 0),
+        g: parseNum(strokeColor['g'], 0),
+        b: parseNum(strokeColor['b'], 0),
       },
-      opacity: parseFloat(strokeColor['a'] as string) || 1,
+      opacity: parseNum(strokeColor['a'], 1),
     };
     ellipse.strokes = [strokeStyle];
 
@@ -140,11 +140,11 @@ export async function createPolygon(params: Record<string, unknown>): Promise<un
     const paintStyle: SolidPaint = {
       type: 'SOLID',
       color: {
-        r: parseFloat(fillColor['r'] as string) || 0,
-        g: parseFloat(fillColor['g'] as string) || 0,
-        b: parseFloat(fillColor['b'] as string) || 0,
+        r: parseNum(fillColor['r'], 0),
+        g: parseNum(fillColor['g'], 0),
+        b: parseNum(fillColor['b'], 0),
       },
-      opacity: parseFloat(fillColor['a'] as string) || 1,
+      opacity: parseNum(fillColor['a'], 1),
     };
     polygon.fills = [paintStyle];
   }
@@ -154,11 +154,11 @@ export async function createPolygon(params: Record<string, unknown>): Promise<un
     const strokeStyle: SolidPaint = {
       type: 'SOLID',
       color: {
-        r: parseFloat(strokeColor['r'] as string) || 0,
-        g: parseFloat(strokeColor['g'] as string) || 0,
-        b: parseFloat(strokeColor['b'] as string) || 0,
+        r: parseNum(strokeColor['r'], 0),
+        g: parseNum(strokeColor['g'], 0),
+        b: parseNum(strokeColor['b'], 0),
       },
-      opacity: parseFloat(strokeColor['a'] as string) || 1,
+      opacity: parseNum(strokeColor['a'], 1),
     };
     polygon.strokes = [strokeStyle];
   }
@@ -244,11 +244,11 @@ export async function createStar(params: Record<string, unknown>): Promise<unkno
     const paintStyle: SolidPaint = {
       type: 'SOLID',
       color: {
-        r: parseFloat(fillColor['r'] as string) || 0,
-        g: parseFloat(fillColor['g'] as string) || 0,
-        b: parseFloat(fillColor['b'] as string) || 0,
+        r: parseNum(fillColor['r'], 0),
+        g: parseNum(fillColor['g'], 0),
+        b: parseNum(fillColor['b'], 0),
       },
-      opacity: parseFloat(fillColor['a'] as string) || 1,
+      opacity: parseNum(fillColor['a'], 1),
     };
     star.fills = [paintStyle];
   }
@@ -258,11 +258,11 @@ export async function createStar(params: Record<string, unknown>): Promise<unkno
     const strokeStyle: SolidPaint = {
       type: 'SOLID',
       color: {
-        r: parseFloat(strokeColor['r'] as string) || 0,
-        g: parseFloat(strokeColor['g'] as string) || 0,
-        b: parseFloat(strokeColor['b'] as string) || 0,
+        r: parseNum(strokeColor['r'], 0),
+        g: parseNum(strokeColor['g'], 0),
+        b: parseNum(strokeColor['b'], 0),
       },
-      opacity: parseFloat(strokeColor['a'] as string) || 1,
+      opacity: parseNum(strokeColor['a'], 1),
     };
     star.strokes = [strokeStyle];
   }
@@ -485,11 +485,11 @@ export async function createVector(params: Record<string, unknown>): Promise<unk
     const paintStyle: SolidPaint = {
       type: 'SOLID',
       color: {
-        r: parseFloat(fillColor['r'] as string) || 0,
-        g: parseFloat(fillColor['g'] as string) || 0,
-        b: parseFloat(fillColor['b'] as string) || 0,
+        r: parseNum(fillColor['r'], 0),
+        g: parseNum(fillColor['g'], 0),
+        b: parseNum(fillColor['b'], 0),
       },
-      opacity: parseFloat(fillColor['a'] as string) || 1,
+      opacity: parseNum(fillColor['a'], 1),
     };
     vector.fills = [paintStyle];
   }
@@ -499,11 +499,11 @@ export async function createVector(params: Record<string, unknown>): Promise<unk
     const strokeStyle: SolidPaint = {
       type: 'SOLID',
       color: {
-        r: parseFloat(strokeColor['r'] as string) || 0,
-        g: parseFloat(strokeColor['g'] as string) || 0,
-        b: parseFloat(strokeColor['b'] as string) || 0,
+        r: parseNum(strokeColor['r'], 0),
+        g: parseNum(strokeColor['g'], 0),
+        b: parseNum(strokeColor['b'], 0),
       },
-      opacity: parseFloat(strokeColor['a'] as string) || 1,
+      opacity: parseNum(strokeColor['a'], 1),
     };
     vector.strokes = [strokeStyle];
   }
@@ -609,11 +609,11 @@ export async function createLine(params: Record<string, unknown>): Promise<unkno
   const strokeStyle: SolidPaint = {
     type: 'SOLID',
     color: {
-      r: parseFloat(strokeColor['r'] as string) || 0,
-      g: parseFloat(strokeColor['g'] as string) || 0,
-      b: parseFloat(strokeColor['b'] as string) || 0,
+      r: parseNum(strokeColor['r'], 0),
+      g: parseNum(strokeColor['g'], 0),
+      b: parseNum(strokeColor['b'], 0),
     },
-    opacity: parseFloat(strokeColor['a'] as string) || 1,
+    opacity: parseNum(strokeColor['a'], 1),
   };
   line.strokes = [strokeStyle];
 

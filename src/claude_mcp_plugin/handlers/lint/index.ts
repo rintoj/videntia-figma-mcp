@@ -5,20 +5,20 @@ import { buildLookupMaps } from './helpers';
 
 export async function lintFrame(params: Record<string, unknown>): Promise<LintResult> {
   const lintParams = params as unknown as LintOptions;
-  var nodeId = lintParams ? lintParams.nodeId : undefined;
-  var checks = lintParams ? lintParams.checks : undefined;
-  var fix = lintParams ? (lintParams.fix === true) : false;
+  let nodeId = lintParams ? lintParams.nodeId : undefined;
+  let checks = lintParams ? lintParams.checks : undefined;
+  let fix = lintParams ? (lintParams.fix === true) : false;
 
   if (!nodeId) throw new Error('nodeId is required');
 
-  var rootNode = await figma.getNodeByIdAsync(nodeId);
+  let rootNode = await figma.getNodeByIdAsync(nodeId);
   if (!rootNode) throw new Error('Node not found: ' + String(nodeId).substring(0, 50));
 
   // rootFrame check only applies when the node is a direct child of a PAGE
-  var isPageChild = rootNode.parent !== null && rootNode.parent !== undefined && rootNode.parent.type === 'PAGE';
+  let isPageChild = rootNode.parent !== null && rootNode.parent !== undefined && rootNode.parent.type === 'PAGE';
 
   // Default checks — all on
-  var chk: ActiveChecks = {
+  let chk: ActiveChecks = {
     rootFrame: isPageChild,
     colors: true,
     spacing: true,
@@ -41,10 +41,10 @@ export async function lintFrame(params: Record<string, unknown>): Promise<LintRe
   }
 
   // Pre-load all lookup maps (parallel)
-  var maps = await buildLookupMaps();
+  let maps = await buildLookupMaps();
 
   // Category tallies
-  var categories: LintCategories = {
+  let categories: LintCategories = {
     rootFrame:       { total: 0, bound: 0, unbound: 0, compliance: 100 },
     typography:      { total: 0, bound: 0, unbound: 0, compliance: 100 },
     spacing:         { total: 0, bound: 0, unbound: 0, compliance: 100 },
@@ -56,9 +56,9 @@ export async function lintFrame(params: Record<string, unknown>): Promise<LintRe
     overflow:        { total: 0, bound: 0, unbound: 0, compliance: 100 },
   };
 
-  var violations: import('./types').Violation[] = [];
-  var violationsCappedRef = { value: false };
-  var totalNodesRef = { value: 0 };
+  let violations: import('./types').Violation[] = [];
+  let violationsCappedRef = { value: false };
+  let totalNodesRef = { value: 0 };
 
   // Run the traversal
   scanNode(rootNode as SceneNode, 0, null, null, chk, categories, violations, violationsCappedRef, totalNodesRef);
@@ -69,9 +69,9 @@ export async function lintFrame(params: Record<string, unknown>): Promise<LintRe
   }
 
   // Compute compliance percentages
-  var catKeys: Array<keyof LintCategories> = ['rootFrame', 'typography', 'spacing', 'borderRadius', 'iconColors', 'strokesBorders', 'backgroundFills', 'effectStyles', 'overflow'];
-  for (var ck = 0; ck < catKeys.length; ck++) {
-    var cat = categories[catKeys[ck]];
+  let catKeys: Array<keyof LintCategories> = ['rootFrame', 'typography', 'spacing', 'borderRadius', 'iconColors', 'strokesBorders', 'backgroundFills', 'effectStyles', 'overflow'];
+  for (let ck = 0; ck < catKeys.length; ck++) {
+    let cat = categories[catKeys[ck]];
     if (cat.total > 0) {
       cat.compliance = Math.round((cat.bound / cat.total) * 100);
     } else {
@@ -80,12 +80,12 @@ export async function lintFrame(params: Record<string, unknown>): Promise<LintRe
   }
 
   // Compute summary
-  var summaryCritical = 0;
-  var summaryHigh = 0;
-  var summaryMedium = 0;
-  var summaryLow = 0;
-  var summaryFixed = 0;
-  for (var sv = 0; sv < violations.length; sv++) {
+  let summaryCritical = 0;
+  let summaryHigh = 0;
+  let summaryMedium = 0;
+  let summaryLow = 0;
+  let summaryFixed = 0;
+  for (let sv = 0; sv < violations.length; sv++) {
     if (violations[sv].fixed === true) {
       summaryFixed++;
       continue;
@@ -97,16 +97,16 @@ export async function lintFrame(params: Record<string, unknown>): Promise<LintRe
       case 'LOW': summaryLow++; break;
     }
   }
-  var summaryTotal = violations.length - summaryFixed;
+  let summaryTotal = violations.length - summaryFixed;
 
   // Overall compliance
-  var overallTotal = 0;
-  var overallBound = 0;
-  for (var ok = 0; ok < catKeys.length; ok++) {
+  let overallTotal = 0;
+  let overallBound = 0;
+  for (let ok = 0; ok < catKeys.length; ok++) {
     overallTotal += categories[catKeys[ok]].total;
     overallBound += categories[catKeys[ok]].bound;
   }
-  var overallCompliance = overallTotal > 0 ? Math.round((overallBound / overallTotal) * 100) : 100;
+  let overallCompliance = overallTotal > 0 ? Math.round((overallBound / overallTotal) * 100) : 100;
 
   return {
     nodeId: rootNode.id,

@@ -1,5 +1,5 @@
 import { customBase64Encode } from '../utils/base64';
-import { debugLog } from '../utils/helpers';
+import { debugLog, parseNum } from '../utils/helpers';
 
 export async function createRectangle(params: Record<string, unknown>): Promise<Record<string, unknown>> {
   const x: number = (params !== null && params !== undefined && params['x'] !== null && params['x'] !== undefined) ? params['x'] as number : 0;
@@ -73,11 +73,11 @@ export async function createFrame(params: Record<string, unknown>): Promise<Reco
     const paintStyle: SolidPaint = {
       type: 'SOLID',
       color: {
-        r: parseFloat(fillColor['r'] as string) || 0,
-        g: parseFloat(fillColor['g'] as string) || 0,
-        b: parseFloat(fillColor['b'] as string) || 0,
+        r: parseNum(fillColor['r'], 0),
+        g: parseNum(fillColor['g'], 0),
+        b: parseNum(fillColor['b'], 0),
       },
-      opacity: parseFloat(fillColor['a'] as string) || 1,
+      opacity: parseNum(fillColor['a'], 1),
     };
     frame.fills = [paintStyle];
   }
@@ -87,11 +87,11 @@ export async function createFrame(params: Record<string, unknown>): Promise<Reco
     const strokeStyle: SolidPaint = {
       type: 'SOLID',
       color: {
-        r: parseFloat(strokeColor['r'] as string) || 0,
-        g: parseFloat(strokeColor['g'] as string) || 0,
-        b: parseFloat(strokeColor['b'] as string) || 0,
+        r: parseNum(strokeColor['r'], 0),
+        g: parseNum(strokeColor['g'], 0),
+        b: parseNum(strokeColor['b'], 0),
       },
-      opacity: parseFloat(strokeColor['a'] as string) || 1,
+      opacity: parseNum(strokeColor['a'], 1),
     };
     frame.strokes = [strokeStyle];
   }
@@ -384,10 +384,10 @@ export async function setCornerRadius(params: Record<string, unknown>): Promise<
   if (corners && Array.isArray(corners) && corners.length === 4) {
     if ('topLeftRadius' in node) {
       // Node supports individual corner radii
-      if (corners[0]) cornerNode.topLeftRadius = radius;
-      if (corners[1]) cornerNode.topRightRadius = radius;
-      if (corners[2]) cornerNode.bottomRightRadius = radius;
-      if (corners[3]) cornerNode.bottomLeftRadius = radius;
+      if (corners[0] === true) cornerNode.topLeftRadius = radius;
+      if (corners[1] === true) cornerNode.topRightRadius = radius;
+      if (corners[2] === true) cornerNode.bottomRightRadius = radius;
+      if (corners[3] === true) cornerNode.bottomLeftRadius = radius;
     } else {
       // Node only supports uniform corner radius
       cornerNode.cornerRadius = radius;
@@ -559,8 +559,8 @@ export async function flattenNode(params: Record<string, unknown>): Promise<Reco
     const flattenableNode = node as unknown as FlattenableNode;
 
     // Implement a timeout mechanism
-    let timeoutId: ReturnType<typeof setTimeout> = setTimeout(() => { /* placeholder */ }, 0);
-    clearTimeout(timeoutId); // clear the placeholder immediately
+    // eslint-disable-next-line prefer-const
+    let timeoutId!: ReturnType<typeof setTimeout>;
     const timeoutPromise = new Promise<never>((_, reject) => {
       timeoutId = setTimeout(() => {
         reject(new Error('Flatten operation timed out after 8 seconds. The node may be too complex.'));

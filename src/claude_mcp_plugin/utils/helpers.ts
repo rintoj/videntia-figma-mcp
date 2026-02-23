@@ -108,6 +108,16 @@ export function generateCommandId(): string {
 }
 
 // ---------------------------------------------------------------------------
+// Safe numeric parser — avoids the `parseFloat(x) || fallback` pitfall where
+// a legitimate value of `0` is falsy and gets replaced by the fallback.
+// ---------------------------------------------------------------------------
+
+export function parseNum(x: unknown, fallback: number): number {
+  const v = parseFloat(x as string);
+  return isNaN(v) ? fallback : v;
+}
+
+// ---------------------------------------------------------------------------
 // Font weight → Figma font style name mapping
 // ---------------------------------------------------------------------------
 

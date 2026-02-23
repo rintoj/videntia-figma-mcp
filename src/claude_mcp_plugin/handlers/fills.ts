@@ -221,6 +221,11 @@ export async function setImageFill(params: Record<string, unknown>): Promise<unk
     throw new Error('Missing imageUrl parameter');
   }
 
+  // Only allow http/https URLs — reject file://, data:, and internal network addresses.
+  if (!/^https?:\/\//i.test(imageUrl)) {
+    throw new Error('imageUrl must use http:// or https:// scheme');
+  }
+
   const validScaleModes = ['FILL', 'FIT', 'CROP', 'TILE'];
   if (!validScaleModes.includes(scaleMode)) {
     throw new Error(
@@ -249,7 +254,7 @@ export async function setImageFill(params: Record<string, unknown>): Promise<unk
     const errorMsg = fetchError instanceof Error ? fetchError.message : String(fetchError);
     console.error(`setImageFill: Failed to fetch image: ${errorMsg}`);
     throw new Error(
-      `Failed to fetch image from URL. This may be due to CORS restrictions, invalid URL, or unsupported image format. URL: ${imageUrl}. Error: ${errorMsg}`,
+      `Failed to fetch image. This may be due to CORS restrictions, an invalid URL, or an unsupported image format. Error: ${errorMsg}`,
     );
   }
 

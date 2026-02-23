@@ -31,22 +31,22 @@ export function scanNode(
   if (depth > MAX_LINT_DEPTH) return;
 
   totalNodesRef.value++;
-  var nodeType = node.type;
+  let nodeType = node.type;
 
   // ── ROOT FRAME checks (depth === 0 only) ──
   if (chk.rootFrame && depth === 0 && (nodeType === 'FRAME' || nodeType === 'COMPONENT')) {
-    var DIM_TOL = DIM_TOLERANCE;
+    let DIM_TOL = DIM_TOLERANCE;
 
-    var rfLayoutMode: string | null = null;
+    let rfLayoutMode: string | null = null;
     try { rfLayoutMode = (node as FrameNode).layoutMode; } catch (e) {}
-    var rfHasLayout = rfLayoutMode && rfLayoutMode !== 'NONE';
+    let rfHasLayout = rfLayoutMode && rfLayoutMode !== 'NONE';
 
-    var rfWidth = 0;
+    let rfWidth = 0;
     try { rfWidth = (node as FrameNode).width; } catch (e) {}
 
     // Detect device from width
-    var rfDevice: typeof DEVICE_SIZES[0] | null = null;
-    for (var rfdi = 0; rfdi < DEVICE_SIZES.length; rfdi++) {
+    let rfDevice: typeof DEVICE_SIZES[0] | null = null;
+    for (let rfdi = 0; rfdi < DEVICE_SIZES.length; rfdi++) {
       if (Math.abs(rfWidth - DEVICE_SIZES[rfdi].width) <= DIM_TOL) {
         rfDevice = DEVICE_SIZES[rfdi];
         break;
@@ -55,7 +55,7 @@ export function scanNode(
 
     if (rfHasLayout) {
       // Check 1: width sizing must be FIXED
-      var rfSizingH: string | null = null;
+      let rfSizingH: string | null = null;
       try { rfSizingH = (node as FrameNode).layoutSizingHorizontal; } catch (e) {}
       categories.rootFrame.total++;
       if (rfSizingH === 'FIXED') {
@@ -85,7 +85,7 @@ export function scanNode(
 
     if (rfHasLayout) {
       // Check 3: height sizing must be HUG
-      var rfSizingV: string | null = null;
+      let rfSizingV: string | null = null;
       try { rfSizingV = (node as FrameNode).layoutSizingVertical; } catch (e) {}
       categories.rootFrame.total++;
       if (rfSizingV === 'HUG') {
@@ -100,10 +100,10 @@ export function scanNode(
       }
 
       // Check 4: minHeight must be set (and should match device height)
-      var rfMinHeight: number | null = null;
+      let rfMinHeight: number | null = null;
       try { rfMinHeight = (node as FrameNode).minHeight; } catch (e) {}
-      var rfMinHeightNum = (rfMinHeight !== null && rfMinHeight !== undefined) ? rfMinHeight : 0;
-      var rfExpectedMinH = rfDevice ? rfDevice.minHeight : 0;
+      let rfMinHeightNum = (rfMinHeight !== null && rfMinHeight !== undefined) ? rfMinHeight : 0;
+      let rfExpectedMinH = rfDevice ? rfDevice.minHeight : 0;
 
       categories.rootFrame.total++;
       if (rfMinHeightNum > 0) {
@@ -117,7 +117,7 @@ export function scanNode(
         }
       } else {
         categories.rootFrame.unbound++;
-        var rfMinHMsg = 'Root frame minHeight not set';
+        let rfMinHMsg = 'Root frame minHeight not set';
         if (rfDevice) {
           rfMinHMsg += ' — expected ' + rfExpectedMinH + 'px for ' + rfDevice.name;
         } else {
@@ -164,17 +164,17 @@ export function scanNode(
 
   // ── FILL / COLOR checks ──
   if (chk.colors) {
-    var fills: ReadonlyArray<Paint> | null = null;
+    let fills: ReadonlyArray<Paint> | null = null;
     try { fills = (node as GeometryMixin).fills as ReadonlyArray<Paint>; } catch (e) {}
     if (fills && fills !== (figma.mixed as unknown) && Array.isArray(fills)) {
-      for (var fi = 0; fi < fills.length; fi++) {
+      for (let fi = 0; fi < fills.length; fi++) {
         if (!isColorFill(fills[fi])) continue;
 
-        var isIcon = isIconLike(node);
-        var catName: 'iconColors' | 'backgroundFills' = isIcon ? 'iconColors' : 'backgroundFills';
+        let isIcon = isIconLike(node);
+        let catName: 'iconColors' | 'backgroundFills' = isIcon ? 'iconColors' : 'backgroundFills';
         categories[catName].total++;
 
-        var fillBound = isFillBound(node, 'fills', fi) || hasFillPaintStyle(node);
+        let fillBound = isFillBound(node, 'fills', fi) || hasFillPaintStyle(node);
         if (fillBound) {
           categories[catName].bound++;
         } else {
@@ -190,14 +190,14 @@ export function scanNode(
 
   // ── STROKE checks ──
   if (chk.colors) {
-    var strokes: ReadonlyArray<Paint> | null = null;
+    let strokes: ReadonlyArray<Paint> | null = null;
     try { strokes = (node as GeometryMixin).strokes as ReadonlyArray<Paint>; } catch (e) {}
     if (strokes && strokes !== (figma.mixed as unknown) && Array.isArray(strokes) && strokes.length > 0) {
-      for (var si = 0; si < strokes.length; si++) {
+      for (let si = 0; si < strokes.length; si++) {
         if (!isColorFill(strokes[si])) continue;
 
         categories.strokesBorders.total++;
-        var strokeBound = isFillBound(node, 'strokes', si) || hasStrokePaintStyle(node);
+        let strokeBound = isFillBound(node, 'strokes', si) || hasStrokePaintStyle(node);
         if (strokeBound) {
           categories.strokesBorders.bound++;
         } else {
@@ -213,12 +213,12 @@ export function scanNode(
 
   // ── SPACING checks (auto-layout frames) ──
   if (chk.spacing && (nodeType === 'FRAME' || nodeType === 'COMPONENT' || nodeType === 'COMPONENT_SET' || nodeType === 'INSTANCE')) {
-    var layoutMode: string | null = null;
+    let layoutMode: string | null = null;
     try { layoutMode = (node as FrameNode).layoutMode; } catch (e) {}
 
     if (layoutMode && layoutMode !== 'NONE') {
       // Check itemSpacing
-      var itemSpacing = 0;
+      let itemSpacing = 0;
       try { itemSpacing = (node as FrameNode).itemSpacing; } catch (e) {}
       if (itemSpacing > 0) {
         categories.spacing.total++;
@@ -234,9 +234,9 @@ export function scanNode(
       }
 
       // Check padding
-      var paddingProps = ['paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft'];
-      for (var ppi = 0; ppi < paddingProps.length; ppi++) {
-        var padVal = 0;
+      let paddingProps = ['paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft'];
+      for (let ppi = 0; ppi < paddingProps.length; ppi++) {
+        let padVal = 0;
         try { padVal = (node as FrameNode)[paddingProps[ppi] as keyof FrameNode] as number; } catch (e) {}
         if (padVal > 0) {
           categories.spacing.total++;
@@ -256,7 +256,7 @@ export function scanNode(
 
   // ── BORDER RADIUS checks ──
   if (chk.radius && (nodeType === 'FRAME' || nodeType === 'RECTANGLE' || nodeType === 'COMPONENT' || nodeType === 'INSTANCE' || nodeType === 'ELLIPSE')) {
-    var cornerRadius: number | symbol = 0;
+    let cornerRadius: number | symbol = 0;
     try { cornerRadius = (node as RectangleNode).cornerRadius; } catch (e) {}
 
     if (cornerRadius && cornerRadius !== figma.mixed && (cornerRadius as number) > 0) {
@@ -278,9 +278,9 @@ export function scanNode(
       }
     } else if (cornerRadius === figma.mixed) {
       // Individual corners set — check each
-      var radiusProps = ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'];
-      for (var ri = 0; ri < radiusProps.length; ri++) {
-        var rVal = 0;
+      let radiusProps = ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'];
+      for (let ri = 0; ri < radiusProps.length; ri++) {
+        let rVal = 0;
         try { rVal = (node as RectangleNode)[radiusProps[ri] as keyof RectangleNode] as number; } catch (e) {}
         if (rVal > 0) {
           categories.borderRadius.total++;
@@ -300,11 +300,11 @@ export function scanNode(
 
   // ── EFFECT STYLE checks ──
   if (chk.effectStyles) {
-    var effects: ReadonlyArray<Effect> | null = null;
+    let effects: ReadonlyArray<Effect> | null = null;
     try { effects = (node as BlendMixin).effects; } catch (e) {}
     if (effects && Array.isArray(effects) && effects.length > 0) {
-      var hasVisibleEffects = false;
-      for (var efi = 0; efi < effects.length; efi++) {
+      let hasVisibleEffects = false;
+      for (let efi = 0; efi < effects.length; efi++) {
         if (effects[efi].visible !== false) { hasVisibleEffects = true; break; }
       }
       if (hasVisibleEffects) {
@@ -313,8 +313,8 @@ export function scanNode(
           categories.effectStyles.bound++;
         } else {
           categories.effectStyles.unbound++;
-          var effectTypes: string[] = [];
-          for (var eti = 0; eti < effects.length; eti++) {
+          let effectTypes: string[] = [];
+          for (let eti = 0; eti < effects.length; eti++) {
             if (effects[eti].visible !== false && effectTypes.indexOf(effects[eti].type) === -1) {
               effectTypes.push(effects[eti].type);
             }
@@ -330,16 +330,16 @@ export function scanNode(
 
   // ── AUTO-LAYOUT compliance ──
   if (chk.autoLayout && (nodeType === 'FRAME' || nodeType === 'COMPONENT' || nodeType === 'COMPONENT_SET')) {
-    var hasLayout = false;
+    let hasLayout = false;
     try {
-      var lm = (node as FrameNode).layoutMode;
+      let lm = (node as FrameNode).layoutMode;
       hasLayout = lm && lm !== 'NONE' ? true : false;
     } catch (e) {}
 
     if (!hasLayout) {
-      var childCount = 0;
+      let childCount = 0;
       try {
-        var childrenArr = (node as FrameNode).children;
+        let childrenArr = (node as FrameNode).children;
         childCount = childrenArr ? childrenArr.length : 0;
       } catch (e) {}
       if (childCount > 0) {
@@ -349,13 +349,13 @@ export function scanNode(
         );
       }
     } else {
-      var alChildren: ReadonlyArray<SceneNode> | null = null;
+      let alChildren: ReadonlyArray<SceneNode> | null = null;
       try { alChildren = (node as FrameNode).children; } catch (e) {}
       if (alChildren && alChildren.length > 0) {
-        var absChildCount = 0;
-        for (var alci = 0; alci < alChildren.length; alci++) {
-          var alChild = alChildren[alci];
-          var alChildPos: string | null = null;
+        let absChildCount = 0;
+        for (let alci = 0; alci < alChildren.length; alci++) {
+          let alChild = alChildren[alci];
+          let alChildPos: string | null = null;
           try { alChildPos = (alChild as SceneNode & { layoutPositioning?: string }).layoutPositioning as string; } catch (e) {}
           if (alChildPos === 'ABSOLUTE') {
             absChildCount++;
@@ -374,24 +374,24 @@ export function scanNode(
 
   // ── OVERFLOW check ──
   if (chk.overflow && parent !== null && parent !== undefined && depth > 1) {
-    var ovPositioning: string | null = null;
+    let ovPositioning: string | null = null;
     try { ovPositioning = (node as SceneNode & { layoutPositioning?: string }).layoutPositioning as string; } catch (e) {}
-    var ovName = '';
+    let ovName = '';
     try { ovName = node.name || ''; } catch (e) {}
-    var skipOv = ovPositioning === 'ABSOLUTE' ||
+    let skipOv = ovPositioning === 'ABSOLUTE' ||
                  ovName.indexOf('Icon/') === 0 ||
                  ovName.indexOf('Image/') === 0;
     if (!skipOv) {
-      var childBBox: Rect | null = null;
+      let childBBox: Rect | null = null;
       try { childBBox = (node as SceneNode & { absoluteBoundingBox?: Rect }).absoluteBoundingBox as Rect; } catch (e) {}
       if (childBBox && parentBBox) {
-        var OV_TOL = 1;
+        let OV_TOL = 1;
         categories.overflow.total++;
-        var hOverflow = (childBBox.x + childBBox.width) - (parentBBox.x + parentBBox.width);
-        var hasHOv = hOverflow > OV_TOL;
-        var hasVOv = false;
-        var vOverflow = 0;
-        var parentSizingV: string | null = null;
+        let hOverflow = (childBBox.x + childBBox.width) - (parentBBox.x + parentBBox.width);
+        let hasHOv = hOverflow > OV_TOL;
+        let hasVOv = false;
+        let vOverflow = 0;
+        let parentSizingV: string | null = null;
         try { parentSizingV = (parent as FrameNode).layoutSizingVertical; } catch (e) {}
         if (parentSizingV === 'FIXED') {
           vOverflow = (childBBox.y + childBBox.height) - (parentBBox.y + parentBBox.height);
@@ -400,8 +400,8 @@ export function scanNode(
         if (hasHOv || hasVOv) {
           categories.overflow.unbound++;
           if (hasHOv) {
-            var hAmt = Math.ceil(hOverflow);
-            var hDetails: ViolationDetails = {
+            let hAmt = Math.ceil(hOverflow);
+            let hDetails: ViolationDetails = {
               axis: 'horizontal',
               overflowAmount: hAmt,
               childRight: Math.round(childBBox.x + childBBox.width),
@@ -415,8 +415,8 @@ export function scanNode(
             );
           }
           if (hasVOv) {
-            var vAmt = Math.ceil(vOverflow);
-            var vDetails: ViolationDetails = {
+            let vAmt = Math.ceil(vOverflow);
+            let vDetails: ViolationDetails = {
               axis: 'vertical',
               overflowAmount: vAmt,
               childBottom: Math.round(childBBox.y + childBBox.height),
@@ -438,12 +438,12 @@ export function scanNode(
 
   // ── Recurse into children ──
   if ('children' in node && (node as ChildrenMixin).children) {
-    var nodeBBox: Rect | null = null;
+    let nodeBBox: Rect | null = null;
     if (chk.overflow) {
       try { nodeBBox = (node as SceneNode & { absoluteBoundingBox?: Rect }).absoluteBoundingBox as Rect; } catch (e) {}
     }
-    var nodeChildren = (node as ChildrenMixin).children;
-    for (var ci = 0; ci < nodeChildren.length; ci++) {
+    let nodeChildren = (node as ChildrenMixin).children;
+    for (let ci = 0; ci < nodeChildren.length; ci++) {
       scanNode(nodeChildren[ci], depth + 1, node, nodeBBox, chk, categories, violations, violationsCappedRef, totalNodesRef);
     }
   }
