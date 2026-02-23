@@ -15,9 +15,8 @@ export default defineConfig([
     bundle: true,
   },
   // Figma plugin build (IIFE, single bundled file)
-  // During migration: outputs to code.next.js; switch entry key to 'code' after full verification
   {
-    entry: { 'code.next': 'src/claude_mcp_plugin/index.ts' },
+    entry: { 'code': 'src/claude_mcp_plugin/index.ts' },
     outDir: 'src/claude_mcp_plugin',
     format: ['iife'],
     target: 'es2017',
