@@ -952,7 +952,7 @@ export async function auditCollection(
       ? customSchema
       : getStandardSchemaFigma(includeChartColors === true);
   const existingNames = collectionVariables.map(v => v.name);
-  const expectedCount = includeChartColors === true ? 110 : 102;
+  const expectedCount = standardVariables.length;
 
   const existingSet = new Set(existingNames);
   const standardSet = new Set(standardVariables);
@@ -978,12 +978,16 @@ export async function auditCollection(
     },
     nonStandard: {
       count: nonStandard.length,
-      variables: nonStandard.map(name => ({
-        name,
-        recommendation:
-          'Review if needed or remove if not in standard schema',
-        action: 'review',
-      })),
+      variables: nonStandard.map(name => {
+        const found = collectionVariables.find(v => v.name === name);
+        return {
+          id: found !== undefined ? found.id : '',
+          name,
+          recommendation:
+            'Review if needed or remove if not in standard schema',
+          action: 'review',
+        };
+      }),
     },
     existing: {
       count: existingNames.length,
@@ -1060,7 +1064,15 @@ export async function validateColorContrast(
           typeof bgValue === 'object'
         ) {
           const ratio = getContrastRatio(fgValue as RgbaColor, bgValue as RgbaColor);
-          const minRatio = standard === 'AAA' ? 7.0 : 4.5;
+          // WCAG thresholds: AA normal 4.5:1, AA large 3:1, AAA normal 7:1, AAA large 4.5:1
+          const isLarge = (params['largeText'] === true);
+          let minRatio: number;
+          if (standard === 'AAA') {
+            minRatio = isLarge ? 4.5 : 7.0;
+          } else {
+            minRatio = isLarge ? 3.0 : 4.5;
+          }
+          const effectiveLevel = (standard !== undefined && standard !== null ? standard : 'AA') + (isLarge ? ' Large' : ' Normal');
           const pass = ratio >= minRatio;
 
           pairs.push({
@@ -1068,10 +1080,10 @@ export async function validateColorContrast(
             background: baseVariable.name,
             ratio: parseFloat(ratio.toFixed(2)),
             pass,
-            level: standard !== undefined && standard !== null ? standard : 'AA',
+            level: effectiveLevel,
             recommendation: pass
-              ? `Meets ${standard} standards`
-              : `Increase contrast - needs ${minRatio}:1 for ${standard} normal text`,
+              ? `Meets ${effectiveLevel} standards`
+              : `Increase contrast — needs ${minRatio}:1 for ${effectiveLevel}`,
           });
         }
       }
@@ -1720,7 +1732,7 @@ export async function fixCollectionToStandard(
     missing: { count: number; variables: string[] };
     nonStandard: {
       count: number;
-      variables: Array<{ name: string }>;
+      variables: Array<{ id: string; name: string }>;
     };
     totalVariables: number;
     compliancePercentage: number;
@@ -1768,7 +1780,7 @@ export async function fixCollectionToStandard(
 
   if (preserveCustom !== true && auditResult.nonStandard.count > 0) {
     const result = (await deleteVariablesBatch({
-      variableIds: auditResult.nonStandard.variables.map(v => v.name),
+      variableIds: auditResult.nonStandard.variables.map(v => v.id !== '' ? v.id : v.name),
       collectionId,
     })) as { deleted: number };
     variablesRemoved = result.deleted;

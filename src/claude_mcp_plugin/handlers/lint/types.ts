@@ -52,6 +52,7 @@ export interface LintCategories {
   backgroundFills: CategoryStats;
   effectStyles: CategoryStats;
   overflow: CategoryStats;
+  autoLayout: CategoryStats;
 }
 
 export interface LintSummary {

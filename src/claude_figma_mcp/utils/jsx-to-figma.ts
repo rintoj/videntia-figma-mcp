@@ -57,6 +57,9 @@ export function parseJsx(jsx: string): FigmaNodeData[] {
   return nodes;
 }
 
+/** Temporary marker type used only during the fixFlexChildren post-processing pass. */
+type FigmaNodeWithFlexMeta = FigmaNodeData & { _flex1?: boolean };
+
 /**
  * Post-process pass: resolve flex-1 children based on parent's layoutMode.
  * flex-1 fills along the parent's primary axis:
@@ -65,8 +68,8 @@ export function parseJsx(jsx: string): FigmaNodeData[] {
  */
 function fixFlexChildren(nodes: FigmaNodeData[], parentLayoutMode?: string): void {
   for (const node of nodes) {
-    if ((node as any)._flex1) {
-      delete (node as any)._flex1;
+    if ((node as FigmaNodeWithFlexMeta)._flex1) {
+      delete (node as FigmaNodeWithFlexMeta)._flex1;
       if (parentLayoutMode === "VERTICAL") {
         node.layoutSizingVertical = "FILL";
       } else {
@@ -907,7 +910,7 @@ function applyClassName(node: FigmaNodeData, className: string): void {
     }
     if (cls === "flex-1") {
       // Mark for post-processing — correct axis depends on parent's layoutMode
-      (node as any)._flex1 = true;
+      (node as FigmaNodeWithFlexMeta)._flex1 = true;
       continue;
     }
     if (cls === "h-full") {
@@ -1596,7 +1599,7 @@ function applyStyleAttribute(node: FigmaNodeData, styleStr: string): void {
     } else if (key === "flex") {
       const num = parseFloat(value);
       if (num >= 1) {
-        (node as any)._flex1 = true;
+        (node as FigmaNodeWithFlexMeta)._flex1 = true;
       }
     } else if (key === "width") {
       const m = value.match(/^(\d+(?:\.\d+)?)px$/);

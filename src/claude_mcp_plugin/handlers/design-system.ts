@@ -44,11 +44,14 @@ function parseColor(colorStr: string | undefined): RGB {
   }
 
   const hex = expandHex(colorStr.replace('#', ''));
-  return {
-    r: parseInt(hex.substring(0, 2), 16) / 255,
-    g: parseInt(hex.substring(2, 4), 16) / 255,
-    b: parseInt(hex.substring(4, 6), 16) / 255,
-  };
+  const r = parseInt(hex.substring(0, 2), 16) / 255;
+  const g = parseInt(hex.substring(2, 4), 16) / 255;
+  const b = parseInt(hex.substring(4, 6), 16) / 255;
+  // Guard against NaN from non-hex input (e.g. named colors like "blue")
+  if (isNaN(r) || isNaN(g) || isNaN(b)) {
+    return { r: 0, g: 0, b: 0 };
+  }
+  return { r, g, b };
 }
 
 /** Parse alpha channel from an rgba string (returns 1 for non-rgba). */

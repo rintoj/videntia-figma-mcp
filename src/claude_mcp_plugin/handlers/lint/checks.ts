@@ -165,7 +165,7 @@ export function scanNode(
   // ── FILL / COLOR checks ──
   if (chk.colors) {
     let fills: ReadonlyArray<Paint> | null = null;
-    try { fills = (node as GeometryMixin).fills as ReadonlyArray<Paint>; } catch (_e) {}
+    if ('fills' in node) { fills = (node as GeometryMixin).fills as ReadonlyArray<Paint>; }
     if (fills && fills !== (figma.mixed as unknown) && Array.isArray(fills)) {
       for (let fi = 0; fi < fills.length; fi++) {
         if (!isColorFill(fills[fi])) continue;
@@ -191,7 +191,7 @@ export function scanNode(
   // ── STROKE checks ──
   if (chk.colors) {
     let strokes: ReadonlyArray<Paint> | null = null;
-    try { strokes = (node as GeometryMixin).strokes as ReadonlyArray<Paint>; } catch (_e) {}
+    if ('strokes' in node) { strokes = (node as GeometryMixin).strokes as ReadonlyArray<Paint>; }
     if (strokes && strokes !== (figma.mixed as unknown) && Array.isArray(strokes) && strokes.length > 0) {
       for (let si = 0; si < strokes.length; si++) {
         if (!isColorFill(strokes[si])) continue;
@@ -331,17 +331,17 @@ export function scanNode(
   // ── AUTO-LAYOUT compliance ──
   if (chk.autoLayout && (nodeType === 'FRAME' || nodeType === 'COMPONENT' || nodeType === 'COMPONENT_SET')) {
     let hasLayout = false;
-    try {
-      let lm = (node as FrameNode).layoutMode;
+    if ('layoutMode' in node) {
+      const lm = (node as FrameNode).layoutMode;
       hasLayout = lm && lm !== 'NONE' ? true : false;
-    } catch (_e) {}
+    }
 
     if (!hasLayout) {
       let childCount = 0;
-      try {
-        let childrenArr = (node as FrameNode).children;
+      if ('children' in node) {
+        const childrenArr = (node as FrameNode).children;
         childCount = childrenArr ? childrenArr.length : 0;
-      } catch (_e) {}
+      }
       if (childCount > 0) {
         addViolation(
           violations, violationsCappedRef, MAX_LINT_VIOLATIONS,
@@ -350,13 +350,13 @@ export function scanNode(
       }
     } else {
       let alChildren: ReadonlyArray<SceneNode> | null = null;
-      try { alChildren = (node as FrameNode).children; } catch (_e) {}
+      if ('children' in node) { alChildren = (node as FrameNode).children; }
       if (alChildren && alChildren.length > 0) {
         let absChildCount = 0;
         for (let alci = 0; alci < alChildren.length; alci++) {
-          let alChild = alChildren[alci];
+          const alChild = alChildren[alci];
           let alChildPos: string | null = null;
-          try { alChildPos = (alChild as SceneNode & { layoutPositioning?: string }).layoutPositioning as string; } catch (_e) {}
+          if ('layoutPositioning' in alChild) { alChildPos = (alChild as SceneNode & { layoutPositioning?: string }).layoutPositioning as string; }
           if (alChildPos === 'ABSOLUTE') {
             absChildCount++;
           }

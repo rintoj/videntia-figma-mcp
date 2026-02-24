@@ -5,17 +5,17 @@ import { buildLookupMaps } from './helpers';
 
 export async function lintFrame(params: Record<string, unknown>): Promise<LintResult> {
   const lintParams = params as unknown as LintOptions;
-  let nodeId = lintParams ? lintParams.nodeId : undefined;
-  let checks = lintParams ? lintParams.checks : undefined;
-  let fix = lintParams ? (lintParams.fix === true) : false;
+  const nodeId = lintParams ? lintParams.nodeId : undefined;
+  const checks = lintParams ? lintParams.checks : undefined;
+  const fix = lintParams ? (lintParams.fix === true) : false;
 
   if (!nodeId) throw new Error('nodeId is required');
 
-  let rootNode = await figma.getNodeByIdAsync(nodeId);
+  const rootNode = await figma.getNodeByIdAsync(nodeId);
   if (!rootNode) throw new Error('Node not found: ' + String(nodeId).substring(0, 50));
 
   // rootFrame check only applies when the node is a direct child of a PAGE
-  let isPageChild = rootNode.parent !== null && rootNode.parent !== undefined && rootNode.parent.type === 'PAGE';
+  const isPageChild = rootNode.parent !== null && rootNode.parent !== undefined && rootNode.parent.type === 'PAGE';
 
   // Default checks — all on
   let chk: ActiveChecks = {
@@ -41,10 +41,10 @@ export async function lintFrame(params: Record<string, unknown>): Promise<LintRe
   }
 
   // Pre-load all lookup maps (parallel)
-  let maps = await buildLookupMaps();
+  const maps = await buildLookupMaps();
 
   // Category tallies
-  let categories: LintCategories = {
+  const categories: LintCategories = {
     rootFrame:       { total: 0, bound: 0, unbound: 0, compliance: 100 },
     typography:      { total: 0, bound: 0, unbound: 0, compliance: 100 },
     spacing:         { total: 0, bound: 0, unbound: 0, compliance: 100 },
@@ -54,11 +54,12 @@ export async function lintFrame(params: Record<string, unknown>): Promise<LintRe
     backgroundFills: { total: 0, bound: 0, unbound: 0, compliance: 100 },
     effectStyles:    { total: 0, bound: 0, unbound: 0, compliance: 100 },
     overflow:        { total: 0, bound: 0, unbound: 0, compliance: 100 },
+    autoLayout:      { total: 0, bound: 0, unbound: 0, compliance: 100 },
   };
 
-  let violations: import('./types').Violation[] = [];
-  let violationsCappedRef = { value: false };
-  let totalNodesRef = { value: 0 };
+  const violations: import('./types').Violation[] = [];
+  const violationsCappedRef = { value: false };
+  const totalNodesRef = { value: 0 };
 
   // Run the traversal
   scanNode(rootNode as SceneNode, 0, null, null, chk, categories, violations, violationsCappedRef, totalNodesRef);
@@ -69,7 +70,7 @@ export async function lintFrame(params: Record<string, unknown>): Promise<LintRe
   }
 
   // Compute compliance percentages
-  let catKeys: Array<keyof LintCategories> = ['rootFrame', 'typography', 'spacing', 'borderRadius', 'iconColors', 'strokesBorders', 'backgroundFills', 'effectStyles', 'overflow'];
+  const catKeys: Array<keyof LintCategories> = ['rootFrame', 'typography', 'spacing', 'borderRadius', 'iconColors', 'strokesBorders', 'backgroundFills', 'effectStyles', 'overflow', 'autoLayout'];
   for (let ck = 0; ck < catKeys.length; ck++) {
     let cat = categories[catKeys[ck]];
     if (cat.total > 0) {

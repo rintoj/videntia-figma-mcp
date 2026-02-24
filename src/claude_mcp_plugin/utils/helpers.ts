@@ -2,6 +2,9 @@
 
 import type { CommandProgressMessage, ProgressPayload } from '../types';
 
+// Figma plugin sandbox exposes the Web Crypto API (not in lib.es2017 — declare minimally)
+declare const crypto: { getRandomValues: <T extends ArrayBufferView>(array: T) => T };
+
 // ---------------------------------------------------------------------------
 // Debug logging
 // ---------------------------------------------------------------------------
@@ -100,10 +103,13 @@ export function delay(ms: number): Promise<void> {
 // ---------------------------------------------------------------------------
 
 export function generateCommandId(): string {
+  const buf = new Uint32Array(3);
+  crypto.getRandomValues(buf);
   return (
     'cmd_' +
-    Math.random().toString(36).substring(2, 15) +
-    Math.random().toString(36).substring(2, 15)
+    buf[0].toString(36) +
+    buf[1].toString(36) +
+    buf[2].toString(36)
   );
 }
 

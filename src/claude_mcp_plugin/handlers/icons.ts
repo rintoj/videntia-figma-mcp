@@ -35,11 +35,18 @@ export async function resolveColorVariable(
   const exact = colorVars.find(function(v) { return v.name === variableName; });
   if (exact !== undefined) return exact;
 
-  // 2. Tailwind normalisation: "gray-500" → "gray/500"
-  const normalized = variableName.replace(/-(\d+)$/, '/$1');
+  // 2. Dash-to-slash normalisation: "gray-500" → "gray/500", "text-text-secondary" → "text/text/secondary"
+  const normalized = variableName.split('-').join('/');
   if (normalized !== variableName) {
     const norm = colorVars.find(function(v) { return v.name === normalized; });
     if (norm !== undefined) return norm;
+  }
+
+  // 2b. Partial normalisation: only trailing digit segment "gray-500" → "gray/500"
+  const trailingNorm = variableName.replace(/-(\d+)$/, '/$1');
+  if (trailingNorm !== variableName && trailingNorm !== normalized) {
+    const norm2 = colorVars.find(function(v) { return v.name === trailingNorm; });
+    if (norm2 !== undefined) return norm2;
   }
 
   // 3. Case-insensitive fallback
