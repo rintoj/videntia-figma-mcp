@@ -665,10 +665,14 @@ export function registerTextTools(server: McpServer): void {
   // Apply Text Style Tool
   server.tool(
     "apply_text_style",
-    "Apply a text style to a text node",
+    "Apply a text style to a text node. Accepts a style ID (from get_text_styles) or a style name (e.g. 'body/md').",
     {
       nodeId: z.string().describe("The ID of the text node"),
-      styleId: z.string().describe("The ID of the text style to apply"),
+      styleId: z
+        .string()
+        .describe(
+          "The style ID (the 'id' field from get_text_styles, e.g. 'S:abc123,') OR a style name (e.g. 'body/md', 'heading/xl'). Do NOT pass the 'key' field (the 40-char hex hash) — that is a cross-file sharing key, not an ID.",
+        ),
     },
     async ({ nodeId, styleId }) => {
       try {
@@ -701,7 +705,7 @@ export function registerTextTools(server: McpServer): void {
   // Get Text Styles Tool
   server.tool(
     "get_text_styles",
-    "Get all local text styles in the document with their full properties",
+    "Get all local text styles in the document. Each style has an 'id' (use this with apply_text_style, looks like 'S:abc123,') and a 'key' (a hex hash for cross-file sharing — do NOT use with apply_text_style).",
     {},
     async () => {
       try {

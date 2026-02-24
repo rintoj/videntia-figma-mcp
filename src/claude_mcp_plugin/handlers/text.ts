@@ -1704,18 +1704,26 @@ export async function applyTextStyle(params: Record<string, unknown>): Promise<R
       throw new Error('Node is not a text node');
     }
 
-    const style = await figma.getStyleByIdAsync(styleId);
-    if (!style || style.type !== 'TEXT') {
-      throw new Error('Style not found or is not a text style');
+    let resolvedStyle: BaseStyle | null = await figma.getStyleByIdAsync(styleId);
+    if (!resolvedStyle || resolvedStyle.type !== 'TEXT') {
+      // Fallback: look up by name (e.g. "body/md", "heading/xl")
+      const allStyles = await figma.getLocalTextStylesAsync();
+      const byName = allStyles.find(function(s) { return s.name === styleId; });
+      if (byName) {
+        resolvedStyle = byName;
+      }
+    }
+    if (!resolvedStyle || resolvedStyle.type !== 'TEXT') {
+      throw new Error('Style not found. Pass either the style id (e.g. "S:abc123,") or the style name (e.g. "body/md") from get_text_styles. Do not use the key field.');
     }
 
-    await figma.loadFontAsync((style as TextStyle).fontName);
+    await figma.loadFontAsync((resolvedStyle as TextStyle).fontName);
 
-    await (node as TextNode).setTextStyleIdAsync(styleId);
+    await (node as TextNode).setTextStyleIdAsync(resolvedStyle.id);
 
     return {
       nodeName: node.name,
-      styleName: style.name,
+      styleName: resolvedStyle.name,
     };
   } catch (error) {
     throw new Error(`Error applying text style: ${(error as Error).message}`);
