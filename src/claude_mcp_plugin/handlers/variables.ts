@@ -1616,15 +1616,20 @@ export async function importCollectionSchema(
         continue;
       }
       // Validate that value is an RGBA color object {r, g, b, a} with numeric components.
+      // Cast to Record<string, unknown> after the object check — VariableValue's union
+      // (RgbaColor | number | string | boolean | VariableAlias) has no index signature,
+      // so bracket access requires this intermediate cast to satisfy TypeScript.
       const colorValue = varData.value;
+      const colorObj: Record<string, unknown> | null =
+        colorValue !== null && colorValue !== undefined && typeof colorValue === 'object'
+          ? colorValue as Record<string, unknown>
+          : null;
       if (
-        colorValue === null ||
-        colorValue === undefined ||
-        typeof colorValue !== 'object' ||
-        typeof colorValue['r'] !== 'number' ||
-        typeof colorValue['g'] !== 'number' ||
-        typeof colorValue['b'] !== 'number' ||
-        typeof colorValue['a'] !== 'number'
+        colorObj === null ||
+        typeof colorObj['r'] !== 'number' ||
+        typeof colorObj['g'] !== 'number' ||
+        typeof colorObj['b'] !== 'number' ||
+        typeof colorObj['a'] !== 'number'
       ) {
         failed++;
         errors.push({ name, error: 'Variable value must be an RGBA color object {r, g, b, a}' });

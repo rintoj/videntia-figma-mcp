@@ -136,7 +136,7 @@ export async function batchActions(
       ? String(params['commandId'])
       : 'batch';
   const totalActions = actions.length;
-  const shouldSendProgress = totalActions > 10;
+  const shouldSendProgress = totalActions > 1;
 
   for (let i = 0; i < totalActions; i++) {
     const { action, params: actionParams } = actions[i];

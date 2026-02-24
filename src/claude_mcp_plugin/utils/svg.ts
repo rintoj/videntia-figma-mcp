@@ -79,8 +79,7 @@ function _propagate(
     if (!strokeable.strokes || strokeable.strokes.length === 0) {
       strokeable.strokes = [strokePaint];
       if ('strokeWeight' in node) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (node as any).strokeWeight = strokeWeight;
+        (node as unknown as { strokeWeight: number }).strokeWeight = strokeWeight;
       }
     }
   }

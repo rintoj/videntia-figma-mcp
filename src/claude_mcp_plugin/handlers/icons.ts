@@ -19,8 +19,16 @@ import { debugLog } from '../utils/helpers';
  *
  * Returns null if no COLOR variable is found.
  */
-export async function resolveColorVariable(variableName: string): Promise<Variable | null> {
-  const variables = await figma.variables.getLocalVariablesAsync();
+// NOTE: In batch contexts where many icon commands run in sequence, callers can
+// pre-fetch the variable list once and pass it via `preloadedVars` to avoid
+// a redundant getLocalVariablesAsync() call per action.
+export async function resolveColorVariable(
+  variableName: string,
+  preloadedVars?: Variable[],
+): Promise<Variable | null> {
+  const variables = preloadedVars !== undefined
+    ? preloadedVars
+    : await figma.variables.getLocalVariablesAsync();
   const colorVars = variables.filter(function(v) { return v.resolvedType === 'COLOR'; });
 
   // 1. Exact match

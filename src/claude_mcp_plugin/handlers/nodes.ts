@@ -558,18 +558,22 @@ export async function flattenNode(params: Record<string, unknown>): Promise<Reco
 
     const flattenableNode = node as unknown as FlattenableNode;
 
-    // Implement a timeout mechanism
+    // Wrap flatten() in a Promise so we can yield to the UI before the synchronous
+    // call begins (the setTimeout(..., 0) gives Figma one repaint tick).
+    // Note: flatten() is synchronous once it starts — the 8-second timeout below
+    // guards only the async wrapper overhead (e.g. queueing delay), NOT the duration
+    // of the flatten call itself. A genuinely stuck flatten cannot be interrupted.
     // eslint-disable-next-line prefer-const
     let timeoutId!: ReturnType<typeof setTimeout>;
     const timeoutPromise = new Promise<never>((_, reject) => {
       timeoutId = setTimeout(() => {
         reject(new Error('Flatten operation timed out after 8 seconds. The node may be too complex.'));
-      }, 8000); // 8 seconds timeout
+      }, 8000);
     });
 
     // Execute the flatten operation in a promise
     const flattenPromise = new Promise<VectorNode>((resolve, reject) => {
-      // Execute in the next tick to allow UI updates
+      // Yield one tick to allow a UI repaint before the synchronous call blocks
       setTimeout(() => {
         try {
           debugLog(`Starting flatten operation for node ID ${nodeId}...`);

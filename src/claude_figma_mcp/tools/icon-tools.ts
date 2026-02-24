@@ -14,22 +14,55 @@ function isValidCssColor(color: string): boolean {
 }
 
 /**
+ * Authoritative set of CSS Color Level 4 named colors plus global keywords.
+ * Single-word values not in this set (e.g. "primary", "surface") are treated
+ * as design token names and routed to variable resolution instead.
+ */
+const CSS_NAMED_COLORS = new Set([
+  'aliceblue','antiquewhite','aqua','aquamarine','azure','beige','bisque','black',
+  'blanchedalmond','blue','blueviolet','brown','burlywood','cadetblue','chartreuse',
+  'chocolate','coral','cornflowerblue','cornsilk','crimson','cyan','darkblue',
+  'darkcyan','darkgoldenrod','darkgray','darkgreen','darkgrey','darkkhaki',
+  'darkmagenta','darkolivegreen','darkorange','darkorchid','darkred','darksalmon',
+  'darkseagreen','darkslateblue','darkslategray','darkslategrey','darkturquoise',
+  'darkviolet','deeppink','deepskyblue','dimgray','dimgrey','dodgerblue','firebrick',
+  'floralwhite','forestgreen','fuchsia','gainsboro','ghostwhite','gold','goldenrod',
+  'gray','green','greenyellow','grey','honeydew','hotpink','indianred','indigo',
+  'ivory','khaki','lavender','lavenderblush','lawngreen','lemonchiffon','lightblue',
+  'lightcoral','lightcyan','lightgoldenrodyellow','lightgray','lightgreen','lightgrey',
+  'lightpink','lightsalmon','lightseagreen','lightskyblue','lightslategray',
+  'lightslategrey','lightsteelblue','lightyellow','lime','limegreen','linen','magenta',
+  'maroon','mediumaquamarine','mediumblue','mediumorchid','mediumpurple','mediumseagreen',
+  'mediumslateblue','mediumspringgreen','mediumturquoise','mediumvioletred','midnightblue',
+  'mintcream','mistyrose','moccasin','navajowhite','navy','oldlace','olive','olivedrab',
+  'orange','orangered','orchid','palegoldenrod','palegreen','paleturquoise',
+  'palevioletred','papayawhip','peachpuff','peru','pink','plum','powderblue','purple',
+  'rebeccapurple','red','rosybrown','royalblue','saddlebrown','salmon','sandybrown',
+  'seagreen','seashell','sienna','silver','skyblue','slateblue','slategray','slategrey',
+  'snow','springgreen','steelblue','tan','teal','thistle','tomato','transparent',
+  'turquoise','violet','wheat','white','whitesmoke','yellow','yellowgreen',
+  // CSS global keywords accepted as color values
+  'currentcolor','inherit','initial','unset','revert',
+]);
+
+/**
  * Return true if `value` looks like a CSS color rather than a design token / variable name.
  *
  * CSS colors:
  *   - Hex:           #rgb  #rrggbb  #rrggbbaa
  *   - Functional:    rgb(…)  rgba(…)  hsl(…)  hsla(…)
- *   - Named (single word, no hyphens or slashes): red, blue, transparent, currentColor
+ *   - Named:         any entry in CSS_NAMED_COLORS (checked case-insensitively)
  *
  * Anything containing a hyphen (gray-500, text-primary) or slash (semantic/text/secondary)
- * is treated as a design token and routed to variable resolution.
+ * is treated as a design token. Single-word names not in CSS_NAMED_COLORS (e.g. "primary",
+ * "surface", "foreground") are also treated as design tokens.
  */
 function looksLikeCssColor(value: string): boolean {
   const v = value.trim();
   if (v.startsWith("#")) return true;
   if (/^(rgb|rgba|hsl|hsla)\s*\(/i.test(v)) return true;
-  // Single-word named CSS color (no hyphens, no slashes)
-  if (/^[a-zA-Z]+$/.test(v)) return true;
+  // Named CSS color — must be in the authoritative list (case-insensitive)
+  if (/^[a-zA-Z]+$/.test(v)) return CSS_NAMED_COLORS.has(v.toLowerCase());
   return false;
 }
 

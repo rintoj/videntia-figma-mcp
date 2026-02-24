@@ -85,8 +85,7 @@ export async function createEllipse(params: Record<string, unknown>): Promise<un
 
   // Set layoutPositioning after appendChild (node must be attached first)
   if (layoutPositioning !== undefined) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (ellipse as any).layoutPositioning = layoutPositioning;
+    (ellipse as unknown as { layoutPositioning: string }).layoutPositioning = layoutPositioning;
     // Re-apply coordinates — setting ABSOLUTE resets position within parent
     ellipse.x = x;
     ellipse.y = y;

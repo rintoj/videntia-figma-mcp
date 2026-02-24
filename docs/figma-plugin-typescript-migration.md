@@ -103,12 +103,12 @@ Dedicated TypeScript config for the Figma plugin source:
 
 ```typescript
 {
-  entry: { 'code.next': 'src/claude_mcp_plugin/index.ts' },
+  entry: { 'code': 'src/claude_mcp_plugin/index.ts' },
   outDir: 'src/claude_mcp_plugin',
   format: ['iife'],
   target: 'es2017',
   bundle: true,
-  minify: false,
+  minify: true,
   sourcemap: false,
   splitting: false,
   clean: false,          // don't wipe manifest.json / ui.html
@@ -117,7 +117,7 @@ Dedicated TypeScript config for the Figma plugin source:
 }
 ```
 
-During migration the output is `code.next.js` (safe temp). Switch `entry` key to `code` when ready to replace `code.js`.
+This outputs directly to `src/claude_mcp_plugin/code.js`, which is the file Figma loads via `manifest.json`. The TypeScript migration is complete and live.
 
 ---
 
@@ -187,7 +187,7 @@ Add the new command string to the union in `src/claude_figma_mcp/types/index.ts`
 ```bash
 bun tsc --noEmit -p tsconfig.plugin.json   # type-check plugin source
 bun run build                               # full build
-ls -lh src/claude_mcp_plugin/code.next.js  # verify output
+ls -lh src/claude_mcp_plugin/code.js  # verify output
 ```
 
 ---
@@ -202,36 +202,29 @@ bun tsc --noEmit -p tsconfig.plugin.json
 bun run build
 
 # Verify plugin output
-ls -lh src/claude_mcp_plugin/code.next.js
+ls -lh src/claude_mcp_plugin/code.js
 ```
 
 ---
 
-## Final Cutover (Replacing code.js)
+## Migration Status
 
-When the TypeScript migration is fully verified in Figma:
+The TypeScript migration is **complete**. The plugin builds directly to `src/claude_mcp_plugin/code.js`
+(the file Figma loads via `manifest.json`). No further cutover steps are required.
 
-1. **Update `tsup.config.ts`** — change entry key from `'code.next'` to `'code'`:
-   ```typescript
-   entry: { code: 'src/claude_mcp_plugin/index.ts' },
-   ```
+To verify the plugin after any change:
 
-2. **Build**:
-   ```bash
-   bun run build
-   ls -lh src/claude_mcp_plugin/code.js   # should be ~324 KB
-   ```
+```bash
+bun tsc --noEmit -p tsconfig.plugin.json   # type-check plugin source (expect 0 errors)
+bun run build                               # full build
+ls -lh src/claude_mcp_plugin/code.js       # should be ~155 KB minified
+```
 
-3. **Smoke test in Figma** (load plugin, open DevTools, verify no JS errors):
-   - `get_document_info` — basic document read
-   - `bind_variable` — variable write operation
-   - `lint_frame` — full lint + fix pass
-   - `get_design_system` — large aggregation read
-
-4. **Remove `code.next.js`** and the original JavaScript `code.js` (now replaced):
-   ```bash
-   git rm src/claude_mcp_plugin/code.next.js
-   ```
+Smoke test in Figma (load plugin, open DevTools, verify no JS errors):
+- `get_document_info` — basic document read
+- `bind_variable` — variable write operation
+- `lint_frame` — full lint + fix pass
+- `get_design_system` — large aggregation read
 
 ---
 
