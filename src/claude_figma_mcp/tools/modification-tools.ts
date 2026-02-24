@@ -538,6 +538,14 @@ export function registerModificationTools(server: McpServer): void {
       layoutWrap: z.enum(["WRAP", "NO_WRAP"]).optional().describe("Whether items wrap to new lines"),
       strokesIncludedInLayout: z.boolean().optional().describe("Whether strokes are included in layout calculations"),
       clipsContent: z.boolean().optional().describe("Whether to clip content outside frame bounds"),
+      layoutSizingHorizontal: z
+        .enum(["FIXED", "HUG", "FILL"])
+        .optional()
+        .describe("Horizontal sizing mode (defaults to FILL when auto layout is set)"),
+      layoutSizingVertical: z
+        .enum(["FIXED", "HUG", "FILL"])
+        .optional()
+        .describe("Vertical sizing mode (defaults to HUG when auto layout is set)"),
     },
     async ({
       nodeId,
@@ -552,6 +560,8 @@ export function registerModificationTools(server: McpServer): void {
       layoutWrap,
       strokesIncludedInLayout,
       clipsContent,
+      layoutSizingHorizontal,
+      layoutSizingVertical,
     }) => {
       try {
         const result = await sendCommandToFigma("set_auto_layout", {
@@ -567,6 +577,8 @@ export function registerModificationTools(server: McpServer): void {
           layoutWrap,
           strokesIncludedInLayout,
           clipsContent,
+          layoutSizingHorizontal,
+          layoutSizingVertical,
         });
 
         const typedResult = result as { name: string };

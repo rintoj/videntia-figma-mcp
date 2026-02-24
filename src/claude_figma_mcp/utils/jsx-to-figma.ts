@@ -203,9 +203,9 @@ function jsxElementToNode(el: t.JSXElement, parentType?: string, source?: string
     node.layoutMode = "HORIZONTAL";
   }
 
-  // Auto-layout frames default to HUG sizing (matching Figma UI behavior)
+  // Auto-layout frames default to FILL width and HUG height
   if (node.layoutMode) {
-    if (!node.layoutSizingHorizontal) node.layoutSizingHorizontal = "HUG";
+    if (!node.layoutSizingHorizontal) node.layoutSizingHorizontal = "FILL";
     if (!node.layoutSizingVertical) node.layoutSizingVertical = "HUG";
   }
 

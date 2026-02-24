@@ -1001,6 +1001,8 @@ export async function setAutoLayout(params: Record<string, unknown>): Promise<Re
   const layoutWrap = safeParams.layoutWrap as string | undefined;
   const strokesIncludedInLayout = safeParams.strokesIncludedInLayout as boolean | undefined;
   const clipsContent = safeParams.clipsContent as boolean | undefined;
+  const layoutSizingHorizontal = safeParams.layoutSizingHorizontal as string | undefined;
+  const layoutSizingVertical = safeParams.layoutSizingVertical as string | undefined;
 
   if (!nodeId) {
     throw new Error('Missing nodeId parameter');
@@ -1052,6 +1054,12 @@ export async function setAutoLayout(params: Record<string, unknown>): Promise<Re
     if (clipsContent !== undefined) {
       frameNode.clipsContent = clipsContent;
     }
+
+    // Default to FILL width and HUG height unless explicitly overridden
+    const hSizing = (layoutSizingHorizontal !== null && layoutSizingHorizontal !== undefined) ? layoutSizingHorizontal : 'FILL';
+    const vSizing = (layoutSizingVertical !== null && layoutSizingVertical !== undefined) ? layoutSizingVertical : 'HUG';
+    frameNode.layoutSizingHorizontal = hSizing as 'FIXED' | 'HUG' | 'FILL';
+    frameNode.layoutSizingVertical = vSizing as 'FIXED' | 'HUG' | 'FILL';
   }
 
   return {
@@ -1068,6 +1076,8 @@ export async function setAutoLayout(params: Record<string, unknown>): Promise<Re
     layoutWrap: frameNode.layoutWrap,
     strokesIncludedInLayout: frameNode.strokesIncludedInLayout,
     clipsContent: frameNode.clipsContent,
+    layoutSizingHorizontal: frameNode.layoutSizingHorizontal,
+    layoutSizingVertical: frameNode.layoutSizingVertical,
   };
 }
 
