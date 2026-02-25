@@ -79,6 +79,43 @@ const RGBAColorSchema = z.object({
   a: coerceColorChannel.optional().describe("Alpha component (0-1, default: 1.0)"),
 });
 
+const VariableTypeSchema = z.enum(["COLOR", "FLOAT", "STRING", "BOOLEAN"]);
+const VariableInputValueSchema = z.union([RGBAColorSchema, z.string(), z.number(), z.boolean()]);
+
+function normalizeVariableValueByType(type: z.infer<typeof VariableTypeSchema>, value: unknown): RGBAColor | number | string | boolean {
+  if (type === "COLOR") {
+    return RGBAColorSchema.parse(value);
+  }
+
+  if (type === "FLOAT") {
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+    if (typeof value === "string" && value.trim() !== "") {
+      const parsed = Number(value);
+      if (Number.isFinite(parsed)) return parsed;
+    }
+    throw new Error(`Invalid FLOAT value: ${String(value)}`);
+  }
+
+  if (type === "BOOLEAN") {
+    if (typeof value === "boolean") return value;
+    if (typeof value === "number") {
+      if (value === 1) return true;
+      if (value === 0) return false;
+      throw new Error(`Invalid BOOLEAN number value: ${String(value)}`);
+    }
+    if (typeof value === "string") {
+      const normalized = value.trim().toLowerCase();
+      if (normalized === "true" || normalized === "1" || normalized === "yes" || normalized === "on") return true;
+      if (normalized === "false" || normalized === "0" || normalized === "no" || normalized === "off") return false;
+    }
+    throw new Error(`Invalid BOOLEAN value: ${String(value)}`);
+  }
+
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  throw new Error(`Invalid STRING value: ${String(value)}`);
+}
+
 /**
  * Register variable management tools to the MCP server
  * Implements 24 new tools for theme variable management
@@ -289,19 +326,18 @@ export function registerVariableTools(server: McpServer): void {
     {
       collection_id: z.string().describe("Collection ID or name"),
       name: z.string().describe("Variable name (e.g., 'primary', 'spacing.4', 'font.family')"),
-      type: z.enum(["COLOR", "FLOAT", "STRING", "BOOLEAN"]).describe("Variable type: COLOR = RGBA color object {r,g,b,a} with normalized 0–1 values, FLOAT = numeric value (spacing, sizing, etc.), STRING = text value, BOOLEAN = true/false"),
-      value: z
-        .union([RGBAColorSchema, mcpBooleanSchema, z.coerce.number(), z.string()])
-        .describe("Variable value matching the type: COLOR → {r:0–1, g:0–1, b:0–1, a:0–1}, FLOAT → number, STRING → string, BOOLEAN → true/false"),
+      type: VariableTypeSchema.describe("Variable type: COLOR = RGBA color object {r,g,b,a} with normalized 0–1 values, FLOAT = numeric value (spacing, sizing, etc.), STRING = text value, BOOLEAN = true/false"),
+      value: VariableInputValueSchema.describe("Variable value matching the type: COLOR → {r:0–1, g:0–1, b:0–1, a:0–1}, FLOAT → number, STRING → string, BOOLEAN → true/false"),
       mode: z.string().optional().describe("Mode name to set the value for (e.g. 'dark', 'light'); omit to set for the collection's default mode"),
     },
     async ({ collection_id, name, type, value, mode }) => {
       try {
+        const normalizedValue = normalizeVariableValueByType(type, value);
         const result = await sendCommandToFigma<CreateVariableResult>("create_variable", {
           collectionId: collection_id,
           name,
           type,
-          value,
+          value: normalizedValue,
           mode,
         });
         return {
@@ -337,8 +373,8 @@ export function registerVariableTools(server: McpServer): void {
         z.array(
           z.object({
             name: z.string().describe("Variable name"),
-            type: z.enum(["COLOR", "FLOAT", "STRING", "BOOLEAN"]).describe("Variable type — value must match this type"),
-            value: z.union([RGBAColorSchema, mcpBooleanSchema, z.coerce.number(), z.string()]).describe("Value matching the type: COLOR → {r,g,b,a} normalized, FLOAT → number, STRING → string, BOOLEAN → true/false"),
+            type: VariableTypeSchema.describe("Variable type — value must match this type"),
+            value: VariableInputValueSchema.describe("Value matching the type: COLOR → {r,g,b,a} normalized, FLOAT → number, STRING → string, BOOLEAN → true/false"),
           }),
         ),
       ).describe("Array of variable definitions to create in one batch"),
@@ -346,9 +382,13 @@ export function registerVariableTools(server: McpServer): void {
     },
     async ({ collection_id, variables, mode }) => {
       try {
+        const normalizedVariables = variables.map((variable) => ({
+          ...variable,
+          value: normalizeVariableValueByType(variable.type, variable.value),
+        }));
         const result = await sendCommandToFigma<CreateVariablesBatchResult>("create_variables_batch", {
           collectionId: collection_id,
-          variables,
+          variables: normalizedVariables,
           mode,
         });
         const created = result.created ?? result.variables?.length ?? variables.length;
@@ -383,9 +423,7 @@ export function registerVariableTools(server: McpServer): void {
     {
       id: z.string().describe("Variable ID or name"),
       collection_id: z.string().optional().describe("Collection ID (required if using variable name)"),
-      value: z
-        .union([RGBAColorSchema, mcpBooleanSchema, z.coerce.number(), z.string()])
-        .describe("New value (type must match variable type)"),
+      value: VariableInputValueSchema.describe("New value (type must match variable type)"),
       mode: z.string().optional().describe("Mode to update (default: first mode)"),
     },
     async ({ id: variable_id, collection_id, value, mode }) => {
