@@ -521,7 +521,7 @@ export function registerModificationTools(server: McpServer): void {
   // Auto Layout Tool
   server.tool(
     "set_auto_layout",
-    "Configure auto layout properties for a node in Figma",
+    "Configure auto layout properties for a node in Figma. Note: FILL sizing is only valid when the node is a child of another auto-layout frame. For top-level or standalone frames, use FIXED or HUG.",
     {
       nodeId: z.string().describe("The ID of the node to configure auto layout"),
       layoutMode: z.enum(["HORIZONTAL", "VERTICAL", "NONE"]).describe("Layout direction"),
@@ -541,11 +541,11 @@ export function registerModificationTools(server: McpServer): void {
       layoutSizingHorizontal: z
         .enum(["FIXED", "HUG", "FILL"])
         .optional()
-        .describe("Horizontal sizing mode (defaults to FILL when auto layout is set)"),
+        .describe("Horizontal sizing mode. FILL only works inside an auto-layout parent; defaults to FIXED for top-level frames, FILL for nested frames."),
       layoutSizingVertical: z
         .enum(["FIXED", "HUG", "FILL"])
         .optional()
-        .describe("Vertical sizing mode (defaults to HUG when auto layout is set)"),
+        .describe("Vertical sizing mode. FILL only works inside an auto-layout parent; defaults to HUG."),
     },
     async ({
       nodeId,

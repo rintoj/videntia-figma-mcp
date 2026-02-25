@@ -1055,8 +1055,15 @@ export async function setAutoLayout(params: Record<string, unknown>): Promise<Re
       frameNode.clipsContent = clipsContent;
     }
 
-    // Default to FILL width and HUG height unless explicitly overridden
-    const hSizing = (layoutSizingHorizontal !== null && layoutSizingHorizontal !== undefined) ? layoutSizingHorizontal : 'FILL';
+    // Determine safe defaults based on whether this frame is inside an auto-layout parent.
+    // FILL is only valid for children of auto-layout frames; default to FIXED otherwise.
+    const parentIsAutoLayout =
+      frameNode.parent !== null &&
+      frameNode.parent !== undefined &&
+      'layoutMode' in frameNode.parent &&
+      (frameNode.parent as FrameNode).layoutMode !== 'NONE';
+    const defaultHSizing = parentIsAutoLayout ? 'FILL' : 'FIXED';
+    const hSizing = (layoutSizingHorizontal !== null && layoutSizingHorizontal !== undefined) ? layoutSizingHorizontal : defaultHSizing;
     const vSizing = (layoutSizingVertical !== null && layoutSizingVertical !== undefined) ? layoutSizingVertical : 'HUG';
     frameNode.layoutSizingHorizontal = hSizing as 'FIXED' | 'HUG' | 'FILL';
     frameNode.layoutSizingVertical = vSizing as 'FIXED' | 'HUG' | 'FILL';
