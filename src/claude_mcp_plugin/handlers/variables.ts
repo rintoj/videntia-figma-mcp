@@ -612,7 +612,7 @@ export async function getCollectionInfo(
   return {
     id: collection.id,
     name: collection.name,
-    modes: collection.modes.map(m => m.name),
+    modes: collection.modes.map(m => ({ name: m.name, modeId: m.modeId })),
     defaultMode:
       collection.modes[0] !== undefined && collection.modes[0] !== null
         ? collection.modes[0].name
