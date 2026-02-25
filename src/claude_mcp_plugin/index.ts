@@ -234,6 +234,9 @@ async function handleCommand(
       }
       return await getNodeInfo(params['nodeId'] as string, {
         stripImages: params['stripImages'] !== false,
+        depth: params['depth'] !== undefined ? Number(params['depth']) : undefined,
+        includeChildren: params['includeChildren'] !== undefined ? Boolean(params['includeChildren']) : undefined,
+        find: params['find'] !== undefined ? String(params['find']) : undefined,
       });
     case 'get_nodes_info':
       if (!params || !params['nodeIds'] || !Array.isArray(params['nodeIds'])) {
@@ -241,6 +244,9 @@ async function handleCommand(
       }
       return await getNodesInfo(params['nodeIds'] as string[], {
         stripImages: params['stripImages'] !== false,
+        depth: params['depth'] !== undefined ? Number(params['depth']) : undefined,
+        includeChildren: params['includeChildren'] !== undefined ? Boolean(params['includeChildren']) : undefined,
+        find: params['find'] !== undefined ? String(params['find']) : undefined,
       });
 
     // Node creation
