@@ -94,7 +94,7 @@ Join a specific Figma channel before using any Figma-side tools.
 
 ```json
 {
-  "channelId": "abc123"
+  "channel": "abc123"
 }
 ```
 

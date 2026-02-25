@@ -291,7 +291,7 @@ export function registerVariableTools(server: McpServer): void {
       name: z.string().describe("Variable name (e.g., 'primary', 'spacing.4', 'font.family')"),
       type: z.enum(["COLOR", "FLOAT", "STRING", "BOOLEAN"]).describe("Variable type: COLOR = RGBA color object {r,g,b,a} with normalized 0–1 values, FLOAT = numeric value (spacing, sizing, etc.), STRING = text value, BOOLEAN = true/false"),
       value: z
-        .union([RGBAColorSchema, z.coerce.number(), mcpBooleanSchema, z.string()])
+        .union([RGBAColorSchema, mcpBooleanSchema, z.coerce.number(), z.string()])
         .describe("Variable value matching the type: COLOR → {r:0–1, g:0–1, b:0–1, a:0–1}, FLOAT → number, STRING → string, BOOLEAN → true/false"),
       mode: z.string().optional().describe("Mode name to set the value for (e.g. 'dark', 'light'); omit to set for the collection's default mode"),
     },
@@ -338,7 +338,7 @@ export function registerVariableTools(server: McpServer): void {
           z.object({
             name: z.string().describe("Variable name"),
             type: z.enum(["COLOR", "FLOAT", "STRING", "BOOLEAN"]).describe("Variable type — value must match this type"),
-            value: z.union([RGBAColorSchema, z.coerce.number(), mcpBooleanSchema, z.string()]).describe("Value matching the type: COLOR → {r,g,b,a} normalized, FLOAT → number, STRING → string, BOOLEAN → true/false"),
+            value: z.union([RGBAColorSchema, mcpBooleanSchema, z.coerce.number(), z.string()]).describe("Value matching the type: COLOR → {r,g,b,a} normalized, FLOAT → number, STRING → string, BOOLEAN → true/false"),
           }),
         ),
       ).describe("Array of variable definitions to create in one batch"),
@@ -384,7 +384,7 @@ export function registerVariableTools(server: McpServer): void {
       id: z.string().describe("Variable ID or name"),
       collection_id: z.string().optional().describe("Collection ID (required if using variable name)"),
       value: z
-        .union([RGBAColorSchema, z.coerce.number(), mcpBooleanSchema, z.string()])
+        .union([RGBAColorSchema, mcpBooleanSchema, z.coerce.number(), z.string()])
         .describe("New value (type must match variable type)"),
       mode: z.string().optional().describe("Mode to update (default: first mode)"),
     },
