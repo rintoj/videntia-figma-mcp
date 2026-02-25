@@ -1084,29 +1084,30 @@ export function registerModificationTools(server: McpServer): void {
     {
       nodeId: z.string().describe("The ID of the node to modify"),
       gradientType: z.enum(["LINEAR", "RADIAL", "ANGULAR", "DIAMOND"]).describe("Type of gradient"),
-      gradientStops: z
-        .array(
-          z.object({
-            color: z.object({
-              r: z.coerce.number().min(0).max(1).describe("Red channel (0-1)"),
-              g: z.coerce.number().min(0).max(1).describe("Green channel (0-1)"),
-              b: z.coerce.number().min(0).max(1).describe("Blue channel (0-1)"),
-              a: z.coerce.number().min(0).max(1).optional().describe("Alpha channel (0-1, default 1)"),
+      stops: coerceArray(
+        z
+          .array(
+            z.object({
+              color: z.object({
+                r: z.coerce.number().min(0).max(1).describe("Red channel (0-1)"),
+                g: z.coerce.number().min(0).max(1).describe("Green channel (0-1)"),
+                b: z.coerce.number().min(0).max(1).describe("Blue channel (0-1)"),
+                a: z.coerce.number().min(0).max(1).optional().describe("Alpha channel (0-1, default 1)"),
+              }),
+              position: z.coerce.number().min(0).max(1).describe("Stop position (0-1)"),
             }),
-            position: z.coerce.number().min(0).max(1).describe("Stop position (0-1)"),
-          }),
-        )
-        .min(2)
-        .describe("Array of gradient color stops (minimum 2)"),
+          )
+          .min(2),
+      ).describe("Array of gradient color stops (minimum 2)"),
       angle: z.coerce.number().optional().describe("Gradient angle in degrees (LINEAR only, default 0)"),
       opacity: z.coerce.number().min(0).max(1).optional().describe("Overall fill opacity (0-1, default 1)"),
     },
-    async ({ nodeId, gradientType, gradientStops, angle, opacity }) => {
+    async ({ nodeId, gradientType, stops, angle, opacity }) => {
       try {
         const result = await sendCommandToFigma("set_gradient_fill", {
           nodeId,
           gradientType,
-          gradientStops,
+          stops,
           angle: angle ?? 0,
           opacity: opacity ?? 1,
         });

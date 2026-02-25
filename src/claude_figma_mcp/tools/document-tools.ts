@@ -2153,8 +2153,8 @@ export function registerDocumentTools(server: McpServer): void {
     "setup_design_system",
     "Create or update an entire design system in a single call. Accepts multiple variable collections, text styles, and effect styles. Idempotent — existing items with the same name are updated, not duplicated.",
     {
-      pages: z.array(z.string()).optional().describe("Page names to ensure exist (default: ['Screens', 'Components', 'Draft']). If only 'Page 1' exists and is empty, it is renamed to the first page."),
-      collections: z.array(z.object({
+      pages: coerceArray(z.array(z.string())).optional().describe("Page names to ensure exist (default: ['Screens', 'Components', 'Draft']). If only 'Page 1' exists and is empty, it is renamed to the first page."),
+      collections: coerceArray(z.array(z.object({
         name: z.string().describe("Collection name, e.g. 'Colors', 'Spacing', 'Radius'"),
         variables: z.array(z.object({
           name: z.string().describe("Variable name, e.g. 'background/primary' or 'space/md'"),
@@ -2162,8 +2162,8 @@ export function registerDocumentTools(server: McpServer): void {
           value: z.union([rgbaColorSchema, z.coerce.number()]).describe("RGBA object for COLOR type, number for FLOAT type"),
           description: z.string().optional().describe("Token description/purpose"),
         })),
-      })).optional().describe("Variable collections to create/update, each with its own name and variables"),
-      text_styles: z.array(z.object({
+      }))).optional().describe("Variable collections to create/update, each with its own name and variables"),
+      text_styles: coerceArray(z.array(z.object({
         name: z.string().describe("Style name, e.g. 'text/display/lg'"),
         font_family: z.string().describe("Font family, e.g. 'Manrope'"),
         font_style: z.string().describe("Font style, e.g. 'Bold', 'SemiBold', 'Regular'"),
@@ -2177,8 +2177,8 @@ export function registerDocumentTools(server: McpServer): void {
           unit: z.enum(["PIXELS", "PERCENT"]),
         }).optional().describe("Letter spacing specification"),
         description: z.string().optional().describe("Style description/purpose"),
-      })).optional().describe("Text styles to create/update"),
-      effect_styles: z.array(z.object({
+      }))).optional().describe("Text styles to create/update"),
+      effect_styles: coerceArray(z.array(z.object({
         name: z.string().describe("Effect style name, e.g. 'shadow/subtle'"),
         effects: z.array(z.object({
           type: z.enum(["DROP_SHADOW", "INNER_SHADOW", "LAYER_BLUR", "BACKGROUND_BLUR"]).describe("Effect type"),
@@ -2188,7 +2188,7 @@ export function registerDocumentTools(server: McpServer): void {
           spread: z.coerce.number().optional().describe("Spread (for shadows)"),
         })).describe("Array of effects for this style"),
         description: z.string().optional().describe("Effect style description/purpose"),
-      })).optional().describe("Effect styles to create/update"),
+      }))).optional().describe("Effect styles to create/update"),
     },
     async ({ pages, collections, text_styles, effect_styles }) => {
       try {
