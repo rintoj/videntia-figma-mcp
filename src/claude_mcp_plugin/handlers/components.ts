@@ -428,7 +428,7 @@ export async function addComponentProperty(
 
     return {
       nodeId: node.id,
-      nodeName: node.name,
+      name: node.name,
       propertyName: fullPropertyName,
       type: type,
       defaultValue: actualDefaultValue,
@@ -494,7 +494,7 @@ export async function editComponentProperty(
 
     return {
       nodeId: node.id,
-      nodeName: node.name,
+      name: node.name,
       oldPropertyName: propertyName,
       newPropertyName: updatedPropertyName,
       updates: updateObj,
@@ -536,7 +536,7 @@ export async function deleteComponentProperty(
 
     return {
       nodeId: node.id,
-      nodeName: node.name,
+      name: node.name,
       deletedPropertyName: propertyName,
     };
   } catch (error) {
@@ -584,7 +584,7 @@ export async function setComponentPropertyReferences(
     const refNode = node as SceneNodeMixin;
     return {
       nodeId: node.id,
-      nodeName: node.name,
+      name: node.name,
       references: refNode.componentPropertyReferences,
     };
   } catch (error) {
@@ -623,7 +623,7 @@ export async function getComponentProperties(
 
     return {
       nodeId: node.id,
-      nodeName: node.name,
+      name: node.name,
       nodeType: node.type,
       properties: definitions,
     };

@@ -173,7 +173,7 @@ export async function setLayoutMode(params: Record<string, unknown>): Promise<Re
 
   return {
     nodeId: node.id,
-    nodeName: node.name,
+    name: node.name,
     layoutMode: (node as FrameNode).layoutMode,
     layoutWrap: (node as FrameNode).layoutWrap,
     success: true,
@@ -205,7 +205,7 @@ export async function setPadding(params: Record<string, unknown>): Promise<Recor
 
   return {
     nodeId: node.id,
-    nodeName: node.name,
+    name: node.name,
     paddingTop: frame.paddingTop,
     paddingRight: frame.paddingRight,
     paddingBottom: frame.paddingBottom,
@@ -235,7 +235,7 @@ export async function setItemSpacing(params: Record<string, unknown>): Promise<R
 
   return {
     nodeId: node.id,
-    nodeName: node.name,
+    name: node.name,
     itemSpacing: frame.itemSpacing,
     counterAxisSpacing: frame.counterAxisSpacing,
     success: true,
@@ -267,7 +267,7 @@ export async function setAxisAlign(params: Record<string, unknown>): Promise<Rec
 
   return {
     nodeId: node.id,
-    nodeName: node.name,
+    name: node.name,
     primaryAxisAlignItems: frame.primaryAxisAlignItems,
     counterAxisAlignItems: frame.counterAxisAlignItems,
     success: true,
@@ -305,7 +305,7 @@ export async function setLayoutSizing(params: Record<string, unknown>): Promise<
 
   return {
     nodeId: node.id,
-    nodeName: node.name,
+    name: node.name,
     layoutSizingHorizontal: sizingNode.layoutSizingHorizontal,
     layoutSizingVertical: sizingNode.layoutSizingVertical,
     success: true,

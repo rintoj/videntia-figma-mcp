@@ -16,7 +16,7 @@ export async function setFocus(params: Record<string, unknown>): Promise<Record<
 
   return {
     nodeId: node.id,
-    nodeName: node.name,
+    name: node.name,
     nodeType: node.type,
     focused: true,
     success: true,

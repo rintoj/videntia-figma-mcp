@@ -172,7 +172,7 @@ export async function setAnnotation(params: Record<string, unknown>): Promise<Re
   return {
     success: true,
     nodeId: node.id,
-    nodeName: node.name,
+    name: node.name,
     annotationIndex,
     totalAnnotations: existingAnnotations.length,
     annotation,

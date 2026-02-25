@@ -371,7 +371,7 @@ export async function getBoundVariables(
 
   return {
     nodeId: node.id,
-    nodeName: node.name,
+    name: node.name,
     nodeType: node.type,
     bindings,
   };
@@ -465,7 +465,7 @@ export async function bindVariable(
 
   return {
     nodeId: node.id,
-    nodeName: node.name,
+    name: node.name,
     field,
     variableId: variable.id,
     variableName: variable.name,
@@ -538,7 +538,7 @@ export async function unbindVariable(
 
     return {
       nodeId: node.id,
-      nodeName: node.name,
+      name: node.name,
       field,
       success: true,
     };
