@@ -26,14 +26,14 @@ export async function getDocumentInfo(): Promise<Record<string, unknown>> {
     currentPage: {
       id: page.id,
       name: page.name,
-      childCount: page.children.length,
+      loadedChildCount: page.children.length,
     },
     // Only the current page is guaranteed to be loaded; other pages must not
     // have their `.children` accessed without calling `loadAsync()` first.
     pages: figma.root.children.map((p) => ({
       id: p.id,
       name: p.name,
-      childCount: p.id === page.id ? page.children.length : null,
+      loadedChildCount: p.id === page.id ? page.children.length : null,
     })),
   };
 }
