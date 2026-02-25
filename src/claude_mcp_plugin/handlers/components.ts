@@ -130,7 +130,7 @@ export async function createComponentInstance(
       `Component instance "${instance.name}" created successfully at (${x}, ${y})`,
     );
 
-    const mainComponent = instance.mainComponent;
+    const mainComponent = await instance.getMainComponentAsync();
     return {
       id: instance.id,
       name: instance.name,

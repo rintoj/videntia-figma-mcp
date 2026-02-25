@@ -315,7 +315,7 @@ export async function getVariables(): Promise<Record<string, unknown>> {
       id: c.id,
       name: c.name,
       variableIds: c.variableIds,
-      modes: c.modes.map(m => ({ id: m.modeId, name: m.name })),
+      modes: c.modes.map(m => ({ modeId: m.modeId, name: m.name })),
     })),
   };
 }
@@ -703,7 +703,8 @@ export async function createVariable(
 
   let variableValue: VariableValue;
   if (variableType === 'COLOR') {
-    const colorValue = value as RgbaColor;
+    const rawColor = typeof value === 'string' ? JSON.parse(value) : value;
+    const colorValue = rawColor as RgbaColor;
     variableValue = {
       r: colorValue.r,
       g: colorValue.g,
@@ -764,7 +765,8 @@ export async function createVariablesBatch(
 
       let variableValue: VariableValue;
       if (variableType === 'COLOR') {
-        const colorValue = varDef['value'] as RgbaColor;
+        const rawColor = typeof varDef['value'] === 'string' ? JSON.parse(varDef['value'] as string) : varDef['value'];
+        const colorValue = rawColor as RgbaColor;
         variableValue = {
           r: colorValue.r,
           g: colorValue.g,
@@ -824,12 +826,13 @@ export async function updateVariableValue(
   let variableValue: VariableValue;
 
   if (variableType === 'COLOR') {
-    if (typeof value !== 'object' || (value as RgbaColor).r === undefined) {
+    const rawColor = typeof value === 'string' ? JSON.parse(value as string) : value;
+    if (typeof rawColor !== 'object' || rawColor === null || (rawColor as RgbaColor).r === undefined) {
       throw new Error(
         `Expected color value with r, g, b properties for COLOR variable "${variable.name}"`,
       );
     }
-    const colorValue = value as RgbaColor;
+    const colorValue = rawColor as RgbaColor;
     variableValue = {
       r: colorValue.r,
       g: colorValue.g,
@@ -1620,7 +1623,7 @@ export async function importCollectionSchema(
     try {
       // Validate name: must be a non-empty string with no control characters or
       // path separators (protects against prototype pollution and API misuse).
-      if (typeof name !== 'string' || name.length === 0 || name.length > 256 || /[\x00-\x1f/\\]/.test(name)) {
+      if (typeof name !== 'string' || name.length === 0 || name.length > 256 || /[\x00-\x1f\\]/.test(name)) {
         failed++;
         errors.push({ name, error: 'Invalid variable name' });
         continue;

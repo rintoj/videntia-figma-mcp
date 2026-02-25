@@ -307,7 +307,7 @@ export function registerVariableTools(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: `Created ${type} variable "${result.name || name}" (ID: ${result.id || "-"})`,
+              text: `Created ${type} variable "${result.name || name}" (ID: ${result.variableId || result.id || "-"})`,
             },
           ],
         };
@@ -725,30 +725,36 @@ export function registerVariableTools(server: McpServer): void {
           customSchema: custom_schema,
         });
         const lines: string[] = [];
-        const compliance = result.compliancePercent ?? result.compliance ?? "-";
+        const compliance = (result as any).compliancePercentage ?? result.compliancePercent ?? result.compliance ?? "-";
         lines.push(`## Audit Result — ${compliance}% compliant`);
-        const total = result.totalExpected ?? result.total ?? "-";
-        const found = result.found ?? result.matching ?? "-";
+        const total = (result as any).expectedVariables ?? result.totalExpected ?? result.total ?? "-";
+        const found = (result as any).totalVariables ?? result.found ?? result.matching ?? "-";
         lines.push(`Expected: ${total} | Found: ${found}`);
         lines.push("");
-        const missing = result.missing || [];
+        const missingRaw = result.missing as any;
+        const missing: string[] = Array.isArray(missingRaw)
+          ? missingRaw
+          : (missingRaw && Array.isArray(missingRaw.variables) ? missingRaw.variables : []);
         if (missing.length > 0) {
           lines.push(`### Missing (${missing.length})`);
           lines.push("| Name |");
           lines.push("|------|");
-          for (const m of missing) lines.push(`| ${typeof m === "string" ? m : m.name} |`);
+          for (const m of missing) lines.push(`| ${typeof m === "string" ? m : (m as any).name} |`);
           lines.push("");
         }
-        const extra = result.extra || [];
+        const extraRaw = (result as any).nonStandard || result.extra;
+        const extra: string[] = Array.isArray(extraRaw)
+          ? extraRaw
+          : (extraRaw && Array.isArray(extraRaw.variables) ? extraRaw.variables.map((v: any) => typeof v === "string" ? v : v.name) : []);
         if (extra.length > 0) {
           lines.push(`### Extra (${extra.length})`);
           lines.push("| Name |");
           lines.push("|------|");
-          for (const e of extra) lines.push(`| ${typeof e === "string" ? e : e.name} |`);
+          for (const e of extra) lines.push(`| ${typeof e === "string" ? e : (e as any).name} |`);
           lines.push("");
         }
         const mismatched: Array<Record<string, any>> =
-          result.typeMismatches || (result as any).mismatched || (result as any).typeErrors || [];
+          (result as any).typeMismatches || (result as any).mismatched || (result as any).typeErrors || [];
         if (mismatched.length > 0) {
           lines.push(`### Mismatched (${mismatched.length})`);
           lines.push("| Name | Expected | Actual |");

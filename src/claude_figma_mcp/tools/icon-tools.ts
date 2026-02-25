@@ -218,12 +218,12 @@ export function registerIconTools(server: McpServer): void {
           limit: limit ?? 50,
         });
 
-        const r = result as unknown as { total: number; offset: number; limit: number; names: string[] };
-        const end = r.offset + r.names.length;
+        const r = result as unknown as { total: number; offset: number; limit: number; icons: string[] };
+        const end = r.offset + r.icons.length;
         const lines = [
           `Icons ${r.offset + 1}-${end} of ${r.total}${prefix ? ` (prefix: "${prefix}")` : ""}`,
           "",
-          r.names.join(", "),
+          r.icons.join(", "),
         ];
         return {
           content: [

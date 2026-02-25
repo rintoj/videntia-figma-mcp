@@ -485,15 +485,15 @@ export function registerDocumentTools(server: McpServer): void {
           return { content: [{ type: "text", text: "No annotations found." }] };
         }
         const lines: string[] = [
-          `Found ${annotations.length} annotation(s)`,
+          `Found ${annotations.length} annotation(s) on node "${(result as any).nodeName || (result as any).nodeId || nodeId}"`,
           "",
-          "| Label | Category | Node ID | ID |",
-          "|-------|----------|---------|----|",
+          "| Index | Label | Category |",
+          "|-------|-------|----------|",
         ];
         for (const a of annotations) {
-          const label = truncate((a.labelMarkdown || a.label || "-").replace(/\n/g, " "), 60);
-          const cat = a.category?.label || a.categoryId || "-";
-          lines.push(`| ${label} | ${cat} | ${a.nodeId || "-"} | ${a.id ?? "-"} |`);
+          const label = truncate(((a as any).labelMarkdown || (a as any).label || "-").replace(/\n/g, " "), 60);
+          const cat = (a as any).category?.label || (a as any).categoryId || "-";
+          lines.push(`| ${(a as any).index ?? "-"} | ${label} | ${cat} |`);
         }
         return {
           content: [
@@ -681,7 +681,7 @@ export function registerDocumentTools(server: McpServer): void {
     {
       label: z.string().describe("The label for the new category"),
       color: z
-        .enum(["blue", "green", "yellow", "orange", "red", "purple", "gray", "teal"])
+        .enum(["blue", "green", "yellow", "orange", "red", "pink", "violet", "teal"])
         .optional()
         .default("blue")
         .describe("The color for the category"),
@@ -721,7 +721,7 @@ export function registerDocumentTools(server: McpServer): void {
       categoryId: z.string().describe("The ID of the category to update"),
       label: z.string().optional().describe("New label for the category"),
       color: z
-        .enum(["blue", "green", "yellow", "orange", "red", "purple", "gray", "teal"])
+        .enum(["blue", "green", "yellow", "orange", "red", "pink", "violet", "teal"])
         .optional()
         .describe("New color for the category"),
     },
