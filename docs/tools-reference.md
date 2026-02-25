@@ -1689,6 +1689,8 @@ Create a border-radius token system.
 
 ### `create_complete_design_system`
 
+> **⚠️ Not testable on free Figma plan.** This tool creates a multi-mode collection (e.g., Light + Dark). The free plan is limited to 1 mode per collection, causing creation to fail. Test on a paid Figma plan.
+
 Bootstrap a full design system (colors + spacing + typography + radius) in one call.
 
 ```json
@@ -1705,6 +1707,8 @@ Bootstrap a full design system (colors + spacing + typography + radius) in one c
 ## 20. Mode Management
 
 ### `add_mode_to_collection`
+
+> **⚠️ Not testable on free Figma plan.** The free plan allows only 1 mode per collection. Adding a second mode will always fail with "Limited to 1 modes only". Test on a paid Figma plan.
 
 Add a new mode (e.g., Light, High Contrast) to a collection.
 
@@ -1733,6 +1737,8 @@ Rename an existing mode.
 
 ### `delete_mode`
 
+> **⚠️ Not testable on free Figma plan.** Requires a collection with 2+ modes. Since the free plan is limited to 1 mode per collection, there is never a second mode to delete. Test on a paid Figma plan.
+
 Delete a mode from a collection (cannot delete the last mode).
 
 ```json
@@ -1745,6 +1751,8 @@ Delete a mode from a collection (cannot delete the last mode).
 ---
 
 ### `duplicate_mode_values`
+
+> **⚠️ Not testable on free Figma plan.** Requires a collection with 2+ modes (a source and a target). Since the free plan is limited to 1 mode, there is no target mode to copy into. Test on a paid Figma plan.
 
 Copy all variable values from one mode to another.
 
@@ -1905,6 +1913,8 @@ Set a connector node as the default style for new connections.
 ---
 
 ### `create_connections`
+
+> **⚠️ Not testable in Figma Design files.** `figma.createConnector()` is a FigJam-only API and throws "not a function" in standard Figma Design documents. This tool only works in FigJam files.
 
 Create flow connections between nodes using the default connector.
 
