@@ -723,7 +723,7 @@ Set font family and style.
 {
   "nodeId": "123:456",
   "family": "Inter",
-  "style": "SemiBold"
+  "style": "Semi Bold"
 }
 ```
 

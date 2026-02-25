@@ -884,7 +884,7 @@ export function registerModificationTools(server: McpServer): void {
 
         const typedResult = result as {
           nodeId: string;
-          nodeName: string;
+          name: string;
           field: string;
           variableId: string;
           variableName: string;
@@ -895,7 +895,7 @@ export function registerModificationTools(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: `Successfully bound variable "${typedResult.variableName}" (${typedResult.variableType}) to "${typedResult.field}" on node "${typedResult.nodeName}"`,
+              text: `Successfully bound variable "${typedResult.variableName}" (${typedResult.variableType}) to "${typedResult.field}" on node "${typedResult.name}"`,
             },
           ],
         };
@@ -933,7 +933,7 @@ export function registerModificationTools(server: McpServer): void {
 
         const typedResult = result as {
           nodeId: string;
-          nodeName: string;
+          name: string;
           field: string;
         };
 
@@ -941,7 +941,7 @@ export function registerModificationTools(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: `Successfully removed variable binding from "${typedResult.field}" on node "${typedResult.nodeName}"`,
+              text: `Successfully removed variable binding from "${typedResult.field}" on node "${typedResult.name}"`,
             },
           ],
         };

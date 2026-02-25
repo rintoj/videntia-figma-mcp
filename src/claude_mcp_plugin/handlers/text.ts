@@ -1096,7 +1096,9 @@ export async function setFontName(params: Record<string, unknown>): Promise<Reco
   const safeParams = params !== null && params !== undefined ? params : {};
   const nodeId = safeParams.nodeId as string | undefined;
   const family = safeParams.family as string | undefined;
-  const style = safeParams.style !== null && safeParams.style !== undefined ? (safeParams.style as string) : 'Regular';
+  const rawStyle = safeParams.style !== null && safeParams.style !== undefined ? (safeParams.style as string) : 'Regular';
+  // Normalize camelCase style names to Figma's space-separated format (e.g. "SemiBold" → "Semi Bold")
+  const style = rawStyle.replace(/([a-z])([A-Z])/g, '$1 $2');
 
   if (!nodeId || !family) {
     throw new Error('Missing nodeId or font family');
@@ -1120,7 +1122,7 @@ export async function setFontName(params: Record<string, unknown>): Promise<Reco
       fontName: (node as TextNode).fontName,
     };
   } catch (error) {
-    throw new Error(`Error setting font name: ${(error as Error).message}`);
+    throw new Error(`Error setting font name: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
@@ -1568,12 +1570,37 @@ export async function createTextStyle(params: Record<string, unknown>): Promise<
 
   const textNode = node as TextNode;
 
+  // Resolve mixed values by falling back to first character range
+  const resolvedFontName: FontName = textNode.fontName === figma.mixed
+    ? textNode.getRangeFontName(0, 1) as FontName
+    : textNode.fontName as FontName;
+  const resolvedFontSize: number = textNode.fontSize === figma.mixed
+    ? textNode.getRangeFontSize(0, 1) as number
+    : textNode.fontSize as number;
+  const resolvedLetterSpacing: LetterSpacing = textNode.letterSpacing === figma.mixed
+    ? textNode.getRangeLetterSpacing(0, 1) as LetterSpacing
+    : textNode.letterSpacing as LetterSpacing;
+  const resolvedLineHeight: LineHeight = textNode.lineHeight === figma.mixed
+    ? textNode.getRangeLineHeight(0, 1) as LineHeight
+    : textNode.lineHeight as LineHeight;
+  const resolvedTextCase: TextCase = textNode.textCase === figma.mixed
+    ? textNode.getRangeTextCase(0, 1) as TextCase
+    : textNode.textCase as TextCase;
+  const resolvedTextDecoration: TextDecoration = textNode.textDecoration === figma.mixed
+    ? textNode.getRangeTextDecoration(0, 1) as TextDecoration
+    : textNode.textDecoration as TextDecoration;
+
   try {
-    await figma.loadFontAsync(textNode.fontName as FontName);
+    // Load both the default new-style font (Inter Regular) and the resolved target font.
+    // figma.createTextStyle() initialises with Inter Regular, so it must be loaded before
+    // any property write on the new style object succeeds.
+    await Promise.all([
+      figma.loadFontAsync({ family: 'Inter', style: 'Regular' }),
+      figma.loadFontAsync(resolvedFontName),
+    ]);
   } catch (error) {
-    const fn = textNode.fontName as FontName;
     throw new Error(
-      `Font "${fn.family} ${fn.style}" is not available. Please ensure the font is installed.`,
+      `Font "${resolvedFontName.family} ${resolvedFontName.style}" is not available. Please ensure the font is installed.`,
     );
   }
 
@@ -1584,14 +1611,15 @@ export async function createTextStyle(params: Record<string, unknown>): Promise<
       textStyle.description = description;
     }
 
-    textStyle.fontSize = textNode.fontSize as number;
-    textStyle.fontName = textNode.fontName as FontName;
-    textStyle.letterSpacing = textNode.letterSpacing as LetterSpacing;
-    textStyle.lineHeight = textNode.lineHeight as LineHeight;
+    // Set fontName first so subsequent property writes use the correct loaded font
+    textStyle.fontName = resolvedFontName;
+    textStyle.fontSize = resolvedFontSize;
+    textStyle.letterSpacing = resolvedLetterSpacing;
+    textStyle.lineHeight = resolvedLineHeight;
     textStyle.paragraphIndent = textNode.paragraphIndent;
     textStyle.paragraphSpacing = textNode.paragraphSpacing;
-    textStyle.textCase = textNode.textCase as TextCase;
-    textStyle.textDecoration = textNode.textDecoration as TextDecoration;
+    textStyle.textCase = resolvedTextCase;
+    textStyle.textDecoration = resolvedTextDecoration;
 
     return {
       id: textStyle.id,

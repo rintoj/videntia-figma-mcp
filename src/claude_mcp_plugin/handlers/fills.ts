@@ -430,7 +430,7 @@ export async function setGradientFill(params: Record<string, unknown>): Promise<
 
   const gradientPaint: GradientPaint = {
     type: `GRADIENT_${gradientType}` as GradientPaint['type'],
-    stops: figmaStops,
+    gradientStops: figmaStops,
     gradientTransform,
     opacity,
   };

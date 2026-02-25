@@ -408,12 +408,12 @@ export function registerDocumentTools(server: McpServer): void {
     async ({ nodeId }) => {
       try {
         const result = await sendCommandToFigma("set_focus", { nodeId });
-        const typedResult = result as { name: string; id: string };
+        const typedResult = result as { name: string; nodeId: string };
         return {
           content: [
             {
               type: "text",
-              text: `Focused on node "${typedResult.name}" (ID: ${typedResult.id})`,
+              text: `Focused on node "${typedResult.name}" (ID: ${typedResult.nodeId})`,
             },
           ],
         };
@@ -442,13 +442,13 @@ export function registerDocumentTools(server: McpServer): void {
         const result = await sendCommandToFigma("set_selections", { nodeIds });
         const typedResult = result as {
           selectedNodes: Array<{ name: string; id: string }>;
-          count: number;
+          selectedCount: number;
         };
         return {
           content: [
             {
               type: "text",
-              text: `Selected ${typedResult.count} nodes: ${typedResult.selectedNodes
+              text: `Selected ${typedResult.selectedCount} nodes: ${typedResult.selectedNodes
                 .map((n) => `"${n.name}" (${n.id})`)
                 .join(", ")}`,
             },
