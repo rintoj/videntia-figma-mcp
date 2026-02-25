@@ -194,7 +194,7 @@ export function registerTextTools(server: McpServer): void {
     "Set the font size of a text node in Figma",
     {
       nodeId: z.string().describe("The ID of the text node to modify"),
-      fontSize: z.number().positive().describe("Font size in pixels"),
+      fontSize: z.coerce.number().positive().describe("Font size in pixels"),
     },
     async ({ nodeId, fontSize }) => {
       try {
@@ -230,7 +230,7 @@ export function registerTextTools(server: McpServer): void {
     "Set the font weight of a text node in Figma",
     {
       nodeId: z.string().describe("The ID of the text node to modify"),
-      weight: z.number().describe("Font weight (100, 200, 300, 400, 500, 600, 700, 800, 900)"),
+      weight: z.coerce.number().describe("Font weight (100, 200, 300, 400, 500, 600, 700, 800, 900)"),
     },
     async ({ nodeId, weight }) => {
       try {
@@ -266,7 +266,7 @@ export function registerTextTools(server: McpServer): void {
     "Set the letter spacing of a text node in Figma",
     {
       nodeId: z.string().describe("The ID of the text node to modify"),
-      letterSpacing: z.number().describe("Letter spacing value"),
+      letterSpacing: z.coerce.number().describe("Letter spacing value"),
       unit: z.enum(["PIXELS", "PERCENT"]).optional().describe("Unit type (PIXELS or PERCENT)"),
     },
     async ({ nodeId, letterSpacing, unit }) => {
@@ -304,7 +304,7 @@ export function registerTextTools(server: McpServer): void {
     "Set the line height of a text node in Figma",
     {
       nodeId: z.string().describe("The ID of the text node to modify"),
-      lineHeight: z.number().describe("Line height value"),
+      lineHeight: z.coerce.number().describe("Line height value"),
       unit: z.enum(["PIXELS", "PERCENT", "AUTO"]).optional().describe("Unit type (PIXELS, PERCENT, or AUTO)"),
     },
     async ({ nodeId, lineHeight, unit }) => {
@@ -342,7 +342,7 @@ export function registerTextTools(server: McpServer): void {
     "Set the paragraph spacing of a text node in Figma",
     {
       nodeId: z.string().describe("The ID of the text node to modify"),
-      paragraphSpacing: z.number().describe("Paragraph spacing value in pixels"),
+      paragraphSpacing: z.coerce.number().describe("Paragraph spacing value in pixels"),
     },
     async ({ nodeId, paragraphSpacing }) => {
       try {
@@ -593,20 +593,20 @@ export function registerTextTools(server: McpServer): void {
     "Create a text style from specified properties without needing an existing node",
     {
       name: z.string().describe("Name for the text style (e.g., 'Heading/H1')"),
-      fontSize: z.number().describe("Font size in pixels"),
+      fontSize: z.coerce.number().describe("Font size in pixels"),
       fontFamily: z.string().describe("Font family name"),
       fontStyle: z.string().optional().describe("Font style (e.g., 'Regular', 'Bold')"),
-      fontWeight: z.number().optional().describe("Font weight (100-900)"),
+      fontWeight: z.coerce.number().optional().describe("Font weight (100-900)"),
       lineHeight: z
         .object({
-          value: z.number(),
+          value: z.coerce.number(),
           unit: z.enum(["PIXELS", "PERCENT", "AUTO"]),
         })
         .optional()
         .describe("Line height settings"),
       letterSpacing: z
         .object({
-          value: z.number(),
+          value: z.coerce.number(),
           unit: z.enum(["PIXELS", "PERCENT"]),
         })
         .optional()
@@ -810,28 +810,28 @@ export function registerTextTools(server: McpServer): void {
       styleId: z.string().describe("The ID of the text style to update"),
       name: z.string().optional().describe("New name for the text style"),
       description: z.string().optional().describe("New description for the text style"),
-      fontSize: z.number().optional().describe("New font size in pixels"),
+      fontSize: z.coerce.number().optional().describe("New font size in pixels"),
       fontFamily: z.string().optional().describe("New font family name"),
       fontStyle: z.string().optional().describe("New font style (e.g., 'Regular', 'Bold')"),
-      fontWeight: z.number().optional().describe("Font weight (100-900). Ignored if fontStyle is provided."),
+      fontWeight: z.coerce.number().optional().describe("Font weight (100-900). Ignored if fontStyle is provided."),
       lineHeight: z
         .object({
-          value: z.number(),
+          value: z.coerce.number(),
           unit: z.enum(["PIXELS", "PERCENT", "AUTO"]),
         })
         .optional()
         .describe("New line height settings"),
       letterSpacing: z
         .object({
-          value: z.number(),
+          value: z.coerce.number(),
           unit: z.enum(["PIXELS", "PERCENT"]),
         })
         .optional()
         .describe("New letter spacing settings"),
       textCase: z.enum(["ORIGINAL", "UPPER", "LOWER", "TITLE"]).optional().describe("New text case"),
       textDecoration: z.enum(["NONE", "UNDERLINE", "STRIKETHROUGH"]).optional().describe("New text decoration"),
-      paragraphSpacing: z.number().optional().describe("New paragraph spacing in pixels"),
-      paragraphIndent: z.number().optional().describe("New paragraph indent in pixels"),
+      paragraphSpacing: z.coerce.number().optional().describe("New paragraph spacing in pixels"),
+      paragraphIndent: z.coerce.number().optional().describe("New paragraph indent in pixels"),
     },
     async ({
       styleId,

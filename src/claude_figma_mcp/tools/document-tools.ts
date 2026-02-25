@@ -305,7 +305,7 @@ export function registerDocumentTools(server: McpServer): void {
     "Read the current Figma selection (or a specific node) as JSX with Tailwind CSS classes. Returns compact, Claude-readable markup instead of verbose JSON.",
     {
       nodeId: z.string().optional().describe("Specific node ID to read (defaults to current selection)"),
-      depth: z.number().optional().describe("Max depth to traverse (default: unlimited)"),
+      depth: z.coerce.number().optional().describe("Max depth to traverse (default: unlimited)"),
     },
     async ({ nodeId, depth }) => {
       try {
@@ -345,8 +345,8 @@ export function registerDocumentTools(server: McpServer): void {
         ),
       parentId: z.string().optional().describe("Parent node ID to insert into (defaults to current page)"),
       nextToId: z.string().optional().describe("Place the new node to the right of this node ID"),
-      x: z.number().optional().describe("X position for the root node"),
-      y: z.number().optional().describe("Y position for the root node"),
+      x: z.coerce.number().optional().describe("X position for the root node"),
+      y: z.coerce.number().optional().describe("Y position for the root node"),
       replaceChildren: z
         .boolean()
         .optional()
@@ -473,7 +473,7 @@ export function registerDocumentTools(server: McpServer): void {
     "Get all annotations in the current document or specific node",
     {
       nodeId: z.string().describe("Node ID to get annotations for specific node"),
-      includeCategories: z.boolean().optional().default(true).describe("Whether to include category information"),
+      includeCategories: z.coerce.boolean().optional().default(true).describe("Whether to include category information"),
     },
     async ({ nodeId, includeCategories }) => {
       try {
@@ -1325,13 +1325,13 @@ export function registerDocumentTools(server: McpServer): void {
             .describe(
               "Check root frame sizing: width=FIXED at device width (desktop=1440, tablet=768, mobile=375), height=HUG with minHeight set to device height (default: true)",
             ),
-          colors: z.boolean().optional().describe("Check fill/stroke color bindings (default: true)"),
-          spacing: z.boolean().optional().describe("Check padding/itemSpacing bindings (default: true)"),
-          radius: z.boolean().optional().describe("Check cornerRadius bindings (default: true)"),
-          textStyles: z.boolean().optional().describe("Check text style application (default: true)"),
-          effectStyles: z.boolean().optional().describe("Check effect style application (default: true)"),
-          autoLayout: z.boolean().optional().describe("Check auto-layout on frames (default: true)"),
-          overflow: z.boolean().optional().describe("Check child overflow beyond parent bounds (default: true)"),
+          colors: z.coerce.boolean().optional().describe("Check fill/stroke color bindings (default: true)"),
+          spacing: z.coerce.boolean().optional().describe("Check padding/itemSpacing bindings (default: true)"),
+          radius: z.coerce.boolean().optional().describe("Check cornerRadius bindings (default: true)"),
+          textStyles: z.coerce.boolean().optional().describe("Check text style application (default: true)"),
+          effectStyles: z.coerce.boolean().optional().describe("Check effect style application (default: true)"),
+          autoLayout: z.coerce.boolean().optional().describe("Check auto-layout on frames (default: true)"),
+          overflow: z.coerce.boolean().optional().describe("Check child overflow beyond parent bounds (default: true)"),
         })
         .optional()
         .describe("Toggle individual check categories (all enabled by default)"),
@@ -1761,7 +1761,7 @@ export function registerDocumentTools(server: McpServer): void {
     {
       nodeId: z.string().describe("The ID of the node to export"),
       format: z.enum(["PNG", "JPG", "SVG", "PDF"]).optional().describe("Export format"),
-      scale: z.number().positive().optional().describe("Export scale"),
+      scale: z.coerce.number().positive().optional().describe("Export scale"),
     },
     async ({ nodeId, format, scale }) => {
       try {
@@ -1826,7 +1826,7 @@ export function registerDocumentTools(server: McpServer): void {
     {
       nodeId: z.string().describe("The ID of the node to export"),
       format: z.enum(["png", "jpg", "svg", "pdf"]).optional().default("png").describe("Export format (lowercase)"),
-      scale: z.number().positive().min(0.01).max(4).optional().default(1).describe("Export scale (0.01 to 4)"),
+      scale: z.coerce.number().positive().min(0.01).max(4).optional().default(1).describe("Export scale (0.01 to 4)"),
       fileKey: z.string().optional().describe("Figma file key. If not provided, will be fetched from the plugin."),
     },
     async ({ nodeId, format, scale, fileKey }) => {
@@ -2143,10 +2143,10 @@ export function registerDocumentTools(server: McpServer): void {
 
   // Setup Design System Tool
   const rgbaColorSchema = z.object({
-    r: z.number().min(0).max(1).describe("Red channel (0-1)"),
-    g: z.number().min(0).max(1).describe("Green channel (0-1)"),
-    b: z.number().min(0).max(1).describe("Blue channel (0-1)"),
-    a: z.number().min(0).max(1).optional().describe("Alpha channel (0-1), defaults to 1"),
+    r: z.coerce.number().min(0).max(1).describe("Red channel (0-1)"),
+    g: z.coerce.number().min(0).max(1).describe("Green channel (0-1)"),
+    b: z.coerce.number().min(0).max(1).describe("Blue channel (0-1)"),
+    a: z.coerce.number().min(0).max(1).optional().describe("Alpha channel (0-1), defaults to 1"),
   });
 
   server.tool(
@@ -2159,7 +2159,7 @@ export function registerDocumentTools(server: McpServer): void {
         variables: z.array(z.object({
           name: z.string().describe("Variable name, e.g. 'background/primary' or 'space/md'"),
           type: z.enum(["COLOR", "FLOAT"]).describe("COLOR for colors, FLOAT for spacing/radius numbers"),
-          value: z.union([rgbaColorSchema, z.number()]).describe("RGBA object for COLOR type, number for FLOAT type"),
+          value: z.union([rgbaColorSchema, z.coerce.number()]).describe("RGBA object for COLOR type, number for FLOAT type"),
           description: z.string().optional().describe("Token description/purpose"),
         })),
       })).optional().describe("Variable collections to create/update, each with its own name and variables"),
@@ -2167,13 +2167,13 @@ export function registerDocumentTools(server: McpServer): void {
         name: z.string().describe("Style name, e.g. 'text/display/lg'"),
         font_family: z.string().describe("Font family, e.g. 'Manrope'"),
         font_style: z.string().describe("Font style, e.g. 'Bold', 'SemiBold', 'Regular'"),
-        font_size: z.number().describe("Font size in pixels"),
+        font_size: z.coerce.number().describe("Font size in pixels"),
         line_height: z.object({
-          value: z.number(),
+          value: z.coerce.number(),
           unit: z.enum(["PIXELS", "PERCENT", "AUTO"]),
         }).optional().describe("Line height specification"),
         letter_spacing: z.object({
-          value: z.number(),
+          value: z.coerce.number(),
           unit: z.enum(["PIXELS", "PERCENT"]),
         }).optional().describe("Letter spacing specification"),
         description: z.string().optional().describe("Style description/purpose"),
@@ -2183,9 +2183,9 @@ export function registerDocumentTools(server: McpServer): void {
         effects: z.array(z.object({
           type: z.enum(["DROP_SHADOW", "INNER_SHADOW", "LAYER_BLUR", "BACKGROUND_BLUR"]).describe("Effect type"),
           color: rgbaColorSchema.optional().describe("Effect color (for shadows)"),
-          offset: z.object({ x: z.number(), y: z.number() }).optional().describe("Shadow offset (for shadows)"),
-          radius: z.number().optional().describe("Blur radius"),
-          spread: z.number().optional().describe("Spread (for shadows)"),
+          offset: z.object({ x: z.coerce.number(), y: z.coerce.number() }).optional().describe("Shadow offset (for shadows)"),
+          radius: z.coerce.number().optional().describe("Blur radius"),
+          spread: z.coerce.number().optional().describe("Spread (for shadows)"),
         })).describe("Array of effects for this style"),
         description: z.string().optional().describe("Effect style description/purpose"),
       })).optional().describe("Effect styles to create/update"),

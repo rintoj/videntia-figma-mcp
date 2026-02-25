@@ -109,7 +109,7 @@ export function registerIconTools(server: McpServer): void {
     'Search for Lucide icons by keyword with fuzzy matching. Use | for multi-pattern search (e.g. "arrow|chevron"). Supports aliases like "notification" → bell, "hamburger" → menu.',
     {
       query: z.string().describe('Search query. Use | for multiple patterns (e.g. "arrow|chevron")'),
-      limit: z.number().min(1).max(20).optional().describe("Max results to return (default 5, max 20)"),
+      limit: z.coerce.number().min(1).max(20).optional().describe("Max results to return (default 5, max 20)"),
     },
     async ({ query, limit }) => {
       try {
@@ -207,8 +207,8 @@ export function registerIconTools(server: McpServer): void {
     "List available Lucide icon names with optional prefix filter and pagination. Returns names only (use get_icon to fetch SVG).",
     {
       prefix: z.string().optional().describe('Filter icons by name prefix (e.g. "arrow", "circle")'),
-      offset: z.number().min(0).optional().describe("Start index for pagination (default 0)"),
-      limit: z.number().min(1).max(200).optional().describe("Max results per page (default 50, max 200)"),
+      offset: z.coerce.number().min(0).optional().describe("Start index for pagination (default 0)"),
+      limit: z.coerce.number().min(1).max(200).optional().describe("Max results per page (default 50, max 200)"),
     },
     async ({ prefix, offset, limit }) => {
       try {

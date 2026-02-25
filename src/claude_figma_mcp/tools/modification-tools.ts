@@ -18,10 +18,10 @@ export function registerModificationTools(server: McpServer): void {
     "Set the fill color of a node in Figma. Alpha component defaults to 1 (fully opaque) if not specified. Use alpha 0 for fully transparent.",
     {
       nodeId: z.string().describe("The ID of the node to modify"),
-      r: z.number().min(0).max(1).describe("Red component (0-1)"),
-      g: z.number().min(0).max(1).describe("Green component (0-1)"),
-      b: z.number().min(0).max(1).describe("Blue component (0-1)"),
-      a: z.number().min(0).max(1).optional().describe("Alpha component (0-1, defaults to 1 if not specified)"),
+      r: z.coerce.number().min(0).max(1).describe("Red component (0-1)"),
+      g: z.coerce.number().min(0).max(1).describe("Green component (0-1)"),
+      b: z.coerce.number().min(0).max(1).describe("Blue component (0-1)"),
+      a: z.coerce.number().min(0).max(1).optional().describe("Alpha component (0-1, defaults to 1 if not specified)"),
     },
     async ({ nodeId, r, g, b, a }) => {
       try {
@@ -66,10 +66,10 @@ export function registerModificationTools(server: McpServer): void {
     "Set the stroke color of a node in Figma (defaults: opacity 1, weight 1)",
     {
       nodeId: z.string().describe("The ID of the node to modify"),
-      r: z.number().min(0).max(1).describe("Red component (0-1)"),
-      g: z.number().min(0).max(1).describe("Green component (0-1)"),
-      b: z.number().min(0).max(1).describe("Blue component (0-1)"),
-      a: z.number().min(0).max(1).optional().describe("Alpha component (0-1)"),
+      r: z.coerce.number().min(0).max(1).describe("Red component (0-1)"),
+      g: z.coerce.number().min(0).max(1).describe("Green component (0-1)"),
+      b: z.coerce.number().min(0).max(1).describe("Blue component (0-1)"),
+      a: z.coerce.number().min(0).max(1).optional().describe("Alpha component (0-1)"),
       strokeWeight: z.coerce.number().min(0).optional().describe("Stroke weight >= 0)"),
     },
     async ({ nodeId, r, g, b, a, strokeWeight }) => {
@@ -536,8 +536,8 @@ export function registerModificationTools(server: McpServer): void {
         .describe("Alignment along primary axis"),
       counterAxisAlignItems: z.enum(["MIN", "CENTER", "MAX"]).optional().describe("Alignment along counter axis"),
       layoutWrap: z.enum(["WRAP", "NO_WRAP"]).optional().describe("Whether items wrap to new lines"),
-      strokesIncludedInLayout: z.boolean().optional().describe("Whether strokes are included in layout calculations"),
-      clipsContent: z.boolean().optional().describe("Whether to clip content outside frame bounds"),
+      strokesIncludedInLayout: z.coerce.boolean().optional().describe("Whether strokes are included in layout calculations"),
+      clipsContent: z.coerce.boolean().optional().describe("Whether to clip content outside frame bounds"),
       layoutSizingHorizontal: z
         .enum(["FIXED", "HUG", "FILL"])
         .optional()
@@ -617,46 +617,46 @@ export function registerModificationTools(server: McpServer): void {
               .describe("Effect type"),
             color: z
               .object({
-                r: z.number().min(0).max(1).describe("Red (0-1)"),
-                g: z.number().min(0).max(1).describe("Green (0-1)"),
-                b: z.number().min(0).max(1).describe("Blue (0-1)"),
-                a: z.number().min(0).max(1).describe("Alpha (0-1)"),
+                r: z.coerce.number().min(0).max(1).describe("Red (0-1)"),
+                g: z.coerce.number().min(0).max(1).describe("Green (0-1)"),
+                b: z.coerce.number().min(0).max(1).describe("Blue (0-1)"),
+                a: z.coerce.number().min(0).max(1).describe("Alpha (0-1)"),
               })
               .optional()
               .describe("Effect color (for shadows and NOISE)"),
             offset: z
               .object({
-                x: z.number().describe("X offset"),
-                y: z.number().describe("Y offset"),
+                x: z.coerce.number().describe("X offset"),
+                y: z.coerce.number().describe("Y offset"),
               })
               .optional()
               .describe("Offset (for shadows)"),
-            radius: z.number().optional().describe("Effect radius (blur radius for blurs/TEXTURE/GLASS)"),
-            spread: z.number().optional().describe("Shadow spread (for shadows)"),
-            visible: z.boolean().optional().describe("Whether the effect is visible"),
+            radius: z.coerce.number().optional().describe("Effect radius (blur radius for blurs/TEXTURE/GLASS)"),
+            spread: z.coerce.number().optional().describe("Shadow spread (for shadows)"),
+            visible: z.coerce.boolean().optional().describe("Whether the effect is visible"),
             blendMode: z.string().optional().describe("Blend mode"),
             noiseType: z
               .enum(["MONOTONE", "DUOTONE", "MULTITONE"])
               .optional()
               .describe("Noise variant (NOISE only, default MONOTONE)"),
-            noiseSize: z.number().optional().describe("Grain size (NOISE/TEXTURE)"),
-            density: z.number().optional().describe("Grain density (NOISE)"),
+            noiseSize: z.coerce.number().optional().describe("Grain size (NOISE/TEXTURE)"),
+            density: z.coerce.number().optional().describe("Grain density (NOISE)"),
             secondaryColor: z
               .object({
-                r: z.number().min(0).max(1).describe("Red (0-1)"),
-                g: z.number().min(0).max(1).describe("Green (0-1)"),
-                b: z.number().min(0).max(1).describe("Blue (0-1)"),
-                a: z.number().min(0).max(1).describe("Alpha (0-1)"),
+                r: z.coerce.number().min(0).max(1).describe("Red (0-1)"),
+                g: z.coerce.number().min(0).max(1).describe("Green (0-1)"),
+                b: z.coerce.number().min(0).max(1).describe("Blue (0-1)"),
+                a: z.coerce.number().min(0).max(1).describe("Alpha (0-1)"),
               })
               .optional()
               .describe("Secondary color (NOISE DUOTONE only)"),
-            opacity: z.number().min(0).max(1).optional().describe("Opacity (NOISE MULTITONE only)"),
-            clipToShape: z.boolean().optional().describe("Clip texture to shape bounds (TEXTURE only, default true)"),
-            lightIntensity: z.number().optional().describe("Light intensity (GLASS only)"),
-            lightAngle: z.number().optional().describe("Light angle in degrees (GLASS only)"),
-            refraction: z.number().optional().describe("Refraction amount (GLASS only)"),
-            depth: z.number().optional().describe("Depth amount (GLASS only)"),
-            dispersion: z.number().optional().describe("Chromatic dispersion (GLASS only)"),
+            opacity: z.coerce.number().min(0).max(1).optional().describe("Opacity (NOISE MULTITONE only)"),
+            clipToShape: z.coerce.boolean().optional().describe("Clip texture to shape bounds (TEXTURE only, default true)"),
+            lightIntensity: z.coerce.number().optional().describe("Light intensity (GLASS only)"),
+            lightAngle: z.coerce.number().optional().describe("Light angle in degrees (GLASS only)"),
+            refraction: z.coerce.number().optional().describe("Refraction amount (GLASS only)"),
+            depth: z.coerce.number().optional().describe("Depth amount (GLASS only)"),
+            dispersion: z.coerce.number().optional().describe("Chromatic dispersion (GLASS only)"),
           }),
         ),
       ).describe("Array of effects to apply"),
@@ -734,23 +734,23 @@ export function registerModificationTools(server: McpServer): void {
     type: z.enum(["DROP_SHADOW", "INNER_SHADOW", "LAYER_BLUR", "BACKGROUND_BLUR"]).describe("Effect type"),
     color: z
       .object({
-        r: z.number().min(0).max(1).describe("Red (0-1)"),
-        g: z.number().min(0).max(1).describe("Green (0-1)"),
-        b: z.number().min(0).max(1).describe("Blue (0-1)"),
-        a: z.number().min(0).max(1).describe("Alpha (0-1)"),
+        r: z.coerce.number().min(0).max(1).describe("Red (0-1)"),
+        g: z.coerce.number().min(0).max(1).describe("Green (0-1)"),
+        b: z.coerce.number().min(0).max(1).describe("Blue (0-1)"),
+        a: z.coerce.number().min(0).max(1).describe("Alpha (0-1)"),
       })
       .optional()
       .describe("Effect color (for shadows)"),
     offset: z
       .object({
-        x: z.number().describe("X offset"),
-        y: z.number().describe("Y offset"),
+        x: z.coerce.number().describe("X offset"),
+        y: z.coerce.number().describe("Y offset"),
       })
       .optional()
       .describe("Offset (for shadows)"),
-    radius: z.number().optional().describe("Blur radius"),
-    spread: z.number().optional().describe("Shadow spread (for shadows)"),
-    visible: z.boolean().optional().describe("Whether the effect is visible"),
+    radius: z.coerce.number().optional().describe("Blur radius"),
+    spread: z.coerce.number().optional().describe("Shadow spread (for shadows)"),
+    visible: z.coerce.boolean().optional().describe("Whether the effect is visible"),
     blendMode: z.string().optional().describe("Blend mode"),
   });
 
@@ -1013,14 +1013,14 @@ export function registerModificationTools(server: McpServer): void {
         .enum(["FILL", "FIT", "CROP", "TILE"])
         .optional()
         .describe("How the image scales within the node (default: FILL)"),
-      rotation: z.number().optional().describe("Image rotation in degrees (increments of 90, only for FILL/FIT/TILE)"),
-      exposure: z.number().min(-1).max(1).optional().describe("Exposure adjustment (-1 to 1, default: 0)"),
-      contrast: z.number().min(-1).max(1).optional().describe("Contrast adjustment (-1 to 1, default: 0)"),
-      saturation: z.number().min(-1).max(1).optional().describe("Saturation adjustment (-1 to 1, default: 0)"),
-      temperature: z.number().min(-1).max(1).optional().describe("Temperature adjustment (-1 to 1, default: 0)"),
-      tint: z.number().min(-1).max(1).optional().describe("Tint adjustment (-1 to 1, default: 0)"),
-      highlights: z.number().min(-1).max(1).optional().describe("Highlights adjustment (-1 to 1, default: 0)"),
-      shadows: z.number().min(-1).max(1).optional().describe("Shadows adjustment (-1 to 1, default: 0)"),
+      rotation: z.coerce.number().optional().describe("Image rotation in degrees (increments of 90, only for FILL/FIT/TILE)"),
+      exposure: z.coerce.number().min(-1).max(1).optional().describe("Exposure adjustment (-1 to 1, default: 0)"),
+      contrast: z.coerce.number().min(-1).max(1).optional().describe("Contrast adjustment (-1 to 1, default: 0)"),
+      saturation: z.coerce.number().min(-1).max(1).optional().describe("Saturation adjustment (-1 to 1, default: 0)"),
+      temperature: z.coerce.number().min(-1).max(1).optional().describe("Temperature adjustment (-1 to 1, default: 0)"),
+      tint: z.coerce.number().min(-1).max(1).optional().describe("Tint adjustment (-1 to 1, default: 0)"),
+      highlights: z.coerce.number().min(-1).max(1).optional().describe("Highlights adjustment (-1 to 1, default: 0)"),
+      shadows: z.coerce.number().min(-1).max(1).optional().describe("Shadows adjustment (-1 to 1, default: 0)"),
     },
     async ({
       nodeId,
@@ -1088,18 +1088,18 @@ export function registerModificationTools(server: McpServer): void {
         .array(
           z.object({
             color: z.object({
-              r: z.number().min(0).max(1).describe("Red channel (0-1)"),
-              g: z.number().min(0).max(1).describe("Green channel (0-1)"),
-              b: z.number().min(0).max(1).describe("Blue channel (0-1)"),
-              a: z.number().min(0).max(1).optional().describe("Alpha channel (0-1, default 1)"),
+              r: z.coerce.number().min(0).max(1).describe("Red channel (0-1)"),
+              g: z.coerce.number().min(0).max(1).describe("Green channel (0-1)"),
+              b: z.coerce.number().min(0).max(1).describe("Blue channel (0-1)"),
+              a: z.coerce.number().min(0).max(1).optional().describe("Alpha channel (0-1, default 1)"),
             }),
-            position: z.number().min(0).max(1).describe("Stop position (0-1)"),
+            position: z.coerce.number().min(0).max(1).describe("Stop position (0-1)"),
           }),
         )
         .min(2)
         .describe("Array of gradient color stops (minimum 2)"),
-      angle: z.number().optional().describe("Gradient angle in degrees (LINEAR only, default 0)"),
-      opacity: z.number().min(0).max(1).optional().describe("Overall fill opacity (0-1, default 1)"),
+      angle: z.coerce.number().optional().describe("Gradient angle in degrees (LINEAR only, default 0)"),
+      opacity: z.coerce.number().min(0).max(1).optional().describe("Overall fill opacity (0-1, default 1)"),
     },
     async ({ nodeId, gradientType, gradientStops, angle, opacity }) => {
       try {

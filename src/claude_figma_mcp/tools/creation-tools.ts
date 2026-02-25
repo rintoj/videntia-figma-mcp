@@ -70,24 +70,24 @@ export function registerCreationTools(server: McpServer): void {
       parentId: z.string().optional().describe("Optional parent node ID to append the frame to"),
       fillColor: z
         .object({
-          r: z.number().min(0).max(1).describe("Red component (0-1)"),
-          g: z.number().min(0).max(1).describe("Green component (0-1)"),
-          b: z.number().min(0).max(1).describe("Blue component (0-1)"),
-          a: z.number().min(0).max(1).optional().describe("Alpha component (0-1)"),
+          r: z.coerce.number().min(0).max(1).describe("Red component (0-1)"),
+          g: z.coerce.number().min(0).max(1).describe("Green component (0-1)"),
+          b: z.coerce.number().min(0).max(1).describe("Blue component (0-1)"),
+          a: z.coerce.number().min(0).max(1).optional().describe("Alpha component (0-1)"),
         })
         .optional()
         .describe("Fill color in RGBA format"),
       strokeColor: z
         .object({
-          r: z.number().min(0).max(1).describe("Red component (0-1)"),
-          g: z.number().min(0).max(1).describe("Green component (0-1)"),
-          b: z.number().min(0).max(1).describe("Blue component (0-1)"),
-          a: z.number().min(0).max(1).optional().describe("Alpha component (0-1)"),
+          r: z.coerce.number().min(0).max(1).describe("Red component (0-1)"),
+          g: z.coerce.number().min(0).max(1).describe("Green component (0-1)"),
+          b: z.coerce.number().min(0).max(1).describe("Blue component (0-1)"),
+          a: z.coerce.number().min(0).max(1).optional().describe("Alpha component (0-1)"),
         })
         .optional()
         .describe("Stroke color in RGBA format"),
       strokeWeight: z.coerce.number().positive().optional().describe("Stroke weight"),
-      clipsContent: z.boolean().optional().describe("Whether to clip content outside frame bounds"),
+      clipsContent: z.coerce.boolean().optional().describe("Whether to clip content outside frame bounds"),
       layoutPositioning: z
         .enum(["ABSOLUTE", "RELATIVE"])
         .optional()
@@ -155,10 +155,10 @@ export function registerCreationTools(server: McpServer): void {
       fontWeight: z.coerce.number().optional().describe("Font weight (e.g., 400 for Regular, 700 for Bold)"),
       fontColor: z
         .object({
-          r: z.number().min(0).max(1).describe("Red component (0-1)"),
-          g: z.number().min(0).max(1).describe("Green component (0-1)"),
-          b: z.number().min(0).max(1).describe("Blue component (0-1)"),
-          a: z.number().min(0).max(1).optional().describe("Alpha component (0-1)"),
+          r: z.coerce.number().min(0).max(1).describe("Red component (0-1)"),
+          g: z.coerce.number().min(0).max(1).describe("Green component (0-1)"),
+          b: z.coerce.number().min(0).max(1).describe("Blue component (0-1)"),
+          a: z.coerce.number().min(0).max(1).optional().describe("Alpha component (0-1)"),
         })
         .optional()
         .describe("Font color in RGBA format"),
@@ -373,7 +373,7 @@ export function registerCreationTools(server: McpServer): void {
       y: z.coerce.number().optional().describe("Y position (default: 0)"),
       name: z.string().optional().describe("Name for the created node"),
       parentId: z.string().optional().describe("Parent node ID to insert the SVG into"),
-      flatten: z.boolean().optional().describe("Flatten all paths into a single vector node (default: false)"),
+      flatten: z.coerce.boolean().optional().describe("Flatten all paths into a single vector node (default: false)"),
     },
     async ({ svgString, x, y, name, parentId, flatten }) => {
       try {

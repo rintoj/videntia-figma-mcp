@@ -19,8 +19,8 @@ export function registerComponentTools(server: McpServer): void {
       componentKey: z
         .string()
         .describe("Component node ID (for local, e.g., '123:456') or component key (for library components)"),
-      x: z.number().describe("X position"),
-      y: z.number().describe("Y position"),
+      x: z.coerce.number().describe("X position"),
+      y: z.coerce.number().describe("Y position"),
       output_format: outputFormatSchema,
     },
     async ({ componentKey, x, y, output_format }) => {
@@ -385,7 +385,7 @@ export function registerComponentTools(server: McpServer): void {
       propertyName: z.string().describe("Name for the property (e.g., 'Show Icon', 'Label Text')"),
       type: z.enum(["BOOLEAN", "TEXT", "INSTANCE_SWAP", "VARIANT"]).describe("Type of property to create"),
       defaultValue: z
-        .union([z.boolean(), z.string()])
+        .union([z.coerce.boolean(), z.string()])
         .optional()
         .describe(
           "Default value (boolean for BOOLEAN type, string for TEXT/VARIANT, required component key for INSTANCE_SWAP)",
@@ -435,7 +435,7 @@ export function registerComponentTools(server: McpServer): void {
       nodeId: z.string().describe("The ID of the component or component set"),
       propertyName: z.string().describe("The full property name including the #ID suffix (e.g., 'Show Icon#123:456')"),
       newName: z.string().optional().describe("New name for the property"),
-      newDefaultValue: z.union([z.boolean(), z.string()]).optional().describe("New default value"),
+      newDefaultValue: z.union([z.coerce.boolean(), z.string()]).optional().describe("New default value"),
       preferredValues: coerceArray(
         z.array(
           z.object({
