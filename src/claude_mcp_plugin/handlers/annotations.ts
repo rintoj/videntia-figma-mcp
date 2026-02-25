@@ -25,7 +25,7 @@ const ANNOTATION_SUPPORTED_TYPES = [
   'VECTOR',
 ];
 
-const ANNOTATION_VALID_COLORS = ['blue', 'green', 'yellow', 'orange', 'red', 'purple', 'gray', 'teal'];
+const ANNOTATION_VALID_COLORS = ['blue', 'green', 'yellow', 'orange', 'red', 'purple', 'gray', 'teal', 'pink', 'violet'];
 
 // ---------------------------------------------------------------------------
 // Private helpers
@@ -330,5 +330,4 @@ export async function deleteAnnotationCategory(params: Record<string, unknown>):
     deletedCategoryId: categoryId,
   };
 }
-
 

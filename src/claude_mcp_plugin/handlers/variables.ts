@@ -73,6 +73,72 @@ function findVariableIn(
   return variable;
 }
 
+function coerceBooleanString(value: string): boolean | undefined {
+  const normalized = value.trim().toLowerCase();
+  if (normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'on') {
+    return true;
+  }
+  if (normalized === 'false' || normalized === '0' || normalized === 'no' || normalized === 'off') {
+    return false;
+  }
+  return undefined;
+}
+
+function coerceValueForType(
+  value: unknown,
+  variableType: VariableResolvedDataType | VariableResolvedType,
+  variableNameForError: string,
+): VariableValue {
+  if (variableType === 'COLOR') {
+    const rawColor = typeof value === 'string' ? JSON.parse(value) : value;
+    if (typeof rawColor !== 'object' || rawColor === null || (rawColor as RgbaColor).r === undefined) {
+      throw new Error(
+        `Expected color value with r, g, b properties for COLOR variable "${variableNameForError}"`,
+      );
+    }
+    const colorValue = rawColor as RgbaColor;
+    return {
+      r: colorValue.r,
+      g: colorValue.g,
+      b: colorValue.b,
+      a: colorValue.a !== undefined ? colorValue.a : 1.0,
+    };
+  }
+
+  if (variableType === 'FLOAT') {
+    if (typeof value === 'number') return value;
+    if (typeof value === 'string') {
+      const parsed = Number(value);
+      if (!Number.isNaN(parsed)) return parsed;
+    }
+    throw new Error(
+      `Expected number value for FLOAT variable "${variableNameForError}", got ${typeof value}`,
+    );
+  }
+
+  if (variableType === 'STRING') {
+    if (typeof value !== 'string') {
+      throw new Error(
+        `Expected string value for STRING variable "${variableNameForError}", got ${typeof value}`,
+      );
+    }
+    return value;
+  }
+
+  if (variableType === 'BOOLEAN') {
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'string') {
+      const parsed = coerceBooleanString(value);
+      if (parsed !== undefined) return parsed;
+    }
+    throw new Error(
+      `Expected boolean value for BOOLEAN variable "${variableNameForError}", got ${typeof value}`,
+    );
+  }
+
+  throw new Error(`Unsupported variable type: ${variableType}`);
+}
+
 // Legacy single-arg helpers kept for callers that only need a collection
 // and don't require variables in the same call.
 export async function findCollection(
@@ -701,19 +767,7 @@ export async function createVariable(
     throw new Error(`Mode not found: ${mode}`);
   }
 
-  let variableValue: VariableValue;
-  if (variableType === 'COLOR') {
-    const rawColor = typeof value === 'string' ? JSON.parse(value) : value;
-    const colorValue = rawColor as RgbaColor;
-    variableValue = {
-      r: colorValue.r,
-      g: colorValue.g,
-      b: colorValue.b,
-      a: colorValue.a !== undefined ? colorValue.a : 1.0,
-    };
-  } else {
-    variableValue = value as number | string | boolean;
-  }
+  const variableValue = coerceValueForType(value, variableType, name);
 
   variable.setValueForMode(modeId, variableValue);
 
@@ -763,19 +817,11 @@ export async function createVariablesBatch(
         variableType,
       );
 
-      let variableValue: VariableValue;
-      if (variableType === 'COLOR') {
-        const rawColor = typeof varDef['value'] === 'string' ? JSON.parse(varDef['value'] as string) : varDef['value'];
-        const colorValue = rawColor as RgbaColor;
-        variableValue = {
-          r: colorValue.r,
-          g: colorValue.g,
-          b: colorValue.b,
-          a: colorValue.a !== undefined ? colorValue.a : 1.0,
-        };
-      } else {
-        variableValue = varDef['value'] as number | string | boolean;
-      }
+      const variableValue = coerceValueForType(
+        varDef['value'],
+        variableType,
+        varDef['name'] as string,
+      );
 
       variable.setValueForMode(modeId, variableValue);
       created.push(varDef['name'] as string);
@@ -823,46 +869,7 @@ export async function updateVariableValue(
   }
 
   const variableType = variable.resolvedType;
-  let variableValue: VariableValue;
-
-  if (variableType === 'COLOR') {
-    const rawColor = typeof value === 'string' ? JSON.parse(value as string) : value;
-    if (typeof rawColor !== 'object' || rawColor === null || (rawColor as RgbaColor).r === undefined) {
-      throw new Error(
-        `Expected color value with r, g, b properties for COLOR variable "${variable.name}"`,
-      );
-    }
-    const colorValue = rawColor as RgbaColor;
-    variableValue = {
-      r: colorValue.r,
-      g: colorValue.g,
-      b: colorValue.b,
-      a: colorValue.a !== undefined ? colorValue.a : 1.0,
-    };
-  } else if (variableType === 'FLOAT') {
-    if (typeof value !== 'number') {
-      throw new Error(
-        `Expected number value for FLOAT variable "${variable.name}", got ${typeof value}`,
-      );
-    }
-    variableValue = value;
-  } else if (variableType === 'STRING') {
-    if (typeof value !== 'string') {
-      throw new Error(
-        `Expected string value for STRING variable "${variable.name}", got ${typeof value}`,
-      );
-    }
-    variableValue = value;
-  } else if (variableType === 'BOOLEAN') {
-    if (typeof value !== 'boolean') {
-      throw new Error(
-        `Expected boolean value for BOOLEAN variable "${variable.name}", got ${typeof value}`,
-      );
-    }
-    variableValue = value;
-  } else {
-    throw new Error(`Unsupported variable type: ${variableType}`);
-  }
+  const variableValue = coerceValueForType(value, variableType, variable.name);
 
   variable.setValueForMode(modeId, variableValue);
 

@@ -2,6 +2,7 @@ import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { sendCommandToFigma } from "../utils/websocket.js";
 import { coerceArray } from "../utils/coerce-array.js";
+import { mcpBooleanSchema } from "../utils/mcp-boolean.js";
 import {
   calculateColorScale,
   calculateCompositeColor,
@@ -290,7 +291,7 @@ export function registerVariableTools(server: McpServer): void {
       name: z.string().describe("Variable name (e.g., 'primary', 'spacing.4', 'font.family')"),
       type: z.enum(["COLOR", "FLOAT", "STRING", "BOOLEAN"]).describe("Variable type: COLOR = RGBA color object {r,g,b,a} with normalized 0–1 values, FLOAT = numeric value (spacing, sizing, etc.), STRING = text value, BOOLEAN = true/false"),
       value: z
-        .union([RGBAColorSchema, z.string(), z.coerce.number(), z.coerce.boolean()])
+        .union([RGBAColorSchema, z.coerce.number(), mcpBooleanSchema, z.string()])
         .describe("Variable value matching the type: COLOR → {r:0–1, g:0–1, b:0–1, a:0–1}, FLOAT → number, STRING → string, BOOLEAN → true/false"),
       mode: z.string().optional().describe("Mode name to set the value for (e.g. 'dark', 'light'); omit to set for the collection's default mode"),
     },
@@ -337,7 +338,7 @@ export function registerVariableTools(server: McpServer): void {
           z.object({
             name: z.string().describe("Variable name"),
             type: z.enum(["COLOR", "FLOAT", "STRING", "BOOLEAN"]).describe("Variable type — value must match this type"),
-            value: z.union([RGBAColorSchema, z.string(), z.coerce.number(), z.coerce.boolean()]).describe("Value matching the type: COLOR → {r,g,b,a} normalized, FLOAT → number, STRING → string, BOOLEAN → true/false"),
+            value: z.union([RGBAColorSchema, z.coerce.number(), mcpBooleanSchema, z.string()]).describe("Value matching the type: COLOR → {r,g,b,a} normalized, FLOAT → number, STRING → string, BOOLEAN → true/false"),
           }),
         ),
       ).describe("Array of variable definitions to create in one batch"),
@@ -383,7 +384,7 @@ export function registerVariableTools(server: McpServer): void {
       id: z.string().describe("Variable ID or name"),
       collection_id: z.string().optional().describe("Collection ID (required if using variable name)"),
       value: z
-        .union([RGBAColorSchema, z.string(), z.coerce.number(), z.coerce.boolean()])
+        .union([RGBAColorSchema, z.coerce.number(), mcpBooleanSchema, z.string()])
         .describe("New value (type must match variable type)"),
       mode: z.string().optional().describe("Mode to update (default: first mode)"),
     },
@@ -714,7 +715,7 @@ export function registerVariableTools(server: McpServer): void {
     "Compare collection against the 102-variable standard schema",
     {
       collection_id: z.string().describe("Collection ID or name to audit against the standard schema"),
-      chartColors: z.coerce.boolean().optional().describe("true = expect the 8 optional chart color variables in addition to the 102 base variables (default: false)"),
+      chartColors: mcpBooleanSchema.optional().describe("true = expect the 8 optional chart color variables in addition to the 102 base variables (default: false)"),
       custom_schema: z.any().optional().describe("Custom schema object to validate against instead of the built-in standard — must match the schema format returned by get_schema_definition; omit to use the built-in standard schema"),
     },
     async ({ collection_id, chartColors, custom_schema }) => {
@@ -846,7 +847,7 @@ export function registerVariableTools(server: McpServer): void {
     "get_schema_definition",
     "Return the complete standard schema definition",
     {
-      chartColors: z.coerce.boolean().optional().describe("true = include the 8 optional chart color variable definitions in the schema output (default: false)"),
+      chartColors: mcpBooleanSchema.optional().describe("true = include the 8 optional chart color variable definitions in the schema output (default: false)"),
       format: z.enum(["structured", "flat"]).optional().describe("Output format: 'structured' = full schema with categories and metadata (default), 'flat' = simple list of variable names only"),
     },
     async ({ chartColors, format }) => {
@@ -898,7 +899,7 @@ export function registerVariableTools(server: McpServer): void {
     "Get list of missing variables with suggested default values",
     {
       collection_id: z.string().describe("Collection ID or name to check for missing variables"),
-      defaults: z.coerce.boolean().optional().describe("true = include suggested default values from the reference dark theme alongside each missing variable name (default: true)"),
+      defaults: mcpBooleanSchema.optional().describe("true = include suggested default values from the reference dark theme alongside each missing variable name (default: true)"),
     },
     async ({ collection_id, defaults }) => {
       try {
@@ -956,8 +957,8 @@ export function registerVariableTools(server: McpServer): void {
     "Apply the default dark theme values from documentation",
     {
       collection_id: z.string().describe("Collection ID or name to apply the default dark theme values to"),
-      overwrite: z.coerce.boolean().optional().describe("true = update variables that already exist with default values; false = skip existing variables and only create missing ones (default: false)"),
-      chartColors: z.coerce.boolean().optional().describe("true = also apply the 8 optional chart color variables in addition to the 102 base variables (default: false)"),
+      overwrite: mcpBooleanSchema.optional().describe("true = update variables that already exist with default values; false = skip existing variables and only create missing ones (default: false)"),
+      chartColors: mcpBooleanSchema.optional().describe("true = also apply the 8 optional chart color variables in addition to the 102 base variables (default: false)"),
     },
     async ({ collection_id, overwrite, chartColors }) => {
       try {
@@ -1053,7 +1054,7 @@ export function registerVariableTools(server: McpServer): void {
         )
         .describe("Map of color names to base+foreground pairs — keys should be semantic names matching existing variable prefixes in the collection (e.g. {'primary': {base:{r,g,b}, foreground:{r,g,b}}, 'success': {...}})"),
       background: RGBAColorSchema.describe("Page background color as normalized RGB {r,g,b} 0–1 — used as the blend target for regenerating scale levels 50–900"),
-      regenerate_scales: z.coerce.boolean().optional().describe("true = automatically recalculate and update all scale variables (50–900) using the new base colors and background; false = only update the base and foreground variables (default: true)"),
+      regenerate_scales: mcpBooleanSchema.optional().describe("true = automatically recalculate and update all scale variables (50–900) using the new base colors and background; false = only update the base and foreground variables (default: true)"),
     },
     async ({ collection_id, palette, background, regenerate_scales }) => {
       try {
@@ -1138,7 +1139,7 @@ export function registerVariableTools(server: McpServer): void {
     "Generate formatted audit report (markdown or JSON)",
     {
       collection_id: z.string().describe("Collection ID or name"),
-      chartColors: z.coerce.boolean().optional().describe("Expect chart colors"),
+      chartColors: mcpBooleanSchema.optional().describe("Expect chart colors"),
       format: z.enum(["markdown", "json"]).optional().describe("Output format (default: markdown)"),
     },
     async ({ collection_id, chartColors, format }) => {
@@ -1178,7 +1179,7 @@ export function registerVariableTools(server: McpServer): void {
     {
       collection_id: z.string().describe("Collection ID or name"),
       mode: z.string().optional().describe("Mode to export"),
-      include_metadata: z.coerce.boolean().optional().describe("Include metadata (default: true)"),
+      include_metadata: mcpBooleanSchema.optional().describe("Include metadata (default: true)"),
     },
     async ({ collection_id, mode, include_metadata }) => {
       try {
@@ -1218,7 +1219,7 @@ export function registerVariableTools(server: McpServer): void {
       collection_id: z.string().describe("Collection ID or name"),
       schema: z.any().describe("JSON schema from export"),
       mode: z.string().optional().describe("Mode to import into"),
-      overwrite_existing: z.coerce.boolean().optional().describe("Overwrite existing (default: false)"),
+      overwrite_existing: mcpBooleanSchema.optional().describe("Overwrite existing (default: false)"),
     },
     async ({ collection_id, schema, mode, overwrite_existing }) => {
       try {
@@ -1304,10 +1305,10 @@ export function registerVariableTools(server: McpServer): void {
     "One-click fix to bring collection to 102-variable standard",
     {
       collection_id: z.string().describe("Collection ID or name to bring into compliance with the 102-variable standard"),
-      preserve_custom: z.coerce.boolean().optional().describe("true = keep non-standard variables that don't appear in the schema (they stay alongside standard ones); false = remove non-standard variables (default: false)"),
-      add_chart_colors: z.coerce.boolean().optional().describe("true = also add the 8 optional chart color variables to reach 110 total (default: false)"),
-      defaults: z.coerce.boolean().optional().describe("true = populate newly created variables with default dark-theme values; false = create variables without values (default: true)"),
-      dry_run: z.coerce.boolean().optional().describe("true = analyze and report what would change without modifying anything — use this to preview the impact before committing (default: false)"),
+      preserve_custom: mcpBooleanSchema.optional().describe("true = keep non-standard variables that don't appear in the schema (they stay alongside standard ones); false = remove non-standard variables (default: false)"),
+      add_chart_colors: mcpBooleanSchema.optional().describe("true = also add the 8 optional chart color variables to reach 110 total (default: false)"),
+      defaults: mcpBooleanSchema.optional().describe("true = populate newly created variables with default dark-theme values; false = create variables without values (default: true)"),
+      dry_run: mcpBooleanSchema.optional().describe("true = analyze and report what would change without modifying anything — use this to preview the impact before committing (default: false)"),
     },
     async ({ collection_id, preserve_custom, add_chart_colors, defaults, dry_run }) => {
       try {
@@ -1636,9 +1637,9 @@ export function registerVariableTools(server: McpServer): void {
       collection_id: z.string().describe("Collection ID or name"),
       scale_preset: z.enum(["major-third", "minor-third", "perfect-fourth"]).describe("Typography scale to use"),
       base_size: z.coerce.number().optional().default(16).describe("Base font size in pixels"),
-      include_weights: z.coerce.boolean().optional().default(true).describe("Include font weight tokens"),
-      include_line_heights: z.coerce.boolean().optional().default(true).describe("Include line height tokens"),
-      include_semantic: z.coerce.boolean().optional().default(true).describe("Include semantic typography tokens"),
+      include_weights: mcpBooleanSchema.optional().default(true).describe("Include font weight tokens"),
+      include_line_heights: mcpBooleanSchema.optional().default(true).describe("Include line height tokens"),
+      include_semantic: mcpBooleanSchema.optional().default(true).describe("Include semantic typography tokens"),
     },
     async ({ collection_id, scale_preset, base_size, include_weights, include_line_heights, include_semantic }) => {
       try {
@@ -1805,7 +1806,7 @@ export function registerVariableTools(server: McpServer): void {
         .optional()
         .default("standard")
         .describe("Border radius preset"),
-      include_semantic_tokens: z.coerce.boolean().optional().default(true).describe("Include semantic token suggestions"),
+      include_semantic_tokens: mcpBooleanSchema.optional().default(true).describe("Include semantic token suggestions"),
     },
     async (params) => {
       try {

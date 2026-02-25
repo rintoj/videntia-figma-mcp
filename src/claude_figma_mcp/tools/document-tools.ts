@@ -4,6 +4,7 @@ import { sendCommandToFigma, joinChannel, getOpenChannels } from "../utils/webso
 import { filterFigmaNode } from "../utils/figma-helpers.js";
 import { figmaAccessToken, FIGMA_API_BASE_URL } from "../config/config.js";
 import { coerceArray } from "../utils/coerce-array.js";
+import { mcpBooleanSchema } from "../utils/mcp-boolean.js";
 import { convertToJsx } from "../utils/figma-to-jsx.js";
 import { parseJsx } from "../utils/jsx-to-figma.js";
 import { outputFormatSchema, fetchNodesAsJsx, fetchSelectionAsJsx } from "../utils/output-format.js";
@@ -472,7 +473,7 @@ export function registerDocumentTools(server: McpServer): void {
     "Get all annotations in the current document or specific node",
     {
       nodeId: z.string().describe("Node ID to get annotations for specific node"),
-      includeCategories: z.coerce.boolean().optional().default(true).describe("Whether to include category information"),
+      includeCategories: mcpBooleanSchema.optional().default(true).describe("Whether to include category information"),
     },
     async ({ nodeId, includeCategories }) => {
       try {
@@ -681,7 +682,7 @@ export function registerDocumentTools(server: McpServer): void {
     {
       label: z.string().describe("The label for the new category"),
       color: z
-        .enum(["blue", "green", "yellow", "orange", "red", "pink", "violet", "teal"])
+        .enum(["blue", "green", "yellow", "orange", "red", "purple", "gray", "teal", "pink", "violet"])
         .optional()
         .default("blue")
         .describe("The color for the category"),
@@ -721,7 +722,7 @@ export function registerDocumentTools(server: McpServer): void {
       categoryId: z.string().describe("The ID of the category to update"),
       label: z.string().optional().describe("New label for the category"),
       color: z
-        .enum(["blue", "green", "yellow", "orange", "red", "pink", "violet", "teal"])
+        .enum(["blue", "green", "yellow", "orange", "red", "purple", "gray", "teal", "pink", "violet"])
         .optional()
         .describe("New color for the category"),
     },
@@ -1287,13 +1288,13 @@ export function registerDocumentTools(server: McpServer): void {
             .describe(
               "Check root frame sizing: width=FIXED at device width (desktop=1440, tablet=768, mobile=375), height=HUG with minHeight set to device height (default: true)",
             ),
-          colors: z.coerce.boolean().optional().describe("Check fill/stroke color bindings (default: true)"),
-          spacing: z.coerce.boolean().optional().describe("Check padding/itemSpacing bindings (default: true)"),
-          radius: z.coerce.boolean().optional().describe("Check cornerRadius bindings (default: true)"),
-          textStyles: z.coerce.boolean().optional().describe("Check text style application (default: true)"),
-          effectStyles: z.coerce.boolean().optional().describe("Check effect style application (default: true)"),
-          autoLayout: z.coerce.boolean().optional().describe("Check auto-layout on frames (default: true)"),
-          overflow: z.coerce.boolean().optional().describe("Check child overflow beyond parent bounds (default: true)"),
+          colors: mcpBooleanSchema.optional().describe("Check fill/stroke color bindings (default: true)"),
+          spacing: mcpBooleanSchema.optional().describe("Check padding/itemSpacing bindings (default: true)"),
+          radius: mcpBooleanSchema.optional().describe("Check cornerRadius bindings (default: true)"),
+          textStyles: mcpBooleanSchema.optional().describe("Check text style application (default: true)"),
+          effectStyles: mcpBooleanSchema.optional().describe("Check effect style application (default: true)"),
+          autoLayout: mcpBooleanSchema.optional().describe("Check auto-layout on frames (default: true)"),
+          overflow: mcpBooleanSchema.optional().describe("Check child overflow beyond parent bounds (default: true)"),
         })
         .optional()
         .describe("Toggle individual check categories (all enabled by default)"),

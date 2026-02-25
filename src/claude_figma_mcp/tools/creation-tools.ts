@@ -2,6 +2,7 @@ import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { sendCommandToFigma } from "../utils/websocket";
 import { coerceArray } from "../utils/coerce-array.js";
+import { mcpBooleanSchema } from "../utils/mcp-boolean.js";
 
 /**
  * Register creation tools to the MCP server
@@ -87,7 +88,7 @@ export function registerCreationTools(server: McpServer): void {
         .optional()
         .describe("Border/stroke color — omit for no stroke"),
       strokeWeight: z.coerce.number().positive().optional().describe("Border thickness in pixels (must be > 0; requires strokeColor to be visible)"),
-      clipsContent: z.coerce.boolean().optional().describe("true = hide content that overflows the frame boundary (CSS overflow:hidden); false = show overflow (default: false)"),
+      clipsContent: mcpBooleanSchema.optional().describe("true = hide content that overflows the frame boundary (CSS overflow:hidden); false = show overflow (default: false)"),
       layoutPositioning: z
         .enum(["ABSOLUTE", "RELATIVE"])
         .optional()
@@ -373,7 +374,7 @@ export function registerCreationTools(server: McpServer): void {
       y: z.coerce.number().optional().describe("Y position (default: 0)"),
       name: z.string().optional().describe("Name for the created node"),
       parentId: z.string().optional().describe("Parent node ID to insert the SVG into"),
-      flatten: z.coerce.boolean().optional().describe("true = merge all SVG paths into a single vector node (loses individual path structure but simplifies the layer); false = preserve path hierarchy as separate nodes (default: false)"),
+      flatten: mcpBooleanSchema.optional().describe("true = merge all SVG paths into a single vector node (loses individual path structure but simplifies the layer); false = preserve path hierarchy as separate nodes (default: false)"),
     },
     async ({ svgString, x, y, name, parentId, flatten }) => {
       try {

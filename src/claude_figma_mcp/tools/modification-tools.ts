@@ -4,6 +4,7 @@ import { sendCommandToFigma } from "../utils/websocket";
 import { applyColorDefaults, applyDefault, FIGMA_DEFAULTS } from "../utils/defaults";
 import { Color } from "../types/color";
 import { coerceArray } from "../utils/coerce-array.js";
+import { mcpBooleanSchema } from "../utils/mcp-boolean.js";
 import { DeleteMultipleNodesResult, CreateEffectStyleResult, UpdateEffectStyleResult } from "../types";
 
 /**
@@ -483,7 +484,7 @@ export function registerModificationTools(server: McpServer): void {
     {
       nodeId: z.string().describe("Node ID of a rectangle, frame, or component — must support corner radius"),
       radius: z.coerce.number().min(0).describe("Corner radius in pixels (≥ 0; applies to all corners unless 'corners' overrides specific ones)"),
-      corners: coerceArray(z.array(z.coerce.boolean()).length(4))
+      corners: coerceArray(z.array(mcpBooleanSchema).length(4))
         .optional()
         .describe("Array of exactly 4 booleans controlling which corners are rounded: [topLeft, topRight, bottomRight, bottomLeft]. E.g. [true, true, false, false] rounds top corners only. Omit to round all corners."),
     },
@@ -534,8 +535,8 @@ export function registerModificationTools(server: McpServer): void {
         .describe("Alignment along the layout direction: MIN = start, CENTER = center, MAX = end, SPACE_BETWEEN = distribute evenly"),
       counterAxisAlignItems: z.enum(["MIN", "CENTER", "MAX"]).optional().describe("Alignment perpendicular to layout direction: MIN = top/left, CENTER = center, MAX = bottom/right"),
       wrap: z.enum(["WRAP", "NO_WRAP"]).optional().describe("WRAP = children wrap to next line when overflow (default: NO_WRAP)"),
-      strokesIncludedInLayout: z.coerce.boolean().optional().describe("true = strokes count toward layout dimensions; false = strokes are outside layout bounds (default: false)"),
-      clipsContent: z.coerce.boolean().optional().describe("true = content outside the frame boundary is hidden (like CSS overflow:hidden); false = content is visible (default: false)"),
+      strokesIncludedInLayout: mcpBooleanSchema.optional().describe("true = strokes count toward layout dimensions; false = strokes are outside layout bounds (default: false)"),
+      clipsContent: mcpBooleanSchema.optional().describe("true = content outside the frame boundary is hidden (like CSS overflow:hidden); false = content is visible (default: false)"),
       horizontal: z
         .enum(["FIXED", "HUG", "FILL"])
         .optional()
@@ -631,7 +632,7 @@ export function registerModificationTools(server: McpServer): void {
               .describe("Shadow offset in pixels (DROP_SHADOW and INNER_SHADOW only)"),
             radius: z.coerce.number().optional().describe("Blur radius in pixels ≥ 0 (used for all blur types, TEXTURE, and GLASS; higher = more blur)"),
             spread: z.coerce.number().optional().describe("Shadow expansion in pixels — positive spreads outward, negative contracts (DROP_SHADOW and INNER_SHADOW only)"),
-            visible: z.coerce.boolean().optional().describe("Whether this effect layer is visible (default: true)"),
+            visible: mcpBooleanSchema.optional().describe("Whether this effect layer is visible (default: true)"),
             blendMode: z.string().optional().describe("CSS-compatible blend mode string, e.g. 'NORMAL', 'MULTIPLY', 'SCREEN', 'OVERLAY' (default: NORMAL)"),
             noiseType: z
               .enum(["MONOTONE", "DUOTONE", "MULTITONE"])
@@ -649,7 +650,7 @@ export function registerModificationTools(server: McpServer): void {
               .optional()
               .describe("Second grain color (NOISE DUOTONE only — ignored for MONOTONE/MULTITONE)"),
             opacity: z.coerce.number().min(0).max(1).optional().describe("Effect opacity 0–1 (NOISE MULTITONE only — ignored for MONOTONE/DUOTONE)"),
-            clipToShape: z.coerce.boolean().optional().describe("true = texture is masked to the node's shape; false = texture fills bounding box (TEXTURE only; default: true)"),
+            clipToShape: mcpBooleanSchema.optional().describe("true = texture is masked to the node's shape; false = texture fills bounding box (TEXTURE only; default: true)"),
             lightIntensity: z.coerce.number().optional().describe("Simulated light brightness 0–1 (GLASS only; typical range 0–1)"),
             lightAngle: z.coerce.number().optional().describe("Light source direction in degrees 0–360, where 0 = top (GLASS only)"),
             refraction: z.coerce.number().optional().describe("Background distortion amount ≥ 0 — higher = more bending of background (GLASS only; typical range 0–50)"),
@@ -748,7 +749,7 @@ export function registerModificationTools(server: McpServer): void {
       .describe("Offset (for shadows)"),
     radius: z.coerce.number().optional().describe("Blur radius"),
     spread: z.coerce.number().optional().describe("Shadow spread (for shadows)"),
-    visible: z.coerce.boolean().optional().describe("Whether the effect is visible"),
+    visible: mcpBooleanSchema.optional().describe("Whether the effect is visible"),
     blendMode: z.string().optional().describe("Blend mode"),
   });
 
