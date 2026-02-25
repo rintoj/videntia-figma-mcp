@@ -218,6 +218,11 @@ Select a node and scroll the Figma viewport to it.
 }
 ```
 
+**Verify:** Call `get_node_info` to confirm the node exists and is accessible:
+```json
+{ "nodeId": "123:456" }
+```
+
 ---
 
 ### `set_selections`
@@ -228,6 +233,11 @@ Select multiple nodes at once.
 {
   "nodeIds": ["123:456", "123:789"]
 }
+```
+
+**Verify:** Call `get_node_info` to confirm one of the selected nodes is accessible:
+```json
+{ "nodeId": "123:456" }
 ```
 
 ---
@@ -249,6 +259,11 @@ Create a new frame. Returns `id` — use it as `parentId` for children.
 }
 ```
 
+**Verify:** Call `get_node_info` to confirm the frame was created with the expected properties:
+```json
+{ "nodeId": "123:456" }
+```
+
 ---
 
 ### `create_rectangle`
@@ -264,6 +279,11 @@ Create a rectangle shape.
   "name": "Button/Background",
   "parentId": "123:456"
 }
+```
+
+**Verify:** Call `get_node_info` to confirm the rectangle was created with the expected properties:
+```json
+{ "nodeId": "123:456" }
 ```
 
 ---
@@ -285,6 +305,11 @@ Create a text node.
 }
 ```
 
+**Verify:** Call `get_node_info` to confirm the text node was created with the expected properties:
+```json
+{ "nodeId": "123:456" }
+```
+
 ---
 
 ### `create_svg`
@@ -302,6 +327,11 @@ Create a node from an SVG string. Good for inserting icons inline.
 }
 ```
 
+**Verify:** Call `get_node_info` to confirm the SVG node was created with the expected properties:
+```json
+{ "nodeId": "123:456" }
+```
+
 ---
 
 ### `clone_node`
@@ -314,6 +344,11 @@ Clone an existing node to a new position.
   "x": 400,
   "y": 100
 }
+```
+
+**Verify:** Call `get_node_info` to confirm the cloned node exists at the expected position:
+```json
+{ "nodeId": "123:456" }
 ```
 
 ---
@@ -330,6 +365,11 @@ Move a node inside another node at a specific index.
 }
 ```
 
+**Verify:** Call `get_node_info` to confirm the parent now contains the child at the expected index:
+```json
+{ "nodeId": "123:456" }
+```
+
 ---
 
 ### `group_nodes`
@@ -341,6 +381,11 @@ Group multiple nodes together.
   "nodeIds": ["123:456", "123:789"],
   "name": "Card/Group"
 }
+```
+
+**Verify:** Call `get_node_info` to confirm the group was created with the expected children:
+```json
+{ "nodeId": "123:456" }
 ```
 
 ---
@@ -355,6 +400,11 @@ Ungroup a group or frame, releasing its children to the parent.
 }
 ```
 
+**Verify:** Call `get_node_info` to confirm the node was ungrouped (children are now at the parent level):
+```json
+{ "nodeId": "123:456" }
+```
+
 ---
 
 ### `flatten_node`
@@ -365,6 +415,11 @@ Flatten a node (vector/boolean merge).
 {
   "nodeId": "123:456"
 }
+```
+
+**Verify:** Call `get_node_info` to confirm the node was flattened:
+```json
+{ "nodeId": "123:456" }
 ```
 
 ---
@@ -391,6 +446,11 @@ Configure auto-layout direction, padding, gap, and sizing on a frame.
 }
 ```
 
+**Verify:** Call `get_node_info` to confirm auto-layout was applied with the expected settings:
+```json
+{ "nodeId": "123:456" }
+```
+
 ---
 
 ### `set_layout_mode`
@@ -403,6 +463,11 @@ Set only the layout mode and wrap behavior.
   "mode": "HORIZONTAL",
   "wrap": "NO_WRAP"
 }
+```
+
+**Verify:** Call `get_node_info` to confirm the layout mode was updated:
+```json
+{ "nodeId": "123:456" }
 ```
 
 ---
@@ -421,6 +486,11 @@ Set padding values on an auto-layout frame.
 }
 ```
 
+**Verify:** Call `get_node_info` to confirm the padding was applied:
+```json
+{ "nodeId": "123:456" }
+```
+
 ---
 
 ### `set_item_spacing`
@@ -433,6 +503,11 @@ Set gap between children in an auto-layout frame.
   "gap": 8,
   "counterAxisSpacing": 4
 }
+```
+
+**Verify:** Call `get_node_info` to confirm the item spacing was updated:
+```json
+{ "nodeId": "123:456" }
 ```
 
 ---
@@ -449,6 +524,11 @@ Set primary and counter axis alignment.
 }
 ```
 
+**Verify:** Call `get_node_info` to confirm the axis alignment was applied:
+```json
+{ "nodeId": "123:456" }
+```
+
 ---
 
 ### `set_layout_sizing`
@@ -461,6 +541,11 @@ Set horizontal and vertical sizing modes.
   "horizontal": "FILL",
   "vertical": "HUG"
 }
+```
+
+**Verify:** Call `get_node_info` to confirm the sizing modes were updated:
+```json
+{ "nodeId": "123:456" }
 ```
 
 ---
@@ -477,6 +562,11 @@ Move a node to a new (x, y) position.
 }
 ```
 
+**Verify:** Call `get_node_info` to confirm the node was moved to the expected position:
+```json
+{ "nodeId": "123:456" }
+```
+
 ---
 
 ### `resize_node`
@@ -489,6 +579,11 @@ Resize a node to specific dimensions.
   "width": 320,
   "height": 56
 }
+```
+
+**Verify:** Call `get_node_info` to confirm the node was resized to the expected dimensions:
+```json
+{ "nodeId": "123:456" }
 ```
 
 ---
@@ -504,6 +599,11 @@ Rename a node.
 }
 ```
 
+**Verify:** Call `get_node_info` to confirm the node was renamed:
+```json
+{ "nodeId": "123:456" }
+```
+
 ---
 
 ### `set_corner_radius`
@@ -516,6 +616,11 @@ Set corner radius on a node.
   "radius": 8,
   "corners": [true, true, true, true]
 }
+```
+
+**Verify:** Call `get_node_info` to confirm the corner radius was applied:
+```json
+{ "nodeId": "123:456" }
 ```
 
 ---
@@ -536,6 +641,11 @@ Bind a variable to a node property.
 
 > Common `field` values: `"fills/0/color"`, `"strokes/0/color"`, `"opacity"`, `"width"`, `"height"`, `"cornerRadius"`, `"paddingLeft"`, `"itemSpacing"`
 
+**Verify:** Call `get_bound_variables` to confirm the variable was bound to the node property:
+```json
+{ "nodeId": "123:456" }
+```
+
 ---
 
 ### `unbind_variable`
@@ -547,6 +657,11 @@ Remove a variable binding from a node property.
   "nodeId": "123:456",
   "field": "fills/0/color"
 }
+```
+
+**Verify:** Call `get_bound_variables` to confirm the binding was removed:
+```json
+{ "nodeId": "123:456" }
 ```
 
 ---
@@ -579,6 +694,11 @@ Set solid fill color (RGBA normalized 0–1).
 }
 ```
 
+**Verify:** Call `get_node_info` to confirm the fill color was applied:
+```json
+{ "nodeId": "123:456" }
+```
+
 ---
 
 ### `set_stroke_color`
@@ -594,6 +714,11 @@ Set stroke color and weight.
   "a": 1,
   "weight": 1
 }
+```
+
+**Verify:** Call `get_node_info` to confirm the stroke color was applied:
+```json
+{ "nodeId": "123:456" }
 ```
 
 ---
@@ -615,6 +740,11 @@ Set a gradient fill (LINEAR, RADIAL, ANGULAR, DIAMOND).
 }
 ```
 
+**Verify:** Call `get_node_info` to confirm the gradient fill was applied:
+```json
+{ "nodeId": "123:456" }
+```
+
 ---
 
 ### `set_image_fill`
@@ -629,6 +759,11 @@ Set an image fill on a node from a URL.
 }
 ```
 
+**Verify:** Call `get_node_info` to confirm the image fill was applied:
+```json
+{ "nodeId": "123:456" }
+```
+
 ---
 
 ### `delete_node`
@@ -641,6 +776,11 @@ Delete a single node by ID.
 }
 ```
 
+**Verify:** Call `get_node_info` to confirm the node no longer exists (expect an error or null result):
+```json
+{ "nodeId": "123:456" }
+```
+
 ---
 
 ### `delete_multiple_nodes`
@@ -651,6 +791,11 @@ Delete multiple nodes in a single call.
 {
   "nodeIds": ["123:456", "123:789", "123:012"]
 }
+```
+
+**Verify:** Call `get_node_info` on one of the deleted node IDs to confirm it no longer exists:
+```json
+{ "nodeId": "123:456" }
 ```
 
 ---
@@ -679,6 +824,11 @@ Apply one or more visual effects to a node.
 
 > Types: `DROP_SHADOW`, `INNER_SHADOW`, `LAYER_BLUR`, `BACKGROUND_BLUR`, `NOISE`, `TEXTURE`, `GLASS`
 
+**Verify:** Call `get_node_info` to confirm the effects were applied to the node:
+```json
+{ "nodeId": "123:456" }
+```
+
 ---
 
 ### `set_effect_style_id`
@@ -690,6 +840,11 @@ Apply an existing effect style to a node.
   "nodeId": "123:456",
   "effectStyleId": "S:effectId123,"
 }
+```
+
+**Verify:** Call `get_node_info` to confirm the effect style was applied to the node:
+```json
+{ "nodeId": "123:456" }
 ```
 
 ---
@@ -713,6 +868,11 @@ Create a reusable effect style in the document.
 }
 ```
 
+**Verify:** Call `get_styles` to confirm the effect style was created:
+```json
+{}
+```
+
 ---
 
 ### `update_effect_style`
@@ -734,6 +894,11 @@ Update an existing effect style.
 }
 ```
 
+**Verify:** Call `get_styles` to confirm the effect style was updated:
+```json
+{}
+```
+
 ---
 
 ### `delete_effect_style`
@@ -744,6 +909,11 @@ Delete an effect style.
 {
   "styleId": "S:effectId123,"
 }
+```
+
+**Verify:** Call `get_styles` to confirm the effect style was removed:
+```json
+{}
 ```
 
 ---
@@ -782,6 +952,11 @@ Create a text style from an existing text node.
 }
 ```
 
+**Verify:** Call `get_text_styles` to confirm the text style was created:
+```json
+{}
+```
+
 ---
 
 ### `create_text_style_from_properties`
@@ -799,6 +974,11 @@ Create a text style without needing an existing node.
 }
 ```
 
+**Verify:** Call `get_text_styles` to confirm the text style was created:
+```json
+{}
+```
+
 ---
 
 ### `apply_text_style`
@@ -814,6 +994,11 @@ Apply a text style to a text node.
 
 > Pass the `id` from `get_text_styles`, NOT the `key`.
 
+**Verify:** Call `get_node_info` to confirm the text style was applied to the node:
+```json
+{ "nodeId": "123:456" }
+```
+
 ---
 
 ### `update_text_style`
@@ -828,6 +1013,11 @@ Update properties of an existing text style.
 }
 ```
 
+**Verify:** Call `get_text_styles` to confirm the text style was updated:
+```json
+{}
+```
+
 ---
 
 ### `delete_text_style`
@@ -838,6 +1028,11 @@ Delete a text style.
 {
   "styleId": "S:abc123,"
 }
+```
+
+**Verify:** Call `get_text_styles` to confirm the text style was removed:
+```json
+{}
 ```
 
 ---
@@ -853,6 +1048,11 @@ Replace the text content of an existing text node.
   "nodeId": "123:456",
   "text": "Updated button label"
 }
+```
+
+**Verify:** Call `get_node_info` to confirm the text content was updated:
+```json
+{ "nodeId": "123:456" }
 ```
 
 ---
@@ -871,6 +1071,11 @@ Update many text nodes in parallel (batched internally).
 }
 ```
 
+**Verify:** Call `get_node_info` on one of the updated nodes to confirm the text content was changed:
+```json
+{ "nodeId": "123:456" }
+```
+
 ---
 
 ### `set_font_name`
@@ -883,6 +1088,11 @@ Set font family and style.
   "family": "Inter",
   "style": "Semi Bold"
 }
+```
+
+**Verify:** Call `get_node_info` to confirm the font was updated:
+```json
+{ "nodeId": "123:456" }
 ```
 
 ---
@@ -898,6 +1108,11 @@ Set font size in pixels.
 }
 ```
 
+**Verify:** Call `get_node_info` to confirm the font size was updated:
+```json
+{ "nodeId": "123:456" }
+```
+
 ---
 
 ### `set_font_weight`
@@ -909,6 +1124,11 @@ Set font weight by numeric value.
   "nodeId": "123:456",
   "weight": 600
 }
+```
+
+**Verify:** Call `get_node_info` to confirm the font weight was updated:
+```json
+{ "nodeId": "123:456" }
 ```
 
 ---
@@ -925,6 +1145,11 @@ Set letter spacing.
 }
 ```
 
+**Verify:** Call `get_node_info` to confirm the letter spacing was updated:
+```json
+{ "nodeId": "123:456" }
+```
+
 ---
 
 ### `set_line_height`
@@ -939,6 +1164,11 @@ Set line height.
 }
 ```
 
+**Verify:** Call `get_node_info` to confirm the line height was updated:
+```json
+{ "nodeId": "123:456" }
+```
+
 ---
 
 ### `set_paragraph_spacing`
@@ -950,6 +1180,11 @@ Set paragraph spacing.
   "nodeId": "123:456",
   "spacing": 8
 }
+```
+
+**Verify:** Call `get_node_info` to confirm the paragraph spacing was updated:
+```json
+{ "nodeId": "123:456" }
 ```
 
 ---
@@ -967,6 +1202,11 @@ Set text case transformation.
 
 > Values: `ORIGINAL`, `UPPER`, `LOWER`, `TITLE`
 
+**Verify:** Call `get_node_info` to confirm the text case was updated:
+```json
+{ "nodeId": "123:456" }
+```
+
 ---
 
 ### `set_text_decoration`
@@ -981,6 +1221,11 @@ Set underline or strikethrough.
 ```
 
 > Values: `NONE`, `UNDERLINE`, `STRIKETHROUGH`
+
+**Verify:** Call `get_node_info` to confirm the text decoration was updated:
+```json
+{ "nodeId": "123:456" }
+```
 
 ---
 
@@ -1046,6 +1291,11 @@ Convert a frame or group into a reusable component.
 }
 ```
 
+**Verify:** Call `get_local_components` to confirm the component was created:
+```json
+{}
+```
+
 ---
 
 ### `create_component_set`
@@ -1057,6 +1307,11 @@ Combine multiple components into a variant set.
   "nodeIds": ["123:456", "123:789"],
   "name": "Button"
 }
+```
+
+**Verify:** Call `get_local_components` to confirm the component set was created:
+```json
+{}
 ```
 
 ---
@@ -1073,6 +1328,11 @@ Create an instance of a local or library component.
 }
 ```
 
+**Verify:** Call `get_node_info` to confirm the instance was created with the expected properties:
+```json
+{ "nodeId": "123:456" }
+```
+
 ---
 
 ### `detach_instance`
@@ -1083,6 +1343,11 @@ Detach a component instance, converting it to a plain frame.
 {
   "nodeId": "123:456"
 }
+```
+
+**Verify:** Call `get_node_info` to confirm the instance was detached (type should now be FRAME):
+```json
+{ "nodeId": "123:456" }
 ```
 
 ---
@@ -1100,6 +1365,11 @@ Add a new property (BOOLEAN, TEXT, INSTANCE_SWAP, VARIANT) to a component.
 }
 ```
 
+**Verify:** Call `get_component_properties` to confirm the property was added:
+```json
+{ "nodeId": "123:456" }
+```
+
 ---
 
 ### `edit_component_property`
@@ -1115,6 +1385,11 @@ Edit an existing component property's name or default.
 }
 ```
 
+**Verify:** Call `get_component_properties` to confirm the property was updated:
+```json
+{ "nodeId": "123:456" }
+```
+
 ---
 
 ### `delete_component_property`
@@ -1126,6 +1401,11 @@ Delete a component property (BOOLEAN, TEXT, INSTANCE_SWAP only).
   "nodeId": "123:456",
   "propertyName": "Show Icon#123:456"
 }
+```
+
+**Verify:** Call `get_component_properties` to confirm the property was removed:
+```json
+{ "nodeId": "123:456" }
 ```
 
 ---
@@ -1141,6 +1421,11 @@ Link a property to a child node's visibility, text content, or swap.
     "visible": "Show Icon#123:456"
   }
 }
+```
+
+**Verify:** Call `get_component_properties` to confirm the property reference was set:
+```json
+{ "nodeId": "123:789" }
 ```
 
 ---
@@ -1166,6 +1451,11 @@ Copy overrides from one instance and apply to others.
   "sourceInstanceId": "123:456",
   "targetNodeIds": ["123:789", "123:012"]
 }
+```
+
+**Verify:** Call `get_node_info` on one of the target nodes to confirm overrides were applied:
+```json
+{ "nodeId": "123:789" }
 ```
 
 ---
@@ -1227,6 +1517,11 @@ Create a Lucide icon in Figma at a specific parent, with color and size.
 
 > `color` also accepts design token names like `"gray-500"` or `"semantic/icon/muted"` — auto-binds the variable.
 
+**Verify:** Call `get_node_info` to confirm the icon node was created with the expected properties:
+```json
+{ "nodeId": "123:456" }
+```
+
 ---
 
 ### `update_icon`
@@ -1240,6 +1535,11 @@ Replace an existing icon node with a new Lucide icon, preserving position.
   "color": "#ef4444",
   "size": 20
 }
+```
+
+**Verify:** Call `get_node_info` to confirm the icon was replaced with the new icon:
+```json
+{ "nodeId": "123:456" }
 ```
 
 ---
@@ -1285,6 +1585,11 @@ Create a new variable collection.
 }
 ```
 
+**Verify:** Call `get_variable_collections` to confirm the collection was created:
+```json
+{}
+```
+
 ---
 
 ### `rename_variable_collection`
@@ -1298,6 +1603,11 @@ Rename a variable collection.
 }
 ```
 
+**Verify:** Call `get_variable_collections` to confirm the collection was renamed:
+```json
+{}
+```
+
 ---
 
 ### `delete_variable_collection`
@@ -1308,6 +1618,11 @@ Delete a collection and all its variables (irreversible).
 {
   "id": "VariableCollectionId:123/0"
 }
+```
+
+**Verify:** Call `get_variable_collections` to confirm the collection was removed:
+```json
+{}
 ```
 
 ---
@@ -1330,6 +1645,11 @@ Create a single variable in a collection.
 
 > Types: `COLOR`, `FLOAT`, `STRING`, `BOOLEAN`
 
+**Verify:** Call `get_variables` with the collection ID to confirm the variable was created:
+```json
+{ "collectionId": "VariableCollectionId:123/0" }
+```
+
 ---
 
 ### `create_variables_batch`
@@ -1346,6 +1666,11 @@ Create multiple variables at once (more efficient than individual calls).
 }
 ```
 
+**Verify:** Call `get_variables` with the collection ID to confirm the variables were created:
+```json
+{ "collectionId": "VariableCollectionId:123/0" }
+```
+
 ---
 
 ### `update_variable_value`
@@ -1358,6 +1683,11 @@ Update a variable's value for a specific mode.
   "value": { "r": 0.9, "g": 0.9, "b": 0.9, "a": 1 },
   "modeId": "123:1"
 }
+```
+
+**Verify:** Call `get_variables` with the collection ID to confirm the variable value was updated:
+```json
+{ "collectionId": "VariableCollectionId:123/0" }
 ```
 
 ---
@@ -1373,6 +1703,11 @@ Rename a variable.
 }
 ```
 
+**Verify:** Call `get_variables` with the collection ID to confirm the variable was renamed:
+```json
+{ "collectionId": "VariableCollectionId:123/0" }
+```
+
 ---
 
 ### `delete_variable`
@@ -1385,6 +1720,11 @@ Delete a single variable.
 }
 ```
 
+**Verify:** Call `get_variables` with the collection ID to confirm the variable was removed:
+```json
+{ "collectionId": "VariableCollectionId:123/0" }
+```
+
 ---
 
 ### `delete_variables_batch`
@@ -1395,6 +1735,11 @@ Delete multiple variables at once.
 {
   "variableIds": ["VariableID:789/0", "VariableID:790/0"]
 }
+```
+
+**Verify:** Call `get_variables` with the collection ID to confirm the variables were removed:
+```json
+{ "collectionId": "VariableCollectionId:123/0" }
 ```
 
 ---
@@ -1546,6 +1891,11 @@ Import variables from a JSON schema into a collection.
 }
 ```
 
+**Verify:** Call `get_variables` with the collection ID to confirm the variables were imported:
+```json
+{ "collectionId": "VariableCollectionId:123/0" }
+```
+
 ---
 
 ## 19. Theme Presets & Templates
@@ -1559,6 +1909,11 @@ Apply the built-in default dark theme values to a collection.
   "collectionId": "VariableCollectionId:123/0",
   "modeId": "123:0"
 }
+```
+
+**Verify:** Call `get_variable_collections` to confirm the theme was applied to the collection:
+```json
+{}
 ```
 
 ---
@@ -1578,6 +1933,11 @@ Apply custom brand colors and regenerate all derivative scales.
 }
 ```
 
+**Verify:** Call `get_variable_collections` to confirm the palette was applied to the collection:
+```json
+{}
+```
+
 ---
 
 ### `create_color_scale_set`
@@ -1591,6 +1951,11 @@ Create a complete scale for one color (base + foreground + 10 scale variants).
   "baseColor": { "r": 0.376, "g": 0.49, "b": 1.0, "a": 1 },
   "backgroundColor": { "r": 0.07, "g": 0.07, "b": 0.07, "a": 1 }
 }
+```
+
+**Verify:** Call `get_variables` with the collection ID to confirm the color scale variables were created:
+```json
+{ "collectionId": "VariableCollectionId:123/0" }
 ```
 
 ---
@@ -1607,6 +1972,11 @@ Create all 7 color scales at once (70 scale variants total).
 }
 ```
 
+**Verify:** Call `get_variables` with the collection ID to confirm all scale variables were created:
+```json
+{ "collectionId": "VariableCollectionId:123/0" }
+```
+
 ---
 
 ### `add_chart_colors`
@@ -1618,6 +1988,11 @@ Add 8 chart color variables to a collection.
   "collectionId": "VariableCollectionId:123/0",
   "modeId": "123:0"
 }
+```
+
+**Verify:** Call `get_variables` with the collection ID to confirm the chart color variables were added:
+```json
+{ "collectionId": "VariableCollectionId:123/0" }
 ```
 
 ---
@@ -1633,6 +2008,11 @@ Auto-fix a collection to match the 102-variable standard (adds missing, renames 
 }
 ```
 
+**Verify:** Call `get_variable_collections` to confirm the collection was updated to match the standard:
+```json
+{}
+```
+
 ---
 
 ### `reorder_variables`
@@ -1643,6 +2023,11 @@ Reorder variables to match standard organization (by category and name).
 {
   "collectionId": "VariableCollectionId:123/0"
 }
+```
+
+**Verify:** Call `get_variables` with the collection ID to confirm the variable order was updated:
+```json
+{ "collectionId": "VariableCollectionId:123/0" }
 ```
 
 ---
@@ -1659,6 +2044,11 @@ Create a complete spacing token system (8pt or 4pt grid).
 }
 ```
 
+**Verify:** Call `get_variables` with the collection ID to confirm the spacing variables were created:
+```json
+{ "collectionId": "VariableCollectionId:123/0" }
+```
+
 ---
 
 ### `create_typography_system`
@@ -1673,6 +2063,11 @@ Create a complete typography token system (font sizes, weights, line heights).
 }
 ```
 
+**Verify:** Call `get_variables` with the collection ID to confirm the typography variables were created:
+```json
+{ "collectionId": "VariableCollectionId:123/0" }
+```
+
 ---
 
 ### `create_radius_system`
@@ -1684,6 +2079,11 @@ Create a border-radius token system.
   "collectionId": "VariableCollectionId:123/0",
   "modeId": "123:0"
 }
+```
+
+**Verify:** Call `get_variables` with the collection ID to confirm the radius variables were created:
+```json
+{ "collectionId": "VariableCollectionId:123/0" }
 ```
 
 ---
@@ -1732,6 +2132,11 @@ Rename an existing mode.
   "modeId": "123:1",
   "newName": "Light Mode"
 }
+```
+
+**Verify:** Call `get_collection_info` to confirm the mode was renamed:
+```json
+{ "id": "VariableCollectionId:123/0" }
 ```
 
 ---
@@ -1791,6 +2196,11 @@ Create or fully update a design system in a single compound call. Accepts variab
 }
 ```
 
+**Verify:** Call `get_design_system` to confirm the design system was set up correctly:
+```json
+{}
+```
+
 ---
 
 ## 22. Annotations
@@ -1820,6 +2230,11 @@ Create or update a single annotation on a node.
 }
 ```
 
+**Verify:** Call `get_annotations` to confirm the annotation was created on the node:
+```json
+{ "nodeId": "123:456", "includeCategories": true }
+```
+
 ---
 
 ### `set_multiple_annotations`
@@ -1834,6 +2249,11 @@ Set many annotations at once.
     { "nodeId": "123:789", "label": "Tab bar — always visible" }
   ]
 }
+```
+
+**Verify:** Call `get_annotations` on one of the annotated nodes to confirm the annotation was set:
+```json
+{ "nodeId": "123:456", "includeCategories": true }
 ```
 
 ---
@@ -1859,6 +2279,11 @@ Create a custom annotation category.
 }
 ```
 
+**Verify:** Call `get_annotation_categories` to confirm the category was created:
+```json
+{}
+```
+
 ---
 
 ### `update_annotation_category`
@@ -1873,6 +2298,11 @@ Update an existing annotation category.
 }
 ```
 
+**Verify:** Call `get_annotation_categories` to confirm the category was updated:
+```json
+{}
+```
+
 ---
 
 ### `delete_annotation_category`
@@ -1883,6 +2313,11 @@ Delete a custom annotation category (presets cannot be deleted).
 {
   "categoryId": "custom-cat-123"
 }
+```
+
+**Verify:** Call `get_annotation_categories` to confirm the category was removed:
+```json
+{}
 ```
 
 ---
@@ -1909,6 +2344,11 @@ Set a connector node as the default style for new connections.
 {
   "connectorId": "123:456"
 }
+```
+
+**Verify:** Call `get_node_info` to confirm the connector node exists and is accessible:
+```json
+{ "nodeId": "123:456" }
 ```
 
 ---
@@ -2022,6 +2462,11 @@ Nodes with `id="<existingNodeId>"` are updated in place.
 
 > Batch multiple roots in one `jsx` string to avoid redundant round-trips.
 
+**Verify:** Call `read_my_design` with the returned root node ID to confirm the nodes were created:
+```json
+{ "nodeId": "123:456", "depth": 3 }
+```
+
 ---
 
 ## 27. Page Management
@@ -2034,6 +2479,11 @@ Create a new page in the document.
 {
   "name": "Components"
 }
+```
+
+**Verify:** Call `get_document_info` to confirm the page was created:
+```json
+{}
 ```
 
 ---
@@ -2049,6 +2499,11 @@ Rename an existing page.
 }
 ```
 
+**Verify:** Call `get_document_info` to confirm the page was renamed:
+```json
+{}
+```
+
 ---
 
 ### `delete_page`
@@ -2059,6 +2514,11 @@ Delete a page (cannot delete the last remaining page).
 {
   "pageId": "0:2"
 }
+```
+
+**Verify:** Call `get_document_info` to confirm the page was removed:
+```json
+{}
 ```
 
 ---
