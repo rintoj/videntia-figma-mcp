@@ -435,7 +435,7 @@ export function registerComponentTools(server: McpServer): void {
       nodeId: z.string().describe("The ID of the component or component set"),
       propertyName: z.string().describe("The full property name including the #ID suffix (e.g., 'Show Icon#123:456')"),
       newName: z.string().optional().describe("New name for the property"),
-      newDefaultValue: z.union([z.coerce.boolean(), z.string()]).optional().describe("New default value"),
+      newDefaultValue: z.union([z.string(), z.coerce.boolean()]).optional().describe("New default value"),
       preferredValues: coerceArray(
         z.array(
           z.object({
