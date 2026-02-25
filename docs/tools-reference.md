@@ -20,9 +20,8 @@ one by one, in order, using the "Draft" page of the connected Figma channel.
    - Diagnose the root cause (bad parameter? wrong type? missing field? API mismatch?).
    - Determine the correct fix: either a code change in the MCP server/plugin, or a documentation
      correction in the code itself, or a documentation correction in this file.
-   - Present your diagnosis and proposed fix to the user clearly, then **ask for permission** before
-     making any changes.
-   - Once permission is granted, apply the fix (edit source files and/or docs as needed), then run:
+   - Present your diagnosis, then **apply the fix immediately** without asking for permission
+     (edit source files and/or docs as needed), then run:
      `bun run build && launchctl stop com.claude-figma-mcp.socket && launchctl start com.claude-figma-mcp.socket`
    - Wait a moment for the server to restart, then **retry the same tool**. If it passes, continue to
      the next tool. If it fails again, stop and re-diagnose.
