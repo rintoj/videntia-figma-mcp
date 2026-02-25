@@ -35,7 +35,7 @@ export function hasFillPaintStyle(node: SceneNode): boolean {
   try {
     let styleId = (node as unknown as { fillStyleId?: string | typeof figma.mixed }).fillStyleId;
     if (styleId && styleId !== '' && styleId !== figma.mixed) return true;
-  } catch (e) {}
+  } catch (_e) {}
   return false;
 }
 
@@ -43,7 +43,7 @@ export function hasStrokePaintStyle(node: SceneNode): boolean {
   try {
     let styleId = (node as unknown as { strokeStyleId?: string | typeof figma.mixed }).strokeStyleId;
     if (styleId && styleId !== '' && styleId !== figma.mixed) return true;
-  } catch (e) {}
+  } catch (_e) {}
   return false;
 }
 
@@ -51,7 +51,7 @@ export function hasTextStyle(node: SceneNode): boolean {
   try {
     let styleId = (node as unknown as { textStyleId?: string | typeof figma.mixed }).textStyleId;
     if (styleId && styleId !== '' && styleId !== figma.mixed) return true;
-  } catch (e) {}
+  } catch (_e) {}
   return false;
 }
 
@@ -59,7 +59,7 @@ export function hasEffectStyle(node: SceneNode): boolean {
   try {
     let styleId = (node as unknown as { effectStyleId?: string | typeof figma.mixed }).effectStyleId;
     if (styleId && styleId !== '' && styleId !== figma.mixed) return true;
-  } catch (e) {}
+  } catch (_e) {}
   return false;
 }
 
@@ -84,7 +84,7 @@ export function isIconLike(node: SceneNode): boolean {
     try {
       let sized = node as InstanceNode | ComponentNode;
       if (sized.width <= 48 && sized.height <= 48) return true;
-    } catch (e) {}
+    } catch (_e) {}
   }
   return false;
 }
@@ -231,7 +231,7 @@ export async function buildLookupMaps(): Promise<LookupMaps> {
           textStyleExactMap[tsKey] = ts;
         }
       }
-    } catch (e) {}
+    } catch (_e) {}
   }
 
   return {

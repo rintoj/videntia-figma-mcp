@@ -118,7 +118,7 @@ export async function applyFixes(
     if (fv.nodeId === lastFixNodeId) {
       fixNode = lastFixNode;
     } else {
-      try { fixNode = await figma.getNodeByIdAsync(fv.nodeId); } catch (e) {}
+      try { fixNode = await figma.getNodeByIdAsync(fv.nodeId); } catch (_e) {}
       lastFixNodeId = fv.nodeId;
       lastFixNode = fixNode;
     }
@@ -133,7 +133,7 @@ export async function applyFixes(
           fv.fixedWith = 'layoutSizingHorizontal = FIXED';
           categories.rootFrame.unbound = Math.max(0, categories.rootFrame.unbound - 1);
           categories.rootFrame.bound++;
-        } catch (e) {}
+        } catch (_e) {}
 
       } else if (fv.property === 'layoutSizingVertical') {
         try {
@@ -142,7 +142,7 @@ export async function applyFixes(
           fv.fixedWith = 'layoutSizingVertical = HUG';
           categories.rootFrame.unbound = Math.max(0, categories.rootFrame.unbound - 1);
           categories.rootFrame.bound++;
-        } catch (e) {}
+        } catch (_e) {}
 
       } else if (fv.property === 'minHeight') {
         try {
@@ -161,7 +161,7 @@ export async function applyFixes(
             categories.rootFrame.unbound = Math.max(0, categories.rootFrame.unbound - 1);
             categories.rootFrame.bound++;
           }
-        } catch (e) {}
+        } catch (_e) {}
       }
 
     // ── Color / fill / stroke fixes ──
@@ -191,7 +191,7 @@ export async function applyFixes(
               }
             }
           }
-        } catch (e) {}
+        } catch (_e) {}
       }
 
     // ── Spacing fixes ──
@@ -212,7 +212,7 @@ export async function applyFixes(
             }
           }
         }
-      } catch (e) {}
+      } catch (_e) {}
 
     // ── Border radius fixes ──
     } else if (isRadiusViol) {
@@ -232,7 +232,7 @@ export async function applyFixes(
             }
           }
         }
-      } catch (e) {}
+      } catch (_e) {}
 
     // ── Typography fixes ──
     } else if (isTypographyViol && fv.property === 'textStyleId') {
@@ -262,7 +262,7 @@ export async function applyFixes(
             }
           }
         }
-      } catch (e) {}
+      } catch (_e) {}
     }
   }
 }

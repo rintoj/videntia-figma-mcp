@@ -1,14 +1,25 @@
 import { customBase64Encode } from '../utils/base64';
 import { debugLog, parseNum } from '../utils/helpers';
 
+function getParam<T>(params: Record<string, unknown>, key: string, defaultVal: T): T {
+  const p = params !== null && params !== undefined ? params[key] : undefined;
+  return (p !== null && p !== undefined) ? p as T : defaultVal;
+}
+
+function getOptParam<T>(params: Record<string, unknown>, key: string): T | undefined {
+  if (params === null || params === undefined) return undefined;
+  const p = params[key];
+  return (p !== null && p !== undefined) ? p as T : undefined;
+}
+
 export async function createRectangle(params: Record<string, unknown>): Promise<Record<string, unknown>> {
-  const x: number = (params !== null && params !== undefined && params['x'] !== null && params['x'] !== undefined) ? params['x'] as number : 0;
-  const y: number = (params !== null && params !== undefined && params['y'] !== null && params['y'] !== undefined) ? params['y'] as number : 0;
-  const width: number = (params !== null && params !== undefined && params['width'] !== null && params['width'] !== undefined) ? params['width'] as number : 100;
-  const height: number = (params !== null && params !== undefined && params['height'] !== null && params['height'] !== undefined) ? params['height'] as number : 100;
-  const name: string = (params !== null && params !== undefined && params['name'] !== null && params['name'] !== undefined) ? params['name'] as string : 'Rectangle';
-  const parentId: string | undefined = (params !== null && params !== undefined) ? params['parentId'] as string | undefined : undefined;
-  const layoutPositioning: string | undefined = (params !== null && params !== undefined) ? params['layoutPositioning'] as string | undefined : undefined;
+  const x: number = getParam<number>(params, 'x', 0);
+  const y: number = getParam<number>(params, 'y', 0);
+  const width: number = getParam<number>(params, 'width', 100);
+  const height: number = getParam<number>(params, 'height', 100);
+  const name: string = getParam<string>(params, 'name', 'Rectangle');
+  const parentId: string | undefined = getOptParam<string>(params, 'parentId');
+  const layoutPositioning: string | undefined = getOptParam<string>(params, 'layoutPositioning');
 
   const rect = figma.createRectangle();
   rect.x = x;
@@ -50,17 +61,17 @@ export async function createRectangle(params: Record<string, unknown>): Promise<
 }
 
 export async function createFrame(params: Record<string, unknown>): Promise<Record<string, unknown>> {
-  const x: number = (params !== null && params !== undefined && params['x'] !== null && params['x'] !== undefined) ? params['x'] as number : 0;
-  const y: number = (params !== null && params !== undefined && params['y'] !== null && params['y'] !== undefined) ? params['y'] as number : 0;
-  const width: number = (params !== null && params !== undefined && params['width'] !== null && params['width'] !== undefined) ? params['width'] as number : 100;
-  const height: number = (params !== null && params !== undefined && params['height'] !== null && params['height'] !== undefined) ? params['height'] as number : 100;
-  const name: string = (params !== null && params !== undefined && params['name'] !== null && params['name'] !== undefined) ? params['name'] as string : 'Frame';
-  const parentId: string | undefined = (params !== null && params !== undefined) ? params['parentId'] as string | undefined : undefined;
-  const fillColor: Record<string, unknown> | undefined = (params !== null && params !== undefined) ? params['fillColor'] as Record<string, unknown> | undefined : undefined;
-  const strokeColor: Record<string, unknown> | undefined = (params !== null && params !== undefined) ? params['strokeColor'] as Record<string, unknown> | undefined : undefined;
-  const strokeWeight: number | undefined = (params !== null && params !== undefined) ? params['strokeWeight'] as number | undefined : undefined;
-  const clipsContent: boolean | undefined = (params !== null && params !== undefined) ? params['clipsContent'] as boolean | undefined : undefined;
-  const layoutPositioning: string | undefined = (params !== null && params !== undefined) ? params['layoutPositioning'] as string | undefined : undefined;
+  const x: number = getParam<number>(params, 'x', 0);
+  const y: number = getParam<number>(params, 'y', 0);
+  const width: number = getParam<number>(params, 'width', 100);
+  const height: number = getParam<number>(params, 'height', 100);
+  const name: string = getParam<string>(params, 'name', 'Frame');
+  const parentId: string | undefined = getOptParam<string>(params, 'parentId');
+  const fillColor: Record<string, unknown> | undefined = getOptParam<Record<string, unknown>>(params, 'fillColor');
+  const strokeColor: Record<string, unknown> | undefined = getOptParam<Record<string, unknown>>(params, 'strokeColor');
+  const strokeWeight: number | undefined = getOptParam<number>(params, 'strokeWeight');
+  const clipsContent: boolean | undefined = getOptParam<boolean>(params, 'clipsContent');
+  const layoutPositioning: string | undefined = getOptParam<string>(params, 'layoutPositioning');
 
   const frame = figma.createFrame();
   frame.x = x;
@@ -144,9 +155,9 @@ export async function createFrame(params: Record<string, unknown>): Promise<Reco
 }
 
 export async function moveNode(params: Record<string, unknown>): Promise<Record<string, unknown>> {
-  const nodeId = (params !== null && params !== undefined) ? params['nodeId'] as string : undefined;
-  const x = (params !== null && params !== undefined) ? params['x'] as number : undefined;
-  const y = (params !== null && params !== undefined) ? params['y'] as number : undefined;
+  const nodeId = getOptParam<string>(params, 'nodeId');
+  const x = getOptParam<number>(params, 'x');
+  const y = getOptParam<number>(params, 'y');
 
   if (!nodeId) {
     throw new Error('Missing nodeId parameter');
@@ -177,9 +188,9 @@ export async function moveNode(params: Record<string, unknown>): Promise<Record<
 }
 
 export async function resizeNode(params: Record<string, unknown>): Promise<Record<string, unknown>> {
-  const nodeId = (params !== null && params !== undefined) ? params['nodeId'] as string : undefined;
-  const width = (params !== null && params !== undefined) ? params['width'] as number : undefined;
-  const height = (params !== null && params !== undefined) ? params['height'] as number : undefined;
+  const nodeId = getOptParam<string>(params, 'nodeId');
+  const width = getOptParam<number>(params, 'width');
+  const height = getOptParam<number>(params, 'height');
 
   if (!nodeId) {
     throw new Error('Missing nodeId parameter');
@@ -209,7 +220,7 @@ export async function resizeNode(params: Record<string, unknown>): Promise<Recor
 }
 
 export async function deleteNode(params: Record<string, unknown>): Promise<Record<string, unknown>> {
-  const nodeId = (params !== null && params !== undefined) ? params['nodeId'] as string : undefined;
+  const nodeId = getOptParam<string>(params, 'nodeId');
 
   if (!nodeId) {
     throw new Error('Missing nodeId parameter');
@@ -233,7 +244,7 @@ export async function deleteNode(params: Record<string, unknown>): Promise<Recor
 }
 
 export async function deleteMultipleNodes(params: Record<string, unknown>): Promise<Record<string, unknown>> {
-  const nodeIds = (params !== null && params !== undefined) ? params['nodeIds'] as string[] : undefined;
+  const nodeIds = getOptParam<string[]>(params, 'nodeIds');
 
   if (!nodeIds || !Array.isArray(nodeIds)) {
     throw new Error('Missing or invalid nodeIds parameter - must be an array');
@@ -277,8 +288,8 @@ export async function deleteMultipleNodes(params: Record<string, unknown>): Prom
 }
 
 export async function exportNodeAsImage(params: Record<string, unknown>): Promise<Record<string, unknown>> {
-  const nodeId = (params !== null && params !== undefined) ? params['nodeId'] as string : undefined;
-  const scale: number = (params !== null && params !== undefined && params['scale'] !== null && params['scale'] !== undefined) ? params['scale'] as number : 1;
+  const nodeId = getOptParam<string>(params, 'nodeId');
+  const scale: number = getParam<number>(params, 'scale', 1);
 
   const format = 'PNG';
   const MAX_DIMENSION = 7680; // Stay under Claude's 8000px limit with some margin
@@ -356,9 +367,9 @@ export async function exportNodeAsImage(params: Record<string, unknown>): Promis
 }
 
 export async function setCornerRadius(params: Record<string, unknown>): Promise<Record<string, unknown>> {
-  const nodeId = (params !== null && params !== undefined) ? params['nodeId'] as string : undefined;
-  const radius = (params !== null && params !== undefined) ? params['radius'] as number : undefined;
-  const corners = (params !== null && params !== undefined) ? params['corners'] as unknown[] : undefined;
+  const nodeId = getOptParam<string>(params, 'nodeId');
+  const radius = getOptParam<number>(params, 'radius');
+  const corners = getOptParam<unknown[]>(params, 'corners');
 
   if (!nodeId) {
     throw new Error('Missing nodeId parameter');
@@ -409,9 +420,9 @@ export async function setCornerRadius(params: Record<string, unknown>): Promise<
 }
 
 export async function cloneNode(params: Record<string, unknown>): Promise<Record<string, unknown>> {
-  const nodeId = (params !== null && params !== undefined) ? params['nodeId'] as string : undefined;
-  const x = (params !== null && params !== undefined) ? params['x'] as number : undefined;
-  const y = (params !== null && params !== undefined) ? params['y'] as number : undefined;
+  const nodeId = getOptParam<string>(params, 'nodeId');
+  const x = getOptParam<number>(params, 'x');
+  const y = getOptParam<number>(params, 'y');
 
   if (!nodeId) {
     throw new Error('Missing nodeId parameter');
@@ -452,8 +463,8 @@ export async function cloneNode(params: Record<string, unknown>): Promise<Record
 }
 
 export async function groupNodes(params: Record<string, unknown>): Promise<Record<string, unknown>> {
-  const nodeIds = (params !== null && params !== undefined) ? params['nodeIds'] as string[] : undefined;
-  const name = (params !== null && params !== undefined) ? params['name'] as string : undefined;
+  const nodeIds = getOptParam<string[]>(params, 'nodeIds');
+  const name = getOptParam<string>(params, 'name');
 
   if (!nodeIds || !Array.isArray(nodeIds) || nodeIds.length < 2) {
     throw new Error('Must provide at least two nodeIds to group');
@@ -498,7 +509,7 @@ export async function groupNodes(params: Record<string, unknown>): Promise<Recor
 }
 
 export async function ungroupNodes(params: Record<string, unknown>): Promise<Record<string, unknown>> {
-  const nodeId = (params !== null && params !== undefined) ? params['nodeId'] as string : undefined;
+  const nodeId = getOptParam<string>(params, 'nodeId');
 
   if (!nodeId) {
     throw new Error('Missing nodeId parameter');
@@ -529,7 +540,7 @@ export async function ungroupNodes(params: Record<string, unknown>): Promise<Rec
 }
 
 export async function flattenNode(params: Record<string, unknown>): Promise<Record<string, unknown>> {
-  const nodeId = (params !== null && params !== undefined) ? params['nodeId'] as string : undefined;
+  const nodeId = getOptParam<string>(params, 'nodeId');
 
   if (!nodeId) {
     throw new Error('Missing nodeId parameter');
@@ -614,8 +625,8 @@ export async function flattenNode(params: Record<string, unknown>): Promise<Reco
 }
 
 export async function renameNode(params: Record<string, unknown>): Promise<Record<string, unknown>> {
-  const nodeId = (params !== null && params !== undefined) ? params['nodeId'] as string : undefined;
-  const name = (params !== null && params !== undefined) ? params['name'] as string : undefined;
+  const nodeId = getOptParam<string>(params, 'nodeId');
+  const name = getOptParam<string>(params, 'name');
 
   if (!nodeId) {
     throw new Error('Missing nodeId parameter');
@@ -645,9 +656,9 @@ export async function renameNode(params: Record<string, unknown>): Promise<Recor
 }
 
 export async function insertChild(params: Record<string, unknown>): Promise<Record<string, unknown>> {
-  const parentId = (params !== null && params !== undefined) ? params['parentId'] as string : undefined;
-  const childId = (params !== null && params !== undefined) ? params['childId'] as string : undefined;
-  const index = (params !== null && params !== undefined) ? params['index'] as number : undefined;
+  const parentId = getOptParam<string>(params, 'parentId');
+  const childId = getOptParam<string>(params, 'childId');
+  const index = getOptParam<number>(params, 'index');
 
   if (!parentId) {
     throw new Error('Missing parentId parameter');

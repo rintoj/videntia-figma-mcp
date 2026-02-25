@@ -638,8 +638,7 @@ export async function createLine(params: Record<string, unknown>): Promise<unkno
   // Set stroke cap style if supported
   const validStrokeCaps = ['NONE', 'ROUND', 'SQUARE', 'ARROW_LINES', 'ARROW_EQUILATERAL'];
   if (validStrokeCaps.includes(strokeCap)) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (line as any).strokeCap = strokeCap;
+    (line as unknown as { strokeCap: string }).strokeCap = strokeCap;
   }
 
   // Set fill to none (transparent) as lines typically don't have fills
@@ -668,8 +667,7 @@ export async function createLine(params: Record<string, unknown>): Promise<unkno
     width: line.width,
     height: line.height,
     strokeWeight: line.strokeWeight,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    strokeCap: (line as any).strokeCap,
+    strokeCap: (line as unknown as { strokeCap: string }).strokeCap,
     strokes: line.strokes,
     vectorPaths: line.vectorPaths,
     parentId: line.parent ? line.parent.id : undefined,
