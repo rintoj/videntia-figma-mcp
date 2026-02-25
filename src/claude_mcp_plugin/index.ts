@@ -79,6 +79,8 @@ import {
   deleteComponentProperty,
   setComponentPropertyReferences,
   getComponentProperties,
+  getInstanceOverrides,
+  setInstanceOverrides,
 } from './handlers/components';
 
 // Handlers — variables
@@ -521,11 +523,10 @@ async function handleCommand(
     case 'lint_frame':
       return await lintFrame(params);
 
-    // Not yet implemented — handlers exist in MCP server but have no plugin-side logic
     case 'get_instance_overrides':
-      throw new Error('get_instance_overrides is not yet implemented in the Figma plugin');
+      return await getInstanceOverrides(params);
     case 'set_instance_overrides':
-      throw new Error('set_instance_overrides is not yet implemented in the Figma plugin');
+      return await setInstanceOverrides(params);
 
     default:
       throw new Error('Unknown command');
