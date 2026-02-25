@@ -531,7 +531,7 @@ async function handleCommand(
       throw new Error('set_instance_overrides is not yet implemented in the Figma plugin');
 
     default:
-      throw new Error(`Unknown command: ${command}`);
+      throw new Error('Unknown command');
   }
 }
 

@@ -137,6 +137,8 @@ export async function batchActions(
       : 'batch';
   const totalActions = actions.length;
   const shouldSendProgress = totalActions > 1;
+  // Emit ~10 progress updates regardless of batch size (at least 1 per action for small batches)
+  const progressInterval = Math.max(1, Math.floor(totalActions / 10));
 
   for (let i = 0; i < totalActions; i++) {
     const { action, params: actionParams } = actions[i];
@@ -191,8 +193,8 @@ export async function batchActions(
       if (stopOnError) break;
     }
 
-    // Send progress updates every 10 actions for large batches
-    if (shouldSendProgress && (i + 1) % 10 === 0) {
+    // Send progress updates — once per action for small batches, every N for large batches
+    if (shouldSendProgress && (i + 1) % progressInterval === 0) {
       const progress = Math.round(((i + 1) / totalActions) * 100);
       sendProgressUpdate(
         commandId,

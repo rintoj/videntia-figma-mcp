@@ -33,7 +33,7 @@ export async function getDocumentInfo(): Promise<Record<string, unknown>> {
     pages: figma.root.children.map((p) => ({
       id: p.id,
       name: p.name,
-      childCount: p.id === page.id ? page.children.length : 0,
+      childCount: p.id === page.id ? page.children.length : null,
     })),
   };
 }

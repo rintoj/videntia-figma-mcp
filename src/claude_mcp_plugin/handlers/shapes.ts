@@ -4,6 +4,16 @@ import { parseSvgRootStroke, propagateStrokeToShapes } from '../utils/svg';
 import { debugLog, parseNum } from '../utils/helpers';
 import { resolveColorVariable, bindVariableToStrokes } from './icons';
 
+// Individual stroke weight properties exposed by FrameNode / ComponentNode
+// but not typed in the public Figma plugin typings.
+interface StrokeWeightMixin {
+  strokeWeight: number;
+  strokeTopWeight: number;
+  strokeBottomWeight: number;
+  strokeLeftWeight: number;
+  strokeRightWeight: number;
+}
+
 // ---------------------------------------------------------------------------
 // createEllipse
 // ---------------------------------------------------------------------------
@@ -407,16 +417,12 @@ export async function createSvg(params: Record<string, unknown>): Promise<unknow
     const parentFrame = parentNode as FrameNode;
     if (parentFrame.name && parentFrame.name.indexOf('Icon/') === 0) {
       parentFrame.strokes = [];
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (parentFrame as any).strokeWeight = 0;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (parentFrame as any).strokeTopWeight = 0;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (parentFrame as any).strokeBottomWeight = 0;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (parentFrame as any).strokeLeftWeight = 0;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (parentFrame as any).strokeRightWeight = 0;
+      const frameWithStrokes = parentFrame as unknown as StrokeWeightMixin;
+      frameWithStrokes.strokeWeight = 0;
+      frameWithStrokes.strokeTopWeight = 0;
+      frameWithStrokes.strokeBottomWeight = 0;
+      frameWithStrokes.strokeLeftWeight = 0;
+      frameWithStrokes.strokeRightWeight = 0;
 
       const parentW = parentFrame.width !== undefined ? parentFrame.width : 0;
       const parentH = parentFrame.height !== undefined ? parentFrame.height : 0;

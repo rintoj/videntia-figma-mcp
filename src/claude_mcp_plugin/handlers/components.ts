@@ -164,8 +164,7 @@ export async function getRemoteComponents(): Promise<Record<string, unknown>> {
     }
 
     // Check if figma.teamLibrary.getAvailableComponentsAsync exists
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const teamLibraryAny = figma.teamLibrary as any;
+    const teamLibraryAny = figma.teamLibrary as unknown as { getAvailableComponentsAsync?: () => Promise<unknown[]> };
     if (!teamLibraryAny.getAvailableComponentsAsync) {
       console.error(
         'Error: figma.teamLibrary.getAvailableComponentsAsync is not available',

@@ -177,8 +177,7 @@ export async function setStrokeColor(params: Record<string, unknown>): Promise<u
 
   // Set stroke weight if the node supports it
   if ('strokeWeight' in node) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (node as any).strokeWeight = strokeWeightParsed;
+    (node as unknown as { strokeWeight: number }).strokeWeight = strokeWeightParsed;
   }
 
   return {
@@ -257,7 +256,7 @@ export async function setImageFill(params: Record<string, unknown>): Promise<unk
     );
   }
 
-  debugLog(`setImageFill: Starting with nodeId=${nodeId}, imageUrl=${imageUrl}`);
+  debugLog(`setImageFill: Starting with nodeId=${nodeId}, imageUrl=<redacted>`);
 
   const node = await figma.getNodeByIdAsync(nodeId);
   if (!node) {

@@ -6,6 +6,18 @@ import { debugLog, sendProgressUpdate, generateCommandId } from '../utils/helper
 import { formatVariableValue } from '../utils/color';
 import type { RgbaColor, VariableResolvedType, VariableValue } from '../types';
 
+// Default chart color palette (8 entries) shared by applyCustomPalette and addChartColors.
+const DEFAULT_CHART_COLORS: RgbaColor[] = [
+  { r: 0.639, g: 0.902, b: 0.208, a: 1.0 },
+  { r: 0.118, g: 0.251, b: 0.686, a: 1.0 },
+  { r: 0.863, g: 0.696, b: 0.149, a: 1.0 },
+  { r: 0.863, g: 0.149, b: 0.149, a: 1.0 },
+  { r: 0.576, g: 0.773, b: 0.992, a: 1.0 },
+  { r: 0.078, g: 0.325, b: 0.176, a: 1.0 },
+  { r: 0.980, g: 0.588, b: 0.118, a: 1.0 },
+  { r: 0.639, g: 0.384, b: 0.863, a: 1.0 },
+];
+
 // ---------------------------------------------------------------------------
 // Private helpers
 // ---------------------------------------------------------------------------
@@ -1244,23 +1256,14 @@ export async function applyDefaultTheme(
   }
 
   if (includeChartColors === true) {
-    const chartColors: RgbaColor[] = [
-      { r: 0.639, g: 0.902, b: 0.208, a: 1.0 },
-      { r: 0.118, g: 0.251, b: 0.686, a: 1.0 },
-      { r: 0.863, g: 0.696, b: 0.149, a: 1.0 },
-      { r: 0.863, g: 0.149, b: 0.149, a: 1.0 },
-      { r: 0.576, g: 0.773, b: 0.992, a: 1.0 },
-      { r: 0.078, g: 0.325, b: 0.176, a: 1.0 },
-      { r: 0.980, g: 0.588, b: 0.118, a: 1.0 },
-      { r: 0.639, g: 0.384, b: 0.863, a: 1.0 },
-    ];
+    const chartColors = DEFAULT_CHART_COLORS;
 
     for (let i = 0; i < chartColors.length; i++) {
       const varName = `chart-${i + 1}`;
 
       if (existingNames.has(varName)) {
         if (overwriteExisting === true) {
-          const variable = collectionVariables.find(v => v.name === varName);
+          const variable = varByName.get(varName);
           if (variable !== undefined) {
             variable.setValueForMode(modeId, chartColors[i]);
           }
@@ -1822,16 +1825,7 @@ export async function addChartColors(
   const collection = await findCollection(collectionId);
   const modeId = collection.modes[0].modeId;
 
-  const defaultChartColors: RgbaColor[] = [
-    { r: 0.639, g: 0.902, b: 0.208, a: 1.0 },
-    { r: 0.118, g: 0.251, b: 0.686, a: 1.0 },
-    { r: 0.863, g: 0.696, b: 0.149, a: 1.0 },
-    { r: 0.863, g: 0.149, b: 0.149, a: 1.0 },
-    { r: 0.576, g: 0.773, b: 0.992, a: 1.0 },
-    { r: 0.078, g: 0.325, b: 0.176, a: 1.0 },
-    { r: 0.980, g: 0.588, b: 0.118, a: 1.0 },
-    { r: 0.639, g: 0.384, b: 0.863, a: 1.0 },
-  ];
+  const defaultChartColors = DEFAULT_CHART_COLORS;
 
   const colors =
     chartColorsParam !== undefined && chartColorsParam !== null
@@ -1943,7 +1937,8 @@ export async function duplicateModeValues(
     | { brightness_adjustment?: number }
     | undefined;
 
-  const collection = await findCollection(collectionId);
+  const { collections, variables: allVariables } = await fetchVariableData();
+  const collection = findCollectionIn(collections, collectionId);
 
   const sourceModeObj = collection.modes.find(m => m.name === sourceMode);
   const targetModeObj = collection.modes.find(m => m.name === targetMode);
@@ -1958,7 +1953,6 @@ export async function duplicateModeValues(
   const sourceModeId = sourceModeObj.modeId;
   const targetModeId = targetModeObj.modeId;
 
-  const allVariables = await figma.variables.getLocalVariablesAsync();
   const collectionVariables = allVariables.filter(
     v => v.variableCollectionId === collection.id,
   );

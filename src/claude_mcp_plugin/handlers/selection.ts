@@ -410,9 +410,13 @@ export async function readMyDesign(params: Record<string, unknown>): Promise<Rec
     if ('children' in node && (node as ChildrenMixin).children.length > 0) {
       if (depth === undefined || currentDepth < depth) {
         const childResults = await Promise.all(
-          (node as ChildrenMixin).children.map(
-            child => processNode(child as SceneNode, currentDepth + 1),
-          ),
+          (node as ChildrenMixin).children.map(async child => {
+            try {
+              return await processNode(child as SceneNode, currentDepth + 1);
+            } catch (_e) {
+              return null;
+            }
+          }),
         );
         const childInfos = childResults.filter(
           (c): c is Record<string, unknown> => c !== null,

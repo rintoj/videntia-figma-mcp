@@ -96,7 +96,7 @@ Dedicated TypeScript config for the Figma plugin source:
 }
 ```
 
-- **`target: ES2017`** — prevents `??` and `?.` from being emitted (Figma's older sandbox engine rejects them)
+- **`target: ES2017`** — sets the output target, but does NOT downlevel `??` and `?.` (they pass through as-is; avoid them manually — see JS Compatibility Rules below)
 - **`types: [@figma/plugin-typings]`** — provides full Figma API autocomplete; `figma` is a global, no import required
 
 ### `tsup.config.ts` — Plugin entry
