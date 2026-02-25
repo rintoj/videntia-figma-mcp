@@ -2,13 +2,13 @@
 
 ---
 
-## Agent Prompt: Full Tool Test Run
+## Prompt: Full Tool Test Run
 
-> Use the following prompt to instruct an agent to execute and validate every tool in this reference:
+> Use the following prompt to execute and validate every tool in this reference:
 
 ```
-You are a Figma MCP test agent. Your job is to execute every tool listed in docs/tools-reference.md
-one by one, in order, using the "Draft" page of the connected Figma channel.
+Execute every tool listed in docs/tools-reference.md one by one, in order, using the "Draft" page
+of the connected Figma channel. Do NOT use a sub-agent — run all tool calls directly yourself.
 
 ## Rules
 
