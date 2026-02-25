@@ -54,12 +54,12 @@ Work on the "Draft" page. Create a parent frame at the start to contain all test
 6. [Node Modification — Layout](#6-node-modification--layout)
 7. [Node Modification — Appearance](#7-node-modification--appearance)
 8. [Node Modification — Fill & Stroke](#8-node-modification--fill--stroke)
-9. [Text Creation & Styling](#9-text-creation--styling)
+9. [Effects & Shadows](#9-effects--shadows)
 10. [Text Style Management](#10-text-style-management)
-11. [Component Tools](#11-component-tools)
-12. [Icon Tools](#12-icon-tools)
-13. [SVG & Structural Operations](#13-svg--structural-operations)
-14. [Effects & Shadows](#14-effects--shadows)
+11. [Text Creation & Styling](#11-text-creation--styling)
+12. [Component Tools](#12-component-tools)
+13. [Icon Tools](#13-icon-tools)
+14. [SVG & Structural Operations](#14-svg--structural-operations)
 15. [Variable Collections](#15-variable-collections)
 16. [Variable CRUD](#16-variable-crud)
 17. [Color Calculations (Server-side)](#17-color-calculations-server-side)
@@ -72,6 +72,7 @@ Work on the "Draft" page. Create a parent frame at the start to contain all test
 24. [Export & Image](#24-export--image)
 25. [Batch Operations](#25-batch-operations)
 26. [JSX Bridge](#26-jsx-bridge)
+27. [Page Management](#27-page-management)
 
 ---
 
@@ -654,7 +655,194 @@ Delete multiple nodes in a single call.
 
 ---
 
-## 9. Text Creation & Styling
+## 9. Effects & Shadows
+
+### `set_effects`
+
+Apply one or more visual effects to a node.
+
+```json
+{
+  "nodeId": "123:456",
+  "effects": [
+    {
+      "type": "DROP_SHADOW",
+      "color": { "r": 0, "g": 0, "b": 0, "a": 0.15 },
+      "offset": { "x": 0, "y": 4 },
+      "radius": 8,
+      "spread": 0,
+      "visible": true
+    }
+  ]
+}
+```
+
+> Types: `DROP_SHADOW`, `INNER_SHADOW`, `LAYER_BLUR`, `BACKGROUND_BLUR`, `NOISE`, `TEXTURE`, `GLASS`
+
+---
+
+### `set_effect_style_id`
+
+Apply an existing effect style to a node.
+
+```json
+{
+  "nodeId": "123:456",
+  "effectStyleId": "S:effectId123,"
+}
+```
+
+---
+
+### `create_effect_style`
+
+Create a reusable effect style in the document.
+
+```json
+{
+  "name": "shadow/md",
+  "effects": [
+    {
+      "type": "DROP_SHADOW",
+      "color": { "r": 0, "g": 0, "b": 0, "a": 0.1 },
+      "offset": { "x": 0, "y": 4 },
+      "radius": 12
+    }
+  ],
+  "description": "Card shadow — medium elevation"
+}
+```
+
+---
+
+### `update_effect_style`
+
+Update an existing effect style.
+
+```json
+{
+  "styleId": "S:effectId123,",
+  "name": "shadow/lg",
+  "effects": [
+    {
+      "type": "DROP_SHADOW",
+      "color": { "r": 0, "g": 0, "b": 0, "a": 0.2 },
+      "offset": { "x": 0, "y": 8 },
+      "radius": 24
+    }
+  ]
+}
+```
+
+---
+
+### `delete_effect_style`
+
+Delete an effect style.
+
+```json
+{
+  "styleId": "S:effectId123,"
+}
+```
+
+---
+
+## 10. Text Style Management
+
+### `get_styles`
+
+Get all local styles (text, fill, effect, grid). Call **after** styles have been created.
+
+```json
+{}
+```
+
+---
+
+### `get_text_styles`
+
+List all local text styles. Each style returns an `id` (use with `apply_text_style`).
+
+```json
+{}
+```
+
+---
+
+### `create_text_style`
+
+Create a text style from an existing text node.
+
+```json
+{
+  "nodeId": "123:456",
+  "name": "Heading/H2",
+  "description": "Secondary heading — 24px SemiBold"
+}
+```
+
+---
+
+### `create_text_style_from_properties`
+
+Create a text style without needing an existing node.
+
+```json
+{
+  "name": "Body/MD",
+  "fontSize": 14,
+  "fontFamily": "Inter",
+  "fontStyle": "Regular",
+  "lineHeight": { "value": 22, "unit": "PIXELS" },
+  "letterSpacing": { "value": 0, "unit": "PIXELS" }
+}
+```
+
+---
+
+### `apply_text_style`
+
+Apply a text style to a text node.
+
+```json
+{
+  "nodeId": "123:456",
+  "styleId": "S:abc123,"
+}
+```
+
+> Pass the `id` from `get_text_styles`, NOT the `key`.
+
+---
+
+### `update_text_style`
+
+Update properties of an existing text style.
+
+```json
+{
+  "styleId": "S:abc123,",
+  "fontSize": 16,
+  "lineHeight": { "value": 24, "unit": "PIXELS" }
+}
+```
+
+---
+
+### `delete_text_style`
+
+Delete a text style.
+
+```json
+{
+  "styleId": "S:abc123,"
+}
+```
+
+---
+
+## 11. Text Creation & Styling
 
 ### `set_text_content`
 
@@ -824,101 +1012,7 @@ Pre-load a font family before using it.
 
 ---
 
-## 10. Text Style Management
-
-### `get_styles`
-
-Get all local styles (text, fill, effect, grid). Call **after** styles have been created.
-
-```json
-{}
-```
-
----
-
-### `get_text_styles`
-
-List all local text styles. Each style returns an `id` (use with `apply_text_style`).
-
-```json
-{}
-```
-
----
-
-### `create_text_style`
-
-Create a text style from an existing text node.
-
-```json
-{
-  "nodeId": "123:456",
-  "name": "Heading/H2",
-  "description": "Secondary heading — 24px SemiBold"
-}
-```
-
----
-
-### `create_text_style_from_properties`
-
-Create a text style without needing an existing node.
-
-```json
-{
-  "name": "Body/MD",
-  "fontSize": 14,
-  "fontFamily": "Inter",
-  "fontStyle": "Regular",
-  "lineHeight": { "value": 22, "unit": "PIXELS" },
-  "letterSpacing": { "value": 0, "unit": "PIXELS" }
-}
-```
-
----
-
-### `apply_text_style`
-
-Apply a text style to a text node.
-
-```json
-{
-  "nodeId": "123:456",
-  "styleId": "S:abc123,"
-}
-```
-
-> Pass the `id` from `get_text_styles`, NOT the `key`.
-
----
-
-### `update_text_style`
-
-Update properties of an existing text style.
-
-```json
-{
-  "styleId": "S:abc123,",
-  "fontSize": 16,
-  "lineHeight": { "value": 24, "unit": "PIXELS" }
-}
-```
-
----
-
-### `delete_text_style`
-
-Delete a text style.
-
-```json
-{
-  "styleId": "S:abc123,"
-}
-```
-
----
-
-## 11. Component Tools
+## 12. Component Tools
 
 ### `get_local_components`
 
@@ -1076,7 +1170,7 @@ Copy overrides from one instance and apply to others.
 
 ---
 
-## 12. Icon Tools
+## 13. Icon Tools
 
 ### `search_icon`
 
@@ -1150,102 +1244,9 @@ Replace an existing icon node with a new Lucide icon, preserving position.
 
 ---
 
-## 13. SVG & Structural Operations
+## 14. SVG & Structural Operations
 
 > See [Node Creation](#5-node-creation) for `create_svg`, `group_nodes`, `ungroup_nodes`, `flatten_node`, `insert_child`, `clone_node`.
-
----
-
-## 14. Effects & Shadows
-
-### `set_effects`
-
-Apply one or more visual effects to a node.
-
-```json
-{
-  "nodeId": "123:456",
-  "effects": [
-    {
-      "type": "DROP_SHADOW",
-      "color": { "r": 0, "g": 0, "b": 0, "a": 0.15 },
-      "offset": { "x": 0, "y": 4 },
-      "radius": 8,
-      "spread": 0,
-      "visible": true
-    }
-  ]
-}
-```
-
-> Types: `DROP_SHADOW`, `INNER_SHADOW`, `LAYER_BLUR`, `BACKGROUND_BLUR`, `NOISE`, `TEXTURE`, `GLASS`
-
----
-
-### `set_effect_style_id`
-
-Apply an existing effect style to a node.
-
-```json
-{
-  "nodeId": "123:456",
-  "effectStyleId": "S:effectId123,"
-}
-```
-
----
-
-### `create_effect_style`
-
-Create a reusable effect style in the document.
-
-```json
-{
-  "name": "shadow/md",
-  "effects": [
-    {
-      "type": "DROP_SHADOW",
-      "color": { "r": 0, "g": 0, "b": 0, "a": 0.1 },
-      "offset": { "x": 0, "y": 4 },
-      "radius": 12
-    }
-  ],
-  "description": "Card shadow — medium elevation"
-}
-```
-
----
-
-### `update_effect_style`
-
-Update an existing effect style.
-
-```json
-{
-  "styleId": "S:effectId123,",
-  "name": "shadow/lg",
-  "effects": [
-    {
-      "type": "DROP_SHADOW",
-      "color": { "r": 0, "g": 0, "b": 0, "a": 0.2 },
-      "offset": { "x": 0, "y": 8 },
-      "radius": 24
-    }
-  ]
-}
-```
-
----
-
-### `delete_effect_style`
-
-Delete an effect style.
-
-```json
-{
-  "styleId": "S:effectId123,"
-}
-```
 
 ---
 
@@ -2023,7 +2024,7 @@ Nodes with `id="<existingNodeId>"` are updated in place.
 
 ---
 
-## Page Management
+## 27. Page Management
 
 ### `create_page`
 
