@@ -122,7 +122,7 @@ describe("variable tools integration", () => {
 
     it("successfully gets collection info", async () => {
       const response = await callTool("get_collection_info", {
-        collection_id: "col-123",
+        id: "col-123",
       });
 
       expect(mockSendCommand).toHaveBeenCalledWith("get_collection_info", {
@@ -199,8 +199,8 @@ describe("variable tools integration", () => {
   describe("calculate_color_scale", () => {
     it("calculates color scale correctly", async () => {
       const response = await callTool("calculate_color_scale", {
-        base_color: { r: 0.639, g: 0.902, b: 0.208 },
-        background_color: { r: 0.059, g: 0.063, b: 0.067 },
+        base: { r: 0.639, g: 0.902, b: 0.208 },
+        background: { r: 0.059, g: 0.063, b: 0.067 },
       });
 
       expect(mockSendCommand).not.toHaveBeenCalled(); // This is a local calculation
@@ -213,8 +213,8 @@ describe("variable tools integration", () => {
   describe("calculate_composite_color", () => {
     it("calculates composite color correctly", async () => {
       const response = await callTool("calculate_composite_color", {
-        base_color: { r: 0.639, g: 0.902, b: 0.208 },
-        background_color: { r: 0.059, g: 0.063, b: 0.067 },
+        base: { r: 0.639, g: 0.902, b: 0.208 },
+        background: { r: 0.059, g: 0.063, b: 0.067 },
         mix_percentage: 0.5,
       });
 
@@ -344,9 +344,9 @@ describe("variable tools integration", () => {
       const response = await callTool("create_color_scale_set", {
         collection_id: "col-123",
         color_name: "primary",
-        base_color: { r: 0.639, g: 0.902, b: 0.208 },
-        foreground_color: { r: 0.09, g: 0.102, b: 0.067 },
-        background_color: { r: 0.059, g: 0.063, b: 0.067 },
+        base: { r: 0.639, g: 0.902, b: 0.208 },
+        foreground: { r: 0.09, g: 0.102, b: 0.067 },
+        background: { r: 0.059, g: 0.063, b: 0.067 },
       });
 
       expect(mockSendCommand).toHaveBeenCalled();
@@ -407,7 +407,7 @@ describe("variable tools integration", () => {
       mockSendCommand.mockRejectedValue(new Error("Collection not found"));
 
       const response = await callTool("get_collection_info", {
-        collection_id: "invalid-id",
+        id: "invalid-id",
       });
 
       expect(response.content[0].text).toContain("Error");

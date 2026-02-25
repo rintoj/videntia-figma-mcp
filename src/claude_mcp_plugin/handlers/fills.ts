@@ -355,7 +355,7 @@ export async function setGradientFill(params: Record<string, unknown>): Promise<
 
   const nodeId = paramsObj['nodeId'] as string | undefined;
   const gradientType = paramsObj['gradientType'] as string | undefined;
-  const gradientStops = paramsObj['gradientStops'] as Array<Record<string, unknown>> | undefined;
+  const stops = paramsObj['stops'] as Array<Record<string, unknown>> | undefined;
   const angle = paramsObj['angle'] !== undefined ? (paramsObj['angle'] as number) : 0;
   const opacity = paramsObj['opacity'] !== undefined ? (paramsObj['opacity'] as number) : 1;
 
@@ -375,11 +375,11 @@ export async function setGradientFill(params: Record<string, unknown>): Promise<
   }
 
   if (
-    !gradientStops ||
-    !Array.isArray(gradientStops) ||
-    gradientStops.length < 2
+    !stops ||
+    !Array.isArray(stops) ||
+    stops.length < 2
   ) {
-    throw new Error('gradientStops must be an array with at least 2 stops');
+    throw new Error('stops must be an array with at least 2 stops');
   }
 
   const node = await figma.getNodeByIdAsync(nodeId);
@@ -391,7 +391,7 @@ export async function setGradientFill(params: Record<string, unknown>): Promise<
     throw new Error(`Node does not support fills: ${nodeId}`);
   }
 
-  const figmaStops: ColorStop[] = gradientStops.map(stop => {
+  const figmaStops: ColorStop[] = stops.map(stop => {
     const stopColor = stop['color'] as Record<string, unknown>;
     return {
       color: {

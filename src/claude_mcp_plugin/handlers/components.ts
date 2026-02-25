@@ -130,7 +130,7 @@ export async function createComponentInstance(
       `Component instance "${instance.name}" created successfully at (${x}, ${y})`,
     );
 
-    const mainComponent = instance.mainComponent;
+    const mainComponent = await instance.getMainComponentAsync();
     return {
       id: instance.id,
       name: instance.name,
@@ -428,7 +428,7 @@ export async function addComponentProperty(
 
     return {
       nodeId: node.id,
-      nodeName: node.name,
+      name: node.name,
       propertyName: fullPropertyName,
       type: type,
       defaultValue: actualDefaultValue,
@@ -494,7 +494,7 @@ export async function editComponentProperty(
 
     return {
       nodeId: node.id,
-      nodeName: node.name,
+      name: node.name,
       oldPropertyName: propertyName,
       newPropertyName: updatedPropertyName,
       updates: updateObj,
@@ -536,7 +536,7 @@ export async function deleteComponentProperty(
 
     return {
       nodeId: node.id,
-      nodeName: node.name,
+      name: node.name,
       deletedPropertyName: propertyName,
     };
   } catch (error) {
@@ -584,7 +584,7 @@ export async function setComponentPropertyReferences(
     const refNode = node as SceneNodeMixin;
     return {
       nodeId: node.id,
-      nodeName: node.name,
+      name: node.name,
       references: refNode.componentPropertyReferences,
     };
   } catch (error) {
@@ -592,6 +592,153 @@ export async function setComponentPropertyReferences(
       `Error setting component property references: ${(error as Error).message}`,
     );
   }
+}
+
+export async function getInstanceOverrides(
+  params: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
+  const instanceNodeId = params['instanceNodeId'] as string | undefined;
+
+  let node: BaseNode | null = null;
+
+  if (instanceNodeId !== null && instanceNodeId !== undefined) {
+    node = await figma.getNodeByIdAsync(instanceNodeId);
+    if (!node) {
+      throw new Error(`Node not found with ID: ${instanceNodeId}`);
+    }
+  } else {
+    const sel = figma.currentPage.selection;
+    if (sel.length === 0) {
+      throw new Error('No node selected and no instanceNodeId provided');
+    }
+    node = sel[0];
+  }
+
+  if (node.type !== 'INSTANCE') {
+    throw new Error(
+      `Node "${node.name}" (${node.id}) is not a component instance (type: ${node.type})`,
+    );
+  }
+
+  const instance = node as InstanceNode;
+  const mainComponent = await instance.getMainComponentAsync();
+
+  const componentProperties = instance.componentProperties !== undefined
+    ? instance.componentProperties
+    : {};
+
+  const overrides = instance.overrides !== undefined
+    ? instance.overrides.map((o) => ({
+        id: o.id,
+        overriddenFields: o.overriddenFields,
+      }))
+    : [];
+
+  return {
+    success: true,
+    instanceId: instance.id,
+    instanceName: instance.name,
+    mainComponentId: mainComponent !== null ? mainComponent.id : null,
+    mainComponentName: mainComponent !== null ? mainComponent.name : null,
+    componentProperties,
+    overrides,
+  };
+}
+
+export async function setInstanceOverrides(
+  params: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
+  const sourceInstanceId = params['sourceInstanceId'] as string | undefined;
+  const targetNodeIds = params['targetNodeIds'] as string[] | undefined;
+
+  if (sourceInstanceId === null || sourceInstanceId === undefined) {
+    throw new Error('Missing sourceInstanceId parameter');
+  }
+  if (!targetNodeIds || !Array.isArray(targetNodeIds) || targetNodeIds.length === 0) {
+    throw new Error('Missing or empty targetNodeIds parameter');
+  }
+
+  const sourceNode = await figma.getNodeByIdAsync(sourceInstanceId);
+  if (!sourceNode) {
+    throw new Error(`Source node not found with ID: ${sourceInstanceId}`);
+  }
+  if (sourceNode.type !== 'INSTANCE') {
+    throw new Error(
+      `Source node "${sourceNode.name}" is not a component instance (type: ${sourceNode.type})`,
+    );
+  }
+
+  const source = sourceNode as InstanceNode;
+  const sourceMainComponent = await source.getMainComponentAsync();
+  const sourceMainComponentId = sourceMainComponent !== null ? sourceMainComponent.id : null;
+
+  const sourceProperties = source.componentProperties !== undefined
+    ? source.componentProperties
+    : {};
+
+  // Build a properties object with current values, limited to TEXT, BOOLEAN, and STRING types.
+  // INSTANCE_SWAP properties are deliberately excluded: their values are component IDs that are
+  // specific to the source component's variant set and may not be valid for the target instance.
+  const valuesToApply: Record<string, string | boolean> = {};
+  const propKeys = Object.keys(sourceProperties);
+  for (let i = 0; i < propKeys.length; i++) {
+    const key = propKeys[i];
+    const prop = sourceProperties[key];
+    if (prop.type === 'TEXT' || prop.type === 'BOOLEAN') {
+      valuesToApply[key] = prop.value as string | boolean;
+    }
+    // INSTANCE_SWAP skipped intentionally — component IDs are context-specific
+  }
+
+  const results: Array<{ nodeId: string; success: boolean; error?: string }> = [];
+  const totalCount = Object.keys(valuesToApply).length;
+
+  for (let i = 0; i < targetNodeIds.length; i++) {
+    const targetId = targetNodeIds[i];
+    try {
+      const targetNode = await figma.getNodeByIdAsync(targetId);
+      if (!targetNode) {
+        results.push({ nodeId: targetId, success: false, error: `Node not found` });
+        continue;
+      }
+      if (targetNode.type !== 'INSTANCE') {
+        results.push({
+          nodeId: targetId,
+          success: false,
+          error: `Not a component instance (type: ${targetNode.type})`,
+        });
+        continue;
+      }
+      const target = targetNode as InstanceNode;
+      const targetMainComponent = await target.getMainComponentAsync();
+      const targetMainComponentId = targetMainComponent !== null ? targetMainComponent.id : null;
+      if (sourceMainComponentId !== null && targetMainComponentId !== sourceMainComponentId) {
+        results.push({
+          nodeId: targetId,
+          success: false,
+          error: `Target instance uses a different main component — properties cannot be copied across incompatible components`,
+        });
+        continue;
+      }
+      target.setProperties(valuesToApply);
+      results.push({ nodeId: targetId, success: true });
+    } catch (err) {
+      results.push({
+        nodeId: targetId,
+        success: false,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
+  const successCount = results.filter((r) => r.success).length;
+
+  return {
+    success: successCount > 0,
+    message: `Applied ${totalCount} properties to ${successCount}/${targetNodeIds.length} instances`,
+    propertyCount: totalCount,
+    results,
+  };
 }
 
 export async function getComponentProperties(
@@ -623,7 +770,7 @@ export async function getComponentProperties(
 
     return {
       nodeId: node.id,
-      nodeName: node.name,
+      name: node.name,
       nodeType: node.type,
       properties: definitions,
     };

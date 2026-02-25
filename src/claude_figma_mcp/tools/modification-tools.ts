@@ -4,6 +4,7 @@ import { sendCommandToFigma } from "../utils/websocket";
 import { applyColorDefaults, applyDefault, FIGMA_DEFAULTS } from "../utils/defaults";
 import { Color } from "../types/color";
 import { coerceArray } from "../utils/coerce-array.js";
+import { mcpBooleanSchema } from "../utils/mcp-boolean.js";
 import { DeleteMultipleNodesResult, CreateEffectStyleResult, UpdateEffectStyleResult } from "../types";
 
 /**
@@ -17,11 +18,11 @@ export function registerModificationTools(server: McpServer): void {
     "set_fill_color",
     "Set the fill color of a node in Figma. Alpha component defaults to 1 (fully opaque) if not specified. Use alpha 0 for fully transparent.",
     {
-      nodeId: z.string().describe("The ID of the node to modify"),
-      r: z.number().min(0).max(1).describe("Red component (0-1)"),
-      g: z.number().min(0).max(1).describe("Green component (0-1)"),
-      b: z.number().min(0).max(1).describe("Blue component (0-1)"),
-      a: z.number().min(0).max(1).optional().describe("Alpha component (0-1, defaults to 1 if not specified)"),
+      nodeId: z.string().describe("Node ID (e.g. '123:456') — get from get_selection or get_node_info"),
+      r: z.preprocess((v) => (typeof v === "boolean" || v === null ? undefined : v), z.coerce.number().min(0).max(1)).describe("Red channel, normalized 0–1 (e.g. 1 = full red)"),
+      g: z.preprocess((v) => (typeof v === "boolean" || v === null ? undefined : v), z.coerce.number().min(0).max(1)).describe("Green channel, normalized 0–1"),
+      b: z.preprocess((v) => (typeof v === "boolean" || v === null ? undefined : v), z.coerce.number().min(0).max(1)).describe("Blue channel, normalized 0–1"),
+      a: z.preprocess((v) => (typeof v === "boolean" || v === null ? undefined : v), z.coerce.number().min(0).max(1)).optional().describe("Alpha/opacity, normalized 0–1 (default: 1 = fully opaque; 0 = fully transparent)"),
     },
     async ({ nodeId, r, g, b, a }) => {
       try {
@@ -65,14 +66,14 @@ export function registerModificationTools(server: McpServer): void {
     "set_stroke_color",
     "Set the stroke color of a node in Figma (defaults: opacity 1, weight 1)",
     {
-      nodeId: z.string().describe("The ID of the node to modify"),
-      r: z.number().min(0).max(1).describe("Red component (0-1)"),
-      g: z.number().min(0).max(1).describe("Green component (0-1)"),
-      b: z.number().min(0).max(1).describe("Blue component (0-1)"),
-      a: z.number().min(0).max(1).optional().describe("Alpha component (0-1)"),
-      strokeWeight: z.coerce.number().min(0).optional().describe("Stroke weight >= 0)"),
+      nodeId: z.string().describe("Node ID (e.g. '123:456') — get from get_selection or get_node_info"),
+      r: z.coerce.number().min(0).max(1).describe("Red channel, normalized 0–1"),
+      g: z.coerce.number().min(0).max(1).describe("Green channel, normalized 0–1"),
+      b: z.coerce.number().min(0).max(1).describe("Blue channel, normalized 0–1"),
+      a: z.coerce.number().min(0).max(1).optional().describe("Alpha/opacity, normalized 0–1 (default: 1 = fully opaque; 0 = fully transparent)"),
+      weight: z.coerce.number().min(0).optional().describe("Stroke thickness in pixels ≥ 0 (default: 1; use 0 for invisible stroke)"),
     },
-    async ({ nodeId, r, g, b, a, strokeWeight }) => {
+    async ({ nodeId, r, g, b, a, weight }) => {
       try {
         if (r === undefined || g === undefined || b === undefined) {
           throw new Error("RGB components (r, g, b) are required and cannot be undefined");
@@ -81,7 +82,7 @@ export function registerModificationTools(server: McpServer): void {
         const colorInput: Color = { r, g, b, a };
         const colorWithDefaults = applyColorDefaults(colorInput);
 
-        const strokeWeightWithDefault = applyDefault(strokeWeight, FIGMA_DEFAULTS.stroke.weight);
+        const strokeWeightWithDefault = applyDefault(weight, FIGMA_DEFAULTS.stroke.weight);
 
         const result = await sendCommandToFigma("set_stroke_color", {
           nodeId,
@@ -115,9 +116,9 @@ export function registerModificationTools(server: McpServer): void {
     "move_node",
     "Move a node to a new position in Figma",
     {
-      nodeId: z.string().describe("The ID of the node to move"),
-      x: z.coerce.number().describe("New X position"),
-      y: z.coerce.number().describe("New Y position"),
+      nodeId: z.string().describe("Node ID to move — get from get_selection or get_node_info"),
+      x: z.coerce.number().describe("New X position in pixels, relative to the canvas (or parent frame if nested)"),
+      y: z.coerce.number().describe("New Y position in pixels, relative to the canvas (or parent frame if nested)"),
     },
     async ({ nodeId, x, y }) => {
       try {
@@ -149,9 +150,9 @@ export function registerModificationTools(server: McpServer): void {
     "resize_node",
     "Resize a node in Figma",
     {
-      nodeId: z.string().describe("The ID of the node to resize"),
-      width: z.coerce.number().positive().describe("New width"),
-      height: z.coerce.number().positive().describe("New height"),
+      nodeId: z.string().describe("Node ID to resize — get from get_selection or get_node_info"),
+      width: z.coerce.number().positive().describe("New width in pixels (must be > 0)"),
+      height: z.coerce.number().positive().describe("New height in pixels (must be > 0)"),
     },
     async ({ nodeId, width, height }) => {
       try {
@@ -252,23 +253,23 @@ export function registerModificationTools(server: McpServer): void {
     "set_layout_mode",
     "Set the layout mode and wrap behavior of a frame in Figma",
     {
-      nodeId: z.string().describe("The ID of the frame to modify"),
-      layoutMode: z.enum(["NONE", "HORIZONTAL", "VERTICAL"]).describe("Layout mode for the frame"),
-      layoutWrap: z.enum(["NO_WRAP", "WRAP"]).optional().describe("Whether the auto-layout frame wraps its children"),
+      nodeId: z.string().describe("Frame node ID — must be a FRAME type, not a group"),
+      mode: z.enum(["NONE", "HORIZONTAL", "VERTICAL"]).describe("Layout direction: NONE = no auto-layout, HORIZONTAL = children flow left-to-right, VERTICAL = children flow top-to-bottom"),
+      wrap: z.enum(["NO_WRAP", "WRAP"]).optional().describe("WRAP = children wrap to next row/column when they overflow (only applies in HORIZONTAL or VERTICAL mode; default: NO_WRAP)"),
     },
-    async ({ nodeId, layoutMode, layoutWrap }) => {
+    async ({ nodeId, mode, wrap }) => {
       try {
         const result = await sendCommandToFigma("set_layout_mode", {
           nodeId,
-          layoutMode,
-          layoutWrap: layoutWrap || "NO_WRAP",
+          layoutMode: mode,
+          layoutWrap: wrap || "NO_WRAP",
         });
         const typedResult = result as { name: string };
         return {
           content: [
             {
               type: "text",
-              text: `Set layout mode of frame "${typedResult.name}" to ${layoutMode}`,
+              text: `Set layout mode of frame "${typedResult.name}" to ${mode}`,
             },
           ],
         };
@@ -290,28 +291,28 @@ export function registerModificationTools(server: McpServer): void {
     "set_padding",
     "Set padding values for an auto-layout frame in Figma",
     {
-      nodeId: z.string().describe("The ID of the frame to modify"),
-      paddingTop: z.coerce.number().optional().describe("Top padding value"),
-      paddingRight: z.coerce.number().optional().describe("Right padding value"),
-      paddingBottom: z.coerce.number().optional().describe("Bottom padding value"),
-      paddingLeft: z.coerce.number().optional().describe("Left padding value"),
+      nodeId: z.string().describe("Frame node ID — frame must have auto-layout enabled (set_layout_mode first)"),
+      top: z.coerce.number().optional().describe("Top padding in pixels (≥ 0; omit to leave unchanged)"),
+      right: z.coerce.number().optional().describe("Right padding in pixels (≥ 0; omit to leave unchanged)"),
+      bottom: z.coerce.number().optional().describe("Bottom padding in pixels (≥ 0; omit to leave unchanged)"),
+      left: z.coerce.number().optional().describe("Left padding in pixels (≥ 0; omit to leave unchanged)"),
     },
-    async ({ nodeId, paddingTop, paddingRight, paddingBottom, paddingLeft }) => {
+    async ({ nodeId, top, right, bottom, left }) => {
       try {
         const result = await sendCommandToFigma("set_padding", {
           nodeId,
-          paddingTop,
-          paddingRight,
-          paddingBottom,
-          paddingLeft,
+          paddingTop: top,
+          paddingRight: right,
+          paddingBottom: bottom,
+          paddingLeft: left,
         });
         const typedResult = result as { name: string };
 
         const paddingMessages = [];
-        if (paddingTop !== undefined) paddingMessages.push(`top: ${paddingTop}`);
-        if (paddingRight !== undefined) paddingMessages.push(`right: ${paddingRight}`);
-        if (paddingBottom !== undefined) paddingMessages.push(`bottom: ${paddingBottom}`);
-        if (paddingLeft !== undefined) paddingMessages.push(`left: ${paddingLeft}`);
+        if (top !== undefined) paddingMessages.push(`top: ${top}`);
+        if (right !== undefined) paddingMessages.push(`right: ${right}`);
+        if (bottom !== undefined) paddingMessages.push(`bottom: ${bottom}`);
+        if (left !== undefined) paddingMessages.push(`left: ${left}`);
 
         const paddingText = paddingMessages.length > 0 ? `padding (${paddingMessages.join(", ")})` : "padding";
 
@@ -341,12 +342,12 @@ export function registerModificationTools(server: McpServer): void {
     "set_axis_align",
     "Set primary and counter axis alignment for an auto-layout frame",
     {
-      nodeId: z.string().describe("The ID of the frame to modify"),
+      nodeId: z.string().describe("Auto-layout frame node ID — frame must have auto-layout enabled"),
       primaryAxisAlignItems: z
         .enum(["MIN", "MAX", "CENTER", "SPACE_BETWEEN"])
         .optional()
-        .describe("Primary axis alignment"),
-      counterAxisAlignItems: z.enum(["MIN", "MAX", "CENTER", "BASELINE"]).optional().describe("Counter axis alignment"),
+        .describe("Alignment along the primary axis (the layout direction): MIN = start/left/top, CENTER = center, MAX = end/right/bottom, SPACE_BETWEEN = distribute children evenly"),
+      counterAxisAlignItems: z.enum(["MIN", "MAX", "CENTER", "BASELINE"]).optional().describe("Alignment along the cross axis (perpendicular to layout direction): MIN = top/left, CENTER = center, MAX = bottom/right, BASELINE = align text baselines (text nodes only)"),
     },
     async ({ nodeId, primaryAxisAlignItems, counterAxisAlignItems }) => {
       try {
@@ -389,22 +390,22 @@ export function registerModificationTools(server: McpServer): void {
     "set_layout_sizing",
     "Set horizontal and vertical sizing modes for an auto-layout frame",
     {
-      nodeId: z.string().describe("The ID of the frame to modify"),
-      layoutSizingHorizontal: z.enum(["FIXED", "HUG", "FILL"]).optional().describe("Horizontal sizing mode"),
-      layoutSizingVertical: z.enum(["FIXED", "HUG", "FILL"]).optional().describe("Vertical sizing mode"),
+      nodeId: z.string().describe("Frame or text node ID — also works on TEXT nodes for width sizing"),
+      horizontal: z.enum(["FIXED", "HUG", "FILL"]).optional().describe("Horizontal sizing: FIXED = explicit width, HUG = shrink-wrap children, FILL = expand to fill parent (requires node to be inside an auto-layout frame)"),
+      vertical: z.enum(["FIXED", "HUG", "FILL"]).optional().describe("Vertical sizing: FIXED = explicit height, HUG = shrink-wrap children, FILL = expand to fill parent (requires node to be inside an auto-layout frame)"),
     },
-    async ({ nodeId, layoutSizingHorizontal, layoutSizingVertical }) => {
+    async ({ nodeId, horizontal, vertical }) => {
       try {
         const result = await sendCommandToFigma("set_layout_sizing", {
           nodeId,
-          layoutSizingHorizontal,
-          layoutSizingVertical,
+          layoutSizingHorizontal: horizontal,
+          layoutSizingVertical: vertical,
         });
         const typedResult = result as { name: string };
 
         const sizingMessages = [];
-        if (layoutSizingHorizontal !== undefined) sizingMessages.push(`horizontal: ${layoutSizingHorizontal}`);
-        if (layoutSizingVertical !== undefined) sizingMessages.push(`vertical: ${layoutSizingVertical}`);
+        if (horizontal !== undefined) sizingMessages.push(`horizontal: ${horizontal}`);
+        if (vertical !== undefined) sizingMessages.push(`vertical: ${vertical}`);
 
         const sizingText = sizingMessages.length > 0 ? `layout sizing (${sizingMessages.join(", ")})` : "layout sizing";
 
@@ -434,14 +435,14 @@ export function registerModificationTools(server: McpServer): void {
     "set_item_spacing",
     "Set distance between children in an auto-layout frame",
     {
-      nodeId: z.string().describe("The ID of the frame to modify"),
-      itemSpacing: z.coerce.number().optional().describe("Distance between children"),
-      counterAxisSpacing: z.coerce.number().optional().describe("Distance between wrapped rows/columns"),
+      nodeId: z.string().describe("Auto-layout frame node ID — frame must have HORIZONTAL or VERTICAL layout mode"),
+      gap: z.coerce.number().optional().describe("Gap between children in pixels along the primary axis (≥ 0; equivalent to CSS gap)"),
+      counterAxisSpacing: z.coerce.number().optional().describe("Gap between wrapped rows/columns in pixels (≥ 0; only applies when wrap=WRAP)"),
     },
-    async ({ nodeId, itemSpacing, counterAxisSpacing }) => {
+    async ({ nodeId, gap, counterAxisSpacing }) => {
       try {
         const params: any = { nodeId };
-        if (itemSpacing !== undefined) params.itemSpacing = itemSpacing;
+        if (gap !== undefined) params.itemSpacing = gap;
         if (counterAxisSpacing !== undefined) params.counterAxisSpacing = counterAxisSpacing;
 
         const result = await sendCommandToFigma("set_item_spacing", params);
@@ -452,7 +453,7 @@ export function registerModificationTools(server: McpServer): void {
         };
 
         let message = `Updated spacing for frame "${typedResult.name}":`;
-        if (itemSpacing !== undefined) message += ` itemSpacing=${itemSpacing}`;
+        if (gap !== undefined) message += ` gap=${gap}`;
         if (counterAxisSpacing !== undefined) message += ` counterAxisSpacing=${counterAxisSpacing}`;
 
         return {
@@ -481,13 +482,11 @@ export function registerModificationTools(server: McpServer): void {
     "set_corner_radius",
     "Set the corner radius of a node in Figma",
     {
-      nodeId: z.string().describe("The ID of the node to modify"),
-      radius: z.coerce.number().min(0).describe("Corner radius value"),
-      corners: coerceArray(z.array(z.coerce.boolean()).length(4))
+      nodeId: z.string().describe("Node ID of a rectangle, frame, or component — must support corner radius"),
+      radius: z.coerce.number().min(0).describe("Corner radius in pixels (≥ 0; applies to all corners unless 'corners' overrides specific ones)"),
+      corners: coerceArray(z.array(mcpBooleanSchema).length(4))
         .optional()
-        .describe(
-          "Optional array of 4 booleans to specify which corners to round [topLeft, topRight, bottomRight, bottomLeft]",
-        ),
+        .describe("Array of exactly 4 booleans controlling which corners are rounded: [topLeft, topRight, bottomRight, bottomLeft]. E.g. [true, true, false, false] rounds top corners only. Omit to round all corners."),
     },
     async ({ nodeId, radius, corners }) => {
       try {
@@ -521,64 +520,64 @@ export function registerModificationTools(server: McpServer): void {
   // Auto Layout Tool
   server.tool(
     "set_auto_layout",
-    "Configure auto layout properties for a node in Figma",
+    "Configure auto layout properties for a node in Figma. Note: FILL sizing is only valid when the node is a child of another auto-layout frame. For top-level or standalone frames, use FIXED or HUG.",
     {
-      nodeId: z.string().describe("The ID of the node to configure auto layout"),
-      layoutMode: z.enum(["HORIZONTAL", "VERTICAL", "NONE"]).describe("Layout direction"),
-      paddingTop: z.coerce.number().optional().describe("Top padding in pixels"),
-      paddingBottom: z.coerce.number().optional().describe("Bottom padding in pixels"),
-      paddingLeft: z.coerce.number().optional().describe("Left padding in pixels"),
-      paddingRight: z.coerce.number().optional().describe("Right padding in pixels"),
-      itemSpacing: z.coerce.number().optional().describe("Spacing between items in pixels"),
+      nodeId: z.string().describe("Frame node ID to enable/configure auto-layout on"),
+      mode: z.enum(["HORIZONTAL", "VERTICAL", "NONE"]).describe("Layout direction: HORIZONTAL = children flow left-to-right, VERTICAL = children flow top-to-bottom, NONE = disable auto-layout"),
+      top: z.coerce.number().optional().describe("Top padding in pixels (≥ 0)"),
+      bottom: z.coerce.number().optional().describe("Bottom padding in pixels (≥ 0)"),
+      left: z.coerce.number().optional().describe("Left padding in pixels (≥ 0)"),
+      right: z.coerce.number().optional().describe("Right padding in pixels (≥ 0)"),
+      gap: z.coerce.number().optional().describe("Gap between children in pixels along the primary axis (≥ 0; CSS gap equivalent)"),
       primaryAxisAlignItems: z
         .enum(["MIN", "CENTER", "MAX", "SPACE_BETWEEN"])
         .optional()
-        .describe("Alignment along primary axis"),
-      counterAxisAlignItems: z.enum(["MIN", "CENTER", "MAX"]).optional().describe("Alignment along counter axis"),
-      layoutWrap: z.enum(["WRAP", "NO_WRAP"]).optional().describe("Whether items wrap to new lines"),
-      strokesIncludedInLayout: z.boolean().optional().describe("Whether strokes are included in layout calculations"),
-      clipsContent: z.boolean().optional().describe("Whether to clip content outside frame bounds"),
-      layoutSizingHorizontal: z
+        .describe("Alignment along the layout direction: MIN = start, CENTER = center, MAX = end, SPACE_BETWEEN = distribute evenly"),
+      counterAxisAlignItems: z.enum(["MIN", "CENTER", "MAX"]).optional().describe("Alignment perpendicular to layout direction: MIN = top/left, CENTER = center, MAX = bottom/right"),
+      wrap: z.enum(["WRAP", "NO_WRAP"]).optional().describe("WRAP = children wrap to next line when overflow (default: NO_WRAP)"),
+      strokesIncludedInLayout: mcpBooleanSchema.optional().describe("true = strokes count toward layout dimensions; false = strokes are outside layout bounds (default: false)"),
+      clipsContent: mcpBooleanSchema.optional().describe("true = content outside the frame boundary is hidden (like CSS overflow:hidden); false = content is visible (default: false)"),
+      horizontal: z
         .enum(["FIXED", "HUG", "FILL"])
         .optional()
-        .describe("Horizontal sizing mode (defaults to FILL when auto layout is set)"),
-      layoutSizingVertical: z
+        .describe("Horizontal sizing mode. FILL only works inside an auto-layout parent; defaults to FIXED for top-level frames, FILL for nested frames."),
+      vertical: z
         .enum(["FIXED", "HUG", "FILL"])
         .optional()
-        .describe("Vertical sizing mode (defaults to HUG when auto layout is set)"),
+        .describe("Vertical sizing mode. FILL only works inside an auto-layout parent; defaults to HUG."),
     },
     async ({
       nodeId,
-      layoutMode,
-      paddingTop,
-      paddingBottom,
-      paddingLeft,
-      paddingRight,
-      itemSpacing,
+      mode,
+      top,
+      bottom,
+      left,
+      right,
+      gap,
       primaryAxisAlignItems,
       counterAxisAlignItems,
-      layoutWrap,
+      wrap,
       strokesIncludedInLayout,
       clipsContent,
-      layoutSizingHorizontal,
-      layoutSizingVertical,
+      horizontal,
+      vertical,
     }) => {
       try {
         const result = await sendCommandToFigma("set_auto_layout", {
           nodeId,
-          layoutMode,
-          paddingTop,
-          paddingBottom,
-          paddingLeft,
-          paddingRight,
-          itemSpacing,
+          layoutMode: mode,
+          paddingTop: top,
+          paddingBottom: bottom,
+          paddingLeft: left,
+          paddingRight: right,
+          itemSpacing: gap,
           primaryAxisAlignItems,
           counterAxisAlignItems,
-          layoutWrap,
+          layoutWrap: wrap,
           strokesIncludedInLayout,
           clipsContent,
-          layoutSizingHorizontal,
-          layoutSizingVertical,
+          layoutSizingHorizontal: horizontal,
+          layoutSizingVertical: vertical,
         });
 
         const typedResult = result as { name: string };
@@ -586,7 +585,7 @@ export function registerModificationTools(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: `Applied auto layout to node "${typedResult.name}" with mode: ${layoutMode}`,
+              text: `Applied auto layout to node "${typedResult.name}" with mode: ${mode}`,
             },
           ],
         };
@@ -614,49 +613,49 @@ export function registerModificationTools(server: McpServer): void {
           z.object({
             type: z
               .enum(["DROP_SHADOW", "INNER_SHADOW", "LAYER_BLUR", "BACKGROUND_BLUR", "NOISE", "TEXTURE", "GLASS"])
-              .describe("Effect type"),
+              .describe("Effect type: DROP_SHADOW = shadow cast outward, INNER_SHADOW = shadow inside the shape, LAYER_BLUR = blurs the node itself, BACKGROUND_BLUR = blurs content behind the node, NOISE = grain/film grain overlay, TEXTURE = frosted texture surface, GLASS = frosted glass with refraction (frames only)"),
             color: z
               .object({
-                r: z.number().min(0).max(1).describe("Red (0-1)"),
-                g: z.number().min(0).max(1).describe("Green (0-1)"),
-                b: z.number().min(0).max(1).describe("Blue (0-1)"),
-                a: z.number().min(0).max(1).describe("Alpha (0-1)"),
+                r: z.coerce.number().min(0).max(1).describe("Red (0-1)"),
+                g: z.coerce.number().min(0).max(1).describe("Green (0-1)"),
+                b: z.coerce.number().min(0).max(1).describe("Blue (0-1)"),
+                a: z.coerce.number().min(0).max(1).describe("Alpha (0-1)"),
               })
               .optional()
               .describe("Effect color (for shadows and NOISE)"),
             offset: z
               .object({
-                x: z.number().describe("X offset"),
-                y: z.number().describe("Y offset"),
+                x: z.coerce.number().describe("X offset"),
+                y: z.coerce.number().describe("Y offset"),
               })
               .optional()
-              .describe("Offset (for shadows)"),
-            radius: z.number().optional().describe("Effect radius (blur radius for blurs/TEXTURE/GLASS)"),
-            spread: z.number().optional().describe("Shadow spread (for shadows)"),
-            visible: z.boolean().optional().describe("Whether the effect is visible"),
-            blendMode: z.string().optional().describe("Blend mode"),
+              .describe("Shadow offset in pixels (DROP_SHADOW and INNER_SHADOW only)"),
+            radius: z.coerce.number().optional().describe("Blur radius in pixels ≥ 0 (used for all blur types, TEXTURE, and GLASS; higher = more blur)"),
+            spread: z.coerce.number().optional().describe("Shadow expansion in pixels — positive spreads outward, negative contracts (DROP_SHADOW and INNER_SHADOW only)"),
+            visible: mcpBooleanSchema.optional().describe("Whether this effect layer is visible (default: true)"),
+            blendMode: z.string().optional().describe("CSS-compatible blend mode string, e.g. 'NORMAL', 'MULTIPLY', 'SCREEN', 'OVERLAY' (default: NORMAL)"),
             noiseType: z
               .enum(["MONOTONE", "DUOTONE", "MULTITONE"])
               .optional()
-              .describe("Noise variant (NOISE only, default MONOTONE)"),
-            noiseSize: z.number().optional().describe("Grain size (NOISE/TEXTURE)"),
-            density: z.number().optional().describe("Grain density (NOISE)"),
+              .describe("Grain color style (NOISE only): MONOTONE = single color grain, DUOTONE = two-color grain (requires secondaryColor), MULTITONE = full color grain (default: MONOTONE)"),
+            noiseSize: z.coerce.number().optional().describe("Grain particle size in pixels — larger = coarser grain (NOISE and TEXTURE; typical range 1–100)"),
+            density: z.coerce.number().optional().describe("Grain density 0–1 — higher = more grain particles visible (NOISE only; typical range 0.1–0.9)"),
             secondaryColor: z
               .object({
-                r: z.number().min(0).max(1).describe("Red (0-1)"),
-                g: z.number().min(0).max(1).describe("Green (0-1)"),
-                b: z.number().min(0).max(1).describe("Blue (0-1)"),
-                a: z.number().min(0).max(1).describe("Alpha (0-1)"),
+                r: z.coerce.number().min(0).max(1).describe("Red (0-1)"),
+                g: z.coerce.number().min(0).max(1).describe("Green (0-1)"),
+                b: z.coerce.number().min(0).max(1).describe("Blue (0-1)"),
+                a: z.coerce.number().min(0).max(1).describe("Alpha (0-1)"),
               })
               .optional()
-              .describe("Secondary color (NOISE DUOTONE only)"),
-            opacity: z.number().min(0).max(1).optional().describe("Opacity (NOISE MULTITONE only)"),
-            clipToShape: z.boolean().optional().describe("Clip texture to shape bounds (TEXTURE only, default true)"),
-            lightIntensity: z.number().optional().describe("Light intensity (GLASS only)"),
-            lightAngle: z.number().optional().describe("Light angle in degrees (GLASS only)"),
-            refraction: z.number().optional().describe("Refraction amount (GLASS only)"),
-            depth: z.number().optional().describe("Depth amount (GLASS only)"),
-            dispersion: z.number().optional().describe("Chromatic dispersion (GLASS only)"),
+              .describe("Second grain color (NOISE DUOTONE only — ignored for MONOTONE/MULTITONE)"),
+            opacity: z.coerce.number().min(0).max(1).optional().describe("Effect opacity 0–1 (NOISE MULTITONE only — ignored for MONOTONE/DUOTONE)"),
+            clipToShape: mcpBooleanSchema.optional().describe("true = texture is masked to the node's shape; false = texture fills bounding box (TEXTURE only; default: true)"),
+            lightIntensity: z.coerce.number().optional().describe("Simulated light brightness 0–1 (GLASS only; typical range 0–1)"),
+            lightAngle: z.coerce.number().optional().describe("Light source direction in degrees 0–360, where 0 = top (GLASS only)"),
+            refraction: z.coerce.number().optional().describe("Background distortion amount ≥ 0 — higher = more bending of background (GLASS only; typical range 0–50)"),
+            depth: z.coerce.number().optional().describe("Perceived 3D depth of the glass surface ≥ 0 (GLASS only; typical range 0–100)"),
+            dispersion: z.coerce.number().optional().describe("Chromatic aberration/rainbow fringing amount ≥ 0 (GLASS only; typical range 0–20)"),
           }),
         ),
       ).describe("Array of effects to apply"),
@@ -734,23 +733,23 @@ export function registerModificationTools(server: McpServer): void {
     type: z.enum(["DROP_SHADOW", "INNER_SHADOW", "LAYER_BLUR", "BACKGROUND_BLUR"]).describe("Effect type"),
     color: z
       .object({
-        r: z.number().min(0).max(1).describe("Red (0-1)"),
-        g: z.number().min(0).max(1).describe("Green (0-1)"),
-        b: z.number().min(0).max(1).describe("Blue (0-1)"),
-        a: z.number().min(0).max(1).describe("Alpha (0-1)"),
+        r: z.coerce.number().min(0).max(1).describe("Red (0-1)"),
+        g: z.coerce.number().min(0).max(1).describe("Green (0-1)"),
+        b: z.coerce.number().min(0).max(1).describe("Blue (0-1)"),
+        a: z.coerce.number().min(0).max(1).describe("Alpha (0-1)"),
       })
       .optional()
       .describe("Effect color (for shadows)"),
     offset: z
       .object({
-        x: z.number().describe("X offset"),
-        y: z.number().describe("Y offset"),
+        x: z.coerce.number().describe("X offset"),
+        y: z.coerce.number().describe("Y offset"),
       })
       .optional()
       .describe("Offset (for shadows)"),
-    radius: z.number().optional().describe("Blur radius"),
-    spread: z.number().optional().describe("Shadow spread (for shadows)"),
-    visible: z.boolean().optional().describe("Whether the effect is visible"),
+    radius: z.coerce.number().optional().describe("Blur radius"),
+    spread: z.coerce.number().optional().describe("Shadow spread (for shadows)"),
+    visible: mcpBooleanSchema.optional().describe("Whether the effect is visible"),
     blendMode: z.string().optional().describe("Blend mode"),
   });
 
@@ -886,7 +885,7 @@ export function registerModificationTools(server: McpServer): void {
 
         const typedResult = result as {
           nodeId: string;
-          nodeName: string;
+          name: string;
           field: string;
           variableId: string;
           variableName: string;
@@ -897,7 +896,7 @@ export function registerModificationTools(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: `Successfully bound variable "${typedResult.variableName}" (${typedResult.variableType}) to "${typedResult.field}" on node "${typedResult.nodeName}"`,
+              text: `Successfully bound variable "${typedResult.variableName}" (${typedResult.variableType}) to "${typedResult.field}" on node "${typedResult.name}"`,
             },
           ],
         };
@@ -935,7 +934,7 @@ export function registerModificationTools(server: McpServer): void {
 
         const typedResult = result as {
           nodeId: string;
-          nodeName: string;
+          name: string;
           field: string;
         };
 
@@ -943,7 +942,7 @@ export function registerModificationTools(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: `Successfully removed variable binding from "${typedResult.field}" on node "${typedResult.nodeName}"`,
+              text: `Successfully removed variable binding from "${typedResult.field}" on node "${typedResult.name}"`,
             },
           ],
         };
@@ -1012,15 +1011,15 @@ export function registerModificationTools(server: McpServer): void {
       scaleMode: z
         .enum(["FILL", "FIT", "CROP", "TILE"])
         .optional()
-        .describe("How the image scales within the node (default: FILL)"),
-      rotation: z.number().optional().describe("Image rotation in degrees (increments of 90, only for FILL/FIT/TILE)"),
-      exposure: z.number().min(-1).max(1).optional().describe("Exposure adjustment (-1 to 1, default: 0)"),
-      contrast: z.number().min(-1).max(1).optional().describe("Contrast adjustment (-1 to 1, default: 0)"),
-      saturation: z.number().min(-1).max(1).optional().describe("Saturation adjustment (-1 to 1, default: 0)"),
-      temperature: z.number().min(-1).max(1).optional().describe("Temperature adjustment (-1 to 1, default: 0)"),
-      tint: z.number().min(-1).max(1).optional().describe("Tint adjustment (-1 to 1, default: 0)"),
-      highlights: z.number().min(-1).max(1).optional().describe("Highlights adjustment (-1 to 1, default: 0)"),
-      shadows: z.number().min(-1).max(1).optional().describe("Shadows adjustment (-1 to 1, default: 0)"),
+        .describe("How the image scales within the node (default: FILL): FILL = cover the entire area (may crop), FIT = fit entirely inside (may letterbox), CROP = manual crop with transform handles, TILE = repeat/tile the image"),
+      rotation: z.coerce.number().optional().describe("Image rotation in degrees — must be a multiple of 90 (0, 90, 180, 270). Only applies to FILL, FIT, and TILE modes; ignored for CROP."),
+      exposure: z.coerce.number().min(-1).max(1).optional().describe("Exposure adjustment (-1 to 1, default: 0)"),
+      contrast: z.coerce.number().min(-1).max(1).optional().describe("Contrast adjustment (-1 to 1, default: 0)"),
+      saturation: z.coerce.number().min(-1).max(1).optional().describe("Saturation adjustment (-1 to 1, default: 0)"),
+      temperature: z.coerce.number().min(-1).max(1).optional().describe("Temperature adjustment (-1 to 1, default: 0)"),
+      tint: z.coerce.number().min(-1).max(1).optional().describe("Tint adjustment (-1 to 1, default: 0)"),
+      highlights: z.coerce.number().min(-1).max(1).optional().describe("Highlights adjustment (-1 to 1, default: 0)"),
+      shadows: z.coerce.number().min(-1).max(1).optional().describe("Shadows adjustment (-1 to 1, default: 0)"),
     },
     async ({
       nodeId,
@@ -1082,31 +1081,32 @@ export function registerModificationTools(server: McpServer): void {
     "set_gradient_fill",
     "Set a gradient fill on a node. Supports LINEAR, RADIAL, ANGULAR, and DIAMOND gradient types.",
     {
-      nodeId: z.string().describe("The ID of the node to modify"),
-      gradientType: z.enum(["LINEAR", "RADIAL", "ANGULAR", "DIAMOND"]).describe("Type of gradient"),
-      gradientStops: z
-        .array(
-          z.object({
-            color: z.object({
-              r: z.number().min(0).max(1).describe("Red channel (0-1)"),
-              g: z.number().min(0).max(1).describe("Green channel (0-1)"),
-              b: z.number().min(0).max(1).describe("Blue channel (0-1)"),
-              a: z.number().min(0).max(1).optional().describe("Alpha channel (0-1, default 1)"),
+      nodeId: z.string().describe("Node ID to apply the gradient fill to"),
+      type: z.enum(["LINEAR", "RADIAL", "ANGULAR", "DIAMOND"]).describe("Gradient shape: LINEAR = straight line between two points, RADIAL = circular/elliptical from center outward, ANGULAR = conic/sweep around a center point, DIAMOND = diamond-shaped four-directional"),
+      stops: coerceArray(
+        z
+          .array(
+            z.object({
+              color: z.object({
+                r: z.coerce.number().min(0).max(1).describe("Red channel (0-1)"),
+                g: z.coerce.number().min(0).max(1).describe("Green channel (0-1)"),
+                b: z.coerce.number().min(0).max(1).describe("Blue channel (0-1)"),
+                a: z.coerce.number().min(0).max(1).optional().describe("Alpha channel (0-1, default 1)"),
+              }),
+              position: z.coerce.number().min(0).max(1).describe("Stop position (0-1)"),
             }),
-            position: z.number().min(0).max(1).describe("Stop position (0-1)"),
-          }),
-        )
-        .min(2)
-        .describe("Array of gradient color stops (minimum 2)"),
-      angle: z.number().optional().describe("Gradient angle in degrees (LINEAR only, default 0)"),
-      opacity: z.number().min(0).max(1).optional().describe("Overall fill opacity (0-1, default 1)"),
+          )
+          .min(2),
+      ).describe("Array of gradient color stops (minimum 2)"),
+      angle: z.coerce.number().optional().describe("Gradient direction in degrees 0–360, where 0 = top-to-bottom, 90 = left-to-right (LINEAR only; default: 0)"),
+      opacity: z.coerce.number().min(0).max(1).optional().describe("Overall fill opacity 0–1 applied on top of individual stop alphas (default: 1)"),
     },
-    async ({ nodeId, gradientType, gradientStops, angle, opacity }) => {
+    async ({ nodeId, type, stops, angle, opacity }) => {
       try {
         const result = await sendCommandToFigma("set_gradient_fill", {
           nodeId,
-          gradientType,
-          gradientStops,
+          gradientType: type,
+          stops,
           angle: angle ?? 0,
           opacity: opacity ?? 1,
         });
@@ -1122,7 +1122,7 @@ export function registerModificationTools(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: `Set ${typedResult.gradientType} gradient fill on "${typedResult.name}" with ${typedResult.stopsCount} stops`,
+              text: `Set ${type} gradient fill on "${typedResult.name}" with ${typedResult.stopsCount} stops`,
             },
           ],
         };

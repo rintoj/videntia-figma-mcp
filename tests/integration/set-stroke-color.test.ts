@@ -47,7 +47,7 @@ describe("set_stroke_color tool integration", () => {
         g: 0.4,
         b: 0.6,
         // a is undefined
-        strokeWeight: 2,
+        weight: 2,
       });
 
       expect(mockSendCommand).toHaveBeenCalledTimes(1);
@@ -70,7 +70,7 @@ describe("set_stroke_color tool integration", () => {
         g: 0.3,
         b: 0.5,
         a: 0, // This should be preserved as 0, not converted to 1
-        strokeWeight: 1.5,
+        weight: 1.5,
       });
 
       expect(mockSendCommand).toHaveBeenCalledTimes(1);
@@ -89,7 +89,7 @@ describe("set_stroke_color tool integration", () => {
         g: 0,
         b: 0,
         a: 0.5,
-        strokeWeight: 3,
+        weight: 3,
       });
 
       const [command, payload] = mockSendCommand.mock.calls[0];
@@ -124,7 +124,7 @@ describe("set_stroke_color tool integration", () => {
         g: 0.5,
         b: 0.5,
         a: 1,
-        strokeWeight: 5.5,
+        weight: 5.5,
       });
 
       const [command, payload] = mockSendCommand.mock.calls[0];
@@ -139,7 +139,7 @@ describe("set_stroke_color tool integration", () => {
         g: 0.3,
         b: 0.4,
         a: 0.8,
-        strokeWeight: 0.5,
+        weight: 0.5,
       });
 
       const [command, payload] = mockSendCommand.mock.calls[0];
@@ -153,7 +153,7 @@ describe("set_stroke_color tool integration", () => {
         g: 0,
         b: 0,
         a: 1,
-        strokeWeight: 0,
+        weight: 0,
       });
 
       expect(mockSendCommand).toHaveBeenCalledTimes(1);
@@ -169,7 +169,7 @@ describe("set_stroke_color tool integration", () => {
         g: 0.5,
         b: 0.5,
         a: 0,
-        strokeWeight: 0,
+        weight: 0,
       });
 
       const [command, payload] = mockSendCommand.mock.calls[0];
@@ -188,7 +188,7 @@ describe("set_stroke_color tool integration", () => {
         g: 0,
         b: 0,
         a: 1,
-        strokeWeight: 1,
+        weight: 1,
       });
 
       const [command, payload] = mockSendCommand.mock.calls[0];
@@ -204,7 +204,7 @@ describe("set_stroke_color tool integration", () => {
         g: 0.5,
         b: 0.8,
         a: 1,
-        strokeWeight: 2,
+        weight: 2,
       });
 
       const [command, payload] = mockSendCommand.mock.calls[0];
@@ -219,7 +219,7 @@ describe("set_stroke_color tool integration", () => {
         g: 0,
         b: 0.8,
         a: 1,
-        strokeWeight: 2,
+        weight: 2,
       });
 
       const [command, payload] = mockSendCommand.mock.calls[0];
@@ -233,7 +233,7 @@ describe("set_stroke_color tool integration", () => {
         g: 0.8,
         b: 0,
         a: 1,
-        strokeWeight: 2,
+        weight: 2,
       });
 
       const [command, payload] = mockSendCommand.mock.calls[0];
@@ -250,7 +250,7 @@ describe("set_stroke_color tool integration", () => {
           g: 0.5,
           b: 0.8,
           a: 1,
-          strokeWeight: 1,
+          weight: 1,
         }),
       ).rejects.toThrow();
 
@@ -265,7 +265,7 @@ describe("set_stroke_color tool integration", () => {
           // g is missing
           b: 0.8,
           a: 1,
-          strokeWeight: 1,
+          weight: 1,
         }),
       ).rejects.toThrow();
 
@@ -280,7 +280,7 @@ describe("set_stroke_color tool integration", () => {
           g: 0.8,
           // b is missing
           a: 1,
-          strokeWeight: 1,
+          weight: 1,
         }),
       ).rejects.toThrow();
 
@@ -294,7 +294,7 @@ describe("set_stroke_color tool integration", () => {
         g: 0.5,
         b: 0.5,
         a: 1,
-        strokeWeight: 0,
+        weight: 0,
       });
 
       expect(mockSendCommand).toHaveBeenCalledTimes(1);
@@ -311,7 +311,7 @@ describe("set_stroke_color tool integration", () => {
           g: 0.5,
           b: 0.5,
           a: 1,
-          strokeWeight: -1,
+          weight: -1,
         }),
       ).rejects.toThrow();
 
@@ -326,7 +326,7 @@ describe("set_stroke_color tool integration", () => {
           g: 0.5,
           b: 0.5,
           a: 1,
-          strokeWeight: "thick", // Invalid type
+          weight: "thick", // Invalid type
         }),
       ).rejects.toThrow();
 
@@ -341,7 +341,7 @@ describe("set_stroke_color tool integration", () => {
           g: 0.5,
           b: 0.8,
           a: 1,
-          strokeWeight: 1,
+          weight: 1,
         }),
       ).rejects.toThrow();
 
@@ -356,7 +356,7 @@ describe("set_stroke_color tool integration", () => {
           g: 0.5,
           b: 0.8,
           a: 1,
-          strokeWeight: 1,
+          weight: 1,
         }),
       ).rejects.toThrow();
 
@@ -372,7 +372,7 @@ describe("set_stroke_color tool integration", () => {
         g: 0,
         b: 0,
         a: 0,
-        strokeWeight: 5,
+        weight: 5,
       });
 
       const [command, payload] = mockSendCommand.mock.calls[0];
@@ -389,7 +389,7 @@ describe("set_stroke_color tool integration", () => {
         g: 1,
         b: 1,
         a: 1,
-        strokeWeight: 10,
+        weight: 10,
       });
 
       const [command, payload] = mockSendCommand.mock.calls[0];
@@ -404,7 +404,7 @@ describe("set_stroke_color tool integration", () => {
         g: 0.456,
         b: 0.789,
         a: 0.5,
-        strokeWeight: 2.75,
+        weight: 2.75,
       });
 
       const [command, payload] = mockSendCommand.mock.calls[0];

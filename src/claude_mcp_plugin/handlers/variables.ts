@@ -73,6 +73,73 @@ function findVariableIn(
   return variable;
 }
 
+function coerceBooleanString(value: string): boolean | undefined {
+  const normalized = value.trim().toLowerCase();
+  if (normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'on') {
+    return true;
+  }
+  if (normalized === 'false' || normalized === '0' || normalized === 'no' || normalized === 'off') {
+    return false;
+  }
+  return undefined;
+}
+
+function coerceValueForType(
+  value: unknown,
+  variableType: VariableResolvedDataType | VariableResolvedType,
+  variableNameForError: string,
+): VariableValue {
+  if (variableType === 'COLOR') {
+    const rawColor = typeof value === 'string' ? JSON.parse(value) : value;
+    if (typeof rawColor !== 'object' || rawColor === null || (rawColor as RgbaColor).r === undefined) {
+      throw new Error(
+        `Expected color value with r, g, b properties for COLOR variable "${variableNameForError}"`,
+      );
+    }
+    const colorValue = rawColor as RgbaColor;
+    return {
+      r: colorValue.r,
+      g: colorValue.g,
+      b: colorValue.b,
+      a: colorValue.a !== undefined ? colorValue.a : 1.0,
+    };
+  }
+
+  if (variableType === 'FLOAT') {
+    if (typeof value === 'number') return value;
+    if (typeof value === 'string') {
+      const parsed = Number(value);
+      if (!Number.isNaN(parsed)) return parsed;
+    }
+    throw new Error(
+      `Expected number value for FLOAT variable "${variableNameForError}", got ${typeof value}`,
+    );
+  }
+
+  if (variableType === 'STRING') {
+    // MCP transport sends all values as strings, but also accept numbers/booleans
+    // by coercing them — consistent with how FLOAT and BOOLEAN are handled above.
+    if (typeof value === 'string') return value;
+    if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+    throw new Error(
+      `Expected string value for STRING variable "${variableNameForError}", got ${typeof value}`,
+    );
+  }
+
+  if (variableType === 'BOOLEAN') {
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'string') {
+      const parsed = coerceBooleanString(value);
+      if (parsed !== undefined) return parsed;
+    }
+    throw new Error(
+      `Expected boolean value for BOOLEAN variable "${variableNameForError}", got ${typeof value}`,
+    );
+  }
+
+  throw new Error(`Unsupported variable type: ${variableType}`);
+}
+
 // Legacy single-arg helpers kept for callers that only need a collection
 // and don't require variables in the same call.
 export async function findCollection(
@@ -315,7 +382,7 @@ export async function getVariables(): Promise<Record<string, unknown>> {
       id: c.id,
       name: c.name,
       variableIds: c.variableIds,
-      modes: c.modes.map(m => ({ id: m.modeId, name: m.name })),
+      modes: c.modes.map(m => ({ id: m.modeId, modeId: m.modeId, name: m.name })),
     })),
   };
 }
@@ -371,7 +438,7 @@ export async function getBoundVariables(
 
   return {
     nodeId: node.id,
-    nodeName: node.name,
+    name: node.name,
     nodeType: node.type,
     bindings,
   };
@@ -465,7 +532,7 @@ export async function bindVariable(
 
   return {
     nodeId: node.id,
-    nodeName: node.name,
+    name: node.name,
     field,
     variableId: variable.id,
     variableName: variable.name,
@@ -538,7 +605,7 @@ export async function unbindVariable(
 
     return {
       nodeId: node.id,
-      nodeName: node.name,
+      name: node.name,
       field,
       success: true,
     };
@@ -612,7 +679,7 @@ export async function getCollectionInfo(
   return {
     id: collection.id,
     name: collection.name,
-    modes: collection.modes.map(m => m.name),
+    modes: collection.modes.map(m => ({ id: m.modeId, modeId: m.modeId, name: m.name })),
     defaultMode:
       collection.modes[0] !== undefined && collection.modes[0] !== null
         ? collection.modes[0].name
@@ -701,18 +768,7 @@ export async function createVariable(
     throw new Error(`Mode not found: ${mode}`);
   }
 
-  let variableValue: VariableValue;
-  if (variableType === 'COLOR') {
-    const colorValue = value as RgbaColor;
-    variableValue = {
-      r: colorValue.r,
-      g: colorValue.g,
-      b: colorValue.b,
-      a: colorValue.a !== undefined ? colorValue.a : 1.0,
-    };
-  } else {
-    variableValue = value as number | string | boolean;
-  }
+  const variableValue = coerceValueForType(value, variableType, name);
 
   variable.setValueForMode(modeId, variableValue);
 
@@ -762,18 +818,11 @@ export async function createVariablesBatch(
         variableType,
       );
 
-      let variableValue: VariableValue;
-      if (variableType === 'COLOR') {
-        const colorValue = varDef['value'] as RgbaColor;
-        variableValue = {
-          r: colorValue.r,
-          g: colorValue.g,
-          b: colorValue.b,
-          a: colorValue.a !== undefined ? colorValue.a : 1.0,
-        };
-      } else {
-        variableValue = varDef['value'] as number | string | boolean;
-      }
+      const variableValue = coerceValueForType(
+        varDef['value'],
+        variableType,
+        varDef['name'] as string,
+      );
 
       variable.setValueForMode(modeId, variableValue);
       created.push(varDef['name'] as string);
@@ -821,45 +870,7 @@ export async function updateVariableValue(
   }
 
   const variableType = variable.resolvedType;
-  let variableValue: VariableValue;
-
-  if (variableType === 'COLOR') {
-    if (typeof value !== 'object' || (value as RgbaColor).r === undefined) {
-      throw new Error(
-        `Expected color value with r, g, b properties for COLOR variable "${variable.name}"`,
-      );
-    }
-    const colorValue = value as RgbaColor;
-    variableValue = {
-      r: colorValue.r,
-      g: colorValue.g,
-      b: colorValue.b,
-      a: colorValue.a !== undefined ? colorValue.a : 1.0,
-    };
-  } else if (variableType === 'FLOAT') {
-    if (typeof value !== 'number') {
-      throw new Error(
-        `Expected number value for FLOAT variable "${variable.name}", got ${typeof value}`,
-      );
-    }
-    variableValue = value;
-  } else if (variableType === 'STRING') {
-    if (typeof value !== 'string') {
-      throw new Error(
-        `Expected string value for STRING variable "${variable.name}", got ${typeof value}`,
-      );
-    }
-    variableValue = value;
-  } else if (variableType === 'BOOLEAN') {
-    if (typeof value !== 'boolean') {
-      throw new Error(
-        `Expected boolean value for BOOLEAN variable "${variable.name}", got ${typeof value}`,
-      );
-    }
-    variableValue = value;
-  } else {
-    throw new Error(`Unsupported variable type: ${variableType}`);
-  }
+  const variableValue = coerceValueForType(value, variableType, variable.name);
 
   variable.setValueForMode(modeId, variableValue);
 
@@ -1620,7 +1631,7 @@ export async function importCollectionSchema(
     try {
       // Validate name: must be a non-empty string with no control characters or
       // path separators (protects against prototype pollution and API misuse).
-      if (typeof name !== 'string' || name.length === 0 || name.length > 256 || /[\x00-\x1f/\\]/.test(name)) {
+      if (typeof name !== 'string' || name.length === 0 || name.length > 256 || /[\x00-\x1f\\]/.test(name)) {
         failed++;
         errors.push({ name, error: 'Invalid variable name' });
         continue;

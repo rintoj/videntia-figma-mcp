@@ -1055,8 +1055,15 @@ export async function setAutoLayout(params: Record<string, unknown>): Promise<Re
       frameNode.clipsContent = clipsContent;
     }
 
-    // Default to FILL width and HUG height unless explicitly overridden
-    const hSizing = (layoutSizingHorizontal !== null && layoutSizingHorizontal !== undefined) ? layoutSizingHorizontal : 'FILL';
+    // Determine safe defaults based on whether this frame is inside an auto-layout parent.
+    // FILL is only valid for children of auto-layout frames; default to FIXED otherwise.
+    const parentIsAutoLayout =
+      frameNode.parent !== null &&
+      frameNode.parent !== undefined &&
+      'layoutMode' in frameNode.parent &&
+      (frameNode.parent as FrameNode).layoutMode !== 'NONE';
+    const defaultHSizing = parentIsAutoLayout ? 'FILL' : 'FIXED';
+    const hSizing = (layoutSizingHorizontal !== null && layoutSizingHorizontal !== undefined) ? layoutSizingHorizontal : defaultHSizing;
     const vSizing = (layoutSizingVertical !== null && layoutSizingVertical !== undefined) ? layoutSizingVertical : 'HUG';
     frameNode.layoutSizingHorizontal = hSizing as 'FIXED' | 'HUG' | 'FILL';
     frameNode.layoutSizingVertical = vSizing as 'FIXED' | 'HUG' | 'FILL';
@@ -1089,7 +1096,39 @@ export async function setFontName(params: Record<string, unknown>): Promise<Reco
   const safeParams = params !== null && params !== undefined ? params : {};
   const nodeId = safeParams.nodeId as string | undefined;
   const family = safeParams.family as string | undefined;
-  const style = safeParams.style !== null && safeParams.style !== undefined ? (safeParams.style as string) : 'Regular';
+  const rawStyle = safeParams.style !== null && safeParams.style !== undefined ? (safeParams.style as string) : 'Regular';
+  // Normalize camelCase/compound weight names to Figma's space-separated format.
+  // The lookup table covers all standard Figma weight names exactly; the regex fallback
+  // handles edge cases (e.g. custom styles) but may not always produce a valid Figma name.
+  const FIGMA_STYLE_MAP: Record<string, string> = {
+    'thin': 'Thin',
+    'extralight': 'Extra Light',
+    'ultralight': 'Extra Light',
+    'light': 'Light',
+    'regular': 'Regular',
+    'normal': 'Regular',
+    'medium': 'Medium',
+    'semibold': 'Semi Bold',
+    'demibold': 'Semi Bold',
+    'bold': 'Bold',
+    'extrabold': 'Extra Bold',
+    'ultrabold': 'Extra Bold',
+    'black': 'Black',
+    'heavy': 'Black',
+    'thinitalic': 'Thin Italic',
+    'extralightitalic': 'Extra Light Italic',
+    'lightitalic': 'Light Italic',
+    'italic': 'Italic',
+    'mediumitalic': 'Medium Italic',
+    'semibolditalic': 'Semi Bold Italic',
+    'bolditalic': 'Bold Italic',
+    'extrabolditalic': 'Extra Bold Italic',
+    'blackitalic': 'Black Italic',
+  };
+  const normalized = rawStyle.trim().toLowerCase().replace(/\s+/g, '');
+  const style = FIGMA_STYLE_MAP[normalized] !== undefined
+    ? FIGMA_STYLE_MAP[normalized]
+    : rawStyle.replace(/([a-z])([A-Z])/g, '$1 $2');
 
   if (!nodeId || !family) {
     throw new Error('Missing nodeId or font family');
@@ -1113,7 +1152,7 @@ export async function setFontName(params: Record<string, unknown>): Promise<Reco
       fontName: (node as TextNode).fontName,
     };
   } catch (error) {
-    throw new Error(`Error setting font name: ${(error as Error).message}`);
+    throw new Error(`Error setting font name: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
@@ -1561,12 +1600,37 @@ export async function createTextStyle(params: Record<string, unknown>): Promise<
 
   const textNode = node as TextNode;
 
+  // Resolve mixed values by falling back to first character range
+  const resolvedFontName: FontName = textNode.fontName === figma.mixed
+    ? textNode.getRangeFontName(0, 1) as FontName
+    : textNode.fontName as FontName;
+  const resolvedFontSize: number = textNode.fontSize === figma.mixed
+    ? textNode.getRangeFontSize(0, 1) as number
+    : textNode.fontSize as number;
+  const resolvedLetterSpacing: LetterSpacing = textNode.letterSpacing === figma.mixed
+    ? textNode.getRangeLetterSpacing(0, 1) as LetterSpacing
+    : textNode.letterSpacing as LetterSpacing;
+  const resolvedLineHeight: LineHeight = textNode.lineHeight === figma.mixed
+    ? textNode.getRangeLineHeight(0, 1) as LineHeight
+    : textNode.lineHeight as LineHeight;
+  const resolvedTextCase: TextCase = textNode.textCase === figma.mixed
+    ? textNode.getRangeTextCase(0, 1) as TextCase
+    : textNode.textCase as TextCase;
+  const resolvedTextDecoration: TextDecoration = textNode.textDecoration === figma.mixed
+    ? textNode.getRangeTextDecoration(0, 1) as TextDecoration
+    : textNode.textDecoration as TextDecoration;
+
   try {
-    await figma.loadFontAsync(textNode.fontName as FontName);
+    // Load both the default new-style font (Inter Regular) and the resolved target font.
+    // figma.createTextStyle() initialises with Inter Regular, so it must be loaded before
+    // any property write on the new style object succeeds.
+    await Promise.all([
+      figma.loadFontAsync({ family: 'Inter', style: 'Regular' }),
+      figma.loadFontAsync(resolvedFontName),
+    ]);
   } catch (error) {
-    const fn = textNode.fontName as FontName;
     throw new Error(
-      `Font "${fn.family} ${fn.style}" is not available. Please ensure the font is installed.`,
+      `Font "${resolvedFontName.family} ${resolvedFontName.style}" is not available. Please ensure the font is installed.`,
     );
   }
 
@@ -1577,14 +1641,15 @@ export async function createTextStyle(params: Record<string, unknown>): Promise<
       textStyle.description = description;
     }
 
-    textStyle.fontSize = textNode.fontSize as number;
-    textStyle.fontName = textNode.fontName as FontName;
-    textStyle.letterSpacing = textNode.letterSpacing as LetterSpacing;
-    textStyle.lineHeight = textNode.lineHeight as LineHeight;
+    // Set fontName first so subsequent property writes use the correct loaded font
+    textStyle.fontName = resolvedFontName;
+    textStyle.fontSize = resolvedFontSize;
+    textStyle.letterSpacing = resolvedLetterSpacing;
+    textStyle.lineHeight = resolvedLineHeight;
     textStyle.paragraphIndent = textNode.paragraphIndent;
     textStyle.paragraphSpacing = textNode.paragraphSpacing;
-    textStyle.textCase = textNode.textCase as TextCase;
-    textStyle.textDecoration = textNode.textDecoration as TextDecoration;
+    textStyle.textCase = resolvedTextCase;
+    textStyle.textDecoration = resolvedTextDecoration;
 
     return {
       id: textStyle.id,

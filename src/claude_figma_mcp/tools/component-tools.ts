@@ -3,6 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { sendCommandToFigma } from "../utils/websocket";
 import { coerceArray } from "../utils/coerce-array.js";
 import { outputFormatSchema, fetchNodesAsJsx } from "../utils/output-format.js";
+import { mcpBooleanSchema } from "../utils/mcp-boolean.js";
 import { CreateComponentInstanceResult, GetReactionsResult, GetComponentPropertiesResult } from "../types";
 
 /**
@@ -19,8 +20,8 @@ export function registerComponentTools(server: McpServer): void {
       componentKey: z
         .string()
         .describe("Component node ID (for local, e.g., '123:456') or component key (for library components)"),
-      x: z.number().describe("X position"),
-      y: z.number().describe("Y position"),
+      x: z.coerce.number().describe("X position"),
+      y: z.coerce.number().describe("Y position"),
       output_format: outputFormatSchema,
     },
     async ({ componentKey, x, y, output_format }) => {
@@ -385,7 +386,7 @@ export function registerComponentTools(server: McpServer): void {
       propertyName: z.string().describe("Name for the property (e.g., 'Show Icon', 'Label Text')"),
       type: z.enum(["BOOLEAN", "TEXT", "INSTANCE_SWAP", "VARIANT"]).describe("Type of property to create"),
       defaultValue: z
-        .union([z.boolean(), z.string()])
+        .union([z.string(), mcpBooleanSchema])
         .optional()
         .describe(
           "Default value (boolean for BOOLEAN type, string for TEXT/VARIANT, required component key for INSTANCE_SWAP)",
@@ -401,7 +402,8 @@ export function registerComponentTools(server: McpServer): void {
         });
         const typedResult = result as {
           nodeId: string;
-          nodeName: string;
+          name?: string;
+          nodeName?: string;
           propertyName: string;
           type: string;
           defaultValue: boolean | string;
@@ -410,7 +412,7 @@ export function registerComponentTools(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: `Added ${typedResult.type} property "${typedResult.propertyName}" to "${typedResult.nodeName}" with default value: ${typedResult.defaultValue}`,
+              text: `Added ${typedResult.type} property "${typedResult.propertyName}" to "${typedResult.name ?? typedResult.nodeName ?? nodeId}" with default value: ${typedResult.defaultValue}`,
             },
           ],
         };
@@ -435,7 +437,7 @@ export function registerComponentTools(server: McpServer): void {
       nodeId: z.string().describe("The ID of the component or component set"),
       propertyName: z.string().describe("The full property name including the #ID suffix (e.g., 'Show Icon#123:456')"),
       newName: z.string().optional().describe("New name for the property"),
-      newDefaultValue: z.union([z.boolean(), z.string()]).optional().describe("New default value"),
+      newDefaultValue: z.union([z.string(), mcpBooleanSchema]).optional().describe("New default value"),
       preferredValues: coerceArray(
         z.array(
           z.object({
@@ -458,7 +460,8 @@ export function registerComponentTools(server: McpServer): void {
         });
         const typedResult = result as {
           nodeId: string;
-          nodeName: string;
+          name?: string;
+          nodeName?: string;
           oldPropertyName: string;
           newPropertyName: string;
           updates: object;
@@ -467,7 +470,7 @@ export function registerComponentTools(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: `Updated property "${typedResult.oldPropertyName}" on "${typedResult.nodeName}". New name: "${typedResult.newPropertyName}"`,
+              text: `Updated property "${typedResult.oldPropertyName}" on "${typedResult.name ?? typedResult.nodeName ?? nodeId}". New name: "${typedResult.newPropertyName}"`,
             },
           ],
         };
@@ -500,14 +503,15 @@ export function registerComponentTools(server: McpServer): void {
         });
         const typedResult = result as {
           nodeId: string;
-          nodeName: string;
+          name?: string;
+          nodeName?: string;
           deletedPropertyName: string;
         };
         return {
           content: [
             {
               type: "text",
-              text: `Deleted property "${typedResult.deletedPropertyName}" from "${typedResult.nodeName}"`,
+              text: `Deleted property "${typedResult.deletedPropertyName}" from "${typedResult.name ?? typedResult.nodeName ?? nodeId}"`,
             },
           ],
         };
@@ -544,14 +548,15 @@ export function registerComponentTools(server: McpServer): void {
         });
         const typedResult = result as {
           nodeId: string;
-          nodeName: string;
+          name?: string;
+          nodeName?: string;
           references: Record<string, string>;
         };
         return {
           content: [
             {
               type: "text",
-              text: `Set property references on "${typedResult.nodeName}": ${JSON.stringify(typedResult.references)}`,
+              text: `Set property references on "${typedResult.name ?? typedResult.nodeName ?? nodeId}": ${JSON.stringify(typedResult.references)}`,
             },
           ],
         };
@@ -582,13 +587,14 @@ export function registerComponentTools(server: McpServer): void {
         });
         const typedResult = result as GetComponentPropertiesResult & {
           nodeId?: string;
+          name?: string;
           nodeName?: string;
           nodeType?: string;
         };
         const props = typedResult.properties || {};
         const propEntries = Object.entries(props);
         const lines: string[] = [
-          `## ${typedResult.nodeName || "-"} (${typedResult.nodeType || "-"})`,
+          `## ${typedResult.name || typedResult.nodeName || "-"} (${typedResult.nodeType || "-"})`,
           `Properties: ${propEntries.length}`,
         ];
         if (propEntries.length > 0) {

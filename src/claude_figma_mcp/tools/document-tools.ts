@@ -4,6 +4,7 @@ import { sendCommandToFigma, joinChannel, getOpenChannels } from "../utils/webso
 import { filterFigmaNode } from "../utils/figma-helpers.js";
 import { figmaAccessToken, FIGMA_API_BASE_URL } from "../config/config.js";
 import { coerceArray } from "../utils/coerce-array.js";
+import { mcpBooleanSchema } from "../utils/mcp-boolean.js";
 import { convertToJsx } from "../utils/figma-to-jsx.js";
 import { parseJsx } from "../utils/jsx-to-figma.js";
 import { outputFormatSchema, fetchNodesAsJsx, fetchSelectionAsJsx } from "../utils/output-format.js";
@@ -16,7 +17,6 @@ import type {
   CreateAnnotationCategoryResult,
   UpdateAnnotationCategoryResult,
   StylesResult,
-  RemoteComponentsResult,
   BoundVariablesResult,
   LintFrameResult,
   LintViolation,
@@ -305,7 +305,7 @@ export function registerDocumentTools(server: McpServer): void {
     "Read the current Figma selection (or a specific node) as JSX with Tailwind CSS classes. Returns compact, Claude-readable markup instead of verbose JSON.",
     {
       nodeId: z.string().optional().describe("Specific node ID to read (defaults to current selection)"),
-      depth: z.number().optional().describe("Max depth to traverse (default: unlimited)"),
+      depth: z.coerce.number().optional().describe("Max depth to traverse (default: unlimited)"),
     },
     async ({ nodeId, depth }) => {
       try {
@@ -345,10 +345,9 @@ export function registerDocumentTools(server: McpServer): void {
         ),
       parentId: z.string().optional().describe("Parent node ID to insert into (defaults to current page)"),
       nextToId: z.string().optional().describe("Place the new node to the right of this node ID"),
-      x: z.number().optional().describe("X position for the root node"),
-      y: z.number().optional().describe("Y position for the root node"),
-      replaceChildren: z
-        .boolean()
+      x: z.coerce.number().optional().describe("X position for the root node"),
+      y: z.coerce.number().optional().describe("Y position for the root node"),
+      replaceChildren: mcpBooleanSchema
         .optional()
         .describe(
           "When updating an existing node (via id), replace its children with the JSX children. When true with no JSX children, clears all existing children. Omit or false to preserve existing children.",
@@ -408,12 +407,12 @@ export function registerDocumentTools(server: McpServer): void {
     async ({ nodeId }) => {
       try {
         const result = await sendCommandToFigma("set_focus", { nodeId });
-        const typedResult = result as { name: string; id: string };
+        const typedResult = result as { name: string; nodeId: string };
         return {
           content: [
             {
               type: "text",
-              text: `Focused on node "${typedResult.name}" (ID: ${typedResult.id})`,
+              text: `Focused on node "${typedResult.name}" (ID: ${typedResult.nodeId ?? nodeId})`,
             },
           ],
         };
@@ -442,13 +441,13 @@ export function registerDocumentTools(server: McpServer): void {
         const result = await sendCommandToFigma("set_selections", { nodeIds });
         const typedResult = result as {
           selectedNodes: Array<{ name: string; id: string }>;
-          count: number;
+          selectedCount: number;
         };
         return {
           content: [
             {
               type: "text",
-              text: `Selected ${typedResult.count} nodes: ${typedResult.selectedNodes
+              text: `Selected ${typedResult.selectedCount ?? nodeIds.length} nodes: ${typedResult.selectedNodes
                 .map((n) => `"${n.name}" (${n.id})`)
                 .join(", ")}`,
             },
@@ -473,7 +472,7 @@ export function registerDocumentTools(server: McpServer): void {
     "Get all annotations in the current document or specific node",
     {
       nodeId: z.string().describe("Node ID to get annotations for specific node"),
-      includeCategories: z.boolean().optional().default(true).describe("Whether to include category information"),
+      includeCategories: mcpBooleanSchema.optional().default(true).describe("Whether to include category information"),
     },
     async ({ nodeId, includeCategories }) => {
       try {
@@ -486,15 +485,15 @@ export function registerDocumentTools(server: McpServer): void {
           return { content: [{ type: "text", text: "No annotations found." }] };
         }
         const lines: string[] = [
-          `Found ${annotations.length} annotation(s)`,
+          `Found ${annotations.length} annotation(s) on node "${(result as any).nodeName || (result as any).nodeId || nodeId}"`,
           "",
-          "| Label | Category | Node ID | ID |",
-          "|-------|----------|---------|----|",
+          "| Index | Label | Category |",
+          "|-------|-------|----------|",
         ];
         for (const a of annotations) {
-          const label = truncate((a.labelMarkdown || a.label || "-").replace(/\n/g, " "), 60);
-          const cat = a.category?.label || a.categoryId || "-";
-          lines.push(`| ${label} | ${cat} | ${a.nodeId || "-"} | ${a.id ?? "-"} |`);
+          const label = truncate(((a as any).labelMarkdown || (a as any).label || "-").replace(/\n/g, " "), 60);
+          const cat = (a as any).category?.label || (a as any).categoryId || "-";
+          lines.push(`| ${(a as any).index ?? "-"} | ${label} | ${cat} |`);
         }
         return {
           content: [
@@ -682,7 +681,7 @@ export function registerDocumentTools(server: McpServer): void {
     {
       label: z.string().describe("The label for the new category"),
       color: z
-        .enum(["blue", "green", "yellow", "orange", "red", "purple", "gray", "teal"])
+        .enum(["blue", "green", "yellow", "orange", "red", "purple", "gray", "teal", "pink", "violet"])
         .optional()
         .default("blue")
         .describe("The color for the category"),
@@ -722,7 +721,7 @@ export function registerDocumentTools(server: McpServer): void {
       categoryId: z.string().describe("The ID of the category to update"),
       label: z.string().optional().describe("New label for the category"),
       color: z
-        .enum(["blue", "green", "yellow", "orange", "red", "purple", "gray", "teal"])
+        .enum(["blue", "green", "yellow", "orange", "red", "purple", "gray", "teal", "pink", "violet"])
         .optional()
         .describe("New color for the category"),
     },
@@ -1172,43 +1171,6 @@ export function registerDocumentTools(server: McpServer): void {
     },
   );
 
-  // Get Remote Components Tool
-  server.tool("get_remote_components", "Get available components from team libraries in Figma", {}, async () => {
-    try {
-      const result = await sendCommandToFigma<RemoteComponentsResult>("get_remote_components");
-      const components = Array.isArray(result) ? result : (result?.components ?? []);
-      if (components.length === 0) {
-        return { content: [{ type: "text", text: "No remote components found." }] };
-      }
-      const lines: string[] = [
-        `Found ${components.length} remote component(s)`,
-        "",
-        "| Name | ID | Key | Library |",
-        "|------|----|-----|---------|",
-      ];
-      for (const c of components) {
-        lines.push(`| ${c.name || "-"} | ${c.id || "-"} | ${c.key || "-"} | ${c.libraryName || c.library || "-"} |`);
-      }
-      return {
-        content: [
-          {
-            type: "text",
-            text: lines.join("\n"),
-          },
-        ],
-      };
-    } catch (error) {
-      return {
-        content: [
-          {
-            type: "text",
-            text: `Error getting remote components: ${error instanceof Error ? error.message : String(error)}`,
-          },
-        ],
-      };
-    }
-  });
-
   // Text Node Scanning Tool
   server.tool(
     "scan_text_nodes",
@@ -1325,13 +1287,13 @@ export function registerDocumentTools(server: McpServer): void {
             .describe(
               "Check root frame sizing: width=FIXED at device width (desktop=1440, tablet=768, mobile=375), height=HUG with minHeight set to device height (default: true)",
             ),
-          colors: z.boolean().optional().describe("Check fill/stroke color bindings (default: true)"),
-          spacing: z.boolean().optional().describe("Check padding/itemSpacing bindings (default: true)"),
-          radius: z.boolean().optional().describe("Check cornerRadius bindings (default: true)"),
-          textStyles: z.boolean().optional().describe("Check text style application (default: true)"),
-          effectStyles: z.boolean().optional().describe("Check effect style application (default: true)"),
-          autoLayout: z.boolean().optional().describe("Check auto-layout on frames (default: true)"),
-          overflow: z.boolean().optional().describe("Check child overflow beyond parent bounds (default: true)"),
+          colors: mcpBooleanSchema.optional().describe("Check fill/stroke color bindings (default: true)"),
+          spacing: mcpBooleanSchema.optional().describe("Check padding/itemSpacing bindings (default: true)"),
+          radius: mcpBooleanSchema.optional().describe("Check cornerRadius bindings (default: true)"),
+          textStyles: mcpBooleanSchema.optional().describe("Check text style application (default: true)"),
+          effectStyles: mcpBooleanSchema.optional().describe("Check effect style application (default: true)"),
+          autoLayout: mcpBooleanSchema.optional().describe("Check auto-layout on frames (default: true)"),
+          overflow: mcpBooleanSchema.optional().describe("Check child overflow beyond parent bounds (default: true)"),
         })
         .optional()
         .describe("Toggle individual check categories (all enabled by default)"),
@@ -1761,7 +1723,7 @@ export function registerDocumentTools(server: McpServer): void {
     {
       nodeId: z.string().describe("The ID of the node to export"),
       format: z.enum(["PNG", "JPG", "SVG", "PDF"]).optional().describe("Export format"),
-      scale: z.number().positive().optional().describe("Export scale"),
+      scale: z.coerce.number().positive().optional().describe("Export scale"),
     },
     async ({ nodeId, format, scale }) => {
       try {
@@ -1826,7 +1788,7 @@ export function registerDocumentTools(server: McpServer): void {
     {
       nodeId: z.string().describe("The ID of the node to export"),
       format: z.enum(["png", "jpg", "svg", "pdf"]).optional().default("png").describe("Export format (lowercase)"),
-      scale: z.number().positive().min(0.01).max(4).optional().default(1).describe("Export scale (0.01 to 4)"),
+      scale: z.coerce.number().positive().min(0.01).max(4).optional().default(1).describe("Export scale (0.01 to 4)"),
       fileKey: z.string().optional().describe("Figma file key. If not provided, will be fetched from the plugin."),
     },
     async ({ nodeId, format, scale, fileKey }) => {
@@ -2143,52 +2105,52 @@ export function registerDocumentTools(server: McpServer): void {
 
   // Setup Design System Tool
   const rgbaColorSchema = z.object({
-    r: z.number().min(0).max(1).describe("Red channel (0-1)"),
-    g: z.number().min(0).max(1).describe("Green channel (0-1)"),
-    b: z.number().min(0).max(1).describe("Blue channel (0-1)"),
-    a: z.number().min(0).max(1).optional().describe("Alpha channel (0-1), defaults to 1"),
+    r: z.coerce.number().min(0).max(1).describe("Red channel (0-1)"),
+    g: z.coerce.number().min(0).max(1).describe("Green channel (0-1)"),
+    b: z.coerce.number().min(0).max(1).describe("Blue channel (0-1)"),
+    a: z.coerce.number().min(0).max(1).optional().describe("Alpha channel (0-1), defaults to 1"),
   });
 
   server.tool(
     "setup_design_system",
     "Create or update an entire design system in a single call. Accepts multiple variable collections, text styles, and effect styles. Idempotent — existing items with the same name are updated, not duplicated.",
     {
-      pages: z.array(z.string()).optional().describe("Page names to ensure exist (default: ['Screens', 'Components', 'Draft']). If only 'Page 1' exists and is empty, it is renamed to the first page."),
-      collections: z.array(z.object({
+      pages: coerceArray(z.array(z.string())).optional().describe("Page names to ensure exist (default: ['Screens', 'Components', 'Draft']). If only 'Page 1' exists and is empty, it is renamed to the first page."),
+      collections: coerceArray(z.array(z.object({
         name: z.string().describe("Collection name, e.g. 'Colors', 'Spacing', 'Radius'"),
         variables: z.array(z.object({
           name: z.string().describe("Variable name, e.g. 'background/primary' or 'space/md'"),
           type: z.enum(["COLOR", "FLOAT"]).describe("COLOR for colors, FLOAT for spacing/radius numbers"),
-          value: z.union([rgbaColorSchema, z.number()]).describe("RGBA object for COLOR type, number for FLOAT type"),
+          value: z.union([rgbaColorSchema, z.coerce.number()]).describe("RGBA object for COLOR type, number for FLOAT type"),
           description: z.string().optional().describe("Token description/purpose"),
         })),
-      })).optional().describe("Variable collections to create/update, each with its own name and variables"),
-      text_styles: z.array(z.object({
+      }))).optional().describe("Variable collections to create/update, each with its own name and variables"),
+      text_styles: coerceArray(z.array(z.object({
         name: z.string().describe("Style name, e.g. 'text/display/lg'"),
         font_family: z.string().describe("Font family, e.g. 'Manrope'"),
         font_style: z.string().describe("Font style, e.g. 'Bold', 'SemiBold', 'Regular'"),
-        font_size: z.number().describe("Font size in pixels"),
+        font_size: z.coerce.number().describe("Font size in pixels"),
         line_height: z.object({
-          value: z.number(),
+          value: z.coerce.number(),
           unit: z.enum(["PIXELS", "PERCENT", "AUTO"]),
         }).optional().describe("Line height specification"),
         letter_spacing: z.object({
-          value: z.number(),
+          value: z.coerce.number(),
           unit: z.enum(["PIXELS", "PERCENT"]),
         }).optional().describe("Letter spacing specification"),
         description: z.string().optional().describe("Style description/purpose"),
-      })).optional().describe("Text styles to create/update"),
-      effect_styles: z.array(z.object({
+      }))).optional().describe("Text styles to create/update"),
+      effect_styles: coerceArray(z.array(z.object({
         name: z.string().describe("Effect style name, e.g. 'shadow/subtle'"),
         effects: z.array(z.object({
           type: z.enum(["DROP_SHADOW", "INNER_SHADOW", "LAYER_BLUR", "BACKGROUND_BLUR"]).describe("Effect type"),
           color: rgbaColorSchema.optional().describe("Effect color (for shadows)"),
-          offset: z.object({ x: z.number(), y: z.number() }).optional().describe("Shadow offset (for shadows)"),
-          radius: z.number().optional().describe("Blur radius"),
-          spread: z.number().optional().describe("Spread (for shadows)"),
+          offset: z.object({ x: z.coerce.number(), y: z.coerce.number() }).optional().describe("Shadow offset (for shadows)"),
+          radius: z.coerce.number().optional().describe("Blur radius"),
+          spread: z.coerce.number().optional().describe("Spread (for shadows)"),
         })).describe("Array of effects for this style"),
         description: z.string().optional().describe("Effect style description/purpose"),
-      })).optional().describe("Effect styles to create/update"),
+      }))).optional().describe("Effect styles to create/update"),
     },
     async ({ pages, collections, text_styles, effect_styles }) => {
       try {

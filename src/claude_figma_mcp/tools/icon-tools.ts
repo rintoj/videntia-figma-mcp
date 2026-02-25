@@ -109,7 +109,7 @@ export function registerIconTools(server: McpServer): void {
     'Search for Lucide icons by keyword with fuzzy matching. Use | for multi-pattern search (e.g. "arrow|chevron"). Supports aliases like "notification" → bell, "hamburger" → menu.',
     {
       query: z.string().describe('Search query. Use | for multiple patterns (e.g. "arrow|chevron")'),
-      limit: z.number().min(1).max(20).optional().describe("Max results to return (default 5, max 20)"),
+      limit: z.coerce.number().min(1).max(20).optional().describe("Max results to return (default 5, max 20)"),
     },
     async ({ query, limit }) => {
       try {
@@ -207,8 +207,8 @@ export function registerIconTools(server: McpServer): void {
     "List available Lucide icon names with optional prefix filter and pagination. Returns names only (use get_icon to fetch SVG).",
     {
       prefix: z.string().optional().describe('Filter icons by name prefix (e.g. "arrow", "circle")'),
-      offset: z.number().min(0).optional().describe("Start index for pagination (default 0)"),
-      limit: z.number().min(1).max(200).optional().describe("Max results per page (default 50, max 200)"),
+      offset: z.coerce.number().min(0).optional().describe("Start index for pagination (default 0)"),
+      limit: z.coerce.number().min(1).max(200).optional().describe("Max results per page (default 50, max 200)"),
     },
     async ({ prefix, offset, limit }) => {
       try {
@@ -218,12 +218,12 @@ export function registerIconTools(server: McpServer): void {
           limit: limit ?? 50,
         });
 
-        const r = result as unknown as { total: number; offset: number; limit: number; names: string[] };
-        const end = r.offset + r.names.length;
+        const r = result as unknown as { total: number; offset: number; limit: number; icons: string[] };
+        const end = r.offset + r.icons.length;
         const lines = [
           `Icons ${r.offset + 1}-${end} of ${r.total}${prefix ? ` (prefix: "${prefix}")` : ""}`,
           "",
-          r.names.join(", "),
+          r.icons.join(", "),
         ];
         return {
           content: [
@@ -261,12 +261,12 @@ export function registerIconTools(server: McpServer): void {
         .min(0)
         .optional()
         .describe("Zero-based position within the parent's children array (omit to append at the end)"),
-      iconName: z.string().describe('Lucide icon name (e.g. "arrow-left", "bell", "check")'),
+      name: z.string().describe('Lucide icon name (e.g. "arrow-left", "bell", "check")'),
       color: z.string().optional().describe('Icon color. Accepts a CSS color ("#6b7280", "rgb(…)") OR a design token name ("gray-500", "text-text-secondary", "semantic/icon/muted"). Token names (anything with a hyphen or slash) are automatically routed to variable binding — no need to use colorVariable separately.'),
       colorVariable: z.string().optional().describe('Explicit Figma variable name for the icon stroke color. Only needed if color is also a valid CSS color and you still want variable binding. Supports Tailwind-style ("gray-500"), semantic paths ("text/secondary"), or exact names.'),
       size: z.coerce.number().positive().describe("Icon size in pixels applied to both width and height"),
     },
-    async ({ parentId, index, iconName, color, colorVariable, size }) => {
+    async ({ parentId, index, name: iconName, color, colorVariable, size }) => {
       const icon = getIcon(iconName);
       if (!icon) {
         const suggestions = searchIcons(iconName, 5);
@@ -374,12 +374,12 @@ export function registerIconTools(server: McpServer): void {
     "Replace an existing icon node in Figma with a new Lucide icon. The replacement is inserted at the same parent and position as the original node.",
     {
       nodeId: z.string().describe("ID of the existing icon node to replace"),
-      iconName: z.string().describe('New Lucide icon name (e.g. "arrow-left", "bell", "check")'),
+      name: z.string().describe('New Lucide icon name (e.g. "arrow-left", "bell", "check")'),
       color: z.string().optional().describe('Icon color. Accepts a CSS color ("#6b7280", "rgb(…)") OR a design token name ("gray-500", "text-text-secondary"). Token names (anything with a hyphen or slash) are automatically routed to variable binding.'),
       colorVariable: z.string().optional().describe('Explicit Figma variable name for the icon stroke color. Only needed when color is also a valid CSS color and you still want variable binding.'),
       size: z.coerce.number().positive().describe("Icon size in pixels applied to both width and height"),
     },
-    async ({ nodeId, iconName, color, colorVariable, size }) => {
+    async ({ nodeId, name: iconName, color, colorVariable, size }) => {
       const icon = getIcon(iconName);
       if (!icon) {
         const suggestions = searchIcons(iconName, 5);

@@ -2,6 +2,7 @@ import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { sendCommandToFigma } from "../utils/websocket";
 import { coerceArray } from "../utils/coerce-array.js";
+import { mcpBooleanSchema } from "../utils/mcp-boolean.js";
 
 /**
  * Register creation tools to the MCP server
@@ -14,16 +15,16 @@ export function registerCreationTools(server: McpServer): void {
     "create_rectangle",
     "Create a new rectangle in Figma",
     {
-      x: z.coerce.number().describe("X position"),
-      y: z.coerce.number().describe("Y position"),
-      width: z.coerce.number().describe("Width of the rectangle"),
-      height: z.coerce.number().describe("Height of the rectangle"),
-      name: z.string().optional().describe("Optional name for the rectangle"),
-      parentId: z.string().optional().describe("Optional parent node ID to append the rectangle to"),
+      x: z.coerce.number().describe("X position in pixels on the canvas (or relative to parent frame if parentId is set)"),
+      y: z.coerce.number().describe("Y position in pixels on the canvas (or relative to parent frame if parentId is set)"),
+      width: z.coerce.number().describe("Width in pixels (must be > 0)"),
+      height: z.coerce.number().describe("Height in pixels (must be > 0)"),
+      name: z.string().optional().describe("Layer name for the rectangle (default: 'Rectangle')"),
+      parentId: z.string().optional().describe("ID of the parent frame or group to insert the rectangle into"),
       layoutPositioning: z
         .enum(["ABSOLUTE", "RELATIVE"])
         .optional()
-        .describe("Position mode within auto-layout parent"),
+        .describe("How this node positions inside an auto-layout parent: ABSOLUTE = uses x/y coordinates ignoring auto-layout flow, RELATIVE = participates in auto-layout flow (default when inside auto-layout)"),
     },
     async ({ x, y, width, height, name, parentId, layoutPositioning }) => {
       try {
@@ -62,36 +63,36 @@ export function registerCreationTools(server: McpServer): void {
     "create_frame",
     "Create a new frame in Figma",
     {
-      x: z.coerce.number().describe("X position"),
-      y: z.coerce.number().describe("Y position"),
-      width: z.coerce.number().describe("Width of the frame"),
-      height: z.coerce.number().describe("Height of the frame"),
-      name: z.string().optional().describe("Optional name for the frame"),
-      parentId: z.string().optional().describe("Optional parent node ID to append the frame to"),
+      x: z.coerce.number().describe("X position in pixels on the canvas (or relative to parent if parentId is set)"),
+      y: z.coerce.number().describe("Y position in pixels on the canvas (or relative to parent if parentId is set)"),
+      width: z.coerce.number().describe("Width in pixels (must be > 0)"),
+      height: z.coerce.number().describe("Height in pixels (must be > 0)"),
+      name: z.string().optional().describe("Layer name for the frame (default: 'Frame')"),
+      parentId: z.string().optional().describe("ID of the parent frame to nest this frame inside"),
       fillColor: z
         .object({
-          r: z.number().min(0).max(1).describe("Red component (0-1)"),
-          g: z.number().min(0).max(1).describe("Green component (0-1)"),
-          b: z.number().min(0).max(1).describe("Blue component (0-1)"),
-          a: z.number().min(0).max(1).optional().describe("Alpha component (0-1)"),
+          r: z.coerce.number().min(0).max(1).describe("Red channel 0–1"),
+          g: z.coerce.number().min(0).max(1).describe("Green channel 0–1"),
+          b: z.coerce.number().min(0).max(1).describe("Blue channel 0–1"),
+          a: z.coerce.number().min(0).max(1).optional().describe("Alpha 0–1 (default: 1)"),
         })
         .optional()
-        .describe("Fill color in RGBA format"),
+        .describe("Background fill color (default: white {r:1,g:1,b:1,a:1})"),
       strokeColor: z
         .object({
-          r: z.number().min(0).max(1).describe("Red component (0-1)"),
-          g: z.number().min(0).max(1).describe("Green component (0-1)"),
-          b: z.number().min(0).max(1).describe("Blue component (0-1)"),
-          a: z.number().min(0).max(1).optional().describe("Alpha component (0-1)"),
+          r: z.coerce.number().min(0).max(1).describe("Red channel 0–1"),
+          g: z.coerce.number().min(0).max(1).describe("Green channel 0–1"),
+          b: z.coerce.number().min(0).max(1).describe("Blue channel 0–1"),
+          a: z.coerce.number().min(0).max(1).optional().describe("Alpha 0–1 (default: 1)"),
         })
         .optional()
-        .describe("Stroke color in RGBA format"),
-      strokeWeight: z.coerce.number().positive().optional().describe("Stroke weight"),
-      clipsContent: z.boolean().optional().describe("Whether to clip content outside frame bounds"),
+        .describe("Border/stroke color — omit for no stroke"),
+      strokeWeight: z.coerce.number().positive().optional().describe("Border thickness in pixels (must be > 0; requires strokeColor to be visible)"),
+      clipsContent: mcpBooleanSchema.optional().describe("true = hide content that overflows the frame boundary (CSS overflow:hidden); false = show overflow (default: false)"),
       layoutPositioning: z
         .enum(["ABSOLUTE", "RELATIVE"])
         .optional()
-        .describe("Position mode within auto-layout parent"),
+        .describe("How this frame positions inside an auto-layout parent: ABSOLUTE = positioned by x/y ignoring layout flow, RELATIVE = participates in layout flow (default when inside auto-layout)"),
     },
     async ({
       x,
@@ -147,23 +148,23 @@ export function registerCreationTools(server: McpServer): void {
     "create_text",
     "Create a new text element in Figma",
     {
-      x: z.coerce.number().describe("X position"),
-      y: z.coerce.number().describe("Y position"),
-      text: z.string().describe("Text content"),
-      fontSize: z.coerce.number().optional().describe("Font size (default: 14)"),
-      fontFamily: z.string().optional().describe("Font family name (default: Inter)"),
-      fontWeight: z.coerce.number().optional().describe("Font weight (e.g., 400 for Regular, 700 for Bold)"),
+      x: z.coerce.number().describe("X position in pixels on the canvas (or relative to parent if parentId is set)"),
+      y: z.coerce.number().describe("Y position in pixels on the canvas (or relative to parent if parentId is set)"),
+      text: z.string().describe("Text content to display"),
+      fontSize: z.coerce.number().optional().describe("Font size in pixels (default: 14)"),
+      fontFamily: z.string().optional().describe("Font family name as it appears in Figma, e.g. 'Inter', 'Roboto', 'SF Pro' (default: 'Inter')"),
+      fontWeight: z.coerce.number().optional().describe("Font weight as a number: 100=Thin, 200=ExtraLight, 300=Light, 400=Regular, 500=Medium, 600=SemiBold, 700=Bold, 800=ExtraBold, 900=Black (default: 400)"),
       fontColor: z
         .object({
-          r: z.number().min(0).max(1).describe("Red component (0-1)"),
-          g: z.number().min(0).max(1).describe("Green component (0-1)"),
-          b: z.number().min(0).max(1).describe("Blue component (0-1)"),
-          a: z.number().min(0).max(1).optional().describe("Alpha component (0-1)"),
+          r: z.coerce.number().min(0).max(1).describe("Red channel 0–1"),
+          g: z.coerce.number().min(0).max(1).describe("Green channel 0–1"),
+          b: z.coerce.number().min(0).max(1).describe("Blue channel 0–1"),
+          a: z.coerce.number().min(0).max(1).optional().describe("Alpha 0–1 (default: 1)"),
         })
         .optional()
-        .describe("Font color in RGBA format"),
-      name: z.string().optional().describe("Optional name for the text node by default following text"),
-      parentId: z.string().optional().describe("Optional parent node ID to append the text to"),
+        .describe("Text color in normalized RGBA (default: black {r:0,g:0,b:0,a:1})"),
+      name: z.string().optional().describe("Layer name for the text node (default: the text content itself)"),
+      parentId: z.string().optional().describe("ID of the parent frame to insert the text into"),
     },
     async ({ x, y, text, fontSize, fontFamily, fontWeight, fontColor, name, parentId }) => {
       try {
@@ -205,8 +206,8 @@ export function registerCreationTools(server: McpServer): void {
     "group_nodes",
     "Group nodes in Figma",
     {
-      nodeIds: coerceArray(z.array(z.string())).describe("Array of IDs of the nodes to group"),
-      name: z.string().optional().describe("Optional name for the group"),
+      nodeIds: coerceArray(z.array(z.string())).describe("Array of node IDs to group together (minimum 2; all must be siblings in the same parent)"),
+      name: z.string().optional().describe("Layer name for the resulting group (default: 'Group')"),
     },
     async ({ nodeIds, name }) => {
       try {
@@ -323,9 +324,9 @@ export function registerCreationTools(server: McpServer): void {
       parentId: z.string().describe("ID of the parent node where the child will be inserted"),
       childId: z.string().describe("ID of the child node to insert"),
       index: z
-        .number()
+        .coerce.number()
         .optional()
-        .describe("Optional index where to insert the child (if not specified, it will be added at the end)"),
+        .describe("Zero-based position to insert the child at within the parent's children array (0 = front/first; omit to append at the end)"),
     },
     async ({ parentId, childId, index }) => {
       try {
@@ -373,7 +374,7 @@ export function registerCreationTools(server: McpServer): void {
       y: z.coerce.number().optional().describe("Y position (default: 0)"),
       name: z.string().optional().describe("Name for the created node"),
       parentId: z.string().optional().describe("Parent node ID to insert the SVG into"),
-      flatten: z.boolean().optional().describe("Flatten all paths into a single vector node (default: false)"),
+      flatten: mcpBooleanSchema.optional().describe("true = merge all SVG paths into a single vector node (loses individual path structure but simplifies the layer); false = preserve path hierarchy as separate nodes (default: false)"),
     },
     async ({ svgString, x, y, name, parentId, flatten }) => {
       try {

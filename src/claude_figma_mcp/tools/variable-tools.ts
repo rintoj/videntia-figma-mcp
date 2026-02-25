@@ -2,6 +2,7 @@ import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { sendCommandToFigma } from "../utils/websocket.js";
 import { coerceArray } from "../utils/coerce-array.js";
+import { mcpBooleanSchema } from "../utils/mcp-boolean.js";
 import {
   calculateColorScale,
   calculateCompositeColor,
@@ -66,12 +67,54 @@ import type {
 } from "../types/index.js";
 
 // Zod schemas for color validation
+const coerceColorChannel = z.preprocess(
+  (v) => (typeof v === "boolean" || v === null ? undefined : v),
+  z.coerce.number().min(0).max(1),
+);
+
 const RGBAColorSchema = z.object({
-  r: z.number().min(0).max(1).describe("Red component (0-1)"),
-  g: z.number().min(0).max(1).describe("Green component (0-1)"),
-  b: z.number().min(0).max(1).describe("Blue component (0-1)"),
-  a: z.number().min(0).max(1).optional().describe("Alpha component (0-1, default: 1.0)"),
+  r: coerceColorChannel.describe("Red component (0-1)"),
+  g: coerceColorChannel.describe("Green component (0-1)"),
+  b: coerceColorChannel.describe("Blue component (0-1)"),
+  a: coerceColorChannel.optional().describe("Alpha component (0-1, default: 1.0)"),
 });
+
+const VariableTypeSchema = z.enum(["COLOR", "FLOAT", "STRING", "BOOLEAN"]);
+const VariableInputValueSchema = z.union([RGBAColorSchema, z.string(), z.number(), z.boolean()]);
+
+function normalizeVariableValueByType(type: z.infer<typeof VariableTypeSchema>, value: unknown): RGBAColor | number | string | boolean {
+  if (type === "COLOR") {
+    return RGBAColorSchema.parse(value);
+  }
+
+  if (type === "FLOAT") {
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+    if (typeof value === "string" && value.trim() !== "") {
+      const parsed = Number(value);
+      if (Number.isFinite(parsed)) return parsed;
+    }
+    throw new Error(`Invalid FLOAT value: ${String(value)}`);
+  }
+
+  if (type === "BOOLEAN") {
+    if (typeof value === "boolean") return value;
+    if (typeof value === "number") {
+      if (value === 1) return true;
+      if (value === 0) return false;
+      throw new Error(`Invalid BOOLEAN number value: ${String(value)}`);
+    }
+    if (typeof value === "string") {
+      const normalized = value.trim().toLowerCase();
+      if (normalized === "true" || normalized === "1" || normalized === "yes" || normalized === "on") return true;
+      if (normalized === "false" || normalized === "0" || normalized === "no" || normalized === "off") return false;
+    }
+    throw new Error(`Invalid BOOLEAN value: ${String(value)}`);
+  }
+
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  throw new Error(`Invalid STRING value: ${String(value)}`);
+}
 
 /**
  * Register variable management tools to the MCP server
@@ -166,9 +209,9 @@ export function registerVariableTools(server: McpServer): void {
     "get_collection_info",
     "Get detailed metadata about a variable collection",
     {
-      collection_id: z.string().describe("Collection ID or name"),
+      id: z.string().describe("Collection ID (e.g. 'VariableCollectionId:1:2') or collection name (e.g. 'Theme') — use get_variable_collections to list available IDs"),
     },
-    async ({ collection_id }) => {
+    async ({ id: collection_id }) => {
       try {
         const result = await sendCommandToFigma<GetCollectionInfoResult>("get_collection_info", {
           collectionId: collection_id,
@@ -205,10 +248,10 @@ export function registerVariableTools(server: McpServer): void {
     "rename_variable_collection",
     "Rename a variable collection",
     {
-      collection_id: z.string().describe("Collection ID or name"),
-      new_name: z.string().describe("New name for the collection"),
+      id: z.string().describe("Collection ID or name"),
+      name: z.string().describe("New name for the collection"),
     },
-    async ({ collection_id, new_name }) => {
+    async ({ id: collection_id, name: new_name }) => {
       try {
         const result = await sendCommandToFigma<RenameVariableCollectionResult>("rename_variable_collection", {
           collectionId: collection_id,
@@ -242,9 +285,9 @@ export function registerVariableTools(server: McpServer): void {
     "delete_variable_collection",
     "Delete a variable collection and all its variables (cannot be undone)",
     {
-      collection_id: z.string().describe("Collection ID or name"),
+      id: z.string().describe("Collection ID or name"),
     },
-    async ({ collection_id }) => {
+    async ({ id: collection_id }) => {
       try {
         const result = await sendCommandToFigma<DeleteVariableCollectionResult>("delete_variable_collection", {
           collectionId: collection_id,
@@ -283,26 +326,25 @@ export function registerVariableTools(server: McpServer): void {
     {
       collection_id: z.string().describe("Collection ID or name"),
       name: z.string().describe("Variable name (e.g., 'primary', 'spacing.4', 'font.family')"),
-      type: z.enum(["COLOR", "FLOAT", "STRING", "BOOLEAN"]).describe("Variable type"),
-      value: z
-        .union([RGBAColorSchema, z.number(), z.string(), z.boolean()])
-        .describe("Variable value (type depends on variable type)"),
-      mode: z.string().optional().describe("Mode to set value for (default: all modes)"),
+      type: VariableTypeSchema.describe("Variable type: COLOR = RGBA color object {r,g,b,a} with normalized 0–1 values, FLOAT = numeric value (spacing, sizing, etc.), STRING = text value, BOOLEAN = true/false"),
+      value: VariableInputValueSchema.describe("Variable value matching the type: COLOR → {r:0–1, g:0–1, b:0–1, a:0–1}, FLOAT → number, STRING → string, BOOLEAN → true/false"),
+      mode: z.string().optional().describe("Mode name to set the value for (e.g. 'dark', 'light'); omit to set for the collection's default mode"),
     },
     async ({ collection_id, name, type, value, mode }) => {
       try {
+        const normalizedValue = normalizeVariableValueByType(type, value);
         const result = await sendCommandToFigma<CreateVariableResult>("create_variable", {
           collectionId: collection_id,
           name,
           type,
-          value,
+          value: normalizedValue,
           mode,
         });
         return {
           content: [
             {
               type: "text",
-              text: `Created ${type} variable "${result.name || name}" (ID: ${result.id || "-"})`,
+              text: `Created ${type} variable "${result.name || name}" (ID: ${result.variableId || result.id || "-"})`,
             },
           ],
         };
@@ -330,19 +372,23 @@ export function registerVariableTools(server: McpServer): void {
       variables: coerceArray(
         z.array(
           z.object({
-            name: z.string(),
-            type: z.enum(["COLOR", "FLOAT", "STRING", "BOOLEAN"]),
-            value: z.union([RGBAColorSchema, z.number(), z.string(), z.boolean()]),
+            name: z.string().describe("Variable name"),
+            type: VariableTypeSchema.describe("Variable type — value must match this type"),
+            value: VariableInputValueSchema.describe("Value matching the type: COLOR → {r,g,b,a} normalized, FLOAT → number, STRING → string, BOOLEAN → true/false"),
           }),
         ),
-      ).describe("Array of variable definitions"),
-      mode: z.string().optional().describe("Mode to set values for"),
+      ).describe("Array of variable definitions to create in one batch"),
+      mode: z.string().optional().describe("Mode name to set values for (e.g. 'dark'); omit to use collection's default mode"),
     },
     async ({ collection_id, variables, mode }) => {
       try {
+        const normalizedVariables = variables.map((variable) => ({
+          ...variable,
+          value: normalizeVariableValueByType(variable.type, variable.value),
+        }));
         const result = await sendCommandToFigma<CreateVariablesBatchResult>("create_variables_batch", {
           collectionId: collection_id,
-          variables,
+          variables: normalizedVariables,
           mode,
         });
         const created = result.created ?? result.variables?.length ?? variables.length;
@@ -375,14 +421,12 @@ export function registerVariableTools(server: McpServer): void {
     "update_variable_value",
     "Update a variable's value (supports COLOR, FLOAT, STRING, BOOLEAN types)",
     {
-      variable_id: z.string().describe("Variable ID or name"),
+      id: z.string().describe("Variable ID or name"),
       collection_id: z.string().optional().describe("Collection ID (required if using variable name)"),
-      value: z
-        .union([RGBAColorSchema, z.number(), z.string(), z.boolean()])
-        .describe("New value (type must match variable type)"),
+      value: VariableInputValueSchema.describe("New value (type must match variable type)"),
       mode: z.string().optional().describe("Mode to update (default: first mode)"),
     },
-    async ({ variable_id, collection_id, value, mode }) => {
+    async ({ id: variable_id, collection_id, value, mode }) => {
       try {
         const result = await sendCommandToFigma<UpdateVariableValueResult>("update_variable_value", {
           variableId: variable_id,
@@ -418,11 +462,11 @@ export function registerVariableTools(server: McpServer): void {
     "rename_variable",
     "Rename a variable",
     {
-      variable_id: z.string().describe("Variable ID or current name"),
+      id: z.string().describe("Variable ID or current name"),
       collection_id: z.string().optional().describe("Collection ID (required if using variable name)"),
-      new_name: z.string().describe("New variable name"),
+      name: z.string().describe("New variable name"),
     },
-    async ({ variable_id, collection_id, new_name }) => {
+    async ({ id: variable_id, collection_id, name: new_name }) => {
       try {
         const result = await sendCommandToFigma<RenameVariableResult>("rename_variable", {
           variableId: variable_id,
@@ -457,10 +501,10 @@ export function registerVariableTools(server: McpServer): void {
     "delete_variable",
     "Delete a single variable",
     {
-      variable_id: z.string().describe("Variable ID or name"),
+      id: z.string().describe("Variable ID or name"),
       collection_id: z.string().optional().describe("Collection ID (required if using variable name)"),
     },
-    async ({ variable_id, collection_id }) => {
+    async ({ id: variable_id, collection_id }) => {
       try {
         const result = await sendCommandToFigma<DeleteVariableResult>("delete_variable", {
           variableId: variable_id,
@@ -494,10 +538,10 @@ export function registerVariableTools(server: McpServer): void {
     "delete_variables_batch",
     "Delete multiple variables at once",
     {
-      variable_ids: coerceArray(z.array(z.string())).describe("Array of variable IDs or names"),
+      ids: coerceArray(z.array(z.string())).describe("Array of variable IDs or names"),
       collection_id: z.string().optional().describe("Collection ID (required if using names)"),
     },
-    async ({ variable_ids, collection_id }) => {
+    async ({ ids: variable_ids, collection_id }) => {
       try {
         const result = await sendCommandToFigma<DeleteVariablesBatchResult>("delete_variables_batch", {
           variableIds: variable_ids,
@@ -536,13 +580,13 @@ export function registerVariableTools(server: McpServer): void {
     "calculate_color_scale",
     "Calculate all 10 scale variants (-50 to -900) for a base color",
     {
-      base_color: RGBAColorSchema.describe("Base color RGB"),
-      background_color: RGBAColorSchema.describe("Background color RGB"),
-      input_format: z.enum(["normalized", "rgb255"]).optional().describe("Input format (default: normalized)"),
+      base: RGBAColorSchema.describe("The primary/brand color to build a scale from — provided as normalized RGB {r,g,b} where each channel is 0–1"),
+      background: RGBAColorSchema.describe("The dark background color to blend against (e.g. page background) — provided as normalized RGB {r,g,b} 0–1. Scale level 900 is closest to this base color, level 50 is closest to background."),
+      input_format: z.enum(["normalized", "rgb255"]).optional().describe("Color input format: 'normalized' = channels 0–1 (default), 'rgb255' = channels 0–255"),
     },
-    async ({ base_color, background_color, input_format }) => {
+    async ({ base, background, input_format }) => {
       try {
-        const scale = calculateColorScale(base_color, background_color);
+        const scale = calculateColorScale(base, background);
 
         const lines: string[] = [
           "## Color Scale",
@@ -587,21 +631,21 @@ export function registerVariableTools(server: McpServer): void {
     "calculate_composite_color",
     "Calculate a single composited color at a specific mix percentage",
     {
-      base_color: RGBAColorSchema.describe("Base color RGB"),
-      background_color: RGBAColorSchema.describe("Background color RGB"),
-      mix_percentage: z.number().min(0).max(1).describe("Mix percentage (0.0 to 1.0)"),
-      input_format: z.enum(["normalized", "rgb255"]).optional().describe("Input format (default: normalized)"),
+      base: RGBAColorSchema.describe("Primary color as normalized RGB {r,g,b} 0–1 — at mix_percentage=1.0, result equals this color"),
+      background: RGBAColorSchema.describe("Background color as normalized RGB {r,g,b} 0–1 — at mix_percentage=0.0, result equals this color"),
+      mix_percentage: z.coerce.number().min(0).max(1).describe("Blend ratio 0.0–1.0: 0.0 = pure background, 1.0 = pure base, 0.5 = 50/50 blend"),
+      input_format: z.enum(["normalized", "rgb255"]).optional().describe("Color input format: 'normalized' = 0–1 (default), 'rgb255' = 0–255"),
     },
-    async ({ base_color, background_color, mix_percentage, input_format }) => {
+    async ({ base, background, mix_percentage, input_format }) => {
       try {
-        const result = calculateCompositeColor(base_color, background_color, mix_percentage);
+        const result = calculateCompositeColor(base, background, mix_percentage);
         const hex = rgbaToHex(result);
 
         return {
           content: [
             {
               type: "text",
-              text: `## Composite Color\n- **Formula**: (base x ${mix_percentage}) + (background x ${1 - mix_percentage})\n- **Result**: ${formatColorValue(result)}\n- **Hex**: ${hex}`,
+              text: `## Composite Color\n- **Formula**: (base × ${mix_percentage}) + (background × ${1 - mix_percentage})\n- **Result**: ${formatColorValue(result)}\n- **Hex**: ${hex}`,
             },
           ],
         };
@@ -625,9 +669,9 @@ export function registerVariableTools(server: McpServer): void {
     "convert_color_format",
     "Convert color between different formats",
     {
-      color: z.union([RGBAColorSchema, z.string()]).describe("Color value to convert"),
-      from_format: z.enum(["normalized", "rgb255", "hex"]).describe("Source format"),
-      to_format: z.enum(["normalized", "rgb255", "hex"]).describe("Target format"),
+      color: z.union([RGBAColorSchema, z.string()]).describe("Color value to convert — object {r,g,b,a} for normalized/rgb255 formats, or string '#RRGGBB' / '#RRGGBBAA' for hex format"),
+      from_format: z.enum(["normalized", "rgb255", "hex"]).describe("Source format: 'normalized' = {r,g,b,a} channels 0–1, 'rgb255' = {r,g,b,a} channels 0–255, 'hex' = '#RRGGBB' or '#RRGGBBAA' string"),
+      to_format: z.enum(["normalized", "rgb255", "hex"]).describe("Target format: 'normalized' = {r,g,b,a} 0–1, 'rgb255' = {r,g,b,a} 0–255, 'hex' = '#RRGGBB' string"),
     },
     async ({ color, from_format, to_format }) => {
       try {
@@ -708,42 +752,48 @@ export function registerVariableTools(server: McpServer): void {
     "audit_collection",
     "Compare collection against the 102-variable standard schema",
     {
-      collection_id: z.string().describe("Collection ID or name"),
-      include_chart_colors: z.boolean().optional().describe("Expect chart colors (default: false)"),
-      custom_schema: z.any().optional().describe("Custom schema definition to validate against"),
+      collection_id: z.string().describe("Collection ID or name to audit against the standard schema"),
+      chartColors: mcpBooleanSchema.optional().describe("true = expect the 8 optional chart color variables in addition to the 102 base variables (default: false)"),
+      custom_schema: z.any().optional().describe("Custom schema object to validate against instead of the built-in standard — must match the schema format returned by get_schema_definition; omit to use the built-in standard schema"),
     },
-    async ({ collection_id, include_chart_colors, custom_schema }) => {
+    async ({ collection_id, chartColors, custom_schema }) => {
       try {
         const result = await sendCommandToFigma<AuditCollectionResult>("audit_collection", {
           collectionId: collection_id,
-          includeChartColors: include_chart_colors || false,
+          includeChartColors: chartColors || false,
           customSchema: custom_schema,
         });
         const lines: string[] = [];
-        const compliance = result.compliancePercent ?? result.compliance ?? "-";
+        const compliance = (result as any).compliancePercentage ?? result.compliancePercent ?? result.compliance ?? "-";
         lines.push(`## Audit Result — ${compliance}% compliant`);
-        const total = result.totalExpected ?? result.total ?? "-";
-        const found = result.found ?? result.matching ?? "-";
+        const total = (result as any).expectedVariables ?? result.totalExpected ?? result.total ?? "-";
+        const found = (result as any).totalVariables ?? result.found ?? result.matching ?? "-";
         lines.push(`Expected: ${total} | Found: ${found}`);
         lines.push("");
-        const missing = result.missing || [];
+        const missingRaw = result.missing as any;
+        const missing: string[] = Array.isArray(missingRaw)
+          ? missingRaw
+          : (missingRaw && Array.isArray(missingRaw.variables) ? missingRaw.variables : []);
         if (missing.length > 0) {
           lines.push(`### Missing (${missing.length})`);
           lines.push("| Name |");
           lines.push("|------|");
-          for (const m of missing) lines.push(`| ${typeof m === "string" ? m : m.name} |`);
+          for (const m of missing) lines.push(`| ${typeof m === "string" ? m : (m as any).name} |`);
           lines.push("");
         }
-        const extra = result.extra || [];
+        const extraRaw = (result as any).nonStandard || result.extra;
+        const extra: string[] = Array.isArray(extraRaw)
+          ? extraRaw
+          : (extraRaw && Array.isArray(extraRaw.variables) ? extraRaw.variables.map((v: any) => typeof v === "string" ? v : v.name) : []);
         if (extra.length > 0) {
           lines.push(`### Extra (${extra.length})`);
           lines.push("| Name |");
           lines.push("|------|");
-          for (const e of extra) lines.push(`| ${typeof e === "string" ? e : e.name} |`);
+          for (const e of extra) lines.push(`| ${typeof e === "string" ? e : (e as any).name} |`);
           lines.push("");
         }
         const mismatched: Array<Record<string, any>> =
-          result.typeMismatches || (result as any).mismatched || (result as any).typeErrors || [];
+          (result as any).typeMismatches || (result as any).mismatched || (result as any).typeErrors || [];
         if (mismatched.length > 0) {
           lines.push(`### Mismatched (${mismatched.length})`);
           lines.push("| Name | Expected | Actual |");
@@ -779,9 +829,9 @@ export function registerVariableTools(server: McpServer): void {
     "validate_color_contrast",
     "Validate all foreground/background pairs meet WCAG AA standards",
     {
-      collection_id: z.string().describe("Collection ID or name"),
-      mode: z.string().optional().describe("Mode to validate"),
-      standard: z.enum(["AA", "AAA"]).optional().describe("WCAG standard (default: AA)"),
+      collection_id: z.string().describe("Collection ID or name containing the color variables to validate"),
+      mode: z.string().optional().describe("Mode name to validate (e.g. 'dark', 'light'); omit to use the collection's default mode"),
+      standard: z.enum(["AA", "AAA"]).optional().describe("WCAG contrast standard: AA = minimum (4.5:1 normal text, 3:1 large text), AAA = enhanced (7:1 normal text, 4.5:1 large text; default: AA)"),
     },
     async ({ collection_id, mode, standard }) => {
       try {
@@ -835,18 +885,18 @@ export function registerVariableTools(server: McpServer): void {
     "get_schema_definition",
     "Return the complete standard schema definition",
     {
-      include_chart_colors: z.boolean().optional().describe("Include chart colors (default: false)"),
-      format: z.enum(["structured", "flat"]).optional().describe("Output format (default: structured)"),
+      chartColors: mcpBooleanSchema.optional().describe("true = include the 8 optional chart color variable definitions in the schema output (default: false)"),
+      format: z.enum(["structured", "flat"]).optional().describe("Output format: 'structured' = full schema with categories and metadata (default), 'flat' = simple list of variable names only"),
     },
-    async ({ include_chart_colors, format }) => {
+    async ({ chartColors, format }) => {
       try {
-        const schema = getStandardSchema(include_chart_colors || false);
+        const schema = getStandardSchema(chartColors || false);
 
         if (format === "flat") {
           const flatSchema = {
             version: schema.version,
             totalVariables: schema.totalVariables,
-            variables: getAllStandardVariableNames(include_chart_colors || false),
+            variables: getAllStandardVariableNames(chartColors || false),
           };
           return {
             content: [
@@ -886,14 +936,14 @@ export function registerVariableTools(server: McpServer): void {
     "suggest_missing_variables",
     "Get list of missing variables with suggested default values",
     {
-      collection_id: z.string().describe("Collection ID or name"),
-      use_defaults: z.boolean().optional().describe("Include default values from reference theme (default: true)"),
+      collection_id: z.string().describe("Collection ID or name to check for missing variables"),
+      defaults: mcpBooleanSchema.optional().describe("true = include suggested default values from the reference dark theme alongside each missing variable name (default: true)"),
     },
-    async ({ collection_id, use_defaults }) => {
+    async ({ collection_id, defaults }) => {
       try {
         const result = await sendCommandToFigma<SuggestMissingVariablesResult>("suggest_missing_variables", {
           collectionId: collection_id,
-          useDefaults: use_defaults !== false,
+          useDefaults: defaults !== false,
         });
         const suggestions: Array<Record<string, any>> =
           result.suggestions || (result as any).missing || (Array.isArray(result) ? result : []);
@@ -944,16 +994,16 @@ export function registerVariableTools(server: McpServer): void {
     "apply_default_theme",
     "Apply the default dark theme values from documentation",
     {
-      collection_id: z.string().describe("Collection ID or name"),
-      overwrite_existing: z.boolean().optional().describe("Overwrite existing variables (default: false)"),
-      include_chart_colors: z.boolean().optional().describe("Include chart colors (default: false)"),
+      collection_id: z.string().describe("Collection ID or name to apply the default dark theme values to"),
+      overwrite: mcpBooleanSchema.optional().describe("true = update variables that already exist with default values; false = skip existing variables and only create missing ones (default: false)"),
+      chartColors: mcpBooleanSchema.optional().describe("true = also apply the 8 optional chart color variables in addition to the 102 base variables (default: false)"),
     },
-    async ({ collection_id, overwrite_existing, include_chart_colors }) => {
+    async ({ collection_id, overwrite, chartColors }) => {
       try {
         const result = await sendCommandToFigma<ApplyDefaultThemeResult>("apply_default_theme", {
           collectionId: collection_id,
-          overwriteExisting: overwrite_existing || false,
-          includeChartColors: include_chart_colors || false,
+          overwriteExisting: overwrite || false,
+          includeChartColors: chartColors || false,
         });
         const created = result.created ?? "-";
         const skipped = result.skipped ?? 0;
@@ -987,20 +1037,20 @@ export function registerVariableTools(server: McpServer): void {
     "Create complete scale for one color (base + foreground + 10 scale variants)",
     {
       collection_id: z.string().describe("Collection ID or name"),
-      color_name: z.string().describe("Color name (e.g., 'primary', 'success')"),
-      base_color: RGBAColorSchema.describe("Base color RGB"),
-      foreground_color: RGBAColorSchema.describe("Foreground color RGB"),
-      background_color: RGBAColorSchema.describe("Background color for scale calculation"),
-      mode: z.string().optional().describe("Mode to create variables in"),
+      color_name: z.string().describe("Semantic color name used as a prefix for all generated variables (e.g. 'primary' → creates 'primary', 'primary-foreground', 'primary-50', 'primary-100', ..., 'primary-900')"),
+      base: RGBAColorSchema.describe("The main brand/accent color as normalized RGB {r,g,b} 0–1 — used as the '500' level of the scale and the base variable"),
+      foreground: RGBAColorSchema.describe("Text/icon color that sits on top of this color as normalized RGB {r,g,b} 0–1 — stored as the '<name>-foreground' variable"),
+      background: RGBAColorSchema.describe("Page/canvas background color as normalized RGB {r,g,b} 0–1 — used as the blend target for generating scale levels 50–900"),
+      mode: z.string().optional().describe("Mode name to create variables in (e.g. 'dark'); omit to use the collection's default mode"),
     },
-    async ({ collection_id, color_name, base_color, foreground_color, background_color, mode }) => {
+    async ({ collection_id, color_name, base, foreground, background, mode }) => {
       try {
         const result = await sendCommandToFigma<CreateColorScaleSetResult>("create_color_scale_set", {
           collectionId: collection_id,
           colorName: color_name,
-          baseColor: base_color,
-          foregroundColor: foreground_color,
-          backgroundColor: background_color,
+          baseColor: base,
+          foregroundColor: foreground,
+          backgroundColor: background,
           mode,
         });
         const created = result.created ?? result.variables?.length ?? "-";
@@ -1036,20 +1086,20 @@ export function registerVariableTools(server: McpServer): void {
       palette: z
         .record(
           z.object({
-            base: RGBAColorSchema,
-            foreground: RGBAColorSchema,
+            base: RGBAColorSchema.describe("Main color as normalized RGB {r,g,b} 0–1"),
+            foreground: RGBAColorSchema.describe("On-color text/icon color as normalized RGB {r,g,b} 0–1"),
           }),
         )
-        .describe("Custom color values for each base color"),
-      background_color: RGBAColorSchema.describe("Background color for scale calculations"),
-      regenerate_scales: z.boolean().optional().describe("Auto-regenerate all scales (default: true)"),
+        .describe("Map of color names to base+foreground pairs — keys should be semantic names matching existing variable prefixes in the collection (e.g. {'primary': {base:{r,g,b}, foreground:{r,g,b}}, 'success': {...}})"),
+      background: RGBAColorSchema.describe("Page background color as normalized RGB {r,g,b} 0–1 — used as the blend target for regenerating scale levels 50–900"),
+      regenerate_scales: mcpBooleanSchema.optional().describe("true = automatically recalculate and update all scale variables (50–900) using the new base colors and background; false = only update the base and foreground variables (default: true)"),
     },
-    async ({ collection_id, palette, background_color, regenerate_scales }) => {
+    async ({ collection_id, palette, background, regenerate_scales }) => {
       try {
         await sendCommandToFigma("apply_custom_palette", {
           collectionId: collection_id,
           palette,
-          backgroundColor: background_color,
+          backgroundColor: background,
           regenerateScales: regenerate_scales !== false,
         });
         const colorCount = Object.keys(palette).length;
@@ -1127,14 +1177,14 @@ export function registerVariableTools(server: McpServer): void {
     "Generate formatted audit report (markdown or JSON)",
     {
       collection_id: z.string().describe("Collection ID or name"),
-      include_chart_colors: z.boolean().optional().describe("Expect chart colors"),
+      chartColors: mcpBooleanSchema.optional().describe("Expect chart colors"),
       format: z.enum(["markdown", "json"]).optional().describe("Output format (default: markdown)"),
     },
-    async ({ collection_id, include_chart_colors, format }) => {
+    async ({ collection_id, chartColors, format }) => {
       try {
         const result = await sendCommandToFigma<GenerateAuditReportResult>("generate_audit_report", {
           collectionId: collection_id,
-          includeChartColors: include_chart_colors || false,
+          includeChartColors: chartColors || false,
           format: format || "markdown",
         });
         return {
@@ -1167,7 +1217,7 @@ export function registerVariableTools(server: McpServer): void {
     {
       collection_id: z.string().describe("Collection ID or name"),
       mode: z.string().optional().describe("Mode to export"),
-      include_metadata: z.boolean().optional().describe("Include metadata (default: true)"),
+      include_metadata: mcpBooleanSchema.optional().describe("Include metadata (default: true)"),
     },
     async ({ collection_id, mode, include_metadata }) => {
       try {
@@ -1207,7 +1257,7 @@ export function registerVariableTools(server: McpServer): void {
       collection_id: z.string().describe("Collection ID or name"),
       schema: z.any().describe("JSON schema from export"),
       mode: z.string().optional().describe("Mode to import into"),
-      overwrite_existing: z.boolean().optional().describe("Overwrite existing (default: false)"),
+      overwrite_existing: mcpBooleanSchema.optional().describe("Overwrite existing (default: false)"),
     },
     async ({ collection_id, schema, mode, overwrite_existing }) => {
       try {
@@ -1252,17 +1302,17 @@ export function registerVariableTools(server: McpServer): void {
     "Create all 7 color scales at once (70 variants total)",
     {
       collection_id: z.string().describe("Collection ID or name"),
-      base_colors: z.record(RGBAColorSchema).describe("Base colors for each scale"),
-      background_color: RGBAColorSchema.describe("Background color for calculations"),
+      colors: z.record(RGBAColorSchema).describe("Base colors for each scale"),
+      background: RGBAColorSchema.describe("Background color for calculations"),
     },
-    async ({ collection_id, base_colors, background_color }) => {
+    async ({ collection_id, colors, background }) => {
       try {
         const result = await sendCommandToFigma<CreateAllScalesResult>("create_all_scales", {
           collectionId: collection_id,
-          baseColors: base_colors,
-          backgroundColor: background_color,
+          baseColors: colors,
+          backgroundColor: background,
         });
-        const colorNames = Object.keys(base_colors);
+        const colorNames = Object.keys(colors);
         const totalVars = result.totalVariables ?? result.created ?? colorNames.length * 10;
         return {
           content: [
@@ -1292,19 +1342,19 @@ export function registerVariableTools(server: McpServer): void {
     "fix_collection_to_standard",
     "One-click fix to bring collection to 102-variable standard",
     {
-      collection_id: z.string().describe("Collection ID or name"),
-      preserve_custom: z.boolean().optional().describe("Keep non-standard variables (default: false)"),
-      add_chart_colors: z.boolean().optional().describe("Add chart colors (default: false)"),
-      use_default_values: z.boolean().optional().describe("Use default theme values (default: true)"),
-      dry_run: z.boolean().optional().describe("Preview changes without applying (default: false)"),
+      collection_id: z.string().describe("Collection ID or name to bring into compliance with the 102-variable standard"),
+      preserve_custom: mcpBooleanSchema.optional().describe("true = keep non-standard variables that don't appear in the schema (they stay alongside standard ones); false = remove non-standard variables (default: false)"),
+      add_chart_colors: mcpBooleanSchema.optional().describe("true = also add the 8 optional chart color variables to reach 110 total (default: false)"),
+      defaults: mcpBooleanSchema.optional().describe("true = populate newly created variables with default dark-theme values; false = create variables without values (default: true)"),
+      dry_run: mcpBooleanSchema.optional().describe("true = analyze and report what would change without modifying anything — use this to preview the impact before committing (default: false)"),
     },
-    async ({ collection_id, preserve_custom, add_chart_colors, use_default_values, dry_run }) => {
+    async ({ collection_id, preserve_custom, add_chart_colors, defaults, dry_run }) => {
       try {
         const result = await sendCommandToFigma<FixCollectionToStandardResult>("fix_collection_to_standard", {
           collectionId: collection_id,
           preserveCustom: preserve_custom || false,
           addChartColors: add_chart_colors || false,
-          useDefaultValues: use_default_values !== false,
+          useDefaultValues: defaults !== false,
           dryRun: dry_run || false,
         });
         const added = result.added ?? result.fixed ?? "-";
@@ -1339,12 +1389,12 @@ export function registerVariableTools(server: McpServer): void {
     "add_chart_colors",
     "Add 8 chart colors to collection",
     {
-      collection_id: z.string().describe("Collection ID or name"),
+      id: z.string().describe("Collection ID or name to add chart colors to"),
       chart_colors: coerceArray(z.array(RGBAColorSchema))
         .optional()
-        .describe("Custom chart colors (default: use standard palette)"),
+        .describe("Array of exactly 8 custom chart colors as normalized RGB objects {r,g,b,a} 0–1 — omit to use the built-in standard chart color palette"),
     },
-    async ({ collection_id, chart_colors }) => {
+    async ({ id: collection_id, chart_colors }) => {
       try {
         const result = await sendCommandToFigma<AddChartColorsResult>("add_chart_colors", {
           collectionId: collection_id,
@@ -1383,10 +1433,10 @@ export function registerVariableTools(server: McpServer): void {
     "add_mode_to_collection",
     "Add a new mode to a variable collection (e.g., Light mode, Dark mode, High Contrast)",
     {
-      collection_id: z.string().describe("Collection ID or name"),
-      mode_name: z.string().describe("Mode name (e.g., 'Light', 'Dark', 'High Contrast')"),
+      id: z.string().describe("Collection ID or name — use get_variable_collections to list available IDs"),
+      name: z.string().describe("Name for the new mode (e.g. 'Light', 'Dark', 'High Contrast') — must be unique within the collection; free-plan Figma accounts are limited to 1 mode per collection"),
     },
-    async ({ collection_id, mode_name }) => {
+    async ({ id: collection_id, name: mode_name }) => {
       try {
         const result = await sendCommandToFigma<AddModeResult>("add_mode_to_collection", {
           collectionId: collection_id,
@@ -1420,22 +1470,22 @@ export function registerVariableTools(server: McpServer): void {
     "rename_mode",
     "Rename an existing mode in a collection",
     {
-      collection_id: z.string().describe("Collection ID or name"),
-      old_mode_name: z.string().describe("Current mode name"),
-      new_mode_name: z.string().describe("New mode name"),
+      id: z.string().describe("Collection ID or name containing the mode to rename"),
+      old_name: z.string().describe("Current name of the mode to rename (must match exactly, case-sensitive)"),
+      new_name: z.string().describe("New name for the mode — must be unique within the collection"),
     },
-    async ({ collection_id, old_mode_name, new_mode_name }) => {
+    async ({ id: collection_id, old_name: from, new_name: to }) => {
       try {
         const result = await sendCommandToFigma<RenameModeResult>("rename_mode", {
           collectionId: collection_id,
-          oldModeName: old_mode_name,
-          newModeName: new_mode_name,
+          oldModeName: from,
+          newModeName: to,
         });
         return {
           content: [
             {
               type: "text",
-              text: `Renamed mode from "${old_mode_name}" to "${result.newName || new_mode_name}"`,
+              text: `Renamed mode from "${from}" to "${result.newName || to}"`,
             },
           ],
         };
@@ -1444,7 +1494,7 @@ export function registerVariableTools(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: `Error renaming mode "${old_mode_name}" to "${new_mode_name}": ${error instanceof Error ? error.message : String(error)}`,
+              text: `Error renaming mode "${from}" to "${to}": ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };
@@ -1459,10 +1509,10 @@ export function registerVariableTools(server: McpServer): void {
     "delete_mode",
     "Delete a mode from a collection (cannot delete last mode)",
     {
-      collection_id: z.string().describe("Collection ID or name"),
-      mode_name: z.string().describe("Mode name to delete"),
+      id: z.string().describe("Collection ID or name containing the mode to delete"),
+      name: z.string().describe("Exact name of the mode to delete (case-sensitive) — cannot delete the last remaining mode in a collection"),
     },
-    async ({ collection_id, mode_name }) => {
+    async ({ id: collection_id, name: mode_name }) => {
       try {
         await sendCommandToFigma<DeleteModeResult>("delete_mode", {
           collectionId: collection_id,
@@ -1496,9 +1546,9 @@ export function registerVariableTools(server: McpServer): void {
     "duplicate_mode_values",
     "Copy all variable values from one mode to another (useful for creating light mode from dark mode)",
     {
-      collection_id: z.string().describe("Collection ID or name"),
-      source_mode: z.string().describe("Source mode name to copy from"),
-      target_mode: z.string().describe("Target mode name to copy to"),
+      id: z.string().describe("Collection ID or name containing both modes"),
+      from: z.string().describe("Name of the source mode to copy values from (must already exist)"),
+      to: z.string().describe("Name of the target mode to copy values into (must already exist — create it first with add_mode_to_collection if needed)"),
       transform_colors: z
         .object({
           brightness_adjustment: z
@@ -1509,12 +1559,12 @@ export function registerVariableTools(server: McpServer): void {
         .optional()
         .describe("Optional color transformations"),
     },
-    async ({ collection_id, source_mode, target_mode, transform_colors }) => {
+    async ({ id: collection_id, from, to, transform_colors }) => {
       try {
         const result = await sendCommandToFigma<DuplicateModeValuesResult>("duplicate_mode_values", {
           collectionId: collection_id,
-          sourceMode: source_mode,
-          targetMode: target_mode,
+          sourceMode: from,
+          targetMode: to,
           transformColors: transform_colors,
         });
         const count = result.copied ?? result.variablesCopied ?? "-";
@@ -1522,7 +1572,7 @@ export function registerVariableTools(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: `Copied ${count} variable values from "${source_mode}" to "${target_mode}"`,
+              text: `Copied ${count} variable values from "${from}" to "${to}"`,
             },
           ],
         };
@@ -1531,7 +1581,7 @@ export function registerVariableTools(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: `Error duplicating mode values from "${source_mode}" to "${target_mode}": ${error instanceof Error ? error.message : String(error)}`,
+              text: `Error duplicating mode values from "${from}" to "${to}": ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };
@@ -1624,10 +1674,10 @@ export function registerVariableTools(server: McpServer): void {
     {
       collection_id: z.string().describe("Collection ID or name"),
       scale_preset: z.enum(["major-third", "minor-third", "perfect-fourth"]).describe("Typography scale to use"),
-      base_size: z.number().optional().default(16).describe("Base font size in pixels"),
-      include_weights: z.boolean().optional().default(true).describe("Include font weight tokens"),
-      include_line_heights: z.boolean().optional().default(true).describe("Include line height tokens"),
-      include_semantic: z.boolean().optional().default(true).describe("Include semantic typography tokens"),
+      base_size: z.coerce.number().optional().default(16).describe("Base font size in pixels"),
+      include_weights: mcpBooleanSchema.optional().default(true).describe("Include font weight tokens"),
+      include_line_heights: mcpBooleanSchema.optional().default(true).describe("Include line height tokens"),
+      include_semantic: mcpBooleanSchema.optional().default(true).describe("Include semantic typography tokens"),
     },
     async ({ collection_id, scale_preset, base_size, include_weights, include_line_heights, include_semantic }) => {
       try {
@@ -1794,7 +1844,7 @@ export function registerVariableTools(server: McpServer): void {
         .optional()
         .default("standard")
         .describe("Border radius preset"),
-      include_semantic_tokens: z.boolean().optional().default(true).describe("Include semantic token suggestions"),
+      include_semantic_tokens: mcpBooleanSchema.optional().default(true).describe("Include semantic token suggestions"),
     },
     async (params) => {
       try {

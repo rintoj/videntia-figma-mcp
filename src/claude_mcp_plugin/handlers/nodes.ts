@@ -553,60 +553,14 @@ export async function flattenNode(params: Record<string, unknown>): Promise<Reco
     }
 
     // Check for specific node types that can be flattened
-    const flattenableTypes = ['VECTOR', 'BOOLEAN_OPERATION', 'STAR', 'POLYGON', 'ELLIPSE', 'RECTANGLE'];
+    const flattenableTypes = ['VECTOR', 'BOOLEAN_OPERATION', 'STAR', 'POLYGON', 'ELLIPSE', 'RECTANGLE', 'FRAME', 'GROUP'];
 
     if (!flattenableTypes.includes(node.type)) {
-      throw new Error(`Node with ID ${nodeId} and type ${node.type} cannot be flattened. Only vector-based nodes can be flattened.`);
+      throw new Error(`Node with ID ${nodeId} and type ${node.type} cannot be flattened. Supported types: VECTOR, BOOLEAN_OPERATION, STAR, POLYGON, ELLIPSE, RECTANGLE, FRAME, GROUP.`);
     }
 
-    // Cast to a type that exposes flatten (not declared on VectorNode in typings)
-    type FlattenableNode = BaseNode & { flatten(): VectorNode };
-
-    // Verify the node has the flatten method before calling it
-    if (typeof (node as unknown as FlattenableNode).flatten !== 'function') {
-      throw new Error(`Node with ID ${nodeId} does not support the flatten operation.`);
-    }
-
-    const flattenableNode = node as unknown as FlattenableNode;
-
-    // Wrap flatten() in a Promise so we can yield to the UI before the synchronous
-    // call begins (the setTimeout(..., 0) gives Figma one repaint tick).
-    // Note: flatten() is synchronous once it starts — the 8-second timeout below
-    // guards only the async wrapper overhead (e.g. queueing delay), NOT the duration
-    // of the flatten call itself. A genuinely stuck flatten cannot be interrupted.
-    // eslint-disable-next-line prefer-const
-    let timeoutId!: ReturnType<typeof setTimeout>;
-    const timeoutPromise = new Promise<never>((_, reject) => {
-      timeoutId = setTimeout(() => {
-        reject(new Error('Flatten operation timed out after 8 seconds. The node may be too complex.'));
-      }, 8000);
-    });
-
-    // Execute the flatten operation in a promise
-    const flattenPromise = new Promise<VectorNode>((resolve, reject) => {
-      // Yield one tick to allow a UI repaint before the synchronous call blocks
-      setTimeout(() => {
-        try {
-          debugLog(`Starting flatten operation for node ID ${nodeId}...`);
-          const flattened = flattenableNode.flatten();
-          debugLog(`Flatten operation completed successfully for node ID ${nodeId}`);
-          resolve(flattened);
-        } catch (err) {
-          console.error(`Error during flatten operation: ${(err as Error).message}`);
-          reject(err);
-        }
-      }, 0);
-    });
-
-    // Race between the timeout and the operation
-    // Use try/finally pattern rather than .finally() which requires ES2018
-    let flattened: VectorNode;
-    try {
-      flattened = await Promise.race([flattenPromise, timeoutPromise]);
-    } finally {
-      // Clear the timeout to prevent memory leaks
-      clearTimeout(timeoutId);
-    }
+    // Use figma.flatten([node]) — the correct Plugin API (not a node instance method)
+    const flattened = figma.flatten([node as SceneNode]);
 
     return {
       id: flattened.id,
