@@ -385,7 +385,7 @@ export function registerComponentTools(server: McpServer): void {
       propertyName: z.string().describe("Name for the property (e.g., 'Show Icon', 'Label Text')"),
       type: z.enum(["BOOLEAN", "TEXT", "INSTANCE_SWAP", "VARIANT"]).describe("Type of property to create"),
       defaultValue: z
-        .union([z.coerce.boolean(), z.string()])
+        .union([z.string(), z.coerce.boolean()])
         .optional()
         .describe(
           "Default value (boolean for BOOLEAN type, string for TEXT/VARIANT, required component key for INSTANCE_SWAP)",

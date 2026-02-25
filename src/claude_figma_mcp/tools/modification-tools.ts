@@ -18,10 +18,10 @@ export function registerModificationTools(server: McpServer): void {
     "Set the fill color of a node in Figma. Alpha component defaults to 1 (fully opaque) if not specified. Use alpha 0 for fully transparent.",
     {
       nodeId: z.string().describe("Node ID (e.g. '123:456') — get from get_selection or get_node_info"),
-      r: z.coerce.number().min(0).max(1).describe("Red channel, normalized 0–1 (e.g. 1 = full red)"),
-      g: z.coerce.number().min(0).max(1).describe("Green channel, normalized 0–1"),
-      b: z.coerce.number().min(0).max(1).describe("Blue channel, normalized 0–1"),
-      a: z.coerce.number().min(0).max(1).optional().describe("Alpha/opacity, normalized 0–1 (default: 1 = fully opaque; 0 = fully transparent)"),
+      r: z.preprocess((v) => (typeof v === "boolean" || v === null ? undefined : v), z.coerce.number().min(0).max(1)).describe("Red channel, normalized 0–1 (e.g. 1 = full red)"),
+      g: z.preprocess((v) => (typeof v === "boolean" || v === null ? undefined : v), z.coerce.number().min(0).max(1)).describe("Green channel, normalized 0–1"),
+      b: z.preprocess((v) => (typeof v === "boolean" || v === null ? undefined : v), z.coerce.number().min(0).max(1)).describe("Blue channel, normalized 0–1"),
+      a: z.preprocess((v) => (typeof v === "boolean" || v === null ? undefined : v), z.coerce.number().min(0).max(1)).optional().describe("Alpha/opacity, normalized 0–1 (default: 1 = fully opaque; 0 = fully transparent)"),
     },
     async ({ nodeId, r, g, b, a }) => {
       try {
