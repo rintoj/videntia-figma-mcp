@@ -1094,6 +1094,80 @@ export function registerDocumentTools(server: McpServer): void {
     },
   );
 
+  // Search Nodes Tool
+  server.tool(
+    "search_nodes",
+    "Search for nodes across the entire Figma document (or within a subtree) by name or ID. Returns matching nodes with the same detail level as get_node_info. Supports depth control, metadata-only mode, and type filtering.",
+    {
+      query: z
+        .string()
+        .describe(
+          "Search query matched case-insensitively against node name (substring) or exact node ID.",
+        ),
+      types: coerceArray(z.array(z.string()))
+        .optional()
+        .describe(
+          "Optional node type filter. Only return nodes of these types e.g. ['FRAME', 'COMPONENT', 'TEXT']. Omit to match all types.",
+        ),
+      rootNodeId: z
+        .string()
+        .optional()
+        .describe(
+          "Optional ID of a node to scope the search to. Defaults to the entire current page.",
+        ),
+      limit: z
+        .number()
+        .int()
+        .min(1)
+        .optional()
+        .describe("Max number of results to return. Default: 50."),
+      depth: z
+        .number()
+        .int()
+        .min(0)
+        .optional()
+        .describe(
+          "Max depth of children to include in each result. Default: 1 (direct children only). 0 = no children.",
+        ),
+      includeChildren: z
+        .boolean()
+        .optional()
+        .describe(
+          "Set to false to return only each matching node's own metadata (no children). Also includes parentId. Useful for fast lookups.",
+        ),
+      stripImages: z
+        .boolean()
+        .optional()
+        .default(true)
+        .describe("Strip image data from results. Defaults to true."),
+    },
+    async ({ query, types, rootNodeId, limit, depth, includeChildren, stripImages }) => {
+      try {
+        const result = await sendCommandToFigma("search_nodes", {
+          query,
+          types,
+          rootNodeId,
+          limit,
+          depth,
+          includeChildren,
+          stripImages,
+        });
+        return {
+          content: [{ type: "text", text: JSON.stringify(result) }],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error searching nodes for "${query}": ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
   // Get Styles Tool
   server.tool("get_styles", "Get all styles from the current Figma document", {}, async () => {
     try {

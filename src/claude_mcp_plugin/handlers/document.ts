@@ -264,3 +264,93 @@ export async function getNodesInfo(
     throw new Error(`Error getting nodes info: ${(error as Error).message}`);
   }
 }
+
+export interface SearchNodesOptions extends GetNodeInfoOptions {
+  /** Search query — matched case-insensitively against node name (substring) or exact node ID */
+  query: string;
+  /** Optional node type filter e.g. FRAME, TEXT, COMPONENT */
+  types?: string[];
+  /** Root node ID to search within. Defaults to the current page. */
+  rootNodeId?: string;
+  /** Max number of results to return. Default: 50. */
+  limit?: number;
+}
+
+/**
+ * Search all nodes in the document (or a subtree) by name or ID.
+ * For each match, returns the same output as getNodeInfo with the given options.
+ */
+export async function searchNodes(options: SearchNodesOptions): Promise<unknown> {
+  const { query, types, rootNodeId, limit: limitOpt, stripImages, depth, includeChildren } = options;
+  const limit = limitOpt !== undefined ? limitOpt : 50;
+  const effectiveDepth = depth !== undefined ? depth : 1;
+  const effectiveIncludeChildren = includeChildren !== undefined ? includeChildren : true;
+  const effectiveStripImages = stripImages !== undefined ? stripImages : true;
+
+  const lowerQuery = query.toLowerCase();
+
+  let root: BaseNode;
+  if (rootNodeId) {
+    const found = await figma.getNodeByIdAsync(rootNodeId);
+    if (!found) {
+      throw new Error('Root node not found with ID: ' + rootNodeId);
+    }
+    root = found;
+  } else {
+    await figma.currentPage.loadAsync();
+    root = figma.currentPage;
+  }
+
+  // Collect matching nodes using Figma's native tree walk (no exportAsync needed here)
+  const matchedNodes: BaseNode[] = [];
+
+  const walk = (node: BaseNode): void => {
+    if (matchedNodes.length >= limit) return;
+    const nameMatch = node.name.toLowerCase().indexOf(lowerQuery) !== -1;
+    const idMatch = node.id === query;
+    const typeMatch = !types || types.length === 0 || types.includes(node.type);
+    if ((nameMatch || idMatch) && typeMatch) {
+      matchedNodes.push(node);
+    }
+    if ('children' in node) {
+      for (const child of (node as ChildrenMixin).children) {
+        if (matchedNodes.length >= limit) break;
+        walk(child);
+      }
+    }
+  };
+
+  walk(root);
+
+  // For each match, export full node data and apply the same transforms as getNodeInfo
+  const results = await Promise.all(
+    matchedNodes.map(async (node) => {
+      const response = await exportAsJsonV1(node);
+      let document = response.document;
+
+      if (effectiveStripImages) {
+        document = stripImageData(document);
+      }
+
+      if (node.parent) {
+        (document as Record<string, unknown>)['parentId'] = node.parent.id;
+      }
+
+      if (!effectiveIncludeChildren) {
+        const doc = document as Record<string, unknown>;
+        const { children: _c, ...meta } = doc;
+        document = meta;
+      } else {
+        document = truncateToDepth(document, effectiveDepth);
+      }
+
+      return document;
+    }),
+  );
+
+  return {
+    query,
+    total: results.length,
+    matches: results,
+  };
+}
