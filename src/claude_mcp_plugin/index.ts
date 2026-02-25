@@ -292,6 +292,10 @@ async function handleCommand(
       return await getStyles();
     case 'get_local_components':
       return await getLocalComponents();
+    case 'get_remote_components':
+      // Deprecated: remote component loading is no longer supported.
+      // Returns an empty list to avoid breaking existing callers.
+      return { components: [], deprecated: true, message: 'get_remote_components is deprecated; use get_local_components instead.' };
     case 'create_component_instance':
       return await createComponentInstance(params);
     case 'detach_instance':

@@ -556,7 +556,7 @@ export async function flattenNode(params: Record<string, unknown>): Promise<Reco
     const flattenableTypes = ['VECTOR', 'BOOLEAN_OPERATION', 'STAR', 'POLYGON', 'ELLIPSE', 'RECTANGLE', 'FRAME', 'GROUP'];
 
     if (!flattenableTypes.includes(node.type)) {
-      throw new Error(`Node with ID ${nodeId} and type ${node.type} cannot be flattened. Only vector-based nodes can be flattened.`);
+      throw new Error(`Node with ID ${nodeId} and type ${node.type} cannot be flattened. Supported types: VECTOR, BOOLEAN_OPERATION, STAR, POLYGON, ELLIPSE, RECTANGLE, FRAME, GROUP.`);
     }
 
     // Use figma.flatten([node]) — the correct Plugin API (not a node instance method)

@@ -238,4 +238,148 @@ describe("component tools integration", () => {
       expect(response.content[0].text).toContain("Component not found");
     });
   });
+
+  describe("get_instance_overrides", () => {
+    it("returns overrides for a given instance node ID", async () => {
+      mockSendCommand.mockResolvedValue({
+        success: true,
+        message: JSON.stringify({
+          instanceId: "inst-001",
+          instanceName: "Button / Primary",
+          mainComponentId: "comp-001",
+          mainComponentName: "Button",
+          componentProperties: {
+            "Label#123": { type: "TEXT", value: "Click me" },
+            "Disabled#456": { type: "BOOLEAN", value: false },
+          },
+          overrides: [],
+        }),
+      });
+
+      const response = await callTool("get_instance_overrides", {
+        nodeId: "inst-001",
+      });
+
+      expect(mockSendCommand).toHaveBeenCalledWith("get_instance_overrides", {
+        instanceNodeId: "inst-001",
+      });
+      expect(response.content[0].text).toContain("Successfully got instance overrides");
+      expect(response.content[0].text).toContain("Button / Primary");
+    });
+
+    it("falls back to current selection when nodeId is omitted", async () => {
+      mockSendCommand.mockResolvedValue({
+        success: true,
+        message: JSON.stringify({
+          instanceId: "inst-sel",
+          instanceName: "Card",
+          mainComponentId: "comp-card",
+          mainComponentName: "Card",
+          componentProperties: {},
+          overrides: [],
+        }),
+      });
+
+      const response = await callTool("get_instance_overrides", {});
+
+      expect(mockSendCommand).toHaveBeenCalledWith("get_instance_overrides", {
+        instanceNodeId: null,
+      });
+      expect(response.content[0].text).toContain("Successfully got instance overrides");
+    });
+
+    it("handles node-not-found error gracefully", async () => {
+      mockSendCommand.mockRejectedValue(new Error("Node not found with ID: bad-id"));
+
+      const response = await callTool("get_instance_overrides", {
+        nodeId: "bad-id",
+      });
+
+      expect(response.content[0].text).toContain("Error getting instance overrides");
+      expect(response.content[0].text).toContain("Node not found with ID: bad-id");
+    });
+
+    it("handles non-instance node error gracefully", async () => {
+      mockSendCommand.mockRejectedValue(
+        new Error('Node "Rectangle" (rect-001) is not a component instance (type: RECTANGLE)'),
+      );
+
+      const response = await callTool("get_instance_overrides", {
+        nodeId: "rect-001",
+      });
+
+      expect(response.content[0].text).toContain("Error getting instance overrides");
+      expect(response.content[0].text).toContain("is not a component instance");
+    });
+  });
+
+  describe("set_instance_overrides", () => {
+    it("applies overrides from source to target instances", async () => {
+      mockSendCommand.mockResolvedValue({
+        success: true,
+        message: "Applied 2 properties to 2/2 instances",
+        propertyCount: 2,
+        results: [
+          { nodeId: "inst-002", success: true },
+          { nodeId: "inst-003", success: true },
+        ],
+      });
+
+      const response = await callTool("set_instance_overrides", {
+        sourceInstanceId: "inst-001",
+        targetNodeIds: ["inst-002", "inst-003"],
+      });
+
+      expect(mockSendCommand).toHaveBeenCalledWith("set_instance_overrides", {
+        sourceInstanceId: "inst-001",
+        targetNodeIds: ["inst-002", "inst-003"],
+      });
+      expect(response.content[0].text).toContain("Successfully applied");
+    });
+
+    it("reports partial failure when some targets fail", async () => {
+      mockSendCommand.mockResolvedValue({
+        success: true,
+        message: "Applied 2 properties to 1/2 instances",
+        propertyCount: 2,
+        results: [
+          { nodeId: "inst-002", success: true },
+          { nodeId: "rect-999", success: false, error: "Not a component instance (type: RECTANGLE)" },
+        ],
+      });
+
+      const response = await callTool("set_instance_overrides", {
+        sourceInstanceId: "inst-001",
+        targetNodeIds: ["inst-002", "rect-999"],
+      });
+
+      expect(response.content[0].text).toContain("Successfully applied");
+    });
+
+    it("handles source node not found error gracefully", async () => {
+      mockSendCommand.mockRejectedValue(new Error("Source node not found with ID: bad-src"));
+
+      const response = await callTool("set_instance_overrides", {
+        sourceInstanceId: "bad-src",
+        targetNodeIds: ["inst-002"],
+      });
+
+      expect(response.content[0].text).toContain("Error");
+      expect(response.content[0].text).toContain("Source node not found");
+    });
+
+    it("requires both sourceInstanceId and targetNodeIds", async () => {
+      await expect(
+        callTool("set_instance_overrides", {
+          targetNodeIds: ["inst-002"],
+        }),
+      ).rejects.toThrow();
+
+      await expect(
+        callTool("set_instance_overrides", {
+          sourceInstanceId: "inst-001",
+        }),
+      ).rejects.toThrow();
+    });
+  });
 });

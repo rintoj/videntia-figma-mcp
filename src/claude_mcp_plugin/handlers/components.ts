@@ -675,17 +675,22 @@ export async function setInstanceOverrides(
     ? source.componentProperties
     : {};
 
-  // Build a properties object with current values (stripping type/preferredValues metadata)
+  // Build a properties object with current values, limited to TEXT, BOOLEAN, and STRING types.
+  // INSTANCE_SWAP properties are deliberately excluded: their values are component IDs that are
+  // specific to the source component's variant set and may not be valid for the target instance.
   const valuesToApply: Record<string, string | boolean> = {};
   const propKeys = Object.keys(sourceProperties);
   for (let i = 0; i < propKeys.length; i++) {
     const key = propKeys[i];
     const prop = sourceProperties[key];
-    valuesToApply[key] = prop.value as string | boolean;
+    if (prop.type === 'TEXT' || prop.type === 'BOOLEAN') {
+      valuesToApply[key] = prop.value as string | boolean;
+    }
+    // INSTANCE_SWAP skipped intentionally — component IDs are context-specific
   }
 
   const results: Array<{ nodeId: string; success: boolean; error?: string }> = [];
-  let totalCount = propKeys.length;
+  const totalCount = Object.keys(valuesToApply).length;
 
   for (let i = 0; i < targetNodeIds.length; i++) {
     const targetId = targetNodeIds[i];
@@ -719,8 +724,8 @@ export async function setInstanceOverrides(
 
   return {
     success: successCount > 0,
-    message: `Applied ${totalCount} overrides to ${successCount}/${targetNodeIds.length} instances`,
-    totalCount,
+    message: `Applied ${totalCount} properties to ${successCount}/${targetNodeIds.length} instances`,
+    propertyCount: totalCount,
     results,
   };
 }

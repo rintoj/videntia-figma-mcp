@@ -117,12 +117,13 @@ function coerceValueForType(
   }
 
   if (variableType === 'STRING') {
-    if (typeof value !== 'string') {
-      throw new Error(
-        `Expected string value for STRING variable "${variableNameForError}", got ${typeof value}`,
-      );
-    }
-    return value;
+    // MCP transport sends all values as strings, but also accept numbers/booleans
+    // by coercing them — consistent with how FLOAT and BOOLEAN are handled above.
+    if (typeof value === 'string') return value;
+    if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+    throw new Error(
+      `Expected string value for STRING variable "${variableNameForError}", got ${typeof value}`,
+    );
   }
 
   if (variableType === 'BOOLEAN') {
@@ -381,7 +382,7 @@ export async function getVariables(): Promise<Record<string, unknown>> {
       id: c.id,
       name: c.name,
       variableIds: c.variableIds,
-      modes: c.modes.map(m => ({ modeId: m.modeId, name: m.name })),
+      modes: c.modes.map(m => ({ id: m.modeId, modeId: m.modeId, name: m.name })),
     })),
   };
 }
@@ -678,7 +679,7 @@ export async function getCollectionInfo(
   return {
     id: collection.id,
     name: collection.name,
-    modes: collection.modes.map(m => ({ name: m.name, modeId: m.modeId })),
+    modes: collection.modes.map(m => ({ id: m.modeId, modeId: m.modeId, name: m.name })),
     defaultMode:
       collection.modes[0] !== undefined && collection.modes[0] !== null
         ? collection.modes[0].name

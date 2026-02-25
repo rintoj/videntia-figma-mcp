@@ -1097,8 +1097,38 @@ export async function setFontName(params: Record<string, unknown>): Promise<Reco
   const nodeId = safeParams.nodeId as string | undefined;
   const family = safeParams.family as string | undefined;
   const rawStyle = safeParams.style !== null && safeParams.style !== undefined ? (safeParams.style as string) : 'Regular';
-  // Normalize camelCase style names to Figma's space-separated format (e.g. "SemiBold" → "Semi Bold")
-  const style = rawStyle.replace(/([a-z])([A-Z])/g, '$1 $2');
+  // Normalize camelCase/compound weight names to Figma's space-separated format.
+  // The lookup table covers all standard Figma weight names exactly; the regex fallback
+  // handles edge cases (e.g. custom styles) but may not always produce a valid Figma name.
+  const FIGMA_STYLE_MAP: Record<string, string> = {
+    'thin': 'Thin',
+    'extralight': 'Extra Light',
+    'ultralight': 'Extra Light',
+    'light': 'Light',
+    'regular': 'Regular',
+    'normal': 'Regular',
+    'medium': 'Medium',
+    'semibold': 'Semi Bold',
+    'demibold': 'Semi Bold',
+    'bold': 'Bold',
+    'extrabold': 'Extra Bold',
+    'ultrabold': 'Extra Bold',
+    'black': 'Black',
+    'heavy': 'Black',
+    'thinitalic': 'Thin Italic',
+    'extralightitalic': 'Extra Light Italic',
+    'lightitalic': 'Light Italic',
+    'italic': 'Italic',
+    'mediumitalic': 'Medium Italic',
+    'semibolditalic': 'Semi Bold Italic',
+    'bolditalic': 'Bold Italic',
+    'extrabolditalic': 'Extra Bold Italic',
+    'blackitalic': 'Black Italic',
+  };
+  const normalized = rawStyle.trim().toLowerCase().replace(/\s+/g, '');
+  const style = FIGMA_STYLE_MAP[normalized] !== undefined
+    ? FIGMA_STYLE_MAP[normalized]
+    : rawStyle.replace(/([a-z])([A-Z])/g, '$1 $2');
 
   if (!nodeId || !family) {
     throw new Error('Missing nodeId or font family');
