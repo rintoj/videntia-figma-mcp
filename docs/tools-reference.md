@@ -1,5 +1,44 @@
 # Claude Figma MCP — Tools Reference
 
+---
+
+## Agent Prompt: Full Tool Test Run
+
+> Use the following prompt to instruct an agent to execute and validate every tool in this reference:
+
+```
+You are a Figma MCP test agent. Your job is to execute every tool listed in docs/tools-reference.md
+one by one, in order, using the "Draft" page of the connected Figma channel.
+
+## Rules
+
+1. **Resolve the channel first** using get_open_channels → join_channel before any other tool.
+2. **Execute each tool exactly as documented**, substituting real node IDs from earlier responses
+   wherever placeholder IDs (e.g. "123:456") appear.
+3. **After each tool call**, check for errors. If an error occurs:
+   - Stop immediately. Do not continue to the next tool.
+   - Diagnose the root cause (bad parameter? wrong type? missing field? API mismatch?).
+   - Determine the correct fix: either a code change in the MCP server/plugin, or a documentation
+     correction in the code itself, or a documentation correction in this file.
+   - Present your diagnosis and proposed fix to the user clearly, then **ask for permission** before
+     making any changes.
+   - Once permission is granted, apply the fix (edit source files and/or docs as needed), then run:
+     `bun run build && launchctl stop com.claude-figma-mcp.socket && launchctl start com.claude-figma-mcp.socket`
+   - Wait a moment for the server to restart, then **retry the same tool**. If it passes, continue to
+     the next tool. If it fails again, stop and re-diagnose.
+4. **Track state**: store node IDs, collection IDs, variable IDs, and style IDs returned by
+   creation tools so they can be reused by subsequent calls.
+5. **Clean up**: after completing all tests, delete nodes and variables created during the run
+   so the Draft page is left in a clean state.
+6. **On success**, report a summary table: tool name | status (✅ / ❌) | notes.
+
+## Starting point
+
+Work on the "Draft" page. Create a parent frame at the start to contain all test nodes.
+```
+
+---
+
 > **Purpose:** A structured reference for agents to execute tools one by one and validate correctness.
 > **Order:** Logical execution order — inspect first, create next, modify, then delete.
 > **Node IDs:** Replace placeholder IDs (e.g. `"123:456"`) with real IDs obtained from earlier calls.
@@ -40,6 +79,7 @@
 ## 1. Channel Setup
 
 ### `get_open_channels`
+
 List all open Figma channels. **Always call first** to discover available channel IDs.
 
 ```json
@@ -49,6 +89,7 @@ List all open Figma channels. **Always call first** to discover available channe
 ---
 
 ### `join_channel`
+
 Join a specific Figma channel before using any Figma-side tools.
 
 ```json
@@ -62,6 +103,7 @@ Join a specific Figma channel before using any Figma-side tools.
 ## 2. Document & Page Inspection
 
 ### `get_document_info`
+
 Get name, pages, and metadata for the current Figma document. No parameters.
 
 ```json
@@ -71,6 +113,7 @@ Get name, pages, and metadata for the current Figma document. No parameters.
 ---
 
 ### `get_styles`
+
 Get all local styles (text, fill, effect, grid).
 
 ```json
@@ -80,6 +123,7 @@ Get all local styles (text, fill, effect, grid).
 ---
 
 ### `get_local_components`
+
 List all local components with their node IDs and keys.
 
 ```json
@@ -89,6 +133,7 @@ List all local components with their node IDs and keys.
 ---
 
 ### `get_remote_components`
+
 List available components from team libraries.
 
 ```json
@@ -98,6 +143,7 @@ List available components from team libraries.
 ---
 
 ### `get_variables`
+
 Get all variables and variable collections in the document.
 
 ```json
@@ -107,6 +153,7 @@ Get all variables and variable collections in the document.
 ---
 
 ### `get_design_system`
+
 Aggregate all design tokens — variables, text styles, effect styles, spacing, radius.
 
 ```json
@@ -118,6 +165,7 @@ Aggregate all design tokens — variables, text styles, effect styles, spacing, 
 ## 3. Node Inspection
 
 ### `get_selection`
+
 Get info on currently selected node(s). Returns JSX+Tailwind markup.
 
 ```json
@@ -127,6 +175,7 @@ Get info on currently selected node(s). Returns JSX+Tailwind markup.
 ---
 
 ### `get_node_info`
+
 Get detailed info for a specific node by ID.
 
 ```json
@@ -138,6 +187,7 @@ Get detailed info for a specific node by ID.
 ---
 
 ### `get_nodes_info`
+
 Get info for multiple nodes at once.
 
 ```json
@@ -149,6 +199,7 @@ Get info for multiple nodes at once.
 ---
 
 ### `scan_nodes_by_types`
+
 Find all descendant nodes matching specific types inside a parent node.
 
 ```json
@@ -161,6 +212,7 @@ Find all descendant nodes matching specific types inside a parent node.
 ---
 
 ### `scan_text_nodes`
+
 Scan all text nodes inside a parent node.
 
 ```json
@@ -172,6 +224,7 @@ Scan all text nodes inside a parent node.
 ---
 
 ### `get_bound_variables`
+
 Get all variable bindings for a specific node.
 
 ```json
@@ -183,6 +236,7 @@ Get all variable bindings for a specific node.
 ---
 
 ### `lint_frame`
+
 Run a full design compliance audit on a frame — checks token usage, spacing, naming, accessibility.
 
 ```json
@@ -196,6 +250,7 @@ Run a full design compliance audit on a frame — checks token usage, spacing, n
 ## 4. Selection & Focus
 
 ### `set_focus`
+
 Select a node and scroll the Figma viewport to it.
 
 ```json
@@ -207,6 +262,7 @@ Select a node and scroll the Figma viewport to it.
 ---
 
 ### `set_selections`
+
 Select multiple nodes at once.
 
 ```json
@@ -220,6 +276,7 @@ Select multiple nodes at once.
 ## 5. Node Creation
 
 ### `create_frame`
+
 Create a new frame. Returns `id` — use it as `parentId` for children.
 
 ```json
@@ -236,6 +293,7 @@ Create a new frame. Returns `id` — use it as `parentId` for children.
 ---
 
 ### `create_rectangle`
+
 Create a rectangle shape.
 
 ```json
@@ -252,6 +310,7 @@ Create a rectangle shape.
 ---
 
 ### `create_text`
+
 Create a text node.
 
 ```json
@@ -270,6 +329,7 @@ Create a text node.
 ---
 
 ### `create_svg`
+
 Create a node from an SVG string. Good for inserting icons inline.
 
 ```json
@@ -286,6 +346,7 @@ Create a node from an SVG string. Good for inserting icons inline.
 ---
 
 ### `clone_node`
+
 Clone an existing node to a new position.
 
 ```json
@@ -299,6 +360,7 @@ Clone an existing node to a new position.
 ---
 
 ### `insert_child`
+
 Move a node inside another node at a specific index.
 
 ```json
@@ -312,6 +374,7 @@ Move a node inside another node at a specific index.
 ---
 
 ### `group_nodes`
+
 Group multiple nodes together.
 
 ```json
@@ -324,6 +387,7 @@ Group multiple nodes together.
 ---
 
 ### `ungroup_nodes`
+
 Ungroup a group or frame, releasing its children to the parent.
 
 ```json
@@ -335,6 +399,7 @@ Ungroup a group or frame, releasing its children to the parent.
 ---
 
 ### `flatten_node`
+
 Flatten a node (vector/boolean merge).
 
 ```json
@@ -348,6 +413,7 @@ Flatten a node (vector/boolean merge).
 ## 6. Node Modification — Layout
 
 ### `set_auto_layout`
+
 Configure auto-layout direction, padding, gap, and sizing on a frame.
 
 ```json
@@ -369,6 +435,7 @@ Configure auto-layout direction, padding, gap, and sizing on a frame.
 ---
 
 ### `set_layout_mode`
+
 Set only the layout mode and wrap behavior.
 
 ```json
@@ -382,6 +449,7 @@ Set only the layout mode and wrap behavior.
 ---
 
 ### `set_padding`
+
 Set padding values on an auto-layout frame.
 
 ```json
@@ -397,6 +465,7 @@ Set padding values on an auto-layout frame.
 ---
 
 ### `set_item_spacing`
+
 Set gap between children in an auto-layout frame.
 
 ```json
@@ -410,6 +479,7 @@ Set gap between children in an auto-layout frame.
 ---
 
 ### `set_axis_align`
+
 Set primary and counter axis alignment.
 
 ```json
@@ -423,6 +493,7 @@ Set primary and counter axis alignment.
 ---
 
 ### `set_layout_sizing`
+
 Set horizontal and vertical sizing modes.
 
 ```json
@@ -436,6 +507,7 @@ Set horizontal and vertical sizing modes.
 ---
 
 ### `move_node`
+
 Move a node to a new (x, y) position.
 
 ```json
@@ -449,6 +521,7 @@ Move a node to a new (x, y) position.
 ---
 
 ### `resize_node`
+
 Resize a node to specific dimensions.
 
 ```json
@@ -462,6 +535,7 @@ Resize a node to specific dimensions.
 ---
 
 ### `rename_node`
+
 Rename a node.
 
 ```json
@@ -474,6 +548,7 @@ Rename a node.
 ---
 
 ### `set_corner_radius`
+
 Set corner radius on a node.
 
 ```json
@@ -489,6 +564,7 @@ Set corner radius on a node.
 ## 7. Node Modification — Appearance
 
 ### `bind_variable`
+
 Bind a variable to a node property.
 
 ```json
@@ -504,6 +580,7 @@ Bind a variable to a node property.
 ---
 
 ### `unbind_variable`
+
 Remove a variable binding from a node property.
 
 ```json
@@ -518,6 +595,7 @@ Remove a variable binding from a node property.
 ## 8. Node Modification — Fill & Stroke
 
 ### `set_fill_color`
+
 Set solid fill color (RGBA normalized 0–1).
 
 ```json
@@ -533,6 +611,7 @@ Set solid fill color (RGBA normalized 0–1).
 ---
 
 ### `set_stroke_color`
+
 Set stroke color and weight.
 
 ```json
@@ -549,6 +628,7 @@ Set stroke color and weight.
 ---
 
 ### `set_gradient_fill`
+
 Set a gradient fill (LINEAR, RADIAL, ANGULAR, DIAMOND).
 
 ```json
@@ -567,6 +647,7 @@ Set a gradient fill (LINEAR, RADIAL, ANGULAR, DIAMOND).
 ---
 
 ### `set_image_fill`
+
 Set an image fill on a node from a URL.
 
 ```json
@@ -580,6 +661,7 @@ Set an image fill on a node from a URL.
 ---
 
 ### `delete_node`
+
 Delete a single node by ID.
 
 ```json
@@ -591,6 +673,7 @@ Delete a single node by ID.
 ---
 
 ### `delete_multiple_nodes`
+
 Delete multiple nodes in a single call.
 
 ```json
@@ -604,6 +687,7 @@ Delete multiple nodes in a single call.
 ## 9. Text Creation & Styling
 
 ### `set_text_content`
+
 Replace the text content of an existing text node.
 
 ```json
@@ -616,6 +700,7 @@ Replace the text content of an existing text node.
 ---
 
 ### `set_multiple_text_contents`
+
 Update many text nodes in parallel (batched internally).
 
 ```json
@@ -631,6 +716,7 @@ Update many text nodes in parallel (batched internally).
 ---
 
 ### `set_font_name`
+
 Set font family and style.
 
 ```json
@@ -644,6 +730,7 @@ Set font family and style.
 ---
 
 ### `set_font_size`
+
 Set font size in pixels.
 
 ```json
@@ -656,6 +743,7 @@ Set font size in pixels.
 ---
 
 ### `set_font_weight`
+
 Set font weight by numeric value.
 
 ```json
@@ -668,6 +756,7 @@ Set font weight by numeric value.
 ---
 
 ### `set_letter_spacing`
+
 Set letter spacing.
 
 ```json
@@ -681,6 +770,7 @@ Set letter spacing.
 ---
 
 ### `set_line_height`
+
 Set line height.
 
 ```json
@@ -694,6 +784,7 @@ Set line height.
 ---
 
 ### `set_paragraph_spacing`
+
 Set paragraph spacing.
 
 ```json
@@ -706,6 +797,7 @@ Set paragraph spacing.
 ---
 
 ### `set_text_case`
+
 Set text case transformation.
 
 ```json
@@ -720,6 +812,7 @@ Set text case transformation.
 ---
 
 ### `set_text_decoration`
+
 Set underline or strikethrough.
 
 ```json
@@ -734,6 +827,7 @@ Set underline or strikethrough.
 ---
 
 ### `get_styled_text_segments`
+
 Inspect how a text node's characters are styled by property.
 
 ```json
@@ -748,6 +842,7 @@ Inspect how a text node's characters are styled by property.
 ---
 
 ### `load_font_async`
+
 Pre-load a font family before using it.
 
 ```json
@@ -762,6 +857,7 @@ Pre-load a font family before using it.
 ## 10. Text Style Management
 
 ### `get_text_styles`
+
 List all local text styles. Each style returns an `id` (use with `apply_text_style`).
 
 ```json
@@ -771,6 +867,7 @@ List all local text styles. Each style returns an `id` (use with `apply_text_sty
 ---
 
 ### `create_text_style`
+
 Create a text style from an existing text node.
 
 ```json
@@ -784,6 +881,7 @@ Create a text style from an existing text node.
 ---
 
 ### `create_text_style_from_properties`
+
 Create a text style without needing an existing node.
 
 ```json
@@ -800,6 +898,7 @@ Create a text style without needing an existing node.
 ---
 
 ### `apply_text_style`
+
 Apply a text style to a text node.
 
 ```json
@@ -814,6 +913,7 @@ Apply a text style to a text node.
 ---
 
 ### `update_text_style`
+
 Update properties of an existing text style.
 
 ```json
@@ -827,6 +927,7 @@ Update properties of an existing text style.
 ---
 
 ### `delete_text_style`
+
 Delete a text style.
 
 ```json
@@ -840,6 +941,7 @@ Delete a text style.
 ## 11. Component Tools
 
 ### `get_component_properties`
+
 Get all property definitions on a component or component set.
 
 ```json
@@ -851,6 +953,7 @@ Get all property definitions on a component or component set.
 ---
 
 ### `create_component`
+
 Convert a frame or group into a reusable component.
 
 ```json
@@ -862,6 +965,7 @@ Convert a frame or group into a reusable component.
 ---
 
 ### `create_component_set`
+
 Combine multiple components into a variant set.
 
 ```json
@@ -874,6 +978,7 @@ Combine multiple components into a variant set.
 ---
 
 ### `create_component_instance`
+
 Create an instance of a local or library component.
 
 ```json
@@ -887,6 +992,7 @@ Create an instance of a local or library component.
 ---
 
 ### `detach_instance`
+
 Detach a component instance, converting it to a plain frame.
 
 ```json
@@ -898,6 +1004,7 @@ Detach a component instance, converting it to a plain frame.
 ---
 
 ### `add_component_property`
+
 Add a new property (BOOLEAN, TEXT, INSTANCE_SWAP, VARIANT) to a component.
 
 ```json
@@ -912,6 +1019,7 @@ Add a new property (BOOLEAN, TEXT, INSTANCE_SWAP, VARIANT) to a component.
 ---
 
 ### `edit_component_property`
+
 Edit an existing component property's name or default.
 
 ```json
@@ -926,6 +1034,7 @@ Edit an existing component property's name or default.
 ---
 
 ### `delete_component_property`
+
 Delete a component property (BOOLEAN, TEXT, INSTANCE_SWAP only).
 
 ```json
@@ -938,6 +1047,7 @@ Delete a component property (BOOLEAN, TEXT, INSTANCE_SWAP only).
 ---
 
 ### `set_component_property_references`
+
 Link a property to a child node's visibility, text content, or swap.
 
 ```json
@@ -952,6 +1062,7 @@ Link a property to a child node's visibility, text content, or swap.
 ---
 
 ### `get_instance_overrides`
+
 Get all overrides from a selected component instance.
 
 ```json
@@ -963,6 +1074,7 @@ Get all overrides from a selected component instance.
 ---
 
 ### `set_instance_overrides`
+
 Copy overrides from one instance and apply to others.
 
 ```json
@@ -977,6 +1089,7 @@ Copy overrides from one instance and apply to others.
 ## 12. Icon Tools
 
 ### `search_icon`
+
 Fuzzy search Lucide icons by keyword. Use `|` for multiple patterns.
 
 ```json
@@ -989,6 +1102,7 @@ Fuzzy search Lucide icons by keyword. Use `|` for multiple patterns.
 ---
 
 ### `get_icon`
+
 Get a Lucide icon SVG by exact name.
 
 ```json
@@ -1000,6 +1114,7 @@ Get a Lucide icon SVG by exact name.
 ---
 
 ### `list_icons`
+
 Paginated list of available Lucide icon names.
 
 ```json
@@ -1013,6 +1128,7 @@ Paginated list of available Lucide icon names.
 ---
 
 ### `create_icon`
+
 Create a Lucide icon in Figma at a specific parent, with color and size.
 
 ```json
@@ -1030,6 +1146,7 @@ Create a Lucide icon in Figma at a specific parent, with color and size.
 ---
 
 ### `update_icon`
+
 Replace an existing icon node with a new Lucide icon, preserving position.
 
 ```json
@@ -1052,6 +1169,7 @@ Replace an existing icon node with a new Lucide icon, preserving position.
 ## 14. Effects & Shadows
 
 ### `set_effects`
+
 Apply one or more visual effects to a node.
 
 ```json
@@ -1075,6 +1193,7 @@ Apply one or more visual effects to a node.
 ---
 
 ### `set_effect_style_id`
+
 Apply an existing effect style to a node.
 
 ```json
@@ -1087,6 +1206,7 @@ Apply an existing effect style to a node.
 ---
 
 ### `create_effect_style`
+
 Create a reusable effect style in the document.
 
 ```json
@@ -1107,6 +1227,7 @@ Create a reusable effect style in the document.
 ---
 
 ### `update_effect_style`
+
 Update an existing effect style.
 
 ```json
@@ -1127,6 +1248,7 @@ Update an existing effect style.
 ---
 
 ### `delete_effect_style`
+
 Delete an effect style.
 
 ```json
@@ -1140,6 +1262,7 @@ Delete an effect style.
 ## 15. Variable Collections
 
 ### `get_variable_collections`
+
 List all variable collections with their modes and variable counts.
 
 ```json
@@ -1149,6 +1272,7 @@ List all variable collections with their modes and variable counts.
 ---
 
 ### `get_collection_info`
+
 Get detailed metadata for a specific collection.
 
 ```json
@@ -1160,6 +1284,7 @@ Get detailed metadata for a specific collection.
 ---
 
 ### `create_variable_collection`
+
 Create a new variable collection.
 
 ```json
@@ -1172,6 +1297,7 @@ Create a new variable collection.
 ---
 
 ### `rename_variable_collection`
+
 Rename a variable collection.
 
 ```json
@@ -1184,6 +1310,7 @@ Rename a variable collection.
 ---
 
 ### `delete_variable_collection`
+
 Delete a collection and all its variables (irreversible).
 
 ```json
@@ -1197,6 +1324,7 @@ Delete a collection and all its variables (irreversible).
 ## 16. Variable CRUD
 
 ### `create_variable`
+
 Create a single variable in a collection.
 
 ```json
@@ -1214,6 +1342,7 @@ Create a single variable in a collection.
 ---
 
 ### `create_variables_batch`
+
 Create multiple variables at once (more efficient than individual calls).
 
 ```json
@@ -1229,6 +1358,7 @@ Create multiple variables at once (more efficient than individual calls).
 ---
 
 ### `update_variable_value`
+
 Update a variable's value for a specific mode.
 
 ```json
@@ -1242,6 +1372,7 @@ Update a variable's value for a specific mode.
 ---
 
 ### `rename_variable`
+
 Rename a variable.
 
 ```json
@@ -1254,6 +1385,7 @@ Rename a variable.
 ---
 
 ### `delete_variable`
+
 Delete a single variable.
 
 ```json
@@ -1265,6 +1397,7 @@ Delete a single variable.
 ---
 
 ### `delete_variables_batch`
+
 Delete multiple variables at once.
 
 ```json
@@ -1280,6 +1413,7 @@ Delete multiple variables at once.
 > These tools run **entirely server-side** — no Figma connection needed.
 
 ### `calculate_color_scale`
+
 Generate all 10 scale variants (50–900) from a base color.
 
 ```json
@@ -1292,6 +1426,7 @@ Generate all 10 scale variants (50–900) from a base color.
 ---
 
 ### `calculate_composite_color`
+
 Calculate a single composited color at a specific mix percentage.
 
 ```json
@@ -1305,6 +1440,7 @@ Calculate a single composited color at a specific mix percentage.
 ---
 
 ### `convert_color_format`
+
 Convert between color formats (hex, rgba, hsl).
 
 ```json
@@ -1318,6 +1454,7 @@ Convert between color formats (hex, rgba, hsl).
 ---
 
 ### `calculate_contrast_ratio`
+
 Calculate WCAG contrast ratio between two colors.
 
 ```json
@@ -1332,6 +1469,7 @@ Calculate WCAG contrast ratio between two colors.
 ## 18. Schema & Audit
 
 ### `audit_collection`
+
 Compare a collection against the 102-variable standard schema.
 
 ```json
@@ -1343,6 +1481,7 @@ Compare a collection against the 102-variable standard schema.
 ---
 
 ### `validate_color_contrast`
+
 Validate all foreground/background pairs meet WCAG AA standards.
 
 ```json
@@ -1355,6 +1494,7 @@ Validate all foreground/background pairs meet WCAG AA standards.
 ---
 
 ### `get_schema_definition`
+
 Return the complete standard schema definition.
 
 ```json
@@ -1364,6 +1504,7 @@ Return the complete standard schema definition.
 ---
 
 ### `suggest_missing_variables`
+
 Get a list of missing variables with suggested default values.
 
 ```json
@@ -1375,6 +1516,7 @@ Get a list of missing variables with suggested default values.
 ---
 
 ### `generate_audit_report`
+
 Generate a formatted audit report (markdown or JSON).
 
 ```json
@@ -1387,6 +1529,7 @@ Generate a formatted audit report (markdown or JSON).
 ---
 
 ### `export_collection_schema`
+
 Export a collection as a portable JSON schema.
 
 ```json
@@ -1398,6 +1541,7 @@ Export a collection as a portable JSON schema.
 ---
 
 ### `import_collection_schema`
+
 Import variables from a JSON schema into a collection.
 
 ```json
@@ -1416,6 +1560,7 @@ Import variables from a JSON schema into a collection.
 ## 19. Theme Presets & Templates
 
 ### `apply_default_theme`
+
 Apply the built-in default dark theme values to a collection.
 
 ```json
@@ -1428,6 +1573,7 @@ Apply the built-in default dark theme values to a collection.
 ---
 
 ### `apply_custom_palette`
+
 Apply custom brand colors and regenerate all derivative scales.
 
 ```json
@@ -1444,6 +1590,7 @@ Apply custom brand colors and regenerate all derivative scales.
 ---
 
 ### `create_color_scale_set`
+
 Create a complete scale for one color (base + foreground + 10 scale variants).
 
 ```json
@@ -1458,6 +1605,7 @@ Create a complete scale for one color (base + foreground + 10 scale variants).
 ---
 
 ### `create_all_scales`
+
 Create all 7 color scales at once (70 scale variants total).
 
 ```json
@@ -1471,6 +1619,7 @@ Create all 7 color scales at once (70 scale variants total).
 ---
 
 ### `add_chart_colors`
+
 Add 8 chart color variables to a collection.
 
 ```json
@@ -1483,6 +1632,7 @@ Add 8 chart color variables to a collection.
 ---
 
 ### `fix_collection_to_standard`
+
 Auto-fix a collection to match the 102-variable standard (adds missing, renames incorrect).
 
 ```json
@@ -1495,6 +1645,7 @@ Auto-fix a collection to match the 102-variable standard (adds missing, renames 
 ---
 
 ### `reorder_variables`
+
 Reorder variables to match standard organization (by category and name).
 
 ```json
@@ -1506,6 +1657,7 @@ Reorder variables to match standard organization (by category and name).
 ---
 
 ### `create_spacing_system`
+
 Create a complete spacing token system (8pt or 4pt grid).
 
 ```json
@@ -1519,6 +1671,7 @@ Create a complete spacing token system (8pt or 4pt grid).
 ---
 
 ### `create_typography_system`
+
 Create a complete typography token system (font sizes, weights, line heights).
 
 ```json
@@ -1532,6 +1685,7 @@ Create a complete typography token system (font sizes, weights, line heights).
 ---
 
 ### `create_radius_system`
+
 Create a border-radius token system.
 
 ```json
@@ -1544,6 +1698,7 @@ Create a border-radius token system.
 ---
 
 ### `create_complete_design_system`
+
 Bootstrap a full design system (colors + spacing + typography + radius) in one call.
 
 ```json
@@ -1560,6 +1715,7 @@ Bootstrap a full design system (colors + spacing + typography + radius) in one c
 ## 20. Mode Management
 
 ### `add_mode_to_collection`
+
 Add a new mode (e.g., Light, High Contrast) to a collection.
 
 ```json
@@ -1572,6 +1728,7 @@ Add a new mode (e.g., Light, High Contrast) to a collection.
 ---
 
 ### `rename_mode`
+
 Rename an existing mode.
 
 ```json
@@ -1585,6 +1742,7 @@ Rename an existing mode.
 ---
 
 ### `delete_mode`
+
 Delete a mode from a collection (cannot delete the last mode).
 
 ```json
@@ -1597,6 +1755,7 @@ Delete a mode from a collection (cannot delete the last mode).
 ---
 
 ### `duplicate_mode_values`
+
 Copy all variable values from one mode to another.
 
 ```json
@@ -1612,6 +1771,7 @@ Copy all variable values from one mode to another.
 ## 21. Design System Operations
 
 ### `setup_design_system`
+
 Create or fully update a design system in a single compound call. Accepts variable collections, text styles, and effect styles.
 
 ```json
@@ -1621,7 +1781,11 @@ Create or fully update a design system in a single compound call. Accepts variab
       "name": "Theme",
       "modes": ["dark", "light"],
       "variables": [
-        { "name": "background/primary", "type": "COLOR", "values": { "dark": { "r": 0.07, "g": 0.07, "b": 0.07, "a": 1 }, "light": { "r": 1, "g": 1, "b": 1, "a": 1 } } }
+        {
+          "name": "background/primary",
+          "type": "COLOR",
+          "values": { "dark": { "r": 0.07, "g": 0.07, "b": 0.07, "a": 1 }, "light": { "r": 1, "g": 1, "b": 1, "a": 1 } }
+        }
       ]
     }
   ]
@@ -1633,6 +1797,7 @@ Create or fully update a design system in a single compound call. Accepts variab
 ## 22. Annotations
 
 ### `get_annotations`
+
 Get all annotations on a node.
 
 ```json
@@ -1645,6 +1810,7 @@ Get all annotations on a node.
 ---
 
 ### `set_annotation`
+
 Create or update a single annotation on a node.
 
 ```json
@@ -1658,6 +1824,7 @@ Create or update a single annotation on a node.
 ---
 
 ### `set_multiple_annotations`
+
 Set many annotations at once.
 
 ```json
@@ -1673,6 +1840,7 @@ Set many annotations at once.
 ---
 
 ### `get_annotation_categories`
+
 List all annotation categories in the document.
 
 ```json
@@ -1682,6 +1850,7 @@ List all annotation categories in the document.
 ---
 
 ### `create_annotation_category`
+
 Create a custom annotation category.
 
 ```json
@@ -1694,6 +1863,7 @@ Create a custom annotation category.
 ---
 
 ### `update_annotation_category`
+
 Update an existing annotation category.
 
 ```json
@@ -1707,6 +1877,7 @@ Update an existing annotation category.
 ---
 
 ### `delete_annotation_category`
+
 Delete a custom annotation category (presets cannot be deleted).
 
 ```json
@@ -1720,6 +1891,7 @@ Delete a custom annotation category (presets cannot be deleted).
 ## 23. Prototyping & Connections
 
 ### `get_reactions`
+
 Get all Figma prototype reactions for a set of nodes.
 
 ```json
@@ -1731,6 +1903,7 @@ Get all Figma prototype reactions for a set of nodes.
 ---
 
 ### `set_default_connector`
+
 Set a connector node as the default style for new connections.
 
 ```json
@@ -1742,6 +1915,7 @@ Set a connector node as the default style for new connections.
 ---
 
 ### `create_connections`
+
 Create flow connections between nodes using the default connector.
 
 ```json
@@ -1758,6 +1932,7 @@ Create flow connections between nodes using the default connector.
 ## 24. Export & Image
 
 ### `export_node_as_image`
+
 Export a node as a base64-encoded image.
 
 ```json
@@ -1771,6 +1946,7 @@ Export a node as a base64-encoded image.
 ---
 
 ### `export_node_as_image_url`
+
 Export a node via Figma REST API and return a CDN URL. Best for large nodes (>4000px).
 
 ```json
@@ -1786,6 +1962,7 @@ Export a node via Figma REST API and return a CDN URL. Best for large nodes (>40
 ## 25. Batch Operations
 
 ### `batch_actions`
+
 Execute multiple Figma commands in a single round-trip.
 Supports `$result[N].field` references to use outputs from earlier steps.
 
@@ -1816,6 +1993,7 @@ Supports `$result[N].field` references to use outputs from earlier steps.
 ## 26. JSX Bridge
 
 ### `read_my_design`
+
 Read current selection (or a node) as compact JSX+Tailwind markup.
 
 ```json
@@ -1828,6 +2006,7 @@ Read current selection (or a node) as compact JSX+Tailwind markup.
 ---
 
 ### `jsx_to_figma`
+
 Create or update Figma nodes from JSX+Tailwind markup.
 Nodes with `id="<existingNodeId>"` are updated in place.
 
@@ -1847,6 +2026,7 @@ Nodes with `id="<existingNodeId>"` are updated in place.
 ## Page Management
 
 ### `create_page`
+
 Create a new page in the document.
 
 ```json
@@ -1858,6 +2038,7 @@ Create a new page in the document.
 ---
 
 ### `rename_page`
+
 Rename an existing page.
 
 ```json
@@ -1870,6 +2051,7 @@ Rename an existing page.
 ---
 
 ### `delete_page`
+
 Delete a page (cannot delete the last remaining page).
 
 ```json
