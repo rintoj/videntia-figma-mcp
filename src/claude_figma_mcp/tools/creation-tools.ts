@@ -324,7 +324,7 @@ export function registerCreationTools(server: McpServer): void {
       parentId: z.string().describe("ID of the parent node where the child will be inserted"),
       childId: z.string().describe("ID of the child node to insert"),
       index: z
-        .number()
+        .coerce.number()
         .optional()
         .describe("Zero-based position to insert the child at within the parent's children array (0 = front/first; omit to append at the end)"),
     },

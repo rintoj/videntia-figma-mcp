@@ -636,14 +636,12 @@ export async function getInstanceOverrides(
 
   return {
     success: true,
-    message: JSON.stringify({
-      instanceId: instance.id,
-      instanceName: instance.name,
-      mainComponentId: mainComponent !== null ? mainComponent.id : null,
-      mainComponentName: mainComponent !== null ? mainComponent.name : null,
-      componentProperties,
-      overrides,
-    }),
+    instanceId: instance.id,
+    instanceName: instance.name,
+    mainComponentId: mainComponent !== null ? mainComponent.id : null,
+    mainComponentName: mainComponent !== null ? mainComponent.name : null,
+    componentProperties,
+    overrides,
   };
 }
 
@@ -671,6 +669,9 @@ export async function setInstanceOverrides(
   }
 
   const source = sourceNode as InstanceNode;
+  const sourceMainComponent = await source.getMainComponentAsync();
+  const sourceMainComponentId = sourceMainComponent !== null ? sourceMainComponent.id : null;
+
   const sourceProperties = source.componentProperties !== undefined
     ? source.componentProperties
     : {};
@@ -709,6 +710,16 @@ export async function setInstanceOverrides(
         continue;
       }
       const target = targetNode as InstanceNode;
+      const targetMainComponent = await target.getMainComponentAsync();
+      const targetMainComponentId = targetMainComponent !== null ? targetMainComponent.id : null;
+      if (sourceMainComponentId !== null && targetMainComponentId !== sourceMainComponentId) {
+        results.push({
+          nodeId: targetId,
+          success: false,
+          error: `Target instance uses a different main component — properties cannot be copied across incompatible components`,
+        });
+        continue;
+      }
       target.setProperties(valuesToApply);
       results.push({ nodeId: targetId, success: true });
     } catch (err) {
