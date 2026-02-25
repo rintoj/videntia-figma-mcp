@@ -553,7 +553,7 @@ export async function flattenNode(params: Record<string, unknown>): Promise<Reco
     }
 
     // Check for specific node types that can be flattened
-    const flattenableTypes = ['VECTOR', 'BOOLEAN_OPERATION', 'STAR', 'POLYGON', 'ELLIPSE', 'RECTANGLE'];
+    const flattenableTypes = ['VECTOR', 'BOOLEAN_OPERATION', 'STAR', 'POLYGON', 'ELLIPSE', 'RECTANGLE', 'FRAME', 'GROUP'];
 
     if (!flattenableTypes.includes(node.type)) {
       throw new Error(`Node with ID ${nodeId} and type ${node.type} cannot be flattened. Only vector-based nodes can be flattened.`);

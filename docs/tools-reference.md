@@ -23,7 +23,7 @@ of the connected Figma channel. Do NOT use a sub-agent — run all tool calls di
    - Present your diagnosis, then **apply the fix immediately** without asking for permission
      (edit source files and/or docs as needed), then run:
      `bun run build && launchctl stop com.claude-figma-mcp.socket && launchctl start com.claude-figma-mcp.socket`
-   - Wait a moment for the server to restart, then **retry the same tool**. If it passes, continue to
+   - Wait a moment for the server to restart, then re-run `get_open_channels` and `join_channel` (channel IDs may change after restart), then **retry the same tool**. If it passes, continue to
      the next tool. If it fails again, stop and re-diagnose.
 4. **Track state**: store node IDs, collection IDs, variable IDs, and style IDs returned by
    creation tools so they can be reused by subsequent calls.
@@ -139,6 +139,8 @@ Call this **after** styles and variables have been created to see a complete pic
 
 Get info on currently selected node(s). Returns JSX+Tailwind markup.
 
+> **Precondition:** At least one non-page node must already be selected in Figma. Page nodes cannot be selected. In a fresh file, create a frame first and call `set_focus` on that frame before running this tool.
+
 ```json
 {}
 ```
@@ -151,7 +153,7 @@ Get detailed info for a specific node by ID.
 
 ```json
 {
-  "nodeId": "123:456"
+  "node_id": "123:456"
 }
 ```
 
@@ -535,10 +537,12 @@ Set primary and counter axis alignment.
 
 Set horizontal and vertical sizing modes.
 
+> `FILL` is valid only when the node is a child of an auto-layout parent. For top-level frames, use `FIXED` or `HUG`.
+
 ```json
 {
   "nodeId": "123:456",
-  "horizontal": "FILL",
+  "horizontal": "FIXED",
   "vertical": "HUG"
 }
 ```
@@ -631,10 +635,12 @@ Set corner radius on a node.
 
 Bind a variable to a node property.
 
+> **Precondition:** Use a real variable ID returned by `get_variables` or by creating a variable in [Variable CRUD](#16-variable-crud). Placeholder IDs will fail.
+
 ```json
 {
   "nodeId": "123:456",
-  "variableId": "VariableID:789/0",
+  "id": "VariableID:789/0",
   "field": "fills/0/color"
 }
 ```
@@ -754,7 +760,7 @@ Set an image fill on a node from a URL.
 ```json
 {
   "nodeId": "123:456",
-  "imageUrl": "https://images.unsplash.com/photo-xxxxx?w=400",
+  "imageUrl": "https://picsum.photos/400",
   "scaleMode": "FILL"
 }
 ```
@@ -834,6 +840,8 @@ Apply one or more visual effects to a node.
 ### `set_effect_style_id`
 
 Apply an existing effect style to a node.
+
+> **Precondition:** Use a real effect style ID from `get_styles` (or from `create_effect_style` below). Placeholder IDs will fail.
 
 ```json
 {
@@ -1273,6 +1281,8 @@ List all local components with their node IDs and keys. Call **after** component
 
 Get all property definitions on a component or component set.
 
+> **Precondition:** `nodeId` must be a `COMPONENT` or `COMPONENT_SET` (not a plain frame/group).
+
 ```json
 {
   "nodeId": "123:456"
@@ -1319,6 +1329,8 @@ Combine multiple components into a variant set.
 ### `create_component_instance`
 
 Create an instance of a local or library component.
+
+> Tip: Use a standalone local component ID (or library component key). If you pass a variant node from a component set with validation errors, instantiation may fail.
 
 ```json
 {
@@ -1413,6 +1425,8 @@ Delete a component property (BOOLEAN, TEXT, INSTANCE_SWAP only).
 ### `set_component_property_references`
 
 Link a property to a child node's visibility, text content, or swap.
+
+> **Precondition:** The referenced property must already exist on the component, and `nodeId` must be the child layer ID inside that component.
 
 ```json
 {
@@ -1635,11 +1649,11 @@ Create a single variable in a collection.
 
 ```json
 {
-  "collectionId": "VariableCollectionId:123/0",
+  "collection_id": "VariableCollectionId:123/0",
   "name": "background/primary",
   "type": "COLOR",
   "value": { "r": 0.07, "g": 0.07, "b": 0.07, "a": 1 },
-  "modeId": "123:0"
+  "mode": "123:0"
 }
 ```
 
@@ -1647,7 +1661,7 @@ Create a single variable in a collection.
 
 **Verify:** Call `get_variables` with the collection ID to confirm the variable was created:
 ```json
-{ "collectionId": "VariableCollectionId:123/0" }
+{ "collection_id": "VariableCollectionId:123/0" }
 ```
 
 ---
@@ -1658,7 +1672,7 @@ Create multiple variables at once (more efficient than individual calls).
 
 ```json
 {
-  "collectionId": "VariableCollectionId:123/0",
+  "collection_id": "VariableCollectionId:123/0",
   "variables": [
     { "name": "background/primary", "type": "COLOR", "value": { "r": 0.07, "g": 0.07, "b": 0.07, "a": 1 } },
     { "name": "background/secondary", "type": "COLOR", "value": { "r": 0.11, "g": 0.11, "b": 0.11, "a": 1 } }
@@ -1668,7 +1682,7 @@ Create multiple variables at once (more efficient than individual calls).
 
 **Verify:** Call `get_variables` with the collection ID to confirm the variables were created:
 ```json
-{ "collectionId": "VariableCollectionId:123/0" }
+{ "collection_id": "VariableCollectionId:123/0" }
 ```
 
 ---
@@ -1679,15 +1693,15 @@ Update a variable's value for a specific mode.
 
 ```json
 {
-  "variableId": "VariableID:789/0",
+  "id": "VariableID:789/0",
   "value": { "r": 0.9, "g": 0.9, "b": 0.9, "a": 1 },
-  "modeId": "123:1"
+  "mode": "123:1"
 }
 ```
 
 **Verify:** Call `get_variables` with the collection ID to confirm the variable value was updated:
 ```json
-{ "collectionId": "VariableCollectionId:123/0" }
+{ "collection_id": "VariableCollectionId:123/0" }
 ```
 
 ---
@@ -1698,14 +1712,14 @@ Rename a variable.
 
 ```json
 {
-  "variableId": "VariableID:789/0",
+  "id": "VariableID:789/0",
   "name": "surface/primary"
 }
 ```
 
 **Verify:** Call `get_variables` with the collection ID to confirm the variable was renamed:
 ```json
-{ "collectionId": "VariableCollectionId:123/0" }
+{ "collection_id": "VariableCollectionId:123/0" }
 ```
 
 ---
@@ -1716,13 +1730,13 @@ Delete a single variable.
 
 ```json
 {
-  "variableId": "VariableID:789/0"
+  "id": "VariableID:789/0"
 }
 ```
 
 **Verify:** Call `get_variables` with the collection ID to confirm the variable was removed:
 ```json
-{ "collectionId": "VariableCollectionId:123/0" }
+{ "collection_id": "VariableCollectionId:123/0" }
 ```
 
 ---
@@ -1733,13 +1747,13 @@ Delete multiple variables at once.
 
 ```json
 {
-  "variableIds": ["VariableID:789/0", "VariableID:790/0"]
+  "ids": ["VariableID:789/0", "VariableID:790/0"]
 }
 ```
 
 **Verify:** Call `get_variables` with the collection ID to confirm the variables were removed:
 ```json
-{ "collectionId": "VariableCollectionId:123/0" }
+{ "collection_id": "VariableCollectionId:123/0" }
 ```
 
 ---
@@ -1754,8 +1768,8 @@ Generate all 10 scale variants (50–900) from a base color.
 
 ```json
 {
-  "baseColor": { "r": 0.376, "g": 0.49, "b": 1.0, "a": 1 },
-  "backgroundColor": { "r": 0.07, "g": 0.07, "b": 0.07, "a": 1 }
+  "base": { "r": 0.376, "g": 0.49, "b": 1.0, "a": 1 },
+  "background": { "r": 0.07, "g": 0.07, "b": 0.07, "a": 1 }
 }
 ```
 
@@ -1767,9 +1781,9 @@ Calculate a single composited color at a specific mix percentage.
 
 ```json
 {
-  "baseColor": { "r": 0.376, "g": 0.49, "b": 1.0, "a": 1 },
-  "backgroundColor": { "r": 0.07, "g": 0.07, "b": 0.07, "a": 1 },
-  "mixPercentage": 50
+  "base": { "r": 0.376, "g": 0.49, "b": 1.0, "a": 1 },
+  "background": { "r": 0.07, "g": 0.07, "b": 0.07, "a": 1 },
+  "mix_percentage": 0.5
 }
 ```
 
@@ -1782,8 +1796,8 @@ Convert between color formats (hex, rgba, hsl).
 ```json
 {
   "color": "#6080FF",
-  "fromFormat": "hex",
-  "toFormat": "rgba"
+  "from_format": "hex",
+  "to_format": "rgba"
 }
 ```
 
@@ -1810,7 +1824,7 @@ Compare a collection against the 102-variable standard schema.
 
 ```json
 {
-  "collectionId": "VariableCollectionId:123/0"
+  "collection_id": "VariableCollectionId:123/0"
 }
 ```
 
@@ -1822,8 +1836,8 @@ Validate all foreground/background pairs meet WCAG AA standards.
 
 ```json
 {
-  "collectionId": "VariableCollectionId:123/0",
-  "modeId": "123:0"
+  "collection_id": "VariableCollectionId:123/0",
+  "preset": "standard"
 }
 ```
 
@@ -1845,7 +1859,7 @@ Get a list of missing variables with suggested default values.
 
 ```json
 {
-  "collectionId": "VariableCollectionId:123/0"
+  "collection_id": "VariableCollectionId:123/0"
 }
 ```
 
@@ -1857,7 +1871,7 @@ Generate a formatted audit report (markdown or JSON).
 
 ```json
 {
-  "collectionId": "VariableCollectionId:123/0",
+  "collection_id": "VariableCollectionId:123/0",
   "format": "markdown"
 }
 ```
@@ -1870,7 +1884,7 @@ Export a collection as a portable JSON schema.
 
 ```json
 {
-  "collectionId": "VariableCollectionId:123/0"
+  "collection_id": "VariableCollectionId:123/0"
 }
 ```
 
@@ -1882,7 +1896,7 @@ Import variables from a JSON schema into a collection.
 
 ```json
 {
-  "collectionId": "VariableCollectionId:123/0",
+  "collection_id": "VariableCollectionId:123/0",
   "schema": {
     "variables": [
       { "name": "background/primary", "type": "COLOR", "value": { "r": 0.07, "g": 0.07, "b": 0.07, "a": 1 } }
@@ -1893,7 +1907,7 @@ Import variables from a JSON schema into a collection.
 
 **Verify:** Call `get_variables` with the collection ID to confirm the variables were imported:
 ```json
-{ "collectionId": "VariableCollectionId:123/0" }
+{ "collection_id": "VariableCollectionId:123/0" }
 ```
 
 ---
@@ -1906,8 +1920,8 @@ Apply the built-in default dark theme values to a collection.
 
 ```json
 {
-  "collectionId": "VariableCollectionId:123/0",
-  "modeId": "123:0"
+  "collection_id": "VariableCollectionId:123/0",
+  "mode": "123:0"
 }
 ```
 
@@ -1924,11 +1938,17 @@ Apply custom brand colors and regenerate all derivative scales.
 
 ```json
 {
-  "collectionId": "VariableCollectionId:123/0",
-  "modeId": "123:0",
+  "collection_id": "VariableCollectionId:123/0",
+  "background": { "r": 0.07, "g": 0.07, "b": 0.07, "a": 1 },
   "palette": {
-    "blue": { "r": 0.376, "g": 0.49, "b": 1.0, "a": 1 },
-    "green": { "r": 0.22, "g": 0.8, "b": 0.46, "a": 1 }
+    "blue": {
+      "base": { "r": 0.376, "g": 0.49, "b": 1.0, "a": 1 },
+      "foreground": { "r": 0.95, "g": 0.97, "b": 1.0, "a": 1 }
+    },
+    "green": {
+      "base": { "r": 0.22, "g": 0.8, "b": 0.46, "a": 1 },
+      "foreground": { "r": 0.03, "g": 0.08, "b": 0.05, "a": 1 }
+    }
   }
 }
 ```
@@ -1946,16 +1966,17 @@ Create a complete scale for one color (base + foreground + 10 scale variants).
 
 ```json
 {
-  "collectionId": "VariableCollectionId:123/0",
-  "colorName": "blue",
-  "baseColor": { "r": 0.376, "g": 0.49, "b": 1.0, "a": 1 },
-  "backgroundColor": { "r": 0.07, "g": 0.07, "b": 0.07, "a": 1 }
+  "collection_id": "VariableCollectionId:123/0",
+  "color_name": "brand-blue-demo",
+  "base": { "r": 0.376, "g": 0.49, "b": 1.0, "a": 1 },
+  "foreground": { "r": 0.95, "g": 0.97, "b": 1.0, "a": 1 },
+  "background": { "r": 0.07, "g": 0.07, "b": 0.07, "a": 1 }
 }
 ```
 
 **Verify:** Call `get_variables` with the collection ID to confirm the color scale variables were created:
 ```json
-{ "collectionId": "VariableCollectionId:123/0" }
+{ "collection_id": "VariableCollectionId:123/0" }
 ```
 
 ---
@@ -1966,15 +1987,23 @@ Create all 7 color scales at once (70 scale variants total).
 
 ```json
 {
-  "collectionId": "VariableCollectionId:123/0",
-  "modeId": "123:0",
-  "backgroundColor": { "r": 0.07, "g": 0.07, "b": 0.07, "a": 1 }
+  "collection_id": "VariableCollectionId:123/0",
+  "background": { "r": 0.07, "g": 0.07, "b": 0.07, "a": 1 },
+  "colors": {
+    "demo-primary": { "r": 0.376, "g": 0.49, "b": 1.0, "a": 1 },
+    "demo-secondary": { "r": 0.22, "g": 0.8, "b": 0.46, "a": 1 },
+    "demo-accent": { "r": 0.95, "g": 0.7, "b": 0.2, "a": 1 },
+    "demo-success": { "r": 0.2, "g": 0.78, "b": 0.35, "a": 1 },
+    "demo-info": { "r": 0.23, "g": 0.5, "b": 0.95, "a": 1 },
+    "demo-warning": { "r": 0.95, "g": 0.62, "b": 0.2, "a": 1 },
+    "demo-destructive": { "r": 0.9, "g": 0.2, "b": 0.2, "a": 1 }
+  }
 }
 ```
 
 **Verify:** Call `get_variables` with the collection ID to confirm all scale variables were created:
 ```json
-{ "collectionId": "VariableCollectionId:123/0" }
+{ "collection_id": "VariableCollectionId:123/0" }
 ```
 
 ---
@@ -1985,14 +2014,14 @@ Add 8 chart color variables to a collection.
 
 ```json
 {
-  "collectionId": "VariableCollectionId:123/0",
-  "modeId": "123:0"
+  "collection_id": "VariableCollectionId:123/0",
+  "mode": "123:0"
 }
 ```
 
 **Verify:** Call `get_variables` with the collection ID to confirm the chart color variables were added:
 ```json
-{ "collectionId": "VariableCollectionId:123/0" }
+{ "collection_id": "VariableCollectionId:123/0" }
 ```
 
 ---
@@ -2003,8 +2032,8 @@ Auto-fix a collection to match the 102-variable standard (adds missing, renames 
 
 ```json
 {
-  "collectionId": "VariableCollectionId:123/0",
-  "modeId": "123:0"
+  "collection_id": "VariableCollectionId:123/0",
+  "mode": "123:0"
 }
 ```
 
@@ -2021,13 +2050,13 @@ Reorder variables to match standard organization (by category and name).
 
 ```json
 {
-  "collectionId": "VariableCollectionId:123/0"
+  "collection_id": "VariableCollectionId:123/0"
 }
 ```
 
 **Verify:** Call `get_variables` with the collection ID to confirm the variable order was updated:
 ```json
-{ "collectionId": "VariableCollectionId:123/0" }
+{ "collection_id": "VariableCollectionId:123/0" }
 ```
 
 ---
@@ -2038,15 +2067,14 @@ Create a complete spacing token system (8pt or 4pt grid).
 
 ```json
 {
-  "collectionId": "VariableCollectionId:123/0",
-  "modeId": "123:0",
-  "gridUnit": 8
+  "collection_id": "VariableCollectionId:123/0",
+  "preset": "8pt"
 }
 ```
 
 **Verify:** Call `get_variables` with the collection ID to confirm the spacing variables were created:
 ```json
-{ "collectionId": "VariableCollectionId:123/0" }
+{ "collection_id": "VariableCollectionId:123/0" }
 ```
 
 ---
@@ -2057,15 +2085,14 @@ Create a complete typography token system (font sizes, weights, line heights).
 
 ```json
 {
-  "collectionId": "VariableCollectionId:123/0",
-  "modeId": "123:0",
-  "fontFamily": "Inter"
+  "collection_id": "VariableCollectionId:123/0",
+  "scale_preset": "major-third"
 }
 ```
 
 **Verify:** Call `get_variables` with the collection ID to confirm the typography variables were created:
 ```json
-{ "collectionId": "VariableCollectionId:123/0" }
+{ "collection_id": "VariableCollectionId:123/0" }
 ```
 
 ---
@@ -2076,30 +2103,31 @@ Create a border-radius token system.
 
 ```json
 {
-  "collectionId": "VariableCollectionId:123/0",
-  "modeId": "123:0"
+  "collection_id": "VariableCollectionId:123/0",
+  "mode": "123:0"
 }
 ```
 
 **Verify:** Call `get_variables` with the collection ID to confirm the radius variables were created:
 ```json
-{ "collectionId": "VariableCollectionId:123/0" }
+{ "collection_id": "VariableCollectionId:123/0" }
 ```
 
 ---
 
 ### `create_complete_design_system`
 
-> **⚠️ Not testable on free Figma plan.** This tool creates a multi-mode collection (e.g., Light + Dark). The free plan is limited to 1 mode per collection, causing creation to fail. Test on a paid Figma plan.
+> **⚠️ Current known limitation:** In this MCP version, this call can fail with `invalid variable name` on some files/presets. Also, free Figma plan files must pass a single mode (for example `modes: ["dark"]`).
 
 Bootstrap a full design system (colors + spacing + typography + radius) in one call.
 
 ```json
 {
-  "collectionId": "VariableCollectionId:123/0",
-  "modeId": "123:0",
-  "fontFamily": "Inter",
-  "gridUnit": 8
+  "collection_name": "Design Tokens Demo",
+  "modes": ["dark"],
+  "typography_preset": "major-third",
+  "spacing_preset": "8pt",
+  "radius_preset": "standard"
 }
 ```
 
@@ -2115,7 +2143,7 @@ Add a new mode (e.g., Light, High Contrast) to a collection.
 
 ```json
 {
-  "collectionId": "VariableCollectionId:123/0",
+  "collection_id": "VariableCollectionId:123/0",
   "modeName": "light"
 }
 ```
@@ -2128,9 +2156,9 @@ Rename an existing mode.
 
 ```json
 {
-  "collectionId": "VariableCollectionId:123/0",
-  "modeId": "123:1",
-  "newName": "Light Mode"
+  "id": "VariableCollectionId:123/0",
+  "old_name": "light",
+  "new_name": "Light Mode"
 }
 ```
 
@@ -2149,8 +2177,8 @@ Delete a mode from a collection (cannot delete the last mode).
 
 ```json
 {
-  "collectionId": "VariableCollectionId:123/0",
-  "modeId": "123:1"
+  "id": "VariableCollectionId:123/0",
+  "name": "light"
 }
 ```
 
@@ -2164,9 +2192,9 @@ Copy all variable values from one mode to another.
 
 ```json
 {
-  "collectionId": "VariableCollectionId:123/0",
-  "sourceModeId": "123:0",
-  "targetModeId": "123:1"
+  "id": "VariableCollectionId:123/0",
+  "from": "dark",
+  "to": "light"
 }
 ```
 
@@ -2183,12 +2211,11 @@ Create or fully update a design system in a single compound call. Accepts variab
   "collections": [
     {
       "name": "Theme",
-      "modes": ["dark", "light"],
       "variables": [
         {
           "name": "background/primary",
           "type": "COLOR",
-          "values": { "dark": { "r": 0.07, "g": 0.07, "b": 0.07, "a": 1 }, "light": { "r": 1, "g": 1, "b": 1, "a": 1 } }
+          "value": { "r": 0.07, "g": 0.07, "b": 0.07, "a": 1 }
         }
       ]
     }
@@ -2225,7 +2252,7 @@ Create or update a single annotation on a node.
 ```json
 {
   "nodeId": "123:456",
-  "label": "Primary CTA — tap triggers checkout flow",
+  "labelMarkdown": "Primary CTA — tap triggers checkout flow",
   "categoryId": "interaction"
 }
 ```
@@ -2245,8 +2272,8 @@ Set many annotations at once.
 {
   "nodeId": "123:000",
   "annotations": [
-    { "nodeId": "123:456", "label": "Header — sticky on scroll" },
-    { "nodeId": "123:789", "label": "Tab bar — always visible" }
+    { "nodeId": "123:456", "labelMarkdown": "Header — sticky on scroll" },
+    { "nodeId": "123:789", "labelMarkdown": "Tab bar — always visible" }
   ]
 }
 ```
@@ -2275,7 +2302,7 @@ Create a custom annotation category.
 ```json
 {
   "label": "Accessibility",
-  "color": { "r": 0.4, "g": 0.8, "b": 0.4, "a": 1 }
+  "color": "green"
 }
 ```
 
@@ -2294,7 +2321,7 @@ Update an existing annotation category.
 {
   "categoryId": "custom-cat-123",
   "label": "A11y",
-  "color": { "r": 0.2, "g": 0.7, "b": 0.3, "a": 1 }
+  "color": "teal"
 }
 ```
 
@@ -2339,6 +2366,8 @@ Get all Figma prototype reactions for a set of nodes.
 ### `set_default_connector`
 
 Set a connector node as the default style for new connections.
+
+> **⚠️ Connector required:** `connectorId` must reference an existing connector node (typically in FigJam). In Design files without connectors, this call cannot be validated.
 
 ```json
 {
@@ -2390,10 +2419,12 @@ Export a node as a base64-encoded image.
 
 Export a node via Figma REST API and return a CDN URL. Best for large nodes (>4000px).
 
+> **Precondition:** Requires `FIGMA_ACCESS_TOKEN` (or CLI `--figma-token`) configured for REST API access.
+
 ```json
 {
   "nodeId": "123:456",
-  "format": "PNG",
+  "format": "png",
   "scale": 1
 }
 ```
@@ -2477,7 +2508,7 @@ Create a new page in the document.
 
 ```json
 {
-  "name": "Components"
+  "name": "Components Test"
 }
 ```
 
