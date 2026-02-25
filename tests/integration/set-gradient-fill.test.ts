@@ -54,8 +54,8 @@ describe("set_gradient_fill tool integration", () => {
       mockSendCommand.mockResolvedValue({ id: "1:2", name: "Rect", gradientType: "LINEAR", stopsCount: 2 });
       const res = await callTool("set_gradient_fill", {
         nodeId: "1:2",
-        gradientType: "LINEAR",
-        gradientStops: twoStops,
+        type: "LINEAR",
+        stops: twoStops,
       });
       expect(mockSendCommand).toHaveBeenCalledWith(
         "set_gradient_fill",
@@ -68,8 +68,8 @@ describe("set_gradient_fill tool integration", () => {
       mockSendCommand.mockResolvedValue({ id: "1:2", name: "Rect", gradientType: "RADIAL", stopsCount: 2 });
       const res = await callTool("set_gradient_fill", {
         nodeId: "1:2",
-        gradientType: "RADIAL",
-        gradientStops: twoStops,
+        type: "RADIAL",
+        stops: twoStops,
       });
       expect(mockSendCommand).toHaveBeenCalledWith(
         "set_gradient_fill",
@@ -80,7 +80,7 @@ describe("set_gradient_fill tool integration", () => {
 
     it("sends ANGULAR gradient", async () => {
       mockSendCommand.mockResolvedValue({ id: "1:2", name: "Rect", gradientType: "ANGULAR", stopsCount: 2 });
-      await callTool("set_gradient_fill", { nodeId: "1:2", gradientType: "ANGULAR", gradientStops: twoStops });
+      await callTool("set_gradient_fill", { nodeId: "1:2", type: "ANGULAR", stops: twoStops });
       expect(mockSendCommand).toHaveBeenCalledWith(
         "set_gradient_fill",
         expect.objectContaining({ gradientType: "ANGULAR" }),
@@ -89,7 +89,7 @@ describe("set_gradient_fill tool integration", () => {
 
     it("sends DIAMOND gradient", async () => {
       mockSendCommand.mockResolvedValue({ id: "1:2", name: "Rect", gradientType: "DIAMOND", stopsCount: 2 });
-      await callTool("set_gradient_fill", { nodeId: "1:2", gradientType: "DIAMOND", gradientStops: twoStops });
+      await callTool("set_gradient_fill", { nodeId: "1:2", type: "DIAMOND", stops: twoStops });
       expect(mockSendCommand).toHaveBeenCalledWith(
         "set_gradient_fill",
         expect.objectContaining({ gradientType: "DIAMOND" }),
@@ -98,7 +98,7 @@ describe("set_gradient_fill tool integration", () => {
 
     it("rejects invalid gradient type", async () => {
       await expect(
-        callTool("set_gradient_fill", { nodeId: "1:2", gradientType: "INVALID", gradientStops: twoStops }),
+        callTool("set_gradient_fill", { nodeId: "1:2", type: "INVALID", stops: twoStops }),
       ).rejects.toThrow();
     });
   });
@@ -106,10 +106,10 @@ describe("set_gradient_fill tool integration", () => {
   describe("gradient stops", () => {
     it("passes stops through without alpha defaulting (plugin handles defaults)", async () => {
       mockSendCommand.mockResolvedValue({ id: "1:2", name: "Rect", gradientType: "LINEAR", stopsCount: 2 });
-      await callTool("set_gradient_fill", { nodeId: "1:2", gradientType: "LINEAR", gradientStops: twoStops });
+      await callTool("set_gradient_fill", { nodeId: "1:2", type: "LINEAR", stops: twoStops });
       const call = mockSendCommand.mock.calls[0][1];
-      expect(call.gradientStops[0].color.a).toBeUndefined();
-      expect(call.gradientStops[1].color.a).toBeUndefined();
+      expect(call.stops[0].color.a).toBeUndefined();
+      expect(call.stops[1].color.a).toBeUndefined();
     });
 
     it("preserves explicit alpha values", async () => {
@@ -118,18 +118,18 @@ describe("set_gradient_fill tool integration", () => {
         { color: { r: 1, g: 0, b: 0, a: 0.5 }, position: 0 },
         { color: { r: 0, g: 0, b: 1, a: 0.8 }, position: 1 },
       ];
-      await callTool("set_gradient_fill", { nodeId: "1:2", gradientType: "LINEAR", gradientStops: stops });
+      await callTool("set_gradient_fill", { nodeId: "1:2", type: "LINEAR", stops: stops });
       const call = mockSendCommand.mock.calls[0][1];
-      expect(call.gradientStops[0].color.a).toBe(0.5);
-      expect(call.gradientStops[1].color.a).toBe(0.8);
+      expect(call.stops[0].color.a).toBe(0.5);
+      expect(call.stops[1].color.a).toBe(0.8);
     });
 
     it("rejects fewer than 2 stops", async () => {
       await expect(
         callTool("set_gradient_fill", {
           nodeId: "1:2",
-          gradientType: "LINEAR",
-          gradientStops: [{ color: { r: 1, g: 0, b: 0 }, position: 0 }],
+          type: "LINEAR",
+          stops: [{ color: { r: 1, g: 0, b: 0 }, position: 0 }],
         }),
       ).rejects.toThrow();
     });
@@ -138,7 +138,7 @@ describe("set_gradient_fill tool integration", () => {
   describe("optional parameters", () => {
     it("defaults angle to 0", async () => {
       mockSendCommand.mockResolvedValue({ id: "1:2", name: "Rect", gradientType: "LINEAR", stopsCount: 2 });
-      await callTool("set_gradient_fill", { nodeId: "1:2", gradientType: "LINEAR", gradientStops: twoStops });
+      await callTool("set_gradient_fill", { nodeId: "1:2", type: "LINEAR", stops: twoStops });
       expect(mockSendCommand.mock.calls[0][1].angle).toBe(0);
     });
 
@@ -146,8 +146,8 @@ describe("set_gradient_fill tool integration", () => {
       mockSendCommand.mockResolvedValue({ id: "1:2", name: "Rect", gradientType: "LINEAR", stopsCount: 2 });
       await callTool("set_gradient_fill", {
         nodeId: "1:2",
-        gradientType: "LINEAR",
-        gradientStops: twoStops,
+        type: "LINEAR",
+        stops: twoStops,
         angle: 45,
       });
       expect(mockSendCommand.mock.calls[0][1].angle).toBe(45);
@@ -155,7 +155,7 @@ describe("set_gradient_fill tool integration", () => {
 
     it("defaults opacity to 1", async () => {
       mockSendCommand.mockResolvedValue({ id: "1:2", name: "Rect", gradientType: "LINEAR", stopsCount: 2 });
-      await callTool("set_gradient_fill", { nodeId: "1:2", gradientType: "LINEAR", gradientStops: twoStops });
+      await callTool("set_gradient_fill", { nodeId: "1:2", type: "LINEAR", stops: twoStops });
       expect(mockSendCommand.mock.calls[0][1].opacity).toBe(1);
     });
 
@@ -163,8 +163,8 @@ describe("set_gradient_fill tool integration", () => {
       mockSendCommand.mockResolvedValue({ id: "1:2", name: "Rect", gradientType: "LINEAR", stopsCount: 2 });
       await callTool("set_gradient_fill", {
         nodeId: "1:2",
-        gradientType: "LINEAR",
-        gradientStops: twoStops,
+        type: "LINEAR",
+        stops: twoStops,
         opacity: 0.5,
       });
       expect(mockSendCommand.mock.calls[0][1].opacity).toBe(0.5);
@@ -176,8 +176,8 @@ describe("set_gradient_fill tool integration", () => {
       mockSendCommand.mockRejectedValue(new Error("Node not found"));
       const res = await callTool("set_gradient_fill", {
         nodeId: "1:2",
-        gradientType: "LINEAR",
-        gradientStops: twoStops,
+        type: "LINEAR",
+        stops: twoStops,
       });
       expect(res.content[0].text).toContain("Error setting gradient fill");
       expect(res.content[0].text).toContain("Node not found");

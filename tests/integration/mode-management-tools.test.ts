@@ -66,8 +66,8 @@ describe("mode management tools", () => {
 
     it("successfully adds a new mode to collection", async () => {
       const response = await callTool("add_mode_to_collection", {
-        collection_id: "col-123",
-        mode_name: "Dark",
+        id: "col-123",
+        name: "Dark",
       });
 
       expect(mockSendCommand).toHaveBeenCalledTimes(1);
@@ -81,8 +81,8 @@ describe("mode management tools", () => {
 
     it("accepts collection name instead of ID", async () => {
       const response = await callTool("add_mode_to_collection", {
-        collection_id: "Design Tokens",
-        mode_name: "Brand",
+        id: "Design Tokens",
+        name: "Brand",
       });
 
       expect(mockSendCommand).toHaveBeenCalledWith("add_mode_to_collection", {
@@ -94,7 +94,7 @@ describe("mode management tools", () => {
     it("validates mode name is provided", async () => {
       await expect(
         callTool("add_mode_to_collection", {
-          collection_id: "col-123",
+          id: "col-123",
         }),
       ).rejects.toThrow();
     });
@@ -118,9 +118,9 @@ describe("mode management tools", () => {
 
     it("successfully renames a mode", async () => {
       const response = await callTool("rename_mode", {
-        collection_id: "col-123",
-        old_mode_name: "Mode 1",
-        new_mode_name: "Light",
+        id: "col-123",
+        old_name: "Mode 1",
+        new_name: "Light",
       });
 
       expect(mockSendCommand).toHaveBeenCalledTimes(1);
@@ -137,15 +137,15 @@ describe("mode management tools", () => {
     it("validates both old and new names are provided", async () => {
       await expect(
         callTool("rename_mode", {
-          collection_id: "col-123",
-          old_mode_name: "Mode 1",
+          id: "col-123",
+          old_name: "Mode 1",
         }),
       ).rejects.toThrow();
 
       await expect(
         callTool("rename_mode", {
-          collection_id: "col-123",
-          new_mode_name: "Light",
+          id: "col-123",
+          new_name: "Light",
         }),
       ).rejects.toThrow();
     });
@@ -168,8 +168,8 @@ describe("mode management tools", () => {
 
     it("successfully deletes a mode", async () => {
       const response = await callTool("delete_mode", {
-        collection_id: "col-123",
-        mode_name: "Deprecated",
+        id: "col-123",
+        name: "Deprecated",
       });
 
       expect(mockSendCommand).toHaveBeenCalledTimes(1);
@@ -185,8 +185,8 @@ describe("mode management tools", () => {
       mockSendCommand.mockRejectedValue(new Error("Cannot delete the last mode"));
 
       const response = await callTool("delete_mode", {
-        collection_id: "col-123",
-        mode_name: "Light",
+        id: "col-123",
+        name: "Light",
       });
 
       expect(response.content[0].text).toContain("Error");
@@ -196,7 +196,7 @@ describe("mode management tools", () => {
     it("validates mode name is provided", async () => {
       await expect(
         callTool("delete_mode", {
-          collection_id: "col-123",
+          id: "col-123",
         }),
       ).rejects.toThrow();
     });
@@ -221,9 +221,9 @@ describe("mode management tools", () => {
 
     it("successfully duplicates mode values without transformations", async () => {
       const response = await callTool("duplicate_mode_values", {
-        collection_id: "col-123",
-        source_mode: "Light",
-        target_mode: "Dark",
+        id: "col-123",
+        from: "Light",
+        to: "Dark",
       });
 
       expect(mockSendCommand).toHaveBeenCalledTimes(1);
@@ -241,9 +241,9 @@ describe("mode management tools", () => {
 
     it("successfully duplicates with brightness adjustment", async () => {
       const response = await callTool("duplicate_mode_values", {
-        collection_id: "col-123",
-        source_mode: "Light",
-        target_mode: "Dark",
+        id: "col-123",
+        from: "Light",
+        to: "Dark",
         transform_colors: {
           brightness_adjustment: -0.2,
         },
@@ -264,9 +264,9 @@ describe("mode management tools", () => {
       mockSendCommand.mockRejectedValue(new Error("Source and target modes must be different"));
 
       const response = await callTool("duplicate_mode_values", {
-        collection_id: "col-123",
-        source_mode: "Light",
-        target_mode: "Light",
+        id: "col-123",
+        from: "Light",
+        to: "Light",
       });
 
       expect(response.content[0].text).toContain("Error");
@@ -275,8 +275,8 @@ describe("mode management tools", () => {
     it("validates both modes are provided", async () => {
       await expect(
         callTool("duplicate_mode_values", {
-          collection_id: "col-123",
-          source_mode: "Light",
+          id: "col-123",
+          from: "Light",
         }),
       ).rejects.toThrow();
     });
@@ -291,8 +291,8 @@ describe("mode management tools", () => {
       mockSendCommand.mockRejectedValue(new Error("Collection not found"));
 
       const response = await callTool("add_mode_to_collection", {
-        collection_id: "invalid-id",
-        mode_name: "Dark",
+        id: "invalid-id",
+        name: "Dark",
       });
 
       expect(response.content[0].text).toContain("Error");
@@ -303,9 +303,9 @@ describe("mode management tools", () => {
       mockSendCommand.mockRejectedValue(new Error("Mode not found"));
 
       const response = await callTool("rename_mode", {
-        collection_id: "col-123",
-        old_mode_name: "NonExistent",
-        new_mode_name: "Light",
+        id: "col-123",
+        old_name: "NonExistent",
+        new_name: "Light",
       });
 
       expect(response.content[0].text).toContain("Error");
@@ -316,8 +316,8 @@ describe("mode management tools", () => {
       mockSendCommand.mockRejectedValue(new Error("Mode with this name already exists"));
 
       const response = await callTool("add_mode_to_collection", {
-        collection_id: "col-123",
-        mode_name: "Light",
+        id: "col-123",
+        name: "Light",
       });
 
       expect(response.content[0].text).toContain("Error");

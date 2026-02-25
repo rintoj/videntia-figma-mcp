@@ -70,9 +70,9 @@ export function registerModificationTools(server: McpServer): void {
       g: z.coerce.number().min(0).max(1).describe("Green component (0-1)"),
       b: z.coerce.number().min(0).max(1).describe("Blue component (0-1)"),
       a: z.coerce.number().min(0).max(1).optional().describe("Alpha component (0-1)"),
-      strokeWeight: z.coerce.number().min(0).optional().describe("Stroke weight >= 0)"),
+      weight: z.coerce.number().min(0).optional().describe("Stroke weight >= 0)"),
     },
-    async ({ nodeId, r, g, b, a, strokeWeight }) => {
+    async ({ nodeId, r, g, b, a, weight }) => {
       try {
         if (r === undefined || g === undefined || b === undefined) {
           throw new Error("RGB components (r, g, b) are required and cannot be undefined");
@@ -81,7 +81,7 @@ export function registerModificationTools(server: McpServer): void {
         const colorInput: Color = { r, g, b, a };
         const colorWithDefaults = applyColorDefaults(colorInput);
 
-        const strokeWeightWithDefault = applyDefault(strokeWeight, FIGMA_DEFAULTS.stroke.weight);
+        const strokeWeightWithDefault = applyDefault(weight, FIGMA_DEFAULTS.stroke.weight);
 
         const result = await sendCommandToFigma("set_stroke_color", {
           nodeId,
@@ -253,22 +253,22 @@ export function registerModificationTools(server: McpServer): void {
     "Set the layout mode and wrap behavior of a frame in Figma",
     {
       nodeId: z.string().describe("The ID of the frame to modify"),
-      layoutMode: z.enum(["NONE", "HORIZONTAL", "VERTICAL"]).describe("Layout mode for the frame"),
-      layoutWrap: z.enum(["NO_WRAP", "WRAP"]).optional().describe("Whether the auto-layout frame wraps its children"),
+      mode: z.enum(["NONE", "HORIZONTAL", "VERTICAL"]).describe("Layout mode for the frame"),
+      wrap: z.enum(["NO_WRAP", "WRAP"]).optional().describe("Whether the auto-layout frame wraps its children"),
     },
-    async ({ nodeId, layoutMode, layoutWrap }) => {
+    async ({ nodeId, mode, wrap }) => {
       try {
         const result = await sendCommandToFigma("set_layout_mode", {
           nodeId,
-          layoutMode,
-          layoutWrap: layoutWrap || "NO_WRAP",
+          layoutMode: mode,
+          layoutWrap: wrap || "NO_WRAP",
         });
         const typedResult = result as { name: string };
         return {
           content: [
             {
               type: "text",
-              text: `Set layout mode of frame "${typedResult.name}" to ${layoutMode}`,
+              text: `Set layout mode of frame "${typedResult.name}" to ${mode}`,
             },
           ],
         };
@@ -291,27 +291,27 @@ export function registerModificationTools(server: McpServer): void {
     "Set padding values for an auto-layout frame in Figma",
     {
       nodeId: z.string().describe("The ID of the frame to modify"),
-      paddingTop: z.coerce.number().optional().describe("Top padding value"),
-      paddingRight: z.coerce.number().optional().describe("Right padding value"),
-      paddingBottom: z.coerce.number().optional().describe("Bottom padding value"),
-      paddingLeft: z.coerce.number().optional().describe("Left padding value"),
+      top: z.coerce.number().optional().describe("Top padding value"),
+      right: z.coerce.number().optional().describe("Right padding value"),
+      bottom: z.coerce.number().optional().describe("Bottom padding value"),
+      left: z.coerce.number().optional().describe("Left padding value"),
     },
-    async ({ nodeId, paddingTop, paddingRight, paddingBottom, paddingLeft }) => {
+    async ({ nodeId, top, right, bottom, left }) => {
       try {
         const result = await sendCommandToFigma("set_padding", {
           nodeId,
-          paddingTop,
-          paddingRight,
-          paddingBottom,
-          paddingLeft,
+          paddingTop: top,
+          paddingRight: right,
+          paddingBottom: bottom,
+          paddingLeft: left,
         });
         const typedResult = result as { name: string };
 
         const paddingMessages = [];
-        if (paddingTop !== undefined) paddingMessages.push(`top: ${paddingTop}`);
-        if (paddingRight !== undefined) paddingMessages.push(`right: ${paddingRight}`);
-        if (paddingBottom !== undefined) paddingMessages.push(`bottom: ${paddingBottom}`);
-        if (paddingLeft !== undefined) paddingMessages.push(`left: ${paddingLeft}`);
+        if (top !== undefined) paddingMessages.push(`top: ${top}`);
+        if (right !== undefined) paddingMessages.push(`right: ${right}`);
+        if (bottom !== undefined) paddingMessages.push(`bottom: ${bottom}`);
+        if (left !== undefined) paddingMessages.push(`left: ${left}`);
 
         const paddingText = paddingMessages.length > 0 ? `padding (${paddingMessages.join(", ")})` : "padding";
 
@@ -390,21 +390,21 @@ export function registerModificationTools(server: McpServer): void {
     "Set horizontal and vertical sizing modes for an auto-layout frame",
     {
       nodeId: z.string().describe("The ID of the frame to modify"),
-      layoutSizingHorizontal: z.enum(["FIXED", "HUG", "FILL"]).optional().describe("Horizontal sizing mode"),
-      layoutSizingVertical: z.enum(["FIXED", "HUG", "FILL"]).optional().describe("Vertical sizing mode"),
+      horizontal: z.enum(["FIXED", "HUG", "FILL"]).optional().describe("Horizontal sizing mode"),
+      vertical: z.enum(["FIXED", "HUG", "FILL"]).optional().describe("Vertical sizing mode"),
     },
-    async ({ nodeId, layoutSizingHorizontal, layoutSizingVertical }) => {
+    async ({ nodeId, horizontal, vertical }) => {
       try {
         const result = await sendCommandToFigma("set_layout_sizing", {
           nodeId,
-          layoutSizingHorizontal,
-          layoutSizingVertical,
+          layoutSizingHorizontal: horizontal,
+          layoutSizingVertical: vertical,
         });
         const typedResult = result as { name: string };
 
         const sizingMessages = [];
-        if (layoutSizingHorizontal !== undefined) sizingMessages.push(`horizontal: ${layoutSizingHorizontal}`);
-        if (layoutSizingVertical !== undefined) sizingMessages.push(`vertical: ${layoutSizingVertical}`);
+        if (horizontal !== undefined) sizingMessages.push(`horizontal: ${horizontal}`);
+        if (vertical !== undefined) sizingMessages.push(`vertical: ${vertical}`);
 
         const sizingText = sizingMessages.length > 0 ? `layout sizing (${sizingMessages.join(", ")})` : "layout sizing";
 
@@ -435,13 +435,13 @@ export function registerModificationTools(server: McpServer): void {
     "Set distance between children in an auto-layout frame",
     {
       nodeId: z.string().describe("The ID of the frame to modify"),
-      itemSpacing: z.coerce.number().optional().describe("Distance between children"),
+      gap: z.coerce.number().optional().describe("Distance between children"),
       counterAxisSpacing: z.coerce.number().optional().describe("Distance between wrapped rows/columns"),
     },
-    async ({ nodeId, itemSpacing, counterAxisSpacing }) => {
+    async ({ nodeId, gap, counterAxisSpacing }) => {
       try {
         const params: any = { nodeId };
-        if (itemSpacing !== undefined) params.itemSpacing = itemSpacing;
+        if (gap !== undefined) params.itemSpacing = gap;
         if (counterAxisSpacing !== undefined) params.counterAxisSpacing = counterAxisSpacing;
 
         const result = await sendCommandToFigma("set_item_spacing", params);
@@ -452,7 +452,7 @@ export function registerModificationTools(server: McpServer): void {
         };
 
         let message = `Updated spacing for frame "${typedResult.name}":`;
-        if (itemSpacing !== undefined) message += ` itemSpacing=${itemSpacing}`;
+        if (gap !== undefined) message += ` gap=${gap}`;
         if (counterAxisSpacing !== undefined) message += ` counterAxisSpacing=${counterAxisSpacing}`;
 
         return {
@@ -524,61 +524,61 @@ export function registerModificationTools(server: McpServer): void {
     "Configure auto layout properties for a node in Figma. Note: FILL sizing is only valid when the node is a child of another auto-layout frame. For top-level or standalone frames, use FIXED or HUG.",
     {
       nodeId: z.string().describe("The ID of the node to configure auto layout"),
-      layoutMode: z.enum(["HORIZONTAL", "VERTICAL", "NONE"]).describe("Layout direction"),
-      paddingTop: z.coerce.number().optional().describe("Top padding in pixels"),
-      paddingBottom: z.coerce.number().optional().describe("Bottom padding in pixels"),
-      paddingLeft: z.coerce.number().optional().describe("Left padding in pixels"),
-      paddingRight: z.coerce.number().optional().describe("Right padding in pixels"),
-      itemSpacing: z.coerce.number().optional().describe("Spacing between items in pixels"),
+      mode: z.enum(["HORIZONTAL", "VERTICAL", "NONE"]).describe("Layout direction"),
+      top: z.coerce.number().optional().describe("Top padding in pixels"),
+      bottom: z.coerce.number().optional().describe("Bottom padding in pixels"),
+      left: z.coerce.number().optional().describe("Left padding in pixels"),
+      right: z.coerce.number().optional().describe("Right padding in pixels"),
+      gap: z.coerce.number().optional().describe("Spacing between items in pixels"),
       primaryAxisAlignItems: z
         .enum(["MIN", "CENTER", "MAX", "SPACE_BETWEEN"])
         .optional()
         .describe("Alignment along primary axis"),
       counterAxisAlignItems: z.enum(["MIN", "CENTER", "MAX"]).optional().describe("Alignment along counter axis"),
-      layoutWrap: z.enum(["WRAP", "NO_WRAP"]).optional().describe("Whether items wrap to new lines"),
+      wrap: z.enum(["WRAP", "NO_WRAP"]).optional().describe("Whether items wrap to new lines"),
       strokesIncludedInLayout: z.coerce.boolean().optional().describe("Whether strokes are included in layout calculations"),
       clipsContent: z.coerce.boolean().optional().describe("Whether to clip content outside frame bounds"),
-      layoutSizingHorizontal: z
+      horizontal: z
         .enum(["FIXED", "HUG", "FILL"])
         .optional()
         .describe("Horizontal sizing mode. FILL only works inside an auto-layout parent; defaults to FIXED for top-level frames, FILL for nested frames."),
-      layoutSizingVertical: z
+      vertical: z
         .enum(["FIXED", "HUG", "FILL"])
         .optional()
         .describe("Vertical sizing mode. FILL only works inside an auto-layout parent; defaults to HUG."),
     },
     async ({
       nodeId,
-      layoutMode,
-      paddingTop,
-      paddingBottom,
-      paddingLeft,
-      paddingRight,
-      itemSpacing,
+      mode,
+      top,
+      bottom,
+      left,
+      right,
+      gap,
       primaryAxisAlignItems,
       counterAxisAlignItems,
-      layoutWrap,
+      wrap,
       strokesIncludedInLayout,
       clipsContent,
-      layoutSizingHorizontal,
-      layoutSizingVertical,
+      horizontal,
+      vertical,
     }) => {
       try {
         const result = await sendCommandToFigma("set_auto_layout", {
           nodeId,
-          layoutMode,
-          paddingTop,
-          paddingBottom,
-          paddingLeft,
-          paddingRight,
-          itemSpacing,
+          layoutMode: mode,
+          paddingTop: top,
+          paddingBottom: bottom,
+          paddingLeft: left,
+          paddingRight: right,
+          itemSpacing: gap,
           primaryAxisAlignItems,
           counterAxisAlignItems,
-          layoutWrap,
+          layoutWrap: wrap,
           strokesIncludedInLayout,
           clipsContent,
-          layoutSizingHorizontal,
-          layoutSizingVertical,
+          layoutSizingHorizontal: horizontal,
+          layoutSizingVertical: vertical,
         });
 
         const typedResult = result as { name: string };
@@ -586,7 +586,7 @@ export function registerModificationTools(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: `Applied auto layout to node "${typedResult.name}" with mode: ${layoutMode}`,
+              text: `Applied auto layout to node "${typedResult.name}" with mode: ${mode}`,
             },
           ],
         };
@@ -1083,7 +1083,7 @@ export function registerModificationTools(server: McpServer): void {
     "Set a gradient fill on a node. Supports LINEAR, RADIAL, ANGULAR, and DIAMOND gradient types.",
     {
       nodeId: z.string().describe("The ID of the node to modify"),
-      gradientType: z.enum(["LINEAR", "RADIAL", "ANGULAR", "DIAMOND"]).describe("Type of gradient"),
+      type: z.enum(["LINEAR", "RADIAL", "ANGULAR", "DIAMOND"]).describe("Type of gradient"),
       stops: coerceArray(
         z
           .array(
@@ -1102,11 +1102,11 @@ export function registerModificationTools(server: McpServer): void {
       angle: z.coerce.number().optional().describe("Gradient angle in degrees (LINEAR only, default 0)"),
       opacity: z.coerce.number().min(0).max(1).optional().describe("Overall fill opacity (0-1, default 1)"),
     },
-    async ({ nodeId, gradientType, stops, angle, opacity }) => {
+    async ({ nodeId, type, stops, angle, opacity }) => {
       try {
         const result = await sendCommandToFigma("set_gradient_fill", {
           nodeId,
-          gradientType,
+          gradientType: type,
           stops,
           angle: angle ?? 0,
           opacity: opacity ?? 1,
@@ -1123,7 +1123,7 @@ export function registerModificationTools(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: `Set ${typedResult.gradientType} gradient fill on "${typedResult.name}" with ${typedResult.stopsCount} stops`,
+              text: `Set ${type} gradient fill on "${typedResult.name}" with ${typedResult.stopsCount} stops`,
             },
           ],
         };

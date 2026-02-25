@@ -51,14 +51,14 @@ describe("MCP capability gap fixes", () => {
       mockSendCommand.mockResolvedValue({
         nodeId: "text-001",
         nodeName: "Label",
-        layoutSizingHorizontal: "FILL",
-        layoutSizingVertical: "HUG",
+        horizontal: "FILL",
+        vertical: "HUG",
         success: true,
       });
 
       const response = await callTool("set_layout_sizing", {
         nodeId: "text-001",
-        layoutSizingHorizontal: "FILL",
+        horizontal: "FILL",
       });
 
       expect(mockSendCommand).toHaveBeenCalledWith("set_layout_sizing", {
@@ -73,15 +73,15 @@ describe("MCP capability gap fixes", () => {
       mockSendCommand.mockResolvedValue({
         nodeId: "text-002",
         nodeName: "Paragraph",
-        layoutSizingHorizontal: "FILL",
-        layoutSizingVertical: "FIXED",
+        horizontal: "FILL",
+        vertical: "FIXED",
         success: true,
       });
 
       const response = await callTool("set_layout_sizing", {
         nodeId: "text-002",
-        layoutSizingHorizontal: "FILL",
-        layoutSizingVertical: "FIXED",
+        horizontal: "FILL",
+        vertical: "FIXED",
       });
 
       expect(mockSendCommand).toHaveBeenCalledWith("set_layout_sizing", {
@@ -137,13 +137,13 @@ describe("MCP capability gap fixes", () => {
     it("passes clipsContent to set_auto_layout", async () => {
       mockSendCommand.mockResolvedValue({
         name: "Carousel",
-        layoutMode: "HORIZONTAL",
+        mode: "HORIZONTAL",
         clipsContent: true,
       });
 
       const response = await callTool("set_auto_layout", {
         nodeId: "frame-001",
-        layoutMode: "HORIZONTAL",
+        mode: "HORIZONTAL",
         clipsContent: true,
       });
 
@@ -156,12 +156,12 @@ describe("MCP capability gap fixes", () => {
     it("omits clipsContent from set_auto_layout when not provided", async () => {
       mockSendCommand.mockResolvedValue({
         name: "Frame",
-        layoutMode: "VERTICAL",
+        mode: "VERTICAL",
       });
 
       await callTool("set_auto_layout", {
         nodeId: "frame-002",
-        layoutMode: "VERTICAL",
+        mode: "VERTICAL",
       });
 
       const [, params] = mockSendCommand.mock.calls[0];
@@ -473,10 +473,10 @@ describe("MCP capability gap fixes", () => {
 
       await callTool("set_padding", {
         nodeId: "frame-001",
-        paddingTop: "16" as any,
-        paddingRight: "12" as any,
-        paddingBottom: "16" as any,
-        paddingLeft: "12" as any,
+        top: "16" as any,
+        right: "12" as any,
+        bottom: "16" as any,
+        left: "12" as any,
       });
 
       const [, params] = mockSendCommand.mock.calls[0];
@@ -491,7 +491,7 @@ describe("MCP capability gap fixes", () => {
 
       await callTool("set_item_spacing", {
         nodeId: "frame-001",
-        itemSpacing: "8" as any,
+        gap: "8" as any,
       });
 
       const [, params] = mockSendCommand.mock.calls[0];
@@ -506,7 +506,7 @@ describe("MCP capability gap fixes", () => {
         r: 0,
         g: 0,
         b: 0,
-        strokeWeight: "2" as any,
+        weight: "2" as any,
       });
 
       const [, params] = mockSendCommand.mock.calls[0];

@@ -194,13 +194,13 @@ export function registerTextTools(server: McpServer): void {
     "Set the font size of a text node in Figma",
     {
       nodeId: z.string().describe("The ID of the text node to modify"),
-      fontSize: z.coerce.number().positive().describe("Font size in pixels"),
+      size: z.coerce.number().positive().describe("Font size in pixels"),
     },
-    async ({ nodeId, fontSize }) => {
+    async ({ nodeId, size }) => {
       try {
         const result = await sendCommandToFigma("set_font_size", {
           nodeId,
-          fontSize,
+          fontSize: size,
         });
         const typedResult = result as { name: string; fontSize: number };
         return {
@@ -266,14 +266,14 @@ export function registerTextTools(server: McpServer): void {
     "Set the letter spacing of a text node in Figma",
     {
       nodeId: z.string().describe("The ID of the text node to modify"),
-      letterSpacing: z.coerce.number().describe("Letter spacing value"),
+      spacing: z.coerce.number().describe("Letter spacing value"),
       unit: z.enum(["PIXELS", "PERCENT"]).optional().describe("Unit type (PIXELS or PERCENT)"),
     },
-    async ({ nodeId, letterSpacing, unit }) => {
+    async ({ nodeId, spacing, unit }) => {
       try {
         const result = await sendCommandToFigma("set_letter_spacing", {
           nodeId,
-          letterSpacing,
+          letterSpacing: spacing,
           unit: unit || "PIXELS",
         });
         const typedResult = result as { name: string; letterSpacing: { value: number; unit: string } };
@@ -304,14 +304,14 @@ export function registerTextTools(server: McpServer): void {
     "Set the line height of a text node in Figma",
     {
       nodeId: z.string().describe("The ID of the text node to modify"),
-      lineHeight: z.coerce.number().describe("Line height value"),
+      height: z.coerce.number().describe("Line height value"),
       unit: z.enum(["PIXELS", "PERCENT", "AUTO"]).optional().describe("Unit type (PIXELS, PERCENT, or AUTO)"),
     },
-    async ({ nodeId, lineHeight, unit }) => {
+    async ({ nodeId, height, unit }) => {
       try {
         const result = await sendCommandToFigma("set_line_height", {
           nodeId,
-          lineHeight,
+          lineHeight: height,
           unit: unit || "PIXELS",
         });
         const typedResult = result as { name: string; lineHeight: { value: number; unit: string } };
@@ -342,13 +342,13 @@ export function registerTextTools(server: McpServer): void {
     "Set the paragraph spacing of a text node in Figma",
     {
       nodeId: z.string().describe("The ID of the text node to modify"),
-      paragraphSpacing: z.coerce.number().describe("Paragraph spacing value in pixels"),
+      spacing: z.coerce.number().describe("Paragraph spacing value in pixels"),
     },
-    async ({ nodeId, paragraphSpacing }) => {
+    async ({ nodeId, spacing }) => {
       try {
         const result = await sendCommandToFigma("set_paragraph_spacing", {
           nodeId,
-          paragraphSpacing,
+          paragraphSpacing: spacing,
         });
         const typedResult = result as { name: string; paragraphSpacing: number };
         return {
@@ -414,13 +414,13 @@ export function registerTextTools(server: McpServer): void {
     "Set the text decoration of a text node in Figma",
     {
       nodeId: z.string().describe("The ID of the text node to modify"),
-      textDecoration: z.enum(["NONE", "UNDERLINE", "STRIKETHROUGH"]).describe("Text decoration type"),
+      decoration: z.enum(["NONE", "UNDERLINE", "STRIKETHROUGH"]).describe("Text decoration type"),
     },
-    async ({ nodeId, textDecoration }) => {
+    async ({ nodeId, decoration }) => {
       try {
         const result = await sendCommandToFigma("set_text_decoration", {
           nodeId,
-          textDecoration,
+          textDecoration: decoration,
         });
         const typedResult = result as { name: string; textDecoration: string };
         return {

@@ -99,7 +99,7 @@ describe("new modification tools integration", () => {
     it("successfully sets layout mode to HORIZONTAL", async () => {
       const response = await callTool("set_layout_mode", {
         nodeId: "frame-123",
-        layoutMode: "HORIZONTAL",
+        mode: "HORIZONTAL",
       });
 
       expect(mockSendCommand).toHaveBeenCalledTimes(1);
@@ -116,7 +116,7 @@ describe("new modification tools integration", () => {
     it("successfully sets layout mode to VERTICAL", async () => {
       const response = await callTool("set_layout_mode", {
         nodeId: "frame-123",
-        layoutMode: "VERTICAL",
+        mode: "VERTICAL",
       });
 
       expect(mockSendCommand).toHaveBeenCalledWith("set_layout_mode", {
@@ -129,7 +129,7 @@ describe("new modification tools integration", () => {
     it("successfully sets layout mode to NONE", async () => {
       const response = await callTool("set_layout_mode", {
         nodeId: "frame-123",
-        layoutMode: "NONE",
+        mode: "NONE",
       });
 
       expect(mockSendCommand).toHaveBeenCalledWith("set_layout_mode", {
@@ -142,8 +142,8 @@ describe("new modification tools integration", () => {
     it("accepts layoutWrap parameter", async () => {
       await callTool("set_layout_mode", {
         nodeId: "frame-123",
-        layoutMode: "HORIZONTAL",
-        layoutWrap: "WRAP",
+        mode: "HORIZONTAL",
+        wrap: "WRAP",
       });
 
       expect(mockSendCommand).toHaveBeenCalledWith("set_layout_mode", {
@@ -166,7 +166,7 @@ describe("new modification tools integration", () => {
       await expect(
         callTool("set_layout_mode", {
           nodeId: "frame-123",
-          layoutMode: "INVALID",
+          mode: "INVALID",
         }),
       ).rejects.toThrow();
       expect(mockSendCommand).not.toHaveBeenCalled();
@@ -177,7 +177,7 @@ describe("new modification tools integration", () => {
 
       const response = await callTool("set_layout_mode", {
         nodeId: "text-123",
-        layoutMode: "HORIZONTAL",
+        mode: "HORIZONTAL",
       });
 
       expect(response.content[0].text).toContain("Error setting layout mode");
@@ -195,10 +195,10 @@ describe("new modification tools integration", () => {
     it("successfully sets all padding values", async () => {
       const response = await callTool("set_padding", {
         nodeId: "frame-123",
-        paddingTop: 10,
-        paddingRight: 20,
-        paddingBottom: 10,
-        paddingLeft: 20,
+        top: 10,
+        right: 20,
+        bottom: 10,
+        left: 20,
       });
 
       expect(mockSendCommand).toHaveBeenCalledTimes(1);
@@ -218,7 +218,7 @@ describe("new modification tools integration", () => {
     it("successfully sets individual padding values", async () => {
       const response = await callTool("set_padding", {
         nodeId: "frame-123",
-        paddingTop: 15,
+        top: 15,
       });
 
       expect(mockSendCommand).toHaveBeenCalledWith("set_padding", {
@@ -234,7 +234,7 @@ describe("new modification tools integration", () => {
     it("requires nodeId parameter", async () => {
       await expect(
         callTool("set_padding", {
-          paddingTop: 10,
+          top: 10,
         }),
       ).rejects.toThrow();
       expect(mockSendCommand).not.toHaveBeenCalled();
@@ -245,7 +245,7 @@ describe("new modification tools integration", () => {
 
       const response = await callTool("set_padding", {
         nodeId: "frame-123",
-        paddingTop: 10,
+        top: 10,
       });
 
       expect(response.content[0].text).toContain("Error setting padding");
@@ -347,7 +347,7 @@ describe("new modification tools integration", () => {
     it("successfully sets horizontal sizing", async () => {
       const response = await callTool("set_layout_sizing", {
         nodeId: "frame-123",
-        layoutSizingHorizontal: "HUG",
+        horizontal: "HUG",
       });
 
       expect(mockSendCommand).toHaveBeenCalledTimes(1);
@@ -363,7 +363,7 @@ describe("new modification tools integration", () => {
     it("successfully sets vertical sizing", async () => {
       const response = await callTool("set_layout_sizing", {
         nodeId: "frame-123",
-        layoutSizingVertical: "FILL",
+        vertical: "FILL",
       });
 
       expect(mockSendCommand).toHaveBeenCalledWith("set_layout_sizing", {
@@ -377,8 +377,8 @@ describe("new modification tools integration", () => {
     it("successfully sets both sizing modes", async () => {
       const response = await callTool("set_layout_sizing", {
         nodeId: "frame-123",
-        layoutSizingHorizontal: "FIXED",
-        layoutSizingVertical: "HUG",
+        horizontal: "FIXED",
+        vertical: "HUG",
       });
 
       expect(mockSendCommand).toHaveBeenCalledWith("set_layout_sizing", {
@@ -393,7 +393,7 @@ describe("new modification tools integration", () => {
     it("requires nodeId parameter", async () => {
       await expect(
         callTool("set_layout_sizing", {
-          layoutSizingHorizontal: "HUG",
+          horizontal: "HUG",
         }),
       ).rejects.toThrow();
       expect(mockSendCommand).not.toHaveBeenCalled();
@@ -403,7 +403,7 @@ describe("new modification tools integration", () => {
       await expect(
         callTool("set_layout_sizing", {
           nodeId: "frame-123",
-          layoutSizingHorizontal: "INVALID",
+          horizontal: "INVALID",
         }),
       ).rejects.toThrow();
       expect(mockSendCommand).not.toHaveBeenCalled();
@@ -414,7 +414,7 @@ describe("new modification tools integration", () => {
 
       const response = await callTool("set_layout_sizing", {
         nodeId: "frame-123",
-        layoutSizingHorizontal: "HUG",
+        horizontal: "HUG",
       });
 
       expect(response.content[0].text).toContain("Error setting layout sizing");
@@ -425,7 +425,7 @@ describe("new modification tools integration", () => {
     beforeEach(() => {
       mockSendCommand.mockResolvedValue({
         name: "Spaced Frame",
-        itemSpacing: 10,
+        gap: 10,
         counterAxisSpacing: 20,
       });
     });
@@ -433,7 +433,7 @@ describe("new modification tools integration", () => {
     it("successfully sets item spacing", async () => {
       const response = await callTool("set_item_spacing", {
         nodeId: "frame-123",
-        itemSpacing: 10,
+        gap: 10,
       });
 
       expect(mockSendCommand).toHaveBeenCalledTimes(1);
@@ -443,7 +443,7 @@ describe("new modification tools integration", () => {
       });
       expect(response.content[0].text).toContain("Updated spacing");
       expect(response.content[0].text).toContain("Spaced Frame");
-      expect(response.content[0].text).toContain("itemSpacing=10");
+      expect(response.content[0].text).toContain("gap=10");
     });
 
     it("successfully sets counter axis spacing", async () => {
@@ -462,7 +462,7 @@ describe("new modification tools integration", () => {
     it("successfully sets both spacing values", async () => {
       const response = await callTool("set_item_spacing", {
         nodeId: "frame-123",
-        itemSpacing: 10,
+        gap: 10,
         counterAxisSpacing: 20,
       });
 
@@ -471,14 +471,14 @@ describe("new modification tools integration", () => {
         itemSpacing: 10,
         counterAxisSpacing: 20,
       });
-      expect(response.content[0].text).toContain("itemSpacing=10");
+      expect(response.content[0].text).toContain("gap=10");
       expect(response.content[0].text).toContain("counterAxisSpacing=20");
     });
 
     it("requires nodeId parameter", async () => {
       await expect(
         callTool("set_item_spacing", {
-          itemSpacing: 10,
+          gap: 10,
         }),
       ).rejects.toThrow();
       expect(mockSendCommand).not.toHaveBeenCalled();
@@ -489,7 +489,7 @@ describe("new modification tools integration", () => {
 
       const response = await callTool("set_item_spacing", {
         nodeId: "frame-123",
-        itemSpacing: 10,
+        gap: 10,
       });
 
       expect(response.content[0].text).toContain("Error setting item spacing");

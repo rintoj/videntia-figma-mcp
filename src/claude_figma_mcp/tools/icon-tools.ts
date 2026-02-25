@@ -261,12 +261,12 @@ export function registerIconTools(server: McpServer): void {
         .min(0)
         .optional()
         .describe("Zero-based position within the parent's children array (omit to append at the end)"),
-      iconName: z.string().describe('Lucide icon name (e.g. "arrow-left", "bell", "check")'),
+      name: z.string().describe('Lucide icon name (e.g. "arrow-left", "bell", "check")'),
       color: z.string().optional().describe('Icon color. Accepts a CSS color ("#6b7280", "rgb(…)") OR a design token name ("gray-500", "text-text-secondary", "semantic/icon/muted"). Token names (anything with a hyphen or slash) are automatically routed to variable binding — no need to use colorVariable separately.'),
       colorVariable: z.string().optional().describe('Explicit Figma variable name for the icon stroke color. Only needed if color is also a valid CSS color and you still want variable binding. Supports Tailwind-style ("gray-500"), semantic paths ("text/secondary"), or exact names.'),
       size: z.coerce.number().positive().describe("Icon size in pixels applied to both width and height"),
     },
-    async ({ parentId, index, iconName, color, colorVariable, size }) => {
+    async ({ parentId, index, name: iconName, color, colorVariable, size }) => {
       const icon = getIcon(iconName);
       if (!icon) {
         const suggestions = searchIcons(iconName, 5);
@@ -374,12 +374,12 @@ export function registerIconTools(server: McpServer): void {
     "Replace an existing icon node in Figma with a new Lucide icon. The replacement is inserted at the same parent and position as the original node.",
     {
       nodeId: z.string().describe("ID of the existing icon node to replace"),
-      iconName: z.string().describe('New Lucide icon name (e.g. "arrow-left", "bell", "check")'),
+      name: z.string().describe('New Lucide icon name (e.g. "arrow-left", "bell", "check")'),
       color: z.string().optional().describe('Icon color. Accepts a CSS color ("#6b7280", "rgb(…)") OR a design token name ("gray-500", "text-text-secondary"). Token names (anything with a hyphen or slash) are automatically routed to variable binding.'),
       colorVariable: z.string().optional().describe('Explicit Figma variable name for the icon stroke color. Only needed when color is also a valid CSS color and you still want variable binding.'),
       size: z.coerce.number().positive().describe("Icon size in pixels applied to both width and height"),
     },
-    async ({ nodeId, iconName, color, colorVariable, size }) => {
+    async ({ nodeId, name: iconName, color, colorVariable, size }) => {
       const icon = getIcon(iconName);
       if (!icon) {
         const suggestions = searchIcons(iconName, 5);
