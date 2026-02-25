@@ -48,7 +48,7 @@ Work on the "Draft" page. Create a parent frame at the start to contain all test
 ## Table of Contents
 
 1. [Channel Setup](#1-channel-setup)
-2. [Document & Page Inspection](#2-document--page-inspection)
+2. [Document & Page Inspection](#2-document--page-inspection) — `get_document_info`, `get_variables`, `get_design_system`
 3. [Node Inspection](#3-node-inspection)
 4. [Selection & Focus](#4-selection--focus)
 5. [Node Creation](#5-node-creation)
@@ -112,36 +112,6 @@ Get name, pages, and metadata for the current Figma document. No parameters.
 
 ---
 
-### `get_styles`
-
-Get all local styles (text, fill, effect, grid).
-
-```json
-{}
-```
-
----
-
-### `get_local_components`
-
-List all local components with their node IDs and keys.
-
-```json
-{}
-```
-
----
-
-### `get_remote_components`
-
-List available components from team libraries.
-
-```json
-{}
-```
-
----
-
 ### `get_variables`
 
 Get all variables and variable collections in the document.
@@ -155,6 +125,7 @@ Get all variables and variable collections in the document.
 ### `get_design_system`
 
 Aggregate all design tokens — variables, text styles, effect styles, spacing, radius.
+Call this **after** styles and variables have been created to see a complete picture.
 
 ```json
 {}
@@ -214,18 +185,6 @@ Find all descendant nodes matching specific types inside a parent node.
 ### `scan_text_nodes`
 
 Scan all text nodes inside a parent node.
-
-```json
-{
-  "nodeId": "123:456"
-}
-```
-
----
-
-### `get_bound_variables`
-
-Get all variable bindings for a specific node.
 
 ```json
 {
@@ -592,6 +551,18 @@ Remove a variable binding from a node property.
 
 ---
 
+### `get_bound_variables`
+
+Get all variable bindings for a specific node. Call **after** `bind_variable` has been used.
+
+```json
+{
+  "nodeId": "123:456"
+}
+```
+
+---
+
 ## 8. Node Modification — Fill & Stroke
 
 ### `set_fill_color`
@@ -856,6 +827,16 @@ Pre-load a font family before using it.
 
 ## 10. Text Style Management
 
+### `get_styles`
+
+Get all local styles (text, fill, effect, grid). Call **after** styles have been created.
+
+```json
+{}
+```
+
+---
+
 ### `get_text_styles`
 
 List all local text styles. Each style returns an `id` (use with `apply_text_style`).
@@ -939,6 +920,16 @@ Delete a text style.
 ---
 
 ## 11. Component Tools
+
+### `get_local_components`
+
+List all local components with their node IDs and keys. Call **after** components have been created.
+
+```json
+{}
+```
+
+---
 
 ### `get_component_properties`
 

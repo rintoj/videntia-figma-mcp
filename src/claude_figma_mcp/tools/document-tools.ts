@@ -16,7 +16,6 @@ import type {
   CreateAnnotationCategoryResult,
   UpdateAnnotationCategoryResult,
   StylesResult,
-  RemoteComponentsResult,
   BoundVariablesResult,
   LintFrameResult,
   LintViolation,
@@ -413,7 +412,7 @@ export function registerDocumentTools(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: `Focused on node "${typedResult.name}" (ID: ${typedResult.nodeId})`,
+              text: `Focused on node "${typedResult.name}" (ID: ${typedResult.nodeId ?? nodeId})`,
             },
           ],
         };
@@ -448,7 +447,7 @@ export function registerDocumentTools(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: `Selected ${typedResult.selectedCount} nodes: ${typedResult.selectedNodes
+              text: `Selected ${typedResult.selectedCount ?? nodeIds.length} nodes: ${typedResult.selectedNodes
                 .map((n) => `"${n.name}" (${n.id})`)
                 .join(", ")}`,
             },
@@ -1171,43 +1170,6 @@ export function registerDocumentTools(server: McpServer): void {
       }
     },
   );
-
-  // Get Remote Components Tool
-  server.tool("get_remote_components", "Get available components from team libraries in Figma", {}, async () => {
-    try {
-      const result = await sendCommandToFigma<RemoteComponentsResult>("get_remote_components");
-      const components = Array.isArray(result) ? result : (result?.components ?? []);
-      if (components.length === 0) {
-        return { content: [{ type: "text", text: "No remote components found." }] };
-      }
-      const lines: string[] = [
-        `Found ${components.length} remote component(s)`,
-        "",
-        "| Name | ID | Key | Library |",
-        "|------|----|-----|---------|",
-      ];
-      for (const c of components) {
-        lines.push(`| ${c.name || "-"} | ${c.id || "-"} | ${c.key || "-"} | ${c.libraryName || c.library || "-"} |`);
-      }
-      return {
-        content: [
-          {
-            type: "text",
-            text: lines.join("\n"),
-          },
-        ],
-      };
-    } catch (error) {
-      return {
-        content: [
-          {
-            type: "text",
-            text: `Error getting remote components: ${error instanceof Error ? error.message : String(error)}`,
-          },
-        ],
-      };
-    }
-  });
 
   // Text Node Scanning Tool
   server.tool(

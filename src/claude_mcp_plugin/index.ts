@@ -71,7 +71,6 @@ import {
   getStyles,
   getLocalComponents,
   createComponentInstance,
-  getRemoteComponents,
   detachInstance,
   createComponent,
   createComponentSet,
@@ -291,8 +290,6 @@ async function handleCommand(
       return await getStyles();
     case 'get_local_components':
       return await getLocalComponents();
-    case 'get_remote_components':
-      return await getRemoteComponents();
     case 'create_component_instance':
       return await createComponentInstance(params);
     case 'detach_instance':
