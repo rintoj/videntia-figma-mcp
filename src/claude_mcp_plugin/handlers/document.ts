@@ -87,12 +87,11 @@ function stripImageData(obj: unknown): unknown {
 }
 
 /**
- * Truncates the node tree to one level of children.
- * For each direct child that itself has children, replaces the nested
- * `children` array with a `_children` note so callers know to drill in
- * with get_node_info using that child's id.
+ * Truncates the node tree to `depth` levels of children (depth=0 means no children at all,
+ * depth=1 means direct children only with grandchildren replaced by a hint, etc.).
+ * Nodes whose children are truncated get a `_children` hint so callers know to drill in.
  */
-function truncateToFirstLevelChildren(doc: unknown): unknown {
+function truncateToDepth(doc: unknown, depth: number): unknown {
   if (!doc || typeof doc !== 'object' || Array.isArray(doc)) {
     return doc;
   }
@@ -100,26 +99,62 @@ function truncateToFirstLevelChildren(doc: unknown): unknown {
   if (!Array.isArray(node.children)) {
     return node;
   }
-  const truncatedChildren = node.children.map((child: unknown) => {
-    if (!child || typeof child !== 'object' || Array.isArray(child)) {
-      return child;
-    }
-    const childNode = child as Record<string, unknown>;
-    if (!Array.isArray(childNode.children) || childNode.children.length === 0) {
-      return childNode;
-    }
-    const count = (childNode.children as unknown[]).length;
-    const { children: _omitted, ...rest } = childNode;
+  if (depth <= 0) {
+    const count = (node.children as unknown[]).length;
+    const { children: _omitted, ...rest } = node;
+    if (count === 0) return rest;
     return {
       ...rest,
       _children: count + ' children \u2014 call get_node_info with id="' + rest['id'] + '" to explore',
     };
+  }
+  const truncatedChildren = node.children.map((child: unknown) => {
+    return truncateToDepth(child, depth - 1);
   });
   return { ...node, children: truncatedChildren };
 }
 
+/**
+ * Search descendants for nodes matching a name (case-insensitive substring) or exact id.
+ * Returns up to `limit` matching nodes (metadata only, no deep children).
+ */
+function findDescendants(
+  doc: unknown,
+  query: string,
+  results: Record<string, unknown>[],
+  limit: number,
+): void {
+  if (!doc || typeof doc !== 'object' || Array.isArray(doc)) return;
+  if (results.length >= limit) return;
+  const node = doc as Record<string, unknown>;
+  const name = typeof node['name'] === 'string' ? node['name'] : '';
+  const id = typeof node['id'] === 'string' ? node['id'] : '';
+  if (
+    name.toLowerCase().indexOf(query.toLowerCase()) !== -1 ||
+    id === query
+  ) {
+    const { children: _c, ...meta } = node;
+    const childCount = Array.isArray(node['children']) ? (node['children'] as unknown[]).length : 0;
+    results.push(childCount > 0
+      ? { ...meta, _children: childCount + ' children \u2014 call get_node_info with id="' + id + '" to explore' }
+      : meta);
+  }
+  if (Array.isArray(node['children'])) {
+    for (const child of node['children'] as unknown[]) {
+      if (results.length >= limit) break;
+      findDescendants(child, query, results, limit);
+    }
+  }
+}
+
 export interface GetNodeInfoOptions {
   stripImages?: boolean;
+  /** Max depth of children to include. Default: 1 (direct children only). 0 = no children. */
+  depth?: number;
+  /** If false, return only node metadata without any children. Includes parentId. */
+  includeChildren?: boolean;
+  /** Search descendants by name (substring) or exact ID. Returns matching nodes only. */
+  find?: string;
 }
 
 export async function getNodeInfo(
@@ -127,6 +162,8 @@ export async function getNodeInfo(
   options: GetNodeInfoOptions = {},
 ): Promise<unknown> {
   const stripImages = options.stripImages !== undefined ? options.stripImages : true;
+  const depth = options.depth !== undefined ? options.depth : 1;
+  const includeChildren = options.includeChildren !== undefined ? options.includeChildren : true;
 
   debugLog('getNodeInfo', nodeId, options);
 
@@ -145,8 +182,27 @@ export async function getNodeInfo(
     document = stripImageData(document);
   }
 
-  // Return only first-level children; nested children are replaced with a note
-  document = truncateToFirstLevelChildren(document);
+  // Attach parentId to the root of the response
+  if (node.parent) {
+    (document as Record<string, unknown>)['parentId'] = node.parent.id;
+  }
+
+  // find mode: search descendants and return matches
+  if (options.find !== undefined && options.find !== null && options.find !== '') {
+    const results: Record<string, unknown>[] = [];
+    findDescendants(document, options.find, results, 50);
+    return { query: options.find, matches: results, total: results.length };
+  }
+
+  // includeChildren: false — return only the node itself (no children)
+  if (!includeChildren) {
+    const doc = document as Record<string, unknown>;
+    const { children: _c, ...meta } = doc;
+    return meta;
+  }
+
+  // Truncate to requested depth (default 1 = direct children only)
+  document = truncateToDepth(document, depth);
 
   return document;
 }
@@ -156,6 +212,8 @@ export async function getNodesInfo(
   options: GetNodeInfoOptions = {},
 ): Promise<unknown[]> {
   const stripImages = options.stripImages !== undefined ? options.stripImages : true;
+  const depth = options.depth !== undefined ? options.depth : 1;
+  const includeChildren = options.includeChildren !== undefined ? options.includeChildren : true;
 
   debugLog('getNodesInfo', nodeIds, options);
 
@@ -174,13 +232,25 @@ export async function getNodesInfo(
         const response = await exportAsJsonV1(node);
         let document = response.document;
 
-        // Strip image data by default to prevent large responses
         if (stripImages) {
           document = stripImageData(document);
         }
 
-        // Return only first-level children; nested children are replaced with a note
-        document = truncateToFirstLevelChildren(document);
+        if (node.parent) {
+          (document as Record<string, unknown>)['parentId'] = node.parent.id;
+        }
+
+        if (options.find !== undefined && options.find !== null && options.find !== '') {
+          const results: Record<string, unknown>[] = [];
+          findDescendants(document, options.find, results, 50);
+          document = { query: options.find, matches: results, total: results.length };
+        } else if (!includeChildren) {
+          const doc = document as Record<string, unknown>;
+          const { children: _c, ...meta } = doc;
+          document = meta;
+        } else {
+          document = truncateToDepth(document, depth);
+        }
 
         return {
           nodeId: node.id,
@@ -193,4 +263,94 @@ export async function getNodesInfo(
   } catch (error) {
     throw new Error(`Error getting nodes info: ${(error as Error).message}`);
   }
+}
+
+export interface SearchNodesOptions extends GetNodeInfoOptions {
+  /** Search query — matched case-insensitively against node name (substring) or exact node ID */
+  query: string;
+  /** Optional node type filter e.g. FRAME, TEXT, COMPONENT */
+  types?: string[];
+  /** Root node ID to search within. Defaults to the current page. */
+  rootNodeId?: string;
+  /** Max number of results to return. Default: 50. */
+  limit?: number;
+}
+
+/**
+ * Search all nodes in the document (or a subtree) by name or ID.
+ * For each match, returns the same output as getNodeInfo with the given options.
+ */
+export async function searchNodes(options: SearchNodesOptions): Promise<unknown> {
+  const { query, types, rootNodeId, limit: limitOpt, stripImages, depth, includeChildren } = options;
+  const limit = limitOpt !== undefined ? limitOpt : 50;
+  const effectiveDepth = depth !== undefined ? depth : 1;
+  const effectiveIncludeChildren = includeChildren !== undefined ? includeChildren : true;
+  const effectiveStripImages = stripImages !== undefined ? stripImages : true;
+
+  const lowerQuery = query.toLowerCase();
+
+  let root: BaseNode;
+  if (rootNodeId) {
+    const found = await figma.getNodeByIdAsync(rootNodeId);
+    if (!found) {
+      throw new Error('Root node not found with ID: ' + rootNodeId);
+    }
+    root = found;
+  } else {
+    await figma.currentPage.loadAsync();
+    root = figma.currentPage;
+  }
+
+  // Collect matching nodes using Figma's native tree walk (no exportAsync needed here)
+  const matchedNodes: BaseNode[] = [];
+
+  const walk = (node: BaseNode): void => {
+    if (matchedNodes.length >= limit) return;
+    const nameMatch = node.name.toLowerCase().indexOf(lowerQuery) !== -1;
+    const idMatch = node.id === query;
+    const typeMatch = !types || types.length === 0 || types.includes(node.type);
+    if ((nameMatch || idMatch) && typeMatch) {
+      matchedNodes.push(node);
+    }
+    if ('children' in node) {
+      for (const child of (node as ChildrenMixin).children) {
+        if (matchedNodes.length >= limit) break;
+        walk(child);
+      }
+    }
+  };
+
+  walk(root);
+
+  // For each match, export full node data and apply the same transforms as getNodeInfo
+  const results = await Promise.all(
+    matchedNodes.map(async (node) => {
+      const response = await exportAsJsonV1(node);
+      let document = response.document;
+
+      if (effectiveStripImages) {
+        document = stripImageData(document);
+      }
+
+      if (node.parent) {
+        (document as Record<string, unknown>)['parentId'] = node.parent.id;
+      }
+
+      if (!effectiveIncludeChildren) {
+        const doc = document as Record<string, unknown>;
+        const { children: _c, ...meta } = doc;
+        document = meta;
+      } else {
+        document = truncateToDepth(document, effectiveDepth);
+      }
+
+      return document;
+    }),
+  );
+
+  return {
+    query,
+    total: results.length,
+    matches: results,
+  };
 }

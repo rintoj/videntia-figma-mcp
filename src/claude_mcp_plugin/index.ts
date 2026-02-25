@@ -5,7 +5,7 @@
 import { debugLog } from './utils/helpers';
 
 // Handlers — document & navigation
-import { getFileKey, getDocumentInfo, getSelection, getNodeInfo, getNodesInfo } from './handlers/document';
+import { getFileKey, getDocumentInfo, getSelection, getNodeInfo, getNodesInfo, searchNodes } from './handlers/document';
 import { createPage, renamePage, deletePage } from './handlers/pages';
 import { getReactions, setDefaultConnector, createConnections } from './handlers/prototyping';
 
@@ -234,6 +234,9 @@ async function handleCommand(
       }
       return await getNodeInfo(params['nodeId'] as string, {
         stripImages: params['stripImages'] !== false,
+        depth: params['depth'] !== undefined ? Number(params['depth']) : undefined,
+        includeChildren: params['includeChildren'] !== undefined ? Boolean(params['includeChildren']) : undefined,
+        find: params['find'] !== undefined ? String(params['find']) : undefined,
       });
     case 'get_nodes_info':
       if (!params || !params['nodeIds'] || !Array.isArray(params['nodeIds'])) {
@@ -241,6 +244,22 @@ async function handleCommand(
       }
       return await getNodesInfo(params['nodeIds'] as string[], {
         stripImages: params['stripImages'] !== false,
+        depth: params['depth'] !== undefined ? Number(params['depth']) : undefined,
+        includeChildren: params['includeChildren'] !== undefined ? Boolean(params['includeChildren']) : undefined,
+        find: params['find'] !== undefined ? String(params['find']) : undefined,
+      });
+    case 'search_nodes':
+      if (!params || !params['query']) {
+        throw new Error('Missing query parameter');
+      }
+      return await searchNodes({
+        query: String(params['query']),
+        types: Array.isArray(params['types']) ? params['types'] as string[] : undefined,
+        rootNodeId: params['rootNodeId'] !== undefined ? String(params['rootNodeId']) : undefined,
+        limit: params['limit'] !== undefined ? Number(params['limit']) : undefined,
+        stripImages: params['stripImages'] !== false,
+        depth: params['depth'] !== undefined ? Number(params['depth']) : undefined,
+        includeChildren: params['includeChildren'] !== undefined ? Boolean(params['includeChildren']) : undefined,
       });
 
     // Node creation

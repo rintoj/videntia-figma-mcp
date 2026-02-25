@@ -123,6 +123,7 @@ export type FigmaCommand =
   | "update_annotation_category"
   | "delete_annotation_category"
   | "scan_nodes_by_types"
+  | "search_nodes"
   | "get_reactions"
   | "set_default_connector"
   | "create_connections"

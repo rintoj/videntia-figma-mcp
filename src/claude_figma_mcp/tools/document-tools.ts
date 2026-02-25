@@ -902,7 +902,7 @@ export function registerDocumentTools(server: McpServer): void {
   // Node Info Tool
   server.tool(
     "get_node_info",
-    "Get detailed information about a specific node in Figma. Returns JSX+Tailwind markup.",
+    "Get detailed information about a specific node in Figma. Returns JSX+Tailwind markup or JSON. Supports depth-limited traversal, metadata-only mode, and descendant search.",
     {
       nodeId: z.string().describe("The ID of the node to get information about"),
       fields: coerceArray(
@@ -938,15 +938,41 @@ export function registerDocumentTools(server: McpServer): void {
         .optional()
         .default(true)
         .describe("Ignored in JSX mode. For JSON mode only — strip image data. Defaults to true."),
+      depth: z
+        .number()
+        .int()
+        .min(0)
+        .optional()
+        .describe(
+          "JSON mode only. Max depth of children to include. Default: 1 (direct children only, grandchildren replaced with a hint). 0 = no children at all. 2+ to go deeper.",
+        ),
+      includeChildren: z
+        .boolean()
+        .optional()
+        .describe(
+          "JSON mode only. Set to false to return only the node's own metadata without any children. Also includes parentId. Useful for quick position/size/variant lookups.",
+        ),
+      find: z
+        .string()
+        .optional()
+        .describe(
+          "JSON mode only. Search descendants by name (case-insensitive substring) or exact node ID. Returns up to 50 matching nodes with metadata and parentId hint.",
+        ),
       output_format: outputFormatSchema,
     },
-    async ({ nodeId, fields, stripImages, output_format }) => {
+    async ({ nodeId, fields, stripImages, depth, includeChildren, find, output_format }) => {
       try {
         if (output_format === "jsx") {
           const jsx = await fetchNodesAsJsx([nodeId]);
           return { content: [{ type: "text", text: jsx }] };
         }
-        const result = await sendCommandToFigma("get_node_info", { nodeId, stripImages });
+        const result = await sendCommandToFigma("get_node_info", {
+          nodeId,
+          stripImages,
+          depth,
+          includeChildren,
+          find,
+        });
         return {
           content: [
             {
@@ -971,7 +997,7 @@ export function registerDocumentTools(server: McpServer): void {
   // Nodes Info Tool
   server.tool(
     "get_nodes_info",
-    "Get detailed information about multiple nodes in Figma. Returns JSX+Tailwind markup.",
+    "Get detailed information about multiple nodes in Figma. Returns JSX+Tailwind markup or JSON. Supports depth-limited traversal, metadata-only mode, and descendant search.",
     {
       nodeIds: coerceArray(z.array(z.string())).describe("Array of node IDs to get information about"),
       fields: coerceArray(
@@ -1007,9 +1033,29 @@ export function registerDocumentTools(server: McpServer): void {
         .optional()
         .default(true)
         .describe("Ignored in JSX mode. For JSON mode only — strip image data. Defaults to true."),
+      depth: z
+        .number()
+        .int()
+        .min(0)
+        .optional()
+        .describe(
+          "JSON mode only. Max depth of children to include. Default: 1 (direct children only). 0 = no children.",
+        ),
+      includeChildren: z
+        .boolean()
+        .optional()
+        .describe(
+          "JSON mode only. Set to false to return only each node's own metadata without children. Also includes parentId.",
+        ),
+      find: z
+        .string()
+        .optional()
+        .describe(
+          "JSON mode only. Search descendants of each node by name (case-insensitive substring) or exact node ID. Returns up to 50 matching nodes per node.",
+        ),
       output_format: outputFormatSchema,
     },
-    async ({ nodeIds, fields, stripImages, output_format }) => {
+    async ({ nodeIds, fields, stripImages, depth, includeChildren, find, output_format }) => {
       try {
         if (output_format === "jsx") {
           const jsx = await fetchNodesAsJsx(nodeIds);
@@ -1017,7 +1063,13 @@ export function registerDocumentTools(server: McpServer): void {
         }
         const results = await Promise.all(
           nodeIds.map(async (nodeId) => {
-            const result = await sendCommandToFigma("get_node_info", { nodeId, stripImages });
+            const result = await sendCommandToFigma("get_node_info", {
+              nodeId,
+              stripImages,
+              depth,
+              includeChildren,
+              find,
+            });
             return { nodeId, info: result };
           }),
         );
@@ -1035,6 +1087,80 @@ export function registerDocumentTools(server: McpServer): void {
             {
               type: "text",
               text: `Error getting nodes info for ${nodeIds.length} node(s): ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  // Search Nodes Tool
+  server.tool(
+    "search_nodes",
+    "Search for nodes across the entire Figma document (or within a subtree) by name or ID. Returns matching nodes with the same detail level as get_node_info. Supports depth control, metadata-only mode, and type filtering.",
+    {
+      query: z
+        .string()
+        .describe(
+          "Search query matched case-insensitively against node name (substring) or exact node ID.",
+        ),
+      types: coerceArray(z.array(z.string()))
+        .optional()
+        .describe(
+          "Optional node type filter. Only return nodes of these types e.g. ['FRAME', 'COMPONENT', 'TEXT']. Omit to match all types.",
+        ),
+      rootNodeId: z
+        .string()
+        .optional()
+        .describe(
+          "Optional ID of a node to scope the search to. Defaults to the entire current page.",
+        ),
+      limit: z
+        .number()
+        .int()
+        .min(1)
+        .optional()
+        .describe("Max number of results to return. Default: 50."),
+      depth: z
+        .number()
+        .int()
+        .min(0)
+        .optional()
+        .describe(
+          "Max depth of children to include in each result. Default: 1 (direct children only). 0 = no children.",
+        ),
+      includeChildren: z
+        .boolean()
+        .optional()
+        .describe(
+          "Set to false to return only each matching node's own metadata (no children). Also includes parentId. Useful for fast lookups.",
+        ),
+      stripImages: z
+        .boolean()
+        .optional()
+        .default(true)
+        .describe("Strip image data from results. Defaults to true."),
+    },
+    async ({ query, types, rootNodeId, limit, depth, includeChildren, stripImages }) => {
+      try {
+        const result = await sendCommandToFigma("search_nodes", {
+          query,
+          types,
+          rootNodeId,
+          limit,
+          depth,
+          includeChildren,
+          stripImages,
+        });
+        return {
+          content: [{ type: "text", text: JSON.stringify(result) }],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error searching nodes for "${query}": ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };
