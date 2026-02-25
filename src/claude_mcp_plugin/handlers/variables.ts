@@ -690,7 +690,7 @@ export async function createVariable(
   const variable = figma.variables.createVariable(name, collection, variableType);
   const targetMode =
     mode !== undefined && mode !== null
-      ? collection.modes.find(m => m.name === mode)
+      ? collection.modes.find((m: { modeId: string; name: string }) => m.name === mode)
       : null;
   const modeId =
     targetMode !== undefined && targetMode !== null
@@ -735,7 +735,7 @@ export async function createVariablesBatch(
   const collection = await findCollection(collectionId);
   const targetMode =
     mode !== undefined && mode !== null
-      ? collection.modes.find(m => m.name === mode)
+      ? collection.modes.find((m: { modeId: string; name: string }) => m.name === mode)
       : null;
   const modeId =
     targetMode !== undefined && targetMode !== null
@@ -809,7 +809,7 @@ export async function updateVariableValue(
 
   const targetMode =
     mode !== undefined && mode !== null
-      ? collection.modes.find(m => m.name === mode)
+      ? collection.modes.find((m: { modeId: string; name: string }) => m.name === mode)
       : null;
   const modeId =
     targetMode !== undefined && targetMode !== null
@@ -1024,7 +1024,7 @@ export async function validateColorContrast(
 
   const targetMode =
     mode !== undefined && mode !== null
-      ? collection.modes.find(m => m.name === mode)
+      ? collection.modes.find((m: { modeId: string; name: string }) => m.name === mode)
       : null;
   const modeId =
     targetMode !== undefined && targetMode !== null
@@ -1302,7 +1302,7 @@ export async function createColorScaleSet(
   const collection = await findCollection(collectionId);
   const targetMode =
     mode !== undefined && mode !== null
-      ? collection.modes.find(m => m.name === mode)
+      ? collection.modes.find((m: { modeId: string; name: string }) => m.name === mode)
       : null;
   const modeId =
     targetMode !== undefined && targetMode !== null
@@ -1519,7 +1519,7 @@ export async function exportCollectionSchema(
 
   const targetMode =
     mode !== undefined && mode !== null
-      ? collection.modes.find(m => m.name === mode)
+      ? collection.modes.find((m: { modeId: string; name: string }) => m.name === mode)
       : null;
   const modeId =
     targetMode !== undefined && targetMode !== null
@@ -1599,7 +1599,7 @@ export async function importCollectionSchema(
 
   const targetMode =
     mode !== undefined && mode !== null
-      ? collection.modes.find(m => m.name === mode)
+      ? collection.modes.find((m: { modeId: string; name: string }) => m.name === mode)
       : null;
   const modeId =
     targetMode !== undefined && targetMode !== null
@@ -1861,7 +1861,7 @@ export async function addModeToCollection(
 
   const newModeId = collection.addMode(modeName);
 
-  const newMode = collection.modes.find(m => m.modeId === newModeId);
+  const newMode = collection.modes.find((m: { modeId: string; name: string }) => m.modeId === newModeId);
 
   return {
     collectionId: collection.id,
@@ -1882,7 +1882,7 @@ export async function renameMode(
 
   const collection = await findCollection(collectionId);
 
-  const mode = collection.modes.find(m => m.name === oldModeName);
+  const mode = collection.modes.find((m: { modeId: string; name: string }) => m.name === oldModeName);
   if (!mode) {
     throw new Error(`Mode "${oldModeName}" not found in collection`);
   }
@@ -1911,7 +1911,7 @@ export async function deleteMode(
     throw new Error('Cannot delete the last mode in a collection');
   }
 
-  const mode = collection.modes.find(m => m.name === modeName);
+  const mode = collection.modes.find((m: { modeId: string; name: string }) => m.name === modeName);
   if (!mode) {
     throw new Error(`Mode "${modeName}" not found in collection`);
   }
@@ -1940,8 +1940,8 @@ export async function duplicateModeValues(
   const { collections, variables: allVariables } = await fetchVariableData();
   const collection = findCollectionIn(collections, collectionId);
 
-  const sourceModeObj = collection.modes.find(m => m.name === sourceMode);
-  const targetModeObj = collection.modes.find(m => m.name === targetMode);
+  const sourceModeObj = collection.modes.find((m: { modeId: string; name: string }) => m.name === sourceMode);
+  const targetModeObj = collection.modes.find((m: { modeId: string; name: string }) => m.name === targetMode);
 
   if (!sourceModeObj) {
     throw new Error(`Source mode "${sourceMode}" not found`);
