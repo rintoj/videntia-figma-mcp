@@ -40,6 +40,7 @@
   },
   "devDependencies": {
     "@anthropic-ai/dxt": "^0.2.0",
+    "@figma/plugin-typings": "^1.123.0",
     "@types/bun": "latest",
     "@types/jest": "^29.5.12",
     "@types/uuid": "10",

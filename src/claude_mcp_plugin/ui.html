@@ -235,6 +235,49 @@
       const RECONNECT_BASE_DELAY = 1000;
       const RECONNECT_MAX_DELAY = 30000;
 
+      // Allowlist of every command the plugin handler recognises.
+      // Commands not in this set are rejected before reaching plugin code.
+      const ALLOWED_COMMANDS = new Set([
+        "get_document_info","get_file_key","get_selection","get_node_info","get_nodes_info",
+        "create_rectangle","create_frame","create_text","set_fill_color","set_stroke_color",
+        "set_image_fill","set_gradient_fill","move_node","resize_node","delete_node",
+        "delete_multiple_nodes","clone_node","rename_node","insert_child","group_nodes",
+        "ungroup_nodes","flatten_node","export_node_as_image","set_corner_radius",
+        "get_styles","get_local_components","get_remote_components","create_component_instance",
+        "detach_instance","create_component","create_component_set","add_component_property",
+        "edit_component_property","delete_component_property","set_component_property_references",
+        "get_component_properties","set_text_content","scan_text_nodes","set_multiple_text_contents",
+        "set_auto_layout","set_font_name","set_font_size","set_font_weight","set_letter_spacing",
+        "set_line_height","set_paragraph_spacing","set_text_case","set_text_decoration",
+        "get_styled_text_segments","load_font_async","create_text_style","create_text_style_from_properties",
+        "apply_text_style","get_text_styles","delete_text_style","update_text_style",
+        "set_effects","set_effect_style_id","create_effect_style","update_effect_style",
+        "delete_effect_style","create_ellipse","create_polygon","create_star","create_svg",
+        "update_icon","create_vector","create_line","get_variables","get_bound_variables",
+        "bind_variable","unbind_variable","get_variable_collections","create_variable_collection",
+        "get_collection_info","rename_variable_collection","delete_variable_collection",
+        "create_variable","create_variables_batch","update_variable_value","rename_variable",
+        "delete_variable","delete_variables_batch","audit_collection","validate_color_contrast",
+        "suggest_missing_variables","apply_default_theme","create_color_scale_set",
+        "apply_custom_palette","reorder_variables","generate_audit_report","export_collection_schema",
+        "import_collection_schema","create_all_scales","fix_collection_to_standard","add_chart_colors",
+        "add_mode_to_collection","rename_mode","delete_mode","duplicate_mode_values",
+        "create_spacing_system","create_typography_system","create_radius_system","set_layout_mode",
+        "set_padding","set_item_spacing","set_axis_align","set_layout_sizing","set_focus",
+        "set_selections","read_my_design","scan_nodes_by_types","get_annotations","set_annotation",
+        "set_multiple_annotations","get_annotation_categories","create_annotation_category",
+        "update_annotation_category","delete_annotation_category","get_reactions",
+        "set_default_connector","create_connections","create_page","rename_page","delete_page",
+        "create_from_data","get_design_system","setup_design_system","batch_actions","lint_frame",
+        "get_instance_overrides","set_instance_overrides"
+      ]);
+
+      // Minimum time (ms) to display "Running: X..." before flipping to "completed".
+      // Prevents fast commands from flashing too quickly to be readable.
+      const MIN_PROGRESS_DISPLAY_MS = 600;
+      // Per-command start times (keyed by command ID) to handle concurrent commands
+      const progressStartTimes = new Map();
+
       // UI Elements
       const portInput = document.getElementById("port");
       const connectButton = document.getElementById("btn-connect");
@@ -247,7 +290,7 @@
       // Initialize UI
       function updateConnectionStatus(isConnected, message) {
         state.connected = isConnected;
-        connectionStatus.innerHTML =
+        connectionStatus.textContent =
           message ||
           (isConnected
             ? "Connected to Claude Figma MCP"
@@ -341,10 +384,7 @@
                   state.connected = true;
                   const channelName = data.channel;
 
-                  updateConnectionStatus(
-                    true,
-                    `Channel: <strong>${channelName}</strong>`
-                  );
+                  updateConnectionStatus(true, "Channel: " + channelName);
 
                   // Notify the plugin code
                   parent.postMessage(
@@ -359,7 +399,7 @@
                 }
               } else if (data.type === "error") {
                 console.error("Error:", data.message);
-                updateConnectionStatus(false, `Error: ${data.message}`);
+                updateConnectionStatus(false, "Error: " + String(data.message));
                 state.socket.close();
               }
 
@@ -462,7 +502,16 @@
 
         // If it's a new command
         if (data.command) {
+          // Reject commands not in the allowlist — prevents a compromised or
+          // spoofed localhost server from calling arbitrary plugin commands.
+          if (!ALLOWED_COMMANDS.has(data.command)) {
+            console.error("Blocked unknown command:", data.command);
+            sendErrorResponse(data.id, "Command not permitted");
+            return;
+          }
+
           const name = formatCommandName(data.command);
+          progressStartTimes.set(data.id, Date.now());
           showOperationStatus(`Running: ${name}...`, "running");
           try {
             // Send the command to the plugin code
@@ -563,21 +612,25 @@
         );
       }
 
-      // Helper to generate unique IDs
+      // Helper to generate unique IDs (uses crypto for collision resistance)
       function generateId() {
-        return (
-          Date.now().toString(36) + Math.random().toString(36).substr(2, 5)
-        );
+        const bytes = new Uint8Array(6);
+        crypto.getRandomValues(bytes);
+        let hex = "";
+        for (let i = 0; i < bytes.length; i++) {
+          hex += bytes[i].toString(16).padStart(2, "0");
+        }
+        return Date.now().toString(36) + hex;
       }
 
       // Add this function after the generateId() function
       function generateChannelName() {
         const characters = "abcdefghijklmnopqrstuvwxyz0123456789";
+        const randomBytes = new Uint8Array(8);
+        crypto.getRandomValues(randomBytes);
         let result = "";
         for (let i = 0; i < 8; i++) {
-          result += characters.charAt(
-            Math.floor(Math.random() * characters.length)
-          );
+          result += characters.charAt(randomBytes[i] % characters.length);
         }
         return result;
       }
@@ -591,7 +644,8 @@
         } else {
           cancelReconnect();
           state.reconnectAttempt = 0;
-          const port = parseInt(portInput.value, 10) || 3055;
+          const parsedPort = parseInt(portInput.value, 10);
+          const port = (parsedPort >= 1024 && parsedPort <= 65535) ? parsedPort : 3055;
           updateConnectionStatus(false, "Connecting...");
           connectionStatus.className = "status info";
           connectButton.disabled = true;
@@ -669,30 +723,50 @@
           case "connection-status":
             updateConnectionStatus(message.connected, message.message);
             break;
+          case "init-settings":
+            // Restore saved server port to the input field on plugin startup
+            if (message.settings && message.settings.serverPort) {
+              state.serverPort = message.settings.serverPort;
+              portInput.value = message.settings.serverPort;
+            }
+            break;
           case "auto-connect":
             connectButton.click();
             break;
           case "auto-disconnect":
             disconnectFromServer();
             break;
-          case "command-result":
-            showOperationStatus(
-              `${formatCommandName(message.command || "")} completed`,
-              "success"
-            );
-            hideOperationStatusAfter(3000);
-            // Forward the result from plugin code back to WebSocket
+          case "command-result": {
+            // Ensure "Running: X..." is visible for at least MIN_PROGRESS_DISPLAY_MS
+            const resultName = formatCommandName(message.command || "");
+            const resultStart = progressStartTimes.get(message.id);
+            const resultDelay = resultStart !== undefined
+              ? Math.max(0, MIN_PROGRESS_DISPLAY_MS - (Date.now() - resultStart))
+              : 0;
+            progressStartTimes.delete(message.id);
+            setTimeout(() => {
+              showOperationStatus(`${resultName} completed`, "success");
+              hideOperationStatusAfter(3000);
+            }, resultDelay);
+            // Forward the result from plugin code back to WebSocket (no delay needed)
             sendSuccessResponse(message.id, message.result);
             break;
-          case "command-error":
-            showOperationStatus(
-              `${formatCommandName(message.command || "")} failed`,
-              "error"
-            );
-            hideOperationStatusAfter(5000);
-            // Forward the error from plugin code back to WebSocket
+          }
+          case "command-error": {
+            const errorName = formatCommandName(message.command || "");
+            const errorStart = progressStartTimes.get(message.id);
+            const errorDelay = errorStart !== undefined
+              ? Math.max(0, MIN_PROGRESS_DISPLAY_MS - (Date.now() - errorStart))
+              : 0;
+            progressStartTimes.delete(message.id);
+            setTimeout(() => {
+              showOperationStatus(`${errorName} failed`, "error");
+              hideOperationStatusAfter(5000);
+            }, errorDelay);
+            // Forward the error from plugin code back to WebSocket (no delay needed)
             sendErrorResponse(message.id, message.error);
             break;
+          }
           case "file-name":
             state.fileName = message.fileName;
             console.log("File name received:", state.fileName);
