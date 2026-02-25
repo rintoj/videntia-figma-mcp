@@ -166,7 +166,7 @@ export function registerVariableTools(server: McpServer): void {
     "get_collection_info",
     "Get detailed metadata about a variable collection",
     {
-      id: z.string().describe("Collection ID or name"),
+      id: z.string().describe("Collection ID (e.g. 'VariableCollectionId:1:2') or collection name (e.g. 'Theme') — use get_variable_collections to list available IDs"),
     },
     async ({ id: collection_id }) => {
       try {
@@ -283,11 +283,11 @@ export function registerVariableTools(server: McpServer): void {
     {
       collection_id: z.string().describe("Collection ID or name"),
       name: z.string().describe("Variable name (e.g., 'primary', 'spacing.4', 'font.family')"),
-      type: z.enum(["COLOR", "FLOAT", "STRING", "BOOLEAN"]).describe("Variable type"),
+      type: z.enum(["COLOR", "FLOAT", "STRING", "BOOLEAN"]).describe("Variable type: COLOR = RGBA color object {r,g,b,a} with normalized 0–1 values, FLOAT = numeric value (spacing, sizing, etc.), STRING = text value, BOOLEAN = true/false"),
       value: z
         .union([RGBAColorSchema, z.coerce.number(), z.string(), z.coerce.boolean()])
-        .describe("Variable value (type depends on variable type)"),
-      mode: z.string().optional().describe("Mode to set value for (default: all modes)"),
+        .describe("Variable value matching the type: COLOR → {r:0–1, g:0–1, b:0–1, a:0–1}, FLOAT → number, STRING → string, BOOLEAN → true/false"),
+      mode: z.string().optional().describe("Mode name to set the value for (e.g. 'dark', 'light'); omit to set for the collection's default mode"),
     },
     async ({ collection_id, name, type, value, mode }) => {
       try {
@@ -330,13 +330,13 @@ export function registerVariableTools(server: McpServer): void {
       variables: coerceArray(
         z.array(
           z.object({
-            name: z.string(),
-            type: z.enum(["COLOR", "FLOAT", "STRING", "BOOLEAN"]),
-            value: z.union([RGBAColorSchema, z.coerce.number(), z.string(), z.coerce.boolean()]),
+            name: z.string().describe("Variable name"),
+            type: z.enum(["COLOR", "FLOAT", "STRING", "BOOLEAN"]).describe("Variable type — value must match this type"),
+            value: z.union([RGBAColorSchema, z.coerce.number(), z.string(), z.coerce.boolean()]).describe("Value matching the type: COLOR → {r,g,b,a} normalized, FLOAT → number, STRING → string, BOOLEAN → true/false"),
           }),
         ),
-      ).describe("Array of variable definitions"),
-      mode: z.string().optional().describe("Mode to set values for"),
+      ).describe("Array of variable definitions to create in one batch"),
+      mode: z.string().optional().describe("Mode name to set values for (e.g. 'dark'); omit to use collection's default mode"),
     },
     async ({ collection_id, variables, mode }) => {
       try {
@@ -536,9 +536,9 @@ export function registerVariableTools(server: McpServer): void {
     "calculate_color_scale",
     "Calculate all 10 scale variants (-50 to -900) for a base color",
     {
-      base: RGBAColorSchema.describe("Base color RGB"),
-      background: RGBAColorSchema.describe("Background color RGB"),
-      input_format: z.enum(["normalized", "rgb255"]).optional().describe("Input format (default: normalized)"),
+      base: RGBAColorSchema.describe("The primary/brand color to build a scale from — provided as normalized RGB {r,g,b} where each channel is 0–1"),
+      background: RGBAColorSchema.describe("The dark background color to blend against (e.g. page background) — provided as normalized RGB {r,g,b} 0–1. Scale level 900 is closest to this base color, level 50 is closest to background."),
+      input_format: z.enum(["normalized", "rgb255"]).optional().describe("Color input format: 'normalized' = channels 0–1 (default), 'rgb255' = channels 0–255"),
     },
     async ({ base, background, input_format }) => {
       try {
@@ -587,10 +587,10 @@ export function registerVariableTools(server: McpServer): void {
     "calculate_composite_color",
     "Calculate a single composited color at a specific mix percentage",
     {
-      base: RGBAColorSchema.describe("Base color RGB"),
-      background: RGBAColorSchema.describe("Background color RGB"),
-      mix_percentage: z.coerce.number().min(0).max(1).describe("Mix percentage (0.0 to 1.0)"),
-      input_format: z.enum(["normalized", "rgb255"]).optional().describe("Input format (default: normalized)"),
+      base: RGBAColorSchema.describe("Primary color as normalized RGB {r,g,b} 0–1 — at mix_percentage=1.0, result equals this color"),
+      background: RGBAColorSchema.describe("Background color as normalized RGB {r,g,b} 0–1 — at mix_percentage=0.0, result equals this color"),
+      mix_percentage: z.coerce.number().min(0).max(1).describe("Blend ratio 0.0–1.0: 0.0 = pure background, 1.0 = pure base, 0.5 = 50/50 blend"),
+      input_format: z.enum(["normalized", "rgb255"]).optional().describe("Color input format: 'normalized' = 0–1 (default), 'rgb255' = 0–255"),
     },
     async ({ base, background, mix_percentage, input_format }) => {
       try {
@@ -625,9 +625,9 @@ export function registerVariableTools(server: McpServer): void {
     "convert_color_format",
     "Convert color between different formats",
     {
-      color: z.union([RGBAColorSchema, z.string()]).describe("Color value to convert"),
-      from_format: z.enum(["normalized", "rgb255", "hex"]).describe("Source format"),
-      to_format: z.enum(["normalized", "rgb255", "hex"]).describe("Target format"),
+      color: z.union([RGBAColorSchema, z.string()]).describe("Color value to convert — object {r,g,b,a} for normalized/rgb255 formats, or string '#RRGGBB' / '#RRGGBBAA' for hex format"),
+      from_format: z.enum(["normalized", "rgb255", "hex"]).describe("Source format: 'normalized' = {r,g,b,a} channels 0–1, 'rgb255' = {r,g,b,a} channels 0–255, 'hex' = '#RRGGBB' or '#RRGGBBAA' string"),
+      to_format: z.enum(["normalized", "rgb255", "hex"]).describe("Target format: 'normalized' = {r,g,b,a} 0–1, 'rgb255' = {r,g,b,a} 0–255, 'hex' = '#RRGGBB' string"),
     },
     async ({ color, from_format, to_format }) => {
       try {
@@ -708,9 +708,9 @@ export function registerVariableTools(server: McpServer): void {
     "audit_collection",
     "Compare collection against the 102-variable standard schema",
     {
-      collection_id: z.string().describe("Collection ID or name"),
-      chartColors: z.coerce.boolean().optional().describe("Expect chart colors (default: false)"),
-      custom_schema: z.any().optional().describe("Custom schema definition to validate against"),
+      collection_id: z.string().describe("Collection ID or name to audit against the standard schema"),
+      chartColors: z.coerce.boolean().optional().describe("true = expect the 8 optional chart color variables in addition to the 102 base variables (default: false)"),
+      custom_schema: z.any().optional().describe("Custom schema object to validate against instead of the built-in standard — must match the schema format returned by get_schema_definition; omit to use the built-in standard schema"),
     },
     async ({ collection_id, chartColors, custom_schema }) => {
       try {
@@ -779,9 +779,9 @@ export function registerVariableTools(server: McpServer): void {
     "validate_color_contrast",
     "Validate all foreground/background pairs meet WCAG AA standards",
     {
-      collection_id: z.string().describe("Collection ID or name"),
-      mode: z.string().optional().describe("Mode to validate"),
-      standard: z.enum(["AA", "AAA"]).optional().describe("WCAG standard (default: AA)"),
+      collection_id: z.string().describe("Collection ID or name containing the color variables to validate"),
+      mode: z.string().optional().describe("Mode name to validate (e.g. 'dark', 'light'); omit to use the collection's default mode"),
+      standard: z.enum(["AA", "AAA"]).optional().describe("WCAG contrast standard: AA = minimum (4.5:1 normal text, 3:1 large text), AAA = enhanced (7:1 normal text, 4.5:1 large text; default: AA)"),
     },
     async ({ collection_id, mode, standard }) => {
       try {
@@ -835,8 +835,8 @@ export function registerVariableTools(server: McpServer): void {
     "get_schema_definition",
     "Return the complete standard schema definition",
     {
-      chartColors: z.coerce.boolean().optional().describe("Include chart colors (default: false)"),
-      format: z.enum(["structured", "flat"]).optional().describe("Output format (default: structured)"),
+      chartColors: z.coerce.boolean().optional().describe("true = include the 8 optional chart color variable definitions in the schema output (default: false)"),
+      format: z.enum(["structured", "flat"]).optional().describe("Output format: 'structured' = full schema with categories and metadata (default), 'flat' = simple list of variable names only"),
     },
     async ({ chartColors, format }) => {
       try {
@@ -886,8 +886,8 @@ export function registerVariableTools(server: McpServer): void {
     "suggest_missing_variables",
     "Get list of missing variables with suggested default values",
     {
-      collection_id: z.string().describe("Collection ID or name"),
-      defaults: z.coerce.boolean().optional().describe("Include default values from reference theme (default: true)"),
+      collection_id: z.string().describe("Collection ID or name to check for missing variables"),
+      defaults: z.coerce.boolean().optional().describe("true = include suggested default values from the reference dark theme alongside each missing variable name (default: true)"),
     },
     async ({ collection_id, defaults }) => {
       try {
@@ -944,9 +944,9 @@ export function registerVariableTools(server: McpServer): void {
     "apply_default_theme",
     "Apply the default dark theme values from documentation",
     {
-      collection_id: z.string().describe("Collection ID or name"),
-      overwrite: z.coerce.boolean().optional().describe("Overwrite existing variables (default: false)"),
-      chartColors: z.coerce.boolean().optional().describe("Include chart colors (default: false)"),
+      collection_id: z.string().describe("Collection ID or name to apply the default dark theme values to"),
+      overwrite: z.coerce.boolean().optional().describe("true = update variables that already exist with default values; false = skip existing variables and only create missing ones (default: false)"),
+      chartColors: z.coerce.boolean().optional().describe("true = also apply the 8 optional chart color variables in addition to the 102 base variables (default: false)"),
     },
     async ({ collection_id, overwrite, chartColors }) => {
       try {
@@ -987,11 +987,11 @@ export function registerVariableTools(server: McpServer): void {
     "Create complete scale for one color (base + foreground + 10 scale variants)",
     {
       collection_id: z.string().describe("Collection ID or name"),
-      color_name: z.string().describe("Color name (e.g., 'primary', 'success')"),
-      base: RGBAColorSchema.describe("Base color RGB"),
-      foreground: RGBAColorSchema.describe("Foreground color RGB"),
-      background: RGBAColorSchema.describe("Background color for scale calculation"),
-      mode: z.string().optional().describe("Mode to create variables in"),
+      color_name: z.string().describe("Semantic color name used as a prefix for all generated variables (e.g. 'primary' → creates 'primary', 'primary-foreground', 'primary-50', 'primary-100', ..., 'primary-900')"),
+      base: RGBAColorSchema.describe("The main brand/accent color as normalized RGB {r,g,b} 0–1 — used as the '500' level of the scale and the base variable"),
+      foreground: RGBAColorSchema.describe("Text/icon color that sits on top of this color as normalized RGB {r,g,b} 0–1 — stored as the '<name>-foreground' variable"),
+      background: RGBAColorSchema.describe("Page/canvas background color as normalized RGB {r,g,b} 0–1 — used as the blend target for generating scale levels 50–900"),
+      mode: z.string().optional().describe("Mode name to create variables in (e.g. 'dark'); omit to use the collection's default mode"),
     },
     async ({ collection_id, color_name, base, foreground, background, mode }) => {
       try {
@@ -1036,13 +1036,13 @@ export function registerVariableTools(server: McpServer): void {
       palette: z
         .record(
           z.object({
-            base: RGBAColorSchema,
-            foreground: RGBAColorSchema,
+            base: RGBAColorSchema.describe("Main color as normalized RGB {r,g,b} 0–1"),
+            foreground: RGBAColorSchema.describe("On-color text/icon color as normalized RGB {r,g,b} 0–1"),
           }),
         )
-        .describe("Custom color values for each base color"),
-      background: RGBAColorSchema.describe("Background color for scale calculations"),
-      regenerate_scales: z.coerce.boolean().optional().describe("Auto-regenerate all scales (default: true)"),
+        .describe("Map of color names to base+foreground pairs — keys should be semantic names matching existing variable prefixes in the collection (e.g. {'primary': {base:{r,g,b}, foreground:{r,g,b}}, 'success': {...}})"),
+      background: RGBAColorSchema.describe("Page background color as normalized RGB {r,g,b} 0–1 — used as the blend target for regenerating scale levels 50–900"),
+      regenerate_scales: z.coerce.boolean().optional().describe("true = automatically recalculate and update all scale variables (50–900) using the new base colors and background; false = only update the base and foreground variables (default: true)"),
     },
     async ({ collection_id, palette, background, regenerate_scales }) => {
       try {
@@ -1292,11 +1292,11 @@ export function registerVariableTools(server: McpServer): void {
     "fix_collection_to_standard",
     "One-click fix to bring collection to 102-variable standard",
     {
-      collection_id: z.string().describe("Collection ID or name"),
-      preserve_custom: z.coerce.boolean().optional().describe("Keep non-standard variables (default: false)"),
-      add_chart_colors: z.coerce.boolean().optional().describe("Add chart colors (default: false)"),
-      defaults: z.coerce.boolean().optional().describe("Use default theme values (default: true)"),
-      dry_run: z.coerce.boolean().optional().describe("Preview changes without applying (default: false)"),
+      collection_id: z.string().describe("Collection ID or name to bring into compliance with the 102-variable standard"),
+      preserve_custom: z.coerce.boolean().optional().describe("true = keep non-standard variables that don't appear in the schema (they stay alongside standard ones); false = remove non-standard variables (default: false)"),
+      add_chart_colors: z.coerce.boolean().optional().describe("true = also add the 8 optional chart color variables to reach 110 total (default: false)"),
+      defaults: z.coerce.boolean().optional().describe("true = populate newly created variables with default dark-theme values; false = create variables without values (default: true)"),
+      dry_run: z.coerce.boolean().optional().describe("true = analyze and report what would change without modifying anything — use this to preview the impact before committing (default: false)"),
     },
     async ({ collection_id, preserve_custom, add_chart_colors, defaults, dry_run }) => {
       try {
@@ -1339,10 +1339,10 @@ export function registerVariableTools(server: McpServer): void {
     "add_chart_colors",
     "Add 8 chart colors to collection",
     {
-      id: z.string().describe("Collection ID or name"),
+      id: z.string().describe("Collection ID or name to add chart colors to"),
       chart_colors: coerceArray(z.array(RGBAColorSchema))
         .optional()
-        .describe("Custom chart colors (default: use standard palette)"),
+        .describe("Array of exactly 8 custom chart colors as normalized RGB objects {r,g,b,a} 0–1 — omit to use the built-in standard chart color palette"),
     },
     async ({ id: collection_id, chart_colors }) => {
       try {
@@ -1383,8 +1383,8 @@ export function registerVariableTools(server: McpServer): void {
     "add_mode_to_collection",
     "Add a new mode to a variable collection (e.g., Light mode, Dark mode, High Contrast)",
     {
-      id: z.string().describe("Collection ID or name"),
-      name: z.string().describe("Mode name (e.g., 'Light', 'Dark', 'High Contrast')"),
+      id: z.string().describe("Collection ID or name — use get_variable_collections to list available IDs"),
+      name: z.string().describe("Name for the new mode (e.g. 'Light', 'Dark', 'High Contrast') — must be unique within the collection; free-plan Figma accounts are limited to 1 mode per collection"),
     },
     async ({ id: collection_id, name: mode_name }) => {
       try {
@@ -1420,9 +1420,9 @@ export function registerVariableTools(server: McpServer): void {
     "rename_mode",
     "Rename an existing mode in a collection",
     {
-      id: z.string().describe("Collection ID or name"),
-      old_name: z.string().describe("Current mode name"),
-      new_name: z.string().describe("New mode name"),
+      id: z.string().describe("Collection ID or name containing the mode to rename"),
+      old_name: z.string().describe("Current name of the mode to rename (must match exactly, case-sensitive)"),
+      new_name: z.string().describe("New name for the mode — must be unique within the collection"),
     },
     async ({ id: collection_id, old_name: from, new_name: to }) => {
       try {
@@ -1459,8 +1459,8 @@ export function registerVariableTools(server: McpServer): void {
     "delete_mode",
     "Delete a mode from a collection (cannot delete last mode)",
     {
-      id: z.string().describe("Collection ID or name"),
-      name: z.string().describe("Mode name to delete"),
+      id: z.string().describe("Collection ID or name containing the mode to delete"),
+      name: z.string().describe("Exact name of the mode to delete (case-sensitive) — cannot delete the last remaining mode in a collection"),
     },
     async ({ id: collection_id, name: mode_name }) => {
       try {
@@ -1496,9 +1496,9 @@ export function registerVariableTools(server: McpServer): void {
     "duplicate_mode_values",
     "Copy all variable values from one mode to another (useful for creating light mode from dark mode)",
     {
-      id: z.string().describe("Collection ID or name"),
-      from: z.string().describe("Source mode name to copy from"),
-      to: z.string().describe("Target mode name to copy to"),
+      id: z.string().describe("Collection ID or name containing both modes"),
+      from: z.string().describe("Name of the source mode to copy values from (must already exist)"),
+      to: z.string().describe("Name of the target mode to copy values into (must already exist — create it first with add_mode_to_collection if needed)"),
       transform_colors: z
         .object({
           brightness_adjustment: z
