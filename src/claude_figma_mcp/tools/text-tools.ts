@@ -773,7 +773,7 @@ export function registerTextTools(server: McpServer): void {
     "delete_text_style",
     "Delete a text style from the document",
     {
-      styleId: z.string().describe("The ID of the text style to delete"),
+      styleId: z.string().describe("The ID or name of the text style to delete (e.g. 'S:abc123,' or 'body/md' or 'body-md')"),
     },
     async ({ styleId }) => {
       try {
@@ -807,7 +807,7 @@ export function registerTextTools(server: McpServer): void {
     "update_text_style",
     "Update an existing text style's properties",
     {
-      styleId: z.string().describe("The ID of the text style to update"),
+      styleId: z.string().describe("The ID or name of the text style to update (e.g. 'S:abc123,' or 'body/md' or 'body-md')"),
       name: z.string().optional().describe("New name for the text style"),
       description: z.string().optional().describe("New description for the text style"),
       fontSize: z.coerce.number().optional().describe("New font size in pixels"),

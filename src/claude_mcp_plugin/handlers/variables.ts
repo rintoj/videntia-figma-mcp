@@ -460,9 +460,20 @@ export async function bindVariable(
     throw new Error(`Node not found: ${nodeId}`);
   }
 
-  const variable = await figma.variables.getVariableByIdAsync(variableId);
+  let variable = await figma.variables.getVariableByIdAsync(variableId);
   if (!variable) {
-    throw new Error(`Variable not found: ${variableId}`);
+    // Fall back to name-based lookup: try exact name first, then dash-to-slash normalization
+    const allVariables = await figma.variables.getLocalVariablesAsync();
+    variable = allVariables.find(function(v) { return v.name === variableId; }) || null;
+    if (!variable) {
+      const normalizedInput = variableId.replace(/-/g, '/');
+      if (normalizedInput !== variableId) {
+        variable = allVariables.find(function(v) { return v.name === normalizedInput; }) || null;
+      }
+    }
+    if (!variable) {
+      throw new Error(`Variable not found: "${variableId}". Pass a variable ID or name (e.g. "background/primary").`);
+    }
   }
 
   const fieldParts = field.split('/');
