@@ -226,22 +226,22 @@ export async function setEffectStyleId(
 
       // Try to validate the effect style exists before applying
       debugLog(`Fetching effect styles to validate style ID: ${effectStyleId}`);
-      const effectStyles = await figma.getLocalEffectStylesAsync();
-      let foundStyle = effectStyles.find(
-        (style) => style.id === effectStyleId,
-      );
-
-      // Fall back to name-based lookup (supports 'shadow/md' or 'shadow-md')
-      if (!foundStyle) {
-        const normalizedInput = effectStyleId.replace(/-/g, '/');
-        foundStyle = effectStyles.find(
-          (style) => style.name === effectStyleId || style.name === normalizedInput,
-        );
+      let foundStyle = await figma.getStyleByIdAsync(effectStyleId) as EffectStyle | null;
+      if (!foundStyle || foundStyle.type !== 'EFFECT') {
+        // Fall back to name-based lookup: exact name first, then dash-to-slash normalization
+        const effectStyles = await figma.getLocalEffectStylesAsync();
+        foundStyle = effectStyles.find(function(s) { return s.name === effectStyleId; }) || null;
+        if (!foundStyle) {
+          const normalizedInput = effectStyleId.replace(/-/g, '/');
+          if (normalizedInput !== effectStyleId) {
+            foundStyle = effectStyles.find(function(s) { return s.name === normalizedInput; }) || null;
+          }
+        }
       }
 
       if (!foundStyle) {
         throw new Error(
-          `Effect style not found: "${effectStyleId}". Pass a style ID or name (e.g. "shadow/md"). Available styles: ${effectStyles.length}`,
+          `Effect style not found: "${effectStyleId}". Pass a style ID or name (e.g. "shadow/md").`,
         );
       }
 
@@ -410,9 +410,14 @@ export async function updateEffectStyle(
   try {
     let style = await figma.getStyleByIdAsync(styleId);
     if (!style || style.type !== 'EFFECT') {
-      const normalizedInput = styleId.replace(/-/g, '/');
       const allStyles = await figma.getLocalEffectStylesAsync();
-      style = allStyles.find(function(s) { return s.name === styleId || s.name === normalizedInput; }) as EffectStyle | null;
+      style = allStyles.find(function(s) { return s.name === styleId; }) || null;
+      if (!style) {
+        const normalizedInput = styleId.replace(/-/g, '/');
+        if (normalizedInput !== styleId) {
+          style = allStyles.find(function(s) { return s.name === normalizedInput; }) || null;
+        }
+      }
     }
     if (!style || style.type !== 'EFFECT') {
       throw new Error(`Effect style not found: "${styleId}". Pass a style ID or name (e.g. "shadow/md").`);
@@ -468,9 +473,14 @@ export async function deleteEffectStyle(
   try {
     let style = await figma.getStyleByIdAsync(styleId);
     if (!style || style.type !== 'EFFECT') {
-      const normalizedInput = styleId.replace(/-/g, '/');
       const allStyles = await figma.getLocalEffectStylesAsync();
-      style = allStyles.find(function(s) { return s.name === styleId || s.name === normalizedInput; }) as EffectStyle | null;
+      style = allStyles.find(function(s) { return s.name === styleId; }) || null;
+      if (!style) {
+        const normalizedInput = styleId.replace(/-/g, '/');
+        if (normalizedInput !== styleId) {
+          style = allStyles.find(function(s) { return s.name === normalizedInput; }) || null;
+        }
+      }
     }
     if (!style || style.type !== 'EFFECT') {
       throw new Error(`Effect style not found: "${styleId}". Pass a style ID or name (e.g. "shadow/md").`);

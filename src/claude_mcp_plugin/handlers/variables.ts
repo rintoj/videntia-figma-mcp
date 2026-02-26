@@ -462,14 +462,17 @@ export async function bindVariable(
 
   let variable = await figma.variables.getVariableByIdAsync(variableId);
   if (!variable) {
-    // Fall back to name-based lookup (supports 'background/primary' or 'background-primary')
-    const normalizedInput = variableId.replace(/-/g, '/');
+    // Fall back to name-based lookup: try exact name first, then dash-to-slash normalization
     const allVariables = await figma.variables.getLocalVariablesAsync();
-    variable = allVariables.find(function(v) {
-      return v.name === variableId || v.name === normalizedInput;
-    }) as Variable | null;
+    variable = allVariables.find(function(v) { return v.name === variableId; }) || null;
     if (!variable) {
-      throw new Error(`Variable not found: ${variableId}. Pass a variable ID or name (e.g. "background/primary").`);
+      const normalizedInput = variableId.replace(/-/g, '/');
+      if (normalizedInput !== variableId) {
+        variable = allVariables.find(function(v) { return v.name === normalizedInput; }) || null;
+      }
+    }
+    if (!variable) {
+      throw new Error(`Variable not found: "${variableId}". Pass a variable ID or name (e.g. "background/primary").`);
     }
   }
 
