@@ -696,7 +696,7 @@ export function registerModificationTools(server: McpServer): void {
     "Apply an effect style to a node in Figma",
     {
       nodeId: z.string().describe("The ID of the node to modify"),
-      effectStyleId: z.string().describe("The ID of the effect style to apply"),
+      effectStyleId: z.string().describe("The ID or name of the effect style to apply (e.g. 'S:abc123,' or 'shadow/md' or 'shadow-md')"),
     },
     async ({ nodeId, effectStyleId }) => {
       try {
@@ -795,7 +795,7 @@ export function registerModificationTools(server: McpServer): void {
     "update_effect_style",
     "Update an existing effect style's properties (name, effects, description)",
     {
-      styleId: z.string().describe("The ID of the effect style to update"),
+      styleId: z.string().describe("The ID or name of the effect style to update (e.g. 'S:abc123,' or 'shadow/md' or 'shadow-md')"),
       name: z.string().optional().describe("New name for the effect style"),
       effects: coerceArray(z.array(effectStyleEntrySchema)).optional().describe("New array of effects for the style"),
       description: z.string().optional().describe("New description for the effect style"),
@@ -834,7 +834,7 @@ export function registerModificationTools(server: McpServer): void {
     "delete_effect_style",
     "Delete an effect style from the document",
     {
-      styleId: z.string().describe("The ID of the effect style to delete"),
+      styleId: z.string().describe("The ID or name of the effect style to delete (e.g. 'S:abc123,' or 'shadow/md' or 'shadow-md')"),
     },
     async ({ styleId }) => {
       try {
@@ -868,7 +868,7 @@ export function registerModificationTools(server: McpServer): void {
     "Bind a variable to a node property in Figma (e.g., fill color, stroke weight, opacity)",
     {
       nodeId: z.string().describe("The ID of the node to modify"),
-      variableId: z.string().describe("The ID of the variable to bind"),
+      variableId: z.string().describe("The ID or name of the variable to bind (e.g. 'VariableID:1:2' or 'background/primary' or 'background-primary')"),
       field: z
         .string()
         .describe(

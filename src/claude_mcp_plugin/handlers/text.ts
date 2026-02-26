@@ -1838,9 +1838,14 @@ export async function deleteTextStyle(params: Record<string, unknown>): Promise<
   }
 
   try {
-    const style = await figma.getStyleByIdAsync(styleId);
+    let style = await figma.getStyleByIdAsync(styleId);
     if (!style || style.type !== 'TEXT') {
-      throw new Error('Style not found or is not a text style');
+      const normalizedInput = styleId.replace(/-/g, '/');
+      const allStyles = await figma.getLocalTextStylesAsync();
+      style = allStyles.find(function(s) { return s.name === styleId || s.name === normalizedInput; }) as TextStyle | null;
+    }
+    if (!style || style.type !== 'TEXT') {
+      throw new Error(`Text style not found: "${styleId}". Pass a style ID or name (e.g. "body/md").`);
     }
 
     const styleName = style.name;
@@ -1882,9 +1887,14 @@ export async function updateTextStyle(params: Record<string, unknown>): Promise<
   }
 
   try {
-    const style = await figma.getStyleByIdAsync(styleId);
+    let style = await figma.getStyleByIdAsync(styleId);
     if (!style || style.type !== 'TEXT') {
-      throw new Error('Style not found or is not a text style');
+      const normalizedInput = styleId.replace(/-/g, '/');
+      const allStyles = await figma.getLocalTextStylesAsync();
+      style = allStyles.find(function(s) { return s.name === styleId || s.name === normalizedInput; }) as TextStyle | null;
+    }
+    if (!style || style.type !== 'TEXT') {
+      throw new Error(`Text style not found: "${styleId}". Pass a style ID or name (e.g. "body/md").`);
     }
 
     const textStyle = style as TextStyle;
