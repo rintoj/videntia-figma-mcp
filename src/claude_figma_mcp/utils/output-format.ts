@@ -1,12 +1,26 @@
 import { z } from "zod";
 import { sendCommandToFigma } from "./websocket.js";
 import { convertToJsx } from "./figma-to-jsx.js";
+import { filterNodeData, type NodeField } from "./figma-helpers.js";
 import type { ReadMyDesignResult } from "../types/index.js";
 
 /**
  * Shared Zod schema for the output_format parameter.
  * Defaults to "jsx" so tools return JSX+Tailwind by default.
  */
+/**
+ * Shared Zod schema for the fields parameter.
+ * Controls which properties appear in both JSON and JSX output.
+ */
+export const fieldsSchema = z.array(
+  z.enum([
+    "id", "name", "type", "fills", "strokes", "cornerRadius",
+    "absoluteBoundingBox", "characters", "style", "children",
+    "effects", "opacity", "blendMode", "constraints",
+    "layoutMode", "padding", "itemSpacing", "componentProperties",
+  ]),
+);
+
 export const outputFormatSchema = z
   .enum(["jsx", "json"])
   .optional()
@@ -38,22 +52,22 @@ export function resolveDepth(depth: number | "all" | undefined): number | undefi
 /**
  * Fetch specific nodes by ID through the read_my_design pipeline and convert to JSX.
  */
-export async function fetchNodesAsJsx(nodeIds: string[], depth?: number): Promise<string> {
+export async function fetchNodesAsJsx(nodeIds: string[], depth?: number, fields?: NodeField[]): Promise<string> {
   const result = (await sendCommandToFigma("read_my_design", {
     nodeIds,
     depth,
   })) as ReadMyDesignResult;
-  const selection = result?.selection ?? [];
+  const selection = (result?.selection ?? []).map((n) => filterNodeData(n, fields));
   return convertToJsx(selection);
 }
 
 /**
  * Fetch the current Figma selection through the read_my_design pipeline and convert to JSX.
  */
-export async function fetchSelectionAsJsx(depth?: number): Promise<string> {
+export async function fetchSelectionAsJsx(depth?: number, fields?: NodeField[]): Promise<string> {
   const result = (await sendCommandToFigma("read_my_design", {
     depth,
   })) as ReadMyDesignResult;
-  const selection = result?.selection ?? [];
+  const selection = (result?.selection ?? []).map((n) => filterNodeData(n, fields));
   return convertToJsx(selection);
 }

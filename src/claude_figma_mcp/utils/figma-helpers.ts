@@ -200,6 +200,71 @@ export function filterFigmaNode(node: any, fields?: NodeField[]): any {
 }
 
 /**
+ * Field → FigmaNodeData property mapping for JSX filtering.
+ * Structural fields (id, name, type, visible, _childCount, bindings) are always kept.
+ */
+const FIELD_PROPERTY_MAP: Record<NodeField, string[]> = {
+  id: [],
+  name: [],
+  type: [],
+  fills: ["fills"],
+  strokes: ["strokes", "strokeWeight"],
+  cornerRadius: ["cornerRadius", "topLeftRadius", "topRightRadius", "bottomRightRadius", "bottomLeftRadius"],
+  absoluteBoundingBox: ["x", "y", "width", "height"],
+  characters: [
+    "characters", "fontFamily", "fontSize", "fontWeight", "lineHeight", "lineHeightUnit",
+    "letterSpacing", "letterSpacingUnit", "textAlignHorizontal", "textCase", "textDecoration", "textStyleName",
+  ],
+  children: ["children"],
+  effects: ["effects", "effectStyleName"],
+  opacity: ["opacity", "rotation"],
+  blendMode: [],
+  constraints: [],
+  style: [],
+  layoutMode: [
+    "layoutMode", "layoutSizingHorizontal", "layoutSizingVertical",
+    "primaryAxisAlignItems", "counterAxisAlignItems", "layoutWrap", "clipsContent", "layoutPositioning",
+  ],
+  padding: ["paddingTop", "paddingRight", "paddingBottom", "paddingLeft"],
+  itemSpacing: ["itemSpacing", "counterAxisSpacing"],
+  componentProperties: [
+    "componentPropertyDefinitions", "variantProperties", "componentSetName", "componentProperties", "mainComponentName",
+  ],
+};
+
+/** Structural properties always kept regardless of fields filter. */
+const STRUCTURAL_PROPS = new Set(["id", "name", "type", "visible", "_childCount", "bindings", "svgString"]);
+
+/**
+ * Filter FigmaNodeData properties based on requested fields.
+ * Used to strip properties before JSX conversion.
+ * When fields is undefined, returns node unchanged (no filtering).
+ */
+export function filterNodeData<T extends Record<string, any>>(node: T, fields?: NodeField[]): T {
+  if (!fields || !node) return node;
+
+  // Build set of allowed properties
+  const allowedProps = new Set<string>(STRUCTURAL_PROPS);
+  for (const field of fields) {
+    const props = FIELD_PROPERTY_MAP[field];
+    if (props) {
+      for (const p of props) allowedProps.add(p);
+    }
+  }
+
+  const filtered: any = {};
+  for (const key of Object.keys(node)) {
+    if (!allowedProps.has(key)) continue;
+    if (key === "children" && Array.isArray(node[key])) {
+      filtered[key] = node[key].map((child: any) => filterNodeData(child, fields));
+    } else {
+      filtered[key] = node[key];
+    }
+  }
+  return filtered as T;
+}
+
+/**
  * Procesa un nodo de respuesta de Figma para propósitos de logging.
  * @param result - El resultado a procesar
  * @returns El resultado original sin modificaciones

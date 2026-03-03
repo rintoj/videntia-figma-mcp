@@ -2,7 +2,7 @@ import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { sendCommandToFigma } from "../utils/websocket";
 import { coerceArray } from "../utils/coerce-array.js";
-import { outputFormatSchema, depthSchema, resolveDepth, fetchNodesAsJsx } from "../utils/output-format.js";
+import { outputFormatSchema, depthSchema, resolveDepth, fetchNodesAsJsx, fieldsSchema } from "../utils/output-format.js";
 import { mcpBooleanSchema } from "../utils/mcp-boolean.js";
 import { CreateComponentInstanceResult, GetReactionsResult, GetComponentPropertiesResult } from "../types";
 
@@ -22,10 +22,13 @@ export function registerComponentTools(server: McpServer): void {
         .describe("Component node ID (for local, e.g., '123:456') or component key (for library components)"),
       x: z.coerce.number().describe("X position"),
       y: z.coerce.number().describe("Y position"),
+      fields: coerceArray(fieldsSchema).optional().describe(
+        "Optional array of fields to include. Controls which properties appear in both JSX and JSON output.",
+      ),
       depth: depthSchema,
       output_format: outputFormatSchema,
     },
-    async ({ componentKey, x, y, depth, output_format }) => {
+    async ({ componentKey, x, y, fields, depth, output_format }) => {
       try {
         const result = await sendCommandToFigma<CreateComponentInstanceResult>("create_component_instance", {
           componentKey,
@@ -34,7 +37,7 @@ export function registerComponentTools(server: McpServer): void {
         });
 
         if (output_format === "jsx" && result?.id) {
-          const jsx = await fetchNodesAsJsx([result.id], resolveDepth(depth));
+          const jsx = await fetchNodesAsJsx([result.id], resolveDepth(depth), fields);
           return { content: [{ type: "text", text: jsx }] };
         }
 

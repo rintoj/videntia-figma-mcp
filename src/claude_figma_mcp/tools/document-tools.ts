@@ -5,11 +5,9 @@ import { filterFigmaNode } from "../utils/figma-helpers.js";
 import { figmaAccessToken, FIGMA_API_BASE_URL } from "../config/config.js";
 import { coerceArray } from "../utils/coerce-array.js";
 import { mcpBooleanSchema } from "../utils/mcp-boolean.js";
-import { convertToJsx } from "../utils/figma-to-jsx.js";
 import { parseJsx } from "../utils/jsx-to-figma.js";
-import { outputFormatSchema, depthSchema, resolveDepth, fetchNodesAsJsx, fetchSelectionAsJsx } from "../utils/output-format.js";
+import { outputFormatSchema, depthSchema, resolveDepth, fetchNodesAsJsx, fetchSelectionAsJsx, fieldsSchema } from "../utils/output-format.js";
 import type {
-  ReadMyDesignResult,
   DocumentInfoResult,
   AnnotationsResult,
   SetAnnotationResult,
@@ -298,41 +296,6 @@ export function registerDocumentTools(server: McpServer): void {
       };
     }
   });
-
-  // Read My Design Tool
-  server.tool(
-    "read_my_design",
-    "Read the current Figma selection (or a specific node) as JSX with Tailwind CSS classes. Returns compact, Claude-readable markup instead of verbose JSON.",
-    {
-      nodeId: z.string().optional().describe("Specific node ID to read (defaults to current selection)"),
-      depth: depthSchema,
-    },
-    async ({ nodeId, depth }) => {
-      try {
-        const result = (await sendCommandToFigma("read_my_design", { nodeId, depth: resolveDepth(depth) })) as ReadMyDesignResult;
-        const selection = result?.selection ?? [];
-        const jsx = convertToJsx(selection);
-        return {
-          content: [
-            {
-              type: "text",
-              text: jsx,
-            },
-          ],
-        };
-      } catch (error) {
-        return {
-          content: [
-            {
-              type: "text",
-              text: `Error reading design${nodeId ? ` for node "${nodeId}"` : ""}: ${error instanceof Error ? error.message : String(error)}`,
-            },
-          ],
-        };
-      }
-    },
-  );
-
   // JSX to Figma Tool
   server.tool(
     "jsx_to_figma",
@@ -800,10 +763,13 @@ export function registerDocumentTools(server: McpServer): void {
         .describe(
           "When true (default), returns only the first matching nodes without descending into their children. Set to false to recursively find all nested matches.",
         ),
+      fields: coerceArray(fieldsSchema).optional().describe(
+        "Optional array of fields to include. Controls which properties appear in both JSX and JSON output.",
+      ),
       depth: depthSchema,
       output_format: outputFormatSchema,
     },
-    async ({ nodeId, types, topLevelOnly, depth, output_format }) => {
+    async ({ nodeId, types, topLevelOnly, fields, depth, output_format }) => {
       try {
         const result = await sendCommandToFigma("scan_nodes_by_types", {
           nodeId,
@@ -823,7 +789,7 @@ export function registerDocumentTools(server: McpServer): void {
 
           if (output_format === "jsx" && typedResult.matchingNodes.length > 0) {
             const ids = typedResult.matchingNodes.map((n: any) => n.id);
-            const jsx = await fetchNodesAsJsx(ids, resolveDepth(depth));
+            const jsx = await fetchNodesAsJsx(ids, resolveDepth(depth), fields);
             return {
               content: [
                 { type: "text" as const, text: summaryText },
@@ -870,14 +836,17 @@ export function registerDocumentTools(server: McpServer): void {
     "get_selection",
     "Get information about the current selection in Figma. Returns JSX+Tailwind markup.",
     {
+      fields: coerceArray(fieldsSchema).optional().describe(
+        "Optional array of fields to include. Controls which properties appear in both JSX and JSON output.",
+      ),
       depth: depthSchema,
       output_format: outputFormatSchema,
     },
-    async ({ depth, output_format }) => {
+    async ({ fields, depth, output_format }) => {
       try {
         const effectiveDepth = resolveDepth(depth);
         if (output_format === "jsx") {
-          const jsx = await fetchSelectionAsJsx(effectiveDepth);
+          const jsx = await fetchSelectionAsJsx(effectiveDepth, fields);
           return { content: [{ type: "text", text: jsx }] };
         }
         const result = await sendCommandToFigma("get_selection");
@@ -908,34 +877,9 @@ export function registerDocumentTools(server: McpServer): void {
     "Get detailed information about a specific node in Figma. Returns JSX+Tailwind markup or JSON. Supports depth-limited traversal, metadata-only mode, and descendant search.",
     {
       nodeId: z.string().describe("The ID of the node to get information about"),
-      fields: coerceArray(
-        z.array(
-          z.enum([
-            "id",
-            "name",
-            "type",
-            "fills",
-            "strokes",
-            "cornerRadius",
-            "absoluteBoundingBox",
-            "characters",
-            "style",
-            "children",
-            "effects",
-            "opacity",
-            "blendMode",
-            "constraints",
-            "layoutMode",
-            "padding",
-            "itemSpacing",
-            "componentProperties",
-          ]),
-        ),
-      )
-        .optional()
-        .describe(
-          "Optional array of fields to include in the response. Ignored in JSX mode. For JSON mode only — fields to include. Defaults: id, name, type, fills, strokes, cornerRadius, absoluteBoundingBox, characters, style",
-        ),
+      fields: coerceArray(fieldsSchema).optional().describe(
+        "Optional array of fields to include. Controls which properties appear in both JSX and JSON output.",
+      ),
       stripImages: z
         .boolean()
         .optional()
@@ -954,7 +898,7 @@ export function registerDocumentTools(server: McpServer): void {
       try {
         const effectiveDepth = resolveDepth(depth);
         if (output_format === "jsx") {
-          const jsx = await fetchNodesAsJsx([nodeId], effectiveDepth);
+          const jsx = await fetchNodesAsJsx([nodeId], effectiveDepth, fields);
           return { content: [{ type: "text", text: jsx }] };
         }
         const result = await sendCommandToFigma("get_node_info", {
@@ -990,34 +934,9 @@ export function registerDocumentTools(server: McpServer): void {
     "Get detailed information about multiple nodes in Figma. Returns JSX+Tailwind markup or JSON. Supports depth-limited traversal, metadata-only mode, and descendant search.",
     {
       nodeIds: coerceArray(z.array(z.string())).describe("Array of node IDs to get information about"),
-      fields: coerceArray(
-        z.array(
-          z.enum([
-            "id",
-            "name",
-            "type",
-            "fills",
-            "strokes",
-            "cornerRadius",
-            "absoluteBoundingBox",
-            "characters",
-            "style",
-            "children",
-            "effects",
-            "opacity",
-            "blendMode",
-            "constraints",
-            "layoutMode",
-            "padding",
-            "itemSpacing",
-            "componentProperties",
-          ]),
-        ),
-      )
-        .optional()
-        .describe(
-          "Optional array of fields to include in the response. Ignored in JSX mode. For JSON mode only — fields to include. Defaults: id, name, type, fills, strokes, cornerRadius, absoluteBoundingBox, characters, style",
-        ),
+      fields: coerceArray(fieldsSchema).optional().describe(
+        "Optional array of fields to include. Controls which properties appear in both JSX and JSON output.",
+      ),
       stripImages: z
         .boolean()
         .optional()
@@ -1036,7 +955,7 @@ export function registerDocumentTools(server: McpServer): void {
       try {
         const effectiveDepth = resolveDepth(depth);
         if (output_format === "jsx") {
-          const jsx = await fetchNodesAsJsx(nodeIds, effectiveDepth);
+          const jsx = await fetchNodesAsJsx(nodeIds, effectiveDepth, fields);
           return { content: [{ type: "text", text: jsx }] };
         }
         const results = await Promise.all(
@@ -1274,10 +1193,13 @@ export function registerDocumentTools(server: McpServer): void {
     "Scan all text nodes in the selected Figma node. Returns JSX+Tailwind markup.",
     {
       nodeId: z.string().describe("ID of the node to scan"),
+      fields: coerceArray(fieldsSchema).optional().describe(
+        "Optional array of fields to include. Controls which properties appear in both JSX and JSON output.",
+      ),
       depth: depthSchema,
       output_format: outputFormatSchema,
     },
-    async ({ nodeId, depth, output_format }) => {
+    async ({ nodeId, fields, depth, output_format }) => {
       try {
         // Use the plugin's scan_text_nodes function with chunking flag
         const result = await sendCommandToFigma("scan_text_nodes", {
@@ -1300,7 +1222,7 @@ export function registerDocumentTools(server: McpServer): void {
 
           if (output_format === "jsx" && typedResult.textNodes.length > 0) {
             const ids = typedResult.textNodes.map((n: any) => n.id);
-            const jsx = await fetchNodesAsJsx(ids, resolveDepth(depth));
+            const jsx = await fetchNodesAsJsx(ids, resolveDepth(depth), fields);
             return {
               content: [
                 { type: "text" as const, text: summaryText },
@@ -1334,7 +1256,7 @@ export function registerDocumentTools(server: McpServer): void {
           const typedResult = result as { textNodes: Array<any> };
           if (typedResult.textNodes.length > 0) {
             const ids = typedResult.textNodes.map((n: any) => n.id);
-            const jsx = await fetchNodesAsJsx(ids, resolveDepth(depth));
+            const jsx = await fetchNodesAsJsx(ids, resolveDepth(depth), fields);
             return {
               content: [
                 { type: "text" as const, text: `Found ${typedResult.textNodes.length} text nodes` },
