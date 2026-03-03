@@ -1,12 +1,13 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { sendCommandToFigma, joinChannel, getOpenChannels } from "../utils/websocket.js";
-import { filterFigmaNode } from "../utils/figma-helpers.js";
 import { figmaAccessToken, FIGMA_API_BASE_URL } from "../config/config.js";
 import { coerceArray } from "../utils/coerce-array.js";
 import { mcpBooleanSchema } from "../utils/mcp-boolean.js";
 import { parseJsx } from "../utils/jsx-to-figma.js";
-import { outputFormatSchema, depthSchema, resolveDepth, fetchNodesAsJsx, fetchSelectionAsJsx, fieldsSchema } from "../utils/output-format.js";
+import { outputFormatSchema, depthSchema, resolveDepth, fetchNodesAsJsx, fieldsSchema, ID_FIELDS } from "../utils/output-format.js";
+import { convertToJsx } from "../utils/figma-to-jsx.js";
+import { filterNodeData } from "../utils/figma-helpers.js";
 import type {
   DocumentInfoResult,
   AnnotationsResult,
@@ -752,7 +753,7 @@ export function registerDocumentTools(server: McpServer): void {
   // Scan Nodes By Types Tool
   server.tool(
     "scan_nodes_by_types",
-    "Scan for child nodes with specific types in the selected Figma node. Returns JSX+Tailwind markup.",
+    "Scan for child nodes with specific types in the selected Figma node. Returns JSX+Tailwind markup or JSON.",
     {
       nodeId: z.string().describe("ID of the node to scan"),
       types: coerceArray(z.array(z.string())).describe("Array of node types (e.g. ['COMPONENT', 'FRAME'])"),
@@ -765,117 +766,101 @@ export function registerDocumentTools(server: McpServer): void {
       fields: coerceArray(fieldsSchema).optional().describe(
         "Optional array of fields to include. Controls which properties appear in both JSX and JSON output.",
       ),
-      stripImages: z
-        .boolean()
-        .optional()
-        .default(true)
-        .describe("Ignored in JSX mode. For JSON mode only — strip image data. Defaults to true."),
       depth: depthSchema,
       output_format: outputFormatSchema,
     },
-    async ({ nodeId, types, limit, fields, stripImages, depth, output_format }) => {
+    async ({ nodeId, types, limit, fields, depth, output_format }) => {
       try {
         const result = await sendCommandToFigma("scan_nodes_by_types", {
           nodeId,
           types,
           limit,
+          depth: resolveDepth(depth),
         });
-
-        if (result && typeof result === "object" && "matchingNodes" in result) {
-          const typedResult = result as {
-            success: boolean;
-            count: number;
-            matchingNodes: Array<any>;
-            searchedTypes: Array<string>;
-          };
-
-          const summaryText = `Found ${typedResult.count} nodes matching types: ${typedResult.searchedTypes.join(", ")}`;
-
-          if (output_format === "jsx" && typedResult.matchingNodes.length > 0) {
-            const ids = typedResult.matchingNodes.map((n: any) => n.id);
-            const jsx = await fetchNodesAsJsx(ids, resolveDepth(depth), fields);
-            return {
-              content: [
-                { type: "text" as const, text: summaryText },
-                { type: "text" as const, text: jsx },
-              ],
-            };
-          }
-
-          const nodeLines: string[] = ["| Name | Type | ID |", "|------|------|----|"];
-          for (const n of typedResult.matchingNodes) {
-            nodeLines.push(`| ${n.name || "-"} | ${n.type || "-"} | ${n.id} |`);
-          }
-          return {
-            content: [
-              { type: "text" as const, text: summaryText },
-              { type: "text" as const, text: nodeLines.join("\n") },
-            ],
-          };
-        }
-
-        return {
-          content: [
-            {
-              type: "text",
-              text: typeof result === "string" ? result : JSON.stringify(result, null, 2),
-            },
-          ],
-        };
+        return formatNodeResult(result, output_format, fields);
       } catch (error) {
-        return {
-          content: [
-            {
-              type: "text",
-              text: `Error scanning nodes by types [${types.join(", ")}] in node "${nodeId}": ${error instanceof Error ? error.message : String(error)}`,
-            },
-          ],
-        };
+        return { content: [{ type: "text", text: `Error scanning nodes by types [${types.join(", ")}] in node "${nodeId}": ${error instanceof Error ? error.message : String(error)}` }] };
       }
     },
   );
 
+  /**
+   * Strip ID fields from a node unless explicitly requested via fields.
+   * Also simplifies bindings from { id, name } to just the name string.
+   */
+  function stripIdFields(node: any, fields?: string[]): any {
+    const requestedIds = new Set((fields ?? []).filter((f) => (ID_FIELDS as readonly string[]).includes(f)));
+    const result = { ...node };
+
+    // Strip ID fields not explicitly requested
+    for (const idField of ID_FIELDS) {
+      if (idField === "bindingIds") continue; // handled below
+      if (!requestedIds.has(idField)) {
+        delete result[idField];
+      }
+    }
+
+    // Simplify bindings: { id, name } → name (unless bindingIds requested)
+    if (result.bindings && typeof result.bindings === "object") {
+      if (requestedIds.has("bindingIds")) {
+        // Keep full { id, name } objects
+      } else {
+        const simplified: Record<string, string> = {};
+        for (const [key, val] of Object.entries(result.bindings)) {
+          simplified[key] = (val as any)?.name ?? val;
+        }
+        result.bindings = simplified;
+      }
+    }
+
+    // Recurse into children
+    if (Array.isArray(result.children)) {
+      result.children = result.children.map((c: any) => stripIdFields(c, fields));
+    }
+
+    return result;
+  }
+
+  /**
+   * Shared handler: extracts selection from plugin result, applies fields/format.
+   * All node-reading tools delegate here after calling the plugin.
+   */
+  function formatNodeResult(
+    result: unknown,
+    output_format: "jsx" | "json",
+    fields?: string[],
+  ): { content: Array<{ type: "text"; text: string }> } {
+    const selection: any[] = (result as any)?.selection ?? [];
+    const processed = selection
+      .map((n: any) => stripIdFields(n, fields))
+      .map((n: any) => filterNodeData(n, fields as any));
+    if (processed.length === 0) {
+      const text = output_format === "jsx" ? "<!-- No nodes found -->" : JSON.stringify([]);
+      return { content: [{ type: "text", text }] };
+    }
+    if (output_format === "jsx") {
+      return { content: [{ type: "text", text: convertToJsx(processed) }] };
+    }
+    return { content: [{ type: "text", text: JSON.stringify(processed) }] };
+  }
+
   // Selection Tool
   server.tool(
     "get_selection",
-    "Get information about the current selection in Figma. Returns JSX+Tailwind markup.",
+    "Get information about the current selection in Figma. Returns JSX+Tailwind markup or JSON.",
     {
       fields: coerceArray(fieldsSchema).optional().describe(
         "Optional array of fields to include. Controls which properties appear in both JSX and JSON output.",
       ),
-      stripImages: z
-        .boolean()
-        .optional()
-        .default(true)
-        .describe("Ignored in JSX mode. For JSON mode only — strip image data. Defaults to true."),
       depth: depthSchema,
       output_format: outputFormatSchema,
     },
-    async ({ fields, stripImages, depth, output_format }) => {
+    async ({ fields, depth, output_format }) => {
       try {
-        const effectiveDepth = resolveDepth(depth);
-        if (output_format === "jsx") {
-          const jsx = await fetchSelectionAsJsx(effectiveDepth, fields);
-          return { content: [{ type: "text", text: jsx }] };
-        }
-        const result = await sendCommandToFigma("get_selection", { stripImages });
-        return {
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify(filterFigmaNode(result, fields)),
-            },
-          ],
-        };
+        const result = await sendCommandToFigma("get_selection", { depth: resolveDepth(depth) });
+        return formatNodeResult(result, output_format, fields);
       } catch (error) {
-        return {
-          content: [
-            {
-              type: "text",
-              text: `Error getting selection: ${error instanceof Error ? error.message : String(error)}`,
-            },
-          ],
-        };
+        return { content: [{ type: "text", text: `Error getting selection: ${error instanceof Error ? error.message : String(error)}` }] };
       }
     },
   );
@@ -883,49 +868,21 @@ export function registerDocumentTools(server: McpServer): void {
   // Node Info Tool
   server.tool(
     "get_node_info",
-    "Get detailed information about a specific node in Figma. Returns JSX+Tailwind markup or JSON. Supports depth-limited traversal, metadata-only mode, and descendant search.",
+    "Get detailed information about a specific node in Figma. Returns JSX+Tailwind markup or JSON.",
     {
       nodeId: z.string().describe("The ID of the node to get information about"),
       fields: coerceArray(fieldsSchema).optional().describe(
         "Optional array of fields to include. Controls which properties appear in both JSX and JSON output.",
       ),
-      stripImages: z
-        .boolean()
-        .optional()
-        .default(true)
-        .describe("Ignored in JSX mode. For JSON mode only — strip image data. Defaults to true."),
       depth: depthSchema,
       output_format: outputFormatSchema,
     },
-    async ({ nodeId, fields, stripImages, depth, output_format }) => {
+    async ({ nodeId, fields, depth, output_format }) => {
       try {
-        const effectiveDepth = resolveDepth(depth);
-        if (output_format === "jsx") {
-          const jsx = await fetchNodesAsJsx([nodeId], effectiveDepth, fields);
-          return { content: [{ type: "text", text: jsx }] };
-        }
-        const result = await sendCommandToFigma("get_node_info", {
-          nodeId,
-          stripImages,
-          depth: effectiveDepth,
-        });
-        return {
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify(filterFigmaNode(result, fields)),
-            },
-          ],
-        };
+        const result = await sendCommandToFigma("get_node_info", { nodeIds: [nodeId], depth: resolveDepth(depth) });
+        return formatNodeResult(result, output_format, fields);
       } catch (error) {
-        return {
-          content: [
-            {
-              type: "text",
-              text: `Error getting node info for "${nodeId}": ${error instanceof Error ? error.message : String(error)}`,
-            },
-          ],
-        };
+        return { content: [{ type: "text", text: `Error getting node info for "${nodeId}": ${error instanceof Error ? error.message : String(error)}` }] };
       }
     },
   );
@@ -933,54 +890,21 @@ export function registerDocumentTools(server: McpServer): void {
   // Nodes Info Tool
   server.tool(
     "get_nodes_info",
-    "Get detailed information about multiple nodes in Figma. Returns JSX+Tailwind markup or JSON. Supports depth-limited traversal, metadata-only mode, and descendant search.",
+    "Get detailed information about multiple nodes in Figma. Returns JSX+Tailwind markup or JSON.",
     {
       nodeIds: coerceArray(z.array(z.string())).describe("Array of node IDs to get information about"),
       fields: coerceArray(fieldsSchema).optional().describe(
         "Optional array of fields to include. Controls which properties appear in both JSX and JSON output.",
       ),
-      stripImages: z
-        .boolean()
-        .optional()
-        .default(true)
-        .describe("Ignored in JSX mode. For JSON mode only — strip image data. Defaults to true."),
       depth: depthSchema,
       output_format: outputFormatSchema,
     },
-    async ({ nodeIds, fields, stripImages, depth, output_format }) => {
+    async ({ nodeIds, fields, depth, output_format }) => {
       try {
-        const effectiveDepth = resolveDepth(depth);
-        if (output_format === "jsx") {
-          const jsx = await fetchNodesAsJsx(nodeIds, effectiveDepth, fields);
-          return { content: [{ type: "text", text: jsx }] };
-        }
-        const results = await Promise.all(
-          nodeIds.map(async (nodeId) => {
-            const result = await sendCommandToFigma("get_node_info", {
-              nodeId,
-              stripImages,
-              depth: effectiveDepth,
-            });
-            return { nodeId, info: result };
-          }),
-        );
-        return {
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify(results.map((result) => filterFigmaNode(result.info, fields))),
-            },
-          ],
-        };
+        const result = await sendCommandToFigma("get_node_info", { nodeIds, depth: resolveDepth(depth) });
+        return formatNodeResult(result, output_format, fields);
       } catch (error) {
-        return {
-          content: [
-            {
-              type: "text",
-              text: `Error getting nodes info for ${nodeIds.length} node(s): ${error instanceof Error ? error.message : String(error)}`,
-            },
-          ],
-        };
+        return { content: [{ type: "text", text: `Error getting nodes info for ${nodeIds.length} node(s): ${error instanceof Error ? error.message : String(error)}` }] };
       }
     },
   );
@@ -988,7 +912,7 @@ export function registerDocumentTools(server: McpServer): void {
   // Search Nodes Tool
   server.tool(
     "search_nodes",
-    "Search for nodes across the entire Figma document (or within a subtree) by name or ID. Returns matching nodes with the same detail level as get_node_info. Supports depth control, metadata-only mode, and type filtering.",
+    "Search for nodes across the entire Figma document (or within a subtree) by name or ID. Returns JSX+Tailwind markup or JSON.",
     {
       query: z
         .string()
@@ -1013,48 +937,23 @@ export function registerDocumentTools(server: McpServer): void {
         .optional()
         .describe("Max number of results to return. Default: 50."),
       depth: depthSchema,
-      stripImages: z
-        .boolean()
-        .optional()
-        .default(true)
-        .describe("Ignored in JSX mode. For JSON mode only — strip image data. Defaults to true."),
       fields: coerceArray(fieldsSchema).optional().describe(
         "Optional array of fields to include. Controls which properties appear in both JSX and JSON output.",
       ),
       output_format: outputFormatSchema,
     },
-    async ({ query, types, rootNodeId, limit, depth, stripImages, fields, output_format }) => {
+    async ({ query, types, rootNodeId, limit, depth, fields, output_format }) => {
       try {
-        const effectiveDepth = resolveDepth(depth);
         const result = await sendCommandToFigma("search_nodes", {
           query,
           types,
           rootNodeId,
           limit,
-          depth: effectiveDepth,
-          stripImages,
+          depth: resolveDepth(depth),
         });
-        if (output_format === "jsx") {
-          const nodes = Array.isArray(result) ? result : (result as any)?.nodes ?? [];
-          const nodeIds = nodes.map((n: any) => n.id).filter(Boolean);
-          if (nodeIds.length === 0) {
-            return { content: [{ type: "text", text: "<!-- No matching nodes found -->" }] };
-          }
-          const jsx = await fetchNodesAsJsx(nodeIds, effectiveDepth, fields);
-          return { content: [{ type: "text", text: jsx }] };
-        }
-        return {
-          content: [{ type: "text", text: JSON.stringify(fields ? (Array.isArray(result) ? result.map((n: any) => filterFigmaNode(n, fields)) : filterFigmaNode(result, fields)) : result) }],
-        };
+        return formatNodeResult(result, output_format, fields);
       } catch (error) {
-        return {
-          content: [
-            {
-              type: "text",
-              text: `Error searching nodes for "${query}": ${error instanceof Error ? error.message : String(error)}`,
-            },
-          ],
-        };
+        return { content: [{ type: "text", text: `Error searching nodes for "${query}": ${error instanceof Error ? error.message : String(error)}` }] };
       }
     },
   );
@@ -1182,112 +1081,6 @@ export function registerDocumentTools(server: McpServer): void {
             {
               type: "text",
               text: `Error getting local components: ${error instanceof Error ? error.message : String(error)}`,
-            },
-          ],
-        };
-      }
-    },
-  );
-
-  // Text Node Scanning Tool
-  server.tool(
-    "scan_text_nodes",
-    "Scan all text nodes in the selected Figma node. Returns JSX+Tailwind markup.",
-    {
-      nodeId: z.string().describe("ID of the node to scan"),
-      limit: z
-        .number()
-        .int()
-        .min(1)
-        .optional()
-        .describe("Max number of results to return. Default: 50."),
-      fields: coerceArray(fieldsSchema).optional().describe(
-        "Optional array of fields to include. Controls which properties appear in both JSX and JSON output.",
-      ),
-      depth: depthSchema,
-      output_format: outputFormatSchema,
-    },
-    async ({ nodeId, limit, fields, depth, output_format }) => {
-      try {
-        const result = await sendCommandToFigma("scan_text_nodes", {
-          nodeId,
-          useChunking: true,
-          chunkSize: 10,
-          limit,
-        });
-
-        // If the result indicates chunking was used, format the response accordingly
-        if (result && typeof result === "object" && "chunks" in result) {
-          const typedResult = result as {
-            success: boolean;
-            totalNodes: number;
-            processedNodes: number;
-            chunks: number;
-            textNodes: Array<any>;
-          };
-
-          const summaryText = `Found ${typedResult.totalNodes} text nodes (processed in ${typedResult.chunks} chunks)`;
-
-          if (output_format === "jsx" && typedResult.textNodes.length > 0) {
-            const ids = typedResult.textNodes.map((n: any) => n.id);
-            const jsx = await fetchNodesAsJsx(ids, resolveDepth(depth), fields);
-            return {
-              content: [
-                { type: "text" as const, text: summaryText },
-                { type: "text" as const, text: jsx },
-              ],
-            };
-          }
-
-          const nodeLines: string[] = [
-            "| Name | Characters | Font | Size | ID |",
-            "|------|------------|------|------|----|",
-          ];
-          for (const n of typedResult.textNodes) {
-            const chars = truncate((n.characters || "").replace(/\n/g, " "), 40);
-            const font = n.fontName
-              ? `${n.fontName.family} ${n.fontName.style || ""}`.trim()
-              : n.style?.fontFamily || "-";
-            const size = n.fontSize ?? n.style?.fontSize ?? "-";
-            nodeLines.push(`| ${n.name || "-"} | ${chars} | ${font} | ${size} | ${n.id} |`);
-          }
-          return {
-            content: [
-              { type: "text" as const, text: summaryText },
-              { type: "text" as const, text: nodeLines.join("\n") },
-            ],
-          };
-        }
-
-        // If chunking wasn't used, try to extract IDs for JSX mode
-        if (output_format === "jsx" && result && typeof result === "object" && "textNodes" in result) {
-          const typedResult = result as { textNodes: Array<any> };
-          if (typedResult.textNodes.length > 0) {
-            const ids = typedResult.textNodes.map((n: any) => n.id);
-            const jsx = await fetchNodesAsJsx(ids, resolveDepth(depth), fields);
-            return {
-              content: [
-                { type: "text" as const, text: `Found ${typedResult.textNodes.length} text nodes` },
-                { type: "text" as const, text: jsx },
-              ],
-            };
-          }
-        }
-
-        return {
-          content: [
-            {
-              type: "text",
-              text: typeof result === "string" ? result : JSON.stringify(result, null, 2),
-            },
-          ],
-        };
-      } catch (error) {
-        return {
-          content: [
-            {
-              type: "text",
-              text: `Error scanning text nodes in node "${nodeId}": ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };
