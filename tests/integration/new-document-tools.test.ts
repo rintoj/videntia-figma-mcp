@@ -45,39 +45,6 @@ describe("new document tools integration", () => {
     return await handler(validatedArgs, { meta: {} });
   }
 
-  describe("read_my_design", () => {
-    beforeEach(() => {
-      mockSendCommand.mockResolvedValue({
-        selectionCount: 1,
-        selection: [{ id: "node-1", name: "Frame 1", type: "FRAME", visible: true }],
-      });
-    });
-
-    it("successfully reads design as JSX", async () => {
-      const response = await callTool("read_my_design", {});
-
-      expect(mockSendCommand).toHaveBeenCalledTimes(1);
-      expect(mockSendCommand).toHaveBeenCalledWith("read_my_design", { nodeId: undefined, depth: 1 });
-      expect(response.content[0].text).toContain('id="node-1"');
-      expect(response.content[0].text).toContain('name="Frame 1"');
-    });
-
-    it("passes nodeId and depth params to plugin", async () => {
-      await callTool("read_my_design", { nodeId: "1:23", depth: 2 });
-
-      expect(mockSendCommand).toHaveBeenCalledWith("read_my_design", { nodeId: "1:23", depth: 2 });
-    });
-
-    it("handles errors gracefully", async () => {
-      mockSendCommand.mockRejectedValue(new Error("No selection"));
-
-      const response = await callTool("read_my_design", {});
-
-      expect(response.content[0].text).toContain("Error reading design");
-      expect(response.content[0].text).toContain("No selection");
-    });
-  });
-
   describe("set_focus", () => {
     beforeEach(() => {
       mockSendCommand.mockResolvedValue({
@@ -543,20 +510,15 @@ describe("new document tools integration", () => {
 
   describe("scan_nodes_by_types", () => {
     beforeEach(() => {
-      mockSendCommand.mockImplementation((command: string) => {
-        if (command === "read_my_design") {
-          return Promise.resolve({ selectionCount: 0, selection: [] });
-        }
-        return Promise.resolve({
-          success: true,
-          count: 3,
-          matchingNodes: [
-            { id: "frame-1", type: "FRAME" },
-            { id: "frame-2", type: "FRAME" },
-            { id: "comp-1", type: "COMPONENT" },
-          ],
-          searchedTypes: ["FRAME", "COMPONENT"],
-        });
+      mockSendCommand.mockResolvedValue({
+        success: true,
+        count: 3,
+        matchingNodes: [
+          { id: "frame-1", type: "FRAME" },
+          { id: "frame-2", type: "FRAME" },
+          { id: "comp-1", type: "COMPONENT" },
+        ],
+        searchedTypes: ["FRAME", "COMPONENT"],
       });
     });
 
@@ -586,16 +548,11 @@ describe("new document tools integration", () => {
     });
 
     it("coerces string types into an array", async () => {
-      mockSendCommand.mockImplementation((command: string) => {
-        if (command === "read_my_design") {
-          return Promise.resolve({ selectionCount: 0, selection: [] });
-        }
-        return Promise.resolve({
-          success: true,
-          count: 1,
-          matchingNodes: [{ id: "node-1" }],
-          searchedTypes: ["FRAME"],
-        });
+      mockSendCommand.mockResolvedValue({
+        success: true,
+        count: 1,
+        matchingNodes: [{ id: "node-1" }],
+        searchedTypes: ["FRAME"],
       });
       const response = await callTool("scan_nodes_by_types", {
         nodeId: "parent-123",

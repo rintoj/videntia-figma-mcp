@@ -44,7 +44,7 @@ export type FigmaCommand =
   | "get_file_key"
   | "get_selection"
   | "get_node_info"
-  | "read_my_design"
+  | "get_node_info_enriched"
   | "set_focus"
   | "set_selections"
   | "create_rectangle"
@@ -231,7 +231,7 @@ export interface VariablesResponse {
   collections: VariableCollection[];
 }
 
-// Figma node data returned by the enriched read_my_design plugin handler
+// Figma node data returned by the enriched get_node_info_enriched plugin handler
 export interface FigmaNodeFill {
   type: string;
   color?: string;

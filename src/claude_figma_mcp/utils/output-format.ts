@@ -50,10 +50,10 @@ export function resolveDepth(depth: number | "all" | undefined): number | undefi
 }
 
 /**
- * Fetch specific nodes by ID through the read_my_design pipeline and convert to JSX.
+ * Fetch specific nodes by ID through the enriched pipeline and convert to JSX.
  */
 export async function fetchNodesAsJsx(nodeIds: string[], depth?: number, fields?: NodeField[]): Promise<string> {
-  const result = (await sendCommandToFigma("read_my_design", {
+  const result = (await sendCommandToFigma("get_node_info_enriched", {
     nodeIds,
     depth,
   })) as ReadMyDesignResult;
@@ -62,10 +62,10 @@ export async function fetchNodesAsJsx(nodeIds: string[], depth?: number, fields?
 }
 
 /**
- * Fetch the current Figma selection through the read_my_design pipeline and convert to JSX.
+ * Fetch the current Figma selection through the enriched pipeline and convert to JSX.
  */
 export async function fetchSelectionAsJsx(depth?: number, fields?: NodeField[]): Promise<string> {
-  const result = (await sendCommandToFigma("read_my_design", {
+  const result = (await sendCommandToFigma("get_node_info_enriched", {
     depth,
   })) as ReadMyDesignResult;
   const selection = (result?.selection ?? []).map((n) => filterNodeData(n, fields));

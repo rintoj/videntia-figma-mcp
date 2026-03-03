@@ -132,7 +132,8 @@ import {
 } from './handlers/layout';
 
 // Handlers — selection & focus
-import { setFocus, setSelections, readMyDesign, scanNodesByTypes } from './handlers/selection';
+import { setFocus, setSelections, scanNodesByTypes } from './handlers/selection';
+import { serializeNodes } from './handlers/node-serializer';
 
 // Handlers — annotations
 import {
@@ -493,8 +494,8 @@ async function handleCommand(
       return await setFocus(params);
     case 'set_selections':
       return await setSelections(params);
-    case 'read_my_design':
-      return await readMyDesign(params);
+    case 'get_node_info_enriched':
+      return await serializeNodes(params);
     case 'scan_nodes_by_types':
       return await scanNodesByTypes(params);
 
