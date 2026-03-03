@@ -756,25 +756,29 @@ export function registerDocumentTools(server: McpServer): void {
     {
       nodeId: z.string().describe("ID of the node to scan"),
       types: coerceArray(z.array(z.string())).describe("Array of node types (e.g. ['COMPONENT', 'FRAME'])"),
-      topLevelOnly: z
-        .boolean()
+      limit: z
+        .number()
+        .int()
+        .min(1)
         .optional()
-        .default(true)
-        .describe(
-          "When true (default), returns only the first matching nodes without descending into their children. Set to false to recursively find all nested matches.",
-        ),
+        .describe("Max number of results to return. Default: 50."),
       fields: coerceArray(fieldsSchema).optional().describe(
         "Optional array of fields to include. Controls which properties appear in both JSX and JSON output.",
       ),
+      stripImages: z
+        .boolean()
+        .optional()
+        .default(true)
+        .describe("Ignored in JSX mode. For JSON mode only — strip image data. Defaults to true."),
       depth: depthSchema,
       output_format: outputFormatSchema,
     },
-    async ({ nodeId, types, topLevelOnly, fields, depth, output_format }) => {
+    async ({ nodeId, types, limit, fields, stripImages, depth, output_format }) => {
       try {
         const result = await sendCommandToFigma("scan_nodes_by_types", {
           nodeId,
           types,
-          topLevelOnly,
+          limit,
         });
 
         if (result && typeof result === "object" && "matchingNodes" in result) {
@@ -839,22 +843,27 @@ export function registerDocumentTools(server: McpServer): void {
       fields: coerceArray(fieldsSchema).optional().describe(
         "Optional array of fields to include. Controls which properties appear in both JSX and JSON output.",
       ),
+      stripImages: z
+        .boolean()
+        .optional()
+        .default(true)
+        .describe("Ignored in JSX mode. For JSON mode only — strip image data. Defaults to true."),
       depth: depthSchema,
       output_format: outputFormatSchema,
     },
-    async ({ fields, depth, output_format }) => {
+    async ({ fields, stripImages, depth, output_format }) => {
       try {
         const effectiveDepth = resolveDepth(depth);
         if (output_format === "jsx") {
           const jsx = await fetchSelectionAsJsx(effectiveDepth, fields);
           return { content: [{ type: "text", text: jsx }] };
         }
-        const result = await sendCommandToFigma("get_selection");
+        const result = await sendCommandToFigma("get_selection", { stripImages });
         return {
           content: [
             {
               type: "text",
-              text: JSON.stringify(result),
+              text: JSON.stringify(filterFigmaNode(result, fields)),
             },
           ],
         };
@@ -886,15 +895,9 @@ export function registerDocumentTools(server: McpServer): void {
         .default(true)
         .describe("Ignored in JSX mode. For JSON mode only — strip image data. Defaults to true."),
       depth: depthSchema,
-      includeChildren: z
-        .boolean()
-        .optional()
-        .describe(
-          "JSON mode only. Set to false to return only the node's own metadata without any children. Also includes parentId. Useful for quick position/size/variant lookups.",
-        ),
       output_format: outputFormatSchema,
     },
-    async ({ nodeId, fields, stripImages, depth, includeChildren, output_format }) => {
+    async ({ nodeId, fields, stripImages, depth, output_format }) => {
       try {
         const effectiveDepth = resolveDepth(depth);
         if (output_format === "jsx") {
@@ -905,7 +908,6 @@ export function registerDocumentTools(server: McpServer): void {
           nodeId,
           stripImages,
           depth: effectiveDepth,
-          includeChildren,
         });
         return {
           content: [
@@ -943,15 +945,9 @@ export function registerDocumentTools(server: McpServer): void {
         .default(true)
         .describe("Ignored in JSX mode. For JSON mode only — strip image data. Defaults to true."),
       depth: depthSchema,
-      includeChildren: z
-        .boolean()
-        .optional()
-        .describe(
-          "JSON mode only. Set to false to return only each node's own metadata without children. Also includes parentId.",
-        ),
       output_format: outputFormatSchema,
     },
-    async ({ nodeIds, fields, stripImages, depth, includeChildren, output_format }) => {
+    async ({ nodeIds, fields, stripImages, depth, output_format }) => {
       try {
         const effectiveDepth = resolveDepth(depth);
         if (output_format === "jsx") {
@@ -964,7 +960,6 @@ export function registerDocumentTools(server: McpServer): void {
               nodeId,
               stripImages,
               depth: effectiveDepth,
-              includeChildren,
             });
             return { nodeId, info: result };
           }),
@@ -1018,31 +1013,38 @@ export function registerDocumentTools(server: McpServer): void {
         .optional()
         .describe("Max number of results to return. Default: 50."),
       depth: depthSchema,
-      includeChildren: z
-        .boolean()
-        .optional()
-        .describe(
-          "Set to false to return only each matching node's own metadata (no children). Also includes parentId. Useful for fast lookups.",
-        ),
       stripImages: z
         .boolean()
         .optional()
         .default(true)
-        .describe("Strip image data from results. Defaults to true."),
+        .describe("Ignored in JSX mode. For JSON mode only — strip image data. Defaults to true."),
+      fields: coerceArray(fieldsSchema).optional().describe(
+        "Optional array of fields to include. Controls which properties appear in both JSX and JSON output.",
+      ),
+      output_format: outputFormatSchema,
     },
-    async ({ query, types, rootNodeId, limit, depth, includeChildren, stripImages }) => {
+    async ({ query, types, rootNodeId, limit, depth, stripImages, fields, output_format }) => {
       try {
+        const effectiveDepth = resolveDepth(depth);
         const result = await sendCommandToFigma("search_nodes", {
           query,
           types,
           rootNodeId,
           limit,
-          depth: resolveDepth(depth),
-          includeChildren,
+          depth: effectiveDepth,
           stripImages,
         });
+        if (output_format === "jsx") {
+          const nodes = Array.isArray(result) ? result : (result as any)?.nodes ?? [];
+          const nodeIds = nodes.map((n: any) => n.id).filter(Boolean);
+          if (nodeIds.length === 0) {
+            return { content: [{ type: "text", text: "<!-- No matching nodes found -->" }] };
+          }
+          const jsx = await fetchNodesAsJsx(nodeIds, effectiveDepth, fields);
+          return { content: [{ type: "text", text: jsx }] };
+        }
         return {
-          content: [{ type: "text", text: JSON.stringify(result) }],
+          content: [{ type: "text", text: JSON.stringify(fields ? (Array.isArray(result) ? result.map((n: any) => filterFigmaNode(n, fields)) : filterFigmaNode(result, fields)) : result) }],
         };
       } catch (error) {
         return {
@@ -1193,19 +1195,25 @@ export function registerDocumentTools(server: McpServer): void {
     "Scan all text nodes in the selected Figma node. Returns JSX+Tailwind markup.",
     {
       nodeId: z.string().describe("ID of the node to scan"),
+      limit: z
+        .number()
+        .int()
+        .min(1)
+        .optional()
+        .describe("Max number of results to return. Default: 50."),
       fields: coerceArray(fieldsSchema).optional().describe(
         "Optional array of fields to include. Controls which properties appear in both JSX and JSON output.",
       ),
       depth: depthSchema,
       output_format: outputFormatSchema,
     },
-    async ({ nodeId, fields, depth, output_format }) => {
+    async ({ nodeId, limit, fields, depth, output_format }) => {
       try {
-        // Use the plugin's scan_text_nodes function with chunking flag
         const result = await sendCommandToFigma("scan_text_nodes", {
           nodeId,
-          useChunking: true, // Enable chunking on the plugin side
-          chunkSize: 10, // Process 10 nodes at a time
+          useChunking: true,
+          chunkSize: 10,
+          limit,
         });
 
         // If the result indicates chunking was used, format the response accordingly
