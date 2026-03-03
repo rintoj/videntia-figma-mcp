@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from 'preact/hooks'
 import { ALLOWED_COMMANDS, RECONNECT_BASE_DELAY, RECONNECT_MAX_DELAY, MIN_PROGRESS_DISPLAY_MS } from '../constants'
+import { ActionEntry } from '../types'
 
 function generateId(): string {
   var bytes = new Uint8Array(6)
@@ -32,20 +33,19 @@ export interface ConnectionState {
   statusMessage: string
   statusClass: string
   buttonDisabled: boolean
+  channelName: string
 }
 
-interface UseConnectionOptions {
-  onOperationUpdate: (text: string, type: string) => void
-  onOperationHide: (delayMs: number) => void
-}
-
-export function useConnection(options: UseConnectionOptions) {
+export function useConnection() {
   var [connState, setConnState] = useState<ConnectionState>({
     connected: false,
     statusMessage: 'Disconnected',
     statusClass: 'disconnected',
     buttonDisabled: false,
+    channelName: '',
   })
+
+  var [actions, setActions] = useState<ActionEntry[]>([])
 
   var socketRef = useRef<WebSocket | null>(null)
   var channelRef = useRef<string | null>(null)
@@ -57,17 +57,36 @@ export function useConnection(options: UseConnectionOptions) {
   var serverPortRef = useRef(3055)
   var progressStartTimesRef = useRef<Map<string, number>>(new Map())
   var connectedRef = useRef(false)
-  // Keep options in a ref so WebSocket callbacks always see the latest
-  var optionsRef = useRef(options)
-  optionsRef.current = options
+  // Track command metadata for action entries
+  var commandMetaRef = useRef<Map<string, { command: string, params: any }>>(new Map())
 
-  function updateConnectionStatus(isConnected: boolean, message: string, cssClass?: string) {
+  function addAction(entry: ActionEntry) {
+    setActions(function (prev) { return prev.concat([entry]) })
+  }
+
+  function updateAction(id: string, updates: Partial<ActionEntry>) {
+    setActions(function (prev) {
+      return prev.map(function (a) {
+        if (a.id === id) return Object.assign({}, a, updates)
+        return a
+      })
+    })
+  }
+
+  function clearActions() {
+    setActions([])
+  }
+
+  function updateConnectionStatus(isConnected: boolean, message: string, cssClass?: string, channel?: string) {
     connectedRef.current = isConnected
-    setConnState({
-      connected: isConnected,
-      statusMessage: message,
-      statusClass: cssClass !== undefined ? cssClass : (isConnected ? 'connected' : 'disconnected'),
-      buttonDisabled: false,
+    setConnState(function (prev) {
+      return {
+        connected: isConnected,
+        statusMessage: message,
+        statusClass: cssClass !== undefined ? cssClass : (isConnected ? 'connected' : 'disconnected'),
+        buttonDisabled: false,
+        channelName: channel !== undefined ? channel : prev.channelName,
+      }
     })
   }
 
@@ -161,9 +180,18 @@ export function useConnection(options: UseConnectionOptions) {
         return
       }
 
-      var name = formatCommandName(data.command)
       progressStartTimesRef.current.set(data.id, Date.now())
-      optionsRef.current.onOperationUpdate('Running: ' + name + '...', 'running')
+      commandMetaRef.current.set(data.id, { command: data.command, params: data.params })
+
+      addAction({
+        id: data.id,
+        command: data.command,
+        params: data.params,
+        result: null,
+        error: null,
+        status: 'running',
+        timestamp: Date.now(),
+      })
 
       try {
         parent.postMessage({
@@ -175,8 +203,7 @@ export function useConnection(options: UseConnectionOptions) {
           },
         }, '*')
       } catch (error: any) {
-        optionsRef.current.onOperationUpdate(name + ' failed', 'error')
-        optionsRef.current.onOperationHide(5000)
+        updateAction(data.id, { status: 'error', error: error.message || 'Error executing command' })
         sendErrorResponse(data.id, error.message || 'Error executing command')
       }
     }
@@ -226,7 +253,16 @@ export function useConnection(options: UseConnectionOptions) {
         if (data.type === 'system') {
           if (data.message && data.message.result) {
             var channelName = data.channel
-            updateConnectionStatus(true, 'Channel: ' + channelName)
+            updateConnectionStatus(true, 'Channel: ' + channelName, undefined, channelName)
+            addAction({
+              id: generateId(),
+              command: 'Connected',
+              params: { channel: channelName, port: serverPortRef.current },
+              result: 'Connected to channel ' + channelName,
+              error: null,
+              status: 'success',
+              timestamp: Date.now(),
+            })
             parent.postMessage({
               pluginMessage: { type: 'notify', message: 'Channel: ' + channelName },
             }, '*')
@@ -251,7 +287,7 @@ export function useConnection(options: UseConnectionOptions) {
       if (intentionalDisconnectRef.current) {
         intentionalDisconnectRef.current = false
         reconnectAttemptRef.current = 0
-        updateConnectionStatus(false, 'Disconnected from server')
+        updateConnectionStatus(false, 'Disconnected from server', undefined, '')
       } else {
         scheduleReconnect(wasConnected)
       }
@@ -279,48 +315,43 @@ export function useConnection(options: UseConnectionOptions) {
       socketRef.current = null
     }
     connectedRef.current = false
-    updateConnectionStatus(false, 'Disconnected from server')
+    addAction({
+      id: generateId(),
+      command: 'Disconnected',
+      params: null,
+      result: null,
+      error: null,
+      status: 'error',
+      timestamp: Date.now(),
+    })
+    updateConnectionStatus(false, 'Disconnected from server', undefined, '')
   }, [])
 
   function handleCommandResult(message: any) {
-    var resultName = formatCommandName(message.command || '')
     var resultStart = progressStartTimesRef.current.get(message.id)
     var resultDelay = resultStart !== undefined
       ? Math.max(0, MIN_PROGRESS_DISPLAY_MS - (Date.now() - resultStart))
       : 0
     progressStartTimesRef.current.delete(message.id)
     setTimeout(function () {
-      optionsRef.current.onOperationUpdate(resultName + ' completed', 'success')
-      optionsRef.current.onOperationHide(3000)
+      updateAction(message.id, { status: 'success', result: message.result })
     }, resultDelay)
     sendSuccessResponse(message.id, message.result)
   }
 
   function handleCommandError(message: any) {
-    var errorName = formatCommandName(message.command || '')
     var errorStart = progressStartTimesRef.current.get(message.id)
     var errorDelay = errorStart !== undefined
       ? Math.max(0, MIN_PROGRESS_DISPLAY_MS - (Date.now() - errorStart))
       : 0
     progressStartTimesRef.current.delete(message.id)
     setTimeout(function () {
-      optionsRef.current.onOperationUpdate(errorName + ' failed', 'error')
-      optionsRef.current.onOperationHide(5000)
+      updateAction(message.id, { status: 'error', error: message.error })
     }, errorDelay)
     sendErrorResponse(message.id, message.error)
   }
 
   function handleProgressUpdate(message: any) {
-    var name = formatCommandName(message.command || '')
-    if (message.status === 'completed') {
-      optionsRef.current.onOperationUpdate(message.message || (name + ' completed'), 'success')
-      optionsRef.current.onOperationHide(3000)
-    } else if (message.status === 'error') {
-      optionsRef.current.onOperationUpdate(message.message || (name + ' failed'), 'error')
-      optionsRef.current.onOperationHide(5000)
-    } else {
-      optionsRef.current.onOperationUpdate(message.message || (name + '...'), 'running')
-    }
     sendProgressUpdateToServer(message)
   }
 
@@ -352,6 +383,7 @@ export function useConnection(options: UseConnectionOptions) {
 
   return {
     connState: connState,
+    actions: actions,
     connect: connect,
     disconnect: disconnect,
     handleCommandResult: handleCommandResult,

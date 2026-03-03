@@ -1,9 +1,9 @@
 import { h } from 'preact'
-import { useState, useEffect, useRef, useCallback } from 'preact/hooks'
+import { useState, useEffect, useRef } from 'preact/hooks'
 import { ConnectionSection } from './components/connection-section'
-import { ConnectionStatus } from './components/connection-status'
+import { SectionHeader } from './components/section-header'
 import { SettingsSection } from './components/settings-section'
-import { OperationStatus } from './components/operation-status'
+import { ActionsList } from './components/actions-list'
 import { useConnection } from './hooks/use-connection'
 import { consumeEarlyMessages } from './early-messages'
 
@@ -11,27 +11,10 @@ export function App() {
   var [port, setPort] = useState(3055)
   var [readOnly, setReadOnly] = useState(false)
   var [autoFocus, setAutoFocus] = useState(false)
-  var [opText, setOpText] = useState('')
-  var [opType, setOpType] = useState('')
-  var opTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  var [prefsExpanded, setPrefsExpanded] = useState(true)
+  var [actionsExpanded, setActionsExpanded] = useState(true)
 
-  var onOperationUpdate = useCallback(function (text: string, type: string) {
-    if (opTimerRef.current !== null) {
-      clearTimeout(opTimerRef.current)
-      opTimerRef.current = null
-    }
-    setOpText(text)
-    setOpType(type)
-  }, [])
-
-  var onOperationHide = useCallback(function (delayMs: number) {
-    opTimerRef.current = setTimeout(function () {
-      setOpText('')
-      setOpType('')
-    }, delayMs)
-  }, [])
-
-  var connection = useConnection({ onOperationUpdate: onOperationUpdate, onOperationHide: onOperationHide })
+  var connection = useConnection()
 
   // Keep connection in a ref so the message handler always sees the latest without re-registering
   var connectionRef = useRef(connection)
@@ -59,6 +42,12 @@ export function App() {
             }
             if (msg.settings.autoFocus !== undefined) {
               setAutoFocus(msg.settings.autoFocus)
+            }
+            if (msg.settings.prefsExpanded !== undefined) {
+              setPrefsExpanded(msg.settings.prefsExpanded)
+            }
+            if (msg.settings.actionsExpanded !== undefined) {
+              setActionsExpanded(msg.settings.actionsExpanded)
             }
           }
           break
@@ -106,6 +95,18 @@ export function App() {
     parent.postMessage({ pluginMessage: { type: 'update-settings', autoFocus: value } }, '*')
   }
 
+  function handlePrefsToggle() {
+    var next = !prefsExpanded
+    setPrefsExpanded(next)
+    parent.postMessage({ pluginMessage: { type: 'update-settings', prefsExpanded: next } }, '*')
+  }
+
+  function handleActionsToggle() {
+    var next = !actionsExpanded
+    setActionsExpanded(next)
+    parent.postMessage({ pluginMessage: { type: 'update-settings', actionsExpanded: next } }, '*')
+  }
+
   function handleConnect(p: number) {
     connection.connect(p)
   }
@@ -123,23 +124,27 @@ export function App() {
       <ConnectionSection
         port={port}
         connected={connection.connState.connected}
+        channelName={connection.connState.channelName}
         buttonDisabled={connection.connState.buttonDisabled}
         onConnect={handleConnect}
         onDisconnect={handleDisconnect}
         onPortChange={handlePortChange}
       />
-      <ConnectionStatus
-        connected={connection.connState.connected}
-        message={connection.connState.statusMessage}
-        statusClass={connection.connState.statusClass}
-      />
-      <SettingsSection
-        readOnly={readOnly}
-        autoFocus={autoFocus}
-        onReadOnlyChange={handleReadOnlyChange}
-        onAutoFocusChange={handleAutoFocusChange}
-      />
-      <OperationStatus text={opText} type={opType} />
+      <div class="section-content">
+        <SectionHeader label="Preferences" expanded={prefsExpanded} onToggle={handlePrefsToggle} />
+        {prefsExpanded && (
+          <SettingsSection
+            readOnly={readOnly}
+            autoFocus={autoFocus}
+            onReadOnlyChange={handleReadOnlyChange}
+            onAutoFocusChange={handleAutoFocusChange}
+          />
+        )}
+      </div>
+      <div class="section-content actions-section">
+        <SectionHeader label="Actions" expanded={actionsExpanded} onToggle={handleActionsToggle} />
+        {actionsExpanded && <ActionsList actions={connection.actions} />}
+      </div>
     </div>
   )
 }

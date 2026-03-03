@@ -162,6 +162,8 @@ const state = {
   serverPort: 3055,
   readonlyMode: false,
   autoFocus: false,
+  prefsExpanded: true,
+  actionsExpanded: true,
 };
 
 // ---------------------------------------------------------------------------
@@ -217,7 +219,7 @@ var FOCUS_AFTER_COMMANDS = new Set([
 // Plugin UI
 // ---------------------------------------------------------------------------
 
-figma.showUI(__html__, { width: 220, height: 200 });
+figma.showUI(__html__, { width: 315, height: 430 });
 
 // Send file name to UI immediately on startup so it's available before WebSocket connects
 figma.ui.postMessage({ type: 'file-name', fileName: figma.root.name });
@@ -241,10 +243,18 @@ function updateSettings(settings: Record<string, unknown>): void {
   if (settings['autoFocus'] !== undefined && settings['autoFocus'] !== null) {
     state.autoFocus = settings['autoFocus'] as boolean;
   }
+  if (settings['prefsExpanded'] !== undefined && settings['prefsExpanded'] !== null) {
+    state.prefsExpanded = settings['prefsExpanded'] as boolean;
+  }
+  if (settings['actionsExpanded'] !== undefined && settings['actionsExpanded'] !== null) {
+    state.actionsExpanded = settings['actionsExpanded'] as boolean;
+  }
   figma.clientStorage.setAsync('settings', {
     serverPort: state.serverPort,
     readonlyMode: state.readonlyMode,
     autoFocus: state.autoFocus,
+    prefsExpanded: state.prefsExpanded,
+    actionsExpanded: state.actionsExpanded,
   });
 }
 
@@ -262,6 +272,12 @@ function updateSettings(settings: Record<string, unknown>): void {
       if (savedSettings['autoFocus'] !== undefined && savedSettings['autoFocus'] !== null) {
         state.autoFocus = savedSettings['autoFocus'] as boolean;
       }
+      if (savedSettings['prefsExpanded'] !== undefined && savedSettings['prefsExpanded'] !== null) {
+        state.prefsExpanded = savedSettings['prefsExpanded'] as boolean;
+      }
+      if (savedSettings['actionsExpanded'] !== undefined && savedSettings['actionsExpanded'] !== null) {
+        state.actionsExpanded = savedSettings['actionsExpanded'] as boolean;
+      }
     }
 
     // Send initial settings to UI
@@ -271,6 +287,8 @@ function updateSettings(settings: Record<string, unknown>): void {
         serverPort: state.serverPort,
         readonlyMode: state.readonlyMode,
         autoFocus: state.autoFocus,
+        prefsExpanded: state.prefsExpanded,
+        actionsExpanded: state.actionsExpanded,
       },
     });
   } catch (error) {
