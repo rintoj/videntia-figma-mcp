@@ -255,7 +255,7 @@ async function handleCommand(
       return await searchNodes({
         query: String(params['query']),
         types: Array.isArray(params['types']) ? params['types'] as string[] : undefined,
-        rootNodeId: params['rootNodeId'] !== undefined ? String(params['rootNodeId']) : undefined,
+        nodeId: params['nodeId'] !== undefined ? String(params['nodeId']) : undefined,
         limit: params['limit'] !== undefined ? Number(params['limit']) : undefined,
         depth: params['depth'] !== undefined ? Number(params['depth']) : undefined,
       });
