@@ -1,12 +1,26 @@
 import { z } from "zod";
 import { sendCommandToFigma } from "./websocket.js";
 import { convertToJsx } from "./figma-to-jsx.js";
-import type { ReadMyDesignResult } from "../types/index.js";
+import { filterNodeData, type NodeField } from "./figma-helpers.js";
+import type { NodeListResult } from "../types/index.js";
 
 /**
- * Shared Zod schema for the output_format parameter.
- * Defaults to "jsx" so tools return JSX+Tailwind by default.
+ * Shared Zod schema for the fields parameter.
+ * Controls which properties appear in both JSON and JSX output.
  */
+export const fieldsSchema = z.array(
+  z.enum([
+    "id", "name", "type", "fills", "strokes", "cornerRadius",
+    "absoluteBoundingBox", "characters", "style", "children",
+    "effects", "opacity", "blendMode", "constraints",
+    "layoutMode", "padding", "itemSpacing", "componentProperties",
+    "textStyleId", "effectStyleId", "mainComponentId", "bindingIds",
+  ]),
+);
+
+/** Fields that contain raw IDs — stripped by default, included only when explicitly requested. */
+export const ID_FIELDS = ["textStyleId", "effectStyleId", "mainComponentId", "bindingIds"] as const;
+
 export const outputFormatSchema = z
   .enum(["jsx", "json"])
   .optional()
@@ -16,22 +30,35 @@ export const outputFormatSchema = z
   );
 
 /**
- * Fetch specific nodes by ID through the read_my_design pipeline and convert to JSX.
+ * Shared Zod schema for the depth parameter.
+ * Accepts a non-negative integer or the literal string "all" for unlimited depth.
  */
-export async function fetchNodesAsJsx(nodeIds: string[], depth?: number): Promise<string> {
-  const result = (await sendCommandToFigma("read_my_design", {
-    nodeIds,
-    depth,
-  })) as ReadMyDesignResult;
-  const selection = result?.selection ?? [];
-  return convertToJsx(selection);
+export const depthSchema = z
+  .union([z.literal("all"), z.coerce.number().int().min(0)])
+  .optional()
+  .describe(
+    'Max depth of children to include. Default: 1 (direct children only). 0 = no children. Use "all" for unlimited depth (warning: may timeout on large documents with deep nesting).',
+  );
+
+/**
+ * Resolve the depth parameter: "all" → undefined (no limit), missing → 1 (default).
+ */
+export function resolveDepth(depth: number | "all" | undefined): number | undefined {
+  if (depth === "all") return undefined;
+  if (depth === undefined) return 1;
+  return depth;
 }
 
 /**
- * Fetch the current Figma selection through the read_my_design pipeline and convert to JSX.
+ * Fetch specific nodes by ID and convert to JSX.
  */
-export async function fetchSelectionAsJsx(): Promise<string> {
-  const result = (await sendCommandToFigma("read_my_design", {})) as ReadMyDesignResult;
-  const selection = result?.selection ?? [];
+export async function fetchNodesAsJsx(nodeIds: string[], depth?: number, fields?: NodeField[]): Promise<string> {
+  const effectiveDepth = depth !== undefined ? depth : 1;
+  const result = (await sendCommandToFigma("get_node_info", {
+    nodeIds,
+    depth: effectiveDepth,
+  })) as NodeListResult;
+  const selection = (result?.nodes ?? []).map((n) => filterNodeData(n, fields));
   return convertToJsx(selection);
 }
+

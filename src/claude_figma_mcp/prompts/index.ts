@@ -138,7 +138,7 @@ Example Login Screen Structure:
   * Forms (labels, input fields, validation text)
   * Navigation (menu items, breadcrumbs)
 \`\`\`
-scan_text_nodes(nodeId: "node-id")
+scan_nodes_by_types(nodeId: "node-id", types: ["TEXT"])
 get_node_info(nodeId: "node-id")  // optional
 \`\`\`
 

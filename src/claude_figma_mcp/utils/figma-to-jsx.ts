@@ -76,7 +76,12 @@ function fontWeightClass(weight: number): string {
 function buildTailwindClasses(node: FigmaNodeData): string[] {
   const classes: string[] = [];
   const isText = node.type === "TEXT";
-  const bindings = node.bindings || {};
+  // Normalize bindings: { id, name } → name string, or keep as-is if already a string
+  const rawBindings = node.bindings || {};
+  const bindings: Record<string, string> = {};
+  for (const [key, val] of Object.entries(rawBindings)) {
+    bindings[key] = typeof val === "object" && val !== null && "name" in val ? (val as any).name : String(val);
+  }
 
   // --- Layout ---
   if (node.layoutMode === "HORIZONTAL") {
@@ -604,6 +609,33 @@ function nodeToAst(node: FigmaNodeData): t.JSXElement | null {
     attrs.push(buildStyleAstAttr(style));
   }
 
+  // ID fields (only present when explicitly requested via fields)
+  if (node.textStyleId) {
+    attrs.push(t.jsxAttribute(t.jsxIdentifier("textStyleId"), t.stringLiteral(node.textStyleId)));
+  }
+  if (node.effectStyleId) {
+    attrs.push(t.jsxAttribute(t.jsxIdentifier("effectStyleId"), t.stringLiteral(node.effectStyleId)));
+  }
+  if (node.mainComponentId) {
+    attrs.push(t.jsxAttribute(t.jsxIdentifier("mainComponentId"), t.stringLiteral(node.mainComponentId)));
+  }
+  // Binding IDs (when bindingIds requested, bindings are { id, name } objects)
+  if (node.bindings) {
+    const bindingEntries = Object.entries(node.bindings);
+    const hasIdBindings = bindingEntries.length > 0 && typeof bindingEntries[0][1] === "object";
+    if (hasIdBindings) {
+      const idMap: Record<string, string> = {};
+      for (const [key, val] of bindingEntries) {
+        if (typeof val === "object" && val !== null && "id" in val) {
+          idMap[key] = (val as any).id;
+        }
+      }
+      if (Object.keys(idMap).length > 0) {
+        attrs.push(t.jsxAttribute(t.jsxIdentifier("bindingIds"), t.stringLiteral(JSON.stringify(idMap))));
+      }
+    }
+  }
+
   // SVG: add width/height
   if (tag === "svg") {
     const w = node.width ?? 0;
@@ -612,9 +644,13 @@ function nodeToAst(node: FigmaNodeData): t.JSXElement | null {
     attrs.push(t.jsxAttribute(t.jsxIdentifier("height"), t.stringLiteral(String(h))));
   }
 
+  // Check for truncated children (depth limit reached)
+  const hasVisibleChildren = node.children && node.children.filter((c) => c.visible !== false).length > 0;
+  const isTruncated = !hasVisibleChildren && node._childCount !== undefined && node._childCount > 0;
+
   const isSelfClosing =
     tag === "svg" ||
-    (node.type !== "TEXT" && (!node.children || node.children.filter((c) => c.visible !== false).length === 0));
+    (node.type !== "TEXT" && !hasVisibleChildren && !isTruncated);
 
   const opening = t.jsxOpeningElement(t.jsxIdentifier(tag), attrs, isSelfClosing);
   const closing = isSelfClosing ? null : t.jsxClosingElement(t.jsxIdentifier(tag));
@@ -625,6 +661,9 @@ function nodeToAst(node: FigmaNodeData): t.JSXElement | null {
     if (node.type === "TEXT") {
       const text = node.characters ? escapeJsx(node.characters) : "";
       children = [t.jsxText(text)];
+    } else if (isTruncated) {
+      // Emit a truncation comment placeholder — handled by the serializer
+      children = [t.jsxText(`__TRUNCATED__${node._childCount}`)];
     } else if (node.children) {
       for (const child of node.children) {
         if (child.visible === false) continue;
@@ -650,15 +689,23 @@ function serializeJsxElement(el: t.JSXElement, indent: number): string {
     .map((a) => serializeJsxAttribute(a))
     .join(" ");
 
+  const attrPart = attrStr ? ` ${attrStr}` : "";
+
   if (el.openingElement.selfClosing) {
-    return `${pad}<${tagName} ${attrStr} />`;
+    return `${pad}<${tagName}${attrPart} />`;
   }
 
   // Text element (only JSXText children)
   const textChildren = el.children.filter((c): c is t.JSXText => c.type === "JSXText");
   if (textChildren.length > 0 && el.children.every((c) => c.type === "JSXText")) {
     const text = textChildren.map((c) => c.value).join("");
-    return `${pad}<${tagName} ${attrStr}>\n${pad}  ${text}\n${pad}</${tagName}>`;
+    // Handle truncation comment
+    const truncMatch = text.match(/^__TRUNCATED__(\d+)$/);
+    if (truncMatch) {
+      const count = truncMatch[1];
+      return `${pad}<${tagName}${attrPart}>\n${pad}  {/* ${count} children — use depth="all" or a higher depth to expand */}\n${pad}</${tagName}>`;
+    }
+    return `${pad}<${tagName}${attrPart}>\n${pad}  ${text}\n${pad}</${tagName}>`;
   }
 
   // Container with child elements
@@ -668,7 +715,7 @@ function serializeJsxElement(el: t.JSXElement, indent: number): string {
     .filter((s) => s.length > 0)
     .join("\n");
 
-  return `${pad}<${tagName} ${attrStr}>\n${childrenJsx}\n${pad}</${tagName}>`;
+  return `${pad}<${tagName}${attrPart}>\n${childrenJsx}\n${pad}</${tagName}>`;
 }
 
 /**

@@ -187,18 +187,10 @@ describe("component tools integration", () => {
 
   describe("create_component_instance", () => {
     beforeEach(() => {
-      mockSendCommand.mockImplementation((command: string) => {
-        if (command === "read_my_design") {
-          return Promise.resolve({
-            selectionCount: 1,
-            selection: [{ id: "instance-123", name: "Button Instance", type: "INSTANCE", visible: true }],
-          });
-        }
-        return Promise.resolve({
-          id: "instance-123",
-          name: "Button Instance",
-          type: "INSTANCE",
-        });
+      mockSendCommand.mockResolvedValue({
+        id: "instance-123",
+        name: "Button Instance",
+        type: "INSTANCE",
       });
     });
 

@@ -44,7 +44,6 @@ export type FigmaCommand =
   | "get_file_key"
   | "get_selection"
   | "get_node_info"
-  | "read_my_design"
   | "set_focus"
   | "set_selections"
   | "create_rectangle"
@@ -69,7 +68,6 @@ export type FigmaCommand =
   | "set_corner_radius"
   | "clone_node"
   | "set_text_content"
-  | "scan_text_nodes"
   | "set_multiple_text_contents"
   | "set_auto_layout"
   | "set_layout_mode"
@@ -231,7 +229,7 @@ export interface VariablesResponse {
   collections: VariableCollection[];
 }
 
-// Figma node data returned by the enriched read_my_design plugin handler
+// Figma node data returned by the enriched get_node_info_enriched plugin handler
 export interface FigmaNodeFill {
   type: string;
   color?: string;
@@ -317,23 +315,29 @@ export interface FigmaNodeData {
   // Appearance
   opacity?: number;
   rotation?: number;
-  // Variable bindings (resolved to names)
-  bindings?: Record<string, string>;
+  // Variable bindings (resolved to names, or { id, name } when bindingIds requested)
+  bindings?: Record<string, string | { id: string; name: string }>;
   // Component metadata
   componentPropertyDefinitions?: Record<string, any>;
   variantProperties?: Record<string, string>;
   componentSetName?: string;
   componentProperties?: Record<string, any>;
   mainComponentName?: string;
+  // ID fields (present only when explicitly requested via fields)
+  textStyleId?: string;
+  effectStyleId?: string;
+  mainComponentId?: string;
   // SVG
   svgString?: string;
   // Children
   children?: FigmaNodeData[];
+  // Truncation hint: number of children omitted due to depth limit
+  _childCount?: number;
 }
 
-export interface ReadMyDesignResult {
-  selectionCount: number;
-  selection: FigmaNodeData[];
+export interface NodeListResult {
+  count: number;
+  nodes: FigmaNodeData[];
 }
 
 // ── Result interfaces for sendCommandToFigma<T> typed calls ──

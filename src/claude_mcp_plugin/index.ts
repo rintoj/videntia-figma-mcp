@@ -5,7 +5,8 @@
 import { debugLog } from './utils/helpers';
 
 // Handlers — document & navigation
-import { getFileKey, getDocumentInfo, getSelection, getNodeInfo, getNodesInfo, searchNodes } from './handlers/document';
+import { getFileKey, getDocumentInfo, searchNodes } from './handlers/document';
+import { serializeNodes } from './handlers/node-serializer';
 import { createPage, renamePage, deletePage } from './handlers/pages';
 import { getReactions, setDefaultConnector, createConnections } from './handlers/prototyping';
 
@@ -36,7 +37,6 @@ import { updateIcon } from './handlers/icons';
 import {
   createText,
   setTextContent,
-  scanTextNodes,
   setMultipleTextContents,
   setAutoLayout,
   setFontName,
@@ -132,7 +132,7 @@ import {
 } from './handlers/layout';
 
 // Handlers — selection & focus
-import { setFocus, setSelections, readMyDesign, scanNodesByTypes } from './handlers/selection';
+import { setFocus, setSelections, scanNodesByTypes } from './handlers/selection';
 
 // Handlers — annotations
 import {
@@ -212,6 +212,18 @@ function updateSettings(settings: Record<string, unknown>): void {
 })();
 
 // ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/** Parse a depth value from plugin params. Returns undefined for unlimited, or a valid integer. */
+function parseDepth(value: unknown): number | undefined {
+  if (value === undefined || value === null) return undefined;
+  var n = Number(value);
+  if (isNaN(n)) return undefined; // e.g. "all" passed through → treat as unlimited
+  return n;
+}
+
+// ---------------------------------------------------------------------------
 // Command dispatch
 // ---------------------------------------------------------------------------
 
@@ -227,26 +239,26 @@ async function handleCommand(
     case 'get_file_key':
       return await getFileKey();
     case 'get_selection':
-      return await getSelection();
+      return await serializeNodes({
+        depth: parseDepth(params && params['depth']),
+      });
     case 'get_node_info':
-      if (!params || !params['nodeId']) {
-        throw new Error('Missing nodeId parameter');
+      if (!params || (!params['nodeIds'] && !params['nodeId'])) {
+        throw new Error('Missing nodeId or nodeIds parameter');
       }
-      return await getNodeInfo(params['nodeId'] as string, {
-        stripImages: params['stripImages'] !== false,
-        depth: params['depth'] !== undefined ? Number(params['depth']) : undefined,
-        includeChildren: params['includeChildren'] !== undefined ? Boolean(params['includeChildren']) : undefined,
-        find: params['find'] !== undefined ? String(params['find']) : undefined,
+      return await serializeNodes({
+        nodeIds: params['nodeIds'] && Array.isArray(params['nodeIds'])
+          ? params['nodeIds'] as string[]
+          : [params['nodeId'] as string],
+        depth: parseDepth(params['depth']),
       });
     case 'get_nodes_info':
       if (!params || !params['nodeIds'] || !Array.isArray(params['nodeIds'])) {
         throw new Error('Missing or invalid nodeIds parameter');
       }
-      return await getNodesInfo(params['nodeIds'] as string[], {
-        stripImages: params['stripImages'] !== false,
-        depth: params['depth'] !== undefined ? Number(params['depth']) : undefined,
-        includeChildren: params['includeChildren'] !== undefined ? Boolean(params['includeChildren']) : undefined,
-        find: params['find'] !== undefined ? String(params['find']) : undefined,
+      return await serializeNodes({
+        nodeIds: params['nodeIds'] as string[],
+        depth: parseDepth(params['depth']),
       });
     case 'search_nodes':
       if (!params || !params['query']) {
@@ -255,11 +267,9 @@ async function handleCommand(
       return await searchNodes({
         query: String(params['query']),
         types: Array.isArray(params['types']) ? params['types'] as string[] : undefined,
-        rootNodeId: params['rootNodeId'] !== undefined ? String(params['rootNodeId']) : undefined,
+        nodeId: params['nodeId'] !== undefined ? String(params['nodeId']) : undefined,
         limit: params['limit'] !== undefined ? Number(params['limit']) : undefined,
-        stripImages: params['stripImages'] !== false,
-        depth: params['depth'] !== undefined ? Number(params['depth']) : undefined,
-        includeChildren: params['includeChildren'] !== undefined ? Boolean(params['includeChildren']) : undefined,
+        depth: parseDepth(params['depth']),
       });
 
     // Node creation
@@ -337,8 +347,6 @@ async function handleCommand(
     // Text
     case 'set_text_content':
       return await setTextContent(params);
-    case 'scan_text_nodes':
-      return await scanTextNodes(params);
     case 'set_multiple_text_contents':
       return await setMultipleTextContents(params);
     case 'set_auto_layout':
@@ -493,8 +501,6 @@ async function handleCommand(
       return await setFocus(params);
     case 'set_selections':
       return await setSelections(params);
-    case 'read_my_design':
-      return await readMyDesign(params);
     case 'scan_nodes_by_types':
       return await scanNodesByTypes(params);
 

@@ -146,28 +146,6 @@ describe("Selection and Focus Commands", () => {
       success: true,
     });
 
-    mockCommands["read_my_design"] = () => ({
-      selectionCount: 2,
-      selection: [
-        {
-          id: nodeId1,
-          name: "Rectangle 1",
-          type: "RECTANGLE",
-          x: 100,
-          y: 100,
-          width: 200,
-          height: 150,
-        },
-        {
-          id: nodeId2,
-          name: "Text 1",
-          type: "TEXT",
-          x: 350,
-          y: 100,
-          characters: "Hello World",
-        },
-      ],
-    });
   });
 
   it("should focus on a specific node", async () => {
@@ -190,14 +168,6 @@ describe("Selection and Focus Commands", () => {
     expect(result.selectedNodes).toHaveLength(2);
   });
 
-  it("should read current selection details", async () => {
-    const result = await mockSendCommandToFigma("read_my_design", {});
-
-    expect(result.selectionCount).toBe(2);
-    expect(result.selection).toHaveLength(2);
-    expect(result.selection[0].type).toBe("RECTANGLE");
-    expect(result.selection[1].type).toBe("TEXT");
-  });
 });
 
 describe("Scan Commands", () => {

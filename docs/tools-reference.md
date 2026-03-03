@@ -135,9 +135,21 @@ Call this **after** styles and variables have been created to see a complete pic
 
 ## 3. Node Inspection
 
+All node-inspection tools share three optional parameters:
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `fields` | `string[]` | all fields | Filter which properties appear in output (e.g. `["absoluteBoundingBox", "fills"]`) |
+| `depth` | `number \| "all"` | `1` | How many levels of children to include. `0` = node only, `1` = direct children, `"all"` = full tree. |
+| `output_format` | `"jsx" \| "json"` | `"jsx"` | `"jsx"` returns JSX+Tailwind markup; `"json"` returns raw node data |
+
+All tools return `{ count, nodes }` from the plugin, then format via `output_format`.
+
+---
+
 ### `get_selection`
 
-Get info on currently selected node(s). Returns JSX+Tailwind markup.
+Get info on currently selected node(s). Use when you need to inspect what the user has selected.
 
 > **Precondition:** At least one non-page node must already be selected in Figma. Page nodes cannot be selected. In a fresh file, create a frame first and call `set_focus` on that frame before running this tool.
 
@@ -145,23 +157,27 @@ Get info on currently selected node(s). Returns JSX+Tailwind markup.
 {}
 ```
 
+**When to use:** You need to inspect or act on whatever the user currently has selected.
+
 ---
 
 ### `get_node_info`
 
-Get detailed info for a specific node by ID.
+Get detailed info for a single node by its ID. Use when you already know the exact node ID.
 
 ```json
 {
-  "node_id": "123:456"
+  "nodeId": "123:456"
 }
 ```
+
+**When to use:** You have a specific node ID (from a previous tool result or user input) and need its properties.
 
 ---
 
 ### `get_nodes_info`
 
-Get info for multiple nodes at once.
+Get info for multiple nodes at once. Same as `get_node_info` but accepts an array.
 
 ```json
 {
@@ -169,30 +185,55 @@ Get info for multiple nodes at once.
 }
 ```
 
+**When to use:** You have several node IDs and want to fetch them in a single call instead of multiple `get_node_info` calls.
+
 ---
 
 ### `scan_nodes_by_types`
 
-Find all descendant nodes matching specific types inside a parent node.
+Find all descendant nodes of specific types inside a parent node. Searches recursively through the subtree.
 
 ```json
 {
   "nodeId": "123:456",
-  "types": ["TEXT", "RECTANGLE", "FRAME"]
+  "types": ["TEXT", "RECTANGLE", "FRAME"],
+  "limit": 50
 }
 ```
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `nodeId` | `string` | yes | Parent node to scan within |
+| `types` | `string[]` | yes | Node types to match (e.g. `"FRAME"`, `"TEXT"`, `"COMPONENT"`) |
+| `limit` | `number` | no | Max results (default: 50) |
+
+**When to use:** You know the parent node and want all children of certain types — e.g. "give me all TEXT nodes inside this frame". Does **not** match by name.
 
 ---
 
-### `scan_text_nodes`
+### `search_nodes`
 
-Scan all text nodes inside a parent node.
+Search the entire document (or a subtree) for nodes by name or exact ID. Optionally filter by type.
 
 ```json
 {
-  "nodeId": "123:456"
+  "query": "Header",
+  "types": ["FRAME"],
+  "nodeId": "123:456",
+  "limit": 50
 }
 ```
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `query` | `string` | yes | Case-insensitive substring match on node name, or exact node ID |
+| `types` | `string[]` | no | Optional type filter |
+| `nodeId` | `string` | no | Scope search to a subtree (default: entire page) |
+| `limit` | `number` | no | Max results (default: 50) |
+
+**When to use:** You need to find a node by name (e.g. "find the node named 'Header'") or want to search across the entire document. Use `nodeId` to narrow the search scope.
+
+**`scan_nodes_by_types` vs `search_nodes`:** Use `scan_nodes_by_types` when you have a parent and only care about types. Use `search_nodes` when you need to match by name or search the whole document.
 
 ---
 
