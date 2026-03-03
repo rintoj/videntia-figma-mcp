@@ -76,7 +76,12 @@ function fontWeightClass(weight: number): string {
 function buildTailwindClasses(node: FigmaNodeData): string[] {
   const classes: string[] = [];
   const isText = node.type === "TEXT";
-  const bindings = node.bindings || {};
+  // Normalize bindings: { id, name } → name string, or keep as-is if already a string
+  const rawBindings = node.bindings || {};
+  const bindings: Record<string, string> = {};
+  for (const [key, val] of Object.entries(rawBindings)) {
+    bindings[key] = typeof val === "object" && val !== null && "name" in val ? (val as any).name : String(val);
+  }
 
   // --- Layout ---
   if (node.layoutMode === "HORIZONTAL") {
@@ -602,6 +607,41 @@ function nodeToAst(node: FigmaNodeData): t.JSXElement | null {
 
   if (style) {
     attrs.push(buildStyleAstAttr(style));
+  }
+
+  if (node.absoluteBoundingBox) {
+    const bb = node.absoluteBoundingBox;
+    attrs.push(t.jsxAttribute(
+      t.jsxIdentifier("boundingBox"),
+      t.stringLiteral(`${bb.x},${bb.y},${bb.width},${bb.height}`)
+    ));
+  }
+
+  // ID fields (only present when explicitly requested via fields)
+  if (node.textStyleId) {
+    attrs.push(t.jsxAttribute(t.jsxIdentifier("textStyleId"), t.stringLiteral(node.textStyleId)));
+  }
+  if (node.effectStyleId) {
+    attrs.push(t.jsxAttribute(t.jsxIdentifier("effectStyleId"), t.stringLiteral(node.effectStyleId)));
+  }
+  if (node.mainComponentId) {
+    attrs.push(t.jsxAttribute(t.jsxIdentifier("mainComponentId"), t.stringLiteral(node.mainComponentId)));
+  }
+  // Binding IDs (when bindingIds requested, bindings are { id, name } objects)
+  if (node.bindings) {
+    const bindingEntries = Object.entries(node.bindings);
+    const hasIdBindings = bindingEntries.length > 0 && typeof bindingEntries[0][1] === "object";
+    if (hasIdBindings) {
+      const idMap: Record<string, string> = {};
+      for (const [key, val] of bindingEntries) {
+        if (typeof val === "object" && val !== null && "id" in val) {
+          idMap[key] = (val as any).id;
+        }
+      }
+      if (Object.keys(idMap).length > 0) {
+        attrs.push(t.jsxAttribute(t.jsxIdentifier("bindingIds"), t.stringLiteral(JSON.stringify(idMap))));
+      }
+    }
   }
 
   // SVG: add width/height

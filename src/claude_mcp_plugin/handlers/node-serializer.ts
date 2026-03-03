@@ -201,6 +201,10 @@ async function processNode(
   if ('height' in node) info['height'] = (node as LayoutMixin).height;
   if ('x' in node) info['x'] = (node as LayoutMixin).x;
   if ('y' in node) info['y'] = (node as LayoutMixin).y;
+  if ('absoluteBoundingBox' in node) {
+    const bbox = (node as any).absoluteBoundingBox;
+    if (bbox) info['absoluteBoundingBox'] = { x: bbox.x, y: bbox.y, width: bbox.width, height: bbox.height };
+  }
 
   // Layout properties
   if ('layoutMode' in node && (node as FrameNode).layoutMode) {
