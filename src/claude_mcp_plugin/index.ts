@@ -212,6 +212,18 @@ function updateSettings(settings: Record<string, unknown>): void {
 })();
 
 // ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/** Parse a depth value from plugin params. Returns undefined for unlimited, or a valid integer. */
+function parseDepth(value: unknown): number | undefined {
+  if (value === undefined || value === null) return undefined;
+  var n = Number(value);
+  if (isNaN(n)) return undefined; // e.g. "all" passed through → treat as unlimited
+  return n;
+}
+
+// ---------------------------------------------------------------------------
 // Command dispatch
 // ---------------------------------------------------------------------------
 
@@ -228,7 +240,7 @@ async function handleCommand(
       return await getFileKey();
     case 'get_selection':
       return await serializeNodes({
-        depth: params && params['depth'] !== undefined ? Number(params['depth']) : undefined,
+        depth: parseDepth(params && params['depth']),
       });
     case 'get_node_info':
       if (!params || (!params['nodeIds'] && !params['nodeId'])) {
@@ -238,7 +250,7 @@ async function handleCommand(
         nodeIds: params['nodeIds'] && Array.isArray(params['nodeIds'])
           ? params['nodeIds'] as string[]
           : [params['nodeId'] as string],
-        depth: params['depth'] !== undefined ? Number(params['depth']) : undefined,
+        depth: parseDepth(params['depth']),
       });
     case 'get_nodes_info':
       if (!params || !params['nodeIds'] || !Array.isArray(params['nodeIds'])) {
@@ -246,7 +258,7 @@ async function handleCommand(
       }
       return await serializeNodes({
         nodeIds: params['nodeIds'] as string[],
-        depth: params['depth'] !== undefined ? Number(params['depth']) : undefined,
+        depth: parseDepth(params['depth']),
       });
     case 'search_nodes':
       if (!params || !params['query']) {
@@ -257,7 +269,7 @@ async function handleCommand(
         types: Array.isArray(params['types']) ? params['types'] as string[] : undefined,
         nodeId: params['nodeId'] !== undefined ? String(params['nodeId']) : undefined,
         limit: params['limit'] !== undefined ? Number(params['limit']) : undefined,
-        depth: params['depth'] !== undefined ? Number(params['depth']) : undefined,
+        depth: parseDepth(params['depth']),
       });
 
     // Node creation

@@ -689,8 +689,10 @@ function serializeJsxElement(el: t.JSXElement, indent: number): string {
     .map((a) => serializeJsxAttribute(a))
     .join(" ");
 
+  const attrPart = attrStr ? ` ${attrStr}` : "";
+
   if (el.openingElement.selfClosing) {
-    return `${pad}<${tagName} ${attrStr} />`;
+    return `${pad}<${tagName}${attrPart} />`;
   }
 
   // Text element (only JSXText children)
@@ -701,9 +703,9 @@ function serializeJsxElement(el: t.JSXElement, indent: number): string {
     const truncMatch = text.match(/^__TRUNCATED__(\d+)$/);
     if (truncMatch) {
       const count = truncMatch[1];
-      return `${pad}<${tagName} ${attrStr}>\n${pad}  {/* ${count} children — use depth="all" or a higher depth to expand */}\n${pad}</${tagName}>`;
+      return `${pad}<${tagName}${attrPart}>\n${pad}  {/* ${count} children — use depth="all" or a higher depth to expand */}\n${pad}</${tagName}>`;
     }
-    return `${pad}<${tagName} ${attrStr}>\n${pad}  ${text}\n${pad}</${tagName}>`;
+    return `${pad}<${tagName}${attrPart}>\n${pad}  ${text}\n${pad}</${tagName}>`;
   }
 
   // Container with child elements
@@ -713,7 +715,7 @@ function serializeJsxElement(el: t.JSXElement, indent: number): string {
     .filter((s) => s.length > 0)
     .join("\n");
 
-  return `${pad}<${tagName} ${attrStr}>\n${childrenJsx}\n${pad}</${tagName}>`;
+  return `${pad}<${tagName}${attrPart}>\n${childrenJsx}\n${pad}</${tagName}>`;
 }
 
 /**

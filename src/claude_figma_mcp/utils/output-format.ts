@@ -37,7 +37,7 @@ export const depthSchema = z
   .union([z.literal("all"), z.coerce.number().int().min(0)])
   .optional()
   .describe(
-    'Max depth of children to include. Default: 1 (direct children only). 0 = no children. Use "all" for unlimited depth.',
+    'Max depth of children to include. Default: 1 (direct children only). 0 = no children. Use "all" for unlimited depth (warning: may timeout on large documents with deep nesting).',
   );
 
 /**

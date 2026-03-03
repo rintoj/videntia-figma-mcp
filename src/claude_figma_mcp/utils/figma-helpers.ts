@@ -53,7 +53,11 @@ export type NodeField =
   | "layoutMode"
   | "padding"
   | "itemSpacing"
-  | "componentProperties";
+  | "componentProperties"
+  | "textStyleId"
+  | "effectStyleId"
+  | "mainComponentId"
+  | "bindingIds";
 
 /**
  * Filtra un nodo de Figma para reducir su complejidad y tamaño.
@@ -230,6 +234,10 @@ const FIELD_PROPERTY_MAP: Record<NodeField, string[]> = {
   componentProperties: [
     "componentPropertyDefinitions", "variantProperties", "componentSetName", "componentProperties", "mainComponentName",
   ],
+  textStyleId: ["textStyleId"],
+  effectStyleId: ["effectStyleId"],
+  mainComponentId: ["mainComponentId"],
+  bindingIds: ["bindings"],
 };
 
 /** Structural properties always kept regardless of fields filter. */

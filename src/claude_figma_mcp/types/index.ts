@@ -315,14 +315,18 @@ export interface FigmaNodeData {
   // Appearance
   opacity?: number;
   rotation?: number;
-  // Variable bindings (resolved to names)
-  bindings?: Record<string, string>;
+  // Variable bindings (resolved to names, or { id, name } when bindingIds requested)
+  bindings?: Record<string, string | { id: string; name: string }>;
   // Component metadata
   componentPropertyDefinitions?: Record<string, any>;
   variantProperties?: Record<string, string>;
   componentSetName?: string;
   componentProperties?: Record<string, any>;
   mainComponentName?: string;
+  // ID fields (present only when explicitly requested via fields)
+  textStyleId?: string;
+  effectStyleId?: string;
+  mainComponentId?: string;
   // SVG
   svgString?: string;
   // Children
