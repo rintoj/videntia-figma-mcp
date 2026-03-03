@@ -2,7 +2,7 @@ import { z } from "zod";
 import { sendCommandToFigma } from "./websocket.js";
 import { convertToJsx } from "./figma-to-jsx.js";
 import { filterNodeData, type NodeField } from "./figma-helpers.js";
-import type { ReadMyDesignResult } from "../types/index.js";
+import type { NodeListResult } from "../types/index.js";
 
 /**
  * Shared Zod schema for the fields parameter.
@@ -34,7 +34,7 @@ export const outputFormatSchema = z
  * Accepts a non-negative integer or the literal string "all" for unlimited depth.
  */
 export const depthSchema = z
-  .union([z.coerce.number().int().min(0), z.literal("all")])
+  .union([z.literal("all"), z.coerce.number().int().min(0)])
   .optional()
   .describe(
     'Max depth of children to include. Default: 1 (direct children only). 0 = no children. Use "all" for unlimited depth.',
@@ -53,10 +53,11 @@ export function resolveDepth(depth: number | "all" | undefined): number | undefi
  * Fetch specific nodes by ID and convert to JSX.
  */
 export async function fetchNodesAsJsx(nodeIds: string[], depth?: number, fields?: NodeField[]): Promise<string> {
+  const effectiveDepth = depth !== undefined ? depth : 1;
   const result = (await sendCommandToFigma("get_node_info", {
     nodeIds,
-    depth,
-  })) as ReadMyDesignResult;
+    depth: effectiveDepth,
+  })) as NodeListResult;
   const selection = (result?.nodes ?? []).map((n) => filterNodeData(n, fields));
   return convertToJsx(selection);
 }

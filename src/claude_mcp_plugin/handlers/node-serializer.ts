@@ -387,11 +387,9 @@ async function processNode(
     if (maxDepth === undefined || currentDepth < maxDepth) {
       const childResults = await Promise.all(
         (node as ChildrenMixin).children.map(function (child) {
-          try {
-            return processNode(child as SceneNode, currentDepth + 1, maxDepth, maps);
-          } catch (_e) {
-            return Promise.resolve(null);
-          }
+          return processNode(child as SceneNode, currentDepth + 1, maxDepth, maps).catch(function () {
+            return null;
+          });
         }),
       );
       const childInfos = childResults.filter(
@@ -446,7 +444,7 @@ export async function serializeNodes(params: Record<string, unknown>): Promise<R
   }
 
   return {
-    count: nodesToProcess.length,
+    count: result.length,
     nodes: result,
   };
 }
