@@ -140,7 +140,7 @@ All node-inspection tools share three optional parameters:
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `fields` | `string[]` | all fields | Filter which properties appear in output (e.g. `["absoluteBoundingBox", "fills"]`) |
-| `depth` | `number` | `1` | How many levels of children to include. `0` = node only, `1` = direct children, etc. |
+| `depth` | `number \| "all"` | `1` | How many levels of children to include. `0` = node only, `1` = direct children, `"all"` = full tree. |
 | `output_format` | `"jsx" \| "json"` | `"jsx"` | `"jsx"` returns JSX+Tailwind markup; `"json"` returns raw node data |
 
 All tools return `{ count, nodes }` from the plugin, then format via `output_format`.

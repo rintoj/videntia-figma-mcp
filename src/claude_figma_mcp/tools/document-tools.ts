@@ -300,7 +300,7 @@ export function registerDocumentTools(server: McpServer): void {
   // JSX to Figma Tool
   server.tool(
     "jsx_to_figma",
-    "Create or update Figma nodes from JSX+Tailwind markup. Supports multiple root elements in a single call — batch them together instead of making separate calls. When an element has id='<nodeId>' matching an existing Figma node, that node is updated in-place (properties only — existing children are preserved). Set replaceChildren=true to also replace children. Without an id, creates new nodes. Accepts the same format that read_my_design outputs. Auto-positions next to existing page content when no positioning params are given.",
+    "Create or update Figma nodes from JSX+Tailwind markup. Supports multiple root elements in a single call — batch them together instead of making separate calls. When an element has id='<nodeId>' matching an existing Figma node, that node is updated in-place (properties only — existing children are preserved). Set replaceChildren=true to also replace children. Without an id, creates new nodes. Accepts the same format that get_selection or get_node_info outputs. Auto-positions next to existing page content when no positioning params are given.",
     {
       jsx: z
         .string()

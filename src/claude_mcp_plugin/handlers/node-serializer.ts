@@ -397,7 +397,9 @@ async function processNode(
       );
       if (childInfos.length > 0) info['children'] = childInfos;
     } else {
-      info['_childCount'] = (node as ChildrenMixin).children.length;
+      info['_childCount'] = (node as ChildrenMixin).children.filter(function (c) {
+        return (c as SceneNode).visible !== false;
+      }).length;
     }
   }
 
@@ -437,11 +439,14 @@ export async function serializeNodes(params: Record<string, unknown>): Promise<R
     nodesToProcess = selection as SceneNode[];
   }
 
-  const result: Record<string, unknown>[] = [];
-  for (const node of nodesToProcess) {
-    const processed = await processNode(node, 0, depth, maps);
-    if (processed) result.push(processed);
-  }
+  const processed = await Promise.all(
+    nodesToProcess.map(function (node) {
+      return processNode(node, 0, depth, maps);
+    }),
+  );
+  const result = processed.filter(function (n) {
+    return n !== null;
+  }) as Record<string, unknown>[];
 
   return {
     count: result.length,
