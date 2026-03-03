@@ -758,7 +758,7 @@ export function registerDocumentTools(server: McpServer): void {
       nodeId: z.string().describe("ID of the node to scan"),
       types: coerceArray(z.array(z.string())).describe("Array of node types (e.g. ['COMPONENT', 'FRAME'])"),
       limit: z
-        .number()
+        .coerce.number()
         .int()
         .min(1)
         .optional()
@@ -931,7 +931,7 @@ export function registerDocumentTools(server: McpServer): void {
           "Optional ID of a node to scope the search to. Defaults to the entire current page.",
         ),
       limit: z
-        .number()
+        .coerce.number()
         .int()
         .min(1)
         .optional()
