@@ -18,8 +18,12 @@ export const fieldsSchema = z.array(
     "absoluteBoundingBox", "characters", "style", "children",
     "effects", "opacity", "blendMode", "constraints",
     "layoutMode", "padding", "itemSpacing", "componentProperties",
+    "textStyleId", "effectStyleId", "mainComponentId", "bindingIds",
   ]),
 );
+
+/** Fields that contain raw IDs — stripped by default, included only when explicitly requested. */
+export const ID_FIELDS = ["textStyleId", "effectStyleId", "mainComponentId", "bindingIds"] as const;
 
 export const outputFormatSchema = z
   .enum(["jsx", "json"])
@@ -50,10 +54,10 @@ export function resolveDepth(depth: number | "all" | undefined): number | undefi
 }
 
 /**
- * Fetch specific nodes by ID through the enriched pipeline and convert to JSX.
+ * Fetch specific nodes by ID and convert to JSX.
  */
 export async function fetchNodesAsJsx(nodeIds: string[], depth?: number, fields?: NodeField[]): Promise<string> {
-  const result = (await sendCommandToFigma("get_node_info_enriched", {
+  const result = (await sendCommandToFigma("get_node_info", {
     nodeIds,
     depth,
   })) as ReadMyDesignResult;
@@ -61,13 +65,3 @@ export async function fetchNodesAsJsx(nodeIds: string[], depth?: number, fields?
   return convertToJsx(selection);
 }
 
-/**
- * Fetch the current Figma selection through the enriched pipeline and convert to JSX.
- */
-export async function fetchSelectionAsJsx(depth?: number, fields?: NodeField[]): Promise<string> {
-  const result = (await sendCommandToFigma("get_node_info_enriched", {
-    depth,
-  })) as ReadMyDesignResult;
-  const selection = (result?.selection ?? []).map((n) => filterNodeData(n, fields));
-  return convertToJsx(selection);
-}

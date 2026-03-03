@@ -49,8 +49,8 @@ function colorToHex(color: RGBA): string {
 }
 
 // Resolve bound variables for a node
-function resolveBindings(node: SceneNode, variableMap: Map<string, string>): Record<string, string> {
-  const bindings: Record<string, string> = {};
+function resolveBindings(node: SceneNode, variableMap: Map<string, string>): Record<string, { id: string; name: string }> {
+  const bindings: Record<string, { id: string; name: string }> = {};
   if (!('boundVariables' in node) || !(node as unknown as Record<string, unknown>)['boundVariables']) {
     return bindings;
   }
@@ -65,14 +65,14 @@ function resolveBindings(node: SceneNode, variableMap: Map<string, string>): Rec
         const b = binding[i] as Record<string, string>;
         if (b && b['id']) {
           const name = variableMap.get(b['id']);
-          if (name) bindings[field + '/' + i] = name;
+          if (name) bindings[field + '/' + i] = { id: b['id'], name: name };
         }
       }
     } else {
       const bindingObj = binding as Record<string, string>;
       if (bindingObj['id']) {
         const name = variableMap.get(bindingObj['id']);
-        if (name) bindings[field] = name;
+        if (name) bindings[field] = { id: bindingObj['id'], name: name };
       }
     }
   }
@@ -249,9 +249,10 @@ async function processNode(
   const effects = extractEffects(node);
   if (effects) info['effects'] = effects;
 
-  // Resolve effect style name
+  // Resolve effect style
   const blendNode = node as unknown as Record<string, unknown>;
   if (blendNode['effectStyleId'] && blendNode['effectStyleId'] !== '' && blendNode['effectStyleId'] !== figma.mixed) {
+    info['effectStyleId'] = blendNode['effectStyleId'];
     const esName = maps.effectStyleMap.get(blendNode['effectStyleId'] as string);
     if (esName) info['effectStyleName'] = esName;
   }
@@ -283,8 +284,9 @@ async function processNode(
       info['textDecoration'] = textNode.textDecoration;
     }
 
-    // Resolve text style name
+    // Resolve text style
     if (textNode.textStyleId && textNode.textStyleId !== '' && textNode.textStyleId !== figma.mixed) {
+      info['textStyleId'] = textNode.textStyleId;
       const styleName = maps.textStyleMap.get(textNode.textStyleId as string);
       if (styleName) info['textStyleName'] = styleName;
     }
@@ -352,10 +354,11 @@ async function processNode(
       }
       if (Object.keys(props).length > 0) info['componentProperties'] = props;
     }
-    // Resolve main component name
+    // Resolve main component
     try {
       const mainComp = await instanceNode.getMainComponentAsync();
       if (mainComp) {
+        info['mainComponentId'] = mainComp.id;
         if (mainComp.parent && mainComp.parent.type === 'COMPONENT_SET') {
           info['mainComponentName'] = mainComp.parent.name;
         } else {
