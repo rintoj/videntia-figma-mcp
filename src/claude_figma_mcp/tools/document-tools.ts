@@ -948,15 +948,9 @@ export function registerDocumentTools(server: McpServer): void {
         .describe(
           "JSON mode only. Set to false to return only the node's own metadata without any children. Also includes parentId. Useful for quick position/size/variant lookups.",
         ),
-      find: z
-        .string()
-        .optional()
-        .describe(
-          "JSON mode only. Search descendants by name (case-insensitive substring) or exact node ID. Returns up to 50 matching nodes with metadata and parentId hint.",
-        ),
       output_format: outputFormatSchema,
     },
-    async ({ nodeId, fields, stripImages, depth, includeChildren, find, output_format }) => {
+    async ({ nodeId, fields, stripImages, depth, includeChildren, output_format }) => {
       try {
         const effectiveDepth = resolveDepth(depth);
         if (output_format === "jsx") {
@@ -968,7 +962,6 @@ export function registerDocumentTools(server: McpServer): void {
           stripImages,
           depth: effectiveDepth,
           includeChildren,
-          find,
         });
         return {
           content: [
@@ -1037,15 +1030,9 @@ export function registerDocumentTools(server: McpServer): void {
         .describe(
           "JSON mode only. Set to false to return only each node's own metadata without children. Also includes parentId.",
         ),
-      find: z
-        .string()
-        .optional()
-        .describe(
-          "JSON mode only. Search descendants of each node by name (case-insensitive substring) or exact node ID. Returns up to 50 matching nodes per node.",
-        ),
       output_format: outputFormatSchema,
     },
-    async ({ nodeIds, fields, stripImages, depth, includeChildren, find, output_format }) => {
+    async ({ nodeIds, fields, stripImages, depth, includeChildren, output_format }) => {
       try {
         const effectiveDepth = resolveDepth(depth);
         if (output_format === "jsx") {
@@ -1059,7 +1046,6 @@ export function registerDocumentTools(server: McpServer): void {
               stripImages,
               depth: effectiveDepth,
               includeChildren,
-              find,
             });
             return { nodeId, info: result };
           }),
