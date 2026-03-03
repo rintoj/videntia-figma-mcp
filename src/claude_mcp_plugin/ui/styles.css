@@ -167,6 +167,17 @@ body {
   letter-spacing: 0.5px;
 }
 
+.section-header-chevron {
+  display: flex;
+  align-items: center;
+  transition: transform 0.2s ease;
+  transform: rotate(0deg);
+}
+
+.section-header-chevron.expanded {
+  transform: rotate(90deg);
+}
+
 /* ---- Settings Card ---- */
 
 .settings-card {
@@ -382,6 +393,12 @@ body {
 .actions-empty-hint {
   color: #545454;
   font-size: 11px;
+}
+
+/* ---- Collapsible ---- */
+
+.collapsible {
+  transition: max-height 0.2s ease;
 }
 
 /* ---- Section content wrapper ---- */

@@ -4,6 +4,7 @@ import { ConnectionSection } from './components/connection-section'
 import { SectionHeader } from './components/section-header'
 import { SettingsSection } from './components/settings-section'
 import { ActionsList } from './components/actions-list'
+import { Collapsible } from './components/collapsible'
 import { useConnection } from './hooks/use-connection'
 import { consumeEarlyMessages } from './early-messages'
 
@@ -132,18 +133,20 @@ export function App() {
       />
       <div class="section-content">
         <SectionHeader label="Preferences" expanded={prefsExpanded} onToggle={handlePrefsToggle} />
-        {prefsExpanded && (
+        <Collapsible expanded={prefsExpanded}>
           <SettingsSection
             readOnly={readOnly}
             autoFocus={autoFocus}
             onReadOnlyChange={handleReadOnlyChange}
             onAutoFocusChange={handleAutoFocusChange}
           />
-        )}
+        </Collapsible>
       </div>
       <div class="section-content actions-section">
         <SectionHeader label="Actions" expanded={actionsExpanded} onToggle={handleActionsToggle} />
-        {actionsExpanded && <ActionsList actions={connection.actions} />}
+        <Collapsible expanded={actionsExpanded}>
+          <ActionsList actions={connection.actions} />
+        </Collapsible>
       </div>
     </div>
   )
