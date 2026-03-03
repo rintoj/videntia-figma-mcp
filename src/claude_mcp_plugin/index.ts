@@ -37,7 +37,6 @@ import { updateIcon } from './handlers/icons';
 import {
   createText,
   setTextContent,
-  scanTextNodes,
   setMultipleTextContents,
   setAutoLayout,
   setFontName,
@@ -336,8 +335,6 @@ async function handleCommand(
     // Text
     case 'set_text_content':
       return await setTextContent(params);
-    case 'scan_text_nodes':
-      return await scanTextNodes(params);
     case 'set_multiple_text_contents':
       return await setMultipleTextContents(params);
     case 'set_auto_layout':
