@@ -229,7 +229,7 @@ async function handleCommand(
       return await getFileKey();
     case 'get_selection':
       return await serializeNodes({
-        depth: params && params['depth'] !== undefined ? Number(params['depth']) : 0,
+        depth: params && params['depth'] !== undefined ? Number(params['depth']) : undefined,
       });
     case 'get_node_info':
       if (!params || (!params['nodeIds'] && !params['nodeId'])) {

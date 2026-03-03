@@ -331,7 +331,7 @@ export interface FigmaNodeData {
   _childCount?: number;
 }
 
-export interface ReadMyDesignResult {
+export interface NodeListResult {
   count: number;
   nodes: FigmaNodeData[];
 }
