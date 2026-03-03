@@ -13,6 +13,63 @@ function getPage(node: BaseNode): PageNode | null {
   return null;
 }
 
+/**
+ * Check whether a scene node is fully visible in the current viewport.
+ */
+function isNodeVisibleInViewport(node: SceneNode): boolean {
+  if (!('absoluteBoundingBox' in node)) return false;
+  var bounds = (node as any).absoluteBoundingBox as { x: number; y: number; width: number; height: number } | null;
+  if (!bounds) return false;
+
+  var vp = figma.viewport.bounds;
+  return (
+    bounds.x >= vp.x &&
+    bounds.y >= vp.y &&
+    bounds.x + bounds.width <= vp.x + vp.width &&
+    bounds.y + bounds.height <= vp.y + vp.height
+  );
+}
+
+/**
+ * Focus a node by navigating to its page and scrolling into view.
+ * Always focuses regardless of current viewport.
+ */
+export async function focusNode(nodeId: string): Promise<void> {
+  var node = await figma.getNodeByIdAsync(nodeId);
+  if (!node) return;
+
+  var page = getPage(node);
+  if (page && page.id !== figma.currentPage.id) {
+    figma.currentPage = page;
+  }
+
+  figma.currentPage.selection = [node as SceneNode];
+  figma.viewport.scrollAndZoomIntoView([node as SceneNode]);
+}
+
+/**
+ * Soft focus — only scrolls/zooms if the node is not already visible in the viewport.
+ * Used by auto-focus to avoid disrupting the user's view.
+ */
+export async function softFocusNode(nodeId: string): Promise<void> {
+  var node = await figma.getNodeByIdAsync(nodeId);
+  if (!node) return;
+
+  var page = getPage(node);
+  var onDifferentPage = page && page.id !== figma.currentPage.id;
+
+  if (onDifferentPage) {
+    figma.currentPage = page!;
+  }
+
+  var scene = node as SceneNode;
+  figma.currentPage.selection = [scene];
+
+  if (onDifferentPage || !isNodeVisibleInViewport(scene)) {
+    figma.viewport.scrollAndZoomIntoView([scene]);
+  }
+}
+
 export async function setFocus(params: Record<string, unknown>): Promise<Record<string, unknown>> {
   const nodeId = params['nodeId'] as string;
   const node = await figma.getNodeByIdAsync(nodeId);
@@ -21,15 +78,7 @@ export async function setFocus(params: Record<string, unknown>): Promise<Record<
     throw new Error(`Node with ID ${nodeId} not found`);
   }
 
-  // Navigate to the node's page first (required before setting selection)
-  const page = getPage(node);
-  if (page && page.id !== figma.currentPage.id) {
-    figma.currentPage = page;
-  }
-
-  // Set selection and zoom to node
-  figma.currentPage.selection = [node as SceneNode];
-  figma.viewport.scrollAndZoomIntoView([node as SceneNode]);
+  await focusNode(nodeId);
 
   return {
     nodeId: node.id,
