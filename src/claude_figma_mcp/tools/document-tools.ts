@@ -753,7 +753,7 @@ export function registerDocumentTools(server: McpServer): void {
   // Scan Nodes By Types Tool
   server.tool(
     "scan_nodes_by_types",
-    "Scan for child nodes with specific types in the selected Figma node. Returns JSX+Tailwind markup or JSON.",
+    "Find all descendant nodes of specific types inside a parent node. Use when you have a parent nodeId and want all children matching certain types (e.g. all TEXT or FRAME nodes). Does not match by name — use search_nodes for name-based lookup. Returns JSX+Tailwind markup (default) or JSON.",
     {
       nodeId: z.string().describe("ID of the node to scan"),
       types: coerceArray(z.array(z.string())).describe("Array of node types (e.g. ['COMPONENT', 'FRAME'])"),
@@ -830,7 +830,7 @@ export function registerDocumentTools(server: McpServer): void {
     output_format: "jsx" | "json",
     fields?: string[],
   ): { content: Array<{ type: "text"; text: string }> } {
-    const selection: any[] = (result as any)?.selection ?? [];
+    const selection: any[] = (result as any)?.nodes ?? [];
     const processed = selection
       .map((n: any) => stripIdFields(n, fields))
       .map((n: any) => filterNodeData(n, fields as any));
@@ -847,7 +847,7 @@ export function registerDocumentTools(server: McpServer): void {
   // Selection Tool
   server.tool(
     "get_selection",
-    "Get information about the current selection in Figma. Returns JSX+Tailwind markup or JSON.",
+    "Get info on the currently selected node(s) in Figma. Use when you need to inspect or act on whatever the user has selected. Requires at least one non-page node to be selected. Returns JSX+Tailwind markup (default) or JSON.",
     {
       fields: coerceArray(fieldsSchema).optional().describe(
         "Optional array of fields to include. Controls which properties appear in both JSX and JSON output.",
@@ -868,7 +868,7 @@ export function registerDocumentTools(server: McpServer): void {
   // Node Info Tool
   server.tool(
     "get_node_info",
-    "Get detailed information about a specific node in Figma. Returns JSX+Tailwind markup or JSON.",
+    "Get detailed info for a single node by its ID. Use when you already have a specific node ID and need its properties, layout, styles, or children. Returns JSX+Tailwind markup (default) or JSON.",
     {
       nodeId: z.string().describe("The ID of the node to get information about"),
       fields: coerceArray(fieldsSchema).optional().describe(
@@ -890,7 +890,7 @@ export function registerDocumentTools(server: McpServer): void {
   // Nodes Info Tool
   server.tool(
     "get_nodes_info",
-    "Get detailed information about multiple nodes in Figma. Returns JSX+Tailwind markup or JSON.",
+    "Get detailed info for multiple nodes at once. Same as get_node_info but accepts an array of IDs — use this instead of calling get_node_info repeatedly. Returns JSX+Tailwind markup (default) or JSON.",
     {
       nodeIds: coerceArray(z.array(z.string())).describe("Array of node IDs to get information about"),
       fields: coerceArray(fieldsSchema).optional().describe(
@@ -912,7 +912,7 @@ export function registerDocumentTools(server: McpServer): void {
   // Search Nodes Tool
   server.tool(
     "search_nodes",
-    "Search for nodes across the entire Figma document (or within a subtree) by name or ID. Returns JSX+Tailwind markup or JSON.",
+    "Search the entire document (or a subtree via nodeId) for nodes by name substring or exact ID. Optionally filter by type. Use when you need to find a node by name (e.g. 'Header') or search broadly. For type-only filtering within a known parent, use scan_nodes_by_types instead. Returns JSX+Tailwind markup (default) or JSON.",
     {
       query: z
         .string()
@@ -924,7 +924,7 @@ export function registerDocumentTools(server: McpServer): void {
         .describe(
           "Optional node type filter. Only return nodes of these types e.g. ['FRAME', 'COMPONENT', 'TEXT']. Omit to match all types.",
         ),
-      rootNodeId: z
+      nodeId: z
         .string()
         .optional()
         .describe(
@@ -942,12 +942,12 @@ export function registerDocumentTools(server: McpServer): void {
       ),
       output_format: outputFormatSchema,
     },
-    async ({ query, types, rootNodeId, limit, depth, fields, output_format }) => {
+    async ({ query, types, nodeId, limit, depth, fields, output_format }) => {
       try {
         const result = await sendCommandToFigma("search_nodes", {
           query,
           types,
-          rootNodeId,
+          nodeId,
           limit,
           depth: resolveDepth(depth),
         });

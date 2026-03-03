@@ -61,7 +61,7 @@ export async function fetchNodesAsJsx(nodeIds: string[], depth?: number, fields?
     nodeIds,
     depth,
   })) as ReadMyDesignResult;
-  const selection = (result?.selection ?? []).map((n) => filterNodeData(n, fields));
+  const selection = (result?.nodes ?? []).map((n) => filterNodeData(n, fields));
   return convertToJsx(selection);
 }
 

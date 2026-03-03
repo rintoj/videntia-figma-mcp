@@ -121,7 +121,7 @@ export async function scanNodesByTypes(params: Record<string, unknown>): Promise
   }
 
   if (matchedIds.length === 0) {
-    return { selectionCount: 0, selection: [] };
+    return { count: 0, nodes: [] };
   }
 
   return await serializeNodes({ nodeIds: matchedIds, depth: depth });

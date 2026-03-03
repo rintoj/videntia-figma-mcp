@@ -49,8 +49,8 @@ function exportAsJsonV1(node: BaseNode): Promise<{ document: unknown }> {
 
 export async function getSelection(): Promise<Record<string, unknown>> {
   return {
-    selectionCount: figma.currentPage.selection.length,
-    selection: figma.currentPage.selection.map((node) => ({
+    count: figma.currentPage.selection.length,
+    nodes: figma.currentPage.selection.map((node) => ({
       id: node.id,
       name: node.name,
       type: node.type,
@@ -271,8 +271,8 @@ export interface SearchNodesOptions {
   query: string;
   /** Optional node type filter e.g. FRAME, TEXT, COMPONENT */
   types?: string[];
-  /** Root node ID to search within. Defaults to the current page. */
-  rootNodeId?: string;
+  /** Node ID to scope the search to. Defaults to the current page. */
+  nodeId?: string;
   /** Max number of results to return. Default: 50. */
   limit?: number;
   /** Max depth of children to include. */
@@ -284,16 +284,16 @@ export interface SearchNodesOptions {
  * Delegates to serializeNodes for consistent output format.
  */
 export async function searchNodes(options: SearchNodesOptions): Promise<unknown> {
-  const { query, types, rootNodeId, limit: limitOpt, depth } = options;
+  const { query, types, nodeId, limit: limitOpt, depth } = options;
   const limit = limitOpt !== undefined ? limitOpt : 50;
 
   const lowerQuery = query.toLowerCase();
 
   let root: BaseNode;
-  if (rootNodeId) {
-    const found = await figma.getNodeByIdAsync(rootNodeId);
+  if (nodeId) {
+    const found = await figma.getNodeByIdAsync(nodeId);
     if (!found) {
-      throw new Error('Root node not found with ID: ' + rootNodeId);
+      throw new Error('Node not found with ID: ' + nodeId);
     }
     root = found;
   } else {
@@ -322,7 +322,7 @@ export async function searchNodes(options: SearchNodesOptions): Promise<unknown>
   walk(root);
 
   if (matchedIds.length === 0) {
-    return { selectionCount: 0, selection: [] };
+    return { count: 0, nodes: [] };
   }
 
   return await serializeNodes({

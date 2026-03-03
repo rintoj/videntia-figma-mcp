@@ -438,7 +438,7 @@ export async function serializeNodes(params: Record<string, unknown>): Promise<R
   }
 
   return {
-    selectionCount: nodesToProcess.length,
-    selection: result,
+    count: nodesToProcess.length,
+    nodes: result,
   };
 }

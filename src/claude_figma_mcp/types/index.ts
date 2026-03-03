@@ -332,8 +332,8 @@ export interface FigmaNodeData {
 }
 
 export interface ReadMyDesignResult {
-  selectionCount: number;
-  selection: FigmaNodeData[];
+  count: number;
+  nodes: FigmaNodeData[];
 }
 
 // ── Result interfaces for sendCommandToFigma<T> typed calls ──
