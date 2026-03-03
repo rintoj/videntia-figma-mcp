@@ -144,9 +144,7 @@ export function App() {
       </div>
       <div class="section-content actions-section">
         <SectionHeader label="Actions" expanded={actionsExpanded} onToggle={handleActionsToggle} />
-        <Collapsible expanded={actionsExpanded}>
-          <ActionsList actions={connection.actions} />
-        </Collapsible>
+        {actionsExpanded && <ActionsList actions={connection.actions} />}
       </div>
     </div>
   )
