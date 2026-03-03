@@ -134,7 +134,6 @@ import {
 
 // Handlers — selection & focus
 import { setFocus, setSelections, scanNodesByTypes } from './handlers/selection';
-import { serializeNodes } from './handlers/node-serializer';
 
 // Handlers — annotations
 import {

@@ -310,25 +310,29 @@ async function processNode(
 
   // Component/instance metadata
   if (node.type === 'COMPONENT_SET') {
-    const csNode = node as ComponentSetNode;
-    if (csNode.componentPropertyDefinitions) {
-      const defs: Record<string, unknown> = {};
-      for (const key in csNode.componentPropertyDefinitions) {
-        if (!Object.prototype.hasOwnProperty.call(csNode.componentPropertyDefinitions, key)) continue;
-        const def = csNode.componentPropertyDefinitions[key];
-        // Strip #ID suffix from keys (e.g. "Size#123:0" -> "Size")
-        const cleanKey = key.replace(/#[\d:]+$/, '');
-        if (def.type === 'VARIANT') {
-          defs[cleanKey] = { type: 'VARIANT', options: (def.variantOptions !== null && def.variantOptions !== undefined) ? def.variantOptions : [] };
-        } else if (def.type === 'BOOLEAN') {
-          defs[cleanKey] = { type: 'BOOLEAN', default: def.defaultValue };
-        } else if (def.type === 'TEXT') {
-          defs[cleanKey] = { type: 'TEXT', default: def.defaultValue };
-        } else if (def.type === 'INSTANCE_SWAP') {
-          defs[cleanKey] = { type: 'INSTANCE_SWAP' };
+    try {
+      const csNode = node as ComponentSetNode;
+      if (csNode.componentPropertyDefinitions) {
+        const defs: Record<string, unknown> = {};
+        for (const key in csNode.componentPropertyDefinitions) {
+          if (!Object.prototype.hasOwnProperty.call(csNode.componentPropertyDefinitions, key)) continue;
+          const def = csNode.componentPropertyDefinitions[key];
+          // Strip #ID suffix from keys (e.g. "Size#123:0" -> "Size")
+          const cleanKey = key.replace(/#[\d:]+$/, '');
+          if (def.type === 'VARIANT') {
+            defs[cleanKey] = { type: 'VARIANT', options: (def.variantOptions !== null && def.variantOptions !== undefined) ? def.variantOptions : [] };
+          } else if (def.type === 'BOOLEAN') {
+            defs[cleanKey] = { type: 'BOOLEAN', default: def.defaultValue };
+          } else if (def.type === 'TEXT') {
+            defs[cleanKey] = { type: 'TEXT', default: def.defaultValue };
+          } else if (def.type === 'INSTANCE_SWAP') {
+            defs[cleanKey] = { type: 'INSTANCE_SWAP' };
+          }
         }
+        if (Object.keys(defs).length > 0) info['componentPropertyDefinitions'] = defs;
       }
-      if (Object.keys(defs).length > 0) info['componentPropertyDefinitions'] = defs;
+    } catch (_e) {
+      // Component set may have existing errors — skip property extraction
     }
   } else if (node.type === 'COMPONENT') {
     const compNode = node as ComponentNode;
@@ -348,15 +352,19 @@ async function processNode(
     }
   } else if (node.type === 'INSTANCE') {
     const instanceNode = node as InstanceNode;
-    if (instanceNode.componentProperties) {
-      const props: Record<string, unknown> = {};
-      for (const key in instanceNode.componentProperties) {
-        if (!Object.prototype.hasOwnProperty.call(instanceNode.componentProperties, key)) continue;
-        const prop = instanceNode.componentProperties[key];
-        const cleanKey = key.replace(/#[\d:]+$/, '');
-        props[cleanKey] = { type: prop.type, value: prop.value };
+    try {
+      if (instanceNode.componentProperties) {
+        const props: Record<string, unknown> = {};
+        for (const key in instanceNode.componentProperties) {
+          if (!Object.prototype.hasOwnProperty.call(instanceNode.componentProperties, key)) continue;
+          const prop = instanceNode.componentProperties[key];
+          const cleanKey = key.replace(/#[\d:]+$/, '');
+          props[cleanKey] = { type: prop.type, value: prop.value };
+        }
+        if (Object.keys(props).length > 0) info['componentProperties'] = props;
       }
-      if (Object.keys(props).length > 0) info['componentProperties'] = props;
+    } catch (_e) {
+      // Component set may have existing errors — skip property extraction
     }
     // Resolve main component
     try {
