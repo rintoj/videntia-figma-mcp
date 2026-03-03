@@ -1,4 +1,5 @@
 import { debugLog } from '../utils/helpers';
+import { serializeNodes } from './node-serializer';
 
 export async function getFileKey(): Promise<Record<string, unknown>> {
   const fileKey = figma.fileKey;
@@ -265,7 +266,7 @@ export async function getNodesInfo(
   }
 }
 
-export interface SearchNodesOptions extends GetNodeInfoOptions {
+export interface SearchNodesOptions {
   /** Search query — matched case-insensitively against node name (substring) or exact node ID */
   query: string;
   /** Optional node type filter e.g. FRAME, TEXT, COMPONENT */
@@ -274,18 +275,17 @@ export interface SearchNodesOptions extends GetNodeInfoOptions {
   rootNodeId?: string;
   /** Max number of results to return. Default: 50. */
   limit?: number;
+  /** Max depth of children to include. */
+  depth?: number;
 }
 
 /**
  * Search all nodes in the document (or a subtree) by name or ID.
- * For each match, returns the same output as getNodeInfo with the given options.
+ * Delegates to serializeNodes for consistent output format.
  */
 export async function searchNodes(options: SearchNodesOptions): Promise<unknown> {
-  const { query, types, rootNodeId, limit: limitOpt, stripImages, depth, includeChildren } = options;
+  const { query, types, rootNodeId, limit: limitOpt, depth } = options;
   const limit = limitOpt !== undefined ? limitOpt : 50;
-  const effectiveDepth = depth !== undefined ? depth : 1;
-  const effectiveIncludeChildren = includeChildren !== undefined ? includeChildren : true;
-  const effectiveStripImages = stripImages !== undefined ? stripImages : true;
 
   const lowerQuery = query.toLowerCase();
 
@@ -301,20 +301,19 @@ export async function searchNodes(options: SearchNodesOptions): Promise<unknown>
     root = figma.currentPage;
   }
 
-  // Collect matching nodes using Figma's native tree walk (no exportAsync needed here)
-  const matchedNodes: BaseNode[] = [];
+  const matchedIds: string[] = [];
 
   const walk = (node: BaseNode): void => {
-    if (matchedNodes.length >= limit) return;
+    if (matchedIds.length >= limit) return;
     const nameMatch = node.name.toLowerCase().indexOf(lowerQuery) !== -1;
     const idMatch = node.id === query;
     const typeMatch = !types || types.length === 0 || types.includes(node.type);
     if ((nameMatch || idMatch) && typeMatch) {
-      matchedNodes.push(node);
+      matchedIds.push(node.id);
     }
     if ('children' in node) {
       for (const child of (node as ChildrenMixin).children) {
-        if (matchedNodes.length >= limit) break;
+        if (matchedIds.length >= limit) break;
         walk(child);
       }
     }
@@ -322,35 +321,12 @@ export async function searchNodes(options: SearchNodesOptions): Promise<unknown>
 
   walk(root);
 
-  // For each match, export full node data and apply the same transforms as getNodeInfo
-  const results = await Promise.all(
-    matchedNodes.map(async (node) => {
-      const response = await exportAsJsonV1(node);
-      let document = response.document;
+  if (matchedIds.length === 0) {
+    return { selectionCount: 0, selection: [] };
+  }
 
-      if (effectiveStripImages) {
-        document = stripImageData(document);
-      }
-
-      if (node.parent) {
-        (document as Record<string, unknown>)['parentId'] = node.parent.id;
-      }
-
-      if (!effectiveIncludeChildren) {
-        const doc = document as Record<string, unknown>;
-        const { children: _c, ...meta } = doc;
-        document = meta;
-      } else {
-        document = truncateToDepth(document, effectiveDepth);
-      }
-
-      return document;
-    }),
-  );
-
-  return {
-    query,
-    total: results.length,
-    matches: results,
-  };
+  return await serializeNodes({
+    nodeIds: matchedIds,
+    depth: depth,
+  });
 }

@@ -5,7 +5,8 @@
 import { debugLog } from './utils/helpers';
 
 // Handlers — document & navigation
-import { getFileKey, getDocumentInfo, getSelection, getNodeInfo, getNodesInfo, searchNodes } from './handlers/document';
+import { getFileKey, getDocumentInfo, searchNodes } from './handlers/document';
+import { serializeNodes } from './handlers/node-serializer';
 import { createPage, renamePage, deletePage } from './handlers/pages';
 import { getReactions, setDefaultConnector, createConnections } from './handlers/prototyping';
 
@@ -228,26 +229,24 @@ async function handleCommand(
     case 'get_file_key':
       return await getFileKey();
     case 'get_selection':
-      return await getSelection();
+      return await serializeNodes({
+        depth: params && params['depth'] !== undefined ? Number(params['depth']) : 0,
+      });
     case 'get_node_info':
       if (!params || !params['nodeId']) {
         throw new Error('Missing nodeId parameter');
       }
-      return await getNodeInfo(params['nodeId'] as string, {
-        stripImages: params['stripImages'] !== false,
+      return await serializeNodes({
+        nodeIds: [params['nodeId'] as string],
         depth: params['depth'] !== undefined ? Number(params['depth']) : undefined,
-        includeChildren: params['includeChildren'] !== undefined ? Boolean(params['includeChildren']) : undefined,
-        find: params['find'] !== undefined ? String(params['find']) : undefined,
       });
     case 'get_nodes_info':
       if (!params || !params['nodeIds'] || !Array.isArray(params['nodeIds'])) {
         throw new Error('Missing or invalid nodeIds parameter');
       }
-      return await getNodesInfo(params['nodeIds'] as string[], {
-        stripImages: params['stripImages'] !== false,
+      return await serializeNodes({
+        nodeIds: params['nodeIds'] as string[],
         depth: params['depth'] !== undefined ? Number(params['depth']) : undefined,
-        includeChildren: params['includeChildren'] !== undefined ? Boolean(params['includeChildren']) : undefined,
-        find: params['find'] !== undefined ? String(params['find']) : undefined,
       });
     case 'search_nodes':
       if (!params || !params['query']) {
@@ -258,9 +257,7 @@ async function handleCommand(
         types: Array.isArray(params['types']) ? params['types'] as string[] : undefined,
         rootNodeId: params['rootNodeId'] !== undefined ? String(params['rootNodeId']) : undefined,
         limit: params['limit'] !== undefined ? Number(params['limit']) : undefined,
-        stripImages: params['stripImages'] !== false,
         depth: params['depth'] !== undefined ? Number(params['depth']) : undefined,
-        includeChildren: params['includeChildren'] !== undefined ? Boolean(params['includeChildren']) : undefined,
       });
 
     // Node creation
@@ -494,8 +491,6 @@ async function handleCommand(
       return await setFocus(params);
     case 'set_selections':
       return await setSelections(params);
-    case 'get_node_info_enriched':
-      return await serializeNodes(params);
     case 'scan_nodes_by_types':
       return await scanNodesByTypes(params);
 
