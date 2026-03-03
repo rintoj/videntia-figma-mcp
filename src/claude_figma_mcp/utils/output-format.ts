@@ -5,10 +5,6 @@ import { filterNodeData, type NodeField } from "./figma-helpers.js";
 import type { ReadMyDesignResult } from "../types/index.js";
 
 /**
- * Shared Zod schema for the output_format parameter.
- * Defaults to "jsx" so tools return JSX+Tailwind by default.
- */
-/**
  * Shared Zod schema for the fields parameter.
  * Controls which properties appear in both JSON and JSX output.
  */
