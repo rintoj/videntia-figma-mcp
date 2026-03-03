@@ -24,6 +24,8 @@ export interface RgbaColor {
 
 export interface PluginState {
   serverPort: number;
+  readonlyMode: boolean;
+  autoFocus: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -46,6 +48,8 @@ export interface FileNameMessage extends BaseMessage {
 export interface UpdateSettingsMessage extends BaseMessage {
   type: 'update-settings';
   serverPort?: number;
+  readonlyMode?: boolean;
+  autoFocus?: boolean;
 }
 
 export interface NotifyMessage extends BaseMessage {

@@ -132,7 +132,7 @@ import {
 } from './handlers/layout';
 
 // Handlers — selection & focus
-import { setFocus, setSelections, scanNodesByTypes } from './handlers/selection';
+import { setFocus, setSelections, scanNodesByTypes, focusNode, softFocusNode } from './handlers/selection';
 
 // Handlers — annotations
 import {
@@ -160,7 +160,58 @@ import { batchActions } from './handlers/batch';
 
 const state = {
   serverPort: 3055,
+  readonlyMode: false,
+  autoFocus: false,
 };
+
+// ---------------------------------------------------------------------------
+// Readonly commands — these don't modify design data
+// ---------------------------------------------------------------------------
+
+var READONLY_COMMANDS = new Set([
+  'get_document_info', 'get_file_key', 'get_selection', 'get_node_info', 'get_nodes_info', 'search_nodes',
+  'get_styles', 'get_local_components', 'get_remote_components', 'get_component_properties',
+  'get_instance_overrides', 'get_styled_text_segments', 'get_text_styles',
+  'get_variables', 'get_bound_variables', 'get_variable_collections', 'get_collection_info',
+  'audit_collection', 'validate_color_contrast', 'suggest_missing_variables',
+  'generate_audit_report', 'export_collection_schema', 'get_schema_definition',
+  'scan_nodes_by_types', 'get_annotations', 'get_annotation_categories',
+  'get_reactions', 'get_design_system', 'lint_frame', 'set_focus', 'set_selections',
+  'export_node_as_image', 'load_font_async', 'read_my_design',
+]);
+
+// ---------------------------------------------------------------------------
+// Auto-focus command sets
+// ---------------------------------------------------------------------------
+
+var FOCUS_BEFORE_COMMANDS = new Set([
+  // Read commands with nodeId
+  'get_node_info', 'get_nodes_info', 'get_bound_variables', 'get_component_properties',
+  'get_instance_overrides', 'get_styled_text_segments', 'get_annotations', 'get_reactions',
+  'export_node_as_image', 'lint_frame',
+  // Modify commands with nodeId
+  'set_fill_color', 'set_stroke_color', 'set_image_fill', 'set_gradient_fill',
+  'move_node', 'resize_node', 'delete_node', 'clone_node', 'rename_node',
+  'insert_child', 'flatten_node', 'set_corner_radius',
+  'set_text_content', 'set_multiple_text_contents', 'set_auto_layout',
+  'set_font_name', 'set_font_size', 'set_font_weight',
+  'set_letter_spacing', 'set_line_height', 'set_paragraph_spacing',
+  'set_text_case', 'set_text_decoration', 'apply_text_style',
+  'set_effects', 'set_effect_style_id',
+  'bind_variable', 'unbind_variable',
+  'set_layout_mode', 'set_padding', 'set_item_spacing', 'set_axis_align', 'set_layout_sizing',
+  'set_annotation', 'set_multiple_annotations',
+  'detach_instance', 'set_instance_overrides', 'set_component_property_references',
+  'update_icon',
+]);
+
+var FOCUS_AFTER_COMMANDS = new Set([
+  'create_rectangle', 'create_frame', 'create_text',
+  'create_ellipse', 'create_polygon', 'create_star',
+  'create_svg', 'create_vector', 'create_line',
+  'create_component', 'create_component_set', 'create_component_instance',
+  'create_from_data',
+]);
 
 // ---------------------------------------------------------------------------
 // Plugin UI
@@ -184,8 +235,16 @@ function updateSettings(settings: Record<string, unknown>): void {
   if (settings['serverPort'] !== undefined && settings['serverPort'] !== null) {
     state.serverPort = settings['serverPort'] as number;
   }
+  if (settings['readonlyMode'] !== undefined && settings['readonlyMode'] !== null) {
+    state.readonlyMode = settings['readonlyMode'] as boolean;
+  }
+  if (settings['autoFocus'] !== undefined && settings['autoFocus'] !== null) {
+    state.autoFocus = settings['autoFocus'] as boolean;
+  }
   figma.clientStorage.setAsync('settings', {
     serverPort: state.serverPort,
+    readonlyMode: state.readonlyMode,
+    autoFocus: state.autoFocus,
   });
 }
 
@@ -197,6 +256,12 @@ function updateSettings(settings: Record<string, unknown>): void {
       if (savedSettings['serverPort'] !== undefined && savedSettings['serverPort'] !== null) {
         state.serverPort = savedSettings['serverPort'] as number;
       }
+      if (savedSettings['readonlyMode'] !== undefined && savedSettings['readonlyMode'] !== null) {
+        state.readonlyMode = savedSettings['readonlyMode'] as boolean;
+      }
+      if (savedSettings['autoFocus'] !== undefined && savedSettings['autoFocus'] !== null) {
+        state.autoFocus = savedSettings['autoFocus'] as boolean;
+      }
     }
 
     // Send initial settings to UI
@@ -204,6 +269,8 @@ function updateSettings(settings: Record<string, unknown>): void {
       type: 'init-settings',
       settings: {
         serverPort: state.serverPort,
+        readonlyMode: state.readonlyMode,
+        autoFocus: state.autoFocus,
       },
     });
   } catch (error) {
@@ -232,6 +299,38 @@ async function handleCommand(
   params: Record<string, unknown>,
 ): Promise<unknown> {
   debugLog(`handleCommand: ${command}`);
+
+  // Readonly guard
+  if (state.readonlyMode && !READONLY_COMMANDS.has(command)) {
+    throw new Error("Readonly mode is active. Command '" + command + "' is not allowed.");
+  }
+
+  // Auto-focus before command
+  if (state.autoFocus && FOCUS_BEFORE_COMMANDS.has(command) && params) {
+    var focusId = params['nodeId'] as string;
+    if (focusId) {
+      try { await softFocusNode(focusId); } catch (_e) { /* silent */ }
+    }
+  }
+
+  var result = await _executeCommand(command, params);
+
+  // Auto-focus after create commands
+  if (state.autoFocus && FOCUS_AFTER_COMMANDS.has(command) && result && typeof result === 'object') {
+    var created = result as Record<string, unknown>;
+    var createdId = (created['nodeId'] || created['id']) as string;
+    if (createdId) {
+      try { await softFocusNode(createdId); } catch (_e) { /* silent */ }
+    }
+  }
+
+  return result;
+}
+
+async function _executeCommand(
+  command: string,
+  params: Record<string, unknown>,
+): Promise<unknown> {
   switch (command) {
     // Document
     case 'get_document_info':
