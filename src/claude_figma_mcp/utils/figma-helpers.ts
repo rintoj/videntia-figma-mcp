@@ -265,9 +265,9 @@ export function filterNodeData<T extends Record<string, any>>(node: T, fields?: 
 }
 
 /**
- * Procesa un nodo de respuesta de Figma para propósitos de logging.
- * @param result - El resultado a procesar
- * @returns El resultado original sin modificaciones
+ * Process a Figma response node for logging purposes.
+ * @param result - The result to process
+ * @returns The original result without modifications
  */
 export function processFigmaNodeResponse(result: unknown): any {
   if (!result || typeof result !== "object") {

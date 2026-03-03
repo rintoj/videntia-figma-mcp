@@ -609,14 +609,6 @@ function nodeToAst(node: FigmaNodeData): t.JSXElement | null {
     attrs.push(buildStyleAstAttr(style));
   }
 
-  if (node.absoluteBoundingBox) {
-    const bb = node.absoluteBoundingBox;
-    attrs.push(t.jsxAttribute(
-      t.jsxIdentifier("boundingBox"),
-      t.stringLiteral(`${bb.x},${bb.y},${bb.width},${bb.height}`)
-    ));
-  }
-
   // ID fields (only present when explicitly requested via fields)
   if (node.textStyleId) {
     attrs.push(t.jsxAttribute(t.jsxIdentifier("textStyleId"), t.stringLiteral(node.textStyleId)));
