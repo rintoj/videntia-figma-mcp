@@ -443,6 +443,8 @@ export async function readMyDesign(params: Record<string, unknown>): Promise<Rec
           (c): c is Record<string, unknown> => c !== null,
         );
         if (childInfos.length > 0) info['children'] = childInfos;
+      } else {
+        info['_childCount'] = (node as ChildrenMixin).children.length;
       }
     }
 

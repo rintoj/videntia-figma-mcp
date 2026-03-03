@@ -7,7 +7,7 @@ import { coerceArray } from "../utils/coerce-array.js";
 import { mcpBooleanSchema } from "../utils/mcp-boolean.js";
 import { convertToJsx } from "../utils/figma-to-jsx.js";
 import { parseJsx } from "../utils/jsx-to-figma.js";
-import { outputFormatSchema, fetchNodesAsJsx, fetchSelectionAsJsx } from "../utils/output-format.js";
+import { outputFormatSchema, depthSchema, resolveDepth, fetchNodesAsJsx, fetchSelectionAsJsx } from "../utils/output-format.js";
 import type {
   ReadMyDesignResult,
   DocumentInfoResult,
@@ -305,11 +305,11 @@ export function registerDocumentTools(server: McpServer): void {
     "Read the current Figma selection (or a specific node) as JSX with Tailwind CSS classes. Returns compact, Claude-readable markup instead of verbose JSON.",
     {
       nodeId: z.string().optional().describe("Specific node ID to read (defaults to current selection)"),
-      depth: z.coerce.number().optional().describe("Max depth to traverse (default: unlimited)"),
+      depth: depthSchema,
     },
     async ({ nodeId, depth }) => {
       try {
-        const result = (await sendCommandToFigma("read_my_design", { nodeId, depth })) as ReadMyDesignResult;
+        const result = (await sendCommandToFigma("read_my_design", { nodeId, depth: resolveDepth(depth) })) as ReadMyDesignResult;
         const selection = result?.selection ?? [];
         const jsx = convertToJsx(selection);
         return {
@@ -800,9 +800,10 @@ export function registerDocumentTools(server: McpServer): void {
         .describe(
           "When true (default), returns only the first matching nodes without descending into their children. Set to false to recursively find all nested matches.",
         ),
+      depth: depthSchema,
       output_format: outputFormatSchema,
     },
-    async ({ nodeId, types, topLevelOnly, output_format }) => {
+    async ({ nodeId, types, topLevelOnly, depth, output_format }) => {
       try {
         const result = await sendCommandToFigma("scan_nodes_by_types", {
           nodeId,
@@ -822,7 +823,7 @@ export function registerDocumentTools(server: McpServer): void {
 
           if (output_format === "jsx" && typedResult.matchingNodes.length > 0) {
             const ids = typedResult.matchingNodes.map((n: any) => n.id);
-            const jsx = await fetchNodesAsJsx(ids);
+            const jsx = await fetchNodesAsJsx(ids, resolveDepth(depth));
             return {
               content: [
                 { type: "text" as const, text: summaryText },
@@ -869,12 +870,14 @@ export function registerDocumentTools(server: McpServer): void {
     "get_selection",
     "Get information about the current selection in Figma. Returns JSX+Tailwind markup.",
     {
+      depth: depthSchema,
       output_format: outputFormatSchema,
     },
-    async ({ output_format }) => {
+    async ({ depth, output_format }) => {
       try {
+        const effectiveDepth = resolveDepth(depth);
         if (output_format === "jsx") {
-          const jsx = await fetchSelectionAsJsx();
+          const jsx = await fetchSelectionAsJsx(effectiveDepth);
           return { content: [{ type: "text", text: jsx }] };
         }
         const result = await sendCommandToFigma("get_selection");
@@ -938,14 +941,7 @@ export function registerDocumentTools(server: McpServer): void {
         .optional()
         .default(true)
         .describe("Ignored in JSX mode. For JSON mode only — strip image data. Defaults to true."),
-      depth: z
-        .number()
-        .int()
-        .min(0)
-        .optional()
-        .describe(
-          "JSON mode only. Max depth of children to include. Default: 1 (direct children only, grandchildren replaced with a hint). 0 = no children at all. 2+ to go deeper.",
-        ),
+      depth: depthSchema,
       includeChildren: z
         .boolean()
         .optional()
@@ -962,14 +958,15 @@ export function registerDocumentTools(server: McpServer): void {
     },
     async ({ nodeId, fields, stripImages, depth, includeChildren, find, output_format }) => {
       try {
+        const effectiveDepth = resolveDepth(depth);
         if (output_format === "jsx") {
-          const jsx = await fetchNodesAsJsx([nodeId]);
+          const jsx = await fetchNodesAsJsx([nodeId], effectiveDepth);
           return { content: [{ type: "text", text: jsx }] };
         }
         const result = await sendCommandToFigma("get_node_info", {
           nodeId,
           stripImages,
-          depth,
+          depth: effectiveDepth,
           includeChildren,
           find,
         });
@@ -1033,14 +1030,7 @@ export function registerDocumentTools(server: McpServer): void {
         .optional()
         .default(true)
         .describe("Ignored in JSX mode. For JSON mode only — strip image data. Defaults to true."),
-      depth: z
-        .number()
-        .int()
-        .min(0)
-        .optional()
-        .describe(
-          "JSON mode only. Max depth of children to include. Default: 1 (direct children only). 0 = no children.",
-        ),
+      depth: depthSchema,
       includeChildren: z
         .boolean()
         .optional()
@@ -1057,8 +1047,9 @@ export function registerDocumentTools(server: McpServer): void {
     },
     async ({ nodeIds, fields, stripImages, depth, includeChildren, find, output_format }) => {
       try {
+        const effectiveDepth = resolveDepth(depth);
         if (output_format === "jsx") {
-          const jsx = await fetchNodesAsJsx(nodeIds);
+          const jsx = await fetchNodesAsJsx(nodeIds, effectiveDepth);
           return { content: [{ type: "text", text: jsx }] };
         }
         const results = await Promise.all(
@@ -1066,7 +1057,7 @@ export function registerDocumentTools(server: McpServer): void {
             const result = await sendCommandToFigma("get_node_info", {
               nodeId,
               stripImages,
-              depth,
+              depth: effectiveDepth,
               includeChildren,
               find,
             });
@@ -1121,14 +1112,7 @@ export function registerDocumentTools(server: McpServer): void {
         .min(1)
         .optional()
         .describe("Max number of results to return. Default: 50."),
-      depth: z
-        .number()
-        .int()
-        .min(0)
-        .optional()
-        .describe(
-          "Max depth of children to include in each result. Default: 1 (direct children only). 0 = no children.",
-        ),
+      depth: depthSchema,
       includeChildren: z
         .boolean()
         .optional()
@@ -1148,7 +1132,7 @@ export function registerDocumentTools(server: McpServer): void {
           types,
           rootNodeId,
           limit,
-          depth,
+          depth: resolveDepth(depth),
           includeChildren,
           stripImages,
         });
@@ -1246,16 +1230,17 @@ export function registerDocumentTools(server: McpServer): void {
     "get_local_components",
     "Get all local components from the Figma document. Returns JSX+Tailwind markup.",
     {
+      depth: depthSchema,
       output_format: outputFormatSchema,
     },
-    async ({ output_format }) => {
+    async ({ depth, output_format }) => {
       try {
         const result = await sendCommandToFigma("get_local_components");
         const components = Array.isArray(result) ? result : ((result as any)?.components ?? []);
 
         if (output_format === "jsx" && components.length > 0) {
           const ids = components.map((c: any) => c.id);
-          const jsx = await fetchNodesAsJsx(ids);
+          const jsx = await fetchNodesAsJsx(ids, resolveDepth(depth));
           return {
             content: [
               { type: "text" as const, text: `Found ${components.length} local components` },
@@ -1303,9 +1288,10 @@ export function registerDocumentTools(server: McpServer): void {
     "Scan all text nodes in the selected Figma node. Returns JSX+Tailwind markup.",
     {
       nodeId: z.string().describe("ID of the node to scan"),
+      depth: depthSchema,
       output_format: outputFormatSchema,
     },
-    async ({ nodeId, output_format }) => {
+    async ({ nodeId, depth, output_format }) => {
       try {
         // Use the plugin's scan_text_nodes function with chunking flag
         const result = await sendCommandToFigma("scan_text_nodes", {
@@ -1328,7 +1314,7 @@ export function registerDocumentTools(server: McpServer): void {
 
           if (output_format === "jsx" && typedResult.textNodes.length > 0) {
             const ids = typedResult.textNodes.map((n: any) => n.id);
-            const jsx = await fetchNodesAsJsx(ids);
+            const jsx = await fetchNodesAsJsx(ids, resolveDepth(depth));
             return {
               content: [
                 { type: "text" as const, text: summaryText },
@@ -1362,7 +1348,7 @@ export function registerDocumentTools(server: McpServer): void {
           const typedResult = result as { textNodes: Array<any> };
           if (typedResult.textNodes.length > 0) {
             const ids = typedResult.textNodes.map((n: any) => n.id);
-            const jsx = await fetchNodesAsJsx(ids);
+            const jsx = await fetchNodesAsJsx(ids, resolveDepth(depth));
             return {
               content: [
                 { type: "text" as const, text: `Found ${typedResult.textNodes.length} text nodes` },

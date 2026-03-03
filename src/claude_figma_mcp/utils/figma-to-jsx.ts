@@ -612,9 +612,13 @@ function nodeToAst(node: FigmaNodeData): t.JSXElement | null {
     attrs.push(t.jsxAttribute(t.jsxIdentifier("height"), t.stringLiteral(String(h))));
   }
 
+  // Check for truncated children (depth limit reached)
+  const hasVisibleChildren = node.children && node.children.filter((c) => c.visible !== false).length > 0;
+  const isTruncated = !hasVisibleChildren && node._childCount !== undefined && node._childCount > 0;
+
   const isSelfClosing =
     tag === "svg" ||
-    (node.type !== "TEXT" && (!node.children || node.children.filter((c) => c.visible !== false).length === 0));
+    (node.type !== "TEXT" && !hasVisibleChildren && !isTruncated);
 
   const opening = t.jsxOpeningElement(t.jsxIdentifier(tag), attrs, isSelfClosing);
   const closing = isSelfClosing ? null : t.jsxClosingElement(t.jsxIdentifier(tag));
@@ -625,6 +629,9 @@ function nodeToAst(node: FigmaNodeData): t.JSXElement | null {
     if (node.type === "TEXT") {
       const text = node.characters ? escapeJsx(node.characters) : "";
       children = [t.jsxText(text)];
+    } else if (isTruncated) {
+      // Emit a truncation comment placeholder — handled by the serializer
+      children = [t.jsxText(`__TRUNCATED__${node._childCount}`)];
     } else if (node.children) {
       for (const child of node.children) {
         if (child.visible === false) continue;
@@ -658,6 +665,12 @@ function serializeJsxElement(el: t.JSXElement, indent: number): string {
   const textChildren = el.children.filter((c): c is t.JSXText => c.type === "JSXText");
   if (textChildren.length > 0 && el.children.every((c) => c.type === "JSXText")) {
     const text = textChildren.map((c) => c.value).join("");
+    // Handle truncation comment
+    const truncMatch = text.match(/^__TRUNCATED__(\d+)$/);
+    if (truncMatch) {
+      const count = truncMatch[1];
+      return `${pad}<${tagName} ${attrStr}>\n${pad}  {/* ${count} children — use depth="all" or a higher depth to expand */}\n${pad}</${tagName}>`;
+    }
     return `${pad}<${tagName} ${attrStr}>\n${pad}  ${text}\n${pad}</${tagName}>`;
   }
 

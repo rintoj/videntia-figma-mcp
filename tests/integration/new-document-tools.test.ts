@@ -57,7 +57,7 @@ describe("new document tools integration", () => {
       const response = await callTool("read_my_design", {});
 
       expect(mockSendCommand).toHaveBeenCalledTimes(1);
-      expect(mockSendCommand).toHaveBeenCalledWith("read_my_design", { nodeId: undefined, depth: undefined });
+      expect(mockSendCommand).toHaveBeenCalledWith("read_my_design", { nodeId: undefined, depth: 1 });
       expect(response.content[0].text).toContain('id="node-1"');
       expect(response.content[0].text).toContain('name="Frame 1"');
     });

@@ -329,6 +329,8 @@ export interface FigmaNodeData {
   svgString?: string;
   // Children
   children?: FigmaNodeData[];
+  // Truncation hint: number of children omitted due to depth limit
+  _childCount?: number;
 }
 
 export interface ReadMyDesignResult {
