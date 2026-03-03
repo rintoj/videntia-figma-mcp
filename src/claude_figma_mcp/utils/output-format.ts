@@ -38,7 +38,7 @@ export const outputFormatSchema = z
  * Accepts a non-negative integer or the literal string "all" for unlimited depth.
  */
 export const depthSchema = z
-  .union([z.number().int().min(0), z.literal("all")])
+  .union([z.coerce.number().int().min(0), z.literal("all")])
   .optional()
   .describe(
     'Max depth of children to include. Default: 1 (direct children only). 0 = no children. Use "all" for unlimited depth.',
