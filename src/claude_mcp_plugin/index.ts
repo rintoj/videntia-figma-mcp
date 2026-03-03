@@ -233,11 +233,13 @@ async function handleCommand(
         depth: params && params['depth'] !== undefined ? Number(params['depth']) : 0,
       });
     case 'get_node_info':
-      if (!params || !params['nodeId']) {
-        throw new Error('Missing nodeId parameter');
+      if (!params || (!params['nodeIds'] && !params['nodeId'])) {
+        throw new Error('Missing nodeId or nodeIds parameter');
       }
       return await serializeNodes({
-        nodeIds: [params['nodeId'] as string],
+        nodeIds: params['nodeIds'] && Array.isArray(params['nodeIds'])
+          ? params['nodeIds'] as string[]
+          : [params['nodeId'] as string],
         depth: params['depth'] !== undefined ? Number(params['depth']) : undefined,
       });
     case 'get_nodes_info':
