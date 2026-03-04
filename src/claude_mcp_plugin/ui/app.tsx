@@ -12,7 +12,7 @@ export function App() {
   var [port, setPort] = useState(3055)
   var [readOnly, setReadOnly] = useState(false)
   var [autoFocus, setAutoFocus] = useState(false)
-  var [prefsExpanded, setPrefsExpanded] = useState(true)
+  var [prefsExpanded, setPrefsExpanded] = useState(false)
   var [actionsExpanded, setActionsExpanded] = useState(true)
 
   var connection = useConnection()
