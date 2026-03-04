@@ -266,6 +266,26 @@ export function useConnection() {
             parent.postMessage({
               pluginMessage: { type: 'notify', message: 'Channel: ' + channelName },
             }, '*')
+          } else if (data.event === 'client_connected') {
+            addAction({
+              id: generateId(),
+              command: 'Client connected',
+              params: { channel: data.channel, clients: data.clients },
+              result: 'A new client has joined the channel',
+              error: null,
+              status: 'success',
+              timestamp: Date.now(),
+            })
+          } else if (data.event === 'client_disconnected') {
+            addAction({
+              id: generateId(),
+              command: 'Client disconnected',
+              params: { channel: data.channel, clients: data.clients },
+              result: 'A client has left the channel',
+              error: null,
+              status: 'error',
+              timestamp: Date.now(),
+            })
           }
         } else if (data.type === 'error') {
           console.error('Error:', data.message)

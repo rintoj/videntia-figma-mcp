@@ -276,8 +276,10 @@ const server = Bun.serve({
                 client.send(
                   JSON.stringify({
                     type: "system",
+                    event: "client_connected",
                     message: "A new client has joined the channel",
                     channel: channelName,
+                    clients: channelClients.size,
                   }),
                 );
                 stats.messagesSent++;
@@ -429,6 +431,27 @@ const server = Bun.serve({
         if (clients) {
           clients.delete(ws);
           logger.debug(`Removed client ${clientId} from channel ${channelName}`);
+
+          // Notify remaining clients about disconnection
+          clients.forEach((client) => {
+            if (client.readyState === WS_OPEN) {
+              try {
+                client.send(
+                  JSON.stringify({
+                    type: "system",
+                    event: "client_disconnected",
+                    message: "A client has left the channel",
+                    channel: channelName,
+                    clients: clients.size,
+                  }),
+                );
+                stats.messagesSent++;
+              } catch (error) {
+                logger.error(`Failed to send disconnect notification:`, error);
+              }
+            }
+          });
+
           if (clients.size === 0) {
             channels.delete(channelName);
             channelMetadata.delete(channelName);
