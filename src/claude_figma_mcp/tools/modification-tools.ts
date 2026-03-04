@@ -16,35 +16,37 @@ export function registerModificationTools(server: McpServer): void {
   // Set Fill Color Tool
   server.tool(
     "set_fill_color",
-    "Set the fill color of a node in Figma. Alpha component defaults to 1 (fully opaque) if not specified. Use alpha 0 for fully transparent.",
+    "Set the fill color of a node in Figma. Accepts either a hex color string (e.g. '#ff0000', '#ff000080' with alpha) or individual r,g,b,a channels (0–1). Alpha defaults to 1 (fully opaque) if not specified.",
     {
       nodeId: z.string().describe("Node ID (e.g. '123:456') — get from get_selection or get_node_info"),
-      r: z.preprocess((v) => (typeof v === "boolean" || v === null ? undefined : v), z.coerce.number().min(0).max(1)).describe("Red channel, normalized 0–1 (e.g. 1 = full red)"),
-      g: z.preprocess((v) => (typeof v === "boolean" || v === null ? undefined : v), z.coerce.number().min(0).max(1)).describe("Green channel, normalized 0–1"),
-      b: z.preprocess((v) => (typeof v === "boolean" || v === null ? undefined : v), z.coerce.number().min(0).max(1)).describe("Blue channel, normalized 0–1"),
+      color: z.string().optional().describe("Hex color string (e.g. '#ff0000', '#f00', '#ff000080' for alpha). Use this OR r,g,b,a — not both."),
+      r: z.preprocess((v) => (typeof v === "boolean" || v === null ? undefined : v), z.coerce.number().min(0).max(1)).optional().describe("Red channel, normalized 0–1 (e.g. 1 = full red)"),
+      g: z.preprocess((v) => (typeof v === "boolean" || v === null ? undefined : v), z.coerce.number().min(0).max(1)).optional().describe("Green channel, normalized 0–1"),
+      b: z.preprocess((v) => (typeof v === "boolean" || v === null ? undefined : v), z.coerce.number().min(0).max(1)).optional().describe("Blue channel, normalized 0–1"),
       a: z.preprocess((v) => (typeof v === "boolean" || v === null ? undefined : v), z.coerce.number().min(0).max(1)).optional().describe("Alpha/opacity, normalized 0–1 (default: 1 = fully opaque; 0 = fully transparent)"),
     },
-    async ({ nodeId, r, g, b, a }) => {
+    async ({ nodeId, color, r, g, b, a }) => {
       try {
-        // Additional validation: Ensure RGB values are provided (they should not be undefined)
-        if (r === undefined || g === undefined || b === undefined) {
-          throw new Error("RGB components (r, g, b) are required and cannot be undefined");
+        // Build params for the plugin handler (which handles both hex and rgba)
+        const params: Record<string, unknown> = { nodeId };
+        if (color !== undefined) {
+          params.color = color;
+        } else {
+          if (r === undefined || g === undefined || b === undefined) {
+            throw new Error("Provide either 'color' (hex string) or r, g, b components");
+          }
+          const colorInput: Color = { r, g, b, a };
+          params.color = applyColorDefaults(colorInput);
         }
 
-        // Apply default values safely - preserves opacity 0 for transparency
-        const colorInput: Color = { r, g, b, a };
-        const colorWithDefaults = applyColorDefaults(colorInput);
-
-        const result = await sendCommandToFigma("set_fill_color", {
-          nodeId,
-          color: colorWithDefaults,
-        });
+        const result = await sendCommandToFigma("set_fill_color", params);
         const typedResult = result as { name: string };
+        const colorDesc = color !== undefined ? color : `RGBA(${r}, ${g}, ${b}, ${a ?? 1})`;
         return {
           content: [
             {
               type: "text",
-              text: `Set fill color of node "${typedResult.name}" to RGBA(${r}, ${g}, ${b}, ${colorWithDefaults.a})`,
+              text: `Set fill color of node "${typedResult.name}" to ${colorDesc}`,
             },
           ],
         };
@@ -64,37 +66,40 @@ export function registerModificationTools(server: McpServer): void {
   // Set Stroke Color Tool
   server.tool(
     "set_stroke_color",
-    "Set the stroke color of a node in Figma (defaults: opacity 1, weight 1)",
+    "Set the stroke color of a node in Figma. Accepts either a hex color string (e.g. '#ff0000', '#ff000080' with alpha) or individual r,g,b,a channels (0–1). Defaults: opacity 1, weight 1.",
     {
       nodeId: z.string().describe("Node ID (e.g. '123:456') — get from get_selection or get_node_info"),
-      r: z.coerce.number().min(0).max(1).describe("Red channel, normalized 0–1"),
-      g: z.coerce.number().min(0).max(1).describe("Green channel, normalized 0–1"),
-      b: z.coerce.number().min(0).max(1).describe("Blue channel, normalized 0–1"),
+      color: z.string().optional().describe("Hex color string (e.g. '#ff0000', '#f00', '#ff000080' for alpha). Use this OR r,g,b,a — not both."),
+      r: z.coerce.number().min(0).max(1).optional().describe("Red channel, normalized 0–1"),
+      g: z.coerce.number().min(0).max(1).optional().describe("Green channel, normalized 0–1"),
+      b: z.coerce.number().min(0).max(1).optional().describe("Blue channel, normalized 0–1"),
       a: z.coerce.number().min(0).max(1).optional().describe("Alpha/opacity, normalized 0–1 (default: 1 = fully opaque; 0 = fully transparent)"),
       weight: z.coerce.number().min(0).optional().describe("Stroke thickness in pixels ≥ 0 (default: 1; use 0 for invisible stroke)"),
     },
-    async ({ nodeId, r, g, b, a, weight }) => {
+    async ({ nodeId, color, r, g, b, a, weight }) => {
       try {
-        if (r === undefined || g === undefined || b === undefined) {
-          throw new Error("RGB components (r, g, b) are required and cannot be undefined");
+        const params: Record<string, unknown> = { nodeId };
+        if (color !== undefined) {
+          params.color = color;
+        } else {
+          if (r === undefined || g === undefined || b === undefined) {
+            throw new Error("Provide either 'color' (hex string) or r, g, b components");
+          }
+          const colorInput: Color = { r, g, b, a };
+          params.color = applyColorDefaults(colorInput);
         }
 
-        const colorInput: Color = { r, g, b, a };
-        const colorWithDefaults = applyColorDefaults(colorInput);
-
         const strokeWeightWithDefault = applyDefault(weight, FIGMA_DEFAULTS.stroke.weight);
+        params.strokeWeight = strokeWeightWithDefault;
 
-        const result = await sendCommandToFigma("set_stroke_color", {
-          nodeId,
-          color: colorWithDefaults,
-          strokeWeight: strokeWeightWithDefault,
-        });
+        const result = await sendCommandToFigma("set_stroke_color", params);
         const typedResult = result as { name: string };
+        const colorDesc = color !== undefined ? color : `RGBA(${r}, ${g}, ${b}, ${a ?? 1})`;
         return {
           content: [
             {
               type: "text",
-              text: `Set stroke color of node "${typedResult.name}" to RGBA(${r}, ${g}, ${b}, ${colorWithDefaults.a}) with weight ${strokeWeightWithDefault}`,
+              text: `Set stroke color of node "${typedResult.name}" to ${colorDesc} with weight ${strokeWeightWithDefault}`,
             },
           ],
         };

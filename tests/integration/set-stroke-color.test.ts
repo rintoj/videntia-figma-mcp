@@ -243,47 +243,44 @@ describe("set_stroke_color tool integration", () => {
 
   describe("Zod validation (real validation layer)", () => {
     it("rejects undefined r component", async () => {
-      await expect(
-        callToolWithValidation({
-          nodeId: "nodeI1",
-          // r is missing
-          g: 0.5,
-          b: 0.8,
-          a: 1,
-          weight: 1,
-        }),
-      ).rejects.toThrow();
+      const result = await callToolWithValidation({
+        nodeId: "nodeI1",
+        // r is missing
+        g: 0.5,
+        b: 0.8,
+        a: 1,
+        weight: 1,
+      });
 
+      expect(result.content[0].text).toContain("Error");
       expect(mockSendCommand).not.toHaveBeenCalled();
     });
 
     it("rejects undefined g component", async () => {
-      await expect(
-        callToolWithValidation({
-          nodeId: "nodeI2",
-          r: 0.5,
-          // g is missing
-          b: 0.8,
-          a: 1,
-          weight: 1,
-        }),
-      ).rejects.toThrow();
+      const result = await callToolWithValidation({
+        nodeId: "nodeI2",
+        r: 0.5,
+        // g is missing
+        b: 0.8,
+        a: 1,
+        weight: 1,
+      });
 
+      expect(result.content[0].text).toContain("Error");
       expect(mockSendCommand).not.toHaveBeenCalled();
     });
 
     it("rejects undefined b component", async () => {
-      await expect(
-        callToolWithValidation({
-          nodeId: "nodeI3",
-          r: 0.5,
-          g: 0.8,
-          // b is missing
-          a: 1,
-          weight: 1,
-        }),
-      ).rejects.toThrow();
+      const result = await callToolWithValidation({
+        nodeId: "nodeI3",
+        r: 0.5,
+        g: 0.8,
+        // b is missing
+        a: 1,
+        weight: 1,
+      });
 
+      expect(result.content[0].text).toContain("Error");
       expect(mockSendCommand).not.toHaveBeenCalled();
     });
 

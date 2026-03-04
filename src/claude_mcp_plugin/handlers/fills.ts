@@ -3,74 +3,115 @@
 import { debugLog } from '../utils/helpers';
 
 // ---------------------------------------------------------------------------
+// Hex color parsing
+// ---------------------------------------------------------------------------
+
+/**
+ * Parse a hex color string (e.g. "#ff0000", "#f00", "#ff000080") to { r, g, b, a }
+ * with values normalized to 0–1. Returns null if the string is not a valid hex color.
+ */
+function parseHexColor(hex: string): { r: number; g: number; b: number; a: number } | null {
+  if (typeof hex !== 'string') return null;
+  var h = hex.charAt(0) === '#' ? hex.substring(1) : hex;
+  // Expand 3-char or 4-char shorthand
+  if (h.length === 3 || h.length === 4) {
+    var expanded = '';
+    for (var i = 0; i < h.length; i++) {
+      expanded += h.charAt(i) + h.charAt(i);
+    }
+    h = expanded;
+  }
+  if (h.length !== 6 && h.length !== 8) return null;
+  var rr = parseInt(h.substring(0, 2), 16);
+  var gg = parseInt(h.substring(2, 4), 16);
+  var bb = parseInt(h.substring(4, 6), 16);
+  var aa = h.length === 8 ? parseInt(h.substring(6, 8), 16) : 255;
+  if (isNaN(rr) || isNaN(gg) || isNaN(bb) || isNaN(aa)) return null;
+  return { r: rr / 255, g: gg / 255, b: bb / 255, a: aa / 255 };
+}
+
+/**
+ * Resolve color from params. Supports:
+ *  - hex string: { color: "#ff0000" } or { color: "#ff000080" }
+ *  - wrapped object: { color: { r, g, b, a } }
+ *  - flat: { r, g, b, a }
+ * Returns { r, g, b, a } with values 0–1, or throws.
+ */
+function resolveColor(params: Record<string, unknown>): { r: number; g: number; b: number; a: number } {
+  var colorParam = params['color'];
+
+  // Hex string
+  if (typeof colorParam === 'string') {
+    var parsed = parseHexColor(colorParam);
+    if (!parsed) {
+      throw new Error('Invalid hex color: ' + colorParam);
+    }
+    return parsed;
+  }
+
+  // Wrapped object { color: { r, g, b, a } } or flat { r, g, b, a }
+  var source: Record<string, unknown> =
+    colorParam !== null && colorParam !== undefined && typeof colorParam === 'object'
+      ? colorParam as Record<string, unknown>
+      : params;
+
+  var r = source['r'];
+  var g = source['g'];
+  var b = source['b'];
+  var a = source['a'];
+
+  if (r === undefined || g === undefined || b === undefined) {
+    throw new Error(
+      'Color must be a hex string (e.g. "#ff0000") or provide r, g, b components.',
+    );
+  }
+
+  var result = {
+    r: parseFloat(r as string),
+    g: parseFloat(g as string),
+    b: parseFloat(b as string),
+    a: a !== undefined ? parseFloat(a as string) : 1,
+  };
+
+  if (isNaN(result.r) || isNaN(result.g) || isNaN(result.b) || isNaN(result.a)) {
+    throw new Error('Invalid color values - all components must be valid numbers');
+  }
+
+  return result;
+}
+
+// ---------------------------------------------------------------------------
 // setFillColor
 // ---------------------------------------------------------------------------
 
 /**
  * Set the solid fill colour of a Figma node.
- * Supports both wrapped `{ color: { r, g, b, a } }` and flat `{ r, g, b, a }`
- * colour formats.
+ * Supports hex string (e.g. "#ff0000"), wrapped `{ color: { r, g, b, a } }`,
+ * and flat `{ r, g, b, a }` colour formats.
  */
 export async function setFillColor(params: Record<string, unknown>): Promise<unknown> {
   debugLog('setFillColor', params);
 
-  const paramsObj = params !== null && params !== undefined ? params : {};
-  const nodeId = paramsObj['nodeId'] as string | undefined;
-  const colorObj = paramsObj['color'] as Record<string, unknown> | undefined;
-
-  // Support both wrapped { color: { r, g, b, a } } and flat { r, g, b, a } formats
-  const source: Record<string, unknown> =
-    colorObj !== null && colorObj !== undefined
-      ? colorObj
-      : paramsObj;
-
-  const r = source['r'];
-  const g = source['g'];
-  const b = source['b'];
-  const a = source['a'];
+  var paramsObj = params !== null && params !== undefined ? params : {};
+  var nodeId = paramsObj['nodeId'] as string | undefined;
 
   if (!nodeId) {
     throw new Error('Missing nodeId parameter');
   }
 
-  const node = await figma.getNodeByIdAsync(nodeId);
+  var rgbColor = resolveColor(paramsObj);
+
+  var node = await figma.getNodeByIdAsync(nodeId);
   if (!node) {
-    throw new Error(`Node not found with ID: ${nodeId}`);
+    throw new Error('Node not found with ID: ' + nodeId);
   }
 
   if (!('fills' in node)) {
-    throw new Error(`Node does not support fills: ${nodeId}`);
-  }
-
-  // Validate that MCP layer provided complete data
-  if (r === undefined || g === undefined || b === undefined || a === undefined) {
-    throw new Error(
-      'Incomplete color data received from MCP layer. All RGBA components must be provided.',
-    );
-  }
-
-  // Parse values - no defaults, just format conversion
-  const rgbColor = {
-    r: parseFloat(r as string),
-    g: parseFloat(g as string),
-    b: parseFloat(b as string),
-    a: parseFloat(a as string),
-  };
-
-  // Validate parsing succeeded
-  if (
-    isNaN(rgbColor.r) ||
-    isNaN(rgbColor.g) ||
-    isNaN(rgbColor.b) ||
-    isNaN(rgbColor.a)
-  ) {
-    throw new Error(
-      'Invalid color values received - all components must be valid numbers',
-    );
+    throw new Error('Node does not support fills: ' + nodeId);
   }
 
   // Set fill - pure translation to Figma API format
-  const paintStyle: SolidPaint = {
+  var paintStyle: SolidPaint = {
     type: 'SOLID',
     color: {
       r: rgbColor.r,
@@ -97,73 +138,37 @@ export async function setFillColor(params: Record<string, unknown>): Promise<unk
 
 /**
  * Set the solid stroke colour and weight of a Figma node.
- * Supports both wrapped `{ color: { r, g, b, a } }` and flat `{ r, g, b, a }`
- * colour formats.
+ * Supports hex string (e.g. "#ff0000"), wrapped `{ color: { r, g, b, a } }`,
+ * and flat `{ r, g, b, a }` colour formats.
  */
 export async function setStrokeColor(params: Record<string, unknown>): Promise<unknown> {
-  const paramsObj = params !== null && params !== undefined ? params : {};
-  const nodeId = paramsObj['nodeId'] as string | undefined;
-  const colorObj = paramsObj['color'] as Record<string, unknown> | undefined;
-  const strokeWeight = paramsObj['strokeWeight'];
-
-  // Support both wrapped { color: { r, g, b, a } } and flat { r, g, b, a } formats
-  const source: Record<string, unknown> =
-    colorObj !== null && colorObj !== undefined
-      ? colorObj
-      : paramsObj;
-
-  const r = source['r'];
-  const g = source['g'];
-  const b = source['b'];
-  const a = source['a'];
+  var paramsObj = params !== null && params !== undefined ? params : {};
+  var nodeId = paramsObj['nodeId'] as string | undefined;
+  var strokeWeight = paramsObj['strokeWeight'];
 
   if (!nodeId) {
     throw new Error('Missing nodeId parameter');
   }
 
-  const node = await figma.getNodeByIdAsync(nodeId);
+  var rgbColor = resolveColor(paramsObj);
+
+  var node = await figma.getNodeByIdAsync(nodeId);
   if (!node) {
-    throw new Error(`Node not found with ID: ${nodeId}`);
+    throw new Error('Node not found with ID: ' + nodeId);
   }
 
   if (!('strokes' in node)) {
-    throw new Error(`Node does not support strokes: ${nodeId}`);
+    throw new Error('Node does not support strokes: ' + nodeId);
   }
 
-  if (r === undefined || g === undefined || b === undefined || a === undefined) {
-    throw new Error(
-      'Incomplete color data received from MCP layer. All RGBA components must be provided.',
-    );
-  }
-
-  if (strokeWeight === undefined) {
-    throw new Error('Stroke weight must be provided by MCP layer.');
-  }
-
-  const rgbColor = {
-    r: parseFloat(r as string),
-    g: parseFloat(g as string),
-    b: parseFloat(b as string),
-    a: parseFloat(a as string),
-  };
-  const strokeWeightParsed = parseFloat(strokeWeight as string);
-
-  if (
-    isNaN(rgbColor.r) ||
-    isNaN(rgbColor.g) ||
-    isNaN(rgbColor.b) ||
-    isNaN(rgbColor.a)
-  ) {
-    throw new Error(
-      'Invalid color values received - all components must be valid numbers',
-    );
-  }
+  // Default stroke weight to 1 if not provided
+  var strokeWeightParsed = strokeWeight !== undefined ? parseFloat(strokeWeight as string) : 1;
 
   if (isNaN(strokeWeightParsed)) {
     throw new Error('Invalid stroke weight - must be a valid number');
   }
 
-  const paintStyle: SolidPaint = {
+  var paintStyle: SolidPaint = {
     type: 'SOLID',
     color: {
       r: rgbColor.r,

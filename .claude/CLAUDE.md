@@ -121,6 +121,23 @@ The project implements a comprehensive theme variable management system with 106
 - `fix_collection_to_standard` - Auto-fix compliance
 - `add_chart_colors` - Add chart colors
 
+## Color Input Formats
+
+All color tools (`set_fill_color`, `set_stroke_color`) accept colors in two formats:
+
+1. **Hex string** (preferred for batch operations):
+   - `"#ff0000"` — 6-digit hex
+   - `"#f00"` — 3-digit shorthand
+   - `"#ff000080"` — 8-digit hex with alpha
+   - `"#f008"` — 4-digit shorthand with alpha
+
+2. **RGBA components** (0–1 normalized):
+   - `{ r: 1, g: 0, b: 0, a: 1 }`
+
+Both formats work with `batch_actions` — pass `{ color: "#ff0000" }` or `{ r: 1, g: 0, b: 0, a: 1 }`.
+
+The `export_node_as_image` format parameter accepts both lowercase and uppercase (e.g. `"png"` or `"PNG"`).
+
 ## Color Scale Algorithm
 
 The project uses a **composite blending** approach for color scales:

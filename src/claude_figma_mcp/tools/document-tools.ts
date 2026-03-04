@@ -1543,7 +1543,7 @@ export function registerDocumentTools(server: McpServer): void {
     "Export a node as a base64 image from Figma. For large images (>4000px), consider using export_node_as_image_url instead which returns a CDN URL.",
     {
       nodeId: z.string().describe("The ID of the node to export"),
-      format: z.enum(["PNG", "JPG", "SVG", "PDF"]).optional().describe("Export format"),
+      format: z.string().transform(v => v.toUpperCase()).pipe(z.enum(["PNG", "JPG", "SVG", "PDF"])).optional().describe("Export format (e.g. 'png' or 'PNG')"),
       scale: z.coerce.number().positive().optional().describe("Export scale"),
     },
     async ({ nodeId, format, scale }) => {
