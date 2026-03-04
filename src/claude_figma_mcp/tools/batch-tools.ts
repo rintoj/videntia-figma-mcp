@@ -11,7 +11,7 @@ import { BatchActionsResult } from "../types";
 export function registerBatchTools(server: McpServer): void {
   server.tool(
     "batch_actions",
-    "Execute multiple Figma commands in a single batch call. Use this to batch operations like clone_node, rename_node, resize_node, set_fill_color, bind_variable etc. for multiple nodes instead of calling them one by one. Supports $result[N].field references to use results from earlier actions (e.g., clone then rename using new ID). Set stopOnError to true to abort remaining actions after the first failure.",
+    "Execute multiple Figma commands in a single batch call (max 30 actions per call). Use this to batch operations like clone_node, rename_node, resize_node, set_fill_color, bind_variable etc. for multiple nodes instead of calling them one by one. For more than 30 actions, split into multiple batch_actions calls. Supports $result[N].field references to use results from earlier actions (e.g., clone then rename using new ID). Set stopOnError to true to abort remaining actions after the first failure.",
     {
       actions: z
         .array(
@@ -21,7 +21,7 @@ export function registerBatchTools(server: McpServer): void {
           }),
         )
         .min(1)
-        .max(200)
+        .max(30)
         .describe("Array of actions to execute sequentially in a single batch"),
       stopOnError: z
         .boolean()
