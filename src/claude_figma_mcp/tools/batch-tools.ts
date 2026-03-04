@@ -57,6 +57,7 @@ export function registerBatchTools(server: McpServer): void {
               text: lines.join("\n"),
             },
           ],
+          isError: result.failed > 0,
         };
       } catch (error) {
         return {
