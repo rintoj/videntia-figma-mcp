@@ -10,7 +10,7 @@ import { debugLog } from '../utils/helpers';
  * Parse a hex color string (e.g. "#ff0000", "#f00", "#ff000080") to { r, g, b, a }
  * with values normalized to 0–1. Returns null if the string is not a valid hex color.
  */
-function parseHexColor(hex: string): { r: number; g: number; b: number; a: number } | null {
+export function parseHexColor(hex: string): { r: number; g: number; b: number; a: number } | null {
   if (typeof hex !== 'string') return null;
   var h = hex.charAt(0) === '#' ? hex.substring(1) : hex;
   // Expand 3-char or 4-char shorthand
@@ -37,7 +37,7 @@ function parseHexColor(hex: string): { r: number; g: number; b: number; a: numbe
  *  - flat: { r, g, b, a }
  * Returns { r, g, b, a } with values 0–1, or throws.
  */
-function resolveColor(params: Record<string, unknown>): { r: number; g: number; b: number; a: number } {
+export function resolveColor(params: Record<string, unknown>): { r: number; g: number; b: number; a: number } {
   var colorParam = params['color'];
 
   // Hex string

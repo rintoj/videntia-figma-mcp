@@ -428,4 +428,43 @@ describe("set_stroke_color tool integration", () => {
       expect(response.content[0].text).toContain("weight 1");
     });
   });
+
+  describe("hex color support", () => {
+    it("accepts 6-digit hex color", async () => {
+      const response = await callToolWithValidation({
+        nodeId: "nodeHex1",
+        color: "#334155",
+        weight: 2,
+      });
+
+      expect(mockSendCommand).toHaveBeenCalledTimes(1);
+      const [command, payload] = mockSendCommand.mock.calls[0];
+      expect(command).toBe("set_stroke_color");
+      expect(payload.color).toBe("#334155");
+      expect(payload.strokeWeight).toBe(2);
+      expect(response.content[0].text).toContain("#334155");
+    });
+
+    it("accepts 8-digit hex with alpha", async () => {
+      const response = await callToolWithValidation({
+        nodeId: "nodeHex2",
+        color: "#33415580",
+      });
+
+      expect(mockSendCommand).toHaveBeenCalledTimes(1);
+      const [, payload] = mockSendCommand.mock.calls[0];
+      expect(payload.color).toBe("#33415580");
+      expect(payload.strokeWeight).toBe(1); // default weight
+    });
+
+    it("rejects missing both color and r,g,b", async () => {
+      const result = await callToolWithValidation({
+        nodeId: "nodeHex3",
+        weight: 1,
+      });
+
+      expect(result.content[0].text).toContain("Error");
+      expect(mockSendCommand).not.toHaveBeenCalled();
+    });
+  });
 });
