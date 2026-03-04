@@ -869,20 +869,35 @@ export function registerModificationTools(server: McpServer): void {
 
   // ── Paint/Color Style Tools ──
 
+  // Shared schema for gradient stops (reused in create and update)
+  const gradientStopSchema = z.object({
+    color: z.string().describe("Hex color for this stop (e.g. '#ff0000')"),
+    position: z.coerce.number().min(0).max(1).describe("Position along gradient 0–1"),
+  });
+
+  const gradientSchema = z.object({
+    type: z.enum(["LINEAR", "RADIAL", "ANGULAR", "DIAMOND"]).describe("Gradient type"),
+    stops: coerceArray(z.array(gradientStopSchema).min(2)).describe("Array of color stops (min 2)"),
+    angle: z.coerce.number().optional().describe("Direction in degrees 0–360 (LINEAR only, default 0)"),
+    opacity: z.coerce.number().min(0).max(1).optional().describe("Overall opacity 0–1 (default 1)"),
+  });
+
   // Create Color Style Tool
   server.tool(
     "create_color_style",
-    "Create a new paint (color) style in Figma. The style can then be applied to nodes using set_color_style_id.",
+    "Create a new paint (color) style in Figma — solid color or gradient. The style can then be applied to nodes using set_color_style_id. Provide either 'color' for a solid fill OR 'gradient' for a gradient fill.",
     {
       name: z.string().describe("Name of the color style (e.g., 'color/primary', 'brand/blue')"),
-      color: z.string().describe("Hex color string (e.g. '#ff0000', '#f00', '#ff000080' for alpha)"),
+      color: z.string().optional().describe("Hex color string for solid fill (e.g. '#ff0000'). Use this OR gradient, not both."),
+      gradient: gradientSchema.optional().describe("Gradient definition. Use this OR color, not both."),
       description: z.string().optional().describe("Description of the color style"),
     },
-    async ({ name, color, description }) => {
+    async ({ name, color, gradient, description }) => {
       try {
         const result = await sendCommandToFigma("create_color_style", {
           name,
-          color,
+          ...(color !== undefined && { color }),
+          ...(gradient !== undefined && { gradient }),
           ...(description !== undefined && { description }),
         });
         const typedResult = result as { name?: string; id?: string };
@@ -970,19 +985,21 @@ export function registerModificationTools(server: McpServer): void {
   // Update Color Style Tool
   server.tool(
     "update_color_style",
-    "Update an existing paint (color) style's properties (name, color, description)",
+    "Update an existing paint (color) style's properties (name, color/gradient, description). Provide 'color' for solid fill or 'gradient' for gradient fill.",
     {
       styleId: z.string().describe("The ID or name of the color style to update (e.g. 'S:abc123,' or 'color/primary' or 'color-primary')"),
       name: z.string().optional().describe("New name for the color style"),
-      color: z.string().optional().describe("New hex color string (e.g. '#ff0000')"),
+      color: z.string().optional().describe("New hex color string for solid fill (e.g. '#ff0000'). Use this OR gradient, not both."),
+      gradient: gradientSchema.optional().describe("New gradient definition. Use this OR color, not both."),
       description: z.string().optional().describe("New description for the color style"),
     },
-    async ({ styleId, name, color, description }) => {
+    async ({ styleId, name, color, gradient, description }) => {
       try {
         const result = await sendCommandToFigma("update_color_style", {
           styleId,
           ...(name !== undefined && { name }),
           ...(color !== undefined && { color }),
+          ...(gradient !== undefined && { gradient }),
           ...(description !== undefined && { description }),
         });
         const typedResult = result as { name?: string; id?: string };
