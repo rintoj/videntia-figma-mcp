@@ -5,7 +5,7 @@
 import { debugLog } from './utils/helpers';
 
 // Handlers — document & navigation
-import { getFileKey, getDocumentInfo, searchNodes } from './handlers/document';
+import { getFileKey, getDocumentInfo, searchNodes, saveVersionHistory, triggerUndo, triggerRedo, commitUndoAction } from './handlers/document';
 import { serializeNodes } from './handlers/node-serializer';
 import { createPage, renamePage, deletePage } from './handlers/pages';
 import { getReactions, setDefaultConnector, createConnections } from './handlers/prototyping';
@@ -673,6 +673,18 @@ async function _executeCommand(
       return await getInstanceOverrides(params);
     case 'set_instance_overrides':
       return await setInstanceOverrides(params);
+
+    // Version History
+    case 'save_version_history':
+      return await saveVersionHistory(params);
+
+    // Undo/Redo
+    case 'undo':
+      return triggerUndo();
+    case 'redo':
+      return triggerRedo();
+    case 'commit_undo':
+      return commitUndoAction();
 
     default:
       throw new Error('Unknown command');

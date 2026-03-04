@@ -102,3 +102,30 @@ export async function searchNodes(options: SearchNodesOptions): Promise<unknown>
     depth: depth,
   });
 }
+
+export async function saveVersionHistory(params: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const title = params.title as string;
+  if (!title) {
+    throw new Error('title is required');
+  }
+  const description = params.description as string | undefined;
+  const result = description
+    ? await figma.saveVersionHistoryAsync(title, description)
+    : await figma.saveVersionHistoryAsync(title);
+  return { id: result.id };
+}
+
+export function triggerUndo(): Record<string, unknown> {
+  figma.triggerUndo();
+  return { success: true };
+}
+
+export function triggerRedo(): Record<string, unknown> {
+  figma.triggerRedo();
+  return { success: true };
+}
+
+export function commitUndoAction(): Record<string, unknown> {
+  figma.commitUndo();
+  return { success: true };
+}

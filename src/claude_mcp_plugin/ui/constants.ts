@@ -30,7 +30,8 @@ export const ALLOWED_COMMANDS = new Set([
   "update_annotation_category","delete_annotation_category","get_reactions",
   "set_default_connector","create_connections","create_page","rename_page","delete_page",
   "create_from_data","get_design_system","setup_design_system","batch_actions","lint_frame",
-  "get_instance_overrides","set_instance_overrides"
+  "get_instance_overrides","set_instance_overrides","save_version_history",
+  "undo","redo","commit_undo"
 ])
 
 export const MIN_PROGRESS_DISPLAY_MS = 600
