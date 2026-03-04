@@ -342,6 +342,11 @@ async function handleCommand(
     }
   }
 
+  // Auto-commit undo after write operations
+  if (!READONLY_COMMANDS.has(command) && command !== 'undo' && command !== 'commit_undo' && command !== 'batch_actions') {
+    try { commitUndoAction(); } catch (_e) { /* silent */ }
+  }
+
   return result;
 }
 
