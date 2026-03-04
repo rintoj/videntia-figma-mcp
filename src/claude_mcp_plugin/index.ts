@@ -66,6 +66,16 @@ import {
   deleteEffectStyle,
 } from './handlers/effects';
 
+// Handlers — paint/color styles
+import {
+  createColorStyle,
+  getColorStyles,
+  getColorStyle,
+  updateColorStyle,
+  deleteColorStyle,
+  setColorStyleId,
+} from './handlers/paint-styles';
+
 // Handlers — components & styles
 import {
   getStyles,
@@ -199,7 +209,7 @@ var FOCUS_BEFORE_COMMANDS = new Set([
   'set_font_name', 'set_font_size', 'set_font_weight',
   'set_letter_spacing', 'set_line_height', 'set_paragraph_spacing',
   'set_text_case', 'set_text_decoration', 'apply_text_style',
-  'set_effects', 'set_effect_style_id',
+  'set_effects', 'set_effect_style_id', 'set_color_style_id',
   'bind_variable', 'unbind_variable',
   'set_layout_mode', 'set_padding', 'set_item_spacing', 'set_axis_align', 'set_layout_sizing',
   'set_annotation', 'set_multiple_annotations',
@@ -517,6 +527,20 @@ async function _executeCommand(
       return await updateEffectStyle(params);
     case 'delete_effect_style':
       return await deleteEffectStyle(params);
+
+    // Paint/color styles
+    case 'create_color_style':
+      return await createColorStyle(params);
+    case 'get_color_styles':
+      return await getColorStyles(params);
+    case 'get_color_style':
+      return await getColorStyle(params);
+    case 'update_color_style':
+      return await updateColorStyle(params);
+    case 'delete_color_style':
+      return await deleteColorStyle(params);
+    case 'set_color_style_id':
+      return await setColorStyleId(params);
 
     // Shapes
     case 'create_ellipse':

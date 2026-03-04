@@ -867,6 +867,213 @@ export function registerModificationTools(server: McpServer): void {
     },
   );
 
+  // ── Paint/Color Style Tools ──
+
+  // Create Color Style Tool
+  server.tool(
+    "create_color_style",
+    "Create a new paint (color) style in Figma. The style can then be applied to nodes using set_color_style_id.",
+    {
+      name: z.string().describe("Name of the color style (e.g., 'color/primary', 'brand/blue')"),
+      color: z.string().describe("Hex color string (e.g. '#ff0000', '#f00', '#ff000080' for alpha)"),
+      description: z.string().optional().describe("Description of the color style"),
+    },
+    async ({ name, color, description }) => {
+      try {
+        const result = await sendCommandToFigma("create_color_style", {
+          name,
+          color,
+          ...(description !== undefined && { description }),
+        });
+        const typedResult = result as { name?: string; id?: string };
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Created color style "${typedResult.name || name}" (ID: ${typedResult.id || "-"})`,
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error creating color style "${name}": ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  // Get Color Styles Tool
+  server.tool(
+    "get_color_styles",
+    "List all local paint (color) styles in the Figma document with their colors",
+    {},
+    async () => {
+      try {
+        const result = await sendCommandToFigma("get_color_styles", {});
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error getting color styles: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  // Get Color Style Tool
+  server.tool(
+    "get_color_style",
+    "Get details of a single paint (color) style by ID or name",
+    {
+      styleId: z.string().describe("The ID or name of the color style (e.g. 'S:abc123,' or 'color/primary' or 'color-primary')"),
+    },
+    async ({ styleId }) => {
+      try {
+        const result = await sendCommandToFigma("get_color_style", { styleId });
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error getting color style: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  // Update Color Style Tool
+  server.tool(
+    "update_color_style",
+    "Update an existing paint (color) style's properties (name, color, description)",
+    {
+      styleId: z.string().describe("The ID or name of the color style to update (e.g. 'S:abc123,' or 'color/primary' or 'color-primary')"),
+      name: z.string().optional().describe("New name for the color style"),
+      color: z.string().optional().describe("New hex color string (e.g. '#ff0000')"),
+      description: z.string().optional().describe("New description for the color style"),
+    },
+    async ({ styleId, name, color, description }) => {
+      try {
+        const result = await sendCommandToFigma("update_color_style", {
+          styleId,
+          ...(name !== undefined && { name }),
+          ...(color !== undefined && { color }),
+          ...(description !== undefined && { description }),
+        });
+        const typedResult = result as { name?: string; id?: string };
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Updated color style "${typedResult.name || name || "-"}" (ID: ${typedResult.id || styleId})`,
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error updating color style (styleId="${styleId}"): ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  // Delete Color Style Tool
+  server.tool(
+    "delete_color_style",
+    "Delete a paint (color) style from the document",
+    {
+      styleId: z.string().describe("The ID or name of the color style to delete (e.g. 'S:abc123,' or 'color/primary' or 'color-primary')"),
+    },
+    async ({ styleId }) => {
+      try {
+        await sendCommandToFigma("delete_color_style", { styleId });
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Deleted color style (ID: ${styleId})`,
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error deleting color style: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  // Set Color Style ID Tool
+  server.tool(
+    "set_color_style_id",
+    "Apply a paint (color) style to a node's fill in Figma",
+    {
+      nodeId: z.string().describe("The ID of the node to modify"),
+      styleId: z.string().describe("The ID or name of the color style to apply (e.g. 'S:abc123,' or 'color/primary' or 'color-primary')"),
+    },
+    async ({ nodeId, styleId }) => {
+      try {
+        const result = await sendCommandToFigma("set_color_style_id", {
+          nodeId,
+          styleId,
+        });
+        const typedResult = result as { name?: string };
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Successfully applied color style to node "${typedResult.name || nodeId}"`,
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error setting color style: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
   // Bind Variable Tool
   server.tool(
     "bind_variable",

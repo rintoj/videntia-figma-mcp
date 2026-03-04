@@ -170,7 +170,13 @@ export type FigmaCommand =
   | "update_icon"
   | "save_version_history"
   | "undo"
-  | "commit_undo";
+  | "commit_undo"
+  | "create_color_style"
+  | "get_color_styles"
+  | "get_color_style"
+  | "update_color_style"
+  | "delete_color_style"
+  | "set_color_style_id";
 
 // Batch actions types
 export interface BatchActionResult {
