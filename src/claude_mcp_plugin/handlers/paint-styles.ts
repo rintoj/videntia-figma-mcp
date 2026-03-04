@@ -1,44 +1,10 @@
 // Paint/color style handler functions for the Claude Figma MCP plugin.
 
-import { parseHexColor } from './fills';
+import { resolveColor } from './fills';
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-/**
- * Resolve a color from params — hex string or { r, g, b, a } object.
- */
-function resolvePaintColor(params: Record<string, unknown>): { r: number; g: number; b: number; a: number } {
-  var colorParam = params['color'];
-
-  if (typeof colorParam === 'string') {
-    var parsed = parseHexColor(colorParam);
-    if (!parsed) {
-      throw new Error('Invalid hex color: ' + colorParam);
-    }
-    return parsed;
-  }
-
-  if (colorParam !== null && colorParam !== undefined && typeof colorParam === 'object') {
-    var obj = colorParam as Record<string, unknown>;
-    var r = obj['r'];
-    var g = obj['g'];
-    var b = obj['b'];
-    var a = obj['a'];
-    if (r === undefined || g === undefined || b === undefined) {
-      throw new Error('Color object must have r, g, b components.');
-    }
-    return {
-      r: parseFloat(r as string),
-      g: parseFloat(g as string),
-      b: parseFloat(b as string),
-      a: a !== undefined ? parseFloat(a as string) : 1,
-    };
-  }
-
-  throw new Error('Missing required parameter: color (hex string or { r, g, b, a } object)');
-}
 
 /**
  * Find a paint style by ID or name (with dash-to-slash normalization).
@@ -102,7 +68,7 @@ export async function createColorStyle(
     throw new Error('Missing required parameter: name');
   }
 
-  var color = resolvePaintColor(params);
+  var color = resolveColor(params);
 
   try {
     var paintStyle = figma.createPaintStyle();
@@ -178,7 +144,7 @@ export async function updateColorStyle(
     }
 
     if (hasColor) {
-      var color = resolvePaintColor(params);
+      var color = resolveColor(params);
       style.paints = [{
         type: 'SOLID',
         color: { r: color.r, g: color.g, b: color.b },

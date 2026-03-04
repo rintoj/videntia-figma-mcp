@@ -883,7 +883,7 @@ export function registerModificationTools(server: McpServer): void {
         const result = await sendCommandToFigma("create_color_style", {
           name,
           color,
-          description,
+          ...(description !== undefined && { description }),
         });
         const typedResult = result as { name?: string; id?: string };
         return {
@@ -981,9 +981,9 @@ export function registerModificationTools(server: McpServer): void {
       try {
         const result = await sendCommandToFigma("update_color_style", {
           styleId,
-          name,
-          color,
-          description,
+          ...(name !== undefined && { name }),
+          ...(color !== undefined && { color }),
+          ...(description !== undefined && { description }),
         });
         const typedResult = result as { name?: string; id?: string };
         return {
