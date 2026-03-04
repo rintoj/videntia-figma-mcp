@@ -243,47 +243,44 @@ describe("set_stroke_color tool integration", () => {
 
   describe("Zod validation (real validation layer)", () => {
     it("rejects undefined r component", async () => {
-      await expect(
-        callToolWithValidation({
-          nodeId: "nodeI1",
-          // r is missing
-          g: 0.5,
-          b: 0.8,
-          a: 1,
-          weight: 1,
-        }),
-      ).rejects.toThrow();
+      const result = await callToolWithValidation({
+        nodeId: "nodeI1",
+        // r is missing
+        g: 0.5,
+        b: 0.8,
+        a: 1,
+        weight: 1,
+      });
 
+      expect(result.content[0].text).toContain("Error");
       expect(mockSendCommand).not.toHaveBeenCalled();
     });
 
     it("rejects undefined g component", async () => {
-      await expect(
-        callToolWithValidation({
-          nodeId: "nodeI2",
-          r: 0.5,
-          // g is missing
-          b: 0.8,
-          a: 1,
-          weight: 1,
-        }),
-      ).rejects.toThrow();
+      const result = await callToolWithValidation({
+        nodeId: "nodeI2",
+        r: 0.5,
+        // g is missing
+        b: 0.8,
+        a: 1,
+        weight: 1,
+      });
 
+      expect(result.content[0].text).toContain("Error");
       expect(mockSendCommand).not.toHaveBeenCalled();
     });
 
     it("rejects undefined b component", async () => {
-      await expect(
-        callToolWithValidation({
-          nodeId: "nodeI3",
-          r: 0.5,
-          g: 0.8,
-          // b is missing
-          a: 1,
-          weight: 1,
-        }),
-      ).rejects.toThrow();
+      const result = await callToolWithValidation({
+        nodeId: "nodeI3",
+        r: 0.5,
+        g: 0.8,
+        // b is missing
+        a: 1,
+        weight: 1,
+      });
 
+      expect(result.content[0].text).toContain("Error");
       expect(mockSendCommand).not.toHaveBeenCalled();
     });
 
@@ -429,6 +426,45 @@ describe("set_stroke_color tool integration", () => {
       expect(payload.strokeWeight).toBe(1); // Default weight
       expect(response.content[0].text).toContain("RGBA(0.8, 0.2, 0.4, 1)");
       expect(response.content[0].text).toContain("weight 1");
+    });
+  });
+
+  describe("hex color support", () => {
+    it("accepts 6-digit hex color", async () => {
+      const response = await callToolWithValidation({
+        nodeId: "nodeHex1",
+        color: "#334155",
+        weight: 2,
+      });
+
+      expect(mockSendCommand).toHaveBeenCalledTimes(1);
+      const [command, payload] = mockSendCommand.mock.calls[0];
+      expect(command).toBe("set_stroke_color");
+      expect(payload.color).toBe("#334155");
+      expect(payload.strokeWeight).toBe(2);
+      expect(response.content[0].text).toContain("#334155");
+    });
+
+    it("accepts 8-digit hex with alpha", async () => {
+      const response = await callToolWithValidation({
+        nodeId: "nodeHex2",
+        color: "#33415580",
+      });
+
+      expect(mockSendCommand).toHaveBeenCalledTimes(1);
+      const [, payload] = mockSendCommand.mock.calls[0];
+      expect(payload.color).toBe("#33415580");
+      expect(payload.strokeWeight).toBe(1); // default weight
+    });
+
+    it("rejects missing both color and r,g,b", async () => {
+      const result = await callToolWithValidation({
+        nodeId: "nodeHex3",
+        weight: 1,
+      });
+
+      expect(result.content[0].text).toContain("Error");
+      expect(mockSendCommand).not.toHaveBeenCalled();
     });
   });
 });

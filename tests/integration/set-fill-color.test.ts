@@ -150,45 +150,42 @@ describe("set_fill_color tool integration", () => {
 
   describe("Zod validation (real validation layer)", () => {
     it("rejects undefined r component", async () => {
-      await expect(
-        callToolWithValidation({
-          nodeId: "nodeF1",
-          // r is missing
-          g: 0.5,
-          b: 0.8,
-          a: 1,
-        }),
-      ).rejects.toThrow();
+      const result = await callToolWithValidation({
+        nodeId: "nodeF1",
+        // r is missing
+        g: 0.5,
+        b: 0.8,
+        a: 1,
+      });
 
-      // WebSocket should not be called if validation fails
+      // Error is returned in content (handler-level validation)
+      expect(result.content[0].text).toContain("Error");
       expect(mockSendCommand).not.toHaveBeenCalled();
     });
 
     it("rejects undefined g component", async () => {
-      await expect(
-        callToolWithValidation({
-          nodeId: "nodeF2",
-          r: 0.5,
-          // g is missing
-          b: 0.8,
-          a: 1,
-        }),
-      ).rejects.toThrow();
+      const result = await callToolWithValidation({
+        nodeId: "nodeF2",
+        r: 0.5,
+        // g is missing
+        b: 0.8,
+        a: 1,
+      });
 
+      expect(result.content[0].text).toContain("Error");
       expect(mockSendCommand).not.toHaveBeenCalled();
     });
 
     it("rejects undefined b component", async () => {
-      await expect(
-        callToolWithValidation({
-          nodeId: "nodeF3",
-          r: 0.5,
-          g: 0.8,
-          // b is missing
-          a: 1,
-        }),
-      ).rejects.toThrow();
+      const result = await callToolWithValidation({
+        nodeId: "nodeF3",
+        r: 0.5,
+        g: 0.8,
+        // b is missing
+        a: 1,
+      });
 
+      expect(result.content[0].text).toContain("Error");
       expect(mockSendCommand).not.toHaveBeenCalled();
     });
 
@@ -319,6 +316,81 @@ describe("set_fill_color tool integration", () => {
       expect(payload.color.g).toBeCloseTo(0.456);
       expect(payload.color.b).toBeCloseTo(0.789);
       expect(payload.color.a).toBeCloseTo(0.5);
+    });
+  });
+
+  describe("hex color support", () => {
+    it("accepts 6-digit hex color", async () => {
+      const response = await callToolWithValidation({
+        nodeId: "nodeHex1",
+        color: "#ff0000",
+      });
+
+      expect(mockSendCommand).toHaveBeenCalledTimes(1);
+      const [command, payload] = mockSendCommand.mock.calls[0];
+      expect(command).toBe("set_fill_color");
+      expect(payload).toEqual({
+        nodeId: "nodeHex1",
+        color: "#ff0000",
+      });
+      expect(response.content[0].text).toContain("#ff0000");
+    });
+
+    it("accepts 3-digit hex shorthand", async () => {
+      const response = await callToolWithValidation({
+        nodeId: "nodeHex2",
+        color: "#f00",
+      });
+
+      expect(mockSendCommand).toHaveBeenCalledTimes(1);
+      const [, payload] = mockSendCommand.mock.calls[0];
+      expect(payload.color).toBe("#f00");
+    });
+
+    it("accepts 8-digit hex with alpha", async () => {
+      const response = await callToolWithValidation({
+        nodeId: "nodeHex3",
+        color: "#ff000080",
+      });
+
+      expect(mockSendCommand).toHaveBeenCalledTimes(1);
+      const [, payload] = mockSendCommand.mock.calls[0];
+      expect(payload.color).toBe("#ff000080");
+    });
+
+    it("accepts 4-digit hex shorthand with alpha", async () => {
+      const response = await callToolWithValidation({
+        nodeId: "nodeHex4",
+        color: "#f008",
+      });
+
+      expect(mockSendCommand).toHaveBeenCalledTimes(1);
+      const [, payload] = mockSendCommand.mock.calls[0];
+      expect(payload.color).toBe("#f008");
+    });
+
+    it("rejects missing both color and r,g,b", async () => {
+      const result = await callToolWithValidation({
+        nodeId: "nodeHex5",
+        // no color, no r,g,b
+      });
+
+      expect(result.content[0].text).toContain("Error");
+      expect(mockSendCommand).not.toHaveBeenCalled();
+    });
+
+    it("prefers color over r,g,b when both provided", async () => {
+      const response = await callToolWithValidation({
+        nodeId: "nodeHex6",
+        color: "#00ff00",
+        r: 1,
+        g: 0,
+        b: 0,
+      });
+
+      expect(mockSendCommand).toHaveBeenCalledTimes(1);
+      const [, payload] = mockSendCommand.mock.calls[0];
+      expect(payload.color).toBe("#00ff00");
     });
   });
 });
