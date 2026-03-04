@@ -170,7 +170,6 @@ export type FigmaCommand =
   | "update_icon"
   | "save_version_history"
   | "undo"
-  | "redo"
   | "commit_undo";
 
 // Batch actions types

@@ -2065,29 +2065,10 @@ export function registerDocumentTools(server: McpServer): void {
     },
   );
 
-  // Redo Tool
-  server.tool(
-    "redo",
-    "Redo the last undone action in Figma",
-    {},
-    async () => {
-      try {
-        await sendCommandToFigma("redo");
-        return {
-          content: [{ type: "text", text: "Redo triggered successfully" }],
-        };
-      } catch (error) {
-        return {
-          content: [{ type: "text", text: `Error triggering redo: ${error instanceof Error ? error.message : String(error)}` }],
-        };
-      }
-    },
-  );
-
   // Commit Undo Tool
   server.tool(
     "commit_undo",
-    "Commit the current undo group. Actions before this call will be grouped as a single undo step, so the next undo only reverts actions after this checkpoint.",
+    "Commit the current undo group as a checkpoint. A subsequent undo will revert only the actions performed after this checkpoint.",
     {},
     async () => {
       try {

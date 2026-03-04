@@ -49,12 +49,8 @@ export function Collapsible({ expanded, children }: CollapsibleProps) {
     }
   }, [expanded])
 
-  var initialStyle = expanded
-    ? { maxHeight: 'none', overflow: 'visible' }
-    : { maxHeight: '0px', overflow: 'hidden' }
-
   return (
-    <div ref={contentRef} class="collapsible" style={initialStyle}>
+    <div ref={contentRef} class="collapsible">
       {children}
     </div>
   )

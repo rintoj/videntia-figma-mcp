@@ -120,11 +120,6 @@ export function triggerUndo(): Record<string, unknown> {
   return { success: true };
 }
 
-export function triggerRedo(): Record<string, unknown> {
-  figma.triggerRedo();
-  return { success: true };
-}
-
 export function commitUndoAction(): Record<string, unknown> {
   figma.commitUndo();
   return { success: true };
