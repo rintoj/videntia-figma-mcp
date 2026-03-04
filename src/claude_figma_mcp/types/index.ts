@@ -167,7 +167,10 @@ export type FigmaCommand =
   | "lint_frame"
   | "get_design_system"
   | "setup_design_system"
-  | "update_icon";
+  | "update_icon"
+  | "save_version_history"
+  | "undo"
+  | "commit_undo";
 
 // Batch actions types
 export interface BatchActionResult {

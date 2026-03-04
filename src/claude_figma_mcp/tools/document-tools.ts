@@ -2045,4 +2045,75 @@ export function registerDocumentTools(server: McpServer): void {
       }
     },
   );
+
+  // Undo Tool
+  server.tool(
+    "undo",
+    "Undo the last action in Figma",
+    {},
+    async () => {
+      try {
+        await sendCommandToFigma("undo");
+        return {
+          content: [{ type: "text", text: "Undo triggered successfully" }],
+        };
+      } catch (error) {
+        return {
+          content: [{ type: "text", text: `Error triggering undo: ${error instanceof Error ? error.message : String(error)}` }],
+        };
+      }
+    },
+  );
+
+  // Commit Undo Tool
+  server.tool(
+    "commit_undo",
+    "Commit the current undo group as a checkpoint. A subsequent undo will revert only the actions performed after this checkpoint.",
+    {},
+    async () => {
+      try {
+        await sendCommandToFigma("commit_undo");
+        return {
+          content: [{ type: "text", text: "Undo checkpoint committed" }],
+        };
+      } catch (error) {
+        return {
+          content: [{ type: "text", text: `Error committing undo: ${error instanceof Error ? error.message : String(error)}` }],
+        };
+      }
+    },
+  );
+
+  // Save Version History Tool
+  server.tool(
+    "save_version_history",
+    "Save a named version to the Figma file's version history. Use this to create checkpoints or tag important milestones.",
+    {
+      title: z.string().describe("The version title/name (required)"),
+      description: z.string().optional().describe("Optional description for the version"),
+    },
+    async ({ title, description }) => {
+      try {
+        const result = await sendCommandToFigma("save_version_history", { title, description });
+        const typedResult = result as { id: string };
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Saved version "${title}" (ID: ${typedResult.id})`,
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error saving version history: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    },
+  );
 }
