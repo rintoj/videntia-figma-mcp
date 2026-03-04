@@ -141,8 +141,8 @@ describe("batch_actions tool", () => {
       expect(mockSendCommand).not.toHaveBeenCalled();
     });
 
-    it("rejects actions exceeding max of 200", async () => {
-      const tooMany = Array.from({ length: 201 }, (_, i) => ({
+    it("rejects actions exceeding max of 30", async () => {
+      const tooMany = Array.from({ length: 31 }, (_, i) => ({
         action: "get_node_info",
         params: { nodeId: `node-${i}` },
       }));
@@ -151,13 +151,13 @@ describe("batch_actions tool", () => {
       expect(mockSendCommand).not.toHaveBeenCalled();
     });
 
-    it("accepts actions at the max of 200", async () => {
+    it("accepts actions at the max of 30", async () => {
       mockSendCommand.mockResolvedValue({
         success: true,
-        totalActions: 200,
-        succeeded: 200,
+        totalActions: 30,
+        succeeded: 30,
         failed: 0,
-        results: Array.from({ length: 200 }, (_, i) => ({
+        results: Array.from({ length: 30 }, (_, i) => ({
           index: i,
           action: "get_node_info",
           success: true,
@@ -165,7 +165,7 @@ describe("batch_actions tool", () => {
         })),
       });
 
-      const maxActions = Array.from({ length: 200 }, (_, i) => ({
+      const maxActions = Array.from({ length: 30 }, (_, i) => ({
         action: "get_node_info",
         params: { nodeId: `node-${i}` },
       }));
@@ -174,7 +174,7 @@ describe("batch_actions tool", () => {
         actions: maxActions,
       });
 
-      expect(response.content[0].text).toContain("200/200 succeeded");
+      expect(response.content[0].text).toContain("30/30 succeeded");
     });
   });
 
@@ -202,21 +202,21 @@ describe("batch_actions tool", () => {
     it("uses higher timeout for larger batches", async () => {
       mockSendCommand.mockResolvedValue({
         success: true,
-        totalActions: 100,
-        succeeded: 100,
+        totalActions: 25,
+        succeeded: 25,
         failed: 0,
         results: [],
       });
 
-      const actions = Array.from({ length: 100 }, () => ({
+      const actions = Array.from({ length: 25 }, () => ({
         action: "get_node_info",
         params: { nodeId: "node-1" },
       }));
 
       await callTool("batch_actions", { actions });
 
-      // 30000 + 100 * 2000 = 230000
-      expect(mockSendCommand).toHaveBeenCalledWith("batch_actions", expect.any(Object), 230000);
+      // 30000 + 25 * 2000 = 80000
+      expect(mockSendCommand).toHaveBeenCalledWith("batch_actions", expect.any(Object), 80000);
     });
   });
 
