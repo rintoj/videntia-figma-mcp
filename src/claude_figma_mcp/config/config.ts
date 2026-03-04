@@ -61,4 +61,15 @@ Call \`join_channel\` with the resolved channel ID.
 
 - Channel IDs are resolved dynamically each time via \`get_open_channels\`
 - This resolution should happen once per session, not before every tool call
+
+## Name-Based Lookups
+
+Most tools that accept an ID also accept a **name** as an alternative. You do not need to fetch IDs first — just pass the name directly:
+
+- **Variables**: \`bind_variable\` accepts variable name (e.g. \`"background/primary"\`) or ID
+- **Styles**: \`set_effect_style_id\`, \`set_color_style_id\`, \`update_effect_style\`, \`delete_effect_style\`, \`update_color_style\`, \`delete_color_style\`, \`get_color_style\` all accept style name (e.g. \`"shadow/md"\`, \`"color/primary"\`) or ID
+- **Text styles**: \`apply_text_style\`, \`update_text_style\`, \`delete_text_style\` accept style name or ID
+- **Dash normalization**: Names with dashes are automatically converted to slashes (e.g. \`"color-primary"\` → \`"color/primary"\`)
+
+Prefer using names over IDs — they are human-readable and don't require a prior lookup call.
 `;
