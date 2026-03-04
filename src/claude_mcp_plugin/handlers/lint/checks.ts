@@ -179,9 +179,14 @@ export function scanNode(
           categories[catName].bound++;
         } else {
           categories[catName].unbound++;
+          let fillType = fills[fi].type;
+          let isGradient = fillType !== 'SOLID' && typeof fillType === 'string' && fillType.indexOf('GRADIENT_') === 0;
+          let fillMsg = isGradient
+            ? 'Gradient fill without a color style applied — create a color style with create_color_style and apply via set_color_style_id'
+            : 'Color using raw hex value (no variable or paint style bound)';
           addViolation(
             violations, violationsCappedRef, MAX_LINT_VIOLATIONS,
-            node, depth, 'HIGH', catName, 'fills[' + fi + ']', 'Color using raw hex value (no variable or paint style bound)',
+            node, depth, 'HIGH', catName, 'fills[' + fi + ']', fillMsg,
           );
         }
       }
@@ -330,13 +335,16 @@ export function scanNode(
 
   // ── AUTO-LAYOUT compliance ──
   if (chk.autoLayout && (nodeType === 'FRAME' || nodeType === 'COMPONENT' || nodeType === 'COMPONENT_SET')) {
+    // Skip icon-like frames — they intentionally use absolute positioning for SVG paths
+    let skipAutoLayoutCheck = isIconLike(node);
+
     let hasLayout = false;
     if ('layoutMode' in node) {
       const lm = (node as FrameNode).layoutMode;
       hasLayout = lm && lm !== 'NONE' ? true : false;
     }
 
-    if (!hasLayout) {
+    if (!hasLayout && !skipAutoLayoutCheck) {
       let childCount = 0;
       if ('children' in node) {
         const childrenArr = (node as FrameNode).children;
