@@ -382,7 +382,7 @@ async function _executeCommand(
         throw new Error('Missing query parameter');
       }
       return await searchNodes({
-        query: String(params['query']),
+        query: params['query'] as string | string[],
         types: Array.isArray(params['types']) ? params['types'] as string[] : undefined,
         nodeId: params['nodeId'] !== undefined ? String(params['nodeId']) : undefined,
         limit: params['limit'] !== undefined ? Number(params['limit']) : undefined,

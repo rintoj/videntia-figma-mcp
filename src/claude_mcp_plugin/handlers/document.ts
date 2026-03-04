@@ -40,7 +40,7 @@ export async function getDocumentInfo(): Promise<Record<string, unknown>> {
 
 export interface SearchNodesOptions {
   /** Search query — matched case-insensitively against node name (substring) or exact node ID */
-  query: string;
+  query: string | string[];
   /** Optional node type filter e.g. FRAME, TEXT, COMPONENT */
   types?: string[];
   /** Node ID to scope the search to. Defaults to the current page. */
@@ -59,7 +59,8 @@ export async function searchNodes(options: SearchNodesOptions): Promise<unknown>
   const { query, types, nodeId, limit: limitOpt, depth } = options;
   const limit = limitOpt !== undefined ? limitOpt : 50;
 
-  const lowerQuery = query.toLowerCase();
+  const queries = Array.isArray(query) ? query : [query];
+  const lowerQueries = queries.map(function(q) { return q.toLowerCase(); });
 
   let root: BaseNode;
   if (nodeId) {
@@ -77,8 +78,9 @@ export async function searchNodes(options: SearchNodesOptions): Promise<unknown>
 
   const walk = (node: BaseNode): void => {
     if (matchedIds.length >= limit) return;
-    const nameMatch = node.name.toLowerCase().indexOf(lowerQuery) !== -1;
-    const idMatch = node.id === query;
+    const lowerName = node.name.toLowerCase();
+    const nameMatch = lowerQueries.some(function(q) { return lowerName.indexOf(q) !== -1; });
+    const idMatch = queries.indexOf(node.id) !== -1;
     const typeMatch = !types || types.length === 0 || types.includes(node.type);
     if ((nameMatch || idMatch) && typeMatch) {
       matchedIds.push(node.id);

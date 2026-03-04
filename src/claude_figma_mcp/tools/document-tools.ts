@@ -915,9 +915,9 @@ export function registerDocumentTools(server: McpServer): void {
     "Search the entire document (or a subtree via nodeId) for nodes by name substring or exact ID. Optionally filter by type. Use when you need to find a node by name (e.g. 'Header') or search broadly. For type-only filtering within a known parent, use scan_nodes_by_types instead. Returns JSX+Tailwind markup (default) or JSON.",
     {
       query: z
-        .string()
+        .union([z.string(), z.array(z.string())])
         .describe(
-          "Search query matched case-insensitively against node name (substring) or exact node ID.",
+          "Search query (string or array of strings) matched case-insensitively against node name (substring) or exact node ID. Pass an array to search for multiple terms in one call.",
         ),
       types: coerceArray(z.array(z.string()))
         .optional()
