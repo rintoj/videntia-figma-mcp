@@ -31,7 +31,9 @@ export const ALLOWED_COMMANDS = new Set([
   "set_default_connector","create_connections","create_page","rename_page","delete_page",
   "create_from_data","get_design_system","setup_design_system","batch_actions","lint_frame",
   "get_instance_overrides","set_instance_overrides","save_version_history",
-  "undo","commit_undo"
+  "undo","commit_undo",
+  "create_color_style","get_color_styles","get_color_style",
+  "update_color_style","delete_color_style","set_color_style_id"
 ])
 
 export const MIN_PROGRESS_DISPLAY_MS = 600
