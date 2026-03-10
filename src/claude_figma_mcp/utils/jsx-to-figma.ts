@@ -54,8 +54,8 @@ export function parseJsx(jsx: string): FigmaNodeData[] {
   // Post-process: fix flex-1 children based on parent's layoutMode
   fixFlexChildren(nodes);
 
-  // Post-process: TEXT nodes that could overflow their parent should FILL
-  fixTextOverflow(nodes);
+  // Post-process: resolve horizontal sizing defaults based on parent context
+  fixDefaultSizing(nodes);
 
   return nodes;
 }
@@ -87,26 +87,44 @@ function fixFlexChildren(nodes: FigmaNodeData[], parentLayoutMode?: string): voi
 }
 
 /**
- * Post-process pass: TEXT nodes FILL horizontally when they risk overflow.
- * Two conditions trigger FILL (otherwise HUG):
- *   1. Parent constrains width (FIXED/FILL/explicit width) — text could overflow.
- *   2. HORIZONTAL parent with siblings (e.g. [Icon] [Title]) — text fills remaining space.
+ * Post-process pass: match CSS flexbox `align-items: stretch` default.
+ *
+ * In CSS flexbox, children stretch on the cross-axis by default:
+ *   VERTICAL (flex-col) parent → children FILL horizontally
+ *   HORIZONTAL (flex-row) parent → children FILL vertically
+ *
+ * Stretch is suppressed when the parent overrides cross-axis alignment
+ * (items-center, items-start, items-end, items-baseline) — children HUG.
  */
-function fixTextOverflow(nodes: FigmaNodeData[], parent?: FigmaNodeData): void {
-  const parentConstrainsWidth = parent !== undefined &&
-    (parent.layoutSizingHorizontal === "FIXED" ||
-     parent.layoutSizingHorizontal === "FILL" ||
-     parent.width !== undefined);
-  const horizontalWithSiblings = parent !== undefined &&
-    parent.layoutMode === "HORIZONTAL" && nodes.length > 1;
+function fixDefaultSizing(nodes: FigmaNodeData[], parent?: FigmaNodeData): void {
+  const isVerticalParent = parent !== undefined && parent.layoutMode === "VERTICAL";
+  const isHorizontalParent = parent !== undefined && parent.layoutMode === "HORIZONTAL";
+
+  // Cross-axis alignment override suppresses stretch (like CSS align-items != stretch)
+  const parentOverridesCrossAxis = parent !== undefined &&
+    parent.counterAxisAlignItems !== undefined;
 
   for (const node of nodes) {
-    if (node.type === "TEXT" && !node.layoutSizingHorizontal) {
-      node.layoutSizingHorizontal =
-        parentConstrainsWidth || horizontalWithSiblings ? "FILL" : "HUG";
+    // --- Horizontal sizing (cross-axis of VERTICAL parent) ---
+    if (!node.layoutSizingHorizontal) {
+      if (isVerticalParent && !parentOverridesCrossAxis) {
+        node.layoutSizingHorizontal = "FILL";
+      } else if (node.layoutMode || node.type === "TEXT") {
+        node.layoutSizingHorizontal = "HUG";
+      }
     }
+
+    // --- Vertical sizing (cross-axis of HORIZONTAL parent) ---
+    if (!node.layoutSizingVertical) {
+      if (isHorizontalParent && !parentOverridesCrossAxis) {
+        node.layoutSizingVertical = "FILL";
+      } else if (node.layoutMode || node.type === "TEXT") {
+        node.layoutSizingVertical = "HUG";
+      }
+    }
+
     if (node.children) {
-      fixTextOverflow(node.children, node);
+      fixDefaultSizing(node.children, node);
     }
   }
 }
@@ -235,12 +253,8 @@ function jsxElementToNode(el: t.JSXElement, parentType?: string, source?: string
     node.layoutMode = "HORIZONTAL";
   }
 
-  // Auto-layout frames default to HUG on both axes unless explicitly sized.
-  // FILL is only applied when flex-{n} / h-full / w-full are explicitly used.
-  if (node.layoutMode) {
-    if (!node.layoutSizingHorizontal) node.layoutSizingHorizontal = "HUG";
-    if (!node.layoutSizingVertical) node.layoutSizingVertical = "HUG";
-  }
+  // Layout sizing defaults are resolved by the fixDefaultSizing post-processing
+  // pass which matches CSS flexbox align-items:stretch behavior.
 
   // Propagate text-related style properties from FRAME to child TEXT nodes
   propagateTextStyles(node);

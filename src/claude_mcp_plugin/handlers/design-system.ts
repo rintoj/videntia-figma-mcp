@@ -740,7 +740,31 @@ export async function createFromData(
       (n as FrameNode).clipsContent = true;
     }
 
-    // Sizing
+    // Determine if the parent has auto-layout (required for FILL sizing)
+    const parentHasLayout =
+      parentNode !== null &&
+      parentNode !== undefined &&
+      'layoutMode' in parentNode &&
+      (parentNode as AutoLayoutMixin).layoutMode !== undefined &&
+      (parentNode as AutoLayoutMixin).layoutMode !== 'NONE';
+
+    // Apply layout sizing BEFORE resize — resize() can reset sizing modes.
+    if (nodeData['layoutSizingHorizontal']) {
+      const requestedH = nodeData['layoutSizingHorizontal'] as LayoutMixin['layoutSizingHorizontal'];
+      ((n as unknown) as LayoutMixin).layoutSizingHorizontal =
+        requestedH === 'FILL' && !parentHasLayout ? 'FIXED' : requestedH;
+    } else if (nodeData['layoutMode']) {
+      ((n as unknown) as LayoutMixin).layoutSizingHorizontal = 'HUG';
+    }
+    if (nodeData['layoutSizingVertical']) {
+      const requestedV = nodeData['layoutSizingVertical'] as LayoutMixin['layoutSizingVertical'];
+      ((n as unknown) as LayoutMixin).layoutSizingVertical =
+        requestedV === 'FILL' && !parentHasLayout ? 'FIXED' : requestedV;
+    } else if (nodeData['layoutMode']) {
+      ((n as unknown) as LayoutMixin).layoutSizingVertical = 'HUG';
+    }
+
+    // Sizing (explicit dimensions) — applied after layout sizing
     const nLayout = n as LayoutMixin;
     if (
       nodeData['width'] !== undefined &&
@@ -760,27 +784,6 @@ export async function createFromData(
         nLayout.width,
         nodeData['height'] as number,
       );
-    }
-    // Determine if the parent has auto-layout (required for FILL sizing)
-    const parentHasLayout =
-      parentNode !== null &&
-      parentNode !== undefined &&
-      'layoutMode' in parentNode &&
-      (parentNode as AutoLayoutMixin).layoutMode !== undefined &&
-      (parentNode as AutoLayoutMixin).layoutMode !== 'NONE';
-    if (nodeData['layoutSizingHorizontal']) {
-      const requestedH = nodeData['layoutSizingHorizontal'] as LayoutMixin['layoutSizingHorizontal'];
-      ((n as unknown) as LayoutMixin).layoutSizingHorizontal =
-        requestedH === 'FILL' && !parentHasLayout ? 'FIXED' : requestedH;
-    } else if (nodeData['layoutMode']) {
-      ((n as unknown) as LayoutMixin).layoutSizingHorizontal = 'HUG';
-    }
-    if (nodeData['layoutSizingVertical']) {
-      const requestedV = nodeData['layoutSizingVertical'] as LayoutMixin['layoutSizingVertical'];
-      ((n as unknown) as LayoutMixin).layoutSizingVertical =
-        requestedV === 'FILL' && !parentHasLayout ? 'FIXED' : requestedV;
-    } else if (nodeData['layoutMode']) {
-      ((n as unknown) as LayoutMixin).layoutSizingVertical = 'HUG';
     }
 
     // Fills
