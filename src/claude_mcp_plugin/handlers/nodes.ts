@@ -79,7 +79,7 @@ export async function createFrame(params: Record<string, unknown>): Promise<Reco
   frame.resize(width, height);
   frame.name = name;
 
-  // Set fill color if provided
+  // Set fill color if provided, otherwise clear the default white fill
   if (fillColor) {
     const paintStyle: SolidPaint = {
       type: 'SOLID',
@@ -91,6 +91,8 @@ export async function createFrame(params: Record<string, unknown>): Promise<Reco
       opacity: parseNum(fillColor['a'], 1),
     };
     frame.fills = [paintStyle];
+  } else {
+    frame.fills = [];
   }
 
   // Set stroke color and weight if provided
