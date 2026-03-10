@@ -214,6 +214,12 @@ function jsxElementToNode(el: t.JSXElement, parentType?: string, source?: string
     if (!node.layoutSizingVertical) node.layoutSizingVertical = "HUG";
   }
 
+  // Pure TEXT nodes always fill horizontally in Figma auto-layout unless
+  // explicitly sized (e.g. w-full, w-[200px], flex-1 already set it).
+  if (node.type === "TEXT" && !node.layoutSizingHorizontal) {
+    node.layoutSizingHorizontal = "FILL";
+  }
+
   // Propagate text-related style properties from FRAME to child TEXT nodes
   propagateTextStyles(node);
 
