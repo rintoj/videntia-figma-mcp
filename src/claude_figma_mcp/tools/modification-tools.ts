@@ -701,13 +701,20 @@ export function registerModificationTools(server: McpServer): void {
     "Apply an effect style to a node in Figma",
     {
       nodeId: z.string().describe("The ID of the node to modify"),
-      effectStyleId: z.string().describe("The ID or name of the effect style to apply (e.g. 'S:abc123,' or 'shadow/md' or 'shadow-md')"),
+      effectStyleId: z.string().optional().describe("The ID of the effect style to apply (e.g. 'S:abc123,')"),
+      styleName: z.string().optional().describe("The name of the effect style to apply (e.g. 'shadow/md' or 'shadow-md')"),
     },
-    async ({ nodeId, effectStyleId }) => {
+    async ({ nodeId, effectStyleId, styleName }) => {
+      const resolvedStyleId = effectStyleId || styleName;
+      if (!resolvedStyleId) {
+        return {
+          content: [{ type: "text", text: "Error: provide either effectStyleId or styleName" }],
+        };
+      }
       try {
         const result = await sendCommandToFigma("set_effect_style_id", {
           nodeId,
-          effectStyleId,
+          effectStyleId: resolvedStyleId,
         });
 
         const typedResult = result as { name: string; effectStyleId: string };
@@ -1061,13 +1068,20 @@ export function registerModificationTools(server: McpServer): void {
     "Apply a paint (color) style to a node's fill in Figma",
     {
       nodeId: z.string().describe("The ID of the node to modify"),
-      styleId: z.string().describe("The ID or name of the color style to apply (e.g. 'S:abc123,' or 'color/primary' or 'color-primary')"),
+      styleId: z.string().optional().describe("The ID of the color style to apply (e.g. 'S:abc123,')"),
+      styleName: z.string().optional().describe("The name of the color style to apply (e.g. 'color/primary' or 'color-primary')"),
     },
-    async ({ nodeId, styleId }) => {
+    async ({ nodeId, styleId, styleName }) => {
+      const resolvedStyleId = styleId || styleName;
+      if (!resolvedStyleId) {
+        return {
+          content: [{ type: "text", text: "Error: provide either styleId or styleName" }],
+        };
+      }
       try {
         const result = await sendCommandToFigma("set_color_style_id", {
           nodeId,
-          styleId,
+          styleId: resolvedStyleId,
         });
         const typedResult = result as { name?: string };
         return {
