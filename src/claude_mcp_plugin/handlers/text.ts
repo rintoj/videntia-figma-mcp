@@ -990,19 +990,21 @@ export async function setMultipleTextContents(params: Record<string, unknown>): 
 export async function setAutoLayout(params: Record<string, unknown>): Promise<Record<string, unknown>> {
   const safeParams = params !== null && params !== undefined ? params : {};
   const nodeId = safeParams.nodeId as string | undefined;
-  const layoutMode = safeParams.layoutMode as string | undefined;
-  const paddingTop = safeParams.paddingTop as number | undefined;
-  const paddingBottom = safeParams.paddingBottom as number | undefined;
-  const paddingLeft = safeParams.paddingLeft as number | undefined;
-  const paddingRight = safeParams.paddingRight as number | undefined;
-  const itemSpacing = safeParams.itemSpacing as number | undefined;
+  // Accept both 'layoutMode' (internal) and 'mode' (MCP tool alias)
+  const layoutMode = (safeParams.layoutMode !== undefined ? safeParams.layoutMode : safeParams.mode) as string | undefined;
+  // Accept both full names and shorthand aliases from MCP tool
+  const paddingTop = (safeParams.paddingTop !== undefined ? safeParams.paddingTop : safeParams.top) as number | undefined;
+  const paddingBottom = (safeParams.paddingBottom !== undefined ? safeParams.paddingBottom : safeParams.bottom) as number | undefined;
+  const paddingLeft = (safeParams.paddingLeft !== undefined ? safeParams.paddingLeft : safeParams.left) as number | undefined;
+  const paddingRight = (safeParams.paddingRight !== undefined ? safeParams.paddingRight : safeParams.right) as number | undefined;
+  const itemSpacing = (safeParams.itemSpacing !== undefined ? safeParams.itemSpacing : safeParams.gap) as number | undefined;
   const primaryAxisAlignItems = safeParams.primaryAxisAlignItems as string | undefined;
   const counterAxisAlignItems = safeParams.counterAxisAlignItems as string | undefined;
-  const layoutWrap = safeParams.layoutWrap as string | undefined;
+  const layoutWrap = (safeParams.layoutWrap !== undefined ? safeParams.layoutWrap : safeParams.wrap) as string | undefined;
   const strokesIncludedInLayout = safeParams.strokesIncludedInLayout as boolean | undefined;
   const clipsContent = safeParams.clipsContent as boolean | undefined;
-  const layoutSizingHorizontal = safeParams.layoutSizingHorizontal as string | undefined;
-  const layoutSizingVertical = safeParams.layoutSizingVertical as string | undefined;
+  const layoutSizingHorizontal = (safeParams.layoutSizingHorizontal !== undefined ? safeParams.layoutSizingHorizontal : safeParams.horizontal) as string | undefined;
+  const layoutSizingVertical = (safeParams.layoutSizingVertical !== undefined ? safeParams.layoutSizingVertical : safeParams.vertical) as string | undefined;
 
   if (!nodeId) {
     throw new Error('Missing nodeId parameter');
