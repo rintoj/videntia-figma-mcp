@@ -87,28 +87,18 @@ function fixFlexChildren(nodes: FigmaNodeData[], parentLayoutMode?: string): voi
 }
 
 /**
- * Post-process pass: set TEXT nodes to FILL horizontally when they risk
- * overflowing their parent.  A parent whose width is constrained (FIXED or
- * FILL) cannot grow to accommodate long text, so child TEXT nodes must fill
- * to wrap.  When the parent HUGs, it grows to fit the text and HUG is fine.
- *
- * For VERTICAL parents the cross-axis is horizontal, so the same rule
- * applies: constrained width → TEXT fills horizontally.
- * For HORIZONTAL parents the cross-axis is vertical — text overflow is
- * along the primary (horizontal) axis, and a constrained parent means the
- * text should fill horizontally so Figma can wrap it.
+ * Post-process pass: TEXT nodes FILL horizontally only when they share a
+ * HORIZONTAL parent with sibling nodes (e.g. [Icon] [Title]).  In that
+ * layout the text must fill the remaining space.  Otherwise TEXT hugs.
  */
 function fixTextOverflow(nodes: FigmaNodeData[], parent?: FigmaNodeData): void {
-  // Determine whether the parent constrains its width
-  const parentConstrainsWidth = parent
-    ? parent.layoutSizingHorizontal === "FIXED" ||
-      parent.layoutSizingHorizontal === "FILL" ||
-      parent.width !== undefined
-    : false;
+  const isHorizontalParent = parent && parent.layoutMode === "HORIZONTAL";
+  const siblingCount = nodes.length;
 
   for (const node of nodes) {
     if (node.type === "TEXT" && !node.layoutSizingHorizontal) {
-      node.layoutSizingHorizontal = parentConstrainsWidth ? "FILL" : "HUG";
+      node.layoutSizingHorizontal =
+        isHorizontalParent && siblingCount > 1 ? "FILL" : "HUG";
     }
     if (node.children) {
       fixTextOverflow(node.children, node);
