@@ -1527,8 +1527,17 @@ function applyClassName(node: FigmaNodeData, className: string): void {
     }
 
     // --- Opacity ---
-    if ((m = cls.match(/^opacity-\[(\d+(?:\.\d+)?)\]$/))) {
-      node.opacity = Number(m[1]);
+    if ((m = cls.match(/^opacity-\[(\d+(?:\.\d+)?%?)\]$/))) {
+      const raw = m[1];
+      let val: number;
+      if (raw.endsWith("%")) {
+        val = Number(raw.slice(0, -1)) / 100;
+      } else {
+        val = Number(raw);
+        // Values > 1 are percentages (e.g. opacity-[50] = 50%)
+        if (val > 1) val = val / 100;
+      }
+      node.opacity = Math.min(1, Math.max(0, val));
       continue;
     }
     // Standard opacity: opacity-50, opacity-75, etc.
