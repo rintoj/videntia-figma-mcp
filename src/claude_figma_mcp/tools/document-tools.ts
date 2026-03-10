@@ -1451,17 +1451,17 @@ export function registerDocumentTools(server: McpServer): void {
     "join_channel",
     "Join a specific channel to communicate with Figma",
     {
-      channel: z.string().describe("The name of the channel to join"),
+      channelId: z.string().describe("The ID or name of the channel to join"),
     },
-    async ({ channel }) => {
+    async ({ channelId }) => {
       try {
-        if (!channel) {
+        if (!channelId) {
           // If no channel provided, ask the user for input
           return {
             content: [
               {
                 type: "text",
-                text: "Please provide a channel name to join:",
+                text: "Please provide a channel ID to join:",
               },
             ],
             followUp: {
@@ -1472,13 +1472,13 @@ export function registerDocumentTools(server: McpServer): void {
         }
 
         // Use joinChannel instead of sendCommandToFigma to ensure currentChannel is updated
-        await joinChannel(channel);
+        await joinChannel(channelId);
 
         return {
           content: [
             {
               type: "text",
-              text: `Successfully joined channel: ${channel}`,
+              text: `Successfully joined channel: ${channelId}`,
             },
           ],
         };
@@ -1487,7 +1487,7 @@ export function registerDocumentTools(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: `Error joining channel "${channel}": ${error instanceof Error ? error.message : String(error)}`,
+              text: `Error joining channel "${channelId}": ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };
