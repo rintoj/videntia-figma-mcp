@@ -3,7 +3,6 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { sendCommandToFigma, joinChannel, getOpenChannels } from "../utils/websocket.js";
 import { coerceArray } from "../utils/coerce-array.js";
 import { mcpBooleanSchema } from "../utils/mcp-boolean.js";
-import { parseJsx } from "../utils/jsx-to-figma.js";
 import { outputFormatSchema, depthSchema, resolveDepth, fetchNodesAsJsx, fieldsSchema, ID_FIELDS } from "../utils/output-format.js";
 import { convertToJsx } from "../utils/figma-to-jsx.js";
 import { filterNodeData } from "../utils/figma-helpers.js";
@@ -296,70 +295,6 @@ export function registerDocumentTools(server: McpServer): void {
       };
     }
   });
-  // JSX to Figma Tool
-  server.tool(
-    "jsx_to_figma",
-    "Create or update Figma nodes from JSX+Tailwind markup. Supports multiple root elements in a single call — batch them together instead of making separate calls. When an element has id='<nodeId>' matching an existing Figma node, that node is updated in-place (properties only — existing children are preserved). Set replaceChildren=true to also replace children. Without an id, creates new nodes. Accepts the same format that get_selection or get_node_info outputs. Auto-positions next to existing page content when no positioning params are given.",
-    {
-      jsx: z
-        .string()
-        .describe(
-          'JSX+Tailwind markup string. Supports multiple root elements e.g. \'<div id="1:1" .../><div id="1:2" .../>\' — always batch multiple nodes into one call.',
-        ),
-      parentId: z.string().optional().describe("Parent node ID to insert into (defaults to current page)"),
-      nextToId: z.string().optional().describe("Place the new node to the right of this node ID"),
-      x: z.coerce.number().optional().describe("X position for the root node"),
-      y: z.coerce.number().optional().describe("Y position for the root node"),
-      replaceChildren: mcpBooleanSchema
-        .optional()
-        .describe(
-          "When updating an existing node (via id), replace its children with the JSX children. When true with no JSX children, clears all existing children. Omit or false to preserve existing children.",
-        ),
-    },
-    async ({ jsx, parentId, nextToId, x, y, replaceChildren }) => {
-      try {
-        const data = parseJsx(jsx);
-        const result = await sendCommandToFigma("create_from_data", {
-          data,
-          parentId,
-          nextToId,
-          x,
-          y,
-          replaceChildren,
-        });
-        const typedResult = result as {
-          createdNodes: Array<{ id: string; name: string; type: string; action?: string }>;
-        };
-        const created = typedResult.createdNodes.filter((n) => n.action !== "updated");
-        const updated = typedResult.createdNodes.filter((n) => n.action === "updated");
-        const parts: string[] = [];
-        if (updated.length > 0) {
-          parts.push(`Updated ${updated.length} node(s): ${updated.map((n) => `"${n.name}" (${n.id})`).join(", ")}`);
-        }
-        if (created.length > 0) {
-          parts.push(`Created ${created.length} node(s): ${created.map((n) => `"${n.name}" (${n.id})`).join(", ")}`);
-        }
-        return {
-          content: [
-            {
-              type: "text",
-              text: parts.length > 0 ? parts.join(" | ") : "No nodes created or updated.",
-            },
-          ],
-        };
-      } catch (error) {
-        return {
-          content: [
-            {
-              type: "text",
-              text: `Error creating from JSX: ${error instanceof Error ? error.message : String(error)}`,
-            },
-          ],
-        };
-      }
-    },
-  );
-
   // Set Focus Tool
   server.tool(
     "set_focus",

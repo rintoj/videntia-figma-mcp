@@ -223,6 +223,10 @@ async function processNode(
   if ('paddingLeft' in node) info['paddingLeft'] = (node as FrameNode).paddingLeft;
   if ('clipsContent' in node) info['clipsContent'] = (node as FrameNode).clipsContent;
   if ('layoutPositioning' in node) info['layoutPositioning'] = (node as FrameNode).layoutPositioning;
+  if ('layoutAlign' in node) {
+    const la = (node as SceneNode & { layoutAlign: string }).layoutAlign;
+    if (la && la !== 'INHERIT' && la !== 'STRETCH') info['layoutAlign'] = la;
+  }
 
   // Fills
   const fills = extractFills(node);
