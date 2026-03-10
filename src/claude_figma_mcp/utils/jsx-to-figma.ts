@@ -54,6 +54,9 @@ export function parseJsx(jsx: string): FigmaNodeData[] {
   // Post-process: fix flex-1 children based on parent's layoutMode
   fixFlexChildren(nodes);
 
+  // Post-process: TEXT nodes that could overflow their parent should FILL
+  fixTextOverflow(nodes);
+
   return nodes;
 }
 
@@ -79,6 +82,36 @@ function fixFlexChildren(nodes: FigmaNodeData[], parentLayoutMode?: string): voi
     }
     if (node.children) {
       fixFlexChildren(node.children, node.layoutMode);
+    }
+  }
+}
+
+/**
+ * Post-process pass: set TEXT nodes to FILL horizontally when they risk
+ * overflowing their parent.  A parent whose width is constrained (FIXED or
+ * FILL) cannot grow to accommodate long text, so child TEXT nodes must fill
+ * to wrap.  When the parent HUGs, it grows to fit the text and HUG is fine.
+ *
+ * For VERTICAL parents the cross-axis is horizontal, so the same rule
+ * applies: constrained width → TEXT fills horizontally.
+ * For HORIZONTAL parents the cross-axis is vertical — text overflow is
+ * along the primary (horizontal) axis, and a constrained parent means the
+ * text should fill horizontally so Figma can wrap it.
+ */
+function fixTextOverflow(nodes: FigmaNodeData[], parent?: FigmaNodeData): void {
+  // Determine whether the parent constrains its width
+  const parentConstrainsWidth = parent
+    ? parent.layoutSizingHorizontal === "FIXED" ||
+      parent.layoutSizingHorizontal === "FILL" ||
+      parent.width !== undefined
+    : false;
+
+  for (const node of nodes) {
+    if (node.type === "TEXT" && !node.layoutSizingHorizontal) {
+      node.layoutSizingHorizontal = parentConstrainsWidth ? "FILL" : "HUG";
+    }
+    if (node.children) {
+      fixTextOverflow(node.children, node);
     }
   }
 }
@@ -212,12 +245,6 @@ function jsxElementToNode(el: t.JSXElement, parentType?: string, source?: string
   if (node.layoutMode) {
     if (!node.layoutSizingHorizontal) node.layoutSizingHorizontal = "HUG";
     if (!node.layoutSizingVertical) node.layoutSizingVertical = "HUG";
-  }
-
-  // Pure TEXT nodes always fill horizontally in Figma auto-layout unless
-  // explicitly sized (e.g. w-full, w-[200px], flex-1 already set it).
-  if (node.type === "TEXT" && !node.layoutSizingHorizontal) {
-    node.layoutSizingHorizontal = "FILL";
   }
 
   // Propagate text-related style properties from FRAME to child TEXT nodes
