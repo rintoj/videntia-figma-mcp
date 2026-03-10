@@ -1,7 +1,6 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { sendCommandToFigma, joinChannel, getOpenChannels } from "../utils/websocket.js";
-import { figmaAccessToken, FIGMA_API_BASE_URL } from "../config/config.js";
 import { coerceArray } from "../utils/coerce-array.js";
 import { mcpBooleanSchema } from "../utils/mcp-boolean.js";
 import { parseJsx } from "../utils/jsx-to-figma.js";
@@ -1540,7 +1539,7 @@ export function registerDocumentTools(server: McpServer): void {
   // Export Node as Image Tool
   server.tool(
     "export_node_as_image",
-    "Export a node as a base64 image from Figma. For large images (>4000px), consider using export_node_as_image_url instead which returns a CDN URL.",
+    "Export a node as a base64 image from Figma.",
     {
       nodeId: z.string().describe("The ID of the node to export"),
       format: z.enum(["PNG", "JPG", "SVG", "PDF", "png", "jpg", "svg", "pdf"]).transform(v => v.toUpperCase() as "PNG" | "JPG" | "SVG" | "PDF").optional().describe("Export format (e.g. 'png' or 'PNG')"),
@@ -1573,12 +1572,12 @@ export function registerDocumentTools(server: McpServer): void {
         if (wasScaleReduced) {
           content.push({
             type: "text",
-            text: `⚠️ Image was auto-scaled from ${typedResult.requestedScale}x to ${typedResult.actualScale.toFixed(2)}x to fit within size limits. Original: ${typedResult.originalWidth}x${typedResult.originalHeight}px, Exported: ${typedResult.exportedWidth}x${typedResult.exportedHeight}px. For full resolution, use export_node_as_image_url (requires FIGMA_ACCESS_TOKEN).`,
+            text: `⚠️ Image was auto-scaled from ${typedResult.requestedScale}x to ${typedResult.actualScale.toFixed(2)}x to fit within size limits. Original: ${typedResult.originalWidth}x${typedResult.originalHeight}px, Exported: ${typedResult.exportedWidth}x${typedResult.exportedHeight}px.`,
           });
         } else if (isLargeImage) {
           content.push({
             type: "text",
-            text: `ℹ️ Large image exported (${typedResult.exportedWidth}x${typedResult.exportedHeight}px). For better performance with large images, consider using export_node_as_image_url.`,
+            text: `ℹ️ Large image exported (${typedResult.exportedWidth}x${typedResult.exportedHeight}px).`,
           });
         }
 
@@ -1595,133 +1594,6 @@ export function registerDocumentTools(server: McpServer): void {
             {
               type: "text",
               text: `Error exporting node "${nodeId}" as image (${format || "PNG"}): ${error instanceof Error ? error.message : String(error)}`,
-            },
-          ],
-        };
-      }
-    },
-  );
-
-  // Export Node as Image URL Tool (using Figma REST API)
-  server.tool(
-    "export_node_as_image_url",
-    "Export a node as an image URL using Figma REST API. Returns a CDN URL instead of base64 data. Requires FIGMA_ACCESS_TOKEN environment variable or --figma-token CLI argument.",
-    {
-      nodeId: z.string().describe("The ID of the node to export"),
-      format: z.enum(["png", "jpg", "svg", "pdf"]).optional().default("png").describe("Export format (lowercase)"),
-      scale: z.coerce.number().positive().min(0.01).max(4).optional().default(1).describe("Export scale (0.01 to 4)"),
-      fileKey: z.string().optional().describe("Figma file key. If not provided, will be fetched from the plugin."),
-    },
-    async ({ nodeId, format, scale, fileKey }) => {
-      try {
-        // Check if token is configured
-        if (!figmaAccessToken) {
-          return {
-            content: [
-              {
-                type: "text",
-                text: "Error: Figma access token not configured. Set FIGMA_ACCESS_TOKEN environment variable or use --figma-token=<token> CLI argument.",
-              },
-            ],
-          };
-        }
-
-        // Get file key from plugin if not provided
-        let resolvedFileKey = fileKey;
-        if (!resolvedFileKey) {
-          const fileKeyResult = await sendCommandToFigma("get_file_key", {});
-          const typedResult = fileKeyResult as { fileKey: string; fileName: string };
-          resolvedFileKey = typedResult.fileKey;
-        }
-
-        if (!resolvedFileKey) {
-          return {
-            content: [
-              {
-                type: "text",
-                text: "Error: Could not determine file key. Please provide it as a parameter or ensure the Figma file is saved.",
-              },
-            ],
-          };
-        }
-
-        // Build the Figma REST API URL
-        // Node IDs in Figma use ":" separator, but REST API expects "-" separator
-        const encodedNodeId = encodeURIComponent(nodeId.replace(/:/g, "-"));
-        const apiUrl = `${FIGMA_API_BASE_URL}/images/${encodeURIComponent(resolvedFileKey)}?ids=${encodedNodeId}&format=${format}&scale=${scale}`;
-
-        // Make the API request
-        const response = await fetch(apiUrl, {
-          method: "GET",
-          headers: {
-            "X-Figma-Token": figmaAccessToken,
-          },
-        });
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          let errorMessage = `Figma API error (${response.status})`;
-          try {
-            const errorJson = JSON.parse(errorText);
-            errorMessage = errorJson.err || errorJson.message || errorMessage;
-          } catch {
-            errorMessage = errorText || errorMessage;
-          }
-          return {
-            content: [
-              {
-                type: "text",
-                text: `Error from Figma API: ${errorMessage}`,
-              },
-            ],
-          };
-        }
-
-        const data = (await response.json()) as {
-          err?: string;
-          images?: Record<string, string | null>;
-        };
-
-        if (data.err) {
-          return {
-            content: [
-              {
-                type: "text",
-                text: `Figma API error: ${data.err}`,
-              },
-            ],
-          };
-        }
-
-        // Extract the image URL from response
-        const images = data.images || {};
-        const imageUrl = Object.values(images)[0];
-
-        if (!imageUrl) {
-          return {
-            content: [
-              {
-                type: "text",
-                text: `No image generated for node ${nodeId}. The node may be empty, invisible, or not exportable.`,
-              },
-            ],
-          };
-        }
-
-        return {
-          content: [
-            {
-              type: "text",
-              text: `Exported node ${nodeId} as ${format.toUpperCase()} (scale: ${scale}x)\n\nURL: ${imageUrl}\n\nNote: CDN URL expires in ~30 days.`,
-            },
-          ],
-        };
-      } catch (error) {
-        return {
-          content: [
-            {
-              type: "text",
-              text: `Error exporting node "${nodeId}" as image URL (${format}): ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };
