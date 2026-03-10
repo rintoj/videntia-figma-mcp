@@ -61,14 +61,22 @@ export function parseJsx(jsx: string): FigmaNodeData[] {
 type FigmaNodeWithFlexMeta = FigmaNodeData & { _flexGrow?: number };
 
 /**
- * Post-process pass: resolve flex-{n} children based on parent's layoutMode.
- * Any flex-grow >= 1 (flex-1, flex-2, …) fills along the parent's primary axis.
- * Figma auto-layout does not support weighted flex, so all values map to FILL.
- *   VERTICAL parent → layoutSizingVertical = "FILL"
- *   HORIZONTAL parent (or default) → layoutSizingHorizontal = "FILL"
+ * Post-process pass that runs after all nodes are parsed:
+ *
+ * 1. Resolve flex-{n} children → FILL on parent's primary axis.
+ * 2. Apply CSS-default cross-axis stretch (align-items: stretch):
+ *    non-TEXT children of auto-layout parents get FILL on the cross-axis
+ *    unless they already have explicit sizing or the parent has explicit
+ *    counter-axis alignment (items-center, items-end, items-baseline).
+ * 3. Default remaining unset sizing to HUG for auto-layout nodes.
  */
-function fixFlexChildren(nodes: FigmaNodeData[], parentLayoutMode?: string): void {
+function fixFlexChildren(
+  nodes: FigmaNodeData[],
+  parentLayoutMode?: string,
+  parentCounterAxisAlign?: string,
+): void {
   for (const node of nodes) {
+    // 1. flex-grow → FILL on primary axis
     if ((node as FigmaNodeWithFlexMeta)._flexGrow) {
       delete (node as FigmaNodeWithFlexMeta)._flexGrow;
       if (parentLayoutMode === "VERTICAL") {
@@ -77,8 +85,32 @@ function fixFlexChildren(nodes: FigmaNodeData[], parentLayoutMode?: string): voi
         node.layoutSizingHorizontal = "FILL";
       }
     }
+
+    // 2. Cross-axis stretch (CSS default: align-items: stretch)
+    // Skip when: no parent layout, TEXT nodes, absolute-positioned, or parent
+    // has explicit counter-axis alignment (items-center/end/baseline/start).
+    if (
+      parentLayoutMode &&
+      node.type !== "TEXT" &&
+      node.layoutPositioning !== "ABSOLUTE" &&
+      !parentCounterAxisAlign
+    ) {
+      if (parentLayoutMode === "VERTICAL" && !node.layoutSizingHorizontal) {
+        node.layoutSizingHorizontal = "FILL";
+      } else if (parentLayoutMode === "HORIZONTAL" && !node.layoutSizingVertical) {
+        node.layoutSizingVertical = "FILL";
+      }
+    }
+
+    // 3. Default auto-layout nodes to HUG on any axis still unset
+    if (node.layoutMode) {
+      if (!node.layoutSizingHorizontal) node.layoutSizingHorizontal = "HUG";
+      if (!node.layoutSizingVertical) node.layoutSizingVertical = "HUG";
+    }
+
+    // Recurse into children with this node's layout context
     if (node.children) {
-      fixFlexChildren(node.children, node.layoutMode);
+      fixFlexChildren(node.children, node.layoutMode, node.counterAxisAlignItems);
     }
   }
 }
@@ -207,12 +239,9 @@ function jsxElementToNode(el: t.JSXElement, parentType?: string, source?: string
     node.layoutMode = "HORIZONTAL";
   }
 
-  // Auto-layout frames default to HUG on both axes unless explicitly sized.
-  // FILL is only applied when flex-{n} / h-full / w-full are explicitly used.
-  if (node.layoutMode) {
-    if (!node.layoutSizingHorizontal) node.layoutSizingHorizontal = "HUG";
-    if (!node.layoutSizingVertical) node.layoutSizingVertical = "HUG";
-  }
+  // Sizing defaults are deferred to fixFlexChildren() where parent context is
+  // available, so cross-axis stretch (CSS default align-items: stretch) can be
+  // applied before falling back to HUG.
 
   // Propagate text-related style properties from FRAME to child TEXT nodes
   propagateTextStyles(node);
@@ -825,6 +854,10 @@ function applyClassName(node: FigmaNodeData, className: string): void {
     }
     if (cls === "justify-between") {
       node.primaryAxisAlignItems = "SPACE_BETWEEN";
+      continue;
+    }
+    if (cls === "items-start") {
+      node.counterAxisAlignItems = "MIN";
       continue;
     }
     if (cls === "items-center") {

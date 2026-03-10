@@ -1245,6 +1245,104 @@ describe("parseJsx - standard Tailwind spacing", () => {
   });
 });
 
+// --- Cross-axis stretch (CSS default align-items: stretch) ---
+describe("cross-axis stretch", () => {
+  it("should FILL horizontally for frame children of flex-col parent", () => {
+    const nodes = parseJsx(`
+      <div id="1:1" name="Parent" className="flex flex-col">
+        <div id="1:2" name="Child" className="flex flex-col gap-[8px]" />
+      </div>
+    `);
+    const child = nodes[0].children![0];
+    expect(child.layoutSizingHorizontal).toBe("FILL");
+  });
+
+  it("should FILL vertically for frame children of flex-row parent", () => {
+    const nodes = parseJsx(`
+      <div id="1:1" name="Parent" className="flex flex-row">
+        <div id="1:2" name="Child" className="flex flex-col" />
+      </div>
+    `);
+    const child = nodes[0].children![0];
+    expect(child.layoutSizingVertical).toBe("FILL");
+  });
+
+  it("should NOT stretch TEXT children", () => {
+    const nodes = parseJsx(`
+      <div id="1:1" name="Parent" className="flex flex-col">
+        <span id="1:2" name="Label">Hello</span>
+      </div>
+    `);
+    const child = nodes[0].children![0];
+    expect(child.layoutSizingHorizontal).toBeUndefined();
+  });
+
+  it("should NOT stretch when parent has items-center", () => {
+    const nodes = parseJsx(`
+      <div id="1:1" name="Parent" className="flex flex-col items-center">
+        <div id="1:2" name="Child" className="flex flex-col" />
+      </div>
+    `);
+    const child = nodes[0].children![0];
+    expect(child.layoutSizingHorizontal).toBe("HUG");
+  });
+
+  it("should NOT stretch when parent has items-start", () => {
+    const nodes = parseJsx(`
+      <div id="1:1" name="Parent" className="flex flex-col items-start">
+        <div id="1:2" name="Child" className="flex flex-col" />
+      </div>
+    `);
+    const child = nodes[0].children![0];
+    expect(child.layoutSizingHorizontal).toBe("HUG");
+  });
+
+  it("should respect explicit w-auto over cross-axis stretch", () => {
+    const nodes = parseJsx(`
+      <div id="1:1" name="Parent" className="flex flex-col">
+        <div id="1:2" name="Child" className="flex flex-col w-auto" />
+      </div>
+    `);
+    const child = nodes[0].children![0];
+    expect(child.layoutSizingHorizontal).toBe("HUG");
+  });
+
+  it("should respect explicit w-[100px] over cross-axis stretch", () => {
+    const nodes = parseJsx(`
+      <div id="1:1" name="Parent" className="flex flex-col">
+        <div id="1:2" name="Child" className="w-[100px]" />
+      </div>
+    `);
+    const child = nodes[0].children![0];
+    expect(child.layoutSizingHorizontal).toBe("FIXED");
+    expect(child.width).toBe(100);
+  });
+
+  it("should NOT stretch absolute-positioned children", () => {
+    const nodes = parseJsx(`
+      <div id="1:1" name="Parent" className="flex flex-col">
+        <div id="1:2" name="Abs" className="absolute" />
+      </div>
+    `);
+    const child = nodes[0].children![0];
+    expect(child.layoutSizingHorizontal).toBeUndefined();
+  });
+
+  it("should apply stretch recursively to nested children", () => {
+    const nodes = parseJsx(`
+      <div id="1:1" name="Outer" className="flex flex-col">
+        <div id="1:2" name="Inner" className="flex flex-col">
+          <div id="1:3" name="Deep" className="flex flex-row" />
+        </div>
+      </div>
+    `);
+    const inner = nodes[0].children![0];
+    const deep = inner.children![0];
+    expect(inner.layoutSizingHorizontal).toBe("FILL");
+    expect(deep.layoutSizingHorizontal).toBe("FILL");
+  });
+});
+
 // --- Standard Tailwind colors ---
 
 describe("parseJsx - standard Tailwind colors", () => {
