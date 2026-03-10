@@ -86,7 +86,31 @@ export function isIconLike(node: SceneNode): boolean {
       if (sized.width <= 48 && sized.height <= 48) return true;
     } catch (_e) {}
   }
+  // Frame-like nodes containing only vector primitives are SVG/icon containers
+  if ('children' in node) {
+    try {
+      let children = (node as FrameNode).children;
+      if (children && children.length > 0 && hasOnlyVectorChildren(children)) return true;
+    } catch (_e) {}
+  }
   return false;
+}
+
+function hasOnlyVectorChildren(children: ReadonlyArray<SceneNode>): boolean {
+  for (let i = 0; i < children.length; i++) {
+    let ct = children[i].type;
+    if (ct === 'VECTOR' || ct === 'LINE' || ct === 'BOOLEAN_OPERATION' ||
+        ct === 'ELLIPSE' || ct === 'RECTANGLE' || ct === 'POLYGON' || ct === 'STAR') {
+      continue;
+    }
+    // Nested groups/frames containing only vectors (SVG <g> elements)
+    if ((ct === 'GROUP' || ct === 'FRAME') && 'children' in children[i]) {
+      let nested = (children[i] as FrameNode).children;
+      if (nested && nested.length > 0 && hasOnlyVectorChildren(nested)) continue;
+    }
+    return false;
+  }
+  return true;
 }
 
 export function isColorFill(fill: Paint): boolean {
