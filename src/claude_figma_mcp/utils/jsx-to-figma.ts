@@ -206,9 +206,10 @@ function jsxElementToNode(el: t.JSXElement, parentType?: string, source?: string
     node.layoutMode = "HORIZONTAL";
   }
 
-  // Auto-layout frames default to FILL width and HUG height
+  // Auto-layout frames default to HUG on both axes unless explicitly sized.
+  // FILL is only applied when flex-1 / h-full / w-full are explicitly used.
   if (node.layoutMode) {
-    if (!node.layoutSizingHorizontal) node.layoutSizingHorizontal = "FILL";
+    if (!node.layoutSizingHorizontal) node.layoutSizingHorizontal = "HUG";
     if (!node.layoutSizingVertical) node.layoutSizingVertical = "HUG";
   }
 
