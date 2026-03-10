@@ -852,14 +852,57 @@ function applyClassName(node: FigmaNodeData, className: string): void {
       continue;
     }
 
-    // left-[Npx] / top-[Npx]
+    // inset-0 / inset-x-0 / inset-y-0 — fill parent when absolute-positioned
     let m: RegExpMatchArray | null;
+    if (cls === "inset-0") {
+      node.x = 0;
+      node.y = 0;
+      node.layoutSizingHorizontal = "FILL";
+      node.layoutSizingVertical = "FILL";
+      continue;
+    }
+    if (cls === "inset-x-0") {
+      node.x = 0;
+      node.layoutSizingHorizontal = "FILL";
+      continue;
+    }
+    if (cls === "inset-y-0") {
+      node.y = 0;
+      node.layoutSizingVertical = "FILL";
+      continue;
+    }
+
+    // left-[Npx] / top-[Npx] / right-[Npx] / bottom-[Npx]
     if ((m = cls.match(/^left-\[(-?\d+(?:\.\d+)?)px\]$/))) {
       node.x = Number(m[1]);
       continue;
     }
     if ((m = cls.match(/^top-\[(-?\d+(?:\.\d+)?)px\]$/))) {
       node.y = Number(m[1]);
+      continue;
+    }
+    if ((m = cls.match(/^right-\[(-?\d+(?:\.\d+)?)px\]$/))) {
+      node.x = Number(m[1]);
+      continue;
+    }
+    if ((m = cls.match(/^bottom-\[(-?\d+(?:\.\d+)?)px\]$/))) {
+      node.y = Number(m[1]);
+      continue;
+    }
+    if (cls === "left-0") {
+      node.x = 0;
+      continue;
+    }
+    if (cls === "top-0") {
+      node.y = 0;
+      continue;
+    }
+    if (cls === "right-0") {
+      node.x = 0;
+      continue;
+    }
+    if (cls === "bottom-0") {
+      node.y = 0;
       continue;
     }
 
@@ -1743,6 +1786,27 @@ function applyStyleAttribute(node: FigmaNodeData, styleStr: string): void {
     } else if (key === "maxWidth" || key === "minWidth" || key === "maxHeight" || key === "minHeight") {
       const m = value.match(/^(\d+(?:\.\d+)?)px$/);
       if (m) (node as any)[key] = Number(m[1]);
+    } else if (key === "position") {
+      if (value === "absolute") node.layoutPositioning = "ABSOLUTE";
+    } else if (key === "left") {
+      const m = value.match(/^(-?\d+(?:\.\d+)?)px$/);
+      if (m) node.x = Number(m[1]);
+    } else if (key === "top") {
+      const m = value.match(/^(-?\d+(?:\.\d+)?)px$/);
+      if (m) node.y = Number(m[1]);
+    } else if (key === "right") {
+      const m = value.match(/^(-?\d+(?:\.\d+)?)px$/);
+      if (m) node.x = Number(m[1]);
+    } else if (key === "bottom") {
+      const m = value.match(/^(-?\d+(?:\.\d+)?)px$/);
+      if (m) node.y = Number(m[1]);
+    } else if (key === "inset") {
+      if (value === "0" || value === "0px") {
+        node.x = 0;
+        node.y = 0;
+        node.layoutSizingHorizontal = "FILL";
+        node.layoutSizingVertical = "FILL";
+      }
     }
   }
 }

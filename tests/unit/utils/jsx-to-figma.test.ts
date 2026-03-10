@@ -1245,6 +1245,79 @@ describe("parseJsx - standard Tailwind spacing", () => {
   });
 });
 
+// --- Absolute positioning & inset ---
+describe("parseJsx - absolute positioning", () => {
+  it("should parse inset-0 as FILL on both axes with x=0, y=0", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="absolute inset-0" />');
+    expect(nodes[0].layoutPositioning).toBe("ABSOLUTE");
+    expect(nodes[0].layoutSizingHorizontal).toBe("FILL");
+    expect(nodes[0].layoutSizingVertical).toBe("FILL");
+    expect(nodes[0].x).toBe(0);
+    expect(nodes[0].y).toBe(0);
+  });
+
+  it("should parse inset-x-0 as horizontal FILL", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="absolute inset-x-0" />');
+    expect(nodes[0].layoutSizingHorizontal).toBe("FILL");
+    expect(nodes[0].x).toBe(0);
+  });
+
+  it("should parse inset-y-0 as vertical FILL", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="absolute inset-y-0" />');
+    expect(nodes[0].layoutSizingVertical).toBe("FILL");
+    expect(nodes[0].y).toBe(0);
+  });
+
+  it("should parse left-0 and top-0 classes", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="absolute left-0 top-0" />');
+    expect(nodes[0].x).toBe(0);
+    expect(nodes[0].y).toBe(0);
+  });
+
+  it("should parse right-0 and bottom-0 classes", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="absolute right-0 bottom-0" />');
+    expect(nodes[0].x).toBe(0);
+    expect(nodes[0].y).toBe(0);
+  });
+
+  it("should parse right-[Npx] and bottom-[Npx] classes", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="absolute right-[10px] bottom-[20px]" />');
+    expect(nodes[0].x).toBe(10);
+    expect(nodes[0].y).toBe(20);
+  });
+
+  it("should parse left/top from style attribute", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" className="absolute" style="left: 24px; top: 350px;" />');
+    expect(nodes[0].layoutPositioning).toBe("ABSOLUTE");
+    expect(nodes[0].x).toBe(24);
+    expect(nodes[0].y).toBe(350);
+  });
+
+  it("should parse position: absolute from style attribute", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" style="position: absolute; left: 10px; top: 20px;" />');
+    expect(nodes[0].layoutPositioning).toBe("ABSOLUTE");
+    expect(nodes[0].x).toBe(10);
+    expect(nodes[0].y).toBe(20);
+  });
+
+  it("should parse inset: 0 from style attribute", () => {
+    const nodes = parseJsx('<div id="1:1" name="T" style="position: absolute; inset: 0;" />');
+    expect(nodes[0].layoutPositioning).toBe("ABSOLUTE");
+    expect(nodes[0].layoutSizingHorizontal).toBe("FILL");
+    expect(nodes[0].layoutSizingVertical).toBe("FILL");
+    expect(nodes[0].x).toBe(0);
+    expect(nodes[0].y).toBe(0);
+  });
+
+  it("should handle overlay scrim pattern", () => {
+    const nodes = parseJsx('<div name="Scrim" className="absolute inset-0 bg-background-primary opacity-[0.6]" />');
+    expect(nodes[0].layoutPositioning).toBe("ABSOLUTE");
+    expect(nodes[0].layoutSizingHorizontal).toBe("FILL");
+    expect(nodes[0].layoutSizingVertical).toBe("FILL");
+    expect(nodes[0].opacity).toBe(0.6);
+  });
+});
+
 // --- Standard Tailwind colors ---
 
 describe("parseJsx - standard Tailwind colors", () => {
