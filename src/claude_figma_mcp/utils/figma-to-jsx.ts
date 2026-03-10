@@ -73,7 +73,7 @@ function fontWeightClass(weight: number): string {
 /**
  * Build the Tailwind className string for a node.
  */
-function buildTailwindClasses(node: FigmaNodeData): string[] {
+function buildTailwindClasses(node: FigmaNodeData, parentLayoutMode?: string): string[] {
   const classes: string[] = [];
   const isText = node.type === "TEXT";
   // Normalize bindings: { id, name } → name string, or keep as-is if already a string
@@ -143,21 +143,32 @@ function buildTailwindClasses(node: FigmaNodeData): string[] {
   }
 
   // --- Sizing ---
+  // Cross-axis FILL is the CSS flexbox default (align-items: stretch) — omit it.
+  // Primary-axis FILL = flex-1. w-full/h-full only when explicitly needed.
+  const isCrossAxisH = parentLayoutMode === "VERTICAL";   // horizontal is cross-axis of vertical parent
+  const isCrossAxisV = parentLayoutMode === "HORIZONTAL"; // vertical is cross-axis of horizontal parent
+
   if (node.layoutSizingHorizontal === "FIXED" && node.width !== undefined) {
     classes.push(`w-[${node.width}px]`);
   } else if (node.layoutSizingHorizontal === "FILL") {
-    classes.push("flex-1");
+    if (isCrossAxisH) {
+      // Cross-axis stretch is CSS default — omit (don't emit flex-1 or w-full)
+    } else {
+      classes.push("flex-1");
+    }
   }
   // HUG = omit (natural behavior)
 
   if (node.layoutSizingVertical === "FIXED" && node.height !== undefined) {
     classes.push(`h-[${node.height}px]`);
   } else if (node.layoutSizingVertical === "FILL") {
-    // Use flex-1 only if not already added by horizontal fill
-    if (node.layoutSizingHorizontal !== "FILL") {
-      classes.push("flex-1");
-    } else {
+    if (isCrossAxisV) {
+      // Cross-axis stretch is CSS default — omit
+    } else if (node.layoutSizingHorizontal === "FILL" && !isCrossAxisH) {
+      // Both axes FILL: horizontal already emitted flex-1, use h-full for vertical
       classes.push("h-full");
+    } else {
+      classes.push("flex-1");
     }
   }
 
@@ -581,11 +592,11 @@ function buildComponentAstAttrs(node: FigmaNodeData): t.JSXAttribute[] {
 /**
  * Build a Babel JSX AST node from a FigmaNodeData.
  */
-function nodeToAst(node: FigmaNodeData): t.JSXElement | null {
+function nodeToAst(node: FigmaNodeData, parentLayoutMode?: string): t.JSXElement | null {
   if (node.visible === false) return null;
 
   const tag = getTag(node);
-  const classes = buildTailwindClasses(node);
+  const classes = buildTailwindClasses(node, parentLayoutMode);
   const style = buildStyleAttribute(node);
   const isComponent = isComponentType(node.type);
 
@@ -667,7 +678,7 @@ function nodeToAst(node: FigmaNodeData): t.JSXElement | null {
     } else if (node.children) {
       for (const child of node.children) {
         if (child.visible === false) continue;
-        const childAst = nodeToAst(child);
+        const childAst = nodeToAst(child, node.layoutMode);
         if (childAst) children.push(childAst);
       }
     }

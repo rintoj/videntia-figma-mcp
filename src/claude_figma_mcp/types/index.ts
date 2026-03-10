@@ -290,6 +290,7 @@ export interface FigmaNodeData {
   paddingLeft?: number;
   clipsContent?: boolean;
   layoutPositioning?: "AUTO" | "ABSOLUTE";
+  layoutAlign?: "MIN" | "CENTER" | "MAX" | "STRETCH" | "INHERIT";
   // Fills
   fills?: FigmaNodeFill[];
   // Strokes

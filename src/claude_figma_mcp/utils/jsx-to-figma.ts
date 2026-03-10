@@ -57,11 +57,14 @@ export function parseJsx(jsx: string): FigmaNodeData[] {
   // Post-process: resolve horizontal sizing defaults based on parent context
   fixDefaultSizing(nodes);
 
+  // Clean up transient properties before returning
+  stripTransientProps(nodes);
+
   return nodes;
 }
 
-/** Temporary marker type used only during the fixFlexChildren post-processing pass. */
-type FigmaNodeWithFlexMeta = FigmaNodeData & { _flexGrow?: number };
+/** Temporary marker type used only during post-processing passes. */
+type FigmaNodeWithFlexMeta = FigmaNodeData & { _flexGrow?: number; _htmlTag?: string };
 
 /**
  * Post-process pass: resolve flex-{n} children based on parent's layoutMode.
@@ -87,14 +90,15 @@ function fixFlexChildren(nodes: FigmaNodeData[], parentLayoutMode?: string): voi
 }
 
 /**
- * Post-process pass: match CSS flexbox `align-items: stretch` default.
+ * Post-process pass: apply HTML/CSS block-level defaults.
  *
- * In CSS flexbox, children stretch on the cross-axis by default:
- *   VERTICAL (flex-col) parent → children FILL horizontally
- *   HORIZONTAL (flex-row) parent → children FILL vertically
- *
- * Stretch is suppressed when the parent overrides cross-axis alignment
- * (items-center, items-start, items-end, items-baseline) — children HUG.
+ * In HTML/CSS:
+ * - Block elements (`div`, `p`, `section`, etc.) default to `display: block`:
+ *   vertical stacking, width fills parent, height hugs content.
+ * - Inline elements (`span`, `a`, `label`, etc.) hug their content on both axes.
+ * - Flexbox `align-items: stretch` (default) makes children fill the cross-axis.
+ *   This is suppressed by items-start/center/end/baseline on the parent, or
+ *   by self-start/center/end on the child (layoutAlign).
  */
 function fixDefaultSizing(nodes: FigmaNodeData[], parent?: FigmaNodeData): void {
   const isVerticalParent = parent !== undefined && parent.layoutMode === "VERTICAL";
@@ -105,18 +109,42 @@ function fixDefaultSizing(nodes: FigmaNodeData[], parent?: FigmaNodeData): void 
     parent.counterAxisAlignItems !== undefined;
 
   for (const node of nodes) {
-    // --- Horizontal sizing (cross-axis of VERTICAL parent) ---
+    const tag = (node as FigmaNodeWithFlexMeta)._htmlTag || "";
+    const isInlineText = INLINE_TEXT_TAGS.has(tag);
+    const isBlock = BLOCK_LEVEL_TAGS.has(tag);
+    const childOverridesCrossAxis = node.layoutAlign !== undefined &&
+      node.layoutAlign !== "STRETCH";
+
+    // --- Block-level elements default to vertical stacking (display: block) ---
+    if (!node.layoutMode && isBlock && node.type === "FRAME") {
+      node.layoutMode = "VERTICAL";
+    }
+
+    // --- Horizontal sizing ---
     if (!node.layoutSizingHorizontal) {
-      if (isVerticalParent && !parentOverridesCrossAxis) {
+      if (childOverridesCrossAxis) {
+        // self-start/center/end → HUG horizontally (no stretch)
+        node.layoutSizingHorizontal = "HUG";
+      } else if (isInlineText) {
+        // Inline text elements always hug their content width
+        node.layoutSizingHorizontal = "HUG";
+      } else if (isVerticalParent && !parentOverridesCrossAxis) {
+        // Cross-axis of vertical parent: stretch (fill) by default
+        node.layoutSizingHorizontal = "FILL";
+      } else if (isBlock && parent !== undefined && parent.layoutMode) {
+        // Block element in any layout parent: fill width (CSS block = width: 100%)
         node.layoutSizingHorizontal = "FILL";
       } else if (node.layoutMode || node.type === "TEXT") {
         node.layoutSizingHorizontal = "HUG";
       }
     }
 
-    // --- Vertical sizing (cross-axis of HORIZONTAL parent) ---
+    // --- Vertical sizing ---
     if (!node.layoutSizingVertical) {
-      if (isHorizontalParent && !parentOverridesCrossAxis) {
+      if (childOverridesCrossAxis) {
+        node.layoutSizingVertical = "HUG";
+      } else if (isHorizontalParent && !parentOverridesCrossAxis && !isInlineText) {
+        // Cross-axis of horizontal parent: stretch (fill) by default
         node.layoutSizingVertical = "FILL";
       } else if (node.layoutMode || node.type === "TEXT") {
         node.layoutSizingVertical = "HUG";
@@ -126,6 +154,16 @@ function fixDefaultSizing(nodes: FigmaNodeData[], parent?: FigmaNodeData): void 
     if (node.children) {
       fixDefaultSizing(node.children, node);
     }
+  }
+}
+
+/**
+ * Post-process pass: strip transient properties used only during parsing.
+ */
+function stripTransientProps(nodes: FigmaNodeData[]): void {
+  for (const node of nodes) {
+    delete (node as FigmaNodeWithFlexMeta)._htmlTag;
+    if (node.children) stripTransientProps(node.children);
   }
 }
 
@@ -160,6 +198,9 @@ function jsxElementToNode(el: t.JSXElement, parentType?: string, source?: string
     type: nodeType,
     visible: true,
   };
+
+  // Store original HTML tag for post-processing (block vs inline sizing defaults)
+  (node as FigmaNodeWithFlexMeta)._htmlTag = tag;
 
   // SVG: extract raw markup and skip child processing entirely
   if (tag === "svg" && source && el.start != null && el.end != null) {
@@ -376,6 +417,47 @@ const STANDARD_ATTRS = new Set([
 function isPascalCase(tag: string): boolean {
   return /^[A-Z]/.test(tag);
 }
+
+// Block-level HTML tags — these default to vertical stacking and fill parent width
+const BLOCK_LEVEL_TAGS = new Set([
+  "div",
+  "section",
+  "article",
+  "nav",
+  "header",
+  "footer",
+  "main",
+  "aside",
+  "form",
+  "ul",
+  "ol",
+  "li",
+  "table",
+  "tr",
+  "td",
+  "th",
+  "p",
+  "h1",
+  "h2",
+  "h3",
+  "h4",
+  "h5",
+  "h6",
+]);
+
+// Inline text tags — these HUG their content width (never auto-FILL)
+const INLINE_TEXT_TAGS = new Set([
+  "span",
+  "a",
+  "label",
+  "small",
+  "strong",
+  "em",
+  "b",
+  "i",
+  "u",
+  "s",
+]);
 
 // HTML tags that map to TEXT nodes
 const HTML_TEXT_TAGS = new Set([
@@ -857,6 +939,10 @@ function applyClassName(node: FigmaNodeData, className: string): void {
     if (cls === "relative") {
       /* non-layout container, no special prop */ continue;
     }
+    if (cls === "justify-start") {
+      node.primaryAxisAlignItems = "MIN";
+      continue;
+    }
     if (cls === "justify-center") {
       node.primaryAxisAlignItems = "CENTER";
       continue;
@@ -867,6 +953,10 @@ function applyClassName(node: FigmaNodeData, className: string): void {
     }
     if (cls === "justify-between") {
       node.primaryAxisAlignItems = "SPACE_BETWEEN";
+      continue;
+    }
+    if (cls === "items-start") {
+      node.counterAxisAlignItems = "MIN";
       continue;
     }
     if (cls === "items-center") {
@@ -880,6 +970,31 @@ function applyClassName(node: FigmaNodeData, className: string): void {
     if (cls === "items-baseline") {
       node.counterAxisAlignItems = "BASELINE";
       continue;
+    }
+    if (cls === "items-stretch") {
+      // Explicitly restore default stretch — clear any prior override
+      delete node.counterAxisAlignItems;
+      continue;
+    }
+    // self-* alignment for individual children
+    if (cls === "self-start") {
+      node.layoutAlign = "MIN";
+      continue;
+    }
+    if (cls === "self-center") {
+      node.layoutAlign = "CENTER";
+      continue;
+    }
+    if (cls === "self-end") {
+      node.layoutAlign = "MAX";
+      continue;
+    }
+    if (cls === "self-stretch") {
+      node.layoutAlign = "STRETCH";
+      continue;
+    }
+    if (cls === "shrink-0") {
+      continue; // consumed but no Figma equivalent beyond sizing
     }
     if (cls === "flex-wrap") {
       node.layoutWrap = "WRAP";

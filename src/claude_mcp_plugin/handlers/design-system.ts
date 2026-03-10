@@ -919,6 +919,18 @@ export async function createFromData(
       }
     }
 
+    // Child alignment override (self-start, self-center, self-end, self-stretch)
+    if (nodeData['layoutAlign']) {
+      const nParent = n.parent;
+      if (
+        nParent &&
+        'layoutMode' in nParent &&
+        (nParent as AutoLayoutMixin).layoutMode !== 'NONE'
+      ) {
+        ((n as unknown) as LayoutMixin).layoutAlign = nodeData['layoutAlign'] as LayoutMixin['layoutAlign'];
+      }
+    }
+
     // Absolute positioning (after appendChild)
     if (nodeData['layoutPositioning'] === 'ABSOLUTE') {
       const nParent = n.parent;
