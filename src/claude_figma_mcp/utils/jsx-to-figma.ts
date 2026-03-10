@@ -87,18 +87,23 @@ function fixFlexChildren(nodes: FigmaNodeData[], parentLayoutMode?: string): voi
 }
 
 /**
- * Post-process pass: TEXT nodes FILL horizontally only when they share a
- * HORIZONTAL parent with sibling nodes (e.g. [Icon] [Title]).  In that
- * layout the text must fill the remaining space.  Otherwise TEXT hugs.
+ * Post-process pass: TEXT nodes FILL horizontally when they risk overflow.
+ * Two conditions trigger FILL (otherwise HUG):
+ *   1. Parent constrains width (FIXED/FILL/explicit width) — text could overflow.
+ *   2. HORIZONTAL parent with siblings (e.g. [Icon] [Title]) — text fills remaining space.
  */
 function fixTextOverflow(nodes: FigmaNodeData[], parent?: FigmaNodeData): void {
-  const isHorizontalParent = parent && parent.layoutMode === "HORIZONTAL";
-  const siblingCount = nodes.length;
+  const parentConstrainsWidth = parent !== undefined &&
+    (parent.layoutSizingHorizontal === "FIXED" ||
+     parent.layoutSizingHorizontal === "FILL" ||
+     parent.width !== undefined);
+  const horizontalWithSiblings = parent !== undefined &&
+    parent.layoutMode === "HORIZONTAL" && nodes.length > 1;
 
   for (const node of nodes) {
     if (node.type === "TEXT" && !node.layoutSizingHorizontal) {
       node.layoutSizingHorizontal =
-        isHorizontalParent && siblingCount > 1 ? "FILL" : "HUG";
+        parentConstrainsWidth || horizontalWithSiblings ? "FILL" : "HUG";
     }
     if (node.children) {
       fixTextOverflow(node.children, node);
