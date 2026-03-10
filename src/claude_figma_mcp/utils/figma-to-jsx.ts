@@ -98,8 +98,9 @@ function buildTailwindClasses(node: FigmaNodeData, parentLayoutMode?: string): s
     else if (node.primaryAxisAlignItems === "MAX") classes.push("justify-end");
     else if (node.primaryAxisAlignItems === "SPACE_BETWEEN") classes.push("justify-between");
 
-    // Counter axis alignment (omit MIN = items-start / items-stretch, the default)
-    if (node.counterAxisAlignItems === "CENTER") classes.push("items-center");
+    // Counter axis alignment (omit undefined = stretch, the CSS default)
+    if (node.counterAxisAlignItems === "MIN") classes.push("items-start");
+    else if (node.counterAxisAlignItems === "CENTER") classes.push("items-center");
     else if (node.counterAxisAlignItems === "MAX") classes.push("items-end");
     else if (node.counterAxisAlignItems === "BASELINE") classes.push("items-baseline");
 
@@ -131,6 +132,12 @@ function buildTailwindClasses(node: FigmaNodeData, parentLayoutMode?: string): s
       classes.push(`${crossGapDir}-[${node.counterAxisSpacing}px]`);
     }
   }
+
+  // Child self-alignment (layoutAlign overrides parent's cross-axis alignment)
+  if (node.layoutAlign === "MIN") classes.push("self-start");
+  else if (node.layoutAlign === "CENTER") classes.push("self-center");
+  else if (node.layoutAlign === "MAX") classes.push("self-end");
+  // STRETCH and INHERIT are defaults — omit
 
   // Clip content
   if (node.clipsContent) classes.push("overflow-hidden");

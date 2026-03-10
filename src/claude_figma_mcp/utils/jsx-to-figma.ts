@@ -112,6 +112,7 @@ function fixDefaultSizing(nodes: FigmaNodeData[], parent?: FigmaNodeData): void 
     const tag = (node as FigmaNodeWithFlexMeta)._htmlTag || "";
     const isInlineText = INLINE_TEXT_TAGS.has(tag);
     const isBlock = BLOCK_LEVEL_TAGS.has(tag);
+    const isInlineBlock = INLINE_BLOCK_TAGS.has(tag);
     const childOverridesCrossAxis = node.layoutAlign !== undefined &&
       node.layoutAlign !== "STRETCH";
 
@@ -125,8 +126,8 @@ function fixDefaultSizing(nodes: FigmaNodeData[], parent?: FigmaNodeData): void 
       if (childOverridesCrossAxis) {
         // self-start/center/end → HUG horizontally (no stretch)
         node.layoutSizingHorizontal = "HUG";
-      } else if (isInlineText) {
-        // Inline text elements always hug their content width
+      } else if (isInlineText || isInlineBlock) {
+        // Inline/inline-block elements hug their content width
         node.layoutSizingHorizontal = "HUG";
       } else if (isVerticalParent && !parentOverridesCrossAxis) {
         // Cross-axis of vertical parent: stretch (fill) by default
@@ -143,7 +144,7 @@ function fixDefaultSizing(nodes: FigmaNodeData[], parent?: FigmaNodeData): void 
     if (!node.layoutSizingVertical) {
       if (childOverridesCrossAxis) {
         node.layoutSizingVertical = "HUG";
-      } else if (isHorizontalParent && !parentOverridesCrossAxis && !isInlineText) {
+      } else if (isHorizontalParent && !parentOverridesCrossAxis && !isInlineText && !isInlineBlock) {
         // Cross-axis of horizontal parent: stretch (fill) by default
         node.layoutSizingVertical = "FILL";
       } else if (node.layoutMode || node.type === "TEXT") {
@@ -457,6 +458,15 @@ const INLINE_TEXT_TAGS = new Set([
   "i",
   "u",
   "s",
+]);
+
+// Inline-block HTML tags — these HUG content by default (not block-level, not text)
+const INLINE_BLOCK_TAGS = new Set([
+  "button",
+  "input",
+  "select",
+  "textarea",
+  "img",
 ]);
 
 // HTML tags that map to TEXT nodes
