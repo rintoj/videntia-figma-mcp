@@ -122,18 +122,27 @@ export function registerModificationTools(server: McpServer): void {
     "Move a node to a new position in Figma",
     {
       nodeId: z.string().describe("Node ID to move — get from get_selection or get_node_info"),
-      x: z.coerce.number().describe("New X position in pixels, relative to the canvas (or parent frame if nested)"),
-      y: z.coerce.number().describe("New Y position in pixels, relative to the canvas (or parent frame if nested)"),
+      x: z.coerce.number().optional().describe("New X position in pixels, relative to the canvas (or parent frame if nested)"),
+      y: z.coerce.number().optional().describe("New Y position in pixels, relative to the canvas (or parent frame if nested)"),
+      parentId: z.string().optional().describe("ID of the new parent node to move the node into"),
+      index: z.coerce.number().optional().describe("Index position within the new parent's children"),
     },
-    async ({ nodeId, x, y }) => {
+    async ({ nodeId, x, y, parentId, index }) => {
+      if (x === undefined && y === undefined && parentId === undefined) {
+        return {
+          content: [{ type: "text", text: "Error: provide x/y for repositioning or parentId for reparenting" }],
+        };
+      }
       try {
-        const result = await sendCommandToFigma("move_node", { nodeId, x, y });
+        const result = await sendCommandToFigma("move_node", { nodeId, x, y, parentId, index });
         const typedResult = result as { name: string };
+        const posInfo = x !== undefined && y !== undefined ? ` to position (${x}, ${y})` : "";
+        const parentInfo = parentId ? ` into parent ${parentId}` : "";
         return {
           content: [
             {
               type: "text",
-              text: `Moved node "${typedResult.name}" to position (${x}, ${y})`,
+              text: `Moved node "${typedResult.name}"${posInfo}${parentInfo}`,
             },
           ],
         };
