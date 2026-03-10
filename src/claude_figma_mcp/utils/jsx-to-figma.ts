@@ -58,18 +58,19 @@ export function parseJsx(jsx: string): FigmaNodeData[] {
 }
 
 /** Temporary marker type used only during the fixFlexChildren post-processing pass. */
-type FigmaNodeWithFlexMeta = FigmaNodeData & { _flex1?: boolean };
+type FigmaNodeWithFlexMeta = FigmaNodeData & { _flexGrow?: number };
 
 /**
- * Post-process pass: resolve flex-1 children based on parent's layoutMode.
- * flex-1 fills along the parent's primary axis:
+ * Post-process pass: resolve flex-{n} children based on parent's layoutMode.
+ * Any flex-grow >= 1 (flex-1, flex-2, …) fills along the parent's primary axis.
+ * Figma auto-layout does not support weighted flex, so all values map to FILL.
  *   VERTICAL parent → layoutSizingVertical = "FILL"
  *   HORIZONTAL parent (or default) → layoutSizingHorizontal = "FILL"
  */
 function fixFlexChildren(nodes: FigmaNodeData[], parentLayoutMode?: string): void {
   for (const node of nodes) {
-    if ((node as FigmaNodeWithFlexMeta)._flex1) {
-      delete (node as FigmaNodeWithFlexMeta)._flex1;
+    if ((node as FigmaNodeWithFlexMeta)._flexGrow) {
+      delete (node as FigmaNodeWithFlexMeta)._flexGrow;
       if (parentLayoutMode === "VERTICAL") {
         node.layoutSizingVertical = "FILL";
       } else {
@@ -207,7 +208,7 @@ function jsxElementToNode(el: t.JSXElement, parentType?: string, source?: string
   }
 
   // Auto-layout frames default to HUG on both axes unless explicitly sized.
-  // FILL is only applied when flex-1 / h-full / w-full are explicitly used.
+  // FILL is only applied when flex-{n} / h-full / w-full are explicitly used.
   if (node.layoutMode) {
     if (!node.layoutSizingHorizontal) node.layoutSizingHorizontal = "HUG";
     if (!node.layoutSizingVertical) node.layoutSizingVertical = "HUG";
@@ -909,9 +910,10 @@ function applyClassName(node: FigmaNodeData, className: string): void {
       node.layoutSizingVertical = "FIXED";
       continue;
     }
-    if (cls === "flex-1") {
-      // Mark for post-processing — correct axis depends on parent's layoutMode
-      (node as FigmaNodeWithFlexMeta)._flex1 = true;
+    if ((m = cls.match(/^flex-(\d+)$/))) {
+      // flex-1, flex-2, … — mark for post-processing; axis depends on parent's layoutMode.
+      // Figma doesn't support weighted flex-grow, so any value >= 1 maps to FILL.
+      (node as FigmaNodeWithFlexMeta)._flexGrow = Number(m[1]);
       continue;
     }
     if (cls === "h-full") {
@@ -1600,7 +1602,7 @@ function applyStyleAttribute(node: FigmaNodeData, styleStr: string): void {
     } else if (key === "flex") {
       const num = parseFloat(value);
       if (num >= 1) {
-        (node as FigmaNodeWithFlexMeta)._flex1 = true;
+        (node as FigmaNodeWithFlexMeta)._flexGrow = num;
       }
     } else if (key === "width") {
       const m = value.match(/^(\d+(?:\.\d+)?)px$/);
