@@ -79,7 +79,7 @@ export async function createFrame(params: Record<string, unknown>): Promise<Reco
   frame.resize(width, height);
   frame.name = name;
 
-  // Set fill color if provided
+  // Set fill color if provided, otherwise clear the default white fill
   if (fillColor) {
     const paintStyle: SolidPaint = {
       type: 'SOLID',
@@ -91,6 +91,8 @@ export async function createFrame(params: Record<string, unknown>): Promise<Reco
       opacity: parseNum(fillColor['a'], 1),
     };
     frame.fills = [paintStyle];
+  } else {
+    frame.fills = [];
   }
 
   // Set stroke color and weight if provided
@@ -158,13 +160,11 @@ export async function moveNode(params: Record<string, unknown>): Promise<Record<
   const nodeId = getOptParam<string>(params, 'nodeId');
   const x = getOptParam<number>(params, 'x');
   const y = getOptParam<number>(params, 'y');
+  const parentId = getOptParam<string>(params, 'parentId');
+  const index = getOptParam<number>(params, 'index');
 
   if (!nodeId) {
     throw new Error('Missing nodeId parameter');
-  }
-
-  if (x === undefined || y === undefined) {
-    throw new Error('Missing x or y parameters');
   }
 
   const node = await figma.getNodeByIdAsync(nodeId);
@@ -172,18 +172,41 @@ export async function moveNode(params: Record<string, unknown>): Promise<Record<
     throw new Error(`Node not found with ID: ${nodeId}`);
   }
 
-  if (!('x' in node) || !('y' in node)) {
-    throw new Error(`Node does not support position: ${nodeId}`);
+  // Reparent if parentId is provided
+  if (parentId) {
+    const parentNode = await figma.getNodeByIdAsync(parentId);
+    if (!parentNode) {
+      throw new Error(`Parent node not found with ID: ${parentId}`);
+    }
+    if (!('appendChild' in parentNode)) {
+      throw new Error(`Parent node does not support children: ${parentId}`);
+    }
+    const parent = parentNode as FrameNode | GroupNode | ComponentNode | PageNode;
+    if (index !== undefined) {
+      parent.insertChild(index, node as SceneNode);
+    } else {
+      parent.appendChild(node as SceneNode);
+    }
   }
 
-  (node as SceneNode & { x: number; y: number }).x = x;
-  (node as SceneNode & { x: number; y: number }).y = y;
+  // Reposition if x/y provided
+  if (x !== undefined && y !== undefined) {
+    if (!('x' in node) || !('y' in node)) {
+      throw new Error(`Node does not support position: ${nodeId}`);
+    }
+    (node as SceneNode & { x: number; y: number }).x = x;
+    (node as SceneNode & { x: number; y: number }).y = y;
+  } else if (x !== undefined) {
+    (node as SceneNode & { x: number }).x = x;
+  } else if (y !== undefined) {
+    (node as SceneNode & { y: number }).y = y;
+  }
 
   return {
     id: node.id,
     name: node.name,
-    x: (node as SceneNode & { x: number }).x,
-    y: (node as SceneNode & { y: number }).y,
+    x: 'x' in node ? (node as SceneNode & { x: number }).x : undefined,
+    y: 'y' in node ? (node as SceneNode & { y: number }).y : undefined,
   };
 }
 

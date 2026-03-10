@@ -670,15 +670,27 @@ export function registerTextTools(server: McpServer): void {
       nodeId: z.string().describe("The ID of the text node"),
       styleId: z
         .string()
+        .optional()
         .describe(
-          "The style ID (the 'id' field from get_text_styles, e.g. 'S:abc123,') OR a style name (e.g. 'body/md', 'heading/xl'). Do NOT pass the 'key' field (the 40-char hex hash) — that is a cross-file sharing key, not an ID.",
+          "The style ID (the 'id' field from get_text_styles, e.g. 'S:abc123,'). Do NOT pass the 'key' field (the 40-char hex hash) — that is a cross-file sharing key, not an ID.",
+        ),
+      styleName: z
+        .string()
+        .optional()
+        .describe(
+          "The style name (e.g. 'body/md', 'heading/xl', 'text/heading/h3'). Dashes are auto-converted to slashes. Use as an alternative to styleId.",
         ),
     },
-    async ({ nodeId, styleId }) => {
+    async ({ nodeId, styleId, styleName }) => {
+      if (!styleId && !styleName) {
+        return {
+          content: [{ type: "text", text: "Error: either styleId or styleName is required" }],
+        };
+      }
       try {
         const result = await sendCommandToFigma("apply_text_style", {
           nodeId,
-          styleId,
+          styleId: styleId || styleName,
         });
         const typedResult = result as { nodeName: string; styleName: string };
         return {
