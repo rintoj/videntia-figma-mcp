@@ -34,14 +34,10 @@ export function registerComponentTools(server: McpServer): void {
     async ({ componentKey, x, y, parentId, index, replaceNodeId, fields, depth, output_format }) => {
       try {
         if (parentId && replaceNodeId) {
-          return {
-            content: [{ type: "text", text: JSON.stringify({ error: "parentId and replaceNodeId are mutually exclusive. Provide one or the other, not both." }) }],
-          };
+          throw new Error("parentId and replaceNodeId are mutually exclusive. Provide one or the other, not both.");
         }
         if (index !== undefined && !parentId) {
-          return {
-            content: [{ type: "text", text: JSON.stringify({ error: "index can only be used when parentId is provided." }) }],
-          };
+          throw new Error("index can only be used when parentId is provided.");
         }
 
         const result = await sendCommandToFigma<CreateComponentInstanceResult>("create_component_instance", {
