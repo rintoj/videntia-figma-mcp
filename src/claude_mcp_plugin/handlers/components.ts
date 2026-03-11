@@ -1,4 +1,162 @@
 import { debugLog } from '../utils/helpers';
+import { setCharacters } from './text';
+
+// ---------------------------------------------------------------------------
+// Content override helpers
+// ---------------------------------------------------------------------------
+
+function buildNamePathMap(
+  node: BaseNode,
+  rootNode: BaseNode,
+): Map<string, SceneNode> {
+  const map = new Map<string, SceneNode>();
+
+  function walk(current: BaseNode, pathParts: string[]): void {
+    if (current !== rootNode && 'type' in current) {
+      const namePath = pathParts.join('/');
+      map.set(namePath, current as SceneNode);
+    }
+    if ('children' in current) {
+      const parent = current as ChildrenMixin;
+      for (let i = 0; i < parent.children.length; i++) {
+        const child = parent.children[i];
+        const childParts = current === rootNode ? [child.name] : pathParts.concat([child.name]);
+        walk(child, childParts);
+      }
+    }
+  }
+
+  walk(node, []);
+  return map;
+}
+
+interface CapturedContent {
+  texts: Map<string, string>;
+  icons: Map<string, string>;
+}
+
+async function captureContent(node: BaseNode): Promise<CapturedContent> {
+  const texts = new Map<string, string>();
+  const icons = new Map<string, string>();
+  const namePathMap = buildNamePathMap(node, node);
+
+  for (const [namePath, sceneNode] of namePathMap) {
+    if (sceneNode.type === 'TEXT') {
+      texts.set(namePath, (sceneNode as TextNode).characters);
+    } else if (sceneNode.type === 'INSTANCE') {
+      try {
+        const mainComp = await (sceneNode as InstanceNode).getMainComponentAsync();
+        if (mainComp) {
+          icons.set(namePath, mainComp.id);
+        }
+      } catch (_e) {
+        // skip if we can't resolve
+      }
+    }
+  }
+
+  return { texts, icons };
+}
+
+interface ContentOverridesParam {
+  preserveContent?: boolean;
+  textOverrides?: Record<string, string>;
+  iconOverrides?: Record<string, string>;
+}
+
+interface ContentOverridesResult {
+  text: Array<{ namePath: string; value: string }>;
+  icons: Array<{ namePath: string; componentKey: string }>;
+  unmatched: string[];
+}
+
+async function applyContentToInstance(
+  instance: InstanceNode,
+  captured: CapturedContent | null,
+  contentOverrides: ContentOverridesParam,
+): Promise<ContentOverridesResult> {
+  const result: ContentOverridesResult = { text: [], icons: [], unmatched: [] };
+  const namePathMap = buildNamePathMap(instance, instance);
+
+  // Merge: captured content as base, explicit overrides win
+  const mergedTexts = new Map<string, string>();
+  const mergedIcons = new Map<string, string>();
+
+  if (contentOverrides.preserveContent && captured) {
+    for (const [k, v] of captured.texts) {
+      mergedTexts.set(k, v);
+    }
+    for (const [k, v] of captured.icons) {
+      mergedIcons.set(k, v);
+    }
+  }
+
+  // Overlay explicit overrides
+  if (contentOverrides.textOverrides) {
+    const keys = Object.keys(contentOverrides.textOverrides);
+    for (let i = 0; i < keys.length; i++) {
+      mergedTexts.set(keys[i], contentOverrides.textOverrides[keys[i]]);
+    }
+  }
+  if (contentOverrides.iconOverrides) {
+    const keys = Object.keys(contentOverrides.iconOverrides);
+    for (let i = 0; i < keys.length; i++) {
+      mergedIcons.set(keys[i], contentOverrides.iconOverrides[keys[i]]);
+    }
+  }
+
+  // Apply text overrides
+  for (const [namePath, text] of mergedTexts) {
+    const target = namePathMap.get(namePath);
+    if (target && target.type === 'TEXT') {
+      try {
+        await setCharacters(target as TextNode, text);
+        result.text.push({ namePath, value: text });
+      } catch (_e) {
+        result.unmatched.push(namePath);
+      }
+    } else {
+      result.unmatched.push(namePath);
+    }
+  }
+
+  // Apply icon overrides
+  for (const [namePath, componentKeyOrId] of mergedIcons) {
+    const target = namePathMap.get(namePath);
+    if (target && target.type === 'INSTANCE') {
+      try {
+        let comp: ComponentNode | null = null;
+        // Try local ID first
+        if (componentKeyOrId.includes(':')) {
+          const localNode = await figma.getNodeByIdAsync(componentKeyOrId);
+          if (localNode !== null && localNode.type === 'COMPONENT') {
+            comp = localNode as ComponentNode;
+          }
+        }
+        // Try import by key
+        if (!comp) {
+          try {
+            comp = await figma.importComponentByKeyAsync(componentKeyOrId);
+          } catch (_e) {
+            // ignore
+          }
+        }
+        if (comp) {
+          (target as InstanceNode).swapComponent(comp);
+          result.icons.push({ namePath, componentKey: componentKeyOrId });
+        } else {
+          result.unmatched.push(namePath);
+        }
+      } catch (_e) {
+        result.unmatched.push(namePath);
+      }
+    } else {
+      result.unmatched.push(namePath);
+    }
+  }
+
+  return result;
+}
 
 export async function getStyles(): Promise<Record<string, unknown>> {
   const styles = {
@@ -61,6 +219,7 @@ export async function createComponentInstance(
   const parentId = params['parentId'] as string | undefined;
   const index = params['index'] as number | undefined;
   const replaceNodeId = params['replaceNodeId'] as string | undefined;
+  const contentOverrides = params['contentOverrides'] as ContentOverridesParam | undefined;
 
   if (!componentKey) {
     throw new Error('Missing componentKey parameter');
@@ -113,6 +272,9 @@ export async function createComponentInstance(
 
     let actualParentId: string = figma.currentPage.id;
 
+    // Capture content before replacement if needed
+    let capturedContent: CapturedContent | null = null;
+
     // Replace existing node
     if (replaceNodeId !== undefined) {
       const targetNode = await figma.getNodeByIdAsync(replaceNodeId);
@@ -127,6 +289,13 @@ export async function createComponentInstance(
           `Replace target's parent "${targetNode.parent.name}" cannot contain children (type: ${targetNode.parent.type})`,
         );
       }
+
+      // Capture content from target before removing it
+      if (contentOverrides && contentOverrides.preserveContent) {
+        capturedContent = await captureContent(targetNode);
+        debugLog(`Captured content: ${capturedContent.texts.size} texts, ${capturedContent.icons.size} icons`);
+      }
+
       const targetParent = targetNode.parent as ChildrenMixin;
       actualParentId = targetNode.parent.id;
       let targetIdx = -1;
@@ -179,8 +348,21 @@ export async function createComponentInstance(
       `Component instance "${instance.name}" created successfully at (${instance.x}, ${instance.y})`,
     );
 
+    // Apply content overrides if provided
+    let contentOverridesApplied: ContentOverridesResult | undefined;
+    if (contentOverrides) {
+      contentOverridesApplied = await applyContentToInstance(
+        instance,
+        capturedContent,
+        contentOverrides,
+      );
+      debugLog(
+        `Content overrides applied: ${contentOverridesApplied.text.length} texts, ${contentOverridesApplied.icons.length} icons, ${contentOverridesApplied.unmatched.length} unmatched`,
+      );
+    }
+
     const mainComponent = await instance.getMainComponentAsync();
-    return {
+    const resultObj: Record<string, unknown> = {
       id: instance.id,
       name: instance.name,
       x: instance.x,
@@ -190,6 +372,10 @@ export async function createComponentInstance(
       componentId: mainComponent !== null ? mainComponent.id : null,
       parentId: actualParentId,
     };
+    if (contentOverridesApplied) {
+      resultObj.contentOverridesApplied = contentOverridesApplied;
+    }
+    return resultObj;
   } catch (error) {
     const errorMessage =
       error instanceof Error ? error.message : String(error);
