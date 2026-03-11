@@ -171,6 +171,10 @@ export async function createComponentInstance(
       figma.currentPage.appendChild(instance);
     }
 
+    // Auto-focus on the created instance
+    figma.currentPage.selection = [instance];
+    figma.viewport.scrollAndZoomIntoView([instance]);
+
     debugLog(
       `Component instance "${instance.name}" created successfully at (${instance.x}, ${instance.y})`,
     );
