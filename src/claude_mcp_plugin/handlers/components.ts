@@ -47,7 +47,7 @@ async function captureContent(node: BaseNode): Promise<CapturedContent> {
       try {
         const mainComp = await (sceneNode as InstanceNode).getMainComponentAsync();
         if (mainComp) {
-          icons.set(namePath, mainComp.id);
+          icons.set(namePath, mainComp.key || mainComp.id);
         }
       } catch (_e) {
         // skip if we can't resolve
