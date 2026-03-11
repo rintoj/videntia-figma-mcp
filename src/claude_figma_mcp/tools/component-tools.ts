@@ -22,18 +22,31 @@ export function registerComponentTools(server: McpServer): void {
         .describe("Component node ID (for local, e.g., '123:456') or component key (for library components)"),
       x: z.coerce.number().describe("X position"),
       y: z.coerce.number().describe("Y position"),
+      parentId: z.string().optional().describe("ID of the parent node to insert the instance into (default: current page)"),
+      index: z.coerce.number().optional().describe("Zero-based position within the parent's children (0 = first; omit to append). Only valid when parentId is provided."),
+      replaceNodeId: z.string().optional().describe("ID of an existing node to replace with this instance. The instance inherits the replaced node's position and the replaced node is deleted. Mutually exclusive with parentId."),
       fields: coerceArray(fieldsSchema).optional().describe(
         "Optional array of fields to include. Controls which properties appear in both JSX and JSON output.",
       ),
       depth: depthSchema,
       output_format: outputFormatSchema,
     },
-    async ({ componentKey, x, y, fields, depth, output_format }) => {
+    async ({ componentKey, x, y, parentId, index, replaceNodeId, fields, depth, output_format }) => {
       try {
+        if (parentId && replaceNodeId) {
+          throw new Error("parentId and replaceNodeId are mutually exclusive. Provide one or the other, not both.");
+        }
+        if (index !== undefined && !parentId) {
+          throw new Error("index can only be used when parentId is provided.");
+        }
+
         const result = await sendCommandToFigma<CreateComponentInstanceResult>("create_component_instance", {
           componentKey,
           x,
           y,
+          parentId,
+          index,
+          replaceNodeId,
         });
 
         if (output_format === "jsx" && result?.id) {

@@ -59,6 +59,8 @@ export async function createComponentInstance(
   const x = params['x'] !== undefined ? (params['x'] as number) : 0;
   const y = params['y'] !== undefined ? (params['y'] as number) : 0;
   const parentId = params['parentId'] as string | undefined;
+  const index = params['index'] as number | undefined;
+  const replaceNodeId = params['replaceNodeId'] as string | undefined;
 
   if (!componentKey) {
     throw new Error('Missing componentKey parameter');
@@ -109,14 +111,57 @@ export async function createComponentInstance(
     instance.x = x;
     instance.y = y;
 
-    // Add to parent or current page
-    if (parentId !== undefined) {
+    let actualParentId: string = figma.currentPage.id;
+
+    // Replace existing node
+    if (replaceNodeId !== undefined) {
+      const targetNode = await figma.getNodeByIdAsync(replaceNodeId);
+      if (!targetNode) {
+        throw new Error(`Replace target node with ID ${replaceNodeId} not found`);
+      }
+      if (!targetNode.parent) {
+        throw new Error(`Replace target node "${targetNode.name}" has no parent`);
+      }
+      if (!('appendChild' in targetNode.parent)) {
+        throw new Error(
+          `Replace target's parent "${targetNode.parent.name}" cannot contain children (type: ${targetNode.parent.type})`,
+        );
+      }
+      const targetParent = targetNode.parent as ChildrenMixin;
+      actualParentId = targetNode.parent.id;
+      let targetIdx = -1;
+      for (let i = 0; i < targetParent.children.length; i++) {
+        if (targetParent.children[i].id === targetNode.id) {
+          targetIdx = i;
+          break;
+        }
+      }
+      const tx = 'x' in targetNode ? (targetNode as SceneNode).x : 0;
+      const ty = 'y' in targetNode ? (targetNode as SceneNode).y : 0;
+      const tw = 'width' in targetNode ? (targetNode as SceneNode).width : 100;
+      const th = 'height' in targetNode ? (targetNode as SceneNode).height : 100;
+      if (targetIdx >= 0) {
+        targetParent.insertChild(targetIdx, instance);
+      } else {
+        targetParent.appendChild(instance);
+      }
+      instance.x = tx;
+      instance.y = ty;
+      instance.resize(Math.max(tw, 0.01), Math.max(th, 0.01));
+      targetNode.remove();
+    } else if (parentId !== undefined) {
+      // Add to specified parent
       const parent = await figma.getNodeByIdAsync(parentId);
       if (!parent) {
         throw new Error(`Parent node with ID ${parentId} not found`);
       }
       if ('appendChild' in parent) {
-        (parent as ChildrenMixin).appendChild(instance);
+        if (index !== undefined) {
+          (parent as ChildrenMixin).insertChild(index, instance);
+        } else {
+          (parent as ChildrenMixin).appendChild(instance);
+        }
+        actualParentId = parentId;
       } else {
         throw new Error(
           `Parent node "${parent.name}" cannot contain children (type: ${parent.type})`,
@@ -127,7 +172,7 @@ export async function createComponentInstance(
     }
 
     debugLog(
-      `Component instance "${instance.name}" created successfully at (${x}, ${y})`,
+      `Component instance "${instance.name}" created successfully at (${instance.x}, ${instance.y})`,
     );
 
     const mainComponent = await instance.getMainComponentAsync();
@@ -139,8 +184,7 @@ export async function createComponentInstance(
       width: instance.width,
       height: instance.height,
       componentId: mainComponent !== null ? mainComponent.id : null,
-      parentId:
-        parentId !== undefined ? parentId : figma.currentPage.id,
+      parentId: actualParentId,
     };
   } catch (error) {
     const errorMessage =
