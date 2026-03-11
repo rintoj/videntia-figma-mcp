@@ -29,6 +29,7 @@ export function registerComponentTools(server: McpServer): void {
         preserveContent: z.boolean().optional().describe("Auto-copy text and icon content from the replaced node to the new instance (matched by child name path)"),
         textOverrides: z.record(z.string(), z.string()).optional().describe("Explicit text overrides by child name path (e.g. {\"Title\": \"New Title\", \"Card/Subtitle\": \"New Subtitle\"})"),
         iconOverrides: z.record(z.string(), z.string()).optional().describe("Icon swaps by child name path → component key/ID (e.g. {\"Icon\": \"123:456\"})"),
+        force: z.boolean().optional().describe("Proceed even when captured content can't be matched to the new instance"),
       }).optional().describe("Content overrides to apply after instance creation. preserveContent only works with replaceNodeId."),
       fields: coerceArray(fieldsSchema).optional().describe(
         "Optional array of fields to include. Controls which properties appear in both JSX and JSON output.",

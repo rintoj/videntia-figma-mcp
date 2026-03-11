@@ -62,6 +62,7 @@ interface ContentOverridesParam {
   preserveContent?: boolean;
   textOverrides?: Record<string, string>;
   iconOverrides?: Record<string, string>;
+  force?: boolean;
 }
 
 interface ContentOverridesResult {
@@ -153,6 +154,106 @@ async function applyContentToInstance(
     } else {
       result.unmatched.push(namePath);
     }
+  }
+
+  // Positional fallback: match remaining unmatched by type + position
+  if (result.unmatched.length > 0) {
+    var matchedPaths = new Set<string>();
+    for (var mi = 0; mi < result.text.length; mi++) matchedPaths.add(result.text[mi].namePath);
+    for (var mi2 = 0; mi2 < result.icons.length; mi2++) matchedPaths.add(result.icons[mi2].namePath);
+
+    var unmatchedTexts: Array<[string, string]> = [];
+    var unmatchedIcons: Array<[string, string]> = [];
+    for (var ui = 0; ui < result.unmatched.length; ui++) {
+      var uPath = result.unmatched[ui];
+      if (mergedTexts.has(uPath)) unmatchedTexts.push([uPath, mergedTexts.get(uPath)!]);
+      if (mergedIcons.has(uPath)) unmatchedIcons.push([uPath, mergedIcons.get(uPath)!]);
+    }
+
+    // Find available (unmatched) target nodes by type
+    var availableTextNodes: Array<[string, SceneNode]> = [];
+    var availableInstanceNodes: Array<[string, SceneNode]> = [];
+    for (var _a = namePathMap.entries(), _b = _a.next(); !_b.done; _b = _a.next()) {
+      var entry = _b.value;
+      var ePath = entry[0];
+      var eNode = entry[1];
+      if (matchedPaths.has(ePath)) continue;
+      if (eNode.type === 'TEXT') availableTextNodes.push([ePath, eNode]);
+      else if (eNode.type === 'INSTANCE') availableInstanceNodes.push([ePath, eNode]);
+    }
+
+    var newUnmatched: string[] = [];
+
+    // Positional fallback for texts
+    var textIdx = 0;
+    for (var ti = 0; ti < unmatchedTexts.length; ti++) {
+      if (textIdx < availableTextNodes.length) {
+        var origPath = unmatchedTexts[ti][0];
+        var textVal = unmatchedTexts[ti][1];
+        var targetPath = availableTextNodes[textIdx][0];
+        var targetNode = availableTextNodes[textIdx][1];
+        textIdx++;
+        try {
+          await setCharacters(targetNode as TextNode, textVal);
+          result.text.push({ namePath: targetPath, value: textVal });
+          matchedPaths.add(targetPath);
+        } catch (_e) {
+          newUnmatched.push(origPath);
+        }
+      } else {
+        newUnmatched.push(unmatchedTexts[ti][0]);
+      }
+    }
+
+    // Positional fallback for icons
+    var iconIdx = 0;
+    for (var ii = 0; ii < unmatchedIcons.length; ii++) {
+      if (iconIdx < availableInstanceNodes.length) {
+        var iOrigPath = unmatchedIcons[ii][0];
+        var componentKeyOrId = unmatchedIcons[ii][1];
+        var iTargetPath = availableInstanceNodes[iconIdx][0];
+        var iTargetNode = availableInstanceNodes[iconIdx][1];
+        iconIdx++;
+        try {
+          var comp: ComponentNode | null = null;
+          if (componentKeyOrId.includes(':')) {
+            var localNode = await figma.getNodeByIdAsync(componentKeyOrId);
+            if (localNode !== null && localNode.type === 'COMPONENT') {
+              comp = localNode as ComponentNode;
+            }
+          }
+          if (!comp) {
+            try {
+              comp = await figma.importComponentByKeyAsync(componentKeyOrId);
+            } catch (_e) {
+              // ignore
+            }
+          }
+          if (comp) {
+            (iTargetNode as InstanceNode).swapComponent(comp);
+            result.icons.push({ namePath: iTargetPath, componentKey: componentKeyOrId });
+            matchedPaths.add(iTargetPath);
+          } else {
+            newUnmatched.push(iOrigPath);
+          }
+        } catch (_e) {
+          newUnmatched.push(iOrigPath);
+        }
+      } else {
+        newUnmatched.push(unmatchedIcons[ii][0]);
+      }
+    }
+
+    result.unmatched = newUnmatched;
+  }
+
+  // Error if still unmatched and not forced
+  if (result.unmatched.length > 0 && !contentOverrides.force) {
+    throw new Error(
+      'preserveContent: could not match the following content to the new instance: '
+      + result.unmatched.join(', ')
+      + '. Use force: true in contentOverrides to proceed anyway.'
+    );
   }
 
   return result;
