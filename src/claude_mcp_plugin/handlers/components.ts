@@ -59,6 +59,8 @@ export async function createComponentInstance(
   const x = params['x'] !== undefined ? (params['x'] as number) : 0;
   const y = params['y'] !== undefined ? (params['y'] as number) : 0;
   const parentId = params['parentId'] as string | undefined;
+  const index = params['index'] as number | undefined;
+  const replaceNodeId = params['replaceNodeId'] as string | undefined;
 
   if (!componentKey) {
     throw new Error('Missing componentKey parameter');
@@ -109,14 +111,52 @@ export async function createComponentInstance(
     instance.x = x;
     instance.y = y;
 
-    // Add to parent or current page
-    if (parentId !== undefined) {
+    // Replace existing node
+    if (replaceNodeId !== undefined) {
+      const targetNode = await figma.getNodeByIdAsync(replaceNodeId);
+      if (!targetNode) {
+        throw new Error(`Replace target node with ID ${replaceNodeId} not found`);
+      }
+      if (!targetNode.parent) {
+        throw new Error(`Replace target node "${targetNode.name}" has no parent`);
+      }
+      const targetParent = targetNode.parent as ChildrenMixin;
+      var targetIndex = -1;
+      for (var i = 0; i < targetParent.children.length; i++) {
+        if (targetParent.children[i].id === targetNode.id) {
+          targetIndex = i;
+          break;
+        }
+      }
+      var tx = 0;
+      var ty = 0;
+      var tw = 100;
+      var th = 100;
+      if ('x' in targetNode) { tx = (targetNode as SceneNode).x; }
+      if ('y' in targetNode) { ty = (targetNode as SceneNode).y; }
+      if ('width' in targetNode) { tw = (targetNode as SceneNode).width; }
+      if ('height' in targetNode) { th = (targetNode as SceneNode).height; }
+      if (targetIndex >= 0) {
+        targetParent.insertChild(targetIndex, instance);
+      } else {
+        targetParent.appendChild(instance);
+      }
+      instance.x = tx;
+      instance.y = ty;
+      instance.resize(tw, th);
+      targetNode.remove();
+    } else if (parentId !== undefined) {
+      // Add to specified parent
       const parent = await figma.getNodeByIdAsync(parentId);
       if (!parent) {
         throw new Error(`Parent node with ID ${parentId} not found`);
       }
       if ('appendChild' in parent) {
-        (parent as ChildrenMixin).appendChild(instance);
+        if (index !== undefined) {
+          (parent as ChildrenMixin).insertChild(index, instance);
+        } else {
+          (parent as ChildrenMixin).appendChild(instance);
+        }
       } else {
         throw new Error(
           `Parent node "${parent.name}" cannot contain children (type: ${parent.type})`,
