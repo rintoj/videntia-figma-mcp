@@ -156,7 +156,7 @@ async function applyContentToInstance(
     }
   }
 
-  // Positional fallback: match remaining unmatched by type + position
+  // Positional fallback: match remaining unmatched by type + position (depth-first traversal order)
   if (result.unmatched.length > 0) {
     var matchedPaths = new Set<string>();
     for (var mi = 0; mi < result.text.length; mi++) matchedPaths.add(result.text[mi].namePath);
@@ -164,25 +164,28 @@ async function applyContentToInstance(
 
     var unmatchedTexts: Array<[string, string]> = [];
     var unmatchedIcons: Array<[string, string]> = [];
+    var unmatchedOther: string[] = [];
     for (var ui = 0; ui < result.unmatched.length; ui++) {
       var uPath = result.unmatched[ui];
-      if (mergedTexts.has(uPath)) unmatchedTexts.push([uPath, mergedTexts.get(uPath)!]);
-      if (mergedIcons.has(uPath)) unmatchedIcons.push([uPath, mergedIcons.get(uPath)!]);
+      var classified = false;
+      if (mergedTexts.has(uPath)) { unmatchedTexts.push([uPath, mergedTexts.get(uPath)!]); classified = true; }
+      if (mergedIcons.has(uPath)) { unmatchedIcons.push([uPath, mergedIcons.get(uPath)!]); classified = true; }
+      if (!classified) unmatchedOther.push(uPath);
     }
 
     // Find available (unmatched) target nodes by type
     var availableTextNodes: Array<[string, SceneNode]> = [];
     var availableInstanceNodes: Array<[string, SceneNode]> = [];
-    for (var _a = namePathMap.entries(), _b = _a.next(); !_b.done; _b = _a.next()) {
-      var entry = _b.value;
-      var ePath = entry[0];
-      var eNode = entry[1];
+    var npKeys = Array.from(namePathMap.keys());
+    for (var npi = 0; npi < npKeys.length; npi++) {
+      var ePath = npKeys[npi];
+      var eNode = namePathMap.get(ePath)!;
       if (matchedPaths.has(ePath)) continue;
       if (eNode.type === 'TEXT') availableTextNodes.push([ePath, eNode]);
       else if (eNode.type === 'INSTANCE') availableInstanceNodes.push([ePath, eNode]);
     }
 
-    var newUnmatched: string[] = [];
+    var newUnmatched: string[] = unmatchedOther.slice();
 
     // Positional fallback for texts
     var textIdx = 0;
@@ -192,12 +195,14 @@ async function applyContentToInstance(
         var textVal = unmatchedTexts[ti][1];
         var targetPath = availableTextNodes[textIdx][0];
         var targetNode = availableTextNodes[textIdx][1];
-        textIdx++;
         try {
           await setCharacters(targetNode as TextNode, textVal);
           result.text.push({ namePath: targetPath, value: textVal });
           matchedPaths.add(targetPath);
+          textIdx++;
         } catch (_e) {
+          // Skip this target slot on failure and try the next one
+          textIdx++;
           newUnmatched.push(origPath);
         }
       } else {
@@ -213,7 +218,6 @@ async function applyContentToInstance(
         var componentKeyOrId = unmatchedIcons[ii][1];
         var iTargetPath = availableInstanceNodes[iconIdx][0];
         var iTargetNode = availableInstanceNodes[iconIdx][1];
-        iconIdx++;
         try {
           var comp: ComponentNode | null = null;
           if (componentKeyOrId.includes(':')) {
@@ -233,10 +237,13 @@ async function applyContentToInstance(
             (iTargetNode as InstanceNode).swapComponent(comp);
             result.icons.push({ namePath: iTargetPath, componentKey: componentKeyOrId });
             matchedPaths.add(iTargetPath);
+            iconIdx++;
           } else {
+            iconIdx++;
             newUnmatched.push(iOrigPath);
           }
         } catch (_e) {
+          iconIdx++;
           newUnmatched.push(iOrigPath);
         }
       } else {
