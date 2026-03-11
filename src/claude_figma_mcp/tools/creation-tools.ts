@@ -290,16 +290,21 @@ export function registerCreationTools(server: McpServer): void {
       nodeId: z.string().describe("The ID of the node to clone"),
       x: z.coerce.number().optional().describe("New X position for the clone"),
       y: z.coerce.number().optional().describe("New Y position for the clone"),
+      parentId: z.string().optional().describe("ID of the parent node to place the clone into"),
+      index: z.coerce.number().optional().describe("Zero-based position within the parent's children (omit to append)"),
     },
-    async ({ nodeId, x, y }) => {
+    async ({ nodeId, x, y, parentId, index }) => {
       try {
-        const result = await sendCommandToFigma("clone_node", { nodeId, x, y });
+        const result = await sendCommandToFigma("clone_node", { nodeId, x, y, parentId, index });
         const typedResult = result as { name: string; id: string };
+        const parts = [`Cloned node "${typedResult.name}" with new ID: ${typedResult.id}`];
+        if (parentId) parts.push(`into parent ${parentId}${index !== undefined ? ` at index ${index}` : ""}`);
+        if (x !== undefined && y !== undefined) parts.push(`at position (${x}, ${y})`);
         return {
           content: [
             {
               type: "text",
-              text: `Cloned node "${typedResult.name}" with new ID: ${typedResult.id}${x !== undefined && y !== undefined ? ` at position (${x}, ${y})` : ""}`,
+              text: parts.join(" "),
             },
           ],
         };

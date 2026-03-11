@@ -446,6 +446,8 @@ export async function cloneNode(params: Record<string, unknown>): Promise<Record
   const nodeId = getOptParam<string>(params, 'nodeId');
   const x = getOptParam<number>(params, 'x');
   const y = getOptParam<number>(params, 'y');
+  const parentId = getOptParam<string>(params, 'parentId');
+  const index = getOptParam<number>(params, 'index');
 
   if (!nodeId) {
     throw new Error('Missing nodeId parameter');
@@ -468,8 +470,22 @@ export async function cloneNode(params: Record<string, unknown>): Promise<Record
     (clone as FrameNode).y = y;
   }
 
-  // Add the clone to the same parent as the original node
-  if ((node as SceneNode).parent) {
+  // Determine target parent
+  if (parentId) {
+    const parentNode = await figma.getNodeByIdAsync(parentId);
+    if (!parentNode) {
+      throw new Error('Parent node not found with ID: ' + parentId);
+    }
+    if (!('children' in parentNode)) {
+      throw new Error('Parent node does not support children: ' + parentId);
+    }
+    const container = parentNode as FrameNode;
+    if (index !== undefined && index !== null) {
+      container.insertChild(index, clone);
+    } else {
+      container.appendChild(clone);
+    }
+  } else if ((node as SceneNode).parent) {
     ((node as SceneNode).parent as FrameNode).appendChild(clone);
   } else {
     figma.currentPage.appendChild(clone);
