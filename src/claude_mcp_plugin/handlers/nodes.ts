@@ -475,6 +475,10 @@ export async function cloneNode(params: Record<string, unknown>): Promise<Record
     figma.currentPage.appendChild(clone);
   }
 
+  // Focus on the cloned node
+  figma.currentPage.selection = [clone];
+  figma.viewport.scrollAndZoomIntoView([clone]);
+
   return {
     id: clone.id,
     name: clone.name,
