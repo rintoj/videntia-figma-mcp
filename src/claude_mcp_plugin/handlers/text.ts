@@ -1,7 +1,7 @@
 import { debugLog, sendProgressUpdate, uniqBy, delay, generateCommandId, getFontStyle, parseNum } from '../utils/helpers';
 
 // ---------------------------------------------------------------------------
-// setCharacters helpers (internal — not exported)
+// setCharacters helpers
 // ---------------------------------------------------------------------------
 
 const getDelimiterPos = (
@@ -168,7 +168,7 @@ interface SetCharactersOptions {
   smartStrategy?: 'prevail' | 'strict' | 'experimental';
 }
 
-const setCharacters = async (
+export const setCharacters = async (
   node: TextNode,
   characters: string,
   options?: SetCharactersOptions,

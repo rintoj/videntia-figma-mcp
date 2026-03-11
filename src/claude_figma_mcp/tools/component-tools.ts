@@ -25,13 +25,18 @@ export function registerComponentTools(server: McpServer): void {
       parentId: z.string().optional().describe("ID of the parent node to insert the instance into (default: current page)"),
       index: z.coerce.number().optional().describe("Zero-based position within the parent's children (0 = first; omit to append). Only valid when parentId is provided."),
       replaceNodeId: z.string().optional().describe("ID of an existing node to replace with this instance. The instance inherits the replaced node's position and the replaced node is deleted. Mutually exclusive with parentId."),
+      contentOverrides: z.object({
+        preserveContent: z.boolean().optional().describe("Auto-copy text and icon content from the replaced node to the new instance (matched by child name path)"),
+        textOverrides: z.record(z.string(), z.string()).optional().describe("Explicit text overrides by child name path (e.g. {\"Title\": \"New Title\", \"Card/Subtitle\": \"New Subtitle\"})"),
+        iconOverrides: z.record(z.string(), z.string()).optional().describe("Icon swaps by child name path → component key/ID (e.g. {\"Icon\": \"123:456\"})"),
+      }).optional().describe("Content overrides to apply after instance creation. preserveContent only works with replaceNodeId."),
       fields: coerceArray(fieldsSchema).optional().describe(
         "Optional array of fields to include. Controls which properties appear in both JSX and JSON output.",
       ),
       depth: depthSchema,
       output_format: outputFormatSchema,
     },
-    async ({ componentKey, x, y, parentId, index, replaceNodeId, fields, depth, output_format }) => {
+    async ({ componentKey, x, y, parentId, index, replaceNodeId, contentOverrides, fields, depth, output_format }) => {
       try {
         if (parentId && replaceNodeId) {
           throw new Error("parentId and replaceNodeId are mutually exclusive. Provide one or the other, not both.");
@@ -47,6 +52,7 @@ export function registerComponentTools(server: McpServer): void {
           parentId,
           index,
           replaceNodeId,
+          contentOverrides,
         });
 
         if (output_format === "jsx" && result?.id) {

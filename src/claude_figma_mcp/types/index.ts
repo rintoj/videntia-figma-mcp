@@ -599,10 +599,17 @@ export interface DesignSystemCollectionResult {
 }
 
 // Component tools
+export interface ContentOverridesApplied {
+  text: Array<{ namePath: string; value: string }>;
+  icons: Array<{ namePath: string; componentKey: string }>;
+  unmatched: string[];
+}
+
 export interface CreateComponentInstanceResult {
   id?: string;
   name?: string;
   componentKey?: string;
+  contentOverridesApplied?: ContentOverridesApplied;
   [key: string]: unknown;
 }
 
