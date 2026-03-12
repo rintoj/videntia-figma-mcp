@@ -377,21 +377,8 @@ export async function createSvg(params: Record<string, unknown>): Promise<unknow
     }
   }
 
-  // Bind color variable to all child strokes if requested
-  var colorVariableBound: boolean | undefined = undefined;
-  var colorVariableWarning: string | undefined = undefined;
-  if (colorVariable !== undefined && colorVariable !== null && colorVariable !== '') {
-    const variable = await resolveColorVariable(colorVariable);
-    if (variable !== null) {
-      bindVariableToStrokes(svgNode as SceneNode, variable);
-      colorVariableBound = true;
-    } else {
-      colorVariableBound = false;
-      colorVariableWarning = 'Variable "' + colorVariable + '" not found. Check that the variable exists in your Figma file.';
-    }
-  }
-
-  // Flatten to single vector if requested
+  // Flatten to single vector if requested (must happen before variable binding,
+  // because flatten discards bound variables on child strokes)
   if (flatten && 'children' in svgNode && (svgNode as FrameNode).children.length > 0) {
     try {
       const flattened = figma.flatten([svgNode as FrameNode]);
@@ -403,6 +390,20 @@ export async function createSvg(params: Record<string, unknown>): Promise<unknow
     } catch (flattenError) {
       console.warn(`createSvg: Could not flatten SVG: ${flattenError}`);
       // Continue with unflattened node
+    }
+  }
+
+  // Bind color variable to all child strokes if requested (after flatten so bindings persist)
+  var colorVariableBound: boolean | undefined = undefined;
+  var colorVariableWarning: string | undefined = undefined;
+  if (colorVariable !== undefined && colorVariable !== null && colorVariable !== '') {
+    const variable = await resolveColorVariable(colorVariable);
+    if (variable !== null) {
+      bindVariableToStrokes(svgNode as SceneNode, variable);
+      colorVariableBound = true;
+    } else {
+      colorVariableBound = false;
+      colorVariableWarning = 'Variable "' + colorVariable + '" not found. Check that the variable exists in your Figma file.';
     }
   }
 

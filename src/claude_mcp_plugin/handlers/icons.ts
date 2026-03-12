@@ -13,9 +13,13 @@ import { debugLog } from '../utils/helpers';
  *
  * Resolution order:
  *   1. Exact match on variable name
- *   2. Tailwind normalised form: replace trailing "-<digits>" with "/<digits>"
- *      so "gray-500" → "gray/500"
+ *   2. Tailwind normalised form: replace dashes with slashes
+ *      so "gray-500" → "gray/500", "text-secondary" → "text/secondary"
+ *   2b. Partial normalisation: only trailing digit segment "gray-500" → "gray/500"
  *   3. Case-insensitive exact match
+ *   4. Suffix match: check if any variable name ends with "/<input>" or "/<normalized>"
+ *      e.g. "text-secondary" matches "color/text/secondary"
+ *      When multiple matches exist, the shortest name wins (most specific).
  *
  * Returns null if no COLOR variable is found.
  */
@@ -68,10 +72,11 @@ export async function resolveColorVariable(
     }
   }
   if (suffixMatches.length > 0) {
-    // Pick the shortest name (most specific match)
+    // Pick the shortest name (most specific match); alphabetical tie-break for determinism
     var best = suffixMatches[0];
     for (var sj = 1; sj < suffixMatches.length; sj++) {
-      if (suffixMatches[sj].name.length < best.name.length) {
+      if (suffixMatches[sj].name.length < best.name.length ||
+          (suffixMatches[sj].name.length === best.name.length && suffixMatches[sj].name < best.name)) {
         best = suffixMatches[sj];
       }
     }
