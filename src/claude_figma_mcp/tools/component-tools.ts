@@ -31,13 +31,14 @@ export function registerComponentTools(server: McpServer): void {
         iconOverrides: z.record(z.string(), z.string()).optional().describe("Icon swaps by child name path → component key/ID (e.g. {\"Icon\": \"123:456\"})"),
         force: z.boolean().optional().describe("Proceed even when captured content can't be matched to the new instance"),
       }).optional().describe("Content overrides to apply after instance creation. preserveContent only works with replaceNodeId."),
+      instanceProperties: z.record(z.string(), z.union([z.string(), z.boolean()])).optional().describe("Component properties to set on the instance after creation (e.g. {\"HasIcon\": true, \"Label\": \"Click me\"}). Use property names from get_component_properties."),
       fields: coerceArray(fieldsSchema).optional().describe(
         "Optional array of fields to include. Controls which properties appear in both JSX and JSON output.",
       ),
       depth: depthSchema,
       output_format: outputFormatSchema,
     },
-    async ({ componentKey, x, y, parentId, index, replaceNodeId, contentOverrides, fields, depth, output_format }) => {
+    async ({ componentKey, x, y, parentId, index, replaceNodeId, contentOverrides, instanceProperties, fields, depth, output_format }) => {
       try {
         if (parentId && replaceNodeId) {
           throw new Error("parentId and replaceNodeId are mutually exclusive. Provide one or the other, not both.");
@@ -54,6 +55,7 @@ export function registerComponentTools(server: McpServer): void {
           index,
           replaceNodeId,
           contentOverrides,
+          instanceProperties,
         });
 
         if (output_format === "jsx" && result?.id) {
@@ -644,16 +646,30 @@ export function registerComponentTools(server: McpServer): void {
   // Swap Instance Component
   server.tool(
     "swap_instance",
-    "Swap a component instance to use a different component. The instance keeps its position and size.",
+    "Swap a component instance to use a different component. The instance keeps its position and size. Supports preserving text/icon content from the old instance.",
     {
       nodeId: z.string().describe("The ID of the instance node to swap"),
       componentKeyOrId: z.string().describe("Target component node ID (e.g., '123:456') or component key"),
+      contentOverrides: z.object({
+        preserveContent: z.boolean().optional().describe("Auto-copy text and icon content from the old instance to the swapped instance (matched by child name path)"),
+        textOverrides: z.record(z.string(), z.string()).optional().describe("Explicit text overrides by child name path (e.g. {\"Title\": \"New Title\", \"Card/Subtitle\": \"New Subtitle\"})"),
+        iconOverrides: z.record(z.string(), z.string()).optional().describe("Icon swaps by child name path → component key/ID (e.g. {\"Icon\": \"123:456\"})"),
+        force: z.boolean().optional().describe("Proceed even when captured content can't be matched to the new instance"),
+      }).optional().describe("Content overrides to apply after swapping. preserveContent captures content from the instance before the swap."),
+      instanceProperties: z.record(z.string(), z.union([z.string(), z.boolean()])).optional().describe("Component properties to set on the instance after swapping (e.g. {\"HasIcon\": true, \"Label\": \"Click me\"})"),
+      fields: coerceArray(fieldsSchema).optional().describe(
+        "Optional array of fields to include. Controls which properties appear in both JSX and JSON output.",
+      ),
+      depth: depthSchema,
+      output_format: outputFormatSchema,
     },
-    async ({ nodeId, componentKeyOrId }) => {
+    async ({ nodeId, componentKeyOrId, contentOverrides, instanceProperties, fields, depth, output_format }) => {
       try {
         const result = await sendCommandToFigma("swap_instance", {
           nodeId,
           componentKeyOrId,
+          contentOverrides,
+          instanceProperties,
         });
         const typedResult = result as {
           success: boolean;
@@ -661,14 +677,21 @@ export function registerComponentTools(server: McpServer): void {
           name: string;
           oldComponent: { id: string; name: string };
           newComponent: { id: string; name: string };
+          contentOverridesApplied?: { text: unknown[]; icons: unknown[]; unmatched: unknown[] };
         };
+
+        if (output_format === "jsx" && typedResult?.nodeId) {
+          const jsx = await fetchNodesAsJsx([typedResult.nodeId], resolveDepth(depth), fields);
+          return { content: [{ type: "text", text: jsx }] };
+        }
+
+        let text = `Swapped instance "${typedResult.name}" from "${typedResult.oldComponent.name}" to "${typedResult.newComponent.name}"`;
+        if (typedResult.contentOverridesApplied) {
+          const co = typedResult.contentOverridesApplied;
+          text += `\nContent overrides: ${co.text.length} texts, ${co.icons.length} icons, ${co.unmatched.length} unmatched`;
+        }
         return {
-          content: [
-            {
-              type: "text",
-              text: `Swapped instance "${typedResult.name}" from "${typedResult.oldComponent.name}" to "${typedResult.newComponent.name}"`,
-            },
-          ],
+          content: [{ type: "text", text }],
         };
       } catch (error) {
         return {
