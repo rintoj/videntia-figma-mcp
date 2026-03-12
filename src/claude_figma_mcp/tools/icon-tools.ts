@@ -310,7 +310,11 @@ export function registerIconTools(server: McpServer): void {
           colorVariable: effectiveColorVar,
         });
 
-        const typedResult = createResult as { id: string; name: string; width: number; height: number };
+        const typedResult = createResult as {
+          id: string; name: string; width: number; height: number;
+          colorVariableBound?: boolean;
+          colorVariableWarning?: string;
+        };
 
         let finalIndex: number | null = null;
         if (index !== undefined) {
@@ -332,23 +336,27 @@ export function registerIconTools(server: McpServer): void {
           }
         }
 
+        const responsePayload: Record<string, unknown> = {
+          id: typedResult.id,
+          name: typedResult.name,
+          iconName: icon.name,
+          color,
+          size,
+          parentId,
+          index: finalIndex,
+        };
+        if (typedResult.colorVariableBound !== undefined) {
+          responsePayload.colorVariableBound = typedResult.colorVariableBound;
+        }
+        if (typedResult.colorVariableWarning !== undefined) {
+          responsePayload.colorVariableWarning = typedResult.colorVariableWarning;
+        }
+
         return {
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify(
-                {
-                  id: typedResult.id,
-                  name: typedResult.name,
-                  iconName: icon.name,
-                  color,
-                  size,
-                  parentId,
-                  index: finalIndex,
-                },
-                null,
-                2,
-              ),
+              text: JSON.stringify(responsePayload, null, 2),
             },
           ],
         };
@@ -418,25 +426,33 @@ export function registerIconTools(server: McpServer): void {
           colorVariable: effectiveColorVar,
         });
 
-        const typedResult = result as { id: string; name: string; parentId: string; index: number };
+        const typedResult = result as {
+          id: string; name: string; parentId: string; index: number;
+          colorVariableBound?: boolean;
+          colorVariableWarning?: string;
+        };
+
+        const updatePayload: Record<string, unknown> = {
+          id: typedResult.id,
+          name: typedResult.name,
+          iconName: icon.name,
+          color,
+          size,
+          parentId: typedResult.parentId,
+          index: typedResult.index,
+        };
+        if (typedResult.colorVariableBound !== undefined) {
+          updatePayload.colorVariableBound = typedResult.colorVariableBound;
+        }
+        if (typedResult.colorVariableWarning !== undefined) {
+          updatePayload.colorVariableWarning = typedResult.colorVariableWarning;
+        }
 
         return {
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify(
-                {
-                  id: typedResult.id,
-                  name: typedResult.name,
-                  iconName: icon.name,
-                  color,
-                  size,
-                  parentId: typedResult.parentId,
-                  index: typedResult.index,
-                },
-                null,
-                2,
-              ),
+              text: JSON.stringify(updatePayload, null, 2),
             },
           ],
         };

@@ -13,9 +13,13 @@ import { debugLog } from '../utils/helpers';
  *
  * Resolution order:
  *   1. Exact match on variable name
- *   2. Tailwind normalised form: replace trailing "-<digits>" with "/<digits>"
- *      so "gray-500" → "gray/500"
+ *   2. Tailwind normalised form: replace dashes with slashes
+ *      so "gray-500" → "gray/500", "text-secondary" → "text/secondary"
+ *   2b. Partial normalisation: only trailing digit segment "gray-500" → "gray/500"
  *   3. Case-insensitive exact match
+ *   4. Suffix match: check if any variable name ends with "/<input>" or "/<normalized>"
+ *      e.g. "text-secondary" matches "color/text/secondary"
+ *      When multiple matches exist, the shortest name wins (most specific).
  *
  * Returns null if no COLOR variable is found.
  */
@@ -53,6 +57,31 @@ export async function resolveColorVariable(
   const lower = variableName.toLowerCase();
   const ci = colorVars.find(function(v) { return v.name.toLowerCase() === lower; });
   if (ci !== undefined) return ci;
+
+  // 4. Suffix match: check if any variable name ends with "/<normalized>" or "/<exact>"
+  //    e.g., "text/secondary" matches "color/text/secondary"
+  var suffixExact = '/' + variableName;
+  var suffixNorm = '/' + normalized;
+  var suffixMatches: Variable[] = [];
+  for (var si = 0; si < colorVars.length; si++) {
+    var vName = colorVars[si].name;
+    if (vName.length > suffixExact.length && vName.indexOf(suffixExact, vName.length - suffixExact.length) !== -1) {
+      suffixMatches.push(colorVars[si]);
+    } else if (suffixNorm !== suffixExact && vName.length > suffixNorm.length && vName.indexOf(suffixNorm, vName.length - suffixNorm.length) !== -1) {
+      suffixMatches.push(colorVars[si]);
+    }
+  }
+  if (suffixMatches.length > 0) {
+    // Pick the shortest name (most specific match); alphabetical tie-break for determinism
+    var best = suffixMatches[0];
+    for (var sj = 1; sj < suffixMatches.length; sj++) {
+      if (suffixMatches[sj].name.length < best.name.length ||
+          (suffixMatches[sj].name.length === best.name.length && suffixMatches[sj].name < best.name)) {
+        best = suffixMatches[sj];
+      }
+    }
+    return best;
+  }
 
   return null;
 }
@@ -193,10 +222,16 @@ export async function updateIcon(
   }
 
   // Bind color variable to all strokes if requested
+  var colorVariableBound: boolean | undefined = undefined;
+  var colorVariableWarning: string | undefined = undefined;
   if (colorVariable !== undefined && colorVariable !== null && colorVariable !== '') {
     const variable = await resolveColorVariable(colorVariable);
     if (variable !== null) {
       bindVariableToStrokes(svgNode as SceneNode, variable);
+      colorVariableBound = true;
+    } else {
+      colorVariableBound = false;
+      colorVariableWarning = 'Variable "' + colorVariable + '" not found. Check that the variable exists in your Figma file.';
     }
   }
 
@@ -233,7 +268,7 @@ export async function updateIcon(
     }
   }
 
-  return {
+  var result: Record<string, unknown> = {
     id: svgNode.id,
     name: svgNode.name,
     parentId:
@@ -242,4 +277,11 @@ export async function updateIcon(
         : undefined,
     index,
   };
+  if (colorVariableBound !== undefined) {
+    result['colorVariableBound'] = colorVariableBound;
+  }
+  if (colorVariableWarning !== undefined) {
+    result['colorVariableWarning'] = colorVariableWarning;
+  }
+  return result;
 }
