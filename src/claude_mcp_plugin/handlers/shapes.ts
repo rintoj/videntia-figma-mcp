@@ -378,10 +378,16 @@ export async function createSvg(params: Record<string, unknown>): Promise<unknow
   }
 
   // Bind color variable to all child strokes if requested
+  var colorVariableBound: boolean | undefined = undefined;
+  var colorVariableWarning: string | undefined = undefined;
   if (colorVariable !== undefined && colorVariable !== null && colorVariable !== '') {
     const variable = await resolveColorVariable(colorVariable);
     if (variable !== null) {
       bindVariableToStrokes(svgNode as SceneNode, variable);
+      colorVariableBound = true;
+    } else {
+      colorVariableBound = false;
+      colorVariableWarning = 'Variable "' + colorVariable + '" not found. Check that the variable exists in your Figma file.';
     }
   }
 
@@ -438,7 +444,7 @@ export async function createSvg(params: Record<string, unknown>): Promise<unknow
 
   debugLog(`createSvg: Created SVG node "${svgNode.name}" (${svgNode.id})`);
 
-  return {
+  var result: Record<string, unknown> = {
     id: svgNode.id,
     name: svgNode.name,
     type: svgNode.type,
@@ -449,6 +455,13 @@ export async function createSvg(params: Record<string, unknown>): Promise<unknow
     childCount: 'children' in svgNode ? (svgNode as FrameNode).children.length : 0,
     parentId: svgNode.parent ? svgNode.parent.id : undefined,
   };
+  if (colorVariableBound !== undefined) {
+    result['colorVariableBound'] = colorVariableBound;
+  }
+  if (colorVariableWarning !== undefined) {
+    result['colorVariableWarning'] = colorVariableWarning;
+  }
+  return result;
 }
 
 // ---------------------------------------------------------------------------
