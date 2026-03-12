@@ -1083,6 +1083,124 @@ export async function setInstanceOverrides(
   };
 }
 
+export async function setComponentProperty(
+  params: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
+  const nodeId = params['nodeId'] as string | undefined;
+  const propertyName = params['propertyName'] as string | undefined;
+  const value = params['value'];
+
+  if (!nodeId) {
+    throw new Error('Missing nodeId parameter');
+  }
+  if (!propertyName) {
+    throw new Error('Missing propertyName parameter');
+  }
+  if (value === undefined) {
+    throw new Error('Missing value parameter');
+  }
+
+  try {
+    const node = await figma.getNodeByIdAsync(nodeId);
+    if (!node) {
+      throw new Error(`Node not found with ID: ${nodeId}`);
+    }
+
+    if (node.type !== 'INSTANCE') {
+      throw new Error(
+        `Node with ID ${nodeId} is not an INSTANCE (type: ${node.type}). Only component instances support setProperties.`,
+      );
+    }
+
+    const instance = node as InstanceNode;
+    instance.setProperties({ [propertyName]: value as string | boolean });
+
+    return {
+      success: true,
+      nodeId: instance.id,
+      name: instance.name,
+      propertyName,
+      value,
+    };
+  } catch (error) {
+    throw new Error(
+      `Error setting component property: ${(error as Error).message}`,
+    );
+  }
+}
+
+export async function swapInstance(
+  params: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
+  const nodeId = params['nodeId'] as string | undefined;
+  const componentKeyOrId = params['componentKeyOrId'] as string | undefined;
+
+  if (!nodeId) {
+    throw new Error('Missing nodeId parameter');
+  }
+  if (!componentKeyOrId) {
+    throw new Error('Missing componentKeyOrId parameter');
+  }
+
+  try {
+    const node = await figma.getNodeByIdAsync(nodeId);
+    if (!node) {
+      throw new Error(`Node not found with ID: ${nodeId}`);
+    }
+
+    if (node.type !== 'INSTANCE') {
+      throw new Error(
+        `Node with ID ${nodeId} is not an INSTANCE (type: ${node.type}). Only component instances can be swapped.`,
+      );
+    }
+
+    const instance = node as InstanceNode;
+    const oldMainComponent = await instance.getMainComponentAsync();
+    const oldComponentName = oldMainComponent !== null ? oldMainComponent.name : null;
+    const oldComponentId = oldMainComponent !== null ? oldMainComponent.id : null;
+
+    // Resolve target component
+    let targetComponent: ComponentNode | null = null;
+
+    // Try local ID first (format like "123:456")
+    if (componentKeyOrId.includes(':')) {
+      const localNode = await figma.getNodeByIdAsync(componentKeyOrId);
+      if (localNode !== null && localNode.type === 'COMPONENT') {
+        targetComponent = localNode as ComponentNode;
+      }
+    }
+
+    // Fall back to import by key
+    if (!targetComponent) {
+      try {
+        targetComponent = await figma.importComponentByKeyAsync(componentKeyOrId);
+      } catch (_e) {
+        // ignore
+      }
+    }
+
+    if (!targetComponent) {
+      throw new Error(
+        `Target component not found. For local components, use the node ID (e.g., "123:456"). For library components, use the component key. Provided: "${componentKeyOrId}"`,
+      );
+    }
+
+    instance.swapComponent(targetComponent);
+
+    return {
+      success: true,
+      nodeId: instance.id,
+      name: instance.name,
+      oldComponent: { id: oldComponentId, name: oldComponentName },
+      newComponent: { id: targetComponent.id, name: targetComponent.name },
+    };
+  } catch (error) {
+    throw new Error(
+      `Error swapping instance: ${(error as Error).message}`,
+    );
+  }
+}
+
 export async function getComponentProperties(
   params: Record<string, unknown>,
 ): Promise<Record<string, unknown>> {

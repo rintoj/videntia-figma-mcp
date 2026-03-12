@@ -597,6 +597,92 @@ export function registerComponentTools(server: McpServer): void {
     },
   );
 
+  // Set Component Property Value on Instance
+  server.tool(
+    "set_component_property",
+    "Set a component property value on an instance. Use get_component_properties on the main component to discover available property names.",
+    {
+      nodeId: z.string().describe("The ID of the instance node"),
+      propertyName: z.string().describe("Property name with #ID suffix (e.g., 'Show Icon#123:456') from get_component_properties"),
+      value: z.union([z.string(), z.boolean()]).describe("Value to set (string for TEXT/INSTANCE_SWAP, boolean for BOOLEAN)"),
+    },
+    async ({ nodeId, propertyName, value }) => {
+      try {
+        const result = await sendCommandToFigma("set_component_property", {
+          nodeId,
+          propertyName,
+          value,
+        });
+        const typedResult = result as {
+          success: boolean;
+          nodeId: string;
+          name: string;
+          propertyName: string;
+          value: string | boolean;
+        };
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Set property "${typedResult.propertyName}" to ${JSON.stringify(typedResult.value)} on instance "${typedResult.name}" (${typedResult.nodeId})`,
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error setting component property: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  // Swap Instance Component
+  server.tool(
+    "swap_instance",
+    "Swap a component instance to use a different component. The instance keeps its position and size.",
+    {
+      nodeId: z.string().describe("The ID of the instance node to swap"),
+      componentKeyOrId: z.string().describe("Target component node ID (e.g., '123:456') or component key"),
+    },
+    async ({ nodeId, componentKeyOrId }) => {
+      try {
+        const result = await sendCommandToFigma("swap_instance", {
+          nodeId,
+          componentKeyOrId,
+        });
+        const typedResult = result as {
+          success: boolean;
+          nodeId: string;
+          name: string;
+          oldComponent: { id: string; name: string };
+          newComponent: { id: string; name: string };
+        };
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Swapped instance "${typedResult.name}" from "${typedResult.oldComponent.name}" to "${typedResult.newComponent.name}"`,
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error swapping instance: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
   // Get Component Properties Tool
   server.tool(
     "get_component_properties",
