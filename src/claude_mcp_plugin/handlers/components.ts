@@ -1,4 +1,5 @@
 import { debugLog } from '../utils/helpers';
+import { selectAndFocusNode } from '../utils/plugin-state';
 import { setCharacters } from './text';
 
 // ---------------------------------------------------------------------------
@@ -448,9 +449,8 @@ export async function createComponentInstance(
       figma.currentPage.appendChild(instance);
     }
 
-    // Auto-focus on the created instance
-    figma.currentPage.selection = [instance];
-    figma.viewport.scrollAndZoomIntoView([instance]);
+    // Auto-focus on the created instance (only when auto-focus is enabled)
+    selectAndFocusNode(instance);
 
     debugLog(
       `Component instance "${instance.name}" created successfully at (${instance.x}, ${instance.y})`,
