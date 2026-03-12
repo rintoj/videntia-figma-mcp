@@ -92,6 +92,8 @@ import {
   getComponentProperties,
   getInstanceOverrides,
   setInstanceOverrides,
+  setComponentProperty,
+  swapInstance,
 } from './handlers/components';
 
 // Handlers — variables
@@ -215,6 +217,7 @@ var FOCUS_BEFORE_COMMANDS = new Set([
   'set_layout_mode', 'set_padding', 'set_item_spacing', 'set_axis_align', 'set_layout_sizing',
   'set_annotation', 'set_multiple_annotations',
   'detach_instance', 'set_instance_overrides', 'set_component_property_references',
+  'set_component_property', 'swap_instance',
   'update_icon',
 ]);
 
@@ -478,6 +481,10 @@ async function _executeCommand(
       return await setComponentPropertyReferences(params);
     case 'get_component_properties':
       return await getComponentProperties(params);
+    case 'set_component_property':
+      return await setComponentProperty(params);
+    case 'swap_instance':
+      return await swapInstance(params);
 
     // Text
     case 'set_text_content':

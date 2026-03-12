@@ -176,7 +176,9 @@ export type FigmaCommand =
   | "get_color_style"
   | "update_color_style"
   | "delete_color_style"
-  | "set_color_style_id";
+  | "set_color_style_id"
+  | "set_component_property"
+  | "swap_instance";
 
 // Batch actions types
 export interface BatchActionResult {
