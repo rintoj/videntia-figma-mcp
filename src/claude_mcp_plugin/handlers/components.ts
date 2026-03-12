@@ -34,11 +34,13 @@ function buildNamePathMap(
 interface CapturedContent {
   texts: Map<string, string>;
   icons: Map<string, string>;
+  iconSvgs: Map<string, Uint8Array>;
 }
 
 async function captureContent(node: BaseNode): Promise<CapturedContent> {
   const texts = new Map<string, string>();
   const icons = new Map<string, string>();
+  const iconSvgs = new Map<string, Uint8Array>();
   const namePathMap = buildNamePathMap(node, node);
 
   for (const [namePath, sceneNode] of namePathMap) {
@@ -53,10 +55,38 @@ async function captureContent(node: BaseNode): Promise<CapturedContent> {
       } catch (_e) {
         // skip if we can't resolve
       }
+      // Always capture SVG as fallback in case component key can't be resolved later
+      try {
+        const svgBytes = await (sceneNode as SceneNode).exportAsync({ format: 'SVG' });
+        iconSvgs.set(namePath, svgBytes);
+      } catch (_e) {
+        // skip if export fails
+      }
+    } else if (sceneNode.type === 'FRAME' && !namePath.includes('/')) {
+      // Capture top-level FRAME children as SVG — these may be icon-like frames
+      // (e.g. a frame containing vectors) that need to swap into INSTANCE slots
+      try {
+        const svgBytes = await (sceneNode as SceneNode).exportAsync({ format: 'SVG' });
+        iconSvgs.set(namePath, svgBytes);
+        // Mark as icon so it participates in icon matching/fallback
+        icons.set(namePath, '__svg_only__');
+      } catch (_e) {
+        // skip if export fails
+      }
     }
   }
 
-  return { texts, icons };
+  return { texts, icons, iconSvgs };
+}
+
+async function createComponentFromSvgBytes(svgBytes: Uint8Array): Promise<ComponentNode> {
+  var svgString = '';
+  for (var i = 0; i < svgBytes.length; i++) {
+    svgString += String.fromCharCode(svgBytes[i]);
+  }
+  var svgNode = figma.createNodeFromSvg(svgString);
+  var comp = figma.createComponentFromNode(svgNode);
+  return comp;
 }
 
 interface ContentOverridesParam {
@@ -128,19 +158,29 @@ async function applyContentToInstance(
     if (target && target.type === 'INSTANCE') {
       try {
         let comp: ComponentNode | null = null;
-        // Try local ID first
-        if (componentKeyOrId.includes(':')) {
-          const localNode = await figma.getNodeByIdAsync(componentKeyOrId);
-          if (localNode !== null && localNode.type === 'COMPONENT') {
-            comp = localNode as ComponentNode;
+        // Skip key/ID lookup for SVG-only captures (e.g. plain FRAME icons)
+        if (componentKeyOrId !== '__svg_only__') {
+          // Try local ID first
+          if (componentKeyOrId.includes(':')) {
+            const localNode = await figma.getNodeByIdAsync(componentKeyOrId);
+            if (localNode !== null && localNode.type === 'COMPONENT') {
+              comp = localNode as ComponentNode;
+            }
+          }
+          // Try import by key
+          if (!comp) {
+            try {
+              comp = await figma.importComponentByKeyAsync(componentKeyOrId);
+            } catch (_e) {
+              // ignore
+            }
           }
         }
-        // Try import by key
-        if (!comp) {
+        if (!comp && captured && captured.iconSvgs.has(namePath)) {
           try {
-            comp = await figma.importComponentByKeyAsync(componentKeyOrId);
-          } catch (_e) {
-            // ignore
+            comp = await createComponentFromSvgBytes(captured.iconSvgs.get(namePath)!);
+          } catch (_e2) {
+            // SVG fallback failed
           }
         }
         if (comp) {
@@ -221,17 +261,26 @@ async function applyContentToInstance(
         var iTargetNode = availableInstanceNodes[iconIdx][1];
         try {
           var comp: ComponentNode | null = null;
-          if (componentKeyOrId.includes(':')) {
-            var localNode = await figma.getNodeByIdAsync(componentKeyOrId);
-            if (localNode !== null && localNode.type === 'COMPONENT') {
-              comp = localNode as ComponentNode;
+          if (componentKeyOrId !== '__svg_only__') {
+            if (componentKeyOrId.includes(':')) {
+              var localNode = await figma.getNodeByIdAsync(componentKeyOrId);
+              if (localNode !== null && localNode.type === 'COMPONENT') {
+                comp = localNode as ComponentNode;
+              }
+            }
+            if (!comp) {
+              try {
+                comp = await figma.importComponentByKeyAsync(componentKeyOrId);
+              } catch (_e) {
+                // ignore
+              }
             }
           }
-          if (!comp) {
+          if (!comp && captured && captured.iconSvgs.has(iOrigPath)) {
             try {
-              comp = await figma.importComponentByKeyAsync(componentKeyOrId);
-            } catch (_e) {
-              // ignore
+              comp = await createComponentFromSvgBytes(captured.iconSvgs.get(iOrigPath)!);
+            } catch (_e2) {
+              // SVG fallback failed
             }
           }
           if (comp) {
