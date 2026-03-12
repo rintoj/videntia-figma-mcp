@@ -329,6 +329,7 @@ export async function createComponentInstance(
   const index = params['index'] as number | undefined;
   const replaceNodeId = params['replaceNodeId'] as string | undefined;
   const contentOverrides = params['contentOverrides'] as ContentOverridesParam | undefined;
+  const instanceProperties = params['instanceProperties'] as Record<string, string | boolean> | undefined;
 
   if (!componentKey) {
     throw new Error('Missing componentKey parameter');
@@ -447,6 +448,12 @@ export async function createComponentInstance(
       }
     } else {
       figma.currentPage.appendChild(instance);
+    }
+
+    // Apply instance properties if provided
+    if (instanceProperties) {
+      instance.setProperties(instanceProperties);
+      debugLog(`Set instance properties: ${Object.keys(instanceProperties).join(', ')}`);
     }
 
     // Auto-focus on the created instance (only when auto-focus is enabled)
@@ -1134,6 +1141,8 @@ export async function swapInstance(
 ): Promise<Record<string, unknown>> {
   const nodeId = params['nodeId'] as string | undefined;
   const componentKeyOrId = params['componentKeyOrId'] as string | undefined;
+  const contentOverrides = params['contentOverrides'] as ContentOverridesParam | undefined;
+  const instanceProperties = params['instanceProperties'] as Record<string, string | boolean> | undefined;
 
   if (!nodeId) {
     throw new Error('Missing nodeId parameter');
@@ -1158,6 +1167,13 @@ export async function swapInstance(
     const oldMainComponent = await instance.getMainComponentAsync();
     const oldComponentName = oldMainComponent !== null ? oldMainComponent.name : null;
     const oldComponentId = oldMainComponent !== null ? oldMainComponent.id : null;
+
+    // Capture content before swap if preserveContent is requested
+    let capturedContent: CapturedContent | null = null;
+    if (contentOverrides && contentOverrides.preserveContent) {
+      capturedContent = await captureContent(instance);
+      debugLog(`Captured content before swap: ${capturedContent.texts.size} texts, ${capturedContent.icons.size} icons`);
+    }
 
     // Resolve target component
     let targetComponent: ComponentNode | null = null;
@@ -1187,13 +1203,36 @@ export async function swapInstance(
 
     instance.swapComponent(targetComponent);
 
-    return {
+    // Apply instance properties if provided
+    if (instanceProperties) {
+      instance.setProperties(instanceProperties);
+      debugLog(`Set instance properties: ${Object.keys(instanceProperties).join(', ')}`);
+    }
+
+    // Apply content overrides if provided
+    let contentOverridesApplied: ContentOverridesResult | undefined;
+    if (contentOverrides) {
+      contentOverridesApplied = await applyContentToInstance(
+        instance,
+        capturedContent,
+        contentOverrides,
+      );
+      debugLog(
+        `Content overrides applied: ${contentOverridesApplied.text.length} texts, ${contentOverridesApplied.icons.length} icons, ${contentOverridesApplied.unmatched.length} unmatched`,
+      );
+    }
+
+    const resultObj: Record<string, unknown> = {
       success: true,
       nodeId: instance.id,
       name: instance.name,
       oldComponent: { id: oldComponentId, name: oldComponentName },
       newComponent: { id: targetComponent.id, name: targetComponent.name },
     };
+    if (contentOverridesApplied) {
+      resultObj.contentOverridesApplied = contentOverridesApplied;
+    }
+    return resultObj;
   } catch (error) {
     throw new Error(
       `Error swapping instance: ${(error as Error).message}`,

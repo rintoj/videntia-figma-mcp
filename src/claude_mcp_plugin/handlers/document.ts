@@ -43,8 +43,8 @@ export interface SearchNodesOptions {
   query: string | string[];
   /** Optional node type filter e.g. FRAME, TEXT, COMPONENT */
   types?: string[];
-  /** Node ID to scope the search to. Defaults to the current page. */
-  nodeId?: string;
+  /** Node ID (or array of IDs) to scope the search to. Defaults to the current page. */
+  nodeId?: string | string[];
   /** Max number of results to return. Default: 50. */
   limit?: number;
   /** Max depth of children to include. */
@@ -58,6 +58,22 @@ export interface SearchNodesOptions {
 export async function searchNodes(options: SearchNodesOptions): Promise<unknown> {
   const { query, types, nodeId, limit: limitOpt, depth } = options;
   const limit = limitOpt !== undefined ? limitOpt : 50;
+
+  // When nodeId is an array, search each root independently and group results
+  if (Array.isArray(nodeId)) {
+    var grouped: Record<string, unknown> = {};
+    for (var i = 0; i < nodeId.length; i++) {
+      var singleResult = await searchNodes({
+        query: query,
+        types: types,
+        nodeId: nodeId[i],
+        limit: limit,
+        depth: depth,
+      });
+      grouped[nodeId[i]] = singleResult;
+    }
+    return grouped;
+  }
 
   const queries = Array.isArray(query) ? query : [query];
   const lowerQueries = queries.map(function(q) { return q.toLowerCase(); });

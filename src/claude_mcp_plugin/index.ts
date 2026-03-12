@@ -405,7 +405,7 @@ async function _executeCommand(
       return await searchNodes({
         query: params['query'] as string | string[],
         types: Array.isArray(params['types']) ? params['types'] as string[] : undefined,
-        nodeId: params['nodeId'] !== undefined ? String(params['nodeId']) : undefined,
+        nodeId: params['nodeId'] !== undefined ? params['nodeId'] as string | string[] : undefined,
         limit: params['limit'] !== undefined ? Number(params['limit']) : undefined,
         depth: parseDepth(params['depth']),
       });

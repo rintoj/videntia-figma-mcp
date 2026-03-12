@@ -859,10 +859,10 @@ export function registerDocumentTools(server: McpServer): void {
           "Optional node type filter. Only return nodes of these types e.g. ['FRAME', 'COMPONENT', 'TEXT']. Omit to match all types.",
         ),
       nodeId: z
-        .string()
+        .union([z.string(), z.array(z.string())])
         .optional()
         .describe(
-          "Optional ID of a node to scope the search to. Defaults to the entire current page.",
+          "Optional node ID (or array of IDs) to scope the search to. When an array is passed, each ID is searched independently and results are grouped by ID. Defaults to the entire current page.",
         ),
       limit: z
         .coerce.number()
