@@ -1,5 +1,6 @@
 import { customBase64Encode } from '../utils/base64';
 import { debugLog, parseNum } from '../utils/helpers';
+import { selectAndFocusNode } from '../utils/plugin-state';
 
 function getParam<T>(params: Record<string, unknown>, key: string, defaultVal: T): T {
   const p = params !== null && params !== undefined ? params[key] : undefined;
@@ -491,9 +492,8 @@ export async function cloneNode(params: Record<string, unknown>): Promise<Record
     figma.currentPage.appendChild(clone);
   }
 
-  // Focus on the cloned node
-  figma.currentPage.selection = [clone];
-  figma.viewport.scrollAndZoomIntoView([clone]);
+  // Focus on the cloned node (only when auto-focus is enabled)
+  selectAndFocusNode(clone);
 
   return {
     id: clone.id,

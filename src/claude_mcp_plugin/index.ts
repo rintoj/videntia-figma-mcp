@@ -3,6 +3,7 @@
 
 // Utils
 import { debugLog } from './utils/helpers';
+import { setAutoFocus } from './utils/plugin-state';
 
 // Handlers — document & navigation
 import { getFileKey, getDocumentInfo, searchNodes, saveVersionHistory, triggerUndo, commitUndoAction } from './handlers/document';
@@ -252,6 +253,7 @@ function updateSettings(settings: Record<string, unknown>): void {
   }
   if (settings['autoFocus'] !== undefined && settings['autoFocus'] !== null) {
     state.autoFocus = settings['autoFocus'] as boolean;
+    setAutoFocus(state.autoFocus);
   }
   if (settings['prefsExpanded'] !== undefined && settings['prefsExpanded'] !== null) {
     state.prefsExpanded = settings['prefsExpanded'] as boolean;
@@ -281,6 +283,7 @@ function updateSettings(settings: Record<string, unknown>): void {
       }
       if (savedSettings['autoFocus'] !== undefined && savedSettings['autoFocus'] !== null) {
         state.autoFocus = savedSettings['autoFocus'] as boolean;
+        setAutoFocus(state.autoFocus);
       }
       if (savedSettings['prefsExpanded'] !== undefined && savedSettings['prefsExpanded'] !== null) {
         state.prefsExpanded = savedSettings['prefsExpanded'] as boolean;
