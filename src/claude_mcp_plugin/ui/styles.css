@@ -162,14 +162,12 @@ body {
   background-color: #383838;
   border: none;
   color: #ffffff;
-  padding: 4px 12px;
+  padding: 4px 8px;
   border-radius: 6px;
   cursor: pointer;
   font-size: 12px;
   font-weight: 500;
   white-space: nowrap;
-  min-width: 76px;
-  text-align: center;
 }
 
 .btn-sm:hover {

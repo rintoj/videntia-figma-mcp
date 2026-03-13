@@ -86,7 +86,6 @@ export function SelectionSection() {
             </svg>
             <span>Track</span>
           </button>
-          <span class="selection-label">Focus</span>
         </div>
         <div class="nav-buttons">
           <button class="btn-sm" onClick={handlePrev}>← Prev</button>
