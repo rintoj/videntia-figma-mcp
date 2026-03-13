@@ -203,6 +203,7 @@ body {
   padding: 0 6px 0 10px;
   cursor: pointer;
   transition: background-color 0.1s;
+  border-left: 3px solid transparent;
 }
 
 .selection-node-row:hover {
@@ -211,7 +212,10 @@ body {
 
 .selection-node-active {
   background-color: #383838;
-  border-radius: 6px;
+}
+
+.selection-node-checked {
+  border-left-color: #4db04f;
 }
 
 .selection-node-type-icon {
@@ -268,6 +272,79 @@ body {
 
 .selection-copy-btn:hover {
   background-color: #4a4a4a;
+}
+
+/* ---- Checkbox ---- */
+
+.selection-checkbox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: 0;
+}
+
+/* ---- Action Bar ---- */
+
+.selection-action-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border-top: 1px solid #333;
+  flex-shrink: 0;
+}
+
+.selection-action-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.selection-action-bar-count {
+  color: #4db04f;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.selection-action-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.selection-action-bar-copy {
+  background-color: #4db04f;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 5px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.1s;
+}
+
+.selection-action-bar-copy:hover {
+  background-color: #5cc060;
+}
+
+.selection-action-bar-clear {
+  background: none;
+  border: none;
+  color: #999;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 5px 8px;
+}
+
+.selection-action-bar-clear:hover {
+  color: #ccc;
 }
 
 /* ---- Selection Empty ---- */
@@ -448,8 +525,8 @@ body {
 .settings-card {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 8px 12px;
+  gap: 14px;
+  padding: 12px 12px;
   background-color: #242424;
   flex: 1;
 }
@@ -460,9 +537,20 @@ body {
   justify-content: space-between;
 }
 
+.settings-label-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 .settings-label {
-  font-size: 13px;
+  font-size: 11px;
   color: #cccccc;
+}
+
+.settings-description {
+  font-size: 9px;
+  color: #737373;
 }
 
 /* ---- Toggle ---- */
@@ -598,8 +686,36 @@ body {
 .action-detail {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
   margin-top: 8px;
+}
+
+.action-detail-buttons {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+}
+
+.action-detail-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 7px;
+  background-color: #383838;
+  border: 1px solid #383838;
+  border-radius: 5px;
+  color: #808080;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.1s;
+}
+
+.action-detail-btn:hover {
+  background-color: #444444;
+  border-color: #444444;
 }
 
 .action-detail-block {

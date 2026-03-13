@@ -175,6 +175,7 @@ export function SelectionSection() {
   var [navIndex, setNavIndex] = useState(-1)
   var [copiedId, setCopiedId] = useState<string | null>(null)
   var [hoveredId, setHoveredId] = useState<string | null>(null)
+  var [checkedIds, setCheckedIds] = useState<Record<string, boolean>>({})
   var searchTimerRef = useRef<any>(null)
   var nodesRef = useRef<NodeInfo[]>([])
   var suppressRef = useRef(false)
@@ -263,6 +264,30 @@ export function SelectionSection() {
     setTimeout(function () { setCopiedId(null) }, 1500)
   }
 
+  function toggleChecked(e: Event, id: string) {
+    e.stopPropagation()
+    var next = Object.assign({}, checkedIds)
+    if (next[id]) {
+      delete next[id]
+    } else {
+      next[id] = true
+    }
+    setCheckedIds(next)
+  }
+
+  function clearChecked() {
+    setCheckedIds({})
+  }
+
+  function copyCheckedIds() {
+    var ids = Object.keys(checkedIds)
+    if (ids.length > 0) {
+      copyToClipboard(JSON.stringify(ids))
+    }
+  }
+
+  var checkedCount = Object.keys(checkedIds).length
+
   function handlePrev() {
     var list = getDisplayNodes()
     if (list.length === 0) return
@@ -319,10 +344,11 @@ export function SelectionSection() {
         {displayNodes.map(function (node, i) {
           var isHovered = hoveredId === node.id
           var isActive = navIndex === i
+          var isChecked = !!checkedIds[node.id]
           return (
             <div
               key={node.id + '-' + i}
-              class={'selection-node-row' + (isActive ? ' selection-node-active' : '')}
+              class={'selection-node-row' + (isActive ? ' selection-node-active' : '') + (isChecked ? ' selection-node-checked' : '')}
               onClick={function () { handleRowClick(node, i) }}
               onMouseEnter={function () { setHoveredId(node.id) }}
               onMouseLeave={function () { setHoveredId(null) }}
@@ -335,7 +361,7 @@ export function SelectionSection() {
                   <span class="selection-node-page">{node.pageName}</span>
                 ) : null}
               </div>
-              {(isHovered || isActive || copiedId === node.id) ? (
+              {(isHovered || copiedId === node.id) ? (
                 <button
                   class="selection-copy-btn"
                   onClick={function (e: Event) { handleCopyId(e, node.id) }}
@@ -353,10 +379,41 @@ export function SelectionSection() {
                   )}
                 </button>
               ) : null}
+              <button
+                class={'selection-checkbox' + (isChecked ? ' checked' : '')}
+                onClick={function (e: Event) { toggleChecked(e, node.id) }}
+                title={isChecked ? 'Deselect' : 'Select'}
+              >
+                {isChecked ? (
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <rect x="1" y="1" width="14" height="14" rx="3" fill="#4db04f"/>
+                    <polyline points="4.5 8 7 10.5 11.5 5.5" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                  </svg>
+                ) : (
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <rect x="1.5" y="1.5" width="13" height="13" rx="2.5" stroke="#555" stroke-width="1"/>
+                  </svg>
+                )}
+              </button>
             </div>
           )
         })}
       </div>
+      {checkedCount > 0 && (
+        <div class="selection-action-bar">
+          <div class="selection-action-bar-left">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <rect x="1" y="1" width="14" height="14" rx="3" fill="#4db04f"/>
+              <polyline points="4.5 8 7 10.5 11.5 5.5" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            </svg>
+            <span class="selection-action-bar-count">{checkedCount + ' selected'}</span>
+          </div>
+          <div class="selection-action-bar-right">
+            <button class="selection-action-bar-copy" onClick={copyCheckedIds}>Copy IDs</button>
+            <button class="selection-action-bar-clear" onClick={clearChecked}>Clear</button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
