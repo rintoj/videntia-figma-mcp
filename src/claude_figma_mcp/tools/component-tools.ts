@@ -2,6 +2,7 @@ import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { sendCommandToFigma } from "../utils/websocket";
 import { coerceArray } from "../utils/coerce-array.js";
+import { normalizeNodeId } from "../utils/figma-helpers.js";
 import { outputFormatSchema, depthSchema, resolveDepth, fetchNodesAsJsx, fieldsSchema } from "../utils/output-format.js";
 import { mcpBooleanSchema } from "../utils/mcp-boolean.js";
 import { CreateComponentInstanceResult, GetReactionsResult, GetComponentPropertiesResult } from "../types";
@@ -39,6 +40,8 @@ export function registerComponentTools(server: McpServer): void {
       output_format: outputFormatSchema,
     },
     async ({ componentKey, x, y, parentId, index, replaceNodeId, contentOverrides, instanceProperties, fields, depth, output_format }) => {
+      if (parentId) parentId = normalizeNodeId(parentId);
+      if (replaceNodeId) replaceNodeId = normalizeNodeId(replaceNodeId);
       try {
         if (parentId && replaceNodeId) {
           throw new Error("parentId and replaceNodeId are mutually exclusive. Provide one or the other, not both.");
@@ -92,6 +95,7 @@ export function registerComponentTools(server: McpServer): void {
       nodeId: z.string().describe("The ID of the instance node to detach"),
     },
     async ({ nodeId }) => {
+      nodeId = normalizeNodeId(nodeId);
       try {
         const result = await sendCommandToFigma("detach_instance", { nodeId });
         const typedResult = result as { id: string; name: string; type: string };
@@ -124,6 +128,7 @@ export function registerComponentTools(server: McpServer): void {
       nodeId: z.string().describe("The ID of the frame or group to convert to a component"),
     },
     async ({ nodeId }) => {
+      nodeId = normalizeNodeId(nodeId);
       try {
         const result = await sendCommandToFigma("create_component", { nodeId });
         const typedResult = result as { id: string; name: string; key: string };
@@ -157,6 +162,7 @@ export function registerComponentTools(server: McpServer): void {
       name: z.string().optional().describe("Optional name for the component set"),
     },
     async ({ nodeIds, name }) => {
+      nodeIds = nodeIds.map(normalizeNodeId);
       try {
         const result = await sendCommandToFigma("create_component_set", { nodeIds, name });
         const typedResult = result as { id: string; name: string; variantCount: number };
@@ -189,6 +195,7 @@ export function registerComponentTools(server: McpServer): void {
       nodeIds: coerceArray(z.array(z.string())).describe("Array of node IDs to get reactions from"),
     },
     async ({ nodeIds }) => {
+      nodeIds = nodeIds.map(normalizeNodeId);
       try {
         const result = await sendCommandToFigma<GetReactionsResult>("get_reactions", { nodeIds });
         const nodes = Array.isArray(result) ? result : (result?.nodes ?? []);
@@ -317,6 +324,7 @@ export function registerComponentTools(server: McpServer): void {
       nodeId: z.string().optional().describe("Optional ID of component instance. Uses current selection if omitted"),
     },
     async ({ nodeId }) => {
+      if (nodeId) nodeId = normalizeNodeId(nodeId);
       try {
         const result = await sendCommandToFigma("get_instance_overrides", {
           instanceNodeId: nodeId || null,
@@ -358,6 +366,8 @@ export function registerComponentTools(server: McpServer): void {
       targetNodeIds: coerceArray(z.array(z.string())).describe("Array of target instance IDs"),
     },
     async ({ sourceInstanceId, targetNodeIds }) => {
+      sourceInstanceId = normalizeNodeId(sourceInstanceId);
+      targetNodeIds = targetNodeIds.map(normalizeNodeId);
       try {
         const result = await sendCommandToFigma("set_instance_overrides", {
           sourceInstanceId,
@@ -419,6 +429,7 @@ export function registerComponentTools(server: McpServer): void {
         ),
     },
     async ({ nodeId, propertyName, type, defaultValue }) => {
+      nodeId = normalizeNodeId(nodeId);
       try {
         const result = await sendCommandToFigma("add_component_property", {
           nodeId,
@@ -476,6 +487,7 @@ export function registerComponentTools(server: McpServer): void {
         .describe("Preferred values for INSTANCE_SWAP properties"),
     },
     async ({ nodeId, propertyName, newName, newDefaultValue, preferredValues }) => {
+      nodeId = normalizeNodeId(nodeId);
       try {
         const result = await sendCommandToFigma("edit_component_property", {
           nodeId,
@@ -522,6 +534,7 @@ export function registerComponentTools(server: McpServer): void {
       propertyName: z.string().describe("The full property name including the #ID suffix (e.g., 'Show Icon#123:456')"),
     },
     async ({ nodeId, propertyName }) => {
+      nodeId = normalizeNodeId(nodeId);
       try {
         const result = await sendCommandToFigma("delete_component_property", {
           nodeId,
@@ -567,6 +580,7 @@ export function registerComponentTools(server: McpServer): void {
         ),
     },
     async ({ nodeId, references }) => {
+      nodeId = normalizeNodeId(nodeId);
       try {
         const result = await sendCommandToFigma("set_component_property_references", {
           nodeId,
@@ -609,6 +623,7 @@ export function registerComponentTools(server: McpServer): void {
       value: z.union([z.string(), z.boolean()]).describe("Value to set (string for TEXT/INSTANCE_SWAP, boolean for BOOLEAN)"),
     },
     async ({ nodeId, propertyName, value }) => {
+      nodeId = normalizeNodeId(nodeId);
       try {
         const result = await sendCommandToFigma("set_component_property", {
           nodeId,
@@ -664,6 +679,7 @@ export function registerComponentTools(server: McpServer): void {
       output_format: outputFormatSchema,
     },
     async ({ nodeId, componentKeyOrId, contentOverrides, instanceProperties, fields, depth, output_format }) => {
+      nodeId = normalizeNodeId(nodeId);
       try {
         const result = await sendCommandToFigma("swap_instance", {
           nodeId,
@@ -714,6 +730,7 @@ export function registerComponentTools(server: McpServer): void {
       nodeId: z.string().describe("The ID of the component or component set"),
     },
     async ({ nodeId }) => {
+      nodeId = normalizeNodeId(nodeId);
       try {
         const result = await sendCommandToFigma<GetComponentPropertiesResult>("get_component_properties", {
           nodeId,

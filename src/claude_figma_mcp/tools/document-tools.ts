@@ -5,7 +5,7 @@ import { coerceArray } from "../utils/coerce-array.js";
 import { mcpBooleanSchema } from "../utils/mcp-boolean.js";
 import { outputFormatSchema, depthSchema, resolveDepth, fetchNodesAsJsx, fieldsSchema, ID_FIELDS } from "../utils/output-format.js";
 import { convertToJsx } from "../utils/figma-to-jsx.js";
-import { filterNodeData } from "../utils/figma-helpers.js";
+import { filterNodeData, normalizeNodeId } from "../utils/figma-helpers.js";
 import type {
   DocumentInfoResult,
   AnnotationsResult,
@@ -303,6 +303,7 @@ export function registerDocumentTools(server: McpServer): void {
       nodeId: z.string().describe("The ID of the node to focus on"),
     },
     async ({ nodeId }) => {
+      nodeId = normalizeNodeId(nodeId);
       try {
         const result = await sendCommandToFigma("set_focus", { nodeId });
         const typedResult = result as { name: string; nodeId: string };
@@ -335,6 +336,7 @@ export function registerDocumentTools(server: McpServer): void {
       nodeIds: coerceArray(z.array(z.string())).describe("Array of node IDs to select"),
     },
     async ({ nodeIds }) => {
+      nodeIds = nodeIds.map(normalizeNodeId);
       try {
         const result = await sendCommandToFigma("set_selections", { nodeIds });
         const typedResult = result as {
@@ -373,6 +375,7 @@ export function registerDocumentTools(server: McpServer): void {
       includeCategories: mcpBooleanSchema.optional().default(true).describe("Whether to include category information"),
     },
     async ({ nodeId, includeCategories }) => {
+      nodeId = normalizeNodeId(nodeId);
       try {
         const result = await sendCommandToFigma<AnnotationsResult>("get_annotations", {
           nodeId,
@@ -431,6 +434,7 @@ export function registerDocumentTools(server: McpServer): void {
         .describe("Additional properties for the annotation"),
     },
     async ({ nodeId, annotationId, labelMarkdown, categoryId, properties }) => {
+      nodeId = normalizeNodeId(nodeId);
       try {
         const result = await sendCommandToFigma<SetAnnotationResult>("set_annotation", {
           nodeId,
@@ -482,6 +486,7 @@ export function registerDocumentTools(server: McpServer): void {
       ).describe("Array of annotations to apply"),
     },
     async ({ nodeId, annotations }) => {
+      nodeId = normalizeNodeId(nodeId);
       try {
         if (!annotations || annotations.length === 0) {
           return {
@@ -704,6 +709,7 @@ export function registerDocumentTools(server: McpServer): void {
       output_format: outputFormatSchema,
     },
     async ({ nodeId, types, limit, fields, depth, output_format }) => {
+      nodeId = normalizeNodeId(nodeId);
       try {
         const result = await sendCommandToFigma("scan_nodes_by_types", {
           nodeId,
@@ -812,6 +818,7 @@ export function registerDocumentTools(server: McpServer): void {
       output_format: outputFormatSchema,
     },
     async ({ nodeId, fields, depth, output_format }) => {
+      nodeId = normalizeNodeId(nodeId);
       try {
         const result = await sendCommandToFigma("get_node_info", { nodeIds: [nodeId], depth: resolveDepth(depth) });
         return formatNodeResult(result, output_format, fields);
@@ -834,6 +841,7 @@ export function registerDocumentTools(server: McpServer): void {
       output_format: outputFormatSchema,
     },
     async ({ nodeIds, fields, depth, output_format }) => {
+      nodeIds = nodeIds.map(normalizeNodeId);
       try {
         const result = await sendCommandToFigma("get_node_info", { nodeIds, depth: resolveDepth(depth) });
         return formatNodeResult(result, output_format, fields);
@@ -877,6 +885,7 @@ export function registerDocumentTools(server: McpServer): void {
       output_format: outputFormatSchema,
     },
     async ({ query, types, nodeId, limit, depth, fields, output_format }) => {
+      if (nodeId) nodeId = normalizeNodeId(nodeId);
       try {
         const result = await sendCommandToFigma("search_nodes", {
           query,
@@ -1054,6 +1063,7 @@ export function registerDocumentTools(server: McpServer): void {
         .describe("Toggle individual check categories (all enabled by default)"),
     },
     async ({ node_id, fix, checks }) => {
+      node_id = normalizeNodeId(node_id);
       try {
         const result = await sendCommandToFigma<LintFrameResult>(
           "lint_frame",
@@ -1481,6 +1491,7 @@ export function registerDocumentTools(server: McpServer): void {
       scale: z.coerce.number().positive().optional().describe("Export scale"),
     },
     async ({ nodeId, format, scale }) => {
+      nodeId = normalizeNodeId(nodeId);
       try {
         const result = await sendCommandToFigma("export_node_as_image", {
           nodeId,
@@ -1573,6 +1584,7 @@ export function registerDocumentTools(server: McpServer): void {
       nodeId: z.string().describe("The ID of the node to check for variable bindings"),
     },
     async ({ nodeId }) => {
+      nodeId = normalizeNodeId(nodeId);
       try {
         const result = await sendCommandToFigma<BoundVariablesResult>("get_bound_variables", { nodeId });
         // Result can be an object map {property: binding} or {bindings: [...]}

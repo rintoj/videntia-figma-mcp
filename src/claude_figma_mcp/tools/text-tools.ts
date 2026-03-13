@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { sendCommandToFigma } from "../utils/websocket";
+import { normalizeNodeId } from "../utils/figma-helpers.js";
 
 /**
  * Register text-related tools to the MCP server
@@ -17,6 +18,7 @@ export function registerTextTools(server: McpServer): void {
       text: z.string().describe("New text content"),
     },
     async ({ nodeId, text }) => {
+      nodeId = normalizeNodeId(nodeId);
       try {
         const result = await sendCommandToFigma("set_text_content", {
           nodeId,
@@ -60,6 +62,8 @@ export function registerTextTools(server: McpServer): void {
         .describe("Array of text node IDs and their replacement texts"),
     },
     async ({ nodeId, text }, extra) => {
+      nodeId = normalizeNodeId(nodeId);
+      text = text.map((item) => ({ ...item, nodeId: normalizeNodeId(item.nodeId) }));
       try {
         if (!text || text.length === 0) {
           return {
@@ -160,6 +164,7 @@ export function registerTextTools(server: McpServer): void {
       style: z.string().optional().describe("Font style (e.g., 'Regular', 'Bold', 'Italic')"),
     },
     async ({ nodeId, family, style }) => {
+      nodeId = normalizeNodeId(nodeId);
       try {
         const result = await sendCommandToFigma("set_font_name", {
           nodeId,
@@ -197,6 +202,7 @@ export function registerTextTools(server: McpServer): void {
       size: z.coerce.number().positive().describe("Font size in pixels"),
     },
     async ({ nodeId, size }) => {
+      nodeId = normalizeNodeId(nodeId);
       try {
         const result = await sendCommandToFigma("set_font_size", {
           nodeId,
@@ -233,6 +239,7 @@ export function registerTextTools(server: McpServer): void {
       weight: z.coerce.number().describe("Font weight as a multiple of 100 (100=Thin, 200=ExtraLight, 300=Light, 400=Regular, 500=Medium, 600=SemiBold, 700=Bold, 800=ExtraBold, 900=Black) — must be available in the font family"),
     },
     async ({ nodeId, weight }) => {
+      nodeId = normalizeNodeId(nodeId);
       try {
         const result = await sendCommandToFigma("set_font_weight", {
           nodeId,
@@ -270,6 +277,7 @@ export function registerTextTools(server: McpServer): void {
       unit: z.enum(["PIXELS", "PERCENT"]).optional().describe("Unit for spacing: PIXELS = absolute pixel value, PERCENT = relative to font size (e.g. 5 PERCENT = 5% of font size; default: PIXELS)"),
     },
     async ({ nodeId, spacing, unit }) => {
+      nodeId = normalizeNodeId(nodeId);
       try {
         const result = await sendCommandToFigma("set_letter_spacing", {
           nodeId,
@@ -308,6 +316,7 @@ export function registerTextTools(server: McpServer): void {
       unit: z.enum(["PIXELS", "PERCENT", "AUTO"]).optional().describe("Unit: PIXELS = fixed pixel height, PERCENT = percentage of font size (e.g. 150 = 1.5× font size), AUTO = let Figma calculate based on font metrics (ignores height value; default: PIXELS)"),
     },
     async ({ nodeId, height, unit }) => {
+      nodeId = normalizeNodeId(nodeId);
       try {
         const result = await sendCommandToFigma("set_line_height", {
           nodeId,
@@ -345,6 +354,7 @@ export function registerTextTools(server: McpServer): void {
       spacing: z.coerce.number().describe("Space added between paragraphs in pixels (≥ 0; similar to CSS margin-bottom on paragraphs)"),
     },
     async ({ nodeId, spacing }) => {
+      nodeId = normalizeNodeId(nodeId);
       try {
         const result = await sendCommandToFigma("set_paragraph_spacing", {
           nodeId,
@@ -381,6 +391,7 @@ export function registerTextTools(server: McpServer): void {
       textCase: z.enum(["ORIGINAL", "UPPER", "LOWER", "TITLE"]).describe("Text case transform: ORIGINAL = preserve the typed casing as-is, UPPER = ALL CAPS, LOWER = all lowercase, TITLE = Capitalize Each Word"),
     },
     async ({ nodeId, textCase }) => {
+      nodeId = normalizeNodeId(nodeId);
       try {
         const result = await sendCommandToFigma("set_text_case", {
           nodeId,
@@ -417,6 +428,7 @@ export function registerTextTools(server: McpServer): void {
       decoration: z.enum(["NONE", "UNDERLINE", "STRIKETHROUGH"]).describe("Text decoration type"),
     },
     async ({ nodeId, decoration }) => {
+      nodeId = normalizeNodeId(nodeId);
       try {
         const result = await sendCommandToFigma("set_text_decoration", {
           nodeId,
@@ -466,6 +478,7 @@ export function registerTextTools(server: McpServer): void {
         .describe("Style property to segment by — returns runs of text that share the same value for this property: fontName = font family+style, fontSize = size in px, fontWeight = weight number, fills = fill color objects, fillStyleId = applied fill style ID, textStyleId = applied text style ID, letterSpacing = spacing value, lineHeight = line height value, textCase = case transform, textDecoration = underline/strikethrough"),
     },
     async ({ nodeId, property }) => {
+      nodeId = normalizeNodeId(nodeId);
       try {
         const result = await sendCommandToFigma("get_styled_text_segments", {
           nodeId,
@@ -559,6 +572,7 @@ export function registerTextTools(server: McpServer): void {
       description: z.string().optional().describe("Optional description for the text style"),
     },
     async ({ nodeId, name, description }) => {
+      nodeId = normalizeNodeId(nodeId);
       try {
         const result = await sendCommandToFigma("create_text_style", {
           nodeId,
@@ -682,6 +696,7 @@ export function registerTextTools(server: McpServer): void {
         ),
     },
     async ({ nodeId, styleId, styleName }) => {
+      nodeId = normalizeNodeId(nodeId);
       if (!styleId && !styleName) {
         return {
           content: [{ type: "text", text: "Error: either styleId or styleName is required" }],
