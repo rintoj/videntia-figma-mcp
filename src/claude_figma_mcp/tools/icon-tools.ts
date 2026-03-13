@@ -2,6 +2,7 @@ import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { searchIcons, getIcon, listIcons } from "../utils/icon-search.js";
 import { sendCommandToFigma } from "../utils/websocket.js";
+import { normalizeNodeId } from "../utils/figma-helpers.js";
 
 /**
  * Allowlist for CSS color values — permits only safe characters used in hex, rgb/rgba/hsl/hsla,
@@ -267,6 +268,7 @@ export function registerIconTools(server: McpServer): void {
       size: z.coerce.number().positive().describe("Icon size in pixels applied to both width and height"),
     },
     async ({ parentId, index, name: iconName, color, colorVariable, size }) => {
+      parentId = normalizeNodeId(parentId);
       const icon = getIcon(iconName);
       if (!icon) {
         const suggestions = searchIcons(iconName, 5);
@@ -388,6 +390,7 @@ export function registerIconTools(server: McpServer): void {
       size: z.coerce.number().positive().describe("Icon size in pixels applied to both width and height"),
     },
     async ({ nodeId, name: iconName, color, colorVariable, size }) => {
+      nodeId = normalizeNodeId(nodeId);
       const icon = getIcon(iconName);
       if (!icon) {
         const suggestions = searchIcons(iconName, 5);

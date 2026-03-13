@@ -3,6 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { sendCommandToFigma } from "../utils/websocket";
 import { coerceArray } from "../utils/coerce-array.js";
 import { mcpBooleanSchema } from "../utils/mcp-boolean.js";
+import { normalizeNodeId } from "../utils/figma-helpers.js";
 
 /**
  * Register creation tools to the MCP server
@@ -27,6 +28,7 @@ export function registerCreationTools(server: McpServer): void {
         .describe("How this node positions inside an auto-layout parent: ABSOLUTE = uses x/y coordinates ignoring auto-layout flow, RELATIVE = participates in auto-layout flow (default when inside auto-layout)"),
     },
     async ({ x, y, width, height, name, parentId, layoutPositioning }) => {
+      if (parentId) parentId = normalizeNodeId(parentId);
       try {
         const result = await sendCommandToFigma("create_rectangle", {
           x,
@@ -107,6 +109,7 @@ export function registerCreationTools(server: McpServer): void {
       clipsContent,
       layoutPositioning,
     }) => {
+      if (parentId) parentId = normalizeNodeId(parentId);
       try {
         const result = await sendCommandToFigma("create_frame", {
           x,
@@ -167,6 +170,7 @@ export function registerCreationTools(server: McpServer): void {
       parentId: z.string().optional().describe("ID of the parent frame to insert the text into"),
     },
     async ({ x, y, text, fontSize, fontFamily, fontWeight, fontColor, name, parentId }) => {
+      if (parentId) parentId = normalizeNodeId(parentId);
       try {
         const result = await sendCommandToFigma("create_text", {
           x,
@@ -210,6 +214,7 @@ export function registerCreationTools(server: McpServer): void {
       name: z.string().optional().describe("Layer name for the resulting group (default: 'Group')"),
     },
     async ({ nodeIds, name }) => {
+      nodeIds = nodeIds.map(normalizeNodeId);
       try {
         const result = await sendCommandToFigma("group_nodes", {
           nodeIds,
@@ -252,6 +257,7 @@ export function registerCreationTools(server: McpServer): void {
       nodeId: z.string().describe("ID of the node (group or frame) to ungroup"),
     },
     async ({ nodeId }) => {
+      nodeId = normalizeNodeId(nodeId);
       try {
         const result = await sendCommandToFigma("ungroup_nodes", { nodeId });
 
@@ -294,6 +300,8 @@ export function registerCreationTools(server: McpServer): void {
       index: z.coerce.number().optional().describe("Zero-based position within the parent's children (omit to append)"),
     },
     async ({ nodeId, x, y, parentId, index }) => {
+      nodeId = normalizeNodeId(nodeId);
+      if (parentId) parentId = normalizeNodeId(parentId);
       try {
         const result = await sendCommandToFigma("clone_node", { nodeId, x, y, parentId, index });
         const typedResult = result as { name: string; id: string };
@@ -334,6 +342,8 @@ export function registerCreationTools(server: McpServer): void {
         .describe("Zero-based position to insert the child at within the parent's children array (0 = front/first; omit to append at the end)"),
     },
     async ({ parentId, childId, index }) => {
+      parentId = normalizeNodeId(parentId);
+      childId = normalizeNodeId(childId);
       try {
         const result = await sendCommandToFigma("insert_child", {
           parentId,
@@ -382,6 +392,7 @@ export function registerCreationTools(server: McpServer): void {
       flatten: mcpBooleanSchema.optional().describe("true = merge all SVG paths into a single vector node (loses individual path structure but simplifies the layer); false = preserve path hierarchy as separate nodes (default: false)"),
     },
     async ({ svgString, x, y, name, parentId, flatten }) => {
+      if (parentId) parentId = normalizeNodeId(parentId);
       try {
         const result = await sendCommandToFigma("create_svg", {
           svgString,
@@ -431,6 +442,7 @@ export function registerCreationTools(server: McpServer): void {
       nodeId: z.string().describe("ID of the node to flatten"),
     },
     async ({ nodeId }) => {
+      nodeId = normalizeNodeId(nodeId);
       try {
         const result = await sendCommandToFigma("flatten_node", { nodeId });
 

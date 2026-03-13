@@ -6,6 +6,7 @@ import { Color } from "../types/color";
 import { coerceArray } from "../utils/coerce-array.js";
 import { mcpBooleanSchema } from "../utils/mcp-boolean.js";
 import { DeleteMultipleNodesResult, CreateEffectStyleResult, UpdateEffectStyleResult } from "../types";
+import { normalizeNodeId } from "../utils/figma-helpers.js";
 
 /**
  * Register modification tools to the MCP server
@@ -26,6 +27,7 @@ export function registerModificationTools(server: McpServer): void {
       a: z.preprocess((v) => (typeof v === "boolean" || v === null ? undefined : v), z.coerce.number().min(0).max(1)).optional().describe("Alpha/opacity, normalized 0–1 (default: 1 = fully opaque; 0 = fully transparent)"),
     },
     async ({ nodeId, color, r, g, b, a }) => {
+      nodeId = normalizeNodeId(nodeId);
       try {
         // Build params for the plugin handler (which handles both hex and rgba)
         const params: Record<string, unknown> = { nodeId };
@@ -77,6 +79,7 @@ export function registerModificationTools(server: McpServer): void {
       weight: z.coerce.number().min(0).optional().describe("Stroke thickness in pixels ≥ 0 (default: 1; use 0 for invisible stroke)"),
     },
     async ({ nodeId, color, r, g, b, a, weight }) => {
+      nodeId = normalizeNodeId(nodeId);
       try {
         const params: Record<string, unknown> = { nodeId };
         if (color !== undefined) {
@@ -128,6 +131,8 @@ export function registerModificationTools(server: McpServer): void {
       index: z.coerce.number().optional().describe("Index position within the new parent's children"),
     },
     async ({ nodeId, x, y, parentId, index }) => {
+      nodeId = normalizeNodeId(nodeId);
+      if (parentId) parentId = normalizeNodeId(parentId);
       if (x === undefined && y === undefined && parentId === undefined) {
         return {
           content: [{ type: "text", text: "Error: provide x/y for repositioning or parentId for reparenting" }],
@@ -169,6 +174,7 @@ export function registerModificationTools(server: McpServer): void {
       height: z.coerce.number().positive().describe("New height in pixels (must be > 0)"),
     },
     async ({ nodeId, width, height }) => {
+      nodeId = normalizeNodeId(nodeId);
       try {
         const result = await sendCommandToFigma("resize_node", {
           nodeId,
@@ -205,6 +211,7 @@ export function registerModificationTools(server: McpServer): void {
       nodeId: z.string().describe("The ID of the node to delete"),
     },
     async ({ nodeId }) => {
+      nodeId = normalizeNodeId(nodeId);
       try {
         await sendCommandToFigma("delete_node", { nodeId });
         return {
@@ -236,6 +243,7 @@ export function registerModificationTools(server: McpServer): void {
       nodeIds: coerceArray(z.array(z.string())).describe("Array of node IDs to delete"),
     },
     async ({ nodeIds }) => {
+      nodeIds = nodeIds.map(normalizeNodeId);
       try {
         const result = await sendCommandToFigma<DeleteMultipleNodesResult>("delete_multiple_nodes", {
           nodeIds,
@@ -272,6 +280,7 @@ export function registerModificationTools(server: McpServer): void {
       wrap: z.enum(["NO_WRAP", "WRAP"]).optional().describe("WRAP = children wrap to next row/column when they overflow (only applies in HORIZONTAL or VERTICAL mode; default: NO_WRAP)"),
     },
     async ({ nodeId, mode, wrap }) => {
+      nodeId = normalizeNodeId(nodeId);
       try {
         const result = await sendCommandToFigma("set_layout_mode", {
           nodeId,
@@ -312,6 +321,7 @@ export function registerModificationTools(server: McpServer): void {
       left: z.coerce.number().optional().describe("Left padding in pixels (≥ 0; omit to leave unchanged)"),
     },
     async ({ nodeId, top, right, bottom, left }) => {
+      nodeId = normalizeNodeId(nodeId);
       try {
         const result = await sendCommandToFigma("set_padding", {
           nodeId,
@@ -364,6 +374,7 @@ export function registerModificationTools(server: McpServer): void {
       counterAxisAlignItems: z.enum(["MIN", "MAX", "CENTER", "BASELINE"]).optional().describe("Alignment along the cross axis (perpendicular to layout direction): MIN = top/left, CENTER = center, MAX = bottom/right, BASELINE = align text baselines (text nodes only)"),
     },
     async ({ nodeId, primaryAxisAlignItems, counterAxisAlignItems }) => {
+      nodeId = normalizeNodeId(nodeId);
       try {
         const result = await sendCommandToFigma("set_axis_align", {
           nodeId,
@@ -409,6 +420,7 @@ export function registerModificationTools(server: McpServer): void {
       vertical: z.enum(["FIXED", "HUG", "FILL"]).optional().describe("Vertical sizing: FIXED = explicit height, HUG = shrink-wrap children, FILL = expand to fill parent (requires node to be inside an auto-layout frame)"),
     },
     async ({ nodeId, horizontal, vertical }) => {
+      nodeId = normalizeNodeId(nodeId);
       try {
         const result = await sendCommandToFigma("set_layout_sizing", {
           nodeId,
@@ -454,6 +466,7 @@ export function registerModificationTools(server: McpServer): void {
       counterAxisSpacing: z.coerce.number().optional().describe("Gap between wrapped rows/columns in pixels (≥ 0; only applies when wrap=WRAP)"),
     },
     async ({ nodeId, gap, counterAxisSpacing }) => {
+      nodeId = normalizeNodeId(nodeId);
       try {
         const params: any = { nodeId };
         if (gap !== undefined) params.itemSpacing = gap;
@@ -503,6 +516,7 @@ export function registerModificationTools(server: McpServer): void {
         .describe("Array of exactly 4 booleans controlling which corners are rounded: [topLeft, topRight, bottomRight, bottomLeft]. E.g. [true, true, false, false] rounds top corners only. Omit to round all corners."),
     },
     async ({ nodeId, radius, corners }) => {
+      nodeId = normalizeNodeId(nodeId);
       try {
         const result = await sendCommandToFigma("set_corner_radius", {
           nodeId,
@@ -576,6 +590,7 @@ export function registerModificationTools(server: McpServer): void {
       horizontal,
       vertical,
     }) => {
+      nodeId = normalizeNodeId(nodeId);
       try {
         const result = await sendCommandToFigma("set_auto_layout", {
           nodeId,
@@ -675,6 +690,7 @@ export function registerModificationTools(server: McpServer): void {
       ).describe("Array of effects to apply"),
     },
     async ({ nodeId, effects }) => {
+      nodeId = normalizeNodeId(nodeId);
       try {
         const result = await sendCommandToFigma("set_effects", {
           nodeId,
@@ -714,6 +730,7 @@ export function registerModificationTools(server: McpServer): void {
       styleName: z.string().optional().describe("The name of the effect style to apply (e.g. 'shadow/md' or 'shadow-md')"),
     },
     async ({ nodeId, effectStyleId, styleName }) => {
+      nodeId = normalizeNodeId(nodeId);
       const resolvedStyleId = effectStyleId || styleName;
       if (!resolvedStyleId) {
         return {
@@ -1081,6 +1098,7 @@ export function registerModificationTools(server: McpServer): void {
       styleName: z.string().optional().describe("The name of the color style to apply (e.g. 'color/primary' or 'color-primary')"),
     },
     async ({ nodeId, styleId, styleName }) => {
+      nodeId = normalizeNodeId(nodeId);
       const resolvedStyleId = styleId || styleName;
       if (!resolvedStyleId) {
         return {
@@ -1128,6 +1146,7 @@ export function registerModificationTools(server: McpServer): void {
         ),
     },
     async ({ nodeId, variableId, field }) => {
+      nodeId = normalizeNodeId(nodeId);
       try {
         const result = await sendCommandToFigma("bind_variable", {
           nodeId,
@@ -1178,6 +1197,7 @@ export function registerModificationTools(server: McpServer): void {
         ),
     },
     async ({ nodeId, field }) => {
+      nodeId = normalizeNodeId(nodeId);
       try {
         const result = await sendCommandToFigma("unbind_variable", {
           nodeId,
@@ -1220,6 +1240,7 @@ export function registerModificationTools(server: McpServer): void {
       name: z.string().describe("The new name for the node"),
     },
     async ({ nodeId, name }) => {
+      nodeId = normalizeNodeId(nodeId);
       try {
         const result = await sendCommandToFigma("rename_node", {
           nodeId,
@@ -1286,6 +1307,7 @@ export function registerModificationTools(server: McpServer): void {
       highlights,
       shadows,
     }) => {
+      nodeId = normalizeNodeId(nodeId);
       try {
         const result = await sendCommandToFigma("set_image_fill", {
           nodeId,
@@ -1354,6 +1376,7 @@ export function registerModificationTools(server: McpServer): void {
       opacity: z.coerce.number().min(0).max(1).optional().describe("Overall fill opacity 0–1 applied on top of individual stop alphas (default: 1)"),
     },
     async ({ nodeId, type, stops, angle, opacity }) => {
+      nodeId = normalizeNodeId(nodeId);
       try {
         const result = await sendCommandToFigma("set_gradient_fill", {
           nodeId,

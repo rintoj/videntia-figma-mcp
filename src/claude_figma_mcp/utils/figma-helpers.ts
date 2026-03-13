@@ -3,6 +3,15 @@
  */
 
 /**
+ * Normalizes a Figma node ID from URL format (e.g. "65-7554") to API format (e.g. "65:7554").
+ * Figma URLs use dashes as separators, but the API uses colons.
+ */
+export function normalizeNodeId(nodeId: string): string {
+  return nodeId.replace(/^(\d+)-(\d+)$/, "$1:$2");
+}
+
+
+/**
  * Convierte un color RGBA a formato hexadecimal.
  * @param color - El color en formato RGBA con valores entre 0 y 1
  * @returns El color en formato hexadecimal (#RRGGBBAA)
