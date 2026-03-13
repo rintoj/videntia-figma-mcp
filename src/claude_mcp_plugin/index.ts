@@ -808,35 +808,66 @@ figma.ui.onmessage = async (msg: Record<string, unknown>) => {
       var searchQuery = (msg['query'] as string) || '';
       var searchLimit = 50;
       try {
-        var lowerQ = searchQuery.toLowerCase();
-        // Build fuzzy pattern: "abc" -> /a.*b.*c/i
-        var fuzzyChars = lowerQ.split('').map(function (c) {
-          return c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        });
-        var fuzzyPattern = new RegExp(fuzzyChars.join('.*'), 'i');
+        // Check if query contains multiple IDs (comma or space separated, ID format: digits:digits)
+        var idPattern = /^\d+:\d+$/;
+        var tokens = searchQuery.split(/[,\s]+/).filter(function (t) { return t.length > 0; });
+        var isMultiId = tokens.length > 1 && tokens.every(function (t) { return idPattern.test(t); });
+
         var searchMatches: Array<{id: string; name: string; type: string; pageName: string}> = [];
-        var pages = figma.root.children;
-        for (var pi = 0; pi < pages.length; pi++) {
-          var page = pages[pi];
-          await page.loadAsync();
-          var walkSearch = function (node: BaseNode, pgName: string) {
-            if (searchMatches.length >= searchLimit) return;
-            // Fuzzy match on name, prefix match on ID
-            var nameMatch = fuzzyPattern.test(node.name);
-            var idMatch = node.id.indexOf(lowerQ) === 0;
-            if (nameMatch || idMatch) {
-              searchMatches.push({ id: node.id, name: node.name, type: node.type, pageName: pgName });
-            }
-            if ('children' in node) {
-              var ch = (node as any).children;
-              for (var ci = 0; ci < ch.length; ci++) {
-                if (searchMatches.length >= searchLimit) break;
-                walkSearch(ch[ci], pgName);
+
+        if (isMultiId) {
+          // Direct ID lookup mode
+          var idSet: Record<string, boolean> = {};
+          for (var ti = 0; ti < tokens.length; ti++) { idSet[tokens[ti]] = true; }
+          var pages = figma.root.children;
+          for (var pi = 0; pi < pages.length; pi++) {
+            var page = pages[pi];
+            await page.loadAsync();
+            var walkIds = function (node: BaseNode, pgName: string) {
+              if (searchMatches.length >= searchLimit) return;
+              if (idSet[node.id]) {
+                searchMatches.push({ id: node.id, name: node.name, type: node.type, pageName: pgName });
               }
-            }
-          };
-          walkSearch(page, page.name);
-          if (searchMatches.length >= searchLimit) break;
+              if ('children' in node) {
+                var ch = (node as any).children;
+                for (var ci = 0; ci < ch.length; ci++) {
+                  if (searchMatches.length >= searchLimit) break;
+                  walkIds(ch[ci], pgName);
+                }
+              }
+            };
+            walkIds(page, page.name);
+            if (searchMatches.length >= searchLimit) break;
+          }
+        } else {
+          // Single query: fuzzy name match + prefix ID match
+          var lowerQ = searchQuery.toLowerCase();
+          var fuzzyChars = lowerQ.split('').map(function (c) {
+            return c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          });
+          var fuzzyPattern = new RegExp(fuzzyChars.join('.*'), 'i');
+          var pages = figma.root.children;
+          for (var pi = 0; pi < pages.length; pi++) {
+            var page = pages[pi];
+            await page.loadAsync();
+            var walkSearch = function (node: BaseNode, pgName: string) {
+              if (searchMatches.length >= searchLimit) return;
+              var nameMatch = fuzzyPattern.test(node.name);
+              var idMatch = node.id.indexOf(lowerQ) === 0;
+              if (nameMatch || idMatch) {
+                searchMatches.push({ id: node.id, name: node.name, type: node.type, pageName: pgName });
+              }
+              if ('children' in node) {
+                var ch = (node as any).children;
+                for (var ci = 0; ci < ch.length; ci++) {
+                  if (searchMatches.length >= searchLimit) break;
+                  walkSearch(ch[ci], pgName);
+                }
+              }
+            };
+            walkSearch(page, page.name);
+            if (searchMatches.length >= searchLimit) break;
+          }
         }
         figma.ui.postMessage({ type: 'search-results', nodes: searchMatches, query: searchQuery });
       } catch (err) {

@@ -156,12 +156,13 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
+  padding: 5px 12px;
   background-color: #383838;
   border: none;
   border-radius: 6px;
   color: #ffffff;
+  font-size: 12px;
+  font-weight: 500;
   cursor: pointer;
   transition: background-color 0.1s;
 }
@@ -176,10 +177,9 @@ body {
   flex: 1;
   overflow-y: auto;
   min-height: 0;
-  background-color: #1c1c1c;
-  border: 1px solid #333333;
-  border-radius: 6px;
-  margin: 0 8px 8px;
+  background-color: transparent;
+  border: none;
+  margin: 0;
 }
 
 .selection-node-list::-webkit-scrollbar {
@@ -211,6 +211,7 @@ body {
 
 .selection-node-active {
   background-color: #383838;
+  border-radius: 6px;
 }
 
 .selection-node-type-icon {

@@ -301,16 +301,10 @@ export function SelectionSection() {
         </div>
         <div class="selection-nav-buttons">
           <button class="selection-nav-btn" onClick={handlePrev} title="Previous">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M19 12H5"/>
-              <path d="M12 19l-7-7 7-7"/>
-            </svg>
+            {'\u2190'}
           </button>
           <button class="selection-nav-btn" onClick={handleNext} title="Next">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M5 12h14"/>
-              <path d="M12 5l7 7-7 7"/>
-            </svg>
+            {'\u2192'}
           </button>
         </div>
       </div>
