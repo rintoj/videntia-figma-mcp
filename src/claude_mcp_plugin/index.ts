@@ -809,6 +809,11 @@ figma.ui.onmessage = async (msg: Record<string, unknown>) => {
       var searchLimit = 50;
       try {
         var lowerQ = searchQuery.toLowerCase();
+        // Build fuzzy pattern: "abc" -> /a.*b.*c/i
+        var fuzzyChars = lowerQ.split('').map(function (c) {
+          return c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        });
+        var fuzzyPattern = new RegExp(fuzzyChars.join('.*'), 'i');
         var searchMatches: Array<{id: string; name: string; type: string; pageName: string}> = [];
         var pages = figma.root.children;
         for (var pi = 0; pi < pages.length; pi++) {
@@ -816,9 +821,10 @@ figma.ui.onmessage = async (msg: Record<string, unknown>) => {
           await page.loadAsync();
           var walkSearch = function (node: BaseNode, pgName: string) {
             if (searchMatches.length >= searchLimit) return;
-            var lowerName = node.name.toLowerCase();
-            var lowerType = node.type.toLowerCase();
-            if (lowerName.indexOf(lowerQ) !== -1 || lowerType.indexOf(lowerQ) !== -1) {
+            // Fuzzy match on name, prefix match on ID
+            var nameMatch = fuzzyPattern.test(node.name);
+            var idMatch = node.id.indexOf(lowerQ) === 0;
+            if (nameMatch || idMatch) {
               searchMatches.push({ id: node.id, name: node.name, type: node.type, pageName: pgName });
             }
             if ('children' in node) {

@@ -119,7 +119,9 @@ export function App() {
           <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
           <div class="tab-content">
             {activeTab === 'actions' && <ActionsList actions={connection.actions} />}
-            {activeTab === 'selection' && <SelectionSection />}
+            <div class="tab-panel" style={{ display: activeTab === 'selection' ? 'flex' : 'none', flex: 1, minHeight: 0, flexDirection: 'column' }}>
+              <SelectionSection />
+            </div>
             {activeTab === 'settings' && (
               <SettingsSection
                 readOnly={readOnly}
