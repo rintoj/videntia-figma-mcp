@@ -76,7 +76,7 @@ export function ActionItem({ action }: ActionItemProps) {
 
   return (
     <div
-      class={'action-item' + (hovered ? ' hovered' : '')}
+      class={'action-item' + (hovered ? ' hovered' : '') + (expanded ? ' selected' : '')}
       onMouseEnter={function () { setHovered(true) }}
       onMouseLeave={function () { setHovered(false) }}
       onClick={function () { setExpanded(!expanded) }}
@@ -96,8 +96,8 @@ export function ActionItem({ action }: ActionItemProps) {
           )}
           <span class="action-item-time">{formatTime(action.timestamp)}</span>
           {expanded
-            ? <ChevronDownIcon color="#808080" size={10} />
-            : <ChevronRightIcon color="#808080" size={10} />
+            ? <ChevronDownIcon color="#808080" size={14} />
+            : <ChevronRightIcon color="#808080" size={14} />
           }
         </div>
       </div>
@@ -105,7 +105,7 @@ export function ActionItem({ action }: ActionItemProps) {
         <div class="action-detail">
           <div class="action-detail-buttons">
             {hasNodeIds && (
-              <button class="action-detail-btn" onClick={handleFocus}>
+              <button class="action-detail-btn focus-btn" onClick={handleFocus}>
                 <FocusIcon color="#808080" />
                 <span>Focus</span>
               </button>
@@ -125,7 +125,7 @@ export function ActionItem({ action }: ActionItemProps) {
             <span class="action-detail-label">INPUT</span>
             <pre class="action-detail-content">{inputStr}</pre>
           </div>
-          <div class="action-detail-block">
+          <div class={'action-detail-block' + (action.status === 'success' ? ' output-success' : '') + (action.status === 'error' ? ' output-error' : '')}>
             <span class="action-detail-label">OUTPUT</span>
             <pre class={'action-detail-content' + (action.status === 'success' ? ' success' : '') + (action.status === 'error' ? ' error' : '')}>{outputStr}</pre>
           </div>

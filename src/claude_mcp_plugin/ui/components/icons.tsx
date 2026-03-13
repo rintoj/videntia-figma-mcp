@@ -7,12 +7,14 @@ interface IconProps {
 
 export function SignalIcon({ color, size }: IconProps) {
   var c = color || '#808080'
-  var s = size || 16
+  var s = size || 18
   return (
-    <svg width={s} height={s} viewBox="0 0 16 16" fill="none">
-      <circle cx="8" cy="12" r="2" fill={c} />
-      <path d="M4.5 9.5C5.5 8.2 6.7 7.5 8 7.5s2.5.7 3.5 2" stroke={c} stroke-width="1.5" stroke-linecap="round" fill="none" />
-      <path d="M2 7c1.8-2.3 3.7-3.5 6-3.5s4.2 1.2 6 3.5" stroke={c} stroke-width="1.5" stroke-linecap="round" fill="none" />
+    <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} stroke-width="1.5" stroke-linecap="round">
+      <path d="M4.9 19.1a10 10 0 0 1 0-14.2" />
+      <path d="M7.8 16.2a6 6 0 0 1 0-8.4" />
+      <path d="M16.2 7.8a6 6 0 0 1 0 8.4" />
+      <path d="M19.1 4.9a10 10 0 0 1 0 14.2" />
+      <circle cx="12" cy="12" r="2" />
     </svg>
   )
 }
@@ -61,12 +63,11 @@ export function ChevronDownIcon({ color, size }: IconProps) {
 
 export function TerminalIcon({ color, size }: IconProps) {
   var c = color || '#555555'
-  var s = size || 32
+  var s = size || 24
   return (
-    <svg width={s} height={s} viewBox="0 0 32 32" fill="none">
-      <rect x="3" y="6" width="26" height="20" rx="3" stroke={c} stroke-width="2" />
-      <path d="M9 14l3 3-3 3" stroke={c} stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-      <path d="M16 20h6" stroke={c} stroke-width="2" stroke-linecap="round" />
+    <svg width={s} height={s} viewBox="0 0 24 24" fill="none">
+      <path d="M4 17h8" stroke={c} stroke-width="2" stroke-linecap="round" />
+      <path d="M4 7l6 5-6 5" stroke={c} stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
     </svg>
   )
 }
@@ -111,8 +112,13 @@ export function ListIcon({ color, size }: IconProps) {
   var c = color || '#808080'
   var s = size || 13
   return (
-    <svg width={s} height={s} viewBox="0 0 13 13" fill="none">
-      <path d="M2 3.5h9M2 6.5h9M2 9.5h9" stroke={c} stroke-width="1.2" stroke-linecap="round" />
+    <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} stroke-width="2" stroke-linecap="round">
+      <line x1="8" y1="6" x2="21" y2="6" />
+      <line x1="8" y1="12" x2="21" y2="12" />
+      <line x1="8" y1="18" x2="21" y2="18" />
+      <line x1="3" y1="6" x2="3.01" y2="6" />
+      <line x1="3" y1="12" x2="3.01" y2="12" />
+      <line x1="3" y1="18" x2="3.01" y2="18" />
     </svg>
   )
 }
@@ -121,8 +127,9 @@ export function MousePointerIcon({ color, size }: IconProps) {
   var c = color || '#808080'
   var s = size || 13
   return (
-    <svg width={s} height={s} viewBox="0 0 13 13" fill="none">
-      <path d="M2 2l3.5 9 2-4 4-2L2 2z" stroke={c} stroke-width="1.1" stroke-linejoin="round" />
+    <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z" />
+      <path d="M13 13l6 6" />
     </svg>
   )
 }
@@ -131,9 +138,9 @@ export function GearIcon({ color, size }: IconProps) {
   var c = color || '#808080'
   var s = size || 13
   return (
-    <svg width={s} height={s} viewBox="0 0 13 13" fill="none">
-      <circle cx="6.5" cy="6.5" r="2" stroke={c} stroke-width="1.1" />
-      <path d="M6.5 1v1.2M6.5 10.8V12M1 6.5h1.2M10.8 6.5H12M2.7 2.7l.85.85M9.45 9.45l.85.85M2.7 10.3l.85-.85M9.45 3.55l.85-.85" stroke={c} stroke-width="1.1" stroke-linecap="round" />
+    <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+      <circle cx="12" cy="12" r="3" />
     </svg>
   )
 }

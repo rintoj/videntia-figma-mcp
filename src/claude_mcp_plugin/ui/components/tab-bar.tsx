@@ -22,7 +22,7 @@ function Tab({ id, label, active, icon, onTabChange }: TabProps) {
       class={'tab' + (active ? ' tab-active' : '')}
       onClick={function () { onTabChange(id) }}
     >
-      {icon(active ? '#1c1c1c' : '#737373')}
+      {icon(active ? '#4caf50' : '#737373')}
       <span class={'tab-label' + (active ? ' tab-label-active' : '')}>{label}</span>
     </div>
   )

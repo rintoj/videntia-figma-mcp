@@ -71,8 +71,8 @@ export function ConnectionSection({ port, connected, channelName, buttonDisabled
       <div class="connection-bar">
         <div class="connection-bar-left">
           {readOnly
-            ? <LockIcon color="#febc2f" size={16} />
-            : <SignalIcon color="#4caf50" size={16} />
+            ? <LockIcon color="#febc2f" size={18} />
+            : <SignalIcon color="#4caf50" size={18} />
           }
           <span class={readOnly ? 'connection-bar-channel readonly' : 'connection-bar-channel'}>{channelName || 'Connected'}</span>
           <span class="connection-bar-port-static">:{port}</span>
@@ -85,7 +85,7 @@ export function ConnectionSection({ port, connected, channelName, buttonDisabled
   return (
     <div class="connection-bar">
       <div class="connection-bar-left">
-        <SignalIcon color="#808080" size={16} />
+        <SignalIcon color="#f04545" size={18} />
         <span class="connection-bar-disconnected">Disconnected</span>
         <span class="connection-bar-port" onClick={handlePortClick}>:{port}</span>
       </div>

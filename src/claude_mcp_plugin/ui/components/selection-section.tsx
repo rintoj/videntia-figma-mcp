@@ -201,6 +201,12 @@ export function SelectionSection() {
         nodesRef.current = newList
         setNodes(newList)
         setNavIndex(-1)
+        // Auto-check incoming selected nodes
+        var autoChecked: Record<string, boolean> = {}
+        for (var j = 0; j < incoming.length; j++) {
+          autoChecked[incoming[j].id] = true
+        }
+        setCheckedIds(autoChecked)
       }
       if (msg.type === 'search-results') {
         setSearchResults(Array.isArray(msg.nodes) ? msg.nodes : [])
@@ -269,6 +275,10 @@ export function SelectionSection() {
     var next = Object.assign({}, checkedIds)
     if (next[id]) {
       delete next[id]
+      // Remove from history list
+      var filtered = nodesRef.current.filter(function (n) { return n.id !== id })
+      nodesRef.current = filtered
+      setNodes(filtered)
     } else {
       next[id] = true
     }
@@ -276,6 +286,11 @@ export function SelectionSection() {
   }
 
   function clearChecked() {
+    // Remove all checked nodes from history
+    var ids = checkedIds
+    var filtered = nodesRef.current.filter(function (n) { return !ids[n.id] })
+    nodesRef.current = filtered
+    setNodes(filtered)
     setCheckedIds({})
   }
 
@@ -368,7 +383,7 @@ export function SelectionSection() {
                   title="Copy node ID"
                 >
                   {copiedId === node.id ? (
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4db04f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4caf50" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                       <polyline points="20 6 9 17 4 12"/>
                     </svg>
                   ) : (
@@ -386,7 +401,7 @@ export function SelectionSection() {
               >
                 {isChecked ? (
                   <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                    <rect x="1" y="1" width="14" height="14" rx="3" fill="#4db04f"/>
+                    <rect x="1" y="1" width="14" height="14" rx="3" fill="#4caf50"/>
                     <polyline points="4.5 8 7 10.5 11.5 5.5" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
                   </svg>
                 ) : (
@@ -403,7 +418,7 @@ export function SelectionSection() {
         <div class="selection-action-bar">
           <div class="selection-action-bar-left">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <rect x="1" y="1" width="14" height="14" rx="3" fill="#4db04f"/>
+              <rect x="1" y="1" width="14" height="14" rx="3" fill="#4caf50"/>
               <polyline points="4.5 8 7 10.5 11.5 5.5" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
             </svg>
             <span class="selection-action-bar-count">{checkedCount + ' selected'}</span>
