@@ -111,9 +111,46 @@ body {
   padding: 4px 0;
 }
 
+.selection-row-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .selection-label {
   color: #cccccc;
   font-size: 13px;
+}
+
+.track-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 7px;
+  background-color: #383838;
+  border: 1px solid #4a4a4a;
+  border-radius: 5px;
+  color: #666666;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.15s, background-color 0.15s, border-color 0.15s;
+}
+
+.track-btn:hover {
+  background-color: #424242;
+  color: #888888;
+}
+
+.track-btn-on {
+  color: #4db04f;
+  border-color: #4db04f55;
+  background-color: rgba(77, 176, 79, 0.1);
+}
+
+.track-btn-on:hover {
+  background-color: rgba(77, 176, 79, 0.15);
 }
 
 .nav-buttons {
