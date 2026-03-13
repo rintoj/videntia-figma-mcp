@@ -191,7 +191,7 @@ var READONLY_COMMANDS = new Set([
   'audit_collection', 'validate_color_contrast', 'suggest_missing_variables',
   'generate_audit_report', 'export_collection_schema', 'get_schema_definition',
   'scan_nodes_by_types', 'get_annotations', 'get_annotation_categories',
-  'get_reactions', 'add_prototype_link', 'remove_prototype_link', 'get_design_system', 'lint_frame', 'set_focus', 'set_selections',
+  'get_reactions', 'get_design_system', 'lint_frame', 'set_focus', 'set_selections',
   'export_node_as_image', 'load_font_async', 'read_my_design',
 ]);
 

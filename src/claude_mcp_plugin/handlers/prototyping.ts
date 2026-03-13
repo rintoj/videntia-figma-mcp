@@ -124,6 +124,7 @@ export interface AddPrototypeLinkParams {
   transitionDuration?: number;
   transitionEasing?: string;
   preserveScrollPosition?: boolean;
+  triggerTimeout?: number;
 }
 
 export interface AddPrototypeLinkResult {
@@ -144,9 +145,10 @@ export async function addPrototypeLink(
   const trigger = (params['trigger'] as string) || 'ON_CLICK';
   const navigation = (params['navigation'] as string) || 'NAVIGATE';
   const transitionType = (params['transitionType'] as string) || null;
-  const transitionDuration = (params['transitionDuration'] as number) || 300;
+  const transitionDuration = params['transitionDuration'] !== undefined ? (params['transitionDuration'] as number) : 300;
   const transitionEasing = (params['transitionEasing'] as string) || 'EASE_OUT';
-  const preserveScrollPosition = (params['preserveScrollPosition'] as boolean) || false;
+  const preserveScrollPosition = params['preserveScrollPosition'] === true;
+  const triggerTimeout = params['triggerTimeout'] !== undefined ? (params['triggerTimeout'] as number) : 800;
 
   const node = await figma.getNodeByIdAsync(nodeId);
   if (!node) throw new Error('Node not found: ' + nodeId);
@@ -167,8 +169,12 @@ export async function addPrototypeLink(
     ? { type: transitionType, duration: transitionDuration, easing: { type: transitionEasing } }
     : null;
 
+  const triggerObj = trigger === 'AFTER_TIMEOUT'
+    ? { type: trigger, timeout: triggerTimeout }
+    : { type: trigger };
+
   const newReaction = {
-    trigger: { type: trigger },
+    trigger: triggerObj,
     actions: [{
       type: 'NODE',
       destinationId,

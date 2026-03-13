@@ -276,13 +276,14 @@ export function registerComponentTools(server: McpServer): void {
       transitionDuration: z.number().optional().describe("Transition duration in ms (default: 300)"),
       transitionEasing: z.string().optional().describe("Easing type e.g. EASE_IN, EASE_OUT, EASE_IN_AND_OUT, LINEAR (default: EASE_OUT)"),
       preserveScrollPosition: z.boolean().optional().describe("Preserve scroll position on navigate (default: false)"),
+      triggerTimeout: z.number().optional().describe("Timeout in ms for AFTER_TIMEOUT trigger (default: 800)"),
     },
-    async ({ nodeId, destinationId, trigger, navigation, transitionType, transitionDuration, transitionEasing, preserveScrollPosition }) => {
+    async ({ nodeId, destinationId, trigger, navigation, transitionType, transitionDuration, transitionEasing, preserveScrollPosition, triggerTimeout }) => {
       nodeId = normalizeNodeId(nodeId);
       destinationId = normalizeNodeId(destinationId);
       try {
         const result = await sendCommandToFigma("add_prototype_link", {
-          nodeId, destinationId, trigger, navigation, transitionType, transitionDuration, transitionEasing, preserveScrollPosition,
+          nodeId, destinationId, trigger, navigation, transitionType, transitionDuration, transitionEasing, preserveScrollPosition, triggerTimeout,
         });
         const r = result as { nodeName: string; destinationName: string; trigger: string; navigation: string };
         return {
@@ -306,7 +307,8 @@ export function registerComponentTools(server: McpServer): void {
     },
     async ({ nodeId, destinationId }) => {
       nodeId = normalizeNodeId(nodeId);
-      if (destinationId) destinationId = normalizeNodeId(destinationId);
+      if (destinationId && destinationId.length > 0) destinationId = normalizeNodeId(destinationId);
+      else destinationId = undefined as any;
       try {
         const result = await sendCommandToFigma("remove_prototype_link", { nodeId, destinationId });
         const r = result as { nodeName: string; removedCount: number; remainingCount: number };
