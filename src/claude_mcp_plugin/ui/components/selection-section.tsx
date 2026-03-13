@@ -76,15 +76,17 @@ export function SelectionSection() {
       <div class="selection-row">
         <div class="selection-row-left">
           <button
-            class={'track-btn' + (tracking ? ' track-btn-on' : '')}
+            class={'sync-btn' + (tracking ? ' sync-btn-on' : '')}
             title={tracking ? 'Tracking on — click to freeze' : 'Tracking off — click to resume'}
             onClick={function () { setTracking(function (v) { return !v }) }}
           >
             <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-              <circle cx="6.5" cy="6.5" r="2" stroke="currentColor" stroke-width="1.1"/>
-              <path d="M6.5 1v1.2M6.5 10.8V12M1 6.5h1.2M10.8 6.5H12M2.7 2.7l.85.85M9.45 9.45l.85.85M2.7 10.3l.85-.85M9.45 3.55l.85-.85" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/>
+              <path d="M11 6.5a4.5 4.5 0 0 1-7.5 3.35" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/>
+              <path d="M2 6.5a4.5 4.5 0 0 1 7.5-3.35" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/>
+              <path d="M9.5 2.5l.5 1.2-1.2.3" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M3.5 10.5l-.5-1.2 1.2-.3" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
-            <span>Track</span>
+            <span>Sync</span>
           </button>
         </div>
         <div class="nav-buttons">
