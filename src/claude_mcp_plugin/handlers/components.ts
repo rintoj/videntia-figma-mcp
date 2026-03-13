@@ -34,11 +34,13 @@ function buildNamePathMap(
 interface CapturedContent {
   texts: Map<string, string>;
   icons: Map<string, string>;
+  iconSvgs: Map<string, Uint8Array>;
 }
 
 async function captureContent(node: BaseNode): Promise<CapturedContent> {
   const texts = new Map<string, string>();
   const icons = new Map<string, string>();
+  const iconSvgs = new Map<string, Uint8Array>();
   const namePathMap = buildNamePathMap(node, node);
 
   for (const [namePath, sceneNode] of namePathMap) {
@@ -53,10 +55,38 @@ async function captureContent(node: BaseNode): Promise<CapturedContent> {
       } catch (_e) {
         // skip if we can't resolve
       }
+      // Always capture SVG as fallback in case component key can't be resolved later
+      try {
+        const svgBytes = await (sceneNode as SceneNode).exportAsync({ format: 'SVG' });
+        iconSvgs.set(namePath, svgBytes);
+      } catch (_e) {
+        // skip if export fails
+      }
+    } else if (sceneNode.type === 'FRAME' && !namePath.includes('/')) {
+      // Capture top-level FRAME children as SVG — these may be icon-like frames
+      // (e.g. a frame containing vectors) that need to swap into INSTANCE slots
+      try {
+        const svgBytes = await (sceneNode as SceneNode).exportAsync({ format: 'SVG' });
+        iconSvgs.set(namePath, svgBytes);
+        // Mark as icon so it participates in icon matching/fallback
+        icons.set(namePath, '__svg_only__');
+      } catch (_e) {
+        // skip if export fails
+      }
     }
   }
 
-  return { texts, icons };
+  return { texts, icons, iconSvgs };
+}
+
+async function createComponentFromSvgBytes(svgBytes: Uint8Array): Promise<ComponentNode> {
+  var svgString = '';
+  for (var i = 0; i < svgBytes.length; i++) {
+    svgString += String.fromCharCode(svgBytes[i]);
+  }
+  var svgNode = figma.createNodeFromSvg(svgString);
+  var comp = figma.createComponentFromNode(svgNode);
+  return comp;
 }
 
 interface ContentOverridesParam {
@@ -128,19 +158,29 @@ async function applyContentToInstance(
     if (target && target.type === 'INSTANCE') {
       try {
         let comp: ComponentNode | null = null;
-        // Try local ID first
-        if (componentKeyOrId.includes(':')) {
-          const localNode = await figma.getNodeByIdAsync(componentKeyOrId);
-          if (localNode !== null && localNode.type === 'COMPONENT') {
-            comp = localNode as ComponentNode;
+        // Skip key/ID lookup for SVG-only captures (e.g. plain FRAME icons)
+        if (componentKeyOrId !== '__svg_only__') {
+          // Try local ID first
+          if (componentKeyOrId.includes(':')) {
+            const localNode = await figma.getNodeByIdAsync(componentKeyOrId);
+            if (localNode !== null && localNode.type === 'COMPONENT') {
+              comp = localNode as ComponentNode;
+            }
+          }
+          // Try import by key
+          if (!comp) {
+            try {
+              comp = await figma.importComponentByKeyAsync(componentKeyOrId);
+            } catch (_e) {
+              // ignore
+            }
           }
         }
-        // Try import by key
-        if (!comp) {
+        if (!comp && captured && captured.iconSvgs.has(namePath)) {
           try {
-            comp = await figma.importComponentByKeyAsync(componentKeyOrId);
-          } catch (_e) {
-            // ignore
+            comp = await createComponentFromSvgBytes(captured.iconSvgs.get(namePath)!);
+          } catch (_e2) {
+            // SVG fallback failed
           }
         }
         if (comp) {
@@ -221,17 +261,26 @@ async function applyContentToInstance(
         var iTargetNode = availableInstanceNodes[iconIdx][1];
         try {
           var comp: ComponentNode | null = null;
-          if (componentKeyOrId.includes(':')) {
-            var localNode = await figma.getNodeByIdAsync(componentKeyOrId);
-            if (localNode !== null && localNode.type === 'COMPONENT') {
-              comp = localNode as ComponentNode;
+          if (componentKeyOrId !== '__svg_only__') {
+            if (componentKeyOrId.includes(':')) {
+              var localNode = await figma.getNodeByIdAsync(componentKeyOrId);
+              if (localNode !== null && localNode.type === 'COMPONENT') {
+                comp = localNode as ComponentNode;
+              }
+            }
+            if (!comp) {
+              try {
+                comp = await figma.importComponentByKeyAsync(componentKeyOrId);
+              } catch (_e) {
+                // ignore
+              }
             }
           }
-          if (!comp) {
+          if (!comp && captured && captured.iconSvgs.has(iOrigPath)) {
             try {
-              comp = await figma.importComponentByKeyAsync(componentKeyOrId);
-            } catch (_e) {
-              // ignore
+              comp = await createComponentFromSvgBytes(captured.iconSvgs.get(iOrigPath)!);
+            } catch (_e2) {
+              // SVG fallback failed
             }
           }
           if (comp) {
@@ -374,6 +423,36 @@ export async function createComponentInstance(
       );
     }
 
+    // Pre-validate replaceNodeId and parentId BEFORE creating the instance
+    // to avoid orphaned instances if validation fails
+    let targetNode: BaseNode | null = null;
+    let parentNode: BaseNode | null = null;
+
+    if (replaceNodeId !== undefined) {
+      targetNode = await figma.getNodeByIdAsync(replaceNodeId);
+      if (!targetNode) {
+        throw new Error(`Replace target node with ID ${replaceNodeId} not found`);
+      }
+      if (!targetNode.parent) {
+        throw new Error(`Replace target node "${targetNode.name}" has no parent`);
+      }
+      if (!('appendChild' in targetNode.parent)) {
+        throw new Error(
+          `Replace target's parent "${targetNode.parent.name}" cannot contain children (type: ${targetNode.parent.type})`,
+        );
+      }
+    } else if (parentId !== undefined) {
+      parentNode = await figma.getNodeByIdAsync(parentId);
+      if (!parentNode) {
+        throw new Error(`Parent node with ID ${parentId} not found`);
+      }
+      if (!('appendChild' in parentNode)) {
+        throw new Error(
+          `Parent node "${parentNode.name}" cannot contain children (type: ${parentNode.type})`,
+        );
+      }
+    }
+
     // Create instance and set properties
     debugLog(`Creating instance of "${component.name}"...`);
     const instance = component.createInstance();
@@ -386,20 +465,7 @@ export async function createComponentInstance(
     let capturedContent: CapturedContent | null = null;
 
     // Replace existing node
-    if (replaceNodeId !== undefined) {
-      const targetNode = await figma.getNodeByIdAsync(replaceNodeId);
-      if (!targetNode) {
-        throw new Error(`Replace target node with ID ${replaceNodeId} not found`);
-      }
-      if (!targetNode.parent) {
-        throw new Error(`Replace target node "${targetNode.name}" has no parent`);
-      }
-      if (!('appendChild' in targetNode.parent)) {
-        throw new Error(
-          `Replace target's parent "${targetNode.parent.name}" cannot contain children (type: ${targetNode.parent.type})`,
-        );
-      }
-
+    if (replaceNodeId !== undefined && targetNode) {
       // Capture content from target before removing it
       if (contentOverrides && contentOverrides.preserveContent) {
         capturedContent = await captureContent(targetNode);
@@ -407,7 +473,7 @@ export async function createComponentInstance(
       }
 
       const targetParent = targetNode.parent as ChildrenMixin;
-      actualParentId = targetNode.parent.id;
+      actualParentId = targetNode.parent!.id;
       let targetIdx = -1;
       for (let i = 0; i < targetParent.children.length; i++) {
         if (targetParent.children[i].id === targetNode.id) {
@@ -428,24 +494,14 @@ export async function createComponentInstance(
       instance.y = ty;
       instance.resize(Math.max(tw, 0.01), Math.max(th, 0.01));
       targetNode.remove();
-    } else if (parentId !== undefined) {
+    } else if (parentId !== undefined && parentNode) {
       // Add to specified parent
-      const parent = await figma.getNodeByIdAsync(parentId);
-      if (!parent) {
-        throw new Error(`Parent node with ID ${parentId} not found`);
-      }
-      if ('appendChild' in parent) {
-        if (index !== undefined) {
-          (parent as ChildrenMixin).insertChild(index, instance);
-        } else {
-          (parent as ChildrenMixin).appendChild(instance);
-        }
-        actualParentId = parentId;
+      if (index !== undefined) {
+        (parentNode as unknown as ChildrenMixin).insertChild(index, instance);
       } else {
-        throw new Error(
-          `Parent node "${parent.name}" cannot contain children (type: ${parent.type})`,
-        );
+        (parentNode as unknown as ChildrenMixin).appendChild(instance);
       }
+      actualParentId = parentId;
     } else {
       figma.currentPage.appendChild(instance);
     }
