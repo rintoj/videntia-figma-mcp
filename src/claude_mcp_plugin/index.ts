@@ -781,6 +781,11 @@ figma.ui.onmessage = async (msg: Record<string, unknown>) => {
     case 'get-file-name':
       figma.ui.postMessage({ type: 'file-name', fileName: figma.root.name });
       break;
+    case 'get-selection': {
+      var selIds = figma.currentPage.selection.map(function (n) { return n.id; });
+      figma.ui.postMessage({ type: 'selection-changed', nodeIds: selIds });
+      break;
+    }
     case 'focus-nodes': {
       var focusIds = msg['nodeIds'] as string[];
       if (Array.isArray(focusIds) && focusIds.length > 0) {
