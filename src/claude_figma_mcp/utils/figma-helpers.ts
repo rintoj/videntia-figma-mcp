@@ -10,7 +10,6 @@ export function normalizeNodeId(nodeId: string): string {
   return nodeId.replace(/^(\d+)-(\d+)$/, "$1:$2");
 }
 
-
 /**
  * Convierte un color RGBA a formato hexadecimal.
  * @param color - El color en formato RGBA con valores entre 0 y 1

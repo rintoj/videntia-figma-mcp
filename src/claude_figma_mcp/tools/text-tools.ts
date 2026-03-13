@@ -63,6 +63,7 @@ export function registerTextTools(server: McpServer): void {
     },
     async ({ nodeId, text }, extra) => {
       nodeId = normalizeNodeId(nodeId);
+      text = text.map((item) => ({ ...item, nodeId: normalizeNodeId(item.nodeId) }));
       try {
         if (!text || text.length === 0) {
           return {
