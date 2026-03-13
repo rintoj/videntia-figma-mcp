@@ -82,6 +82,82 @@ export function CopyIcon({ color, size }: IconProps) {
   )
 }
 
+export function FocusIcon({ color, size }: IconProps) {
+  var c = color || '#4db04f'
+  var s = size || 14
+  return (
+    <svg width={s} height={s} viewBox="0 0 14 14" fill="none">
+      <path d="M1.5 4.5V2.5a1 1 0 011-1h2" stroke={c} stroke-width="1.2" stroke-linecap="round" />
+      <path d="M9 1.5h2a1 1 0 011 1v2" stroke={c} stroke-width="1.2" stroke-linecap="round" />
+      <path d="M12.5 9.5v2a1 1 0 01-1 1h-2" stroke={c} stroke-width="1.2" stroke-linecap="round" />
+      <path d="M5 12.5H3a1 1 0 01-1-1v-2" stroke={c} stroke-width="1.2" stroke-linecap="round" />
+      <circle cx="7" cy="7" r="2" stroke={c} stroke-width="1.2" />
+    </svg>
+  )
+}
+
+export function LockIcon({ color, size }: IconProps) {
+  var c = color || '#febc2f'
+  var s = size || 14
+  return (
+    <svg width={s} height={s} viewBox="0 0 14 14" fill="none">
+      <rect x="2" y="6.5" width="10" height="6" rx="1.5" stroke={c} stroke-width="1.2" />
+      <path d="M4.5 6.5V4.5a2.5 2.5 0 015 0v2" stroke={c} stroke-width="1.2" stroke-linecap="round" />
+    </svg>
+  )
+}
+
+export function ListIcon({ color, size }: IconProps) {
+  var c = color || '#808080'
+  var s = size || 13
+  return (
+    <svg width={s} height={s} viewBox="0 0 13 13" fill="none">
+      <path d="M2 3.5h9M2 6.5h9M2 9.5h9" stroke={c} stroke-width="1.2" stroke-linecap="round" />
+    </svg>
+  )
+}
+
+export function MousePointerIcon({ color, size }: IconProps) {
+  var c = color || '#808080'
+  var s = size || 13
+  return (
+    <svg width={s} height={s} viewBox="0 0 13 13" fill="none">
+      <path d="M2 2l3.5 9 2-4 4-2L2 2z" stroke={c} stroke-width="1.1" stroke-linejoin="round" />
+    </svg>
+  )
+}
+
+export function GearIcon({ color, size }: IconProps) {
+  var c = color || '#808080'
+  var s = size || 13
+  return (
+    <svg width={s} height={s} viewBox="0 0 13 13" fill="none">
+      <circle cx="6.5" cy="6.5" r="2" stroke={c} stroke-width="1.1" />
+      <path d="M6.5 1v1.2M6.5 10.8V12M1 6.5h1.2M10.8 6.5H12M2.7 2.7l.85.85M9.45 9.45l.85.85M2.7 10.3l.85-.85M9.45 3.55l.85-.85" stroke={c} stroke-width="1.1" stroke-linecap="round" />
+    </svg>
+  )
+}
+
+export function CodeXmlIcon({ color, size }: IconProps) {
+  var c = color || '#ffffff'
+  var s = size || 20
+  return (
+    <svg width={s} height={s} viewBox="0 0 20 20" fill="none">
+      <path d="M5 7l-3 3 3 3M15 7l3 3-3 3M11 4l-2 12" stroke={c} stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
+    </svg>
+  )
+}
+
+export function XIcon({ color, size }: IconProps) {
+  var c = color || '#999999'
+  var s = size || 18
+  return (
+    <svg width={s} height={s} viewBox="0 0 18 18" fill="none">
+      <path d="M5 5l8 8M13 5l-8 8" stroke={c} stroke-width="1.5" stroke-linecap="round" />
+    </svg>
+  )
+}
+
 export function SpinnerIcon({ color, size }: IconProps) {
   var c = color || '#66b3ff'
   var s = size || 14

@@ -353,8 +353,9 @@ export function useConnection() {
       ? Math.max(0, MIN_PROGRESS_DISPLAY_MS - (Date.now() - resultStart))
       : 0
     progressStartTimesRef.current.delete(message.id)
+    var nodeIds = message.nodeIds && Array.isArray(message.nodeIds) ? message.nodeIds : []
     setTimeout(function () {
-      updateAction(message.id, { status: 'success', result: message.result })
+      updateAction(message.id, { status: 'success', result: message.result, nodeIds: nodeIds })
     }, resultDelay)
     sendSuccessResponse(message.id, message.result)
   }

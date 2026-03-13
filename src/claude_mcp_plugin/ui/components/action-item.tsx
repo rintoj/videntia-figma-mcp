@@ -1,6 +1,6 @@
 import { h } from 'preact'
 import { useState } from 'preact/hooks'
-import { CheckCircleIcon, XCircleIcon, SpinnerIcon, ChevronRightIcon, ChevronDownIcon, CopyIcon } from './icons'
+import { CheckCircleIcon, XCircleIcon, SpinnerIcon, ChevronRightIcon, ChevronDownIcon, CopyIcon, FocusIcon } from './icons'
 import { ActionEntry } from '../types'
 
 interface ActionItemProps {
@@ -25,9 +25,19 @@ export function ActionItem({ action }: ActionItemProps) {
   var [hovered, setHovered] = useState(false)
 
   function getStatusIcon() {
+    if (hovered && action.nodeIds && action.nodeIds.length > 0) {
+      return <FocusIcon color="#4db04f" />
+    }
     if (action.status === 'success') return <CheckCircleIcon color="#4caf50" />
     if (action.status === 'error') return <XCircleIcon color="#ef4444" />
     return <SpinnerIcon color="#66b3ff" />
+  }
+
+  function handleFocus(e: Event) {
+    e.stopPropagation()
+    if (action.nodeIds && action.nodeIds.length > 0) {
+      parent.postMessage({ pluginMessage: { type: 'focus-nodes', nodeIds: action.nodeIds } }, '*')
+    }
   }
 
   function handleCopy(e: Event) {
@@ -63,7 +73,12 @@ export function ActionItem({ action }: ActionItemProps) {
     >
       <div class="action-item-row">
         <div class="action-item-left">
-          {getStatusIcon()}
+          <span
+            class="action-status-icon"
+            onClick={hovered && action.nodeIds && action.nodeIds.length > 0 ? handleFocus : undefined}
+          >
+            {getStatusIcon()}
+          </span>
           {expanded
             ? <ChevronDownIcon color="#808080" size={10} />
             : <ChevronRightIcon color="#808080" size={10} />

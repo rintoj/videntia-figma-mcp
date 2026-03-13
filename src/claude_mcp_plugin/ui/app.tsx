@@ -1,10 +1,11 @@
 import { h } from 'preact'
 import { useState, useEffect, useRef } from 'preact/hooks'
 import { ConnectionSection } from './components/connection-section'
-import { SectionHeader } from './components/section-header'
 import { SettingsSection } from './components/settings-section'
 import { ActionsList } from './components/actions-list'
-import { Collapsible } from './components/collapsible'
+import { TabBar, TabId } from './components/tab-bar'
+import { SelectionSection } from './components/selection-section'
+import { CodeXmlIcon, XIcon } from './components/icons'
 import { useConnection } from './hooks/use-connection'
 import { consumeEarlyMessages } from './early-messages'
 
@@ -12,12 +13,10 @@ export function App() {
   var [port, setPort] = useState(3055)
   var [readOnly, setReadOnly] = useState(false)
   var [autoFocus, setAutoFocus] = useState(false)
-  var [prefsExpanded, setPrefsExpanded] = useState(false)
-  var [actionsExpanded, setActionsExpanded] = useState(true)
+  var [activeTab, setActiveTab] = useState<TabId>('actions')
 
   var connection = useConnection()
 
-  // Keep connection in a ref so the message handler always sees the latest without re-registering
   var connectionRef = useRef(connection)
   connectionRef.current = connection
 
@@ -26,7 +25,6 @@ export function App() {
       var msg = event.data && event.data.pluginMessage
       if (!msg) return
 
-      console.log('Received message from plugin:', msg)
       var conn = connectionRef.current
 
       switch (msg.type) {
@@ -43,12 +41,6 @@ export function App() {
             }
             if (msg.settings.autoFocus !== undefined) {
               setAutoFocus(msg.settings.autoFocus)
-            }
-            if (msg.settings.prefsExpanded !== undefined) {
-              setPrefsExpanded(msg.settings.prefsExpanded)
-            }
-            if (msg.settings.actionsExpanded !== undefined) {
-              setActionsExpanded(msg.settings.actionsExpanded)
             }
           }
           break
@@ -75,7 +67,6 @@ export function App() {
 
     window.addEventListener('message', handleMessage)
 
-    // Replay any messages that arrived before the app mounted
     var early = consumeEarlyMessages()
     for (var i = 0; i < early.length; i++) {
       handleMessage(early[i])
@@ -96,18 +87,6 @@ export function App() {
     parent.postMessage({ pluginMessage: { type: 'update-settings', autoFocus: value } }, '*')
   }
 
-  function handlePrefsToggle() {
-    var next = !prefsExpanded
-    setPrefsExpanded(next)
-    parent.postMessage({ pluginMessage: { type: 'update-settings', prefsExpanded: next } }, '*')
-  }
-
-  function handleActionsToggle() {
-    var next = !actionsExpanded
-    setActionsExpanded(next)
-    parent.postMessage({ pluginMessage: { type: 'update-settings', actionsExpanded: next } }, '*')
-  }
-
   function handleConnect(p: number) {
     connection.connect(p)
   }
@@ -120,31 +99,48 @@ export function App() {
     setPort(p)
   }
 
+  function handleClose() {
+    parent.postMessage({ pluginMessage: { type: 'close-plugin' } }, '*')
+  }
+
   return (
     <div class="container">
-      <ConnectionSection
-        port={port}
-        connected={connection.connState.connected}
-        channelName={connection.connState.channelName}
-        buttonDisabled={connection.connState.buttonDisabled}
-        onConnect={handleConnect}
-        onDisconnect={handleDisconnect}
-        onPortChange={handlePortChange}
-      />
-      <div class="section-content">
-        <SectionHeader label="Preferences" expanded={prefsExpanded} onToggle={handlePrefsToggle} />
-        <Collapsible expanded={prefsExpanded}>
-          <SettingsSection
-            readOnly={readOnly}
-            autoFocus={autoFocus}
-            onReadOnlyChange={handleReadOnlyChange}
-            onAutoFocusChange={handleAutoFocusChange}
-          />
-        </Collapsible>
+      <div class="title-bar">
+        <div class="title-bar-left">
+          <div class="title-icon-box">
+            <CodeXmlIcon color="#ffffff" size={20} />
+          </div>
+          <span class="title-text">Claude Figma MCP</span>
+        </div>
+        <button class="title-close-btn" onClick={handleClose}>
+          <XIcon color="#999999" size={18} />
+        </button>
       </div>
-      <div class="section-content actions-section">
-        <SectionHeader label="Actions" expanded={actionsExpanded} onToggle={handleActionsToggle} />
-        {actionsExpanded && <ActionsList actions={connection.actions} />}
+      <div class="title-divider" />
+      <div class="content">
+        <ConnectionSection
+          port={port}
+          connected={connection.connState.connected}
+          channelName={connection.connState.channelName}
+          buttonDisabled={connection.connState.buttonDisabled}
+          readOnly={readOnly}
+          onConnect={handleConnect}
+          onDisconnect={handleDisconnect}
+          onPortChange={handlePortChange}
+        />
+        <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
+        <div class="tab-content">
+          {activeTab === 'actions' && <ActionsList actions={connection.actions} />}
+          {activeTab === 'selection' && <SelectionSection />}
+          {activeTab === 'settings' && (
+            <SettingsSection
+              readOnly={readOnly}
+              autoFocus={autoFocus}
+              onReadOnlyChange={handleReadOnlyChange}
+              onAutoFocusChange={handleAutoFocusChange}
+            />
+          )}
+        </div>
       </div>
     </div>
   )

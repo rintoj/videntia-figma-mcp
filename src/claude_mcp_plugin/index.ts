@@ -243,6 +243,12 @@ figma.on('run', function () {
   figma.ui.postMessage({ type: 'auto-connect' });
 });
 
+// Notify UI when the Figma selection changes
+figma.on('selectionchange', function () {
+  var nodeIds = figma.currentPage.selection.map(function (n) { return n.id; });
+  figma.ui.postMessage({ type: 'selection-changed', nodeIds: nodeIds });
+});
+
 // ---------------------------------------------------------------------------
 // Settings
 // ---------------------------------------------------------------------------
@@ -733,6 +739,31 @@ async function _executeCommand(
 }
 
 // ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function extractNodeIds(result: unknown): string[] {
+  if (!result || typeof result !== 'object') return [];
+  var r = result as Record<string, unknown>;
+  var ids: string[] = [];
+  if (typeof r['id'] === 'string') ids.push(r['id']);
+  if (typeof r['nodeId'] === 'string') ids.push(r['nodeId']);
+  if (Array.isArray(r['nodeIds'])) {
+    r['nodeIds'].forEach(function (id: unknown) {
+      if (typeof id === 'string') ids.push(id);
+    });
+  }
+  if (Array.isArray(r['nodes'])) {
+    r['nodes'].forEach(function (n: unknown) {
+      if (n && typeof n === 'object' && typeof (n as Record<string, unknown>)['id'] === 'string') {
+        ids.push((n as Record<string, unknown>)['id'] as string);
+      }
+    });
+  }
+  return ids;
+}
+
+// ---------------------------------------------------------------------------
 // UI message handler
 // ---------------------------------------------------------------------------
 
@@ -750,6 +781,17 @@ figma.ui.onmessage = async (msg: Record<string, unknown>) => {
     case 'get-file-name':
       figma.ui.postMessage({ type: 'file-name', fileName: figma.root.name });
       break;
+    case 'focus-nodes': {
+      var focusIds = msg['nodeIds'] as string[];
+      if (Array.isArray(focusIds) && focusIds.length > 0) {
+        var nodes = focusIds.map(function (id) { return figma.getNodeById(id); }).filter(function (n) { return n !== null; }) as SceneNode[];
+        if (nodes.length > 0) {
+          figma.currentPage.selection = nodes;
+          figma.viewport.scrollAndZoomIntoView(nodes);
+        }
+      }
+      break;
+    }
     case 'execute-command':
       try {
         const result = await handleCommand(
@@ -761,6 +803,7 @@ figma.ui.onmessage = async (msg: Record<string, unknown>) => {
           id: msg['id'],
           command: msg['command'],
           result,
+          nodeIds: extractNodeIds(result),
         });
       } catch (error) {
         figma.ui.postMessage({
