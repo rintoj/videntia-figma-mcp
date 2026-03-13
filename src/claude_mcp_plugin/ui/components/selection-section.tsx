@@ -177,18 +177,24 @@ export function SelectionSection() {
   var [hoveredId, setHoveredId] = useState<string | null>(null)
   var searchTimerRef = useRef<any>(null)
   var nodesRef = useRef<NodeInfo[]>([])
+  var suppressRef = useRef(false)
 
   useEffect(function () {
     function handleMessage(event: MessageEvent) {
       var msg = event.data && event.data.pluginMessage
       if (!msg) return
       if (msg.type === 'selection-changed') {
+        if (suppressRef.current) {
+          suppressRef.current = false
+          return
+        }
         var incoming = Array.isArray(msg.nodes) ? msg.nodes as NodeInfo[] : []
         var current = nodesRef.current
         var newList = current.slice()
         for (var i = incoming.length - 1; i >= 0; i--) {
           var item = incoming[i]
-          newList = newList.filter(function (n) { return n.id !== item.id })
+          // Only skip if already at the top
+          if (newList.length > 0 && newList[0].id === item.id) continue
           newList.unshift(item)
         }
         nodesRef.current = newList
@@ -226,11 +232,27 @@ export function SelectionSection() {
     }, 300)
   }
 
+  function addToHistory(node: NodeInfo) {
+    var current = nodesRef.current
+    if (current.length > 0 && current[0].id === node.id) return
+    var newList = [node].concat(current)
+    nodesRef.current = newList
+    setNodes(newList)
+  }
+
   function focusNode(id: string) {
     parent.postMessage({ pluginMessage: { type: 'focus-nodes', nodeIds: [id] } }, '*')
   }
 
-  function handleRowClick(node: NodeInfo) {
+  function focusAndTrack(node: NodeInfo) {
+    suppressRef.current = true
+    focusNode(node.id)
+    addToHistory(node)
+  }
+
+  function handleRowClick(node: NodeInfo, index: number) {
+    setNavIndex(index)
+    suppressRef.current = true
     focusNode(node.id)
   }
 
@@ -246,6 +268,7 @@ export function SelectionSection() {
     if (list.length === 0) return
     var prev = navIndex <= 0 ? list.length - 1 : navIndex - 1
     setNavIndex(prev)
+    suppressRef.current = true
     focusNode(list[prev].id)
   }
 
@@ -254,6 +277,7 @@ export function SelectionSection() {
     if (list.length === 0) return
     var next = navIndex < 0 ? 0 : (navIndex + 1) % list.length
     setNavIndex(next)
+    suppressRef.current = true
     focusNode(list[next].id)
   }
 
@@ -303,9 +327,9 @@ export function SelectionSection() {
           var isActive = navIndex === i
           return (
             <div
-              key={node.id}
+              key={node.id + '-' + i}
               class={'selection-node-row' + (isActive ? ' selection-node-active' : '')}
-              onClick={function () { handleRowClick(node) }}
+              onClick={function () { handleRowClick(node, i) }}
               onMouseEnter={function () { setHoveredId(node.id) }}
               onMouseLeave={function () { setHoveredId(null) }}
             >
