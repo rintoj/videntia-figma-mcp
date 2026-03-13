@@ -5,7 +5,6 @@ import { SettingsSection } from './components/settings-section'
 import { ActionsList } from './components/actions-list'
 import { TabBar, TabId } from './components/tab-bar'
 import { SelectionSection } from './components/selection-section'
-import { CodeXmlIcon, XIcon } from './components/icons'
 import { useConnection } from './hooks/use-connection'
 import { consumeEarlyMessages } from './early-messages'
 
@@ -105,18 +104,6 @@ export function App() {
 
   return (
     <div class="container">
-      <div class="title-bar">
-        <div class="title-bar-left">
-          <div class="title-icon-box">
-            <CodeXmlIcon color="#ffffff" size={20} />
-          </div>
-          <span class="title-text">Claude Figma MCP</span>
-        </div>
-        <button class="title-close-btn" onClick={handleClose}>
-          <XIcon color="#999999" size={18} />
-        </button>
-      </div>
-      <div class="title-divider" />
       <div class="content">
         <ConnectionSection
           port={port}
@@ -128,18 +115,20 @@ export function App() {
           onDisconnect={handleDisconnect}
           onPortChange={handlePortChange}
         />
-        <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
-        <div class="tab-content">
-          {activeTab === 'actions' && <ActionsList actions={connection.actions} />}
-          {activeTab === 'selection' && <SelectionSection />}
-          {activeTab === 'settings' && (
-            <SettingsSection
-              readOnly={readOnly}
-              autoFocus={autoFocus}
-              onReadOnlyChange={handleReadOnlyChange}
-              onAutoFocusChange={handleAutoFocusChange}
-            />
-          )}
+        <div class="tab-card">
+          <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
+          <div class="tab-content">
+            {activeTab === 'actions' && <ActionsList actions={connection.actions} />}
+            {activeTab === 'selection' && <SelectionSection />}
+            {activeTab === 'settings' && (
+              <SettingsSection
+                readOnly={readOnly}
+                autoFocus={autoFocus}
+                onReadOnlyChange={handleReadOnlyChange}
+                onAutoFocusChange={handleAutoFocusChange}
+              />
+            )}
+          </div>
         </div>
       </div>
     </div>
