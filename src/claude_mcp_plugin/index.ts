@@ -9,7 +9,7 @@ import { setAutoFocus } from './utils/plugin-state';
 import { getFileKey, getDocumentInfo, searchNodes, saveVersionHistory, triggerUndo, commitUndoAction } from './handlers/document';
 import { serializeNodes } from './handlers/node-serializer';
 import { createPage, renamePage, deletePage } from './handlers/pages';
-import { getReactions, setDefaultConnector, createConnections } from './handlers/prototyping';
+import { getReactions, setDefaultConnector, createConnections, addPrototypeLink, removePrototypeLink } from './handlers/prototyping';
 
 // Handlers — node creation & modification
 import {
@@ -191,7 +191,7 @@ var READONLY_COMMANDS = new Set([
   'audit_collection', 'validate_color_contrast', 'suggest_missing_variables',
   'generate_audit_report', 'export_collection_schema', 'get_schema_definition',
   'scan_nodes_by_types', 'get_annotations', 'get_annotation_categories',
-  'get_reactions', 'get_design_system', 'lint_frame', 'set_focus', 'set_selections',
+  'get_reactions', 'add_prototype_link', 'remove_prototype_link', 'get_design_system', 'lint_frame', 'set_focus', 'set_selections',
   'export_node_as_image', 'load_font_async', 'read_my_design',
 ]);
 
@@ -679,6 +679,10 @@ async function _executeCommand(
     // Prototyping
     case 'get_reactions':
       return await getReactions(params);
+    case 'add_prototype_link':
+      return await addPrototypeLink(params);
+    case 'remove_prototype_link':
+      return await removePrototypeLink(params);
     case 'set_default_connector':
       return await setDefaultConnector(params);
     case 'create_connections':
