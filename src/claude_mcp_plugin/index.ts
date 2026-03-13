@@ -789,10 +789,8 @@ figma.ui.onmessage = async (msg: Record<string, unknown>) => {
     case 'focus-nodes': {
       var focusIds = msg['nodeIds'] as string[];
       if (Array.isArray(focusIds) && focusIds.length > 0) {
-        var nodes = focusIds.map(function (id) { return figma.getNodeById(id); }).filter(function (n) { return n !== null; }) as SceneNode[];
-        if (nodes.length > 0) {
-          figma.currentPage.selection = nodes;
-          figma.viewport.scrollAndZoomIntoView(nodes);
+        for (var i = 0; i < focusIds.length; i++) {
+          await focusNode(focusIds[i]);
         }
       }
       break;

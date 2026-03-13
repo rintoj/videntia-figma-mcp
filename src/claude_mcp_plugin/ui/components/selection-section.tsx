@@ -3,23 +3,24 @@ import { useState, useEffect, useRef } from 'preact/hooks'
 
 export function SelectionSection() {
   var [nodeIds, setNodeIds] = useState('')
-  var [navIndex, setNavIndex] = useState(0)
+  var [navIndex, setNavIndex] = useState(-1)
   var [tracking, setTracking] = useState(true)
+  var trackingRef = useRef(true)
   var inputRef = useRef<HTMLInputElement>(null)
+
+  function setTrackingValue(val: boolean) {
+    trackingRef.current = val
+    setTracking(val)
+  }
 
   useEffect(function () {
     function handleMessage(event: MessageEvent) {
       var msg = event.data && event.data.pluginMessage
       if (!msg) return
-      if (msg.type === 'selection-changed') {
-        setTracking(function (isTracking) {
-          if (isTracking) {
-            var ids = Array.isArray(msg.nodeIds) ? msg.nodeIds.join(',') : ''
-            setNodeIds(ids)
-            setNavIndex(0)
-          }
-          return isTracking
-        })
+      if (msg.type === 'selection-changed' && trackingRef.current) {
+        var ids = Array.isArray(msg.nodeIds) ? msg.nodeIds.join(',') : ''
+        setNodeIds(ids)
+        setNavIndex(-1)
       }
     }
     window.addEventListener('message', handleMessage)
@@ -28,7 +29,8 @@ export function SelectionSection() {
   }, [])
 
   function getIds(): string[] {
-    return nodeIds.split(',').map(function (s) { return s.trim() }).filter(function (s) { return s.length > 0 })
+    var val = inputRef.current ? (inputRef.current as any).value : nodeIds
+    return val.split(',').map(function (s: string) { return s.trim() }).filter(function (s: string) { return s.length > 0 })
   }
 
   function handleCopyIds() {
@@ -53,21 +55,23 @@ export function SelectionSection() {
   function handlePrev() {
     var ids = getIds()
     if (ids.length === 0) return
-    var next = (navIndex - 1 + ids.length) % ids.length
-    setNavIndex(next)
-    focusNode(ids[next])
+    setTrackingValue(false)
+    var prev = navIndex <= 0 ? ids.length - 1 : navIndex - 1
+    setNavIndex(prev)
+    focusNode(ids[prev])
   }
 
   function handleNext() {
     var ids = getIds()
     if (ids.length === 0) return
-    var next = (navIndex + 1) % ids.length
+    setTrackingValue(false)
+    var next = navIndex < 0 ? 0 : (navIndex + 1) % ids.length
     setNavIndex(next)
     focusNode(ids[next])
   }
 
   function handleManualEdit(e: Event) {
-    setTracking(false)
+    setTrackingValue(false)
     setNodeIds((e.target as HTMLTextAreaElement).value)
   }
 
@@ -78,7 +82,7 @@ export function SelectionSection() {
           <button
             class={'sync-btn' + (tracking ? ' sync-btn-on' : '')}
             title={tracking ? 'Tracking on — click to freeze' : 'Tracking off — click to resume'}
-            onClick={function () { setTracking(function (v) { return !v }) }}
+            onClick={function () { setTrackingValue(!trackingRef.current) }}
           >
             <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
               <path d="M11 6.5a4.5 4.5 0 0 1-7.5 3.35" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/>
