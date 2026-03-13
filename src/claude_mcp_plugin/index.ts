@@ -245,8 +245,17 @@ figma.on('run', function () {
 
 // Notify UI when the Figma selection changes
 figma.on('selectionchange', function () {
-  var nodeIds = figma.currentPage.selection.map(function (n) { return n.id; });
-  figma.ui.postMessage({ type: 'selection-changed', nodeIds: nodeIds });
+  var nodes = figma.currentPage.selection.map(function (n) {
+    var page = n.parent;
+    while (page && page.type !== 'PAGE') { page = page.parent; }
+    return {
+      id: n.id,
+      name: n.name,
+      type: n.type,
+      pageName: page ? page.name : ''
+    };
+  });
+  figma.ui.postMessage({ type: 'selection-changed', nodes: nodes });
 });
 
 // ---------------------------------------------------------------------------
@@ -782,8 +791,51 @@ figma.ui.onmessage = async (msg: Record<string, unknown>) => {
       figma.ui.postMessage({ type: 'file-name', fileName: figma.root.name });
       break;
     case 'get-selection': {
-      var selIds = figma.currentPage.selection.map(function (n) { return n.id; });
-      figma.ui.postMessage({ type: 'selection-changed', nodeIds: selIds });
+      var selNodes = figma.currentPage.selection.map(function (n) {
+        var pg = n.parent;
+        while (pg && pg.type !== 'PAGE') { pg = pg.parent; }
+        return {
+          id: n.id,
+          name: n.name,
+          type: n.type,
+          pageName: pg ? pg.name : ''
+        };
+      });
+      figma.ui.postMessage({ type: 'selection-changed', nodes: selNodes });
+      break;
+    }
+    case 'search-nodes-ui': {
+      var searchQuery = (msg['query'] as string) || '';
+      var searchLimit = 50;
+      try {
+        var lowerQ = searchQuery.toLowerCase();
+        var searchMatches: Array<{id: string; name: string; type: string; pageName: string}> = [];
+        var pages = figma.root.children;
+        for (var pi = 0; pi < pages.length; pi++) {
+          var page = pages[pi];
+          await page.loadAsync();
+          var walkSearch = function (node: BaseNode, pgName: string) {
+            if (searchMatches.length >= searchLimit) return;
+            var lowerName = node.name.toLowerCase();
+            var lowerType = node.type.toLowerCase();
+            if (lowerName.indexOf(lowerQ) !== -1 || lowerType.indexOf(lowerQ) !== -1) {
+              searchMatches.push({ id: node.id, name: node.name, type: node.type, pageName: pgName });
+            }
+            if ('children' in node) {
+              var ch = (node as any).children;
+              for (var ci = 0; ci < ch.length; ci++) {
+                if (searchMatches.length >= searchLimit) break;
+                walkSearch(ch[ci], pgName);
+              }
+            }
+          };
+          walkSearch(page, page.name);
+          if (searchMatches.length >= searchLimit) break;
+        }
+        figma.ui.postMessage({ type: 'search-results', nodes: searchMatches, query: searchQuery });
+      } catch (err) {
+        figma.ui.postMessage({ type: 'search-results', nodes: [], query: searchQuery });
+      }
       break;
     }
     case 'focus-nodes': {
