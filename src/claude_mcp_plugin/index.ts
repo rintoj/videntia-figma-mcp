@@ -9,7 +9,7 @@ import { setAutoFocus } from './utils/plugin-state';
 import { getFileKey, getDocumentInfo, searchNodes, saveVersionHistory, triggerUndo, commitUndoAction } from './handlers/document';
 import { serializeNodes } from './handlers/node-serializer';
 import { createPage, renamePage, deletePage } from './handlers/pages';
-import { getReactions, setDefaultConnector, createConnections } from './handlers/prototyping';
+import { getReactions, setDefaultConnector, createConnections, addPrototypeLink, removePrototypeLink } from './handlers/prototyping';
 
 // Handlers — node creation & modification
 import {
@@ -679,6 +679,10 @@ async function _executeCommand(
     // Prototyping
     case 'get_reactions':
       return await getReactions(params);
+    case 'add_prototype_link':
+      return await addPrototypeLink(params);
+    case 'remove_prototype_link':
+      return await removePrototypeLink(params);
     case 'set_default_connector':
       return await setDefaultConnector(params);
     case 'create_connections':

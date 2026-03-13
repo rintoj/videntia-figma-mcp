@@ -263,6 +263,66 @@ export function registerComponentTools(server: McpServer): void {
     },
   );
 
+  // Add Prototype Link Tool
+  server.tool(
+    "add_prototype_link",
+    "Add a prototype navigation link (reaction) from one node to another",
+    {
+      nodeId: z.string().describe("ID of the source node (must support reactions: frames, components, instances, etc.)"),
+      destinationId: z.string().describe("ID of the destination frame to navigate to"),
+      trigger: z.enum(["ON_CLICK", "ON_HOVER", "ON_PRESS", "ON_DRAG", "AFTER_TIMEOUT", "MOUSE_ENTER", "MOUSE_LEAVE"]).optional().describe("Trigger type (default: ON_CLICK)"),
+      navigation: z.enum(["NAVIGATE", "OVERLAY", "SWAP", "SCROLL_TO", "CHANGE_TO"]).optional().describe("Navigation type (default: NAVIGATE)"),
+      transitionType: z.string().optional().describe("Transition animation type e.g. MOVE_IN, MOVE_OUT, PUSH, SLIDE_IN, SLIDE_OUT, DISSOLVE, SMART_ANIMATE (omit for no animation)"),
+      transitionDuration: z.number().optional().describe("Transition duration in ms (default: 300)"),
+      transitionEasing: z.string().optional().describe("Easing type e.g. EASE_IN, EASE_OUT, EASE_IN_AND_OUT, LINEAR (default: EASE_OUT)"),
+      preserveScrollPosition: z.boolean().optional().describe("Preserve scroll position on navigate (default: false)"),
+      triggerTimeout: z.number().optional().describe("Timeout in ms for AFTER_TIMEOUT trigger (default: 800)"),
+    },
+    async ({ nodeId, destinationId, trigger, navigation, transitionType, transitionDuration, transitionEasing, preserveScrollPosition, triggerTimeout }) => {
+      nodeId = normalizeNodeId(nodeId);
+      destinationId = normalizeNodeId(destinationId);
+      try {
+        const result = await sendCommandToFigma("add_prototype_link", {
+          nodeId, destinationId, trigger, navigation, transitionType, transitionDuration, transitionEasing, preserveScrollPosition, triggerTimeout,
+        });
+        const r = result as { nodeName: string; destinationName: string; trigger: string; navigation: string };
+        return {
+          content: [{ type: "text", text: `Added prototype link: "${r.nodeName}" → "${r.destinationName}" (${r.trigger} / ${r.navigation})` }],
+        };
+      } catch (error) {
+        return {
+          content: [{ type: "text", text: `Error adding prototype link: ${error instanceof Error ? error.message : String(error)}` }],
+        };
+      }
+    },
+  );
+
+  // Remove Prototype Link Tool
+  server.tool(
+    "remove_prototype_link",
+    "Remove prototype navigation link(s) from a node. Optionally filter by destination to remove a specific link.",
+    {
+      nodeId: z.string().describe("ID of the source node"),
+      destinationId: z.string().optional().describe("ID of the destination to remove (omit to remove ALL reactions from the node)"),
+    },
+    async ({ nodeId, destinationId }) => {
+      nodeId = normalizeNodeId(nodeId);
+      if (destinationId && destinationId.length > 0) destinationId = normalizeNodeId(destinationId);
+      else destinationId = undefined as any;
+      try {
+        const result = await sendCommandToFigma("remove_prototype_link", { nodeId, destinationId });
+        const r = result as { nodeName: string; removedCount: number; remainingCount: number };
+        return {
+          content: [{ type: "text", text: `Removed ${r.removedCount} reaction(s) from "${r.nodeName}". ${r.remainingCount} remaining.` }],
+        };
+      } catch (error) {
+        return {
+          content: [{ type: "text", text: `Error removing prototype link: ${error instanceof Error ? error.message : String(error)}` }],
+        };
+      }
+    },
+  );
+
   // Create Connections Tool
   server.tool(
     "create_connections",

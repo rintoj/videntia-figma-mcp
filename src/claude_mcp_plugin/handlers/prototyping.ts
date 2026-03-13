@@ -115,6 +115,142 @@ export async function setDefaultConnector(
   };
 }
 
+export interface AddPrototypeLinkParams {
+  nodeId: string;
+  destinationId: string;
+  trigger?: string;
+  navigation?: string;
+  transitionType?: string;
+  transitionDuration?: number;
+  transitionEasing?: string;
+  preserveScrollPosition?: boolean;
+  triggerTimeout?: number;
+}
+
+export interface AddPrototypeLinkResult {
+  nodeId: string;
+  nodeName: string;
+  destinationId: string;
+  destinationName: string;
+  trigger: string;
+  navigation: string;
+  success: boolean;
+}
+
+export async function addPrototypeLink(
+  params: Record<string, unknown>,
+): Promise<AddPrototypeLinkResult> {
+  const nodeId = params['nodeId'] as string;
+  const destinationId = params['destinationId'] as string;
+  const trigger = (params['trigger'] as string) || 'ON_CLICK';
+  const navigation = (params['navigation'] as string) || 'NAVIGATE';
+  const transitionType = (params['transitionType'] as string) || null;
+  const transitionDuration = params['transitionDuration'] !== undefined ? (params['transitionDuration'] as number) : 300;
+  const transitionEasing = (params['transitionEasing'] as string) || 'EASE_OUT';
+  const preserveScrollPosition = params['preserveScrollPosition'] === true;
+  const triggerTimeout = params['triggerTimeout'] !== undefined ? (params['triggerTimeout'] as number) : 800;
+
+  const node = await figma.getNodeByIdAsync(nodeId);
+  if (!node) throw new Error('Node not found: ' + nodeId);
+  if (!('reactions' in node)) throw new Error('Node type does not support reactions: ' + node.type);
+
+  const destNode = await figma.getNodeByIdAsync(destinationId);
+  if (!destNode) throw new Error('Destination node not found: ' + destinationId);
+
+  const reactiveNode = node as unknown as {
+    name: string;
+    reactions: Array<{
+      trigger: { type: string } | null;
+      actions: Array<{ type: string; destinationId?: string; navigation?: string; transition?: unknown; preserveScrollPosition?: boolean }>;
+    }>;
+  };
+
+  const transition = transitionType !== null
+    ? { type: transitionType, duration: transitionDuration, easing: { type: transitionEasing } }
+    : null;
+
+  const triggerObj = trigger === 'AFTER_TIMEOUT'
+    ? { type: trigger, timeout: triggerTimeout }
+    : { type: trigger };
+
+  const newReaction = {
+    trigger: triggerObj,
+    actions: [{
+      type: 'NODE',
+      destinationId,
+      navigation,
+      transition,
+      preserveScrollPosition,
+    }],
+  };
+
+  const existing = Array.isArray(reactiveNode.reactions) ? reactiveNode.reactions.slice() : [];
+  reactiveNode.reactions = existing.concat([newReaction]) as typeof reactiveNode.reactions;
+
+  return {
+    nodeId: node.id,
+    nodeName: reactiveNode.name,
+    destinationId,
+    destinationName: destNode.name,
+    trigger,
+    navigation,
+    success: true,
+  };
+}
+
+export interface RemovePrototypeLinkParams {
+  nodeId: string;
+  destinationId?: string;
+}
+
+export interface RemovePrototypeLinkResult {
+  nodeId: string;
+  nodeName: string;
+  removedCount: number;
+  remainingCount: number;
+  success: boolean;
+}
+
+export async function removePrototypeLink(
+  params: Record<string, unknown>,
+): Promise<RemovePrototypeLinkResult> {
+  const nodeId = params['nodeId'] as string;
+  const destinationId = params['destinationId'] as string | undefined;
+
+  const node = await figma.getNodeByIdAsync(nodeId);
+  if (!node) throw new Error('Node not found: ' + nodeId);
+  if (!('reactions' in node)) throw new Error('Node type does not support reactions: ' + node.type);
+
+  const reactiveNode = node as unknown as {
+    name: string;
+    reactions: Array<{
+      trigger: { type: string } | null;
+      actions: Array<{ type: string; destinationId?: string }>;
+    }>;
+  };
+
+  const before = Array.isArray(reactiveNode.reactions) ? reactiveNode.reactions.length : 0;
+
+  if (destinationId !== undefined && destinationId !== null) {
+    reactiveNode.reactions = reactiveNode.reactions.filter((r) => {
+      const action = r.actions && r.actions[0];
+      return !(action && action.type === 'NODE' && action.destinationId === destinationId);
+    }) as typeof reactiveNode.reactions;
+  } else {
+    reactiveNode.reactions = [] as typeof reactiveNode.reactions;
+  }
+
+  const after = reactiveNode.reactions.length;
+
+  return {
+    nodeId: node.id,
+    nodeName: reactiveNode.name,
+    removedCount: before - after,
+    remainingCount: after,
+    success: true,
+  };
+}
+
 export interface ConnectionRequest {
   startNodeId: string;
   endNodeId: string;
