@@ -885,7 +885,7 @@ export function registerDocumentTools(server: McpServer): void {
       output_format: outputFormatSchema,
     },
     async ({ query, types, nodeId, limit, depth, fields, output_format }) => {
-      if (nodeId) nodeId = normalizeNodeId(nodeId);
+      if (nodeId) nodeId = Array.isArray(nodeId) ? nodeId.map(normalizeNodeId) : normalizeNodeId(nodeId);
       try {
         const result = await sendCommandToFigma("search_nodes", {
           query,
