@@ -119,6 +119,72 @@ export function registerModificationTools(server: McpServer): void {
     },
   );
 
+  // Remove Fill Tool
+  server.tool(
+    "remove_fill",
+    "Remove all fills from a node in Figma (sets fills to an empty array). Use this to clear transparent or unwanted fills.",
+    {
+      nodeId: z.string().describe("Node ID (e.g. '123:456')"),
+    },
+    async ({ nodeId }) => {
+      try {
+        nodeId = normalizeNodeId(nodeId);
+        const result = await sendCommandToFigma("remove_fill", { nodeId });
+        const typedResult = result as { name: string };
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: `Removed fills from node "${typedResult.name}"`,
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: `Error removing fills: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  // Remove Stroke Tool
+  server.tool(
+    "remove_stroke",
+    "Remove all strokes from a node in Figma (sets strokes to an empty array). Use this to clear transparent or unwanted strokes.",
+    {
+      nodeId: z.string().describe("Node ID (e.g. '123:456')"),
+    },
+    async ({ nodeId }) => {
+      try {
+        nodeId = normalizeNodeId(nodeId);
+        const result = await sendCommandToFigma("remove_stroke", { nodeId });
+        const typedResult = result as { name: string };
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: `Removed strokes from node "${typedResult.name}"`,
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: `Error removing strokes: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
   // Move Node Tool
   server.tool(
     "move_node",

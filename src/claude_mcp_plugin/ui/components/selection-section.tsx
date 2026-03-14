@@ -414,6 +414,7 @@ export function SelectionSection() {
           )
         })}
       </div>
+      {checkedCount > 0 && <div class="selection-divider" />}
       {checkedCount > 0 && (
         <div class="selection-action-bar">
           <div class="selection-action-bar-left">
