@@ -20,7 +20,7 @@
   --color-popover-foreground: #e0e0e0;
   --color-secondary: #2a2a2a;
   --color-secondary-foreground: #e0e0e0;
-  --color-accent: #2a2a2a;
+  --color-accent: #2e382e;
   --color-accent-foreground: #e0e0e0;
   --color-input: #383838;
   --color-ring: #4caf50;
@@ -117,7 +117,7 @@ body {
 }
 
 .bg-primary-checked {
-  background-color: color-mix(in srgb, var(--color-primary) 15%, var(--color-card));
+  background-color: color-mix(in srgb, var(--color-success) 15%, var(--color-card));
 }
 
 .bg-foreground-subtle {
