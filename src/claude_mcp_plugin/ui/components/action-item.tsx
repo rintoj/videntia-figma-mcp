@@ -38,9 +38,9 @@ export function ActionItem({ action }: ActionItemProps) {
   var [hovered, setHovered] = useState(false)
 
   function getStatusIcon() {
-    if (action.status === 'success') return <CheckCircleIcon color="#4caf50" />
-    if (action.status === 'error') return <XCircleIcon color="#ef4444" />
-    return <SpinnerIcon color="#66b3ff" />
+    if (action.status === 'success') return <CheckCircleIcon color="var(--color-primary)" />
+    if (action.status === 'error') return <XCircleIcon color="var(--color-destructive)" />
+    return <SpinnerIcon color="var(--color-primary)" />
   }
 
   function handleFocus(e: Event) {
@@ -76,58 +76,58 @@ export function ActionItem({ action }: ActionItemProps) {
 
   return (
     <div
-      class={'action-item' + (hovered ? ' hovered' : '') + (expanded ? ' selected' : '')}
+      class={'py-2 px-2.5 rounded-lg cursor-pointer transition-colors relative' + (hovered && !expanded ? ' bg-input' : '') + (expanded ? ' bg-card rounded-sm action-selected-bar' : '')}
       onMouseEnter={function () { setHovered(true) }}
       onMouseLeave={function () { setHovered(false) }}
       onClick={function () { setExpanded(!expanded) }}
     >
-      <div class="action-item-row">
-        <div class="action-item-left">
-          <span class="action-status-icon">
+      <div class="flex items-center justify-between gap-2">
+        <div class="flex items-center gap-2 min-w-0 flex-1">
+          <span class="flex items-center shrink-0">
             {getStatusIcon()}
           </span>
-          <span class="action-item-name">{action.command}</span>
+          <span class="text-foreground text-[13px] font-medium whitespace-nowrap overflow-hidden text-ellipsis">{action.command}</span>
         </div>
-        <div class="action-item-right">
+        <div class="flex items-center gap-1.5 shrink-0">
           {hovered && !expanded && (
-            <span class="action-copy-btn" onClick={handleCopyData}>
-              <CopyIcon color="#808080" />
+            <span class="cursor-pointer flex items-center hover:opacity-80" onClick={handleCopyData}>
+              <CopyIcon color="var(--color-muted-foreground)" />
             </span>
           )}
-          <span class="action-item-time">{formatTime(action.timestamp)}</span>
+          <span class="text-muted-foreground text-[11px] whitespace-nowrap">{formatTime(action.timestamp)}</span>
           {expanded
-            ? <ChevronDownIcon color="#808080" size={14} />
-            : <ChevronRightIcon color="#808080" size={14} />
+            ? <ChevronDownIcon color="var(--color-muted-foreground)" size={14} />
+            : <ChevronRightIcon color="var(--color-muted-foreground)" size={14} />
           }
         </div>
       </div>
       {expanded && (
-        <div class="action-detail">
-          <div class="action-detail-buttons">
+        <div class="flex flex-col gap-2 mt-2">
+          <div class="flex flex-row justify-end items-center gap-2.5">
             {hasNodeIds && (
-              <button class="action-detail-btn focus-btn" onClick={handleFocus}>
-                <FocusIcon color="#808080" />
+              <button class="flex items-center gap-1 py-[3px] px-[7px] bg-foreground-subtle border border-transparent rounded-md text-muted-foreground text-[11px] font-medium cursor-pointer transition-colors hover:bg-border" onClick={handleFocus}>
+                <FocusIcon color="var(--color-muted-foreground)" />
                 <span>Focus</span>
               </button>
             )}
             {hasNodeIds && (
-              <button class="action-detail-btn" onClick={handleCopyIds}>
-                <CopyIcon color="#808080" />
+              <button class="flex items-center gap-1 py-[3px] px-[7px] bg-input border border-input rounded-md text-muted-foreground text-[11px] font-medium cursor-pointer transition-colors hover:bg-border hover:border-border" onClick={handleCopyIds}>
+                <CopyIcon color="var(--color-muted-foreground)" />
                 <span>Copy Ids</span>
               </button>
             )}
-            <button class="action-detail-btn" onClick={handleCopyData}>
-              <CopyIcon color="#808080" />
+            <button class="flex items-center gap-1 py-[3px] px-[7px] bg-input border border-input rounded-md text-muted-foreground text-[11px] font-medium cursor-pointer transition-colors hover:bg-border hover:border-border" onClick={handleCopyData}>
+              <CopyIcon color="var(--color-muted-foreground)" />
               <span>Copy Data</span>
             </button>
           </div>
-          <div class="action-detail-block">
-            <span class="action-detail-label">INPUT</span>
-            <pre class="action-detail-content">{inputStr}</pre>
+          <div class="bg-muted rounded-md py-2 px-2.5 relative overflow-hidden detail-block-accent">
+            <span class="text-muted-foreground text-[10px] font-semibold uppercase tracking-[1.5px] block mb-1">INPUT</span>
+            <pre class="text-muted-foreground text-[11px] m-0 whitespace-pre-wrap break-all font-mono max-h-[120px] overflow-y-auto">{inputStr}</pre>
           </div>
-          <div class={'action-detail-block' + (action.status === 'success' ? ' output-success' : '') + (action.status === 'error' ? ' output-error' : '')}>
-            <span class="action-detail-label">OUTPUT</span>
-            <pre class={'action-detail-content' + (action.status === 'success' ? ' success' : '') + (action.status === 'error' ? ' error' : '')}>{outputStr}</pre>
+          <div class={'bg-muted rounded-md py-2 px-2.5 relative overflow-hidden detail-block-accent' + (action.status === 'success' ? ' detail-block-success' : '') + (action.status === 'error' ? ' detail-block-error' : '')}>
+            <span class="text-muted-foreground text-[10px] font-semibold uppercase tracking-[1.5px] block mb-1">OUTPUT</span>
+            <pre class={'text-[11px] m-0 whitespace-pre-wrap break-all font-mono max-h-[120px] overflow-y-auto' + (action.status === 'success' ? ' text-primary' : '') + (action.status === 'error' ? ' text-destructive' : ' text-muted-foreground')}>{outputStr}</pre>
           </div>
         </div>
       )}

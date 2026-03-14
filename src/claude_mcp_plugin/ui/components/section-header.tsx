@@ -9,11 +9,11 @@ interface SectionHeaderProps {
 
 export function SectionHeader({ label, expanded, onToggle }: SectionHeaderProps) {
   return (
-    <div class="section-header" onClick={onToggle}>
-      <span class={'section-header-chevron' + (expanded ? ' expanded' : '')}>
-        <ChevronRightIcon color="#808080" />
+    <div class="flex items-center gap-1.5 cursor-pointer select-none py-0.5" onClick={onToggle}>
+      <span class={'flex items-center transition-transform duration-200' + (expanded ? ' rotate-90' : '')}>
+        <ChevronRightIcon color="var(--color-muted-foreground)" />
       </span>
-      <span>{label}</span>
+      <span class="text-muted-foreground text-[11px] font-semibold uppercase tracking-wide">{label}</span>
     </div>
   )
 }

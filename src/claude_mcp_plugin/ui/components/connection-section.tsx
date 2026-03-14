@@ -50,8 +50,8 @@ export function ConnectionSection({ port, connected, channelName, buttonDisabled
 
   if (editing) {
     return (
-      <div class="connection-editor">
-        <span class="connection-editor-label">PORT</span>
+      <div class="flex flex-col gap-2 p-3 bg-muted border border-border rounded-[10px]">
+        <span class="text-muted-foreground text-[11px] font-semibold uppercase tracking-wide">PORT</span>
         <input
           ref={inputRef}
           type="number"
@@ -60,36 +60,37 @@ export function ConnectionSection({ port, connected, channelName, buttonDisabled
           max={65535}
           onInput={function (e) { setEditPort((e.target as HTMLInputElement).value) }}
           onKeyDown={handleKeyDown}
+          class="border-2 border-primary rounded-md py-2 px-2.5 text-sm bg-secondary text-foreground outline-none w-full"
         />
-        <button class="btn-connect" onClick={handleEditorConnect}>Connect</button>
+        <button class="w-full py-2 text-[13px] bg-primary-muted border border-solid border-primary-muted text-primary rounded-md cursor-pointer font-medium transition-colors bg-primary-muted-hover" onClick={handleEditorConnect}>Connect</button>
       </div>
     )
   }
 
   if (connected) {
     return (
-      <div class="connection-bar">
-        <div class="connection-bar-left">
+      <div class="flex items-center justify-between py-2.5 px-2 pl-3 bg-muted border border-border rounded-[10px] min-h-[40px]">
+        <div class="flex items-center gap-2 min-w-0 flex-1">
           {readOnly
-            ? <LockIcon color="#febc2f" size={18} />
-            : <SignalIcon color="#4caf50" size={18} />
+            ? <LockIcon color="var(--color-warning)" size={18} />
+            : <SignalIcon color="var(--color-primary)" size={18} />
           }
-          <span class={readOnly ? 'connection-bar-channel readonly' : 'connection-bar-channel'}>{channelName || 'Connected'}</span>
-          <span class="connection-bar-port-static">:{port}</span>
+          <span class={'text-[13px] font-medium whitespace-nowrap overflow-hidden text-ellipsis' + (readOnly ? ' text-warning' : ' text-primary')}>{channelName || 'Connected'}</span>
+          <span class="text-muted-foreground text-xs whitespace-nowrap">:{port}</span>
         </div>
-        <button class="btn-disconnect" disabled={buttonDisabled} onClick={onDisconnect}>Disconnect</button>
+        <button class="bg-destructive-muted border border-solid border-destructive-muted text-destructive py-1.5 px-2.5 rounded-md cursor-pointer text-xs font-medium whitespace-nowrap transition-colors bg-destructive-muted-hover" disabled={buttonDisabled} onClick={onDisconnect}>Disconnect</button>
       </div>
     )
   }
 
   return (
-    <div class="connection-bar">
-      <div class="connection-bar-left">
-        <SignalIcon color="#f04545" size={18} />
-        <span class="connection-bar-disconnected">Disconnected</span>
-        <span class="connection-bar-port" onClick={handlePortClick}>:{port}</span>
+    <div class="flex items-center justify-between py-2.5 px-2 pl-3 bg-muted border border-border rounded-[10px] min-h-[40px]">
+      <div class="flex items-center gap-2 min-w-0 flex-1">
+        <SignalIcon color="var(--color-destructive)" size={18} />
+        <span class="text-destructive text-[13px] font-medium">Disconnected</span>
+        <span class="text-muted-foreground text-[13px] cursor-pointer whitespace-nowrap hover:text-foreground" onClick={handlePortClick}>:{port}</span>
       </div>
-      <button class="btn-connect" disabled={buttonDisabled} onClick={function () { onConnect(port) }}>Connect</button>
+      <button class="bg-primary-muted border border-solid border-primary-muted text-primary py-1.5 px-2.5 rounded-md cursor-pointer text-xs font-medium whitespace-nowrap transition-colors bg-primary-muted-hover" disabled={buttonDisabled} onClick={function () { onConnect(port) }}>Connect</button>
     </div>
   )
 }

@@ -103,8 +103,8 @@ export function App() {
   }
 
   return (
-    <div class="container">
-      <div class="content">
+    <div class="flex flex-col h-screen overflow-hidden">
+      <div class="flex flex-col gap-3 p-3 flex-1 min-h-0 overflow-hidden">
         <ConnectionSection
           port={port}
           connected={connection.connState.connected}
@@ -115,11 +115,11 @@ export function App() {
           onDisconnect={handleDisconnect}
           onPortChange={handlePortChange}
         />
-        <div class="tab-card">
+        <div class="flex flex-col border border-border rounded-[10px] overflow-hidden flex-1 min-h-0">
           <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
-          <div class="tab-content">
+          <div class="flex-1 min-h-0 flex flex-col">
             {activeTab === 'actions' && <ActionsList actions={connection.actions} />}
-            <div class="tab-panel" style={{ display: activeTab === 'selection' ? 'flex' : 'none', flex: 1, minHeight: 0, flexDirection: 'column' }}>
+            <div style={{ display: activeTab === 'selection' ? 'flex' : 'none', flex: 1, minHeight: 0, flexDirection: 'column' }}>
               <SelectionSection />
             </div>
             {activeTab === 'settings' && (
