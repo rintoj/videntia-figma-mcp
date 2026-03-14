@@ -38,9 +38,9 @@ export function ActionItem({ action }: ActionItemProps) {
   var [hovered, setHovered] = useState(false)
 
   function getStatusIcon() {
-    if (action.status === 'success') return <CheckCircleIcon color="var(--color-primary)" />
+    if (action.status === 'success') return <CheckCircleIcon color="var(--color-success)" />
     if (action.status === 'error') return <XCircleIcon color="var(--color-destructive)" />
-    return <SpinnerIcon color="var(--color-primary)" />
+    return <SpinnerIcon color="var(--color-success)" />
   }
 
   function handleFocus(e: Event) {
@@ -127,7 +127,7 @@ export function ActionItem({ action }: ActionItemProps) {
           </div>
           <div class={'bg-muted rounded-md py-2 px-2.5 relative overflow-hidden detail-block-accent' + (action.status === 'success' ? ' detail-block-success' : '') + (action.status === 'error' ? ' detail-block-error' : '')}>
             <span class="text-muted-foreground text-[10px] font-semibold uppercase tracking-[1.5px] block mb-1">OUTPUT</span>
-            <pre class={'text-[11px] m-0 whitespace-pre-wrap break-all font-mono max-h-[120px] overflow-y-auto' + (action.status === 'success' ? ' text-primary' : '') + (action.status === 'error' ? ' text-destructive' : ' text-muted-foreground')}>{outputStr}</pre>
+            <pre class={'text-[11px] m-0 whitespace-pre-wrap break-all font-mono max-h-[120px] overflow-y-auto' + (action.status === 'success' ? ' text-success' : '') + (action.status === 'error' ? ' text-destructive' : ' text-muted-foreground')}>{outputStr}</pre>
           </div>
         </div>
       )}

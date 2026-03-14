@@ -329,18 +329,18 @@ export function SelectionSection() {
           </svg>
           <input
             type="text"
-            class="w-full bg-secondary border border-border rounded-md pl-8 pr-3 py-2.5 text-foreground text-[11px] outline-none h-[30px]"
+            class="w-full bg-muted border border-border focus:border-ring rounded-md pl-8 pr-3 py-2.5 text-foreground text-[11px] outline-none h-[30px]"
             placeholder="Search by name or type..."
             value={searchQuery}
             onInput={handleSearchInput}
           />
         </div>
         <div class="flex items-center gap-2 shrink-0">
-          <button class="flex items-center justify-center h-[30px] px-3 py-2.5 bg-secondary border border-border rounded-md text-muted-foreground text-xs font-medium cursor-pointer transition-colors hover:bg-input" onClick={handlePrev} title="Previous">
-            {'\u2190'}
+          <button class="flex items-center justify-center h-[30px] px-3 py-2.5 bg-muted border border-border rounded-md text-muted-foreground text-xs font-medium cursor-pointer transition-colors hover:bg-input" onClick={handlePrev} title="Previous">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style={{ stroke: 'var(--color-muted-foreground)' }} stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
           </button>
-          <button class="flex items-center justify-center h-[30px] px-3 py-2.5 bg-secondary border border-border rounded-md text-muted-foreground text-xs font-medium cursor-pointer transition-colors hover:bg-input" onClick={handleNext} title="Next">
-            {'\u2192'}
+          <button class="flex items-center justify-center h-[30px] px-3 py-2.5 bg-muted border border-border rounded-md text-muted-foreground text-xs font-medium cursor-pointer transition-colors hover:bg-input" onClick={handleNext} title="Next">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style={{ stroke: 'var(--color-muted-foreground)' }} stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
           </button>
         </div>
       </div>
@@ -359,7 +359,7 @@ export function SelectionSection() {
           return (
             <div
               key={node.id + '-' + i}
-              class={'flex items-center gap-1.5 h-[30px] px-1.5 pl-2.5 cursor-pointer transition-colors border-l-2 border-transparent relative' + (isActive ? ' bg-card rounded-sm' : '') + (isChecked ? ' border-l-primary bg-primary-checked rounded-sm' : '')}
+              class={'flex items-center gap-1.5 h-[30px] px-1.5 pl-2.5 cursor-pointer transition-colors border-l-2 border-transparent relative' + (isActive ? ' bg-card rounded-sm' : '') + (isChecked ? ' border-l-success bg-primary-checked rounded-sm' : '')}
               onClick={function () { handleRowClick(node, i) }}
               onMouseEnter={function () { setHoveredId(node.id) }}
               onMouseLeave={function () { setHoveredId(null) }}
@@ -367,7 +367,7 @@ export function SelectionSection() {
               <TypeIcon type={node.type} />
               <div class="flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden">
                 <span class="text-foreground text-[11px] whitespace-nowrap overflow-hidden text-ellipsis shrink min-w-0">{node.name}</span>
-                <span class="text-muted-foreground text-[10px] font-mono whitespace-nowrap shrink-0">{node.id}</span>
+                <span class="text-muted-foreground text-[10px] whitespace-nowrap shrink-0" style={{ fontFamily: "'JetBrains Mono', monospace" }}>{node.id}</span>
                 {node.type !== 'PAGE' && node.pageName ? (
                   <span class="text-muted-foreground text-[11px] whitespace-nowrap shrink-0">{node.pageName}</span>
                 ) : null}
@@ -421,7 +421,7 @@ export function SelectionSection() {
             <span class="text-primary text-[11px] font-medium">{checkedCount + ' selected'}</span>
           </div>
           <div class="flex items-center gap-2">
-            <button class="bg-primary-muted text-primary border border-solid border-primary-muted rounded-md py-1 px-2 text-[11px] font-medium cursor-pointer transition-colors bg-primary-muted-hover" onClick={copyCheckedIds}>Copy IDs</button>
+            <button class="bg-primary border border-solid border-primary text-primary-foreground rounded-md py-1 px-2 text-[11px] font-medium cursor-pointer transition-colors hover:opacity-90" onClick={copyCheckedIds}>Copy IDs</button>
             <button class="bg-secondary border border-border rounded-md text-muted-foreground text-[11px] font-medium cursor-pointer py-1 px-2 hover:bg-input" onClick={clearChecked}>Clear</button>
           </div>
         </div>

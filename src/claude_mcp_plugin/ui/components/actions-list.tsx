@@ -37,7 +37,7 @@ export function ActionsList({ actions }: ActionsListProps) {
   if (actions.length === 0) {
     return (
       <div class="flex flex-col items-center justify-center gap-2 py-8 px-4 flex-1 bg-card">
-        <TerminalIcon color="var(--color-border)" size={24} />
+        <TerminalIcon color="var(--color-muted-foreground)" size={24} />
         <span class="text-muted-foreground text-[13px] font-medium">No actions yet</span>
         <span class="text-muted-foreground text-[11px]">Connect to start receiving actions</span>
       </div>

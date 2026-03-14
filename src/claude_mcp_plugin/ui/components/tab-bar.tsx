@@ -22,15 +22,15 @@ function Tab({ id, label, active, icon, onTabChange }: TabProps) {
       class={'flex flex-row items-center justify-center gap-1 flex-1 py-2.5 cursor-pointer select-none transition-colors relative' + (active ? ' bg-card tab-active-bar' : '')}
       onClick={function () { onTabChange(id) }}
     >
-      {icon(active ? 'var(--color-primary)' : 'var(--color-muted-foreground)')}
-      <span class={'text-xs font-medium' + (active ? ' text-primary font-semibold' : ' text-muted-foreground')}>{label}</span>
+      {icon(active ? 'var(--color-success)' : 'var(--color-muted-foreground)')}
+      <span class={'text-xs font-medium' + (active ? ' text-success font-semibold' : ' text-muted-foreground')}>{label}</span>
     </div>
   )
 }
 
 export function TabBar({ activeTab, onTabChange }: TabBarProps) {
   return (
-    <div class="flex items-center bg-muted shrink-0">
+    <div class="flex items-center bg-popover border-b border-border shrink-0">
       <Tab
         id="actions"
         label="Actions"

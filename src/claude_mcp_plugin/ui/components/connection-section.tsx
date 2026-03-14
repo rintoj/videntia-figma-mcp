@@ -62,35 +62,35 @@ export function ConnectionSection({ port, connected, channelName, buttonDisabled
           onKeyDown={handleKeyDown}
           class="border-2 border-primary rounded-md py-2 px-2.5 text-sm bg-secondary text-foreground outline-none w-full"
         />
-        <button class="w-full py-2 text-[13px] bg-primary-muted border border-solid border-primary-muted text-primary rounded-md cursor-pointer font-medium transition-colors bg-primary-muted-hover" onClick={handleEditorConnect}>Connect</button>
+        <button class="w-full py-2 text-[13px] bg-primary border border-solid border-primary text-primary-foreground rounded-md cursor-pointer font-medium transition-colors hover:opacity-90" onClick={handleEditorConnect}>Connect</button>
       </div>
     )
   }
 
   if (connected) {
     return (
-      <div class="flex items-center justify-between py-2.5 px-2 pl-3 bg-muted border border-border rounded-[10px] min-h-[40px]">
+      <div class={'flex items-center justify-between py-2.5 px-2 pl-3 bg-muted border rounded-[10px] h-[47px]' + (readOnly ? ' border-warning' : ' border-border')}>
         <div class="flex items-center gap-2 min-w-0 flex-1">
           {readOnly
             ? <LockIcon color="var(--color-warning)" size={18} />
-            : <SignalIcon color="var(--color-primary)" size={18} />
+            : <SignalIcon color="var(--color-success)" size={18} />
           }
-          <span class={'text-[13px] font-medium whitespace-nowrap overflow-hidden text-ellipsis' + (readOnly ? ' text-warning' : ' text-primary')}>{channelName || 'Connected'}</span>
+          <span class={'text-[13px] font-medium whitespace-nowrap overflow-hidden text-ellipsis' + (readOnly ? ' text-warning' : ' text-success')}>{channelName || 'Connected'}</span>
           <span class="text-muted-foreground text-xs whitespace-nowrap">:{port}</span>
         </div>
-        <button class="bg-destructive-muted border border-solid border-destructive-muted text-destructive py-1.5 px-2.5 rounded-md cursor-pointer text-xs font-medium whitespace-nowrap transition-colors bg-destructive-muted-hover" disabled={buttonDisabled} onClick={onDisconnect}>Disconnect</button>
+        <button class="bg-destructive border border-solid border-destructive text-destructive-foreground py-1.5 px-2.5 rounded-md cursor-pointer text-xs font-medium whitespace-nowrap transition-colors hover:opacity-90" disabled={buttonDisabled} onClick={onDisconnect}>Disconnect</button>
       </div>
     )
   }
 
   return (
-    <div class="flex items-center justify-between py-2.5 px-2 pl-3 bg-muted border border-border rounded-[10px] min-h-[40px]">
+    <div class="flex items-center justify-between py-2.5 px-2 pl-3 bg-muted border border-border rounded-[10px] h-[47px]">
       <div class="flex items-center gap-2 min-w-0 flex-1">
         <SignalIcon color="var(--color-destructive)" size={18} />
         <span class="text-destructive text-[13px] font-medium">Disconnected</span>
-        <span class="text-muted-foreground text-[13px] cursor-pointer whitespace-nowrap hover:text-foreground" onClick={handlePortClick}>:{port}</span>
+        <span class="text-muted-foreground text-[12px] cursor-pointer whitespace-nowrap hover:text-foreground" onClick={handlePortClick}>:{port}</span>
       </div>
-      <button class="bg-primary-muted border border-solid border-primary-muted text-primary py-1.5 px-2.5 rounded-md cursor-pointer text-xs font-medium whitespace-nowrap transition-colors bg-primary-muted-hover" disabled={buttonDisabled} onClick={function () { onConnect(port) }}>Connect</button>
+      <button class="bg-primary border border-solid border-primary text-primary-foreground py-1.5 px-2.5 rounded-md cursor-pointer text-xs font-medium whitespace-nowrap transition-colors hover:opacity-90" disabled={buttonDisabled} onClick={function () { onConnect(port) }}>Connect</button>
     </div>
   )
 }

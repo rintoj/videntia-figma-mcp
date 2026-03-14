@@ -57,7 +57,7 @@ body {
   bottom: 0;
   width: 100%;
   height: 2px;
-  background-color: var(--color-primary);
+  background-color: var(--color-success);
 }
 
 .action-selected-bar::before {
@@ -67,7 +67,7 @@ body {
   top: 0;
   width: 3px;
   height: 100%;
-  background-color: var(--color-primary);
+  background-color: var(--color-success);
 }
 
 /* ---- Detail block left accent ---- */
@@ -83,7 +83,7 @@ body {
 }
 
 .detail-block-success::before {
-  background-color: var(--color-primary);
+  background-color: var(--color-success);
 }
 
 .detail-block-error::before {
