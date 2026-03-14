@@ -14,7 +14,7 @@ export const ALLOWED_COMMANDS = new Set([
   "apply_text_style","get_text_styles","delete_text_style","update_text_style",
   "set_effects","set_effect_style_id","create_effect_style","update_effect_style",
   "delete_effect_style","create_ellipse","create_polygon","create_star","create_svg",
-  "update_icon","create_vector","create_line","get_variables","get_bound_variables",
+  "update_icon","create_vector","create_line","get_variables","get_bound_variables","scan_bound_variables",
   "bind_variable","unbind_variable","get_variable_collections","create_variable_collection",
   "get_collection_info","rename_variable_collection","delete_variable_collection",
   "create_variable","create_variables_batch","update_variable_value","rename_variable",

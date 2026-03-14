@@ -30,7 +30,7 @@ import {
 } from './handlers/nodes';
 
 // Handlers — fills, strokes, shapes
-import { setFillColor, setStrokeColor, setImageFill, setGradientFill } from './handlers/fills';
+import { setFillColor, setStrokeColor, removeFill, removeStroke, setImageFill, setGradientFill } from './handlers/fills';
 import { createEllipse, createPolygon, createStar, createSvg, createVector, createLine } from './handlers/shapes';
 import { updateIcon } from './handlers/icons';
 
@@ -130,6 +130,7 @@ import {
   renameMode,
   deleteMode,
   duplicateModeValues,
+  scanBoundVariables,
 } from './handlers/variables';
 
 // Handlers — layout
@@ -187,7 +188,7 @@ var READONLY_COMMANDS = new Set([
   'get_document_info', 'get_file_key', 'get_selection', 'get_node_info', 'get_nodes_info', 'search_nodes',
   'get_styles', 'get_local_components', 'get_remote_components', 'get_component_properties',
   'get_instance_overrides', 'get_styled_text_segments', 'get_text_styles',
-  'get_variables', 'get_bound_variables', 'get_variable_collections', 'get_collection_info',
+  'get_variables', 'get_bound_variables', 'scan_bound_variables', 'get_variable_collections', 'get_collection_info',
   'audit_collection', 'validate_color_contrast', 'suggest_missing_variables',
   'generate_audit_report', 'export_collection_schema', 'get_schema_definition',
   'scan_nodes_by_types', 'get_annotations', 'get_annotation_categories',
@@ -205,7 +206,7 @@ var FOCUS_BEFORE_COMMANDS = new Set([
   'get_instance_overrides', 'get_styled_text_segments', 'get_annotations', 'get_reactions',
   'export_node_as_image', 'lint_frame',
   // Modify commands with nodeId
-  'set_fill_color', 'set_stroke_color', 'set_image_fill', 'set_gradient_fill',
+  'set_fill_color', 'set_stroke_color', 'remove_fill', 'remove_stroke', 'set_image_fill', 'set_gradient_fill',
   'move_node', 'resize_node', 'delete_node', 'clone_node', 'rename_node',
   'insert_child', 'flatten_node', 'set_corner_radius',
   'set_text_content', 'set_multiple_text_contents', 'set_auto_layout',
@@ -438,6 +439,10 @@ async function _executeCommand(
       return await setFillColor(params);
     case 'set_stroke_color':
       return await setStrokeColor(params);
+    case 'remove_fill':
+      return await removeFill(params);
+    case 'remove_stroke':
+      return await removeStroke(params);
     case 'set_image_fill':
       return await setImageFill(params);
     case 'set_gradient_fill':
@@ -588,6 +593,8 @@ async function _executeCommand(
       return await getVariables();
     case 'get_bound_variables':
       return await getBoundVariables(params);
+    case 'scan_bound_variables':
+      return await scanBoundVariables(params);
     case 'bind_variable':
       return await bindVariable(params);
     case 'unbind_variable':

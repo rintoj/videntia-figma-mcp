@@ -103,8 +103,8 @@ export function App() {
   }
 
   return (
-    <div class="container">
-      <div class="content">
+    <div class="flex flex-col h-screen overflow-hidden bg-background">
+      <div class="p-3">
         <ConnectionSection
           port={port}
           connected={connection.connState.connected}
@@ -115,22 +115,22 @@ export function App() {
           onDisconnect={handleDisconnect}
           onPortChange={handlePortChange}
         />
-        <div class="tab-card">
-          <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
-          <div class="tab-content">
-            {activeTab === 'actions' && <ActionsList actions={connection.actions} />}
-            <div class="tab-panel" style={{ display: activeTab === 'selection' ? 'flex' : 'none', flex: 1, minHeight: 0, flexDirection: 'column' }}>
-              <SelectionSection />
-            </div>
-            {activeTab === 'settings' && (
-              <SettingsSection
-                readOnly={readOnly}
-                autoFocus={autoFocus}
-                onReadOnlyChange={handleReadOnlyChange}
-                onAutoFocusChange={handleAutoFocusChange}
-              />
-            )}
+      </div>
+      <div class="flex flex-col border border-border overflow-hidden flex-1 min-h-0 bg-card">
+        <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
+        <div class="flex-1 min-h-0 flex flex-col">
+          {activeTab === 'actions' && <ActionsList actions={connection.actions} />}
+          <div style={{ display: activeTab === 'selection' ? 'flex' : 'none', flex: 1, minHeight: 0, flexDirection: 'column' }}>
+            <SelectionSection />
           </div>
+          {activeTab === 'settings' && (
+            <SettingsSection
+              readOnly={readOnly}
+              autoFocus={autoFocus}
+              onReadOnlyChange={handleReadOnlyChange}
+              onAutoFocusChange={handleAutoFocusChange}
+            />
+          )}
         </div>
       </div>
     </div>

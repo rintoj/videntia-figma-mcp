@@ -36,16 +36,16 @@ export function ActionsList({ actions }: ActionsListProps) {
 
   if (actions.length === 0) {
     return (
-      <div class="actions-empty">
-        <TerminalIcon color="#555555" size={24} />
-        <span class="actions-empty-text">No actions yet</span>
-        <span class="actions-empty-hint">Connect to start receiving actions</span>
+      <div class="flex flex-col items-center justify-center gap-2 py-8 px-4 flex-1 bg-card">
+        <TerminalIcon color="var(--color-muted-foreground)" size={24} />
+        <span class="text-muted-foreground text-[13px] font-medium">No actions yet</span>
+        <span class="text-muted-foreground text-[11px]">Connect to start receiving actions</span>
       </div>
     )
   }
 
   return (
-    <div ref={scrollRef} class="actions-scroll">
+    <div ref={scrollRef} class="flex-1 overflow-y-auto flex flex-col gap-0.5 min-h-0 py-1 px-2 bg-card scrollbar-thin">
       {actions.map(function (action) {
         return <ActionItem key={action.id} action={action} />
       })}

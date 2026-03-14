@@ -1646,6 +1646,45 @@ export function registerDocumentTools(server: McpServer): void {
     },
   );
 
+  // Scan Bound Variables Tool
+  server.tool(
+    "scan_bound_variables",
+    "Scan a node (or the current selection) and all its children recursively to find every variable binding. Returns a flat list of all bindings with node info, field, variable name, and type.",
+    {
+      nodeId: z.string().optional().describe("ID of the root node to scan. If omitted, scans the current Figma selection."),
+    },
+    async ({ nodeId }) => {
+      try {
+        const params: Record<string, unknown> = {};
+        if (nodeId) {
+          params.nodeId = normalizeNodeId(nodeId);
+        }
+        const result = await sendCommandToFigma<{ totalBindings: number; bindings: Array<{ nodeId: string; nodeName: string; nodeType: string; field: string; variableId: string; variableName: string; variableType: string }> }>("scan_bound_variables", params);
+
+        if (!result.bindings || result.bindings.length === 0) {
+          return { content: [{ type: "text", text: "No variable bindings found." }] };
+        }
+
+        const lines: string[] = [
+          `Found ${result.totalBindings} variable binding(s)`,
+          "",
+          "| Node | Type | Field | Variable | Var Type |",
+          "|------|------|-------|----------|----------|",
+        ];
+        for (const b of result.bindings) {
+          lines.push(
+            `| ${sanitizeCell(b.nodeName)} | ${sanitizeCell(b.nodeType)} | ${sanitizeCell(b.field)} | ${sanitizeCell(b.variableName)} | ${sanitizeCell(b.variableType)} |`,
+          );
+        }
+        return { content: [{ type: "text", text: lines.join("\n") }] };
+      } catch (error) {
+        return {
+          content: [{ type: "text", text: `Error scanning bound variables: ${error instanceof Error ? error.message : String(error)}` }],
+        };
+      }
+    },
+  );
+
   // Create Page Tool
   server.tool(
     "create_page",

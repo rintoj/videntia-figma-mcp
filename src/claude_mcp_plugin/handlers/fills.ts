@@ -133,6 +133,72 @@ export async function setFillColor(params: Record<string, unknown>): Promise<unk
 }
 
 // ---------------------------------------------------------------------------
+// removeFill
+// ---------------------------------------------------------------------------
+
+/**
+ * Remove all fills from a Figma node (sets fills to an empty array).
+ */
+export async function removeFill(params: Record<string, unknown>): Promise<unknown> {
+  var paramsObj = params !== null && params !== undefined ? params : {};
+  var nodeId = paramsObj['nodeId'] as string | undefined;
+
+  if (!nodeId) {
+    throw new Error('Missing nodeId parameter');
+  }
+
+  var node = await figma.getNodeByIdAsync(nodeId);
+  if (!node) {
+    throw new Error('Node not found with ID: ' + nodeId);
+  }
+
+  if (!('fills' in node)) {
+    throw new Error('Node does not support fills: ' + nodeId);
+  }
+
+  (node as GeometryMixin).fills = [];
+
+  return {
+    id: node.id,
+    name: node.name,
+    fills: [],
+  };
+}
+
+// ---------------------------------------------------------------------------
+// removeStroke
+// ---------------------------------------------------------------------------
+
+/**
+ * Remove all strokes from a Figma node (sets strokes to an empty array).
+ */
+export async function removeStroke(params: Record<string, unknown>): Promise<unknown> {
+  var paramsObj = params !== null && params !== undefined ? params : {};
+  var nodeId = paramsObj['nodeId'] as string | undefined;
+
+  if (!nodeId) {
+    throw new Error('Missing nodeId parameter');
+  }
+
+  var node = await figma.getNodeByIdAsync(nodeId);
+  if (!node) {
+    throw new Error('Node not found with ID: ' + nodeId);
+  }
+
+  if (!('strokes' in node)) {
+    throw new Error('Node does not support strokes: ' + nodeId);
+  }
+
+  (node as GeometryMixin).strokes = [];
+
+  return {
+    id: node.id,
+    name: node.name,
+    strokes: [],
+  };
+}
+
+// ---------------------------------------------------------------------------
 // setStrokeColor
 // ---------------------------------------------------------------------------
 

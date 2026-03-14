@@ -444,6 +444,102 @@ export async function getBoundVariables(
   };
 }
 
+export async function scanBoundVariables(
+  params: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
+  const nodeId = params['nodeId'] as string | undefined;
+
+  // Resolve root nodes: either the specified node or current selection
+  var rootNodes: SceneNode[] = [];
+  if (nodeId) {
+    var node = await figma.getNodeByIdAsync(nodeId);
+    if (!node) {
+      throw new Error('Node not found: ' + nodeId);
+    }
+    rootNodes = [node as SceneNode];
+  } else {
+    rootNodes = Array.from(figma.currentPage.selection);
+    if (rootNodes.length === 0) {
+      throw new Error('No nodeId provided and nothing is selected in Figma');
+    }
+  }
+
+  // Build variable lookup map
+  var variables = await figma.variables.getLocalVariablesAsync();
+  var variableMap = new Map(variables.map(function (v) { return [v.id, v]; }));
+
+  // Collect bindings from a single node
+  function collectBindings(n: SceneNode): Array<Record<string, unknown>> {
+    var result: Array<Record<string, unknown>> = [];
+    if ('boundVariables' in n && n.boundVariables) {
+      var bv = n.boundVariables as Record<string, unknown>;
+      for (var field in bv) {
+        if (!bv.hasOwnProperty(field)) continue;
+        var binding = bv[field];
+        if (!binding) continue;
+
+        if (Array.isArray(binding)) {
+          for (var i = 0; i < binding.length; i++) {
+            var b = binding[i] as Record<string, unknown>;
+            if (b && b['id']) {
+              var v = variableMap.get(b['id'] as string);
+              result.push({
+                nodeId: n.id,
+                nodeName: n.name,
+                nodeType: n.type,
+                field: field + '/' + i,
+                variableId: b['id'],
+                variableName: v !== undefined ? v.name : 'Unknown',
+                variableType: v !== undefined ? v.resolvedType : 'Unknown',
+              });
+            }
+          }
+        } else {
+          var single = binding as Record<string, unknown>;
+          if (single && single['id']) {
+            var sv = variableMap.get(single['id'] as string);
+            result.push({
+              nodeId: n.id,
+              nodeName: n.name,
+              nodeType: n.type,
+              field: field,
+              variableId: single['id'],
+              variableName: sv !== undefined ? sv.name : 'Unknown',
+              variableType: sv !== undefined ? sv.resolvedType : 'Unknown',
+            });
+          }
+        }
+      }
+    }
+    return result;
+  }
+
+  // Recurse through all children
+  function traverse(n: SceneNode, allBindings: Array<Record<string, unknown>>): void {
+    var nodeBindings = collectBindings(n);
+    for (var nb = 0; nb < nodeBindings.length; nb++) {
+      allBindings.push(nodeBindings[nb]);
+    }
+    if ('children' in n) {
+      var children = (n as { children: readonly SceneNode[] }).children;
+      for (var c = 0; c < children.length; c++) {
+        traverse(children[c], allBindings);
+      }
+    }
+  }
+
+  var allBindings: Array<Record<string, unknown>> = [];
+  for (var r = 0; r < rootNodes.length; r++) {
+    traverse(rootNodes[r], allBindings);
+  }
+
+  return {
+    totalBindings: allBindings.length,
+    totalNodesScanned: rootNodes.length,
+    bindings: allBindings,
+  };
+}
+
 export async function bindVariable(
   params: Record<string, unknown>,
 ): Promise<Record<string, unknown>> {
