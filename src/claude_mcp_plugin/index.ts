@@ -813,7 +813,9 @@ figma.ui.onmessage = async (msg: Record<string, unknown>) => {
     }
     case 'search-nodes-ui': {
       var searchQuery = (msg['query'] as string) || '';
-      var searchLimit = 50;
+      var searchFilter = (msg['filter'] as string) || 'name_or_id';
+      var isMatchAll = searchQuery === '*';
+      var searchLimit = isMatchAll ? 100 : 50;
       try {
         // Check if query contains multiple IDs (comma or space separated, ID format: digits:digits)
         var idPattern = /^\d+:\d+$/;
@@ -822,57 +824,140 @@ figma.ui.onmessage = async (msg: Record<string, unknown>) => {
 
         var searchMatches: Array<{id: string; name: string; type: string; pageName: string}> = [];
 
-        if (isMultiId) {
-          // Direct ID lookup mode
+        var lowerQ = searchQuery.toLowerCase();
+        var fuzzyChars = lowerQ.split('').map(function (c) {
+          return c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        });
+        var fuzzyPattern = new RegExp(fuzzyChars.join('.*'), 'i');
+
+        // Pre-load variable map for variable filter
+        var variableMap: Map<string, Variable> | null = null;
+        if (searchFilter === 'variable') {
+          var allVars = await figma.variables.getLocalVariablesAsync();
+          variableMap = new Map(allVars.map(function (v) { return [v.id, v] as [string, Variable]; }));
+        }
+
+        // Helper: check if a node matches the current filter + query
+        var nodeMatchesFilter = function (node: BaseNode): boolean {
+          switch (searchFilter) {
+            case 'name':
+              return isMatchAll ? true : fuzzyPattern.test(node.name);
+            case 'id':
+              return isMatchAll ? true : (node.id.indexOf(lowerQ) === 0 || node.id === searchQuery);
+            case 'type':
+              return isMatchAll ? true : node.type.toLowerCase().indexOf(lowerQ) !== -1;
+            case 'variable': {
+              // Check if node has bound variables (match-all) or whose name matches the query
+              var sceneNode = node as any;
+              if (!('boundVariables' in sceneNode) || !sceneNode.boundVariables) return false;
+              var bv = sceneNode.boundVariables as Record<string, unknown>;
+              var bvKeys = Object.keys(bv);
+              if (bvKeys.length === 0) return false;
+              if (isMatchAll) return true;
+              for (var bvi = 0; bvi < bvKeys.length; bvi++) {
+                var binding = bv[bvKeys[bvi]];
+                if (!binding) continue;
+                var bindArr = Array.isArray(binding) ? binding : [binding];
+                for (var bi = 0; bi < bindArr.length; bi++) {
+                  var b = bindArr[bi] as Record<string, unknown>;
+                  if (b && b.id) {
+                    var v = variableMap ? variableMap.get(b.id as string) : undefined;
+                    if (v === undefined) v = variableMap ? variableMap.get(b.id as string) : undefined;
+                    if (v && fuzzyPattern.test(v.name)) return true;
+                  }
+                }
+              }
+              return false;
+            }
+            case 'color': {
+              // Check if node has solid color fills (match-all) or matching the query
+              var fillNode = node as any;
+              if (fillNode.fills && Array.isArray(fillNode.fills)) {
+                for (var fi = 0; fi < fillNode.fills.length; fi++) {
+                  var fill = fillNode.fills[fi];
+                  if (fill.type === 'SOLID' && fill.color) {
+                    if (isMatchAll) return true;
+                    var r = Math.round(fill.color.r * 255);
+                    var g = Math.round(fill.color.g * 255);
+                    var b = Math.round(fill.color.b * 255);
+                    var hex = '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+                    if (hex.toLowerCase().indexOf(lowerQ) !== -1) return true;
+                    var rgb = r + ',' + g + ',' + b;
+                    if (rgb.indexOf(searchQuery) !== -1) return true;
+                  }
+                }
+              }
+              return false;
+            }
+            case 'name_or_id':
+            default:
+              return isMatchAll ? true : (fuzzyPattern.test(node.name) || node.id.indexOf(lowerQ) === 0);
+          }
+        };
+
+        // Scope search to selected frame if exactly one container is selected
+        var containerTypes: Record<string, boolean> = { 'FRAME': true, 'GROUP': true, 'COMPONENT': true, 'COMPONENT_SET': true, 'SECTION': true };
+        var sel = figma.currentPage.selection;
+        var scopeNode: BaseNode | null = null;
+        if (sel.length === 1 && containerTypes[sel[0].type]) {
+          scopeNode = sel[0];
+        }
+
+        var walkTree = function (node: BaseNode, pgName: string) {
+          if (searchMatches.length >= searchLimit) return;
+          if (nodeMatchesFilter(node)) {
+            searchMatches.push({ id: node.id, name: node.name, type: node.type, pageName: pgName });
+          }
+          if ('children' in node) {
+            var ch = (node as any).children;
+            for (var ci = 0; ci < ch.length; ci++) {
+              if (searchMatches.length >= searchLimit) break;
+              walkTree(ch[ci], pgName);
+            }
+          }
+        };
+
+        if (!isMatchAll && isMultiId && searchFilter === 'name_or_id') {
+          // Direct ID lookup mode (only for name_or_id filter)
           var idSet: Record<string, boolean> = {};
           for (var ti = 0; ti < tokens.length; ti++) { idSet[tokens[ti]] = true; }
-          var pages = figma.root.children;
-          for (var pi = 0; pi < pages.length; pi++) {
-            var page = pages[pi];
-            await page.loadAsync();
-            var walkIds = function (node: BaseNode, pgName: string) {
-              if (searchMatches.length >= searchLimit) return;
-              if (idSet[node.id]) {
-                searchMatches.push({ id: node.id, name: node.name, type: node.type, pageName: pgName });
+          var walkIds = function (node: BaseNode, pgName: string) {
+            if (searchMatches.length >= searchLimit) return;
+            if (idSet[node.id]) {
+              searchMatches.push({ id: node.id, name: node.name, type: node.type, pageName: pgName });
+            }
+            if ('children' in node) {
+              var ch = (node as any).children;
+              for (var ci = 0; ci < ch.length; ci++) {
+                if (searchMatches.length >= searchLimit) break;
+                walkIds(ch[ci], pgName);
               }
-              if ('children' in node) {
-                var ch = (node as any).children;
-                for (var ci = 0; ci < ch.length; ci++) {
-                  if (searchMatches.length >= searchLimit) break;
-                  walkIds(ch[ci], pgName);
-                }
-              }
-            };
-            walkIds(page, page.name);
-            if (searchMatches.length >= searchLimit) break;
+            }
+          };
+          if (scopeNode) {
+            var pg = scopeNode.parent;
+            while (pg && pg.type !== 'PAGE') { pg = pg.parent; }
+            walkIds(scopeNode, pg ? pg.name : '');
+          } else {
+            var pages = figma.root.children;
+            for (var pi = 0; pi < pages.length; pi++) {
+              var page = pages[pi];
+              await page.loadAsync();
+              walkIds(page, page.name);
+              if (searchMatches.length >= searchLimit) break;
+            }
           }
+        } else if (scopeNode) {
+          // Scoped search within selected container
+          var pg = scopeNode.parent;
+          while (pg && pg.type !== 'PAGE') { pg = pg.parent; }
+          walkTree(scopeNode, pg ? pg.name : '');
         } else {
-          // Single query: fuzzy name match + prefix ID match
-          var lowerQ = searchQuery.toLowerCase();
-          var fuzzyChars = lowerQ.split('').map(function (c) {
-            return c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-          });
-          var fuzzyPattern = new RegExp(fuzzyChars.join('.*'), 'i');
           var pages = figma.root.children;
           for (var pi = 0; pi < pages.length; pi++) {
             var page = pages[pi];
             await page.loadAsync();
-            var walkSearch = function (node: BaseNode, pgName: string) {
-              if (searchMatches.length >= searchLimit) return;
-              var nameMatch = fuzzyPattern.test(node.name);
-              var idMatch = node.id.indexOf(lowerQ) === 0;
-              if (nameMatch || idMatch) {
-                searchMatches.push({ id: node.id, name: node.name, type: node.type, pageName: pgName });
-              }
-              if ('children' in node) {
-                var ch = (node as any).children;
-                for (var ci = 0; ci < ch.length; ci++) {
-                  if (searchMatches.length >= searchLimit) break;
-                  walkSearch(ch[ci], pgName);
-                }
-              }
-            };
-            walkSearch(page, page.name);
+            walkTree(page, page.name);
             if (searchMatches.length >= searchLimit) break;
           }
         }
