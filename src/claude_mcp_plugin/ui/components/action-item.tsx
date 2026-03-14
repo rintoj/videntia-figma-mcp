@@ -1,6 +1,6 @@
 import { h } from 'preact'
 import { useState } from 'preact/hooks'
-import { CheckCircleIcon, XCircleIcon, SpinnerIcon, ChevronRightIcon, ChevronDownIcon, CopyIcon } from './icons'
+import { CheckCircleIcon, XCircleIcon, SpinnerIcon, ChevronRightIcon, ChevronDownIcon, CopyIcon, FocusIcon } from './icons'
 import { ActionEntry } from '../types'
 
 interface ActionItemProps {
@@ -20,6 +20,19 @@ function truncate(text: string, max: number): string {
   return text.substring(0, max) + '...'
 }
 
+function copyToClipboard(text: string) {
+  try {
+    var textarea = document.createElement('textarea')
+    textarea.value = text
+    document.body.appendChild(textarea)
+    textarea.select()
+    document.execCommand('copy')
+    document.body.removeChild(textarea)
+  } catch (err) {
+    console.error('Copy failed:', err)
+  }
+}
+
 export function ActionItem({ action }: ActionItemProps) {
   var [expanded, setExpanded] = useState(false)
   var [hovered, setHovered] = useState(false)
@@ -30,22 +43,27 @@ export function ActionItem({ action }: ActionItemProps) {
     return <SpinnerIcon color="#66b3ff" />
   }
 
-  function handleCopy(e: Event) {
+  function handleFocus(e: Event) {
+    e.stopPropagation()
+    if (action.nodeIds && action.nodeIds.length > 0) {
+      parent.postMessage({ pluginMessage: { type: 'focus-nodes', nodeIds: action.nodeIds } }, '*')
+    }
+  }
+
+  function handleCopyData(e: Event) {
     e.stopPropagation()
     var data = {
       command: action.command,
       input: action.params,
       output: action.error ? { error: action.error } : action.result,
     }
-    try {
-      var textarea = document.createElement('textarea')
-      textarea.value = JSON.stringify(data, null, 2)
-      document.body.appendChild(textarea)
-      textarea.select()
-      document.execCommand('copy')
-      document.body.removeChild(textarea)
-    } catch (err) {
-      console.error('Copy failed:', err)
+    copyToClipboard(JSON.stringify(data, null, 2))
+  }
+
+  function handleCopyIds(e: Event) {
+    e.stopPropagation()
+    if (action.nodeIds && action.nodeIds.length > 0) {
+      copyToClipboard(JSON.stringify(action.nodeIds))
     }
   }
 
@@ -54,38 +72,60 @@ export function ActionItem({ action }: ActionItemProps) {
     ? truncate(action.error, 200)
     : (action.result ? truncate(JSON.stringify(action.result), 200) : 'none')
 
+  var hasNodeIds = action.nodeIds && action.nodeIds.length > 0
+
   return (
     <div
-      class={'action-item' + (hovered ? ' hovered' : '')}
+      class={'action-item' + (hovered ? ' hovered' : '') + (expanded ? ' selected' : '')}
       onMouseEnter={function () { setHovered(true) }}
       onMouseLeave={function () { setHovered(false) }}
       onClick={function () { setExpanded(!expanded) }}
     >
       <div class="action-item-row">
         <div class="action-item-left">
-          {getStatusIcon()}
-          {expanded
-            ? <ChevronDownIcon color="#808080" size={10} />
-            : <ChevronRightIcon color="#808080" size={10} />
-          }
+          <span class="action-status-icon">
+            {getStatusIcon()}
+          </span>
           <span class="action-item-name">{action.command}</span>
         </div>
         <div class="action-item-right">
-          {hovered && (
-            <span class="action-copy-btn" onClick={handleCopy}>
+          {hovered && !expanded && (
+            <span class="action-copy-btn" onClick={handleCopyData}>
               <CopyIcon color="#808080" />
             </span>
           )}
           <span class="action-item-time">{formatTime(action.timestamp)}</span>
+          {expanded
+            ? <ChevronDownIcon color="#808080" size={14} />
+            : <ChevronRightIcon color="#808080" size={14} />
+          }
         </div>
       </div>
       {expanded && (
         <div class="action-detail">
+          <div class="action-detail-buttons">
+            {hasNodeIds && (
+              <button class="action-detail-btn focus-btn" onClick={handleFocus}>
+                <FocusIcon color="#808080" />
+                <span>Focus</span>
+              </button>
+            )}
+            {hasNodeIds && (
+              <button class="action-detail-btn" onClick={handleCopyIds}>
+                <CopyIcon color="#808080" />
+                <span>Copy Ids</span>
+              </button>
+            )}
+            <button class="action-detail-btn" onClick={handleCopyData}>
+              <CopyIcon color="#808080" />
+              <span>Copy Data</span>
+            </button>
+          </div>
           <div class="action-detail-block">
             <span class="action-detail-label">INPUT</span>
             <pre class="action-detail-content">{inputStr}</pre>
           </div>
-          <div class="action-detail-block">
+          <div class={'action-detail-block' + (action.status === 'success' ? ' output-success' : '') + (action.status === 'error' ? ' output-error' : '')}>
             <span class="action-detail-label">OUTPUT</span>
             <pre class={'action-detail-content' + (action.status === 'success' ? ' success' : '') + (action.status === 'error' ? ' error' : '')}>{outputStr}</pre>
           </div>

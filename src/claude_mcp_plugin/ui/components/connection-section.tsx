@@ -1,18 +1,19 @@
 import { h } from 'preact'
 import { useState, useRef, useEffect } from 'preact/hooks'
-import { SignalIcon } from './icons'
+import { SignalIcon, LockIcon } from './icons'
 
 interface ConnectionSectionProps {
   port: number
   connected: boolean
   channelName: string
   buttonDisabled: boolean
+  readOnly: boolean
   onConnect: (port: number) => void
   onDisconnect: () => void
   onPortChange: (port: number) => void
 }
 
-export function ConnectionSection({ port, connected, channelName, buttonDisabled, onConnect, onDisconnect, onPortChange }: ConnectionSectionProps) {
+export function ConnectionSection({ port, connected, channelName, buttonDisabled, readOnly, onConnect, onDisconnect, onPortChange }: ConnectionSectionProps) {
   var [editing, setEditing] = useState(false)
   var [editPort, setEditPort] = useState(String(port))
   var inputRef = useRef<HTMLInputElement>(null)
@@ -69,8 +70,11 @@ export function ConnectionSection({ port, connected, channelName, buttonDisabled
     return (
       <div class="connection-bar">
         <div class="connection-bar-left">
-          <SignalIcon color="#4caf50" size={16} />
-          <span class="connection-bar-channel">{channelName || 'Connected'}</span>
+          {readOnly
+            ? <LockIcon color="#febc2f" size={18} />
+            : <SignalIcon color="#4caf50" size={18} />
+          }
+          <span class={readOnly ? 'connection-bar-channel readonly' : 'connection-bar-channel'}>{channelName || 'Connected'}</span>
           <span class="connection-bar-port-static">:{port}</span>
         </div>
         <button class="btn-disconnect" disabled={buttonDisabled} onClick={onDisconnect}>Disconnect</button>
@@ -81,7 +85,7 @@ export function ConnectionSection({ port, connected, channelName, buttonDisabled
   return (
     <div class="connection-bar">
       <div class="connection-bar-left">
-        <SignalIcon color="#808080" size={16} />
+        <SignalIcon color="#f04545" size={18} />
         <span class="connection-bar-disconnected">Disconnected</span>
         <span class="connection-bar-port" onClick={handlePortClick}>:{port}</span>
       </div>

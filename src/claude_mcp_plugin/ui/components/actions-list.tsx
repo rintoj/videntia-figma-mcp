@@ -37,9 +37,9 @@ export function ActionsList({ actions }: ActionsListProps) {
   if (actions.length === 0) {
     return (
       <div class="actions-empty">
-        <TerminalIcon color="#555555" size={32} />
+        <TerminalIcon color="#555555" size={24} />
         <span class="actions-empty-text">No actions yet</span>
-        <span class="actions-empty-hint">Commands will appear here as they run</span>
+        <span class="actions-empty-hint">Connect to start receiving actions</span>
       </div>
     )
   }

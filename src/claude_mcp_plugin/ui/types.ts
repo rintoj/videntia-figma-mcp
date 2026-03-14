@@ -6,4 +6,5 @@ export interface ActionEntry {
   error: string | null
   status: 'running' | 'success' | 'error'
   timestamp: number
+  nodeIds?: string[]
 }

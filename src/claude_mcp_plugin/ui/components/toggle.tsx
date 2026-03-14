@@ -2,15 +2,19 @@ import { h } from 'preact'
 
 interface ToggleProps {
   label: string
+  description?: string
   checked: boolean
   onChange: (checked: boolean) => void
   activeColor: string
 }
 
-export function Toggle({ label, checked, onChange, activeColor }: ToggleProps) {
+export function Toggle({ label, description, checked, onChange, activeColor }: ToggleProps) {
   return (
     <div class="settings-row">
-      <span class="settings-label">{label}</span>
+      <div class="settings-label-group">
+        <span class="settings-label">{label}</span>
+        {description ? <span class="settings-description">{description}</span> : null}
+      </div>
       <label class="toggle-track">
         <input
           type="checkbox"

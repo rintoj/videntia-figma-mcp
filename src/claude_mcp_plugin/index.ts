@@ -243,6 +243,21 @@ figma.on('run', function () {
   figma.ui.postMessage({ type: 'auto-connect' });
 });
 
+// Notify UI when the Figma selection changes
+figma.on('selectionchange', function () {
+  var nodes = figma.currentPage.selection.map(function (n) {
+    var page = n.parent;
+    while (page && page.type !== 'PAGE') { page = page.parent; }
+    return {
+      id: n.id,
+      name: n.name,
+      type: n.type,
+      pageName: page ? page.name : ''
+    };
+  });
+  figma.ui.postMessage({ type: 'selection-changed', nodes: nodes });
+});
+
 // ---------------------------------------------------------------------------
 // Settings
 // ---------------------------------------------------------------------------
@@ -733,6 +748,31 @@ async function _executeCommand(
 }
 
 // ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function extractNodeIds(result: unknown): string[] {
+  if (!result || typeof result !== 'object') return [];
+  var r = result as Record<string, unknown>;
+  var ids: string[] = [];
+  if (typeof r['id'] === 'string') ids.push(r['id']);
+  if (typeof r['nodeId'] === 'string') ids.push(r['nodeId']);
+  if (Array.isArray(r['nodeIds'])) {
+    r['nodeIds'].forEach(function (id: unknown) {
+      if (typeof id === 'string') ids.push(id);
+    });
+  }
+  if (Array.isArray(r['nodes'])) {
+    r['nodes'].forEach(function (n: unknown) {
+      if (n && typeof n === 'object' && typeof (n as Record<string, unknown>)['id'] === 'string') {
+        ids.push((n as Record<string, unknown>)['id'] as string);
+      }
+    });
+  }
+  return ids;
+}
+
+// ---------------------------------------------------------------------------
 // UI message handler
 // ---------------------------------------------------------------------------
 
@@ -750,6 +790,100 @@ figma.ui.onmessage = async (msg: Record<string, unknown>) => {
     case 'get-file-name':
       figma.ui.postMessage({ type: 'file-name', fileName: figma.root.name });
       break;
+    case 'get-selection': {
+      var selNodes = figma.currentPage.selection.map(function (n) {
+        var pg = n.parent;
+        while (pg && pg.type !== 'PAGE') { pg = pg.parent; }
+        return {
+          id: n.id,
+          name: n.name,
+          type: n.type,
+          pageName: pg ? pg.name : ''
+        };
+      });
+      figma.ui.postMessage({ type: 'selection-changed', nodes: selNodes });
+      break;
+    }
+    case 'search-nodes-ui': {
+      var searchQuery = (msg['query'] as string) || '';
+      var searchLimit = 50;
+      try {
+        // Check if query contains multiple IDs (comma or space separated, ID format: digits:digits)
+        var idPattern = /^\d+:\d+$/;
+        var tokens = searchQuery.split(/[,\s]+/).filter(function (t) { return t.length > 0; });
+        var isMultiId = tokens.length > 1 && tokens.every(function (t) { return idPattern.test(t); });
+
+        var searchMatches: Array<{id: string; name: string; type: string; pageName: string}> = [];
+
+        if (isMultiId) {
+          // Direct ID lookup mode
+          var idSet: Record<string, boolean> = {};
+          for (var ti = 0; ti < tokens.length; ti++) { idSet[tokens[ti]] = true; }
+          var pages = figma.root.children;
+          for (var pi = 0; pi < pages.length; pi++) {
+            var page = pages[pi];
+            await page.loadAsync();
+            var walkIds = function (node: BaseNode, pgName: string) {
+              if (searchMatches.length >= searchLimit) return;
+              if (idSet[node.id]) {
+                searchMatches.push({ id: node.id, name: node.name, type: node.type, pageName: pgName });
+              }
+              if ('children' in node) {
+                var ch = (node as any).children;
+                for (var ci = 0; ci < ch.length; ci++) {
+                  if (searchMatches.length >= searchLimit) break;
+                  walkIds(ch[ci], pgName);
+                }
+              }
+            };
+            walkIds(page, page.name);
+            if (searchMatches.length >= searchLimit) break;
+          }
+        } else {
+          // Single query: fuzzy name match + prefix ID match
+          var lowerQ = searchQuery.toLowerCase();
+          var fuzzyChars = lowerQ.split('').map(function (c) {
+            return c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          });
+          var fuzzyPattern = new RegExp(fuzzyChars.join('.*'), 'i');
+          var pages = figma.root.children;
+          for (var pi = 0; pi < pages.length; pi++) {
+            var page = pages[pi];
+            await page.loadAsync();
+            var walkSearch = function (node: BaseNode, pgName: string) {
+              if (searchMatches.length >= searchLimit) return;
+              var nameMatch = fuzzyPattern.test(node.name);
+              var idMatch = node.id.indexOf(lowerQ) === 0;
+              if (nameMatch || idMatch) {
+                searchMatches.push({ id: node.id, name: node.name, type: node.type, pageName: pgName });
+              }
+              if ('children' in node) {
+                var ch = (node as any).children;
+                for (var ci = 0; ci < ch.length; ci++) {
+                  if (searchMatches.length >= searchLimit) break;
+                  walkSearch(ch[ci], pgName);
+                }
+              }
+            };
+            walkSearch(page, page.name);
+            if (searchMatches.length >= searchLimit) break;
+          }
+        }
+        figma.ui.postMessage({ type: 'search-results', nodes: searchMatches, query: searchQuery });
+      } catch (err) {
+        figma.ui.postMessage({ type: 'search-results', nodes: [], query: searchQuery });
+      }
+      break;
+    }
+    case 'focus-nodes': {
+      var focusIds = msg['nodeIds'] as string[];
+      if (Array.isArray(focusIds) && focusIds.length > 0) {
+        for (var i = 0; i < focusIds.length; i++) {
+          await focusNode(focusIds[i]);
+        }
+      }
+      break;
+    }
     case 'execute-command':
       try {
         const result = await handleCommand(
@@ -761,6 +895,7 @@ figma.ui.onmessage = async (msg: Record<string, unknown>) => {
           id: msg['id'],
           command: msg['command'],
           result,
+          nodeIds: extractNodeIds(result),
         });
       } catch (error) {
         figma.ui.postMessage({
