@@ -11,8 +11,8 @@ interface NodeInfo {
 function getIconColor(type: string): string {
   switch (type) {
     case 'COMPONENT': return '#0fa958'
-    case 'COMPONENT_SET': return '#9747ff'
-    case 'INSTANCE': return '#9747ff'
+    case 'COMPONENT_SET': return '#9ca3af'
+    case 'INSTANCE': return '#9ca3af'
     default: return '#9ca3af'
   }
 }
@@ -321,7 +321,7 @@ export function SelectionSection() {
 
   return (
     <div class="flex flex-col bg-card flex-1 min-h-0">
-      <div class="flex items-center gap-2 px-3 pt-3 pb-2 shrink-0 bg-card">
+      <div class="flex items-center gap-2 px-3 pt-3 pb-2 shrink-0 bg-muted">
         <div class="relative flex-1 min-w-0">
           <svg class="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" width="13" height="13" viewBox="0 0 24 24" fill="none" style={{ stroke: 'var(--color-muted-foreground)' }} stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="11" cy="11" r="8"/>
@@ -359,7 +359,7 @@ export function SelectionSection() {
           return (
             <div
               key={node.id + '-' + i}
-              class={'flex items-center gap-1.5 h-[30px] px-1.5 pl-2.5 cursor-pointer transition-colors border-l-2 border-transparent relative' + (isActive ? ' bg-card rounded-sm' : '') + (isChecked ? ' border-l-success bg-primary-checked rounded-sm' : '')}
+              class={'flex items-center gap-1.5 h-[30px] px-1.5 pl-2.5 cursor-pointer transition-colors border-l-2 border-transparent relative' + (isChecked && isActive ? ' border-l-success bg-card rounded-sm' : isChecked ? ' border-l-success bg-accent rounded-sm' : isActive ? ' bg-card rounded-sm' : '')}
               onClick={function () { handleRowClick(node, i) }}
               onMouseEnter={function () { setHoveredId(node.id) }}
               onMouseLeave={function () { setHoveredId(null) }}
@@ -397,7 +397,7 @@ export function SelectionSection() {
               >
                 {isChecked ? (
                   <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                    <rect x="1" y="1" width="14" height="14" rx="3" style={{ fill: 'var(--color-primary)' }}/>
+                    <rect x="1" y="1" width="14" height="14" rx="3" style={{ fill: 'var(--color-success)' }}/>
                     <polyline points="4.5 8 7 10.5 11.5 5.5" style={{ stroke: 'var(--color-primary-foreground)' }} stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
                   </svg>
                 ) : (
@@ -410,19 +410,19 @@ export function SelectionSection() {
           )
         })}
       </div>
-      {checkedCount > 0 && <div class="h-px bg-secondary shrink-0" />}
+      {checkedCount > 0 && <div class="h-px bg-muted shrink-0" />}
       {checkedCount > 0 && (
-        <div class="flex items-center justify-between py-2 px-3 bg-card shrink-0">
+        <div class="flex items-center justify-between py-2 px-3 bg-muted shrink-0">
           <div class="flex items-center gap-1.5">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <rect x="1" y="1" width="14" height="14" rx="3" style={{ fill: 'var(--color-primary)' }}/>
+              <rect x="1" y="1" width="14" height="14" rx="3" style={{ fill: 'var(--color-success)' }}/>
               <polyline points="4.5 8 7 10.5 11.5 5.5" style={{ stroke: 'var(--color-primary-foreground)' }} stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
             </svg>
-            <span class="text-primary text-[11px] font-medium">{checkedCount + ' selected'}</span>
+            <span class="text-success text-[11px] font-medium">{checkedCount + ' selected'}</span>
           </div>
           <div class="flex items-center gap-2">
             <button class="bg-primary border border-solid border-primary text-primary-foreground rounded-md py-1 px-2 text-[11px] font-medium cursor-pointer transition-colors hover:opacity-90" onClick={copyCheckedIds}>Copy IDs</button>
-            <button class="bg-secondary border border-border rounded-md text-muted-foreground text-[11px] font-medium cursor-pointer py-1 px-2 hover:bg-input" onClick={clearChecked}>Clear</button>
+            <button class="bg-muted border border-border rounded-md text-muted-foreground text-[11px] font-medium cursor-pointer py-1 px-2 hover:bg-input" onClick={clearChecked}>Clear</button>
           </div>
         </div>
       )}
