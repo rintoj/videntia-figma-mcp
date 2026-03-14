@@ -840,10 +840,13 @@ figma.ui.onmessage = async (msg: Record<string, unknown>) => {
         // Helper: check if a node matches the current filter + query
         var nodeMatchesFilter = function (node: BaseNode): boolean {
           switch (searchFilter) {
-            case 'name':
-              return isMatchAll ? true : fuzzyPattern.test(node.name);
-            case 'id':
-              return isMatchAll ? true : (node.id.indexOf(lowerQ) === 0 || node.id === searchQuery);
+            case 'content': {
+              if (node.type !== 'TEXT') return false;
+              var textNode = node as any;
+              if (!textNode.characters) return false;
+              if (isMatchAll) return true;
+              return fuzzyPattern.test(textNode.characters);
+            }
             case 'type':
               return isMatchAll ? true : node.type.toLowerCase().indexOf(lowerQ) !== -1;
             case 'variable': {
@@ -870,21 +873,51 @@ figma.ui.onmessage = async (msg: Record<string, unknown>) => {
               return false;
             }
             case 'color': {
-              // Check if node has solid color fills (match-all) or matching the query
-              var fillNode = node as any;
-              if (fillNode.fills && Array.isArray(fillNode.fills)) {
-                for (var fi = 0; fi < fillNode.fills.length; fi++) {
-                  var fill = fillNode.fills[fi];
-                  if (fill.type === 'SOLID' && fill.color) {
-                    if (isMatchAll) return true;
-                    var r = Math.round(fill.color.r * 255);
-                    var g = Math.round(fill.color.g * 255);
-                    var b = Math.round(fill.color.b * 255);
-                    var hex = '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
-                    if (hex.toLowerCase().indexOf(lowerQ) !== -1) return true;
-                    var rgb = r + ',' + g + ',' + b;
-                    if (rgb.indexOf(searchQuery) !== -1) return true;
+              // Check if node has solid color fills or strokes matching the query
+              var colorNode = node as any;
+              // Normalize query: strip # prefix for comparison
+              var colorQ = lowerQ.replace(/^#/, '');
+
+              // Helper: check if a paint at a given index is bound to a variable
+              var isPaintBound = function (fieldPrefix: string, idx: number): boolean {
+                if (!('boundVariables' in colorNode) || !colorNode.boundVariables) return false;
+                var bv = colorNode.boundVariables as Record<string, unknown>;
+                // Check field like "fills/0" or "strokes/0"
+                var key = fieldPrefix + '/' + idx;
+                if (bv[key]) return true;
+                // Also check array-style bindings
+                var arr = bv[fieldPrefix];
+                if (Array.isArray(arr) && arr[idx]) return true;
+                return false;
+              };
+
+              var matchColor = function (paint: any, fieldPrefix: string, idx: number): boolean {
+                if (paint.type === 'SOLID' && paint.color) {
+                  // When match-all (empty query), only show unbound colors
+                  if (isMatchAll) {
+                    return !isPaintBound(fieldPrefix, idx);
                   }
+                  var cr = Math.round(paint.color.r * 255);
+                  var cg = Math.round(paint.color.g * 255);
+                  var cb = Math.round(paint.color.b * 255);
+                  var hexNoHash = ((1 << 24) + (cr << 16) + (cg << 8) + cb).toString(16).slice(1).toLowerCase();
+                  if (hexNoHash.indexOf(colorQ) !== -1) return true;
+                  if (('#' + hexNoHash).indexOf(lowerQ) !== -1) return true;
+                  var rgb = cr + ',' + cg + ',' + cb;
+                  if (rgb.indexOf(searchQuery) !== -1) return true;
+                }
+                return false;
+              };
+              // Check fills
+              if (colorNode.fills && colorNode.fills !== figma.mixed && Array.isArray(colorNode.fills)) {
+                for (var fi = 0; fi < colorNode.fills.length; fi++) {
+                  if (matchColor(colorNode.fills[fi], 'fills', fi)) return true;
+                }
+              }
+              // Check strokes
+              if (colorNode.strokes && Array.isArray(colorNode.strokes)) {
+                for (var si = 0; si < colorNode.strokes.length; si++) {
+                  if (matchColor(colorNode.strokes[si], 'strokes', si)) return true;
                 }
               }
               return false;
@@ -895,18 +928,64 @@ figma.ui.onmessage = async (msg: Record<string, unknown>) => {
           }
         };
 
-        // Scope search to selected frame if exactly one container is selected
-        var containerTypes: Record<string, boolean> = { 'FRAME': true, 'GROUP': true, 'COMPONENT': true, 'COMPONENT_SET': true, 'SECTION': true };
+        // Scope search to selected nodes if any
         var sel = figma.currentPage.selection;
-        var scopeNode: BaseNode | null = null;
-        if (sel.length === 1 && containerTypes[sel[0].type]) {
-          scopeNode = sel[0];
-        }
 
         var walkTree = function (node: BaseNode, pgName: string) {
           if (searchMatches.length >= searchLimit) return;
           if (nodeMatchesFilter(node)) {
-            searchMatches.push({ id: node.id, name: node.name, type: node.type, pageName: pgName });
+            var matchObj: any = { id: node.id, name: node.name, type: node.type, pageName: pgName };
+            if (searchFilter === 'content' && node.type === 'TEXT') {
+              var chars = (node as any).characters || '';
+              matchObj.content = chars.length > 60 ? chars.substring(0, 60) + '...' : chars;
+            }
+            if (searchFilter === 'variable') {
+              var sn = node as any;
+              if (sn.boundVariables) {
+                var bvk = Object.keys(sn.boundVariables);
+                for (var bki = 0; bki < bvk.length; bki++) {
+                  var bind = sn.boundVariables[bvk[bki]];
+                  if (!bind) continue;
+                  var bArr = Array.isArray(bind) ? bind : [bind];
+                  for (var bai = 0; bai < bArr.length; bai++) {
+                    var bb = bArr[bai] as Record<string, unknown>;
+                    if (bb && bb.id && variableMap) {
+                      var vv = variableMap.get(bb.id as string);
+                      if (vv) {
+                        matchObj.variablePath = vv.name;
+                        break;
+                      }
+                    }
+                  }
+                  if (matchObj.variablePath) break;
+                }
+              }
+            }
+            if (searchFilter === 'color') {
+              var cn = node as any;
+              var extractHex = function (paint: any): string | null {
+                if (paint.type === 'SOLID' && paint.color) {
+                  var rr = Math.round(paint.color.r * 255);
+                  var gg = Math.round(paint.color.g * 255);
+                  var bbb = Math.round(paint.color.b * 255);
+                  return '#' + ((1 << 24) + (rr << 16) + (gg << 8) + bbb).toString(16).slice(1).toLowerCase();
+                }
+                return null;
+              };
+              if (cn.fills && cn.fills !== figma.mixed && Array.isArray(cn.fills)) {
+                for (var efi = 0; efi < cn.fills.length; efi++) {
+                  var eh = extractHex(cn.fills[efi]);
+                  if (eh) { matchObj.colorHex = eh; break; }
+                }
+              }
+              if (!matchObj.colorHex && cn.strokes && Array.isArray(cn.strokes)) {
+                for (var esi = 0; esi < cn.strokes.length; esi++) {
+                  var esh = extractHex(cn.strokes[esi]);
+                  if (esh) { matchObj.colorHex = esh; break; }
+                }
+              }
+            }
+            searchMatches.push(matchObj);
           }
           if ('children' in node) {
             var ch = (node as any).children;
@@ -934,10 +1013,14 @@ figma.ui.onmessage = async (msg: Record<string, unknown>) => {
               }
             }
           };
-          if (scopeNode) {
-            var pg = scopeNode.parent;
-            while (pg && pg.type !== 'PAGE') { pg = pg.parent; }
-            walkIds(scopeNode, pg ? pg.name : '');
+          if (sel.length > 0) {
+            for (var si = 0; si < sel.length; si++) {
+              var selNode = sel[si];
+              var pg = selNode.parent;
+              while (pg && pg.type !== 'PAGE') { pg = pg.parent; }
+              walkIds(selNode, pg ? pg.name : '');
+              if (searchMatches.length >= searchLimit) break;
+            }
           } else {
             var pages = figma.root.children;
             for (var pi = 0; pi < pages.length; pi++) {
@@ -947,11 +1030,15 @@ figma.ui.onmessage = async (msg: Record<string, unknown>) => {
               if (searchMatches.length >= searchLimit) break;
             }
           }
-        } else if (scopeNode) {
-          // Scoped search within selected container
-          var pg = scopeNode.parent;
-          while (pg && pg.type !== 'PAGE') { pg = pg.parent; }
-          walkTree(scopeNode, pg ? pg.name : '');
+        } else if (sel.length > 0) {
+          // Scoped search within all selected nodes
+          for (var si = 0; si < sel.length; si++) {
+            var selNode = sel[si];
+            var pg = selNode.parent;
+            while (pg && pg.type !== 'PAGE') { pg = pg.parent; }
+            walkTree(selNode, pg ? pg.name : '');
+            if (searchMatches.length >= searchLimit) break;
+          }
         } else {
           var pages = figma.root.children;
           for (var pi = 0; pi < pages.length; pi++) {
