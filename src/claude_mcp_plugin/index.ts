@@ -931,67 +931,72 @@ figma.ui.onmessage = async (msg: Record<string, unknown>) => {
         // Scope search to selected nodes if any
         var sel = figma.currentPage.selection;
 
-        var walkTree = function (node: BaseNode, pgName: string) {
-          if (searchMatches.length >= searchLimit) return;
-          if (nodeMatchesFilter(node)) {
-            var matchObj: any = { id: node.id, name: node.name, type: node.type, pageName: pgName };
-            if (searchFilter === 'content' && node.type === 'TEXT') {
-              var chars = (node as any).characters || '';
-              matchObj.content = chars.length > 60 ? chars.substring(0, 60) + '...' : chars;
-            }
-            if (searchFilter === 'variable') {
-              var sn = node as any;
-              if (sn.boundVariables) {
-                var bvk = Object.keys(sn.boundVariables);
-                for (var bki = 0; bki < bvk.length; bki++) {
-                  var bind = sn.boundVariables[bvk[bki]];
-                  if (!bind) continue;
-                  var bArr = Array.isArray(bind) ? bind : [bind];
-                  for (var bai = 0; bai < bArr.length; bai++) {
-                    var bb = bArr[bai] as Record<string, unknown>;
-                    if (bb && bb.id && variableMap) {
-                      var vv = variableMap.get(bb.id as string);
-                      if (vv) {
-                        matchObj.variablePath = vv.name;
-                        break;
+        // BFS traversal — breadth-first walk so siblings appear before deeper descendants
+        var walkTree = function (startNode: BaseNode, pgName: string) {
+          var queue: Array<BaseNode> = [startNode];
+          var head = 0;
+          while (head < queue.length && searchMatches.length < searchLimit) {
+            var node = queue[head];
+            head++;
+            if (nodeMatchesFilter(node)) {
+              var matchObj: any = { id: node.id, name: node.name, type: node.type, pageName: pgName };
+              if (searchFilter === 'content' && node.type === 'TEXT') {
+                var chars = (node as any).characters || '';
+                matchObj.content = chars.length > 60 ? chars.substring(0, 60) + '...' : chars;
+              }
+              if (searchFilter === 'variable') {
+                var sn = node as any;
+                if (sn.boundVariables) {
+                  var bvk = Object.keys(sn.boundVariables);
+                  for (var bki = 0; bki < bvk.length; bki++) {
+                    var bind = sn.boundVariables[bvk[bki]];
+                    if (!bind) continue;
+                    var bArr = Array.isArray(bind) ? bind : [bind];
+                    for (var bai = 0; bai < bArr.length; bai++) {
+                      var bb = bArr[bai] as Record<string, unknown>;
+                      if (bb && bb.id && variableMap) {
+                        var vv = variableMap.get(bb.id as string);
+                        if (vv) {
+                          matchObj.variablePath = vv.name;
+                          break;
+                        }
                       }
                     }
+                    if (matchObj.variablePath) break;
                   }
-                  if (matchObj.variablePath) break;
                 }
               }
+              if (searchFilter === 'color') {
+                var cn = node as any;
+                var extractHex = function (paint: any): string | null {
+                  if (paint.type === 'SOLID' && paint.color) {
+                    var rr = Math.round(paint.color.r * 255);
+                    var gg = Math.round(paint.color.g * 255);
+                    var bbb = Math.round(paint.color.b * 255);
+                    return '#' + ((1 << 24) + (rr << 16) + (gg << 8) + bbb).toString(16).slice(1).toLowerCase();
+                  }
+                  return null;
+                };
+                if (cn.fills && cn.fills !== figma.mixed && Array.isArray(cn.fills)) {
+                  for (var efi = 0; efi < cn.fills.length; efi++) {
+                    var eh = extractHex(cn.fills[efi]);
+                    if (eh) { matchObj.colorHex = eh; break; }
+                  }
+                }
+                if (!matchObj.colorHex && cn.strokes && Array.isArray(cn.strokes)) {
+                  for (var esi = 0; esi < cn.strokes.length; esi++) {
+                    var esh = extractHex(cn.strokes[esi]);
+                    if (esh) { matchObj.colorHex = esh; break; }
+                  }
+                }
+              }
+              searchMatches.push(matchObj);
             }
-            if (searchFilter === 'color') {
-              var cn = node as any;
-              var extractHex = function (paint: any): string | null {
-                if (paint.type === 'SOLID' && paint.color) {
-                  var rr = Math.round(paint.color.r * 255);
-                  var gg = Math.round(paint.color.g * 255);
-                  var bbb = Math.round(paint.color.b * 255);
-                  return '#' + ((1 << 24) + (rr << 16) + (gg << 8) + bbb).toString(16).slice(1).toLowerCase();
-                }
-                return null;
-              };
-              if (cn.fills && cn.fills !== figma.mixed && Array.isArray(cn.fills)) {
-                for (var efi = 0; efi < cn.fills.length; efi++) {
-                  var eh = extractHex(cn.fills[efi]);
-                  if (eh) { matchObj.colorHex = eh; break; }
-                }
+            if ('children' in node && searchMatches.length < searchLimit) {
+              var ch = (node as any).children;
+              for (var ci = 0; ci < ch.length; ci++) {
+                queue.push(ch[ci]);
               }
-              if (!matchObj.colorHex && cn.strokes && Array.isArray(cn.strokes)) {
-                for (var esi = 0; esi < cn.strokes.length; esi++) {
-                  var esh = extractHex(cn.strokes[esi]);
-                  if (esh) { matchObj.colorHex = esh; break; }
-                }
-              }
-            }
-            searchMatches.push(matchObj);
-          }
-          if ('children' in node) {
-            var ch = (node as any).children;
-            for (var ci = 0; ci < ch.length; ci++) {
-              if (searchMatches.length >= searchLimit) break;
-              walkTree(ch[ci], pgName);
             }
           }
         };

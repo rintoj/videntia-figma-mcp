@@ -4,7 +4,7 @@ import { ConnectionSection } from './components/connection-section'
 import { SettingsSection } from './components/settings-section'
 import { ActionsList } from './components/actions-list'
 import { TabBar, TabId } from './components/tab-bar'
-import { SelectionSection } from './components/selection-section'
+import { SelectionSection } from './components/selection'
 import { useConnection } from './hooks/use-connection'
 import { consumeEarlyMessages } from './early-messages'
 
