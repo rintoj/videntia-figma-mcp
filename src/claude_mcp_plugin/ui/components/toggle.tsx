@@ -12,8 +12,8 @@ export function Toggle({ label, description, checked, onChange, activeColor }: T
   return (
     <div class="flex items-center gap-3 py-[3px]">
       <div class="flex flex-col gap-1 flex-1">
-        <span class="text-[13px] font-medium text-foreground">{label}</span>
-        {description ? <span class="text-[11px] text-muted-foreground">{description}</span> : null}
+        <span class="text-sm leading-5 font-medium text-foreground">{label}</span>
+        {description ? <span class="text-xs leading-4 font-medium text-muted-foreground">{description}</span> : null}
       </div>
       <label class="relative inline-block w-[44px] h-[26px] cursor-pointer shrink-0">
         <input

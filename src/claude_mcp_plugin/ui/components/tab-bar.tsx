@@ -23,7 +23,7 @@ function Tab({ id, label, active, icon, onTabChange }: TabProps) {
       onClick={function () { onTabChange(id) }}
     >
       {icon(active ? 'var(--color-success)' : 'var(--color-muted-foreground)')}
-      <span class={'text-xs font-medium' + (active ? ' text-success font-semibold' : ' text-muted-foreground')}>{label}</span>
+      <span class={'text-xs leading-4 font-medium' + (active ? ' text-success' : ' text-muted-foreground')}>{label}</span>
     </div>
   )
 }

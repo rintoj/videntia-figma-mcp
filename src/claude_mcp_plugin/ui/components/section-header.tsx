@@ -13,7 +13,7 @@ export function SectionHeader({ label, expanded, onToggle }: SectionHeaderProps)
       <span class={'flex items-center transition-transform duration-200' + (expanded ? ' rotate-90' : '')}>
         <ChevronRightIcon color="var(--color-muted-foreground)" />
       </span>
-      <span class="text-muted-foreground text-[11px] font-semibold uppercase tracking-wide">{label}</span>
+      <span class="text-muted-foreground text-[11px] leading-4 font-medium uppercase tracking-wide">{label}</span>
     </div>
   )
 }

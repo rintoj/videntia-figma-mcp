@@ -56,7 +56,7 @@ export function SelectionSection() {
           </div>
           <input
             type="text"
-            class="flex-1 min-w-0 bg-transparent border-none text-foreground text-[11px] outline-none h-full"
+            class="flex-1 min-w-0 bg-transparent border-none text-foreground text-[11px] leading-4 font-medium outline-none h-full"
             placeholder={sel.placeholder}
             value={sel.searchQuery}
             onInput={sel.handleSearchInput}
@@ -98,14 +98,14 @@ export function SelectionSection() {
                 color="var(--color-muted-foreground)"
               />
             </div>
-            <span class="text-muted-foreground text-[13px] font-medium">
+            <span class="text-muted-foreground text-sm leading-5">
               {sel.searchQuery.length > 0
                 ? "No matches found"
                 : sel.filterMode === "selection"
                   ? "Nothing selected yet"
                   : "No frame selected"}
             </span>
-            <span class="text-muted-foreground text-[11px] text-center" style={{ marginTop: "-4px" }}>
+            <span class="text-muted-foreground text-[11px] leading-4 font-medium text-center" style={{ marginTop: "-4px" }}>
               {sel.searchQuery.length > 0
                 ? "No layers matched your search. Try a different term."
                 : sel.filterMode === "selection"

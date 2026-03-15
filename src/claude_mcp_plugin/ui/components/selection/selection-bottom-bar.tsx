@@ -19,13 +19,13 @@ export function SelectionBottomBar(props: SelectionBottomBarProps) {
       <div class="flex items-center justify-between py-2 px-3 bg-muted shrink-0">
         <div class="flex items-center gap-2">
           <button
-            class="bg-primary border border-solid border-primary text-primary-foreground rounded-md py-1 px-2 text-[11px] font-medium cursor-pointer transition-colors hover:opacity-90"
+            class="bg-primary border border-solid border-primary text-primary-foreground rounded-md py-1 px-2 text-[11px] leading-4 font-medium cursor-pointer transition-colors hover:opacity-90"
             onClick={props.onCopyIds}
           >
             Copy IDs
           </button>
           <button
-            class="bg-muted border border-border rounded-md text-muted-foreground text-[11px] font-medium cursor-pointer py-1 px-2 hover:bg-input"
+            class="bg-muted border border-border rounded-md text-muted-foreground text-[11px] leading-4 font-medium cursor-pointer py-1 px-2 hover:bg-input"
             onClick={props.onClear}
           >
             Clear
@@ -36,7 +36,7 @@ export function SelectionBottomBar(props: SelectionBottomBarProps) {
           onClick={props.onToggleSelectAll}
           title={isPartial ? "Select all" : "Deselect all"}
         >
-          <span class="text-success text-[11px] font-medium">{props.checkedCount + " selected"}</span>
+          <span class="text-success text-[11px] leading-4 font-medium">{props.checkedCount + " selected"}</span>
           {isPartial ? (
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
               <rect x="0" y="0" width="14" height="14" rx="3" style={{ fill: "var(--color-success)" }} />
