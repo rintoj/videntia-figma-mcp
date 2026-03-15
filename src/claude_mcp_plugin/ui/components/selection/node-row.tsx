@@ -61,6 +61,14 @@ export function NodeRow(props: NodeRowProps) {
           <span class="text-foreground text-[11px] leading-4 font-medium whitespace-nowrap overflow-hidden text-ellipsis shrink min-w-0">
             {node.variablePath}
           </span>
+        ) : props.filterMode === "text_styles" && node.textStyleName ? (
+          <span class="text-foreground text-[11px] leading-4 font-medium whitespace-nowrap overflow-hidden text-ellipsis shrink min-w-0">
+            {node.textStyleName}
+          </span>
+        ) : props.filterMode === "typography" && node.fontInfo ? (
+          <span class="text-foreground text-[11px] leading-4 font-medium whitespace-nowrap overflow-hidden text-ellipsis shrink min-w-0">
+            {node.fontInfo}
+          </span>
         ) : props.filterMode === "color" && node.colorHex ? (
           <span class="text-foreground text-[11px] leading-4 font-medium whitespace-nowrap overflow-hidden text-ellipsis shrink min-w-0">
             {node.colorHex}
@@ -73,6 +81,8 @@ export function NodeRow(props: NodeRowProps) {
         {props.filterMode === "content" ||
         props.filterMode === "type" ||
         props.filterMode === "variable" ||
+        props.filterMode === "text_styles" ||
+        props.filterMode === "typography" ||
         props.filterMode === "color" ? (
           <span class="text-muted-foreground text-[11px] leading-4 font-medium whitespace-nowrap overflow-hidden text-ellipsis shrink min-w-0">
             {node.name}
