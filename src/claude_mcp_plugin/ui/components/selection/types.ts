@@ -6,9 +6,11 @@ export interface NodeInfo {
   content?: string;
   variablePath?: string;
   colorHex?: string;
+  textStyleName?: string;
+  fontInfo?: string;
 }
 
-export type FilterMode = "selection" | "name_or_id" | "content" | "type" | "variable" | "color";
+export type FilterMode = "selection" | "name_or_id" | "content" | "type" | "variable" | "text_styles" | "typography" | "color";
 
 export var FILTER_OPTIONS: Array<{ value: FilterMode; label: string; icon: string }> = [
   { value: "selection", label: "Selection", icon: "cursor" },
@@ -16,6 +18,8 @@ export var FILTER_OPTIONS: Array<{ value: FilterMode; label: string; icon: strin
   { value: "content", label: "Content", icon: "type" },
   { value: "type", label: "Type", icon: "layers" },
   { value: "variable", label: "Variable", icon: "variable" },
+  { value: "text_styles", label: "Text Styles", icon: "paintbrush" },
+  { value: "typography", label: "Typography", icon: "a-large-small" },
   { value: "color", label: "Color", icon: "palette" },
 ];
 

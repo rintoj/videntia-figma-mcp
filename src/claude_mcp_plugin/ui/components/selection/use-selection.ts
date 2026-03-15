@@ -91,6 +91,10 @@ export function useSelection() {
         return hasSel ? 'Search in "' + firstName + '" by type...' : "Search all by type...";
       case "variable":
         return hasSel ? 'Search in "' + firstName + '" by variable...' : "Search all by variable...";
+      case "text_styles":
+        return hasSel ? 'Search in "' + firstName + '" by text style...' : "Search all by text style...";
+      case "typography":
+        return hasSel ? 'Search in "' + firstName + '" by typography...' : "Search all by typography...";
       case "color":
         return hasSel ? 'Search in "' + firstName + '" by color...' : "Search all by color...";
       default:

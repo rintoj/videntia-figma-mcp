@@ -865,6 +865,13 @@ figma.ui.onmessage = async (msg: Record<string, unknown>) => {
           variableMap = new Map(allVars.map(function (v) { return [v.id, v] as [string, Variable]; }));
         }
 
+        // Pre-load text style map for text_styles filter
+        var textStyleMap: Map<string, TextStyle> | null = null;
+        if (searchFilter === 'text_styles') {
+          var allTextStyles = await figma.getLocalTextStylesAsync();
+          textStyleMap = new Map(allTextStyles.map(function (ts) { return [ts.id, ts] as [string, TextStyle]; }));
+        }
+
         // Helper: check if a node matches the current filter + query
         var nodeMatchesFilter = function (node: BaseNode): boolean {
           switch (searchFilter) {
@@ -899,6 +906,35 @@ figma.ui.onmessage = async (msg: Record<string, unknown>) => {
                 }
               }
               return false;
+            }
+            case 'text_styles': {
+              // Find text nodes with bound text styles
+              if (node.type !== 'TEXT') return false;
+              var tsNode = node as any;
+              var tsId = tsNode.textStyleId;
+              if (!tsId || tsId === '' || tsId === figma.mixed) return false;
+              if (isMatchAll) return true;
+              if (textStyleMap) {
+                var ts = textStyleMap.get(tsId as string);
+                if (ts && fuzzyPattern.test(ts.name)) return true;
+              }
+              return false;
+            }
+            case 'typography': {
+              // Find text nodes by raw font properties (unbound)
+              if (node.type !== 'TEXT') return false;
+              var tyNode = node as any;
+              if (isMatchAll) {
+                // Match-all: show text nodes WITHOUT a bound text style
+                var tyStyleId = tyNode.textStyleId;
+                return !tyStyleId || tyStyleId === '' || tyStyleId === figma.mixed;
+              }
+              // Search by font family, weight, or size
+              var fontFamily = tyNode.fontName && tyNode.fontName !== figma.mixed ? (tyNode.fontName as any).family : '';
+              var fontStyle = tyNode.fontName && tyNode.fontName !== figma.mixed ? (tyNode.fontName as any).style : '';
+              var fontSize = tyNode.fontSize && tyNode.fontSize !== figma.mixed ? String(tyNode.fontSize) : '';
+              var fontDesc = fontFamily + ' ' + fontStyle + ' ' + fontSize;
+              return fuzzyPattern.test(fontDesc);
             }
             case 'color': {
               // Check if node has solid color fills or strokes matching the query
@@ -993,6 +1029,23 @@ figma.ui.onmessage = async (msg: Record<string, unknown>) => {
                     if (matchObj.variablePath) break;
                   }
                 }
+              }
+              if (searchFilter === 'text_styles') {
+                var tsMatchNode = node as any;
+                var tsMatchId = tsMatchNode.textStyleId;
+                if (tsMatchId && tsMatchId !== figma.mixed && textStyleMap) {
+                  var tsMatch = textStyleMap.get(tsMatchId as string);
+                  if (tsMatch) {
+                    matchObj.textStyleName = tsMatch.name;
+                  }
+                }
+              }
+              if (searchFilter === 'typography') {
+                var tyMatchNode = node as any;
+                var tyFamily = tyMatchNode.fontName && tyMatchNode.fontName !== figma.mixed ? (tyMatchNode.fontName as any).family : '';
+                var tyStyle = tyMatchNode.fontName && tyMatchNode.fontName !== figma.mixed ? (tyMatchNode.fontName as any).style : '';
+                var tySize = tyMatchNode.fontSize && tyMatchNode.fontSize !== figma.mixed ? String(tyMatchNode.fontSize) : '';
+                matchObj.fontInfo = (tyFamily + ' ' + tyStyle + ' ' + tySize).trim();
               }
               if (searchFilter === 'color') {
                 var cn = node as any;

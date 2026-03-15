@@ -42,6 +42,22 @@ export function FilterIcon(props: { icon: string; color: string }) {
           <path d="M8.7 1.6c1.4 0 2 .8 2 2s-.7 1.5-.7 2.2c0 .4.7.7.7.7s-.7.3-.7.7c0 .7.7 1 .7 2.2s-.6 2-2 2" />
         </svg>
       );
+    case "paintbrush":
+      return (
+        <svg class="shrink-0" width="13" height="13" viewBox="0 0 13 13" fill="none" stroke={c} stroke-width={s} stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10.8 1.6c.5.5.5 1.3 0 1.8L6.5 7.6l-2.7.5.5-2.7L8.6 1.6c.5-.5 1.3-.5 1.8 0z" />
+          <path d="M3.8 8.7c-1.1 0-2.2.8-2.2 2.2 0 .5-.3.9-.5.9.4.2.8.2 1.1.2 1.4 0 2.5-1.1 2.5-2.5 0-.5-.4-.8-.9-.8z" />
+        </svg>
+      );
+    case "a-large-small":
+      return (
+        <svg class="shrink-0" width="13" height="13" viewBox="0 0 13 13" fill="none" stroke={c} stroke-width={s} stroke-linecap="round" stroke-linejoin="round">
+          <path d="M2.7 8.7L5.4 2.2 8.1 8.7" />
+          <line x1="3.5" y1="6.8" x2="7.3" y2="6.8" />
+          <path d="M8.7 11.4L10.1 7.6 11.5 11.4" />
+          <line x1="9.2" y1="10.1" x2="11" y2="10.1" />
+        </svg>
+      );
     case "palette":
       return (
         <svg class="shrink-0" width="13" height="13" viewBox="0 0 13 13" fill="none" stroke={c} stroke-width={s} stroke-linecap="round" stroke-linejoin="round">
