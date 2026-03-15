@@ -89,7 +89,7 @@ export function SelectionSection() {
           </button>
         </div>
       </div>
-      <div class={"flex-1 overflow-y-auto min-h-0 px-2 scrollbar-thin" + (sel.displayNodes.length === 0 ? " flex flex-col" : "")}>
+      <div class={"flex flex-col flex-1 overflow-y-auto min-h-0 pl-2 pr-[2px] gap-[1px] scrollbar-thin"}>
         {sel.displayNodes.length === 0 && (
           <div class="flex flex-col items-center justify-center flex-1 gap-3 px-4">
             <div class="flex items-center justify-center w-[36px] h-[36px] rounded-lg bg-[var(--color-muted)] border border-[var(--color-border)]">

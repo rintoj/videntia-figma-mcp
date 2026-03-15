@@ -1,6 +1,6 @@
 import { h } from 'preact'
 import { useState, useRef, useEffect } from 'preact/hooks'
-import { SignalIcon, LockIcon } from './icons'
+import { SignalIcon, LockIcon, UnplugIcon, PlugZapIcon } from './icons'
 
 interface ConnectionSectionProps {
   port: number
@@ -69,28 +69,28 @@ export function ConnectionSection({ port, connected, channelName, buttonDisabled
 
   if (connected) {
     return (
-      <div class={'flex items-center justify-between py-2.5 px-2 pl-3 bg-muted border rounded-[10px] h-[47px]' + (readOnly ? ' border-warning' : ' border-border')}>
-        <div class="flex items-center gap-2 min-w-0 flex-1">
+      <div class={'flex items-center justify-between px-3 py-1.5 gap-2.5' + (readOnly ? ' border-b border-warning' : '')}>
+        <div class="flex items-center gap-1.5 min-w-0 flex-1">
           {readOnly
             ? <LockIcon color="var(--color-warning)" size={18} />
             : <SignalIcon color="var(--color-success)" size={18} />
           }
-          <span class={'text-sm leading-5 font-medium whitespace-nowrap overflow-hidden text-ellipsis' + (readOnly ? ' text-warning' : ' text-success')}>{channelName || 'Connected'}</span>
+          <span class={'text-xs leading-4 whitespace-nowrap overflow-hidden text-ellipsis' + (readOnly ? ' text-warning' : ' text-primary')}>{channelName || 'Connected'}</span>
           <span class="text-muted-foreground text-xs leading-4 whitespace-nowrap">:{port}</span>
         </div>
-        <button class="bg-destructive border border-solid border-destructive text-destructive-foreground py-1.5 px-2.5 rounded-md cursor-pointer text-xs leading-4 font-medium whitespace-nowrap transition-colors hover:opacity-90" disabled={buttonDisabled} onClick={onDisconnect}>Disconnect</button>
+        <button class="flex items-center gap-1 border border-solid border-border text-foreground py-1 px-2 rounded-md cursor-pointer text-xs leading-4 font-medium whitespace-nowrap transition-colors hover:opacity-90" disabled={buttonDisabled} onClick={onDisconnect}><PlugZapIcon color="var(--color-foreground)" size={14} /> Disconnect</button>
       </div>
     )
   }
 
   return (
-    <div class="flex items-center justify-between py-2.5 px-2 pl-3 bg-muted border border-border rounded-[10px] h-[47px]">
-      <div class="flex items-center gap-2 min-w-0 flex-1">
-        <SignalIcon color="var(--color-destructive)" size={18} />
-        <span class="text-destructive text-sm leading-5 font-medium">Disconnected</span>
+    <div class="flex items-center justify-between px-3 py-1.5 gap-2.5">
+      <div class="flex items-center gap-1.5 min-w-0 flex-1">
+        <SignalIcon color="var(--color-warning)" size={18} />
+        <span class="text-warning text-xs leading-4">Disconnected</span>
         <span class="text-muted-foreground text-xs leading-4 cursor-pointer whitespace-nowrap hover:text-foreground" onClick={handlePortClick}>:{port}</span>
       </div>
-      <button class="bg-primary border border-solid border-primary text-primary-foreground py-1.5 px-2.5 rounded-md cursor-pointer text-xs leading-4 font-medium whitespace-nowrap transition-colors hover:opacity-90" disabled={buttonDisabled} onClick={function () { onConnect(port) }}>Connect</button>
+      <button class="flex items-center gap-1 bg-primary border border-solid border-primary text-primary-foreground py-1 px-2 rounded-md cursor-pointer text-xs leading-4 font-medium whitespace-nowrap transition-colors hover:opacity-90" disabled={buttonDisabled} onClick={function () { onConnect(port) }}><UnplugIcon color="var(--color-primary-foreground)" size={14} /> Connect</button>
     </div>
   )
 }

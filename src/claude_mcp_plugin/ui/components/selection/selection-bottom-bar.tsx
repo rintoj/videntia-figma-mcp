@@ -16,7 +16,7 @@ export function SelectionBottomBar(props: SelectionBottomBarProps) {
   return (
     <div>
       <div class="h-px bg-muted shrink-0" />
-      <div class="flex items-center justify-between py-2 px-3 bg-muted shrink-0">
+      <div class="flex items-center justify-between py-2 pl-3 pr-[16px] bg-muted shrink-0">
         <div class="flex items-center gap-2">
           <button
             class="bg-primary border border-solid border-primary text-primary-foreground rounded-md py-1 px-2 text-[11px] leading-4 font-medium cursor-pointer transition-colors hover:opacity-90"
