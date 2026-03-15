@@ -757,15 +757,15 @@ export function SelectionSection() {
       <div class="flex items-center gap-2 px-3 pt-3 pb-2 shrink-0 bg-muted border-b border-border">
         <div
           class={
-            "flex items-center flex-1 min-w-0 h-[30px] bg-muted border rounded-md" +
-            (searchFocused ? " gap-1 pr-2 border-ring" : " gap-1.5 pr-0 border-border")
+            "flex items-center flex-1 min-w-0 h-[30px] bg-muted border rounded-md gap-2" +
+            (searchFocused ? "  border-ring" : " border-border")
           }
         >
           <div
             ref={filterRef}
             class={
               "relative shrink-0 h-full border-0 border-r border-solid" +
-              (searchFocused ? " border-r-ring bg-accent" : " border-r-border")
+              (searchFocused ? " border-r-ring" : " border-r-border")
             }
           >
             <button
