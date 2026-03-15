@@ -62,7 +62,7 @@ export function ConnectionSection({ port, connected, channelName, buttonDisabled
           onKeyDown={handleKeyDown}
           class="border-2 border-primary rounded-md py-2 px-2.5 text-sm bg-secondary text-foreground outline-none w-full"
         />
-        <button class="w-full py-2 text-sm leading-5 bg-primary border border-solid border-primary text-primary-foreground rounded-md cursor-pointer font-medium transition-colors hover:opacity-90" onClick={handleEditorConnect}>Connect</button>
+        <button class="w-full py-2 text-xs leading-4 bg-primary border border-solid border-primary text-primary-foreground rounded-md cursor-pointer font-medium transition-colors hover:opacity-90" onClick={handleEditorConnect}>Connect</button>
       </div>
     )
   }

@@ -86,7 +86,7 @@ export function ActionItem({ action }: ActionItemProps) {
           <span class="flex items-center shrink-0">
             {getStatusIcon()}
           </span>
-          <span class="text-foreground text-sm leading-5 font-medium whitespace-nowrap overflow-hidden text-ellipsis">{action.command}</span>
+          <span class={"text-foreground whitespace-nowrap overflow-hidden text-ellipsis" + (expanded ? " text-xs leading-4 font-medium" : " text-sm leading-5 font-medium")}>{action.command}</span>
         </div>
         <div class="flex items-center gap-1.5 shrink-0">
           {hovered && !expanded && (
