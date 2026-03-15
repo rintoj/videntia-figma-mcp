@@ -14,9 +14,8 @@ export function FilterIcon(props: { icon: string; color: string }) {
     case "type":
       return (
         <svg class="shrink-0" width="13" height="13" viewBox="0 0 13 13" fill="none" stroke={c} stroke-width={s} stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="2.2 2.2 2.2 3.8 10.8 3.8 10.8 2.2" />
-          <line x1="6.5" y1="3.8" x2="6.5" y2="10.8" />
-          <line x1="4.9" y1="10.8" x2="8.1" y2="10.8" />
+          <polyline points="2.7 2.2 2.7 4.3 10.3 4.3 10.3 2.2" />
+          <line x1="6.5" y1="4.3" x2="6.5" y2="10.8" />
         </svg>
       );
     case "hash":
@@ -39,18 +38,17 @@ export function FilterIcon(props: { icon: string; color: string }) {
     case "variable":
       return (
         <svg class="shrink-0" width="13" height="13" viewBox="0 0 13 13" fill="none" stroke={c} stroke-width={s} stroke-linecap="round" stroke-linejoin="round">
-          <path d="M3.8 3.2c-1.1 0-2.2.5-2.2 2.2s1.1 2.2 2.2 2.2" />
-          <path d="M9.2 3.2c1.1 0 2.2.5 2.2 2.2s-1.1 2.2-2.2 2.2" />
-          <line x1="4.9" y1="6.5" x2="8.1" y2="6.5" />
+          <path d="M4.3 1.6c-1.4 0-2 .8-2 2s.7 1.5.7 2.2c0 .4-.7.7-.7.7s.7.3.7.7c0 .7-.7 1-.7 2.2s.6 2 2 2" />
+          <path d="M8.7 1.6c1.4 0 2 .8 2 2s-.7 1.5-.7 2.2c0 .4.7.7.7.7s-.7.3-.7.7c0 .7.7 1 .7 2.2s-.6 2-2 2" />
         </svg>
       );
     case "palette":
       return (
         <svg class="shrink-0" width="13" height="13" viewBox="0 0 13 13" fill="none" stroke={c} stroke-width={s} stroke-linecap="round" stroke-linejoin="round">
           <circle cx="6.5" cy="6.5" r="5.4" />
-          <circle cx="4.3" cy="4.9" r="0.8" fill={c} />
-          <circle cx="8.1" cy="4.9" r="0.8" fill={c} />
-          <circle cx="5.4" cy="8.1" r="0.8" fill={c} />
+          <circle cx="5.2" cy="5.2" r="0.9" fill={c} stroke="none" />
+          <circle cx="7.8" cy="5.2" r="0.9" fill={c} stroke="none" />
+          <circle cx="6.5" cy="7.8" r="0.9" fill={c} stroke="none" />
         </svg>
       );
     default:
