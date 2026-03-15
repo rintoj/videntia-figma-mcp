@@ -76,12 +76,11 @@ export function ActionItem({ action }: ActionItemProps) {
 
   return (
     <div
-      class={'flex flex-col justify-center h-[30px] pl-2 pr-0.5 rounded-sm cursor-pointer transition-colors relative' + (hovered && !expanded ? ' bg-input' : '') + (expanded ? ' !h-auto pt-2 pr-0.5 pb-2.5 pl-2 bg-card' : '')}
+      class={'rounded-sm relative' + (expanded ? ' bg-card' : '')}
       onMouseEnter={function () { setHovered(true) }}
       onMouseLeave={function () { setHovered(false) }}
-      onClick={function () { setExpanded(!expanded) }}
     >
-      <div class="flex items-center gap-1.5">
+      <div class="flex items-center gap-1.5 cursor-pointer rounded-sm py-[7px] pl-2 pr-0.5 transition-colors hover:bg-accent" onClick={function () { setExpanded(!expanded) }}>
         <div class="flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden">
           <span class="flex items-center shrink-0">
             {getStatusIcon()}
@@ -102,21 +101,21 @@ export function ActionItem({ action }: ActionItemProps) {
         </div>
       </div>
       {expanded && (
-        <div class="flex flex-col gap-1.5 mt-1">
-          <div class="flex flex-row justify-end items-center gap-2.5">
+        <div class="flex flex-col gap-1.5 pb-[7px] pl-2 pr-0.5">
+          <div class="flex flex-row justify-end items-center gap-2.5 mt-1">
             {hasNodeIds && (
-              <button class="flex items-center gap-1 py-[3px] px-[7px] bg-accent border border-transparent rounded-md text-muted-foreground text-[11px] leading-4 font-medium cursor-pointer transition-colors hover:bg-border" onClick={handleFocus}>
+              <button class="flex items-center gap-1 py-[3px] px-[7px] bg-accent border border-transparent rounded-md text-muted-foreground text-[11px] leading-4 font-medium cursor-pointer transition-colors hover:bg-border hover:text-foreground" onClick={handleFocus}>
                 <FocusIcon color="var(--color-muted-foreground)" />
                 <span>Focus</span>
               </button>
             )}
             {hasNodeIds && (
-              <button class="flex items-center gap-1 py-[3px] px-[7px] bg-secondary border border-transparent rounded-md text-muted-foreground text-[11px] leading-4 font-medium cursor-pointer transition-colors hover:bg-border" onClick={handleCopyIds}>
+              <button class="flex items-center gap-1 py-[3px] px-[7px] bg-secondary border border-transparent rounded-md text-muted-foreground text-[11px] leading-4 font-medium cursor-pointer transition-colors hover:bg-border hover:text-foreground" onClick={handleCopyIds}>
                 <CopyIcon color="var(--color-muted-foreground)" />
                 <span>Copy Ids</span>
               </button>
             )}
-            <button class="flex items-center gap-1 py-[3px] px-[7px] bg-secondary border border-transparent rounded-md text-muted-foreground text-[11px] leading-4 font-medium cursor-pointer transition-colors hover:bg-border" onClick={handleCopyData}>
+            <button class="flex items-center gap-1 py-[3px] px-[7px] bg-secondary border border-transparent rounded-md text-muted-foreground text-[11px] leading-4 font-medium cursor-pointer transition-colors hover:bg-border hover:text-foreground" onClick={handleCopyData}>
               <CopyIcon color="var(--color-muted-foreground)" />
               <span>Copy Data</span>
             </button>

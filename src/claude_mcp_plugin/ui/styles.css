@@ -124,6 +124,27 @@ body {
   background-color: color-mix(in srgb, var(--color-foreground) 10%, transparent);
 }
 
+/* ---- Button & input hover ---- */
+
+button {
+  transition: background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+}
+
+input[type="text"],
+input[type="number"] {
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+input[type="text"]:hover,
+input[type="number"]:hover {
+  border-color: color-mix(in srgb, var(--color-border) 100%, white 20%);
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus {
+  border-color: var(--color-ring);
+}
+
 /* ---- Collapsible ---- */
 
 .collapsible {

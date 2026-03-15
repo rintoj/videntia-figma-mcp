@@ -60,9 +60,9 @@ export function ConnectionSection({ port, connected, channelName, buttonDisabled
           max={65535}
           onInput={function (e) { setEditPort((e.target as HTMLInputElement).value) }}
           onKeyDown={handleKeyDown}
-          class="border-2 border-primary rounded-md py-2 px-2.5 text-sm bg-secondary text-foreground outline-none w-full"
+          class="border-2 border-border rounded-md py-2 px-2.5 text-sm bg-secondary text-foreground outline-none w-full focus:border-primary"
         />
-        <button class="w-full py-2 text-xs leading-4 bg-primary border border-solid border-primary text-primary-foreground rounded-md cursor-pointer font-medium transition-colors hover:opacity-90" onClick={handleEditorConnect}>Connect</button>
+        <button class="w-full py-2 text-xs leading-4 bg-primary border border-solid border-primary text-primary-foreground rounded-md cursor-pointer font-medium transition-colors hover:brightness-110" onClick={handleEditorConnect}>Connect</button>
       </div>
     )
   }
@@ -78,7 +78,7 @@ export function ConnectionSection({ port, connected, channelName, buttonDisabled
           <span class={'text-xs leading-4 whitespace-nowrap overflow-hidden text-ellipsis' + (readOnly ? ' text-warning' : ' text-primary')}>{channelName || 'Connected'}</span>
           <span class="text-muted-foreground text-xs leading-4 whitespace-nowrap">:{port}</span>
         </div>
-        <button class="flex items-center gap-1 border border-solid border-border text-foreground py-1 px-2 rounded-md cursor-pointer text-xs leading-4 font-medium whitespace-nowrap transition-colors hover:opacity-90" disabled={buttonDisabled} onClick={onDisconnect}><PlugZapIcon color="var(--color-foreground)" size={14} /> Disconnect</button>
+        <button class="flex items-center gap-1 border border-solid border-border text-primary py-1 px-2 rounded-md cursor-pointer text-xs leading-4 font-medium whitespace-nowrap transition-colors hover:bg-accent" disabled={buttonDisabled} onClick={onDisconnect}><PlugZapIcon color="var(--color-primary)" size={14} /> Disconnect</button>
       </div>
     )
   }
@@ -90,7 +90,7 @@ export function ConnectionSection({ port, connected, channelName, buttonDisabled
         <span class="text-warning text-xs leading-4">Disconnected</span>
         <span class="text-muted-foreground text-xs leading-4 cursor-pointer whitespace-nowrap hover:text-foreground" onClick={handlePortClick}>:{port}</span>
       </div>
-      <button class="flex items-center gap-1 bg-primary border border-solid border-primary text-primary-foreground py-1 px-2 rounded-md cursor-pointer text-xs leading-4 font-medium whitespace-nowrap transition-colors hover:opacity-90" disabled={buttonDisabled} onClick={function () { onConnect(port) }}><UnplugIcon color="var(--color-primary-foreground)" size={14} /> Connect</button>
+      <button class="flex items-center gap-1 bg-primary border border-solid border-primary text-primary-foreground py-1 px-2 rounded-md cursor-pointer text-xs leading-4 font-medium whitespace-nowrap transition-colors hover:brightness-110" disabled={buttonDisabled} onClick={function () { onConnect(port) }}><UnplugIcon color="var(--color-primary-foreground)" size={14} /> Connect</button>
     </div>
   )
 }

@@ -45,7 +45,7 @@ export function SettingsSection({ port, readOnly, autoFocus, onPortChange, onRea
           onInput={function (e) { setEditPort((e.target as HTMLInputElement).value) }}
           onBlur={handlePortBlur}
           onKeyDown={handlePortKeyDown}
-          class="border border-border rounded-md py-1.5 px-2.5 text-sm bg-transparent text-foreground outline-none w-[72px] text-center"
+          class="border border-border rounded-md py-1.5 px-2.5 text-sm bg-transparent text-foreground outline-none w-[72px] text-center hover:border-input focus:border-ring"
         />
       </div>
       <div class="h-px bg-border" />

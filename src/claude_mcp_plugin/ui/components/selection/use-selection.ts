@@ -11,6 +11,7 @@ export function useSelection() {
   var [copiedId, setCopiedId] = useState<string | null>(null);
   var [hoveredId, setHoveredId] = useState<string | null>(null);
   var [checkedIds, setCheckedIds] = useState<Record<string, boolean>>({});
+  var [barVisible, setBarVisible] = useState(false);
   var [filterMode, setFilterMode] = useState<FilterMode>("selection");
   var [showFilterPopup, setShowFilterPopup] = useState(false);
   var [selectedNodeNames, setSelectedNodeNames] = useState<string[]>([]);
@@ -56,6 +57,7 @@ export function useSelection() {
           autoChecked[incoming[j].id] = true;
         }
         setCheckedIds(autoChecked);
+        setBarVisible(true);
       }
       if (msg.type === "search-results") {
         setSearchResults(Array.isArray(msg.nodes) ? msg.nodes : []);
@@ -206,12 +208,14 @@ export function useSelection() {
       delete next[id];
     } else {
       next[id] = true;
+      setBarVisible(true);
     }
     setCheckedIds(next);
   }
 
   function clearChecked() {
     setCheckedIds({});
+    setBarVisible(false);
   }
 
   function clearHistory() {
@@ -224,14 +228,16 @@ export function useSelection() {
   function toggleSelectAll() {
     var list = getDisplayNodes();
     var count = Object.keys(checkedIds).length;
-    if (count > 0 && count >= list.length) {
-      clearChecked();
+    var allSelected = count > 0 && count >= list.length;
+    if (allSelected) {
+      setCheckedIds({});
     } else {
       var all: Record<string, boolean> = {};
       for (var i = 0; i < list.length; i++) {
         all[list[i].id] = true;
       }
       setCheckedIds(all);
+      setBarVisible(true);
     }
   }
 
@@ -279,6 +285,7 @@ export function useSelection() {
     filterRef,
     displayNodes: getDisplayNodes(),
     checkedCount: Object.keys(checkedIds).length,
+    barVisible,
     placeholder: getPlaceholder(),
     setShowFilterPopup,
     setHoveredId,
