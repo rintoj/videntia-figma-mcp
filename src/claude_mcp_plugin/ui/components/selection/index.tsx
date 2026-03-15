@@ -154,6 +154,7 @@ export function SelectionSection() {
         onCopyIds={sel.copyCheckedIds}
         onClear={sel.clearChecked}
         onToggleSelectAll={sel.toggleSelectAll}
+        onSelectInFigma={sel.selectCheckedInFigma}
       />
     </div>
   );

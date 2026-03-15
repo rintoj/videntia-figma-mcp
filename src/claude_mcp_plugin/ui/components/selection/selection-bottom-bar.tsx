@@ -7,6 +7,7 @@ interface SelectionBottomBarProps {
   onCopyIds: () => void;
   onClear: () => void;
   onToggleSelectAll: () => void;
+  onSelectInFigma: () => void;
 }
 
 export function SelectionBottomBar(props: SelectionBottomBarProps) {
@@ -34,28 +35,34 @@ export function SelectionBottomBar(props: SelectionBottomBarProps) {
             Clear
           </button>
         </div>
-        <button
-          class="flex items-center gap-1.5 bg-transparent border-none cursor-pointer p-0"
-          onClick={props.onToggleSelectAll}
-          title={isPartial ? "Select all" : "Deselect all"}
-        >
-          <span class="text-success text-[11px] leading-4 font-medium">{props.checkedCount + " selected"}</span>
-          {isNone ? (
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <rect x="0.5" y="0.5" width="13" height="13" rx="2.5" style={{ stroke: "var(--color-border)" }} stroke-width="1" />
-            </svg>
-          ) : isPartial ? (
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <rect x="0" y="0" width="14" height="14" rx="3" style={{ fill: "var(--color-success)" }} />
-              <line x1="3.5" y1="7" x2="10.5" y2="7" style={{ stroke: "var(--color-primary-foreground)" }} stroke-width="1.5" stroke-linecap="round" />
-            </svg>
-          ) : (
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <rect x="0" y="0" width="14" height="14" rx="3" style={{ fill: "var(--color-success)" }} />
-              <polyline points="3.5 7 6 9.5 10.5 4.5" style={{ stroke: "var(--color-primary-foreground)" }} stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none" />
-            </svg>
-          )}
-        </button>
+        <div class="flex items-center gap-1.5">
+          <span
+            class={"text-[11px] leading-4 font-medium" + (props.checkedCount > 0 ? " text-muted-foreground cursor-pointer hover:text-primary hover:underline" : " text-muted-foreground")}
+            onClick={props.checkedCount > 0 ? props.onSelectInFigma : undefined}
+            title={props.checkedCount > 0 ? "Select these nodes in Figma" : ""}
+          >{"Select " + props.checkedCount}</span>
+          <button
+            class="bg-transparent border-none cursor-pointer p-0 flex items-center"
+            onClick={props.onToggleSelectAll}
+            title={isPartial ? "Select all" : "Deselect all"}
+          >
+            {isNone ? (
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <rect x="0.5" y="0.5" width="13" height="13" rx="2.5" style={{ stroke: "var(--color-border)" }} stroke-width="1" />
+              </svg>
+            ) : isPartial ? (
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <rect x="0" y="0" width="14" height="14" rx="3" style={{ fill: "var(--color-success)" }} />
+                <line x1="3.5" y1="7" x2="10.5" y2="7" style={{ stroke: "var(--color-primary-foreground)" }} stroke-width="1.5" stroke-linecap="round" />
+              </svg>
+            ) : (
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <rect x="0" y="0" width="14" height="14" rx="3" style={{ fill: "var(--color-success)" }} />
+                <polyline points="3.5 7 6 9.5 10.5 4.5" style={{ stroke: "var(--color-primary-foreground)" }} stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+              </svg>
+            )}
+          </button>
+        </div>
       </div>
     </div>
   );

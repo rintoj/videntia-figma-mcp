@@ -245,6 +245,13 @@ export function useSelection() {
     }
   }
 
+  function selectCheckedInFigma() {
+    var ids = Object.keys(checkedIds);
+    if (ids.length > 0) {
+      parent.postMessage({ pluginMessage: { type: "execute-command", command: "set_selections", params: { nodeIds: ids } } }, "*");
+    }
+  }
+
   function copyCheckedIds() {
     var ids = Object.keys(checkedIds);
     if (ids.length > 0) {
@@ -303,6 +310,7 @@ export function useSelection() {
     clearHistory,
     toggleSelectAll,
     copyCheckedIds,
+    selectCheckedInFigma,
     handlePrev,
     handleNext,
   };
