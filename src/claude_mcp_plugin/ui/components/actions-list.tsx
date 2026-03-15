@@ -45,7 +45,7 @@ export function ActionsList({ actions }: ActionsListProps) {
   }
 
   return (
-    <div ref={scrollRef} class="flex-1 overflow-y-auto flex flex-col justify-end gap-px min-h-0 py-1 px-2 bg-card scrollbar-thin">
+    <div ref={scrollRef} class="flex-1 overflow-y-auto flex flex-col gap-px min-h-0 py-1 px-2 bg-card scrollbar-thin">
       {actions.map(function (action) {
         return <ActionItem key={action.id} action={action} />
       })}
