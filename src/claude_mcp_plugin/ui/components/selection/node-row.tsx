@@ -50,23 +50,23 @@ export function NodeRow(props: NodeRowProps) {
       )}
       <div class="flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden">
         {props.filterMode === "content" && node.content ? (
-          <span class="text-foreground text-[11px] whitespace-nowrap overflow-hidden text-ellipsis shrink min-w-0">
+          <span class="text-foreground text-[11px] leading-4 font-medium whitespace-nowrap overflow-hidden text-ellipsis shrink min-w-0">
             "{node.content}"
           </span>
         ) : props.filterMode === "type" ? (
-          <span class="text-foreground text-[11px] whitespace-nowrap overflow-hidden text-ellipsis shrink min-w-0">
+          <span class="text-foreground text-[11px] leading-4 font-medium whitespace-nowrap overflow-hidden text-ellipsis shrink min-w-0">
             {node.type}
           </span>
         ) : props.filterMode === "variable" && node.variablePath ? (
-          <span class="text-foreground text-[11px] whitespace-nowrap overflow-hidden text-ellipsis shrink min-w-0">
+          <span class="text-foreground text-[11px] leading-4 font-medium whitespace-nowrap overflow-hidden text-ellipsis shrink min-w-0">
             {node.variablePath}
           </span>
         ) : props.filterMode === "color" && node.colorHex ? (
-          <span class="text-foreground text-[11px] whitespace-nowrap overflow-hidden text-ellipsis shrink min-w-0">
+          <span class="text-foreground text-[11px] leading-4 font-medium whitespace-nowrap overflow-hidden text-ellipsis shrink min-w-0">
             {node.colorHex}
           </span>
         ) : (
-          <span class="text-foreground text-[11px] whitespace-nowrap overflow-hidden text-ellipsis shrink min-w-0">
+          <span class="text-foreground text-[11px] leading-4 font-medium whitespace-nowrap overflow-hidden text-ellipsis shrink min-w-0">
             {node.name}
           </span>
         )}
@@ -74,15 +74,15 @@ export function NodeRow(props: NodeRowProps) {
         props.filterMode === "type" ||
         props.filterMode === "variable" ||
         props.filterMode === "color" ? (
-          <span class="text-muted-foreground text-[11px] whitespace-nowrap overflow-hidden text-ellipsis shrink min-w-0">
+          <span class="text-muted-foreground text-[11px] leading-4 font-medium whitespace-nowrap overflow-hidden text-ellipsis shrink min-w-0">
             {node.name}
           </span>
         ) : null}
-        <span class="text-muted-foreground text-[10px] whitespace-nowrap shrink-0" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+        <span class="text-muted-foreground text-[10px] leading-[14px] whitespace-nowrap shrink-0" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
           {node.id}
         </span>
         {node.type !== "PAGE" && node.pageName ? (
-          <span class="text-muted-foreground text-[11px] whitespace-nowrap shrink-0">{node.pageName}</span>
+          <span class="text-muted-foreground text-[11px] leading-4 font-medium whitespace-nowrap shrink-0">{node.pageName}</span>
         ) : null}
       </div>
       {isHovered || copiedId === node.id ? (

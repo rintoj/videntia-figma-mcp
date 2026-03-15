@@ -14,7 +14,7 @@ export function FilterPopup(props: FilterPopupProps) {
       style={{ boxShadow: "0px 4px 12px 0px rgba(0,0,0,0.4)", minWidth: "140px" }}
     >
       <div class="flex items-center px-2.5 py-1.5">
-        <span class="text-muted-foreground text-[10px] font-medium uppercase">Filter by</span>
+        <span class="text-muted-foreground text-[11px] leading-4 font-medium uppercase">Filter by</span>
       </div>
       {FILTER_OPTIONS.map(function (opt) {
         var isActive = props.filterMode === opt.value;
@@ -30,7 +30,7 @@ export function FilterPopup(props: FilterPopupProps) {
             }}
           >
             <FilterIcon icon={opt.icon} color={isActive ? "#0fa958" : "var(--color-muted-foreground)"} />
-            <span class="text-[11px] text-foreground">{opt.label}</span>
+            <span class="text-[11px] leading-4 font-medium text-foreground">{opt.label}</span>
           </button>
         );
       })}
