@@ -41,6 +41,9 @@ export function App() {
             if (msg.settings.autoFocus !== undefined) {
               setAutoFocus(msg.settings.autoFocus)
             }
+            if (msg.settings.activeTab) {
+              setActiveTab(msg.settings.activeTab)
+            }
           }
           break
         case 'auto-connect':
@@ -75,6 +78,11 @@ export function App() {
       window.removeEventListener('message', handleMessage)
     }
   }, [])
+
+  function handleTabChange(tab: TabId) {
+    setActiveTab(tab)
+    parent.postMessage({ pluginMessage: { type: 'update-settings', activeTab: tab } }, '*')
+  }
 
   function handleReadOnlyChange(value: boolean) {
     setReadOnly(value)
@@ -117,7 +125,7 @@ export function App() {
         />
       </div>
       <div class="flex flex-col border border-border overflow-hidden flex-1 min-h-0 bg-card">
-        <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
+        <TabBar activeTab={activeTab} onTabChange={handleTabChange} />
         <div class="flex-1 min-h-0 flex flex-col">
           {activeTab === 'actions' && <ActionsList actions={connection.actions} />}
           <div style={{ display: activeTab === 'selection' ? 'flex' : 'none', flex: 1, minHeight: 0, flexDirection: 'column' }}>
