@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "preact/hooks";
 import { FilterMode, NodeInfo } from "./types";
 
+var MAX_HISTORY = 500;
+
 export function useSelection() {
   var [nodes, setNodes] = useState<NodeInfo[]>([]);
   var [searchQuery, setSearchQuery] = useState("");
@@ -15,6 +17,7 @@ export function useSelection() {
   var [searchFocused, setSearchFocused] = useState(false);
   var searchTimerRef = useRef<any>(null);
   var nodesRef = useRef<NodeInfo[]>([]);
+  var historyLoadedRef = useRef(false);
   var suppressRef = useRef(false);
   var filterRef = useRef<HTMLDivElement>(null);
   var skipRefreshRef = useRef(false);
@@ -43,8 +46,10 @@ export function useSelection() {
           if (newList.length > 0 && newList[0].id === item.id) continue;
           newList.unshift(item);
         }
+        if (newList.length > MAX_HISTORY) newList = newList.slice(0, MAX_HISTORY);
         nodesRef.current = newList;
         setNodes(newList);
+        parent.postMessage({ pluginMessage: { type: "save-selection-history", nodes: newList } }, "*");
         setNavIndex(-1);
         var autoChecked: Record<string, boolean> = {};
         for (var j = 0; j < incoming.length; j++) {
@@ -55,8 +60,15 @@ export function useSelection() {
       if (msg.type === "search-results") {
         setSearchResults(Array.isArray(msg.nodes) ? msg.nodes : []);
       }
+      if (msg.type === "selection-history-loaded" && !historyLoadedRef.current) {
+        historyLoadedRef.current = true;
+        var loaded = Array.isArray(msg.nodes) ? (msg.nodes as NodeInfo[]).slice(0, MAX_HISTORY) : [];
+        nodesRef.current = loaded;
+        setNodes(loaded);
+      }
     }
     window.addEventListener("message", handleMessage);
+    parent.postMessage({ pluginMessage: { type: "load-selection-history" } }, "*");
     parent.postMessage({ pluginMessage: { type: "get-selection" } }, "*");
     return function () {
       window.removeEventListener("message", handleMessage);
@@ -202,6 +214,13 @@ export function useSelection() {
     setCheckedIds({});
   }
 
+  function clearHistory() {
+    setCheckedIds({});
+    setNodes([]);
+    nodesRef.current = [];
+    parent.postMessage({ pluginMessage: { type: "clear-selection-history" } }, "*");
+  }
+
   function toggleSelectAll() {
     var list = getDisplayNodes();
     var count = Object.keys(checkedIds).length;
@@ -270,6 +289,7 @@ export function useSelection() {
     handleCopyId,
     toggleChecked,
     clearChecked,
+    clearHistory,
     toggleSelectAll,
     copyCheckedIds,
     handlePrev,

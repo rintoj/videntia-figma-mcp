@@ -89,17 +89,36 @@ export function SelectionSection() {
           </button>
         </div>
       </div>
-      <div class="flex-1 overflow-y-auto min-h-0 px-2 scrollbar-thin">
+      <div class={"flex-1 overflow-y-auto min-h-0 px-2 scrollbar-thin" + (sel.displayNodes.length === 0 ? " flex flex-col" : "")}>
         {sel.displayNodes.length === 0 && (
-          <div class="flex items-center justify-center py-8 px-4 flex-1">
+          <div class="flex flex-col items-center justify-center flex-1 gap-3 px-4">
+            <div class="flex items-center justify-center w-[36px] h-[36px] rounded-lg bg-[var(--color-muted)] border border-[var(--color-border)]">
+              <FilterIcon
+                icon={sel.searchQuery.length > 0 ? "cursor" : sel.filterMode === "selection" ? "cursor" : sel.filterMode === "name_or_id" ? "hash" : sel.filterMode === "content" ? "type" : sel.filterMode === "type" ? "layers" : sel.filterMode === "variable" ? "variable" : "palette"}
+                color="var(--color-muted-foreground)"
+              />
+            </div>
             <span class="text-muted-foreground text-[13px] font-medium">
-              {sel.filterMode === "selection"
-                ? sel.searchQuery.length > 0
-                  ? "No results found"
-                  : "Select nodes in Figma"
-                : sel.searchQuery.length > 0
-                  ? "No results found"
-                  : "Select a frame to browse"}
+              {sel.searchQuery.length > 0
+                ? "No matches found"
+                : sel.filterMode === "selection"
+                  ? "Nothing selected yet"
+                  : "No frame selected"}
+            </span>
+            <span class="text-muted-foreground text-[11px] text-center" style={{ marginTop: "-4px" }}>
+              {sel.searchQuery.length > 0
+                ? "No layers matched your search. Try a different term."
+                : sel.filterMode === "selection"
+                  ? "Click on any layer in Figma to get started"
+                  : sel.filterMode === "name_or_id"
+                    ? "Select a frame to search its layers by name or ID"
+                    : sel.filterMode === "content"
+                      ? "Select a frame to find layers by text content"
+                      : sel.filterMode === "type"
+                        ? "Select a frame to filter layers by type"
+                        : sel.filterMode === "variable"
+                          ? "Select a frame to find layers with variable bindings"
+                          : "Select a frame to find layers by fill or stroke color"}
             </span>
           </div>
         )}

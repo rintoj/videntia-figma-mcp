@@ -178,6 +178,7 @@ const state = {
   autoFocus: false,
   prefsExpanded: true,
   actionsExpanded: true,
+  activeTab: 'actions' as string,
 };
 
 // ---------------------------------------------------------------------------
@@ -280,19 +281,23 @@ function updateSettings(settings: Record<string, unknown>): void {
   if (settings['actionsExpanded'] !== undefined && settings['actionsExpanded'] !== null) {
     state.actionsExpanded = settings['actionsExpanded'] as boolean;
   }
-  figma.clientStorage.setAsync('settings', {
+  if (settings['activeTab'] !== undefined) {
+    state.activeTab = settings['activeTab'];
+  }
+  figma.clientStorage.setAsync('settings:' + figma.root.name, {
     serverPort: state.serverPort,
     readonlyMode: state.readonlyMode,
     autoFocus: state.autoFocus,
     prefsExpanded: state.prefsExpanded,
     actionsExpanded: state.actionsExpanded,
+    activeTab: state.activeTab,
   });
 }
 
 // Initialize settings from clientStorage on plugin load
 (async function initializePlugin() {
   try {
-    const savedSettings = await figma.clientStorage.getAsync('settings') as Record<string, unknown> | undefined;
+    const savedSettings = await figma.clientStorage.getAsync('settings:' + figma.root.name) as Record<string, unknown> | undefined;
     if (savedSettings) {
       if (savedSettings['serverPort'] !== undefined && savedSettings['serverPort'] !== null) {
         state.serverPort = savedSettings['serverPort'] as number;
@@ -310,6 +315,9 @@ function updateSettings(settings: Record<string, unknown>): void {
       if (savedSettings['actionsExpanded'] !== undefined && savedSettings['actionsExpanded'] !== null) {
         state.actionsExpanded = savedSettings['actionsExpanded'] as boolean;
       }
+      if (savedSettings['activeTab'] !== undefined && savedSettings['activeTab'] !== null) {
+        state.activeTab = savedSettings['activeTab'] as string;
+      }
     }
 
     // Send initial settings to UI
@@ -321,6 +329,7 @@ function updateSettings(settings: Record<string, unknown>): void {
         autoFocus: state.autoFocus,
         prefsExpanded: state.prefsExpanded,
         actionsExpanded: state.actionsExpanded,
+        activeTab: state.activeTab,
       },
     });
   } catch (error) {
@@ -797,6 +806,25 @@ figma.ui.onmessage = async (msg: Record<string, unknown>) => {
     case 'get-file-name':
       figma.ui.postMessage({ type: 'file-name', fileName: figma.root.name });
       break;
+    case 'save-selection-history': {
+      var historyData = msg['nodes'] as Array<Record<string, unknown>>;
+      if (Array.isArray(historyData)) {
+        var hKey = 'selection-history:' + figma.root.name;
+        await figma.clientStorage.setAsync(hKey, historyData);
+      }
+      break;
+    }
+    case 'load-selection-history': {
+      var lKey = 'selection-history:' + figma.root.name;
+      var saved = await figma.clientStorage.getAsync(lKey);
+      figma.ui.postMessage({ type: 'selection-history-loaded', nodes: Array.isArray(saved) ? saved : [] });
+      break;
+    }
+    case 'clear-selection-history': {
+      var cKey = 'selection-history:' + figma.root.name;
+      await figma.clientStorage.deleteAsync(cKey);
+      break;
+    }
     case 'get-selection': {
       var selNodes = figma.currentPage.selection.map(function (n) {
         var pg = n.parent;

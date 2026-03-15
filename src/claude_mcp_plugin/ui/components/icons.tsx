@@ -9,7 +9,7 @@ export function SignalIcon({ color, size }: IconProps) {
   var c = color || 'var(--muted-foreground)'
   var s = size || 18
   return (
-    <svg width={s} height={s} viewBox="0 0 24 24" fill="none" style={{ stroke: c }} stroke-width="1.5" stroke-linecap="round">
+    <svg width={s} height={s} viewBox="0 0 24 24" fill="none" style={{ stroke: c }} stroke-width="1.556" stroke-linecap="round">
       <path d="M4.9 19.1a10 10 0 0 1 0-14.2" />
       <path d="M7.8 16.2a6 6 0 0 1 0-8.4" />
       <path d="M16.2 7.8a6 6 0 0 1 0 8.4" />
@@ -150,7 +150,7 @@ export function CodeXmlIcon({ color, size }: IconProps) {
   var s = size || 20
   return (
     <svg width={s} height={s} viewBox="0 0 20 20" fill="none" style={{ stroke: c }}>
-      <path d="M5 7l-3 3 3 3M15 7l3 3-3 3M11 4l-2 12" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M5 7l-3 3 3 3M15 7l3 3-3 3M11 4l-2 12" stroke-width="1.667" stroke-linecap="round" stroke-linejoin="round" />
     </svg>
   )
 }
