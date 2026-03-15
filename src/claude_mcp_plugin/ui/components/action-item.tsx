@@ -76,7 +76,7 @@ export function ActionItem({ action }: ActionItemProps) {
 
   return (
     <div
-      class={'py-2 px-2.5 rounded-lg cursor-pointer transition-colors relative' + (hovered && !expanded ? ' bg-input' : '') + (expanded ? ' bg-card rounded-sm action-selected-bar' : '')}
+      class={'py-2 px-2.5 rounded-lg cursor-pointer transition-colors relative' + (hovered && !expanded ? ' bg-input' : '') + (expanded ? ' bg-card rounded-sm' : '')}
       onMouseEnter={function () { setHovered(true) }}
       onMouseLeave={function () { setHovered(false) }}
       onClick={function () { setExpanded(!expanded) }}
@@ -105,27 +105,27 @@ export function ActionItem({ action }: ActionItemProps) {
         <div class="flex flex-col gap-2 mt-2">
           <div class="flex flex-row justify-end items-center gap-2.5">
             {hasNodeIds && (
-              <button class="flex items-center gap-1 py-[3px] px-[7px] bg-foreground-subtle border border-transparent rounded-md text-muted-foreground text-[11px] leading-4 font-medium cursor-pointer transition-colors hover:bg-border" onClick={handleFocus}>
+              <button class="flex items-center gap-1 py-[3px] px-[7px] bg-accent border border-transparent rounded-md text-muted-foreground text-[11px] leading-4 font-medium cursor-pointer transition-colors hover:bg-border" onClick={handleFocus}>
                 <FocusIcon color="var(--color-muted-foreground)" />
                 <span>Focus</span>
               </button>
             )}
             {hasNodeIds && (
-              <button class="flex items-center gap-1 py-[3px] px-[7px] bg-input border border-input rounded-md text-muted-foreground text-[11px] leading-4 font-medium cursor-pointer transition-colors hover:bg-border hover:border-border" onClick={handleCopyIds}>
+              <button class="flex items-center gap-1 py-[3px] px-[7px] bg-secondary border border-transparent rounded-md text-muted-foreground text-[11px] leading-4 font-medium cursor-pointer transition-colors hover:bg-border" onClick={handleCopyIds}>
                 <CopyIcon color="var(--color-muted-foreground)" />
                 <span>Copy Ids</span>
               </button>
             )}
-            <button class="flex items-center gap-1 py-[3px] px-[7px] bg-input border border-input rounded-md text-muted-foreground text-[11px] leading-4 font-medium cursor-pointer transition-colors hover:bg-border hover:border-border" onClick={handleCopyData}>
+            <button class="flex items-center gap-1 py-[3px] px-[7px] bg-secondary border border-transparent rounded-md text-muted-foreground text-[11px] leading-4 font-medium cursor-pointer transition-colors hover:bg-border" onClick={handleCopyData}>
               <CopyIcon color="var(--color-muted-foreground)" />
               <span>Copy Data</span>
             </button>
           </div>
-          <div class="bg-muted rounded-md py-2 px-2.5 relative overflow-hidden detail-block-accent">
+          <div class="bg-popover rounded-md py-2 px-2.5 relative overflow-hidden detail-block-accent">
             <span class="text-muted-foreground text-[11px] leading-4 font-medium uppercase tracking-[1.5px] block mb-1">INPUT</span>
             <pre class="text-muted-foreground text-xs leading-4 m-0 whitespace-pre-wrap break-all font-mono max-h-[120px] overflow-y-auto">{inputStr}</pre>
           </div>
-          <div class={'bg-muted rounded-md py-2 px-2.5 relative overflow-hidden detail-block-accent' + (action.status === 'success' ? ' detail-block-success' : '') + (action.status === 'error' ? ' detail-block-error' : '')}>
+          <div class={'bg-popover rounded-md py-2 px-2.5 relative overflow-hidden detail-block-accent' + (action.status === 'success' ? ' detail-block-success' : '') + (action.status === 'error' ? ' detail-block-error' : '')}>
             <span class="text-muted-foreground text-[11px] leading-4 font-medium uppercase tracking-[1.5px] block mb-1">OUTPUT</span>
             <pre class={'text-xs leading-4 m-0 whitespace-pre-wrap break-all font-mono max-h-[120px] overflow-y-auto' + (action.status === 'success' ? ' text-success' : '') + (action.status === 'error' ? ' text-destructive' : ' text-muted-foreground')}>{outputStr}</pre>
           </div>
