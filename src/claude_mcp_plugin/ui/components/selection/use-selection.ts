@@ -230,7 +230,7 @@ export function useSelection() {
     var count = Object.keys(checkedIds).length;
     var allSelected = count > 0 && count >= list.length;
     if (allSelected) {
-      setCheckedIds({});
+      clearChecked();
     } else {
       var all: Record<string, boolean> = {};
       for (var i = 0; i < list.length; i++) {
