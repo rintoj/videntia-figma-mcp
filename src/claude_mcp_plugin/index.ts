@@ -992,7 +992,7 @@ figma.ui.onmessage = async (msg: Record<string, unknown>) => {
               }
               searchMatches.push(matchObj);
             }
-            if ('children' in node) {
+            if ('children' in node && searchMatches.length < searchLimit) {
               var ch = (node as any).children;
               for (var ci = 0; ci < ch.length; ci++) {
                 queue.push(ch[ci]);
