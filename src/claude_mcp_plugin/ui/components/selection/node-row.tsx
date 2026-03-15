@@ -27,7 +27,7 @@ export function NodeRow(props: NodeRowProps) {
     <div
       key={node.id + "-" + props.index}
       class={
-        "flex items-center gap-1.5 h-[30px] px-[5px] pl-[9px] cursor-pointer transition-colors relative rounded-sm border" +
+        "flex items-center gap-1.5 h-[30px] pr-[4px] pl-[8px] cursor-pointer transition-colors relative rounded-sm border" +
         (props.isActive ? " border-ring" : " border-transparent") +
         (isChecked ? " bg-accent" : "")
       }

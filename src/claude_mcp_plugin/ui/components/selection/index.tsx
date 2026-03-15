@@ -15,11 +15,11 @@ export function SelectionSection() {
 
   return (
     <div class="flex flex-col bg-card flex-1 min-h-0">
-      <div class="flex items-center gap-2 px-3 pt-3 pb-2 shrink-0 bg-muted border-b border-border">
+      <div class="flex items-center gap-2 px-3 py-1.5 shrink-0 bg-muted border-b border-border">
         <div
           class={
-            "flex items-center flex-1 min-w-0 h-[30px] bg-muted border rounded-md gap-2" +
-            (sel.searchFocused ? "  border-ring" : " border-border")
+            "flex items-center flex-1 min-w-0 h-[30px] bg-secondary border rounded-md gap-1.5 transition-colors" +
+            (sel.searchFocused ? "  border-ring" : " border-border hover:border-muted-foreground/50")
           }
         >
           <div
@@ -30,7 +30,7 @@ export function SelectionSection() {
             }
           >
             <button
-              class="flex items-center justify-center py-0.5 pl-2 pr-1 cursor-pointer h-full bg-transparent border-none"
+              class="flex items-center justify-center py-0.5 pl-2 pr-1 cursor-pointer h-full bg-transparent border-none hover:bg-input rounded-l-md"
               onClick={function () {
                 sel.setShowFilterPopup(!sel.showFilterPopup);
               }}
@@ -89,7 +89,7 @@ export function SelectionSection() {
           </button>
         </div>
       </div>
-      <div class={"flex-1 overflow-y-auto min-h-0 px-2 scrollbar-thin" + (sel.displayNodes.length === 0 ? " flex flex-col" : "")}>
+      <div class={"flex flex-col flex-1 overflow-y-auto min-h-0 pl-2 pr-[2px] gap-[1px] scrollbar-thin"}>
         {sel.displayNodes.length === 0 && (
           <div class="flex flex-col items-center justify-center flex-1 gap-3 px-4">
             <div class="flex items-center justify-center w-[36px] h-[36px] rounded-lg bg-[var(--color-muted)] border border-[var(--color-border)]">
@@ -150,6 +150,7 @@ export function SelectionSection() {
       <SelectionBottomBar
         checkedCount={sel.checkedCount}
         totalCount={sel.displayNodes.length}
+        barVisible={sel.barVisible}
         onCopyIds={sel.copyCheckedIds}
         onClear={sel.clearChecked}
         onToggleSelectAll={sel.toggleSelectAll}
