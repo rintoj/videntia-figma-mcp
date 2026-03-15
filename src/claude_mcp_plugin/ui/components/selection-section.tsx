@@ -256,6 +256,7 @@ export function SelectionSection() {
   var nodesRef = useRef<NodeInfo[]>([])
   var suppressRef = useRef(false)
   var filterRef = useRef<HTMLDivElement>(null)
+  var skipRefreshRef = useRef(false)
 
   useEffect(function () {
     function handleMessage(event: MessageEvent) {
@@ -272,6 +273,7 @@ export function SelectionSection() {
 
         if (suppressRef.current) {
           suppressRef.current = false
+          skipRefreshRef.current = true
           return
         }
         var current = nodesRef.current
@@ -330,6 +332,16 @@ export function SelectionSection() {
     if (searchResults !== null) return searchResults
     return []
   }
+
+  // Re-trigger search when Figma selection changes in non-selection filter modes
+  useEffect(function () {
+    if (skipRefreshRef.current) {
+      skipRefreshRef.current = false
+      return
+    }
+    if (filterMode === 'selection') return
+    triggerSearch(searchQuery, filterMode)
+  }, [selectedNodeNames])
 
   // Close filter popup on click outside
   useEffect(function () {
