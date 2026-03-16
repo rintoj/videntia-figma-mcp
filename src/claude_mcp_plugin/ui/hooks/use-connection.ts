@@ -12,7 +12,20 @@ function generateId(): string {
   return Date.now().toString(36) + hex
 }
 
-function generateChannelName(): string {
+function generateChannelName(fileName?: string | null): string {
+  if (fileName) {
+    // Derive slug from file name: lowercase, keep only alphanumeric
+    var slug = fileName
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '')
+    // Truncate to 12 chars
+    if (slug.length > 12) {
+      slug = slug.substring(0, 12)
+    }
+    return slug || 'figma'
+  }
+
+  // Fallback: random 8-char string (no file name available yet)
   var characters = 'abcdefghijklmnopqrstuvwxyz0123456789'
   var randomBytes = new Uint8Array(8)
   crypto.getRandomValues(randomBytes)
@@ -230,7 +243,7 @@ export function useConnection() {
       reconnectAttemptRef.current = 0
       cancelReconnect()
 
-      var ch = channelRef.current || generateChannelName()
+      var ch = channelRef.current || generateChannelName(fileNameRef.current)
       console.log('Joining channel:', ch)
       channelRef.current = ch
 
@@ -253,6 +266,10 @@ export function useConnection() {
         if (data.type === 'system') {
           if (data.message && data.message.result) {
             var channelName = data.channel
+            // Update channelRef with server-assigned name (may differ due to dedup)
+            if (channelName) {
+              channelRef.current = channelName
+            }
             updateConnectionStatus(true, 'Channel: ' + channelName, undefined, channelName)
             addAction({
               id: generateId(),
@@ -381,9 +398,12 @@ export function useConnection() {
     console.log('File name received:', fileName)
     var sock = socketRef.current
     if (sock && sock.readyState === WebSocket.OPEN && channelRef.current) {
+      // Generate a new user-friendly channel name from the file name
+      var newChannel = generateChannelName(fileName)
+      channelRef.current = newChannel
       sock.send(JSON.stringify({
         type: 'join',
-        channel: channelRef.current,
+        channel: newChannel,
         fileName: fileName,
       }))
     }

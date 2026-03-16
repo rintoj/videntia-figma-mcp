@@ -180,7 +180,7 @@ const server = Bun.serve({
         const data = JSON.parse(message as string);
 
         if (data.type === "join") {
-          const channelName = data.channel;
+          let channelName = data.channel;
           if (!channelName || typeof channelName !== "string") {
             logger.warn(`Client ${clientId} attempted to join without a valid channel name`);
             ws.send(
@@ -213,6 +213,22 @@ const server = Bun.serve({
                   `Removed stale channel ${existingChannel} for file "${data.fileName}" (replaced by ${channelName})`,
                 );
               }
+            }
+          }
+
+          // Deduplicate channel name: if taken by a different file, append -2, -3, etc.
+          if (data.fileName && channels.has(channelName)) {
+            const existingMeta = channelMetadata.get(channelName);
+            if (existingMeta?.fileName && existingMeta.fileName !== data.fileName) {
+              let candidate = channelName;
+              let counter = 2;
+              while (channels.has(candidate)) {
+                const meta = channelMetadata.get(candidate);
+                if (!meta?.fileName || meta.fileName === data.fileName) break;
+                candidate = channelName + "-" + counter;
+                counter++;
+              }
+              channelName = candidate;
             }
           }
 
