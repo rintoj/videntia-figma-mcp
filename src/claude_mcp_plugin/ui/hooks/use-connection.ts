@@ -394,18 +394,28 @@ export function useConnection() {
   }
 
   function handleFileName(fileName: string) {
+    var isFirstFileName = !fileNameRef.current
     fileNameRef.current = fileName
     console.log('File name received:', fileName)
     var sock = socketRef.current
     if (sock && sock.readyState === WebSocket.OPEN && channelRef.current) {
-      // Generate a new user-friendly channel name from the file name
-      var newChannel = generateChannelName(fileName)
-      channelRef.current = newChannel
-      sock.send(JSON.stringify({
-        type: 'join',
-        channel: newChannel,
-        fileName: fileName,
-      }))
+      if (isFirstFileName) {
+        // First file name received — generate a friendly channel name and rejoin
+        var newChannel = generateChannelName(fileName)
+        channelRef.current = newChannel
+        sock.send(JSON.stringify({
+          type: 'join',
+          channel: newChannel,
+          fileName: fileName,
+        }))
+      } else {
+        // Subsequent calls — just update fileName on existing channel
+        sock.send(JSON.stringify({
+          type: 'join',
+          channel: channelRef.current,
+          fileName: fileName,
+        }))
+      }
     }
   }
 
