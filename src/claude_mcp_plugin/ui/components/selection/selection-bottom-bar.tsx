@@ -40,7 +40,7 @@ export function SelectionBottomBar(props: SelectionBottomBarProps) {
             class={"text-[11px] leading-4 font-medium" + (props.checkedCount > 0 ? " text-muted-foreground cursor-pointer hover:text-primary hover:underline" : " text-muted-foreground")}
             onClick={props.checkedCount > 0 ? props.onSelectInFigma : undefined}
             title={props.checkedCount > 0 ? "Select these nodes in Figma" : ""}
-          >{"Select " + props.checkedCount}</span>
+          >{props.checkedCount > 0 ? "Select " + props.checkedCount : ""}</span>
           <button
             class="bg-transparent border-none cursor-pointer p-0 flex items-center"
             onClick={props.onToggleSelectAll}

@@ -86,7 +86,7 @@ export function ConnectionSection({ port, connected, channelName, buttonDisabled
   return (
     <div class="flex items-center justify-between px-3 py-1.5 gap-2.5">
       <div class="flex items-center gap-1.5 min-w-0 flex-1">
-        <SignalIcon color="currentColor" size={18} />
+        <SignalIcon color="var(--color-warning)" size={18} />
         <span class="text-warning text-xs leading-4">Disconnected</span>
         <span class="text-muted-foreground text-xs leading-4 cursor-pointer whitespace-nowrap hover:text-foreground" onClick={handlePortClick}>:{port}</span>
       </div>
