@@ -446,6 +446,19 @@ export async function exportImageFill(params: Record<string, unknown>): Promise<
     const size = await image.getSizeAsync();
     const base64 = customBase64Encode(bytes);
 
+    // Detect MIME type from byte header
+    let mimeType = 'application/octet-stream';
+    if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47) {
+      mimeType = 'image/png';
+    } else if (bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF) {
+      mimeType = 'image/jpeg';
+    } else if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46 &&
+               bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50) {
+      mimeType = 'image/webp';
+    } else if (bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46) {
+      mimeType = 'image/gif';
+    }
+
     return {
       nodeId,
       fillIndex: imageFills[fillIndex].index,
@@ -453,7 +466,7 @@ export async function exportImageFill(params: Record<string, unknown>): Promise<
       width: size.width,
       height: size.height,
       scaleMode: imagePaint.scaleMode || 'FILL',
-      mimeType: 'image/png',
+      mimeType,
       imageData: base64,
     };
   } catch (error) {

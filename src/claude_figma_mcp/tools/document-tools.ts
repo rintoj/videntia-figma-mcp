@@ -1561,9 +1561,17 @@ export function registerDocumentTools(server: McpServer): void {
     async ({ nodeId, exportPath, fillIndex }) => {
       nodeId = normalizeNodeId(nodeId);
       try {
-        // Validate parent directory exists
         const path = await import("path");
         const fs = await import("fs");
+
+        // Validate absolute path
+        if (!path.isAbsolute(exportPath)) {
+          return {
+            content: [{ type: "text" as const, text: `Error: exportPath must be an absolute path, got: ${exportPath}` }],
+          };
+        }
+
+        // Validate parent directory exists
         const dir = path.dirname(exportPath);
         if (!fs.existsSync(dir)) {
           return {
