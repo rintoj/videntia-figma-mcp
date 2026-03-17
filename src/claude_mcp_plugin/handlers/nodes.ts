@@ -390,6 +390,77 @@ export async function exportNodeAsImage(params: Record<string, unknown>): Promis
   }
 }
 
+export async function exportImageFill(params: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const nodeId = getOptParam<string>(params, 'nodeId');
+  const fillIndex = getParam<number>(params, 'fillIndex', 0);
+
+  if (!nodeId) {
+    throw new Error('Missing nodeId parameter');
+  }
+
+  const node = await figma.getNodeByIdAsync(nodeId);
+  if (!node) {
+    throw new Error(`Node not found with ID: ${nodeId}`);
+  }
+
+  if (!('fills' in node)) {
+    throw new Error(`Node does not have fills: ${nodeId}`);
+  }
+
+  const fills = (node as GeometryMixin).fills;
+  if (fills === figma.mixed) {
+    throw new Error('Node has mixed fills — specify a text range or use a different node');
+  }
+
+  if (!Array.isArray(fills) || fills.length === 0) {
+    throw new Error('Node has no fills');
+  }
+
+  // Find image fills
+  const imageFills = fills
+    .map((f, i) => ({ fill: f, index: i }))
+    .filter(({ fill }) => fill.type === 'IMAGE');
+
+  if (imageFills.length === 0) {
+    throw new Error('Node has no image fills. Fill types present: ' + fills.map(f => f.type).join(', '));
+  }
+
+  if (fillIndex >= imageFills.length) {
+    throw new Error(`fillIndex ${fillIndex} out of range. Node has ${imageFills.length} image fill(s).`);
+  }
+
+  const imagePaint = imageFills[fillIndex].fill as ImagePaint;
+  const imageHash = imagePaint.imageHash;
+
+  if (!imageHash) {
+    throw new Error('Image fill has no imageHash — the image may not be loaded');
+  }
+
+  const image = figma.getImageByHash(imageHash);
+  if (!image) {
+    throw new Error(`Could not retrieve image for hash: ${imageHash}`);
+  }
+
+  try {
+    const bytes = await image.getBytesAsync();
+    const size = await image.getSizeAsync();
+    const base64 = customBase64Encode(bytes);
+
+    return {
+      nodeId,
+      fillIndex: imageFills[fillIndex].index,
+      imageHash,
+      width: size.width,
+      height: size.height,
+      scaleMode: imagePaint.scaleMode || 'FILL',
+      mimeType: 'image/png',
+      imageData: base64,
+    };
+  } catch (error) {
+    throw new Error(`Error exporting image fill: ${(error as Error).message}`);
+  }
+}
+
 export async function setCornerRadius(params: Record<string, unknown>): Promise<Record<string, unknown>> {
   const nodeId = getOptParam<string>(params, 'nodeId');
   const radius = getOptParam<number>(params, 'radius');

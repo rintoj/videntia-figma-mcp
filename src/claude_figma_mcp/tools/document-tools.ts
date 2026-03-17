@@ -1549,6 +1549,67 @@ export function registerDocumentTools(server: McpServer): void {
     },
   );
 
+  // Export Image Fill Tool
+  server.tool(
+    "export_image_fill",
+    "Export the raw image from an image fill on a node (e.g. a background image) and save it to a file. The parent directory must exist. Overwrites existing files.",
+    {
+      nodeId: z.string().describe("The ID of the node that has an image fill"),
+      exportPath: z.string().describe("Absolute file path to save the image to. Parent directory must exist."),
+      fillIndex: z.coerce.number().int().min(0).optional().describe("Index of the image fill to export (0-based, defaults to 0). Only counts IMAGE-type fills."),
+    },
+    async ({ nodeId, exportPath, fillIndex }) => {
+      nodeId = normalizeNodeId(nodeId);
+      try {
+        // Validate parent directory exists
+        const path = await import("path");
+        const fs = await import("fs");
+        const dir = path.dirname(exportPath);
+        if (!fs.existsSync(dir)) {
+          return {
+            content: [{ type: "text" as const, text: `Error: Directory does not exist: ${dir}` }],
+          };
+        }
+
+        const result = await sendCommandToFigma("export_image_fill", {
+          nodeId,
+          fillIndex: fillIndex ?? 0,
+        });
+        const typedResult = result as {
+          imageData: string;
+          mimeType: string;
+          width: number;
+          height: number;
+          imageHash: string;
+          scaleMode: string;
+          fillIndex: number;
+        };
+
+        // Write base64 image data to file
+        const buffer = Buffer.from(typedResult.imageData, "base64");
+        fs.writeFileSync(exportPath, buffer);
+
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: `Image fill exported to ${exportPath} (${typedResult.width}x${typedResult.height}px, ${buffer.length} bytes, scaleMode: ${typedResult.scaleMode})`,
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: `Error exporting image fill from node "${nodeId}": ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
   // Get Variables Tool
   server.tool(
     "get_variables",

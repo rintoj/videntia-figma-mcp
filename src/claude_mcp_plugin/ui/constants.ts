@@ -34,7 +34,7 @@ export const ALLOWED_COMMANDS = new Set([
   "undo","commit_undo",
   "create_color_style","get_color_styles","get_color_style",
   "update_color_style","delete_color_style","set_color_style_id",
-  "set_component_property","swap_instance"
+  "set_component_property","swap_instance","export_image_fill"
 ])
 
 export const MIN_PROGRESS_DISPLAY_MS = 600

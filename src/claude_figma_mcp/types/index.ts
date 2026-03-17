@@ -66,6 +66,7 @@ export type FigmaCommand =
   | "get_team_components"
   | "create_component_instance"
   | "export_node_as_image"
+  | "export_image_fill"
   | "join"
   | "set_corner_radius"
   | "clone_node"

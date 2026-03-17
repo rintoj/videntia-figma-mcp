@@ -200,7 +200,11 @@ export type FigmaCommand =
   | "tool_name";  // Add new command
 ```
 
-4. **Write tests** (`tests/integration/`)
+4. **Add to `ALLOWED_COMMANDS`** (`src/claude_mcp_plugin/ui/constants.ts`) — the UI allowlist that gates which commands can be sent to the plugin. Without this, the command is blocked with "Command not permitted".
+
+5. **Add to `READONLY_COMMANDS`** (`src/claude_mcp_plugin/index.ts`) — if the tool is read-only (does not modify design data). Without this, the command is blocked when readonly mode is active.
+
+6. **Write tests** (`tests/integration/`)
 ```typescript
 describe("tool_name", () => {
   it("successfully performs operation", async () => {
