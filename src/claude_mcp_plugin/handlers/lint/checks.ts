@@ -11,7 +11,7 @@ import {
   hasEffectStyle,
   hasFontVariableBindings,
 } from './helpers';
-import { MAX_LINT_DEPTH, MAX_LINT_VIOLATIONS, DEVICE_SIZES, DIM_TOLERANCE } from './constants';
+import { MAX_LINT_DEPTH, MAX_LINT_VIOLATIONS, DEVICE_SIZES, DIM_TOLERANCE, SCREEN_NAME_PATTERN, VALID_BREAKPOINTS } from './constants';
 
 export function scanNode(
   node: SceneNode,
@@ -23,6 +23,7 @@ export function scanNode(
   violations: Violation[],
   violationsCappedRef: { value: boolean },
   totalNodesRef: { value: number },
+  insideScreen: boolean,
 ): void {
   // Skip invisible nodes
   if ((node as SceneNode & { visible?: boolean }).visible === false) return;
@@ -33,8 +34,16 @@ export function scanNode(
   totalNodesRef.value++;
   let nodeType = node.type;
 
-  // ── ROOT FRAME checks (depth === 0 only) ──
-  if (chk.rootFrame && depth === 0 && (nodeType === 'FRAME' || nodeType === 'COMPONENT')) {
+  // Detect if this node is a Screen/ frame (screen root)
+  let nodeName = '';
+  try { nodeName = node.name || ''; } catch (_e) {}
+  let isScreenRoot = (nodeType === 'FRAME' || nodeType === 'COMPONENT') && nodeName.indexOf('Screen/') === 0;
+  let localInsideScreen = insideScreen || isScreenRoot;
+
+  // ── ROOT FRAME checks (screen root frame only, must be direct child of PAGE) ──
+  let isPageChild = false;
+  try { isPageChild = node.parent !== null && node.parent !== undefined && node.parent.type === 'PAGE'; } catch (_e) {}
+  if (chk.rootFrame && isScreenRoot && isPageChild) {
     let DIM_TOL = DIM_TOLERANCE;
 
     let rfLayoutMode: string | null = null;
@@ -131,8 +140,48 @@ export function scanNode(
     }
   }
 
+  // ── SCREEN NAMING checks (any frame starting with "Screen/") ──
+  if (chk.screenNaming && isScreenRoot) {
+    categories.screenNaming.total++;
+
+    if (SCREEN_NAME_PATTERN.test(nodeName)) {
+      categories.screenNaming.bound++;
+    } else {
+      categories.screenNaming.unbound++;
+      // Provide specific feedback about what's wrong
+      let snMsg = 'Screen name "' + nodeName + '" does not follow convention — expected: Screen/{Feature}@{Breakpoint}/{View}[/{State}]';
+
+      if (nodeName.indexOf(' ') !== -1) {
+        snMsg = 'Screen name "' + nodeName + '" contains spaces — use kebab-case (e.g. Step-1-Email)';
+      } else {
+        // Check for missing or invalid breakpoint
+        let atIdx = nodeName.indexOf('@');
+        if (atIdx === -1) {
+          snMsg = 'Screen name "' + nodeName + '" missing breakpoint — append @sm, @md, or @lg to the feature name';
+        } else {
+          let afterAt = nodeName.substring(atIdx + 1);
+          let slashIdx = afterAt.indexOf('/');
+          let bp = slashIdx !== -1 ? afterAt.substring(0, slashIdx) : afterAt;
+          let bpValid = false;
+          for (let bpi = 0; bpi < VALID_BREAKPOINTS.length; bpi++) {
+            if (bp === VALID_BREAKPOINTS[bpi]) { bpValid = true; break; }
+          }
+          if (!bpValid) {
+            snMsg = 'Screen name "' + nodeName + '" has invalid breakpoint "@' + bp + '" — use @sm (375), @md (768), or @lg (1440)';
+          } else if (slashIdx === -1) {
+            snMsg = 'Screen name "' + nodeName + '" missing view segment after breakpoint — expected: Screen/{Feature}@{bp}/{View}';
+          }
+        }
+      }
+      addViolation(
+        violations, violationsCappedRef, MAX_LINT_VIOLATIONS,
+        node, depth, 'HIGH', 'screenNaming', 'name', snMsg,
+      );
+    }
+  }
+
   // ── TEXT STYLE checks ──
-  if (chk.textStyles && nodeType === 'TEXT') {
+  if (localInsideScreen && chk.textStyles && nodeType === 'TEXT') {
     categories.typography.total++;
 
     if (hasTextStyle(node)) {
@@ -163,7 +212,7 @@ export function scanNode(
   }
 
   // ── FILL / COLOR checks ──
-  if (chk.colors) {
+  if (localInsideScreen && chk.colors) {
     let fills: ReadonlyArray<Paint> | null = null;
     if ('fills' in node) { fills = (node as GeometryMixin).fills as ReadonlyArray<Paint>; }
     if (fills && fills !== (figma.mixed as unknown) && Array.isArray(fills)) {
@@ -194,7 +243,7 @@ export function scanNode(
   }
 
   // ── STROKE checks ──
-  if (chk.colors) {
+  if (localInsideScreen && chk.colors) {
     let strokes: ReadonlyArray<Paint> | null = null;
     if ('strokes' in node) { strokes = (node as GeometryMixin).strokes as ReadonlyArray<Paint>; }
     if (strokes && strokes !== (figma.mixed as unknown) && Array.isArray(strokes) && strokes.length > 0) {
@@ -217,7 +266,7 @@ export function scanNode(
   }
 
   // ── SPACING checks (auto-layout frames) ──
-  if (chk.spacing && (nodeType === 'FRAME' || nodeType === 'COMPONENT' || nodeType === 'COMPONENT_SET' || nodeType === 'INSTANCE')) {
+  if (localInsideScreen && chk.spacing && (nodeType === 'FRAME' || nodeType === 'COMPONENT' || nodeType === 'COMPONENT_SET' || nodeType === 'INSTANCE')) {
     let layoutMode: string | null = null;
     try { layoutMode = (node as FrameNode).layoutMode; } catch (_e) {}
 
@@ -260,7 +309,7 @@ export function scanNode(
   }
 
   // ── BORDER RADIUS checks ──
-  if (chk.radius && (nodeType === 'FRAME' || nodeType === 'RECTANGLE' || nodeType === 'COMPONENT' || nodeType === 'INSTANCE' || nodeType === 'ELLIPSE')) {
+  if (localInsideScreen && chk.radius && (nodeType === 'FRAME' || nodeType === 'RECTANGLE' || nodeType === 'COMPONENT' || nodeType === 'INSTANCE' || nodeType === 'ELLIPSE')) {
     let cornerRadius: number | symbol = 0;
     try { cornerRadius = (node as RectangleNode).cornerRadius; } catch (_e) {}
 
@@ -304,7 +353,7 @@ export function scanNode(
   }
 
   // ── EFFECT STYLE checks ──
-  if (chk.effectStyles) {
+  if (localInsideScreen && chk.effectStyles) {
     let effects: ReadonlyArray<Effect> | null = null;
     try { effects = (node as BlendMixin).effects; } catch (_e) {}
     if (effects && Array.isArray(effects) && effects.length > 0) {
@@ -334,7 +383,7 @@ export function scanNode(
   }
 
   // ── AUTO-LAYOUT compliance ──
-  if (chk.autoLayout && (nodeType === 'FRAME' || nodeType === 'COMPONENT' || nodeType === 'COMPONENT_SET')) {
+  if (localInsideScreen && chk.autoLayout && (nodeType === 'FRAME' || nodeType === 'COMPONENT' || nodeType === 'COMPONENT_SET')) {
     // Skip icon-like frames — they intentionally use absolute positioning for SVG paths
     let skipAutoLayoutCheck = isIconLike(node);
 
@@ -381,7 +430,7 @@ export function scanNode(
   }
 
   // ── OVERFLOW check ──
-  if (chk.overflow && parent !== null && parent !== undefined && depth > 1) {
+  if (localInsideScreen && !isScreenRoot && chk.overflow && parent !== null && parent !== undefined) {
     let ovPositioning: string | null = null;
     try { ovPositioning = (node as SceneNode & { layoutPositioning?: string }).layoutPositioning as string; } catch (_e) {}
     let ovName = '';
@@ -452,7 +501,7 @@ export function scanNode(
     }
     let nodeChildren = (node as ChildrenMixin).children;
     for (let ci = 0; ci < nodeChildren.length; ci++) {
-      scanNode(nodeChildren[ci], depth + 1, node, nodeBBox, chk, categories, violations, violationsCappedRef, totalNodesRef);
+      scanNode(nodeChildren[ci], depth + 1, node, nodeBBox, chk, categories, violations, violationsCappedRef, totalNodesRef, localInsideScreen);
     }
   }
 }

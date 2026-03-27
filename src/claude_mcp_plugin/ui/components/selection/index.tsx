@@ -120,6 +120,15 @@ export function SelectionSection() {
                           ? "Select a frame to find layers with variable bindings"
                           : "Select a frame to find layers by fill or stroke color"}
             </span>
+            {sel.searchQuery.length > 0 && sel.filterMode !== "selection" && sel.selectedNodeNames.length > 0 && (
+              <span
+                class="text-[11px] leading-4 font-medium text-primary cursor-pointer hover:underline"
+                style={{ marginTop: "4px" }}
+                onClick={sel.searchEntirePage}
+              >
+                Search entire page
+              </span>
+            )}
           </div>
         )}
         {(function () {

@@ -27,6 +27,7 @@ export async function lintFrame(params: Record<string, unknown>): Promise<LintRe
     effectStyles: true,
     autoLayout: true,
     overflow: true,
+    screenNaming: true,
   };
   if (checks) {
     if (checks.rootFrame === false) chk.rootFrame = false;
@@ -38,6 +39,7 @@ export async function lintFrame(params: Record<string, unknown>): Promise<LintRe
     if (checks.effectStyles === false) chk.effectStyles = false;
     if (checks.autoLayout === false) chk.autoLayout = false;
     if (checks.overflow === false) chk.overflow = false;
+    if (checks.screenNaming === false) chk.screenNaming = false;
   }
 
   // Pre-load all lookup maps (parallel)
@@ -55,6 +57,7 @@ export async function lintFrame(params: Record<string, unknown>): Promise<LintRe
     effectStyles:    { total: 0, bound: 0, unbound: 0, compliance: 100 },
     overflow:        { total: 0, bound: 0, unbound: 0, compliance: 100 },
     autoLayout:      { total: 0, bound: 0, unbound: 0, compliance: 100 },
+    screenNaming:    { total: 0, bound: 0, unbound: 0, compliance: 100 },
   };
 
   const violations: import('./types').Violation[] = [];
@@ -62,7 +65,10 @@ export async function lintFrame(params: Record<string, unknown>): Promise<LintRe
   const totalNodesRef = { value: 0 };
 
   // Run the traversal
-  scanNode(rootNode as SceneNode, 0, null, null, chk, categories, violations, violationsCappedRef, totalNodesRef);
+  // If the root node itself is a Screen/ frame, start inside screen; otherwise traverse to find screens
+  let rootName = rootNode.name || '';
+  let rootIsScreen = (rootNode.type === 'FRAME' || rootNode.type === 'COMPONENT') && rootName.indexOf('Screen/') === 0;
+  scanNode(rootNode as SceneNode, 0, null, null, chk, categories, violations, violationsCappedRef, totalNodesRef, rootIsScreen);
 
   // Auto-fix pass (only when fix=true)
   if (fix) {
@@ -70,7 +76,7 @@ export async function lintFrame(params: Record<string, unknown>): Promise<LintRe
   }
 
   // Compute compliance percentages
-  const catKeys: Array<keyof LintCategories> = ['rootFrame', 'typography', 'spacing', 'borderRadius', 'iconColors', 'strokesBorders', 'backgroundFills', 'effectStyles', 'overflow', 'autoLayout'];
+  const catKeys: Array<keyof LintCategories> = ['rootFrame', 'typography', 'spacing', 'borderRadius', 'iconColors', 'strokesBorders', 'backgroundFills', 'effectStyles', 'overflow', 'autoLayout', 'screenNaming'];
   for (let ck = 0; ck < catKeys.length; ck++) {
     let cat = categories[catKeys[ck]];
     if (cat.total > 0) {

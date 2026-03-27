@@ -741,6 +741,9 @@ async function _executeCommand(
 
     // Lint
     case 'lint_frame':
+      if (state.readonlyMode && params['fix']) {
+        throw new Error('Cannot use fix=true in read-only mode. Disable read-only mode in Settings to allow auto-fixes.');
+      }
       return await lintFrame(params);
 
     case 'get_instance_overrides':
@@ -998,8 +1001,9 @@ figma.ui.onmessage = async (msg: Record<string, unknown>) => {
           }
         };
 
-        // Scope search to selected nodes if any
-        var sel = figma.currentPage.selection;
+        // Scope search to selected nodes if any (unless entirePage flag is set)
+        var entirePage = !!msg['entirePage'];
+        var sel = entirePage ? [] as readonly SceneNode[] : figma.currentPage.selection;
 
         // BFS traversal — breadth-first walk so siblings appear before deeper descendants
         var walkTree = function (startNode: BaseNode, pgName: string) {

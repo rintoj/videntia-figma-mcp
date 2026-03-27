@@ -24,3 +24,8 @@ export const DEVICE_SIZES = [
 ];
 
 export const DIM_TOLERANCE = 2;
+
+// Screen naming convention: Screen/{Feature}@{Breakpoint}/{View}[/{State}...]
+// Each segment is PascalKebab (starts uppercase, kebab-case), breakpoint is @sm|@md|@lg
+export const SCREEN_NAME_PATTERN = /^Screen\/[A-Z][A-Za-z0-9]*(-[A-Za-z0-9]+)*@(sm|md|lg)\/[A-Z][A-Za-z0-9]*(-[A-Za-z0-9]+)*(\/[A-Z][A-Za-z0-9]*(-[A-Za-z0-9]+)*)*$/;
+export const VALID_BREAKPOINTS = ['sm', 'md', 'lg'];
