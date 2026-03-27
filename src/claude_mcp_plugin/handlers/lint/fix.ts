@@ -174,6 +174,34 @@ export async function applyFixes(
           let paints = (fixNode as GeometryMixin)[propName] as ReadonlyArray<Paint>;
           if (paints && Array.isArray(paints) && paints.length > propIdx) {
             let paint = paints[propIdx];
+
+            // Fix zero-opacity fills/strokes by removing them
+            let paintOpacity = paint ? paint.opacity : undefined;
+            if (paintOpacity !== null && paintOpacity !== undefined && paintOpacity === 0) {
+              let paintsCopy = (paints as Paint[]).slice();
+              paintsCopy.splice(propIdx, 1);
+              (fixNode as GeometryMixin)[propName] = paintsCopy as any;
+              fv.fixed = true;
+              fv.fixedWith = 'removed 0% opacity ' + propName.slice(0, -1);
+              let colorCats = categories as unknown as Record<string, import('./types').CategoryStats>;
+              colorCats[fvCat].unbound = Math.max(0, colorCats[fvCat].unbound - 1);
+              colorCats[fvCat].total = Math.max(0, colorCats[fvCat].total - 1);
+              // Adjust indices for subsequent violations on the same node/property
+              for (let adjIdx = fxi + 1; adjIdx < violations.length; adjIdx++) {
+                let adjV = violations[adjIdx];
+                if (adjV.nodeId === fv.nodeId) {
+                  let adjMatch = adjV.property.match(/^(fills|strokes)\[(\d+)\]$/);
+                  if (adjMatch && adjMatch[1] === propName) {
+                    let adjPropIdx = parseInt(adjMatch[2], 10);
+                    if (adjPropIdx > propIdx) {
+                      adjV.property = propName + '[' + (adjPropIdx - 1) + ']';
+                    }
+                  }
+                }
+              }
+              continue;
+            }
+
             if (paint && paint.type === 'SOLID' && (paint as SolidPaint).color) {
               let bestEntry = findBestColorVar((paint as SolidPaint).color, fvCat, maps.colorVarEntries);
               if (bestEntry) {
