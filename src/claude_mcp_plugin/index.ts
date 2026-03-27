@@ -842,12 +842,18 @@ figma.ui.onmessage = async (msg: Record<string, unknown>) => {
     case 'search-nodes-ui': {
       var searchQuery = (msg['query'] as string) || '';
       var searchFilter = (msg['filter'] as string) || 'name_or_id';
+      var searchOffset = (typeof msg['offset'] === 'number') ? msg['offset'] as number : 0;
       var isMatchAll = searchQuery === '*';
-      var searchLimit = isMatchAll ? 100 : 50;
+      var searchLimit = (typeof msg['limit'] === 'number') ? msg['limit'] as number : 100;
+      // For multi-ID queries, raise limit to cover all requested IDs
+      var commaCount = searchQuery.split(',').length;
+      if (commaCount > 1) searchLimit = Math.max(searchLimit, commaCount);
+      var collectCap = searchLimit + 1;
+      var skipped = 0;
       try {
-        // Check if query contains multiple IDs (comma or space separated, ID format: digits:digits)
-        var idPattern = /^\d+:\d+$/;
-        var tokens = searchQuery.split(/[,\s]+/).filter(function (t) { return t.length > 0; });
+        // Check if query contains multiple IDs (comma-separated, supports simple IDs like 65:10005 and instance IDs like I66:13566;66:12753)
+        var idPattern = /^I?\d+:\d+(;\d+:\d+)*$/;
+        var tokens = searchQuery.split(',').map(function (t) { return t.trim(); }).filter(function (t) { return t.length > 0; });
         var isMultiId = tokens.length > 1 && tokens.every(function (t) { return idPattern.test(t); });
 
         var searchMatches: Array<{id: string; name: string; type: string; pageName: string}> = [];
@@ -999,10 +1005,13 @@ figma.ui.onmessage = async (msg: Record<string, unknown>) => {
         var walkTree = function (startNode: BaseNode, pgName: string) {
           var queue: Array<BaseNode> = [startNode];
           var head = 0;
-          while (head < queue.length && searchMatches.length < searchLimit) {
+          while (head < queue.length && searchMatches.length < collectCap) {
             var node = queue[head];
             head++;
             if (nodeMatchesFilter(node)) {
+              if (skipped < searchOffset) {
+                skipped++;
+              } else {
               var matchObj: any = { id: node.id, name: node.name, type: node.type, pageName: pgName };
               if (searchFilter === 'content' && node.type === 'TEXT') {
                 var chars = (node as any).characters || '';
@@ -1072,8 +1081,9 @@ figma.ui.onmessage = async (msg: Record<string, unknown>) => {
                 }
               }
               searchMatches.push(matchObj);
+              }
             }
-            if ('children' in node && searchMatches.length < searchLimit) {
+            if ('children' in node && searchMatches.length < collectCap) {
               var ch = (node as any).children;
               for (var ci = 0; ci < ch.length; ci++) {
                 queue.push(ch[ci]);
@@ -1123,7 +1133,7 @@ figma.ui.onmessage = async (msg: Record<string, unknown>) => {
             var pg = selNode.parent;
             while (pg && pg.type !== 'PAGE') { pg = pg.parent; }
             walkTree(selNode, pg ? pg.name : '');
-            if (searchMatches.length >= searchLimit) break;
+            if (searchMatches.length >= collectCap) break;
           }
         } else {
           var pages = figma.root.children;
@@ -1131,10 +1141,12 @@ figma.ui.onmessage = async (msg: Record<string, unknown>) => {
             var page = pages[pi];
             await page.loadAsync();
             walkTree(page, page.name);
-            if (searchMatches.length >= searchLimit) break;
+            if (searchMatches.length >= collectCap) break;
           }
         }
-        figma.ui.postMessage({ type: 'search-results', nodes: searchMatches, query: searchQuery });
+        var hasMore = searchMatches.length > searchLimit;
+        var resultNodes = hasMore ? searchMatches.slice(0, searchLimit) : searchMatches;
+        figma.ui.postMessage({ type: 'search-results', nodes: resultNodes, query: searchQuery, offset: searchOffset, hasMore: hasMore });
       } catch (err) {
         figma.ui.postMessage({ type: 'search-results', nodes: [], query: searchQuery });
       }

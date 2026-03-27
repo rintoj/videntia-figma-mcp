@@ -12,6 +12,8 @@ export function useSelection() {
   var [hoveredId, setHoveredId] = useState<string | null>(null);
   var [checkedIds, setCheckedIds] = useState<Record<string, boolean>>({});
   var [barVisible, setBarVisible] = useState(false);
+  var [hasMore, setHasMore] = useState(false);
+  var [isLoadingMore, setIsLoadingMore] = useState(false);
   var [filterMode, setFilterMode] = useState<FilterMode>("selection");
   var [showFilterPopup, setShowFilterPopup] = useState(false);
   var [selectedNodeNames, setSelectedNodeNames] = useState<string[]>([]);
@@ -60,7 +62,19 @@ export function useSelection() {
         setBarVisible(true);
       }
       if (msg.type === "search-results") {
-        setSearchResults(Array.isArray(msg.nodes) ? msg.nodes : []);
+        var incoming = Array.isArray(msg.nodes) ? msg.nodes : [];
+        if (typeof msg.offset === "number" && msg.offset > 0) {
+          // Append to existing results, but only if offset matches current length (guards against race conditions)
+          setSearchResults(function (prev) {
+            var current = prev || [];
+            if (current.length !== msg.offset) return current;
+            return current.concat(incoming);
+          });
+        } else {
+          setSearchResults(incoming);
+        }
+        setHasMore(!!msg.hasMore);
+        setIsLoadingMore(false);
       }
       if (msg.type === "selection-history-loaded" && !historyLoadedRef.current) {
         historyLoadedRef.current = true;
@@ -144,9 +158,10 @@ export function useSelection() {
     };
   }, []);
 
-  function triggerSearch(query: string, filter: FilterMode) {
+  function triggerSearch(query: string, filter: FilterMode, offset?: number, all?: boolean) {
     if (filter === "selection") {
       setSearchResults(null);
+      setHasMore(false);
       return;
     }
     if (searchTimerRef.current) {
@@ -155,12 +170,28 @@ export function useSelection() {
     var trimmed = query.trim();
     if (trimmed.length === 0 && selectedNodeNames.length === 0) {
       setSearchResults(null);
+      setHasMore(false);
       return;
     }
     var q = trimmed.length > 0 ? trimmed : "*";
+    var off = offset || 0;
     searchTimerRef.current = setTimeout(function () {
-      parent.postMessage({ pluginMessage: { type: "search-nodes-ui", query: q, filter: filter } }, "*");
+      parent.postMessage({ pluginMessage: { type: "search-nodes-ui", query: q, filter: filter, offset: off, limit: all ? 999999 : undefined } }, "*");
     }, 300);
+  }
+
+  function loadMore() {
+    if (isLoadingMore) return;
+    setIsLoadingMore(true);
+    var currentCount = searchResults ? searchResults.length : 0;
+    triggerSearch(searchQuery, filterMode, currentCount);
+  }
+
+  function loadAll() {
+    if (isLoadingMore) return;
+    setIsLoadingMore(true);
+    var currentCount = searchResults ? searchResults.length : 0;
+    triggerSearch(searchQuery, filterMode, currentCount, true);
   }
 
   function handleSearchInput(e: Event) {
@@ -313,5 +344,9 @@ export function useSelection() {
     selectCheckedInFigma,
     handlePrev,
     handleNext,
+    hasMore,
+    isLoadingMore,
+    loadMore,
+    loadAll,
   };
 }
