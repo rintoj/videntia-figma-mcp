@@ -43,3 +43,4 @@ src/claude_figma_mcp/data/lucide-icons.ts
 # Figma plugin IIFE bundles (built from TypeScript source by tsup — run `bun run build`)
 src/claude_mcp_plugin/code.js
 src/claude_mcp_plugin/code.next.js
+src/claude_mcp_plugin/ui.html
