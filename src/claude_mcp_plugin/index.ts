@@ -842,11 +842,13 @@ figma.ui.onmessage = async (msg: Record<string, unknown>) => {
     case 'search-nodes-ui': {
       var searchQuery = (msg['query'] as string) || '';
       var searchFilter = (msg['filter'] as string) || 'name_or_id';
+      var searchOffset = (typeof msg['offset'] === 'number') ? msg['offset'] as number : 0;
       var isMatchAll = searchQuery === '*';
-      var searchLimit = isMatchAll ? 100 : 50;
+      var searchLimit = (typeof msg['limit'] === 'number') ? msg['limit'] as number : 100;
       // For multi-ID queries, raise limit to cover all requested IDs
       var commaCount = searchQuery.split(',').length;
       if (commaCount > 1) searchLimit = Math.max(searchLimit, commaCount);
+      var skipped = 0;
       try {
         // Check if query contains multiple IDs (comma-separated, supports simple IDs like 65:10005 and instance IDs like I66:13566;66:12753)
         var idPattern = /^I?\d+:\d+(;\d+:\d+)*$/;
@@ -1006,6 +1008,9 @@ figma.ui.onmessage = async (msg: Record<string, unknown>) => {
             var node = queue[head];
             head++;
             if (nodeMatchesFilter(node)) {
+              if (skipped < searchOffset) {
+                skipped++;
+              } else {
               var matchObj: any = { id: node.id, name: node.name, type: node.type, pageName: pgName };
               if (searchFilter === 'content' && node.type === 'TEXT') {
                 var chars = (node as any).characters || '';
@@ -1075,6 +1080,7 @@ figma.ui.onmessage = async (msg: Record<string, unknown>) => {
                 }
               }
               searchMatches.push(matchObj);
+              }
             }
             if ('children' in node && searchMatches.length < searchLimit) {
               var ch = (node as any).children;
@@ -1137,7 +1143,7 @@ figma.ui.onmessage = async (msg: Record<string, unknown>) => {
             if (searchMatches.length >= searchLimit) break;
           }
         }
-        figma.ui.postMessage({ type: 'search-results', nodes: searchMatches, query: searchQuery });
+        figma.ui.postMessage({ type: 'search-results', nodes: searchMatches, query: searchQuery, offset: searchOffset, hasMore: searchMatches.length >= searchLimit });
       } catch (err) {
         figma.ui.postMessage({ type: 'search-results', nodes: [], query: searchQuery });
       }
