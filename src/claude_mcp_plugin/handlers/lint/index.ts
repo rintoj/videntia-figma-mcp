@@ -66,7 +66,10 @@ export async function lintFrame(params: Record<string, unknown>): Promise<LintRe
   const totalNodesRef = { value: 0 };
 
   // Run the traversal
-  scanNode(rootNode as SceneNode, 0, null, null, chk, categories, violations, violationsCappedRef, totalNodesRef);
+  // If the root node itself is a Screen/ frame, start inside screen; otherwise traverse to find screens
+  let rootName = rootNode.name || '';
+  let rootIsScreen = (rootNode.type === 'FRAME' || rootNode.type === 'COMPONENT') && rootName.indexOf('Screen/') === 0;
+  scanNode(rootNode as SceneNode, 0, null, null, chk, categories, violations, violationsCappedRef, totalNodesRef, rootIsScreen);
 
   // Auto-fix pass (only when fix=true)
   if (fix) {
