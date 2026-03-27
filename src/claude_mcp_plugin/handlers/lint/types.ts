@@ -10,7 +10,8 @@ export type ViolationCategory =
   | 'backgroundFills'
   | 'effectStyles'
   | 'overflow'
-  | 'autoLayout';
+  | 'autoLayout'
+  | 'screenNaming';
 
 export interface ViolationDetails {
   axis?: 'horizontal' | 'vertical';
@@ -53,6 +54,7 @@ export interface LintCategories {
   effectStyles: CategoryStats;
   overflow: CategoryStats;
   autoLayout: CategoryStats;
+  screenNaming: CategoryStats;
 }
 
 export interface LintSummary {
@@ -85,6 +87,7 @@ export interface LintChecks {
   effectStyles?: boolean;
   autoLayout?: boolean;
   overflow?: boolean;
+  screenNaming?: boolean;
 }
 
 export interface LintOptions {
@@ -102,6 +105,7 @@ export interface ActiveChecks {
   effectStyles: boolean;
   autoLayout: boolean;
   overflow: boolean;
+  screenNaming: boolean;
 }
 
 export interface ColorVarEntry {

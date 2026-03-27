@@ -11,7 +11,7 @@ import {
   hasEffectStyle,
   hasFontVariableBindings,
 } from './helpers';
-import { MAX_LINT_DEPTH, MAX_LINT_VIOLATIONS, DEVICE_SIZES, DIM_TOLERANCE } from './constants';
+import { MAX_LINT_DEPTH, MAX_LINT_VIOLATIONS, DEVICE_SIZES, DIM_TOLERANCE, SCREEN_NAME_PATTERN, VALID_BREAKPOINTS } from './constants';
 
 export function scanNode(
   node: SceneNode,
@@ -126,6 +126,72 @@ export function scanNode(
         addViolation(
           violations, violationsCappedRef, MAX_LINT_VIOLATIONS,
           node, depth, 'HIGH', 'rootFrame', 'minHeight', rfMinHMsg,
+        );
+      }
+    }
+  }
+
+  // ── SCREEN NAMING checks (depth === 0, page-level frames only) ──
+  if (chk.screenNaming && depth === 0 && (nodeType === 'FRAME' || nodeType === 'COMPONENT')) {
+    let snName = '';
+    try { snName = node.name || ''; } catch (_e) {}
+
+    // Detect if this is a device-width frame (likely a screen)
+    let snWidth = 0;
+    try { snWidth = (node as FrameNode).width; } catch (_e) {}
+    let snIsDeviceWidth = false;
+    for (let sdi = 0; sdi < DEVICE_SIZES.length; sdi++) {
+      if (Math.abs(snWidth - DEVICE_SIZES[sdi].width) <= DIM_TOLERANCE) {
+        snIsDeviceWidth = true;
+        break;
+      }
+    }
+
+    if (snIsDeviceWidth) {
+      categories.screenNaming.total++;
+
+      if (snName.indexOf('Screen/') === 0) {
+        // Validate the full pattern
+        if (SCREEN_NAME_PATTERN.test(snName)) {
+          categories.screenNaming.bound++;
+        } else {
+          categories.screenNaming.unbound++;
+          // Provide specific feedback about what's wrong
+          let snMsg = 'Screen name "' + snName + '" does not follow convention — expected: Screen/{Feature}@{Breakpoint}/{View}[/{State}]';
+
+          if (snName.indexOf(' ') !== -1) {
+            snMsg = 'Screen name "' + snName + '" contains spaces — use kebab-case (e.g. Step-1-Email)';
+          } else {
+            // Check for missing or invalid breakpoint
+            let atIdx = snName.indexOf('@');
+            if (atIdx === -1) {
+              snMsg = 'Screen name "' + snName + '" missing breakpoint — append @sm, @md, or @lg to the feature name';
+            } else {
+              let afterAt = snName.substring(atIdx + 1);
+              let slashIdx = afterAt.indexOf('/');
+              let bp = slashIdx !== -1 ? afterAt.substring(0, slashIdx) : afterAt;
+              let bpValid = false;
+              for (let bpi = 0; bpi < VALID_BREAKPOINTS.length; bpi++) {
+                if (bp === VALID_BREAKPOINTS[bpi]) { bpValid = true; break; }
+              }
+              if (!bpValid) {
+                snMsg = 'Screen name "' + snName + '" has invalid breakpoint "@' + bp + '" — use @sm (375), @md (768), or @lg (1440)';
+              } else if (slashIdx === -1) {
+                snMsg = 'Screen name "' + snName + '" missing view segment after breakpoint — expected: Screen/{Feature}@{bp}/{View}';
+              }
+            }
+          }
+          addViolation(
+            violations, violationsCappedRef, MAX_LINT_VIOLATIONS,
+            node, depth, 'HIGH', 'screenNaming', 'name', snMsg,
+          );
+        }
+      } else {
+        categories.screenNaming.unbound++;
+        addViolation(
+          violations, violationsCappedRef, MAX_LINT_VIOLATIONS,
+          node, depth, 'HIGH', 'screenNaming', 'name',
+          'Screen frame "' + snName + '" missing Screen/ prefix — expected: Screen/{Feature}@{Breakpoint}/{View}',
         );
       }
     }

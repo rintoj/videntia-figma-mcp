@@ -63,6 +63,7 @@ describe("lint_frame tool", () => {
         backgroundFills: { total: 4, bound: 3, unbound: 1, compliance: 75 },
         effectStyles: { total: 1, bound: 1, unbound: 0, compliance: 100 },
         overflow: { total: 10, bound: 10, unbound: 0, compliance: 100 },
+        screenNaming: { total: 0, bound: 0, unbound: 0, compliance: 100 },
       },
       violations: [],
       summary: { total: 0, critical: 0, high: 0, medium: 0, low: 0, compliance: 94 },
@@ -91,7 +92,7 @@ describe("lint_frame tool", () => {
     expect(mockSendCommand).toHaveBeenCalledWith("lint_frame", { nodeId: "1:100", fix: false, checks }, 60000);
   });
 
-  it("formats compliance table with all 7 categories", async () => {
+  it("formats compliance table with all categories", async () => {
     mockSendCommand.mockResolvedValue(makeResult());
 
     const response = await callTool("lint_frame", { node_id: "1:100" });
@@ -106,6 +107,7 @@ describe("lint_frame tool", () => {
     expect(text).toContain("| Spacing |");
     expect(text).toContain("| Border Radius |");
     expect(text).toContain("| Effect Styles |");
+    expect(text).toContain("| Screen Naming |");
   });
 
   it("shows PASS/WARN/FAIL status based on compliance percentage", async () => {
@@ -375,6 +377,44 @@ describe("lint_frame tool", () => {
 
     expect(text).toContain("Auto-layout frame has 2 absolute-positioned children");
     expect(text).toContain("### LOW (1)");
+  });
+
+  it("reports screen naming violation for non-conforming screen frame", async () => {
+    const result = makeResult({
+      categories: {
+        ...makeResult().categories,
+        screenNaming: { total: 1, bound: 0, unbound: 1, compliance: 0 },
+      },
+      violations: [
+        {
+          nodeId: "1:200",
+          nodeName: "My Screen",
+          nodeType: "FRAME",
+          depth: 0,
+          severity: "HIGH",
+          category: "screenNaming",
+          property: "name",
+          message: 'Screen frame "My Screen" missing Screen/ prefix — expected: Screen/{Feature}@{Breakpoint}/{View}',
+        },
+      ],
+      summary: { total: 1, critical: 0, high: 1, medium: 0, low: 0, compliance: 90 },
+    });
+    mockSendCommand.mockResolvedValue(result);
+
+    const response = await callTool("lint_frame", { node_id: "1:100" });
+    const text = response.content[0].text;
+
+    expect(text).toContain("| Screen Naming | 1 | 0 | 1 | FAIL 0% |");
+    expect(text).toContain("missing Screen/ prefix");
+  });
+
+  it("passes screenNaming check toggle through to plugin", async () => {
+    mockSendCommand.mockResolvedValue(makeResult());
+
+    const checks = { screenNaming: false };
+    await callTool("lint_frame", { node_id: "1:100", checks });
+
+    expect(mockSendCommand).toHaveBeenCalledWith("lint_frame", { nodeId: "1:100", fix: false, checks }, 60000);
   });
 
   it("skips severity sections with zero violations", async () => {
