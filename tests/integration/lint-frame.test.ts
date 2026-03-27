@@ -388,13 +388,13 @@ describe("lint_frame tool", () => {
       violations: [
         {
           nodeId: "1:200",
-          nodeName: "My Screen",
+          nodeName: "Screen/login",
           nodeType: "FRAME",
-          depth: 0,
+          depth: 3,
           severity: "HIGH",
           category: "screenNaming",
           property: "name",
-          message: 'Screen frame "My Screen" missing Screen/ prefix — expected: Screen/{Feature}@{Breakpoint}/{View}',
+          message: 'Screen name "Screen/login" does not follow convention — expected: Screen/{Feature}@{Breakpoint}/{View}[/{State}]',
         },
       ],
       summary: { total: 1, critical: 0, high: 1, medium: 0, low: 0, compliance: 90 },
@@ -405,7 +405,7 @@ describe("lint_frame tool", () => {
     const text = response.content[0].text;
 
     expect(text).toContain("| Screen Naming | 1 | 0 | 1 | FAIL 0% |");
-    expect(text).toContain("missing Screen/ prefix");
+    expect(text).toContain("does not follow convention");
   });
 
   it("passes screenNaming check toggle through to plugin", async () => {

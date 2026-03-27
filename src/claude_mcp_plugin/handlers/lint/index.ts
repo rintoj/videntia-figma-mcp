@@ -27,7 +27,7 @@ export async function lintFrame(params: Record<string, unknown>): Promise<LintRe
     effectStyles: true,
     autoLayout: true,
     overflow: true,
-    screenNaming: isPageChild,
+    screenNaming: true,
   };
   if (checks) {
     if (checks.rootFrame === false) chk.rootFrame = false;

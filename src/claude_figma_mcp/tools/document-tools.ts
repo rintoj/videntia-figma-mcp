@@ -1058,7 +1058,7 @@ export function registerDocumentTools(server: McpServer): void {
           effectStyles: mcpBooleanSchema.optional().describe("Check effect style application (default: true)"),
           autoLayout: mcpBooleanSchema.optional().describe("Check auto-layout on frames (default: true)"),
           overflow: mcpBooleanSchema.optional().describe("Check child overflow beyond parent bounds (default: true)"),
-          screenNaming: mcpBooleanSchema.optional().describe("Check screen naming convention: Screen/{Feature}@{Breakpoint}/{View}[/{State}] (default: true for page-level frames)"),
+          screenNaming: mcpBooleanSchema.optional().describe("Check screen naming convention: Screen/{Feature}@{Breakpoint}/{View}[/{State}] on any frame starting with 'Screen/' (default: true)"),
         })
         .optional()
         .describe("Toggle individual check categories (all enabled by default)"),
