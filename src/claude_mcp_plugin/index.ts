@@ -844,10 +844,13 @@ figma.ui.onmessage = async (msg: Record<string, unknown>) => {
       var searchFilter = (msg['filter'] as string) || 'name_or_id';
       var isMatchAll = searchQuery === '*';
       var searchLimit = isMatchAll ? 100 : 50;
+      // For multi-ID queries, raise limit to cover all requested IDs
+      var commaCount = searchQuery.split(',').length;
+      if (commaCount > 1) searchLimit = Math.max(searchLimit, commaCount);
       try {
-        // Check if query contains multiple IDs (comma or space separated, ID format: digits:digits)
-        var idPattern = /^\d+:\d+$/;
-        var tokens = searchQuery.split(/[,\s]+/).filter(function (t) { return t.length > 0; });
+        // Check if query contains multiple IDs (comma-separated, supports simple IDs like 65:10005 and instance IDs like I66:13566;66:12753)
+        var idPattern = /^I?\d+:\d+(;\d+:\d+)*$/;
+        var tokens = searchQuery.split(',').map(function (t) { return t.trim(); }).filter(function (t) { return t.length > 0; });
         var isMultiId = tokens.length > 1 && tokens.every(function (t) { return idPattern.test(t); });
 
         var searchMatches: Array<{id: string; name: string; type: string; pageName: string}> = [];
