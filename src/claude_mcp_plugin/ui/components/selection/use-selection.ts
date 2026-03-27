@@ -158,7 +158,7 @@ export function useSelection() {
     };
   }, []);
 
-  function triggerSearch(query: string, filter: FilterMode, offset?: number, all?: boolean) {
+  function triggerSearch(query: string, filter: FilterMode, offset?: number, all?: boolean, entirePage?: boolean) {
     if (filter === "selection") {
       setSearchResults(null);
       setHasMore(false);
@@ -168,7 +168,7 @@ export function useSelection() {
       clearTimeout(searchTimerRef.current);
     }
     var trimmed = query.trim();
-    if (trimmed.length === 0 && selectedNodeNames.length === 0) {
+    if (trimmed.length === 0 && selectedNodeNames.length === 0 && !entirePage) {
       setSearchResults(null);
       setHasMore(false);
       return;
@@ -176,7 +176,9 @@ export function useSelection() {
     var q = trimmed.length > 0 ? trimmed : "*";
     var off = offset || 0;
     searchTimerRef.current = setTimeout(function () {
-      parent.postMessage({ pluginMessage: { type: "search-nodes-ui", query: q, filter: filter, offset: off, limit: all ? 999999 : undefined } }, "*");
+      var msg: any = { type: "search-nodes-ui", query: q, filter: filter, offset: off, limit: all ? 999999 : undefined };
+      if (entirePage) msg.entirePage = true;
+      parent.postMessage({ pluginMessage: msg }, "*");
     }, 300);
   }
 
@@ -295,6 +297,10 @@ export function useSelection() {
     }
   }
 
+  function searchEntirePage() {
+    triggerSearch(searchQuery, filterMode, undefined, undefined, true);
+  }
+
   function handlePrev() {
     var list = getDisplayNodes();
     if (list.length === 0) return;
@@ -344,6 +350,7 @@ export function useSelection() {
     selectCheckedInFigma,
     handlePrev,
     handleNext,
+    searchEntirePage,
     hasMore,
     isLoadingMore,
     loadMore,
