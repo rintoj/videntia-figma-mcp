@@ -141,23 +141,14 @@ describe("batch_actions tool", () => {
       expect(mockSendCommand).not.toHaveBeenCalled();
     });
 
-    it("rejects actions exceeding max of 30", async () => {
-      const tooMany = Array.from({ length: 31 }, (_, i) => ({
-        action: "get_node_info",
-        params: { nodeId: `node-${i}` },
-      }));
-
-      await expect(callTool("batch_actions", { actions: tooMany })).rejects.toThrow();
-      expect(mockSendCommand).not.toHaveBeenCalled();
-    });
-
-    it("accepts actions at the max of 30", async () => {
+    it("accepts large batch without limit", async () => {
+      const count = 50;
       mockSendCommand.mockResolvedValue({
         success: true,
-        totalActions: 30,
-        succeeded: 30,
+        totalActions: count,
+        succeeded: count,
         failed: 0,
-        results: Array.from({ length: 30 }, (_, i) => ({
+        results: Array.from({ length: count }, (_, i) => ({
           index: i,
           action: "get_node_info",
           success: true,
@@ -165,16 +156,16 @@ describe("batch_actions tool", () => {
         })),
       });
 
-      const maxActions = Array.from({ length: 30 }, (_, i) => ({
+      const manyActions = Array.from({ length: count }, (_, i) => ({
         action: "get_node_info",
         params: { nodeId: `node-${i}` },
       }));
 
       const response = await callTool("batch_actions", {
-        actions: maxActions,
+        actions: manyActions,
       });
 
-      expect(response.content[0].text).toContain("30/30 succeeded");
+      expect(response.content[0].text).toContain(`${count}/${count} succeeded`);
     });
   });
 
