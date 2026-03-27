@@ -20,6 +20,7 @@ import {
   deleteNode,
   deleteMultipleNodes,
   exportNodeAsImage,
+  exportImageFill,
   setCornerRadius,
   cloneNode,
   groupNodes,
@@ -194,7 +195,7 @@ var READONLY_COMMANDS = new Set([
   'generate_audit_report', 'export_collection_schema', 'get_schema_definition',
   'scan_nodes_by_types', 'get_annotations', 'get_annotation_categories',
   'get_reactions', 'get_design_system', 'lint_frame', 'set_focus', 'set_selections',
-  'export_node_as_image', 'load_font_async', 'read_my_design',
+  'export_node_as_image', 'export_image_fill', 'load_font_async', 'read_my_design',
 ]);
 
 // ---------------------------------------------------------------------------
@@ -480,6 +481,8 @@ async function _executeCommand(
       return await flattenNode(params);
     case 'export_node_as_image':
       return await exportNodeAsImage(params);
+    case 'export_image_fill':
+      return await exportImageFill(params);
     case 'set_corner_radius':
       return await setCornerRadius(params);
 

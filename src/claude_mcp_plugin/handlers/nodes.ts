@@ -390,6 +390,90 @@ export async function exportNodeAsImage(params: Record<string, unknown>): Promis
   }
 }
 
+export async function exportImageFill(params: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const nodeId = getOptParam<string>(params, 'nodeId');
+  const fillIndex = getParam<number>(params, 'fillIndex', 0);
+
+  if (!nodeId) {
+    throw new Error('Missing nodeId parameter');
+  }
+
+  const node = await figma.getNodeByIdAsync(nodeId);
+  if (!node) {
+    throw new Error(`Node not found with ID: ${nodeId}`);
+  }
+
+  if (!('fills' in node)) {
+    throw new Error(`Node does not have fills: ${nodeId}`);
+  }
+
+  const fills = (node as GeometryMixin).fills;
+  if (fills === figma.mixed) {
+    throw new Error('Node has mixed fills — specify a text range or use a different node');
+  }
+
+  if (!Array.isArray(fills) || fills.length === 0) {
+    throw new Error('Node has no fills');
+  }
+
+  // Find image fills
+  const imageFills = fills
+    .map((f, i) => ({ fill: f, index: i }))
+    .filter(({ fill }) => fill.type === 'IMAGE');
+
+  if (imageFills.length === 0) {
+    throw new Error('Node has no image fills. Fill types present: ' + fills.map(f => f.type).join(', '));
+  }
+
+  if (fillIndex >= imageFills.length) {
+    throw new Error(`fillIndex ${fillIndex} out of range. Node has ${imageFills.length} image fill(s).`);
+  }
+
+  const imagePaint = imageFills[fillIndex].fill as ImagePaint;
+  const imageHash = imagePaint.imageHash;
+
+  if (!imageHash) {
+    throw new Error('Image fill has no imageHash — the image may not be loaded');
+  }
+
+  const image = figma.getImageByHash(imageHash);
+  if (!image) {
+    throw new Error(`Could not retrieve image for hash: ${imageHash}`);
+  }
+
+  try {
+    const bytes = await image.getBytesAsync();
+    const size = await image.getSizeAsync();
+    const base64 = customBase64Encode(bytes);
+
+    // Detect MIME type from byte header
+    let mimeType = 'application/octet-stream';
+    if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47) {
+      mimeType = 'image/png';
+    } else if (bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF) {
+      mimeType = 'image/jpeg';
+    } else if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46 &&
+               bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50) {
+      mimeType = 'image/webp';
+    } else if (bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46) {
+      mimeType = 'image/gif';
+    }
+
+    return {
+      nodeId,
+      fillIndex: imageFills[fillIndex].index,
+      imageHash,
+      width: size.width,
+      height: size.height,
+      scaleMode: imagePaint.scaleMode || 'FILL',
+      mimeType,
+      imageData: base64,
+    };
+  } catch (error) {
+    throw new Error(`Error exporting image fill: ${(error as Error).message}`);
+  }
+}
+
 export async function setCornerRadius(params: Record<string, unknown>): Promise<Record<string, unknown>> {
   const nodeId = getOptParam<string>(params, 'nodeId');
   const radius = getOptParam<number>(params, 'radius');
