@@ -40,8 +40,10 @@ export function scanNode(
   let isScreenRoot = (nodeType === 'FRAME' || nodeType === 'COMPONENT') && nodeName.indexOf('Screen/') === 0;
   let localInsideScreen = insideScreen || isScreenRoot;
 
-  // ── ROOT FRAME checks (screen root frame only) ──
-  if (chk.rootFrame && isScreenRoot) {
+  // ── ROOT FRAME checks (screen root frame only, must be direct child of PAGE) ──
+  let isPageChild = false;
+  try { isPageChild = node.parent !== null && node.parent !== undefined && node.parent.type === 'PAGE'; } catch (_e) {}
+  if (chk.rootFrame && isScreenRoot && isPageChild) {
     let DIM_TOL = DIM_TOLERANCE;
 
     let rfLayoutMode: string | null = null;

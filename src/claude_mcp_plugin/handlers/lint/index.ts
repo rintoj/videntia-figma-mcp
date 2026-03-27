@@ -40,7 +40,6 @@ export async function lintFrame(params: Record<string, unknown>): Promise<LintRe
     if (checks.autoLayout === false) chk.autoLayout = false;
     if (checks.overflow === false) chk.overflow = false;
     if (checks.screenNaming === false) chk.screenNaming = false;
-    if (checks.screenNaming === true) chk.screenNaming = true;
   }
 
   // Pre-load all lookup maps (parallel)

@@ -742,7 +742,7 @@ async function _executeCommand(
     // Lint
     case 'lint_frame':
       if (state.readonlyMode && params['fix']) {
-        params = Object.assign({}, params, { fix: false });
+        throw new Error('Cannot use fix=true in read-only mode. Disable read-only mode in Settings to allow auto-fixes.');
       }
       return await lintFrame(params);
 
