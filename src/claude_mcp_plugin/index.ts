@@ -848,6 +848,7 @@ figma.ui.onmessage = async (msg: Record<string, unknown>) => {
       // For multi-ID queries, raise limit to cover all requested IDs
       var commaCount = searchQuery.split(',').length;
       if (commaCount > 1) searchLimit = Math.max(searchLimit, commaCount);
+      var collectCap = searchLimit + 1;
       var skipped = 0;
       try {
         // Check if query contains multiple IDs (comma-separated, supports simple IDs like 65:10005 and instance IDs like I66:13566;66:12753)
@@ -1004,7 +1005,7 @@ figma.ui.onmessage = async (msg: Record<string, unknown>) => {
         var walkTree = function (startNode: BaseNode, pgName: string) {
           var queue: Array<BaseNode> = [startNode];
           var head = 0;
-          while (head < queue.length && searchMatches.length < searchLimit) {
+          while (head < queue.length && searchMatches.length < collectCap) {
             var node = queue[head];
             head++;
             if (nodeMatchesFilter(node)) {
@@ -1082,7 +1083,7 @@ figma.ui.onmessage = async (msg: Record<string, unknown>) => {
               searchMatches.push(matchObj);
               }
             }
-            if ('children' in node && searchMatches.length < searchLimit) {
+            if ('children' in node && searchMatches.length < collectCap) {
               var ch = (node as any).children;
               for (var ci = 0; ci < ch.length; ci++) {
                 queue.push(ch[ci]);
@@ -1132,7 +1133,7 @@ figma.ui.onmessage = async (msg: Record<string, unknown>) => {
             var pg = selNode.parent;
             while (pg && pg.type !== 'PAGE') { pg = pg.parent; }
             walkTree(selNode, pg ? pg.name : '');
-            if (searchMatches.length >= searchLimit) break;
+            if (searchMatches.length >= collectCap) break;
           }
         } else {
           var pages = figma.root.children;
@@ -1140,10 +1141,12 @@ figma.ui.onmessage = async (msg: Record<string, unknown>) => {
             var page = pages[pi];
             await page.loadAsync();
             walkTree(page, page.name);
-            if (searchMatches.length >= searchLimit) break;
+            if (searchMatches.length >= collectCap) break;
           }
         }
-        figma.ui.postMessage({ type: 'search-results', nodes: searchMatches, query: searchQuery, offset: searchOffset, hasMore: searchMatches.length >= searchLimit });
+        var hasMore = searchMatches.length > searchLimit;
+        var resultNodes = hasMore ? searchMatches.slice(0, searchLimit) : searchMatches;
+        figma.ui.postMessage({ type: 'search-results', nodes: resultNodes, query: searchQuery, offset: searchOffset, hasMore: hasMore });
       } catch (err) {
         figma.ui.postMessage({ type: 'search-results', nodes: [], query: searchQuery });
       }

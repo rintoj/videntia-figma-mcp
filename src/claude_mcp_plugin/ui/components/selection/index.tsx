@@ -150,19 +150,27 @@ export function SelectionSection() {
           <div
             class="flex items-center gap-1.5 h-[30px] pr-[4px] pl-[8px] rounded-sm border border-transparent shrink-0"
           >
-            <span
-              class="text-[11px] leading-4 font-medium text-muted-foreground whitespace-nowrap hover:text-primary cursor-pointer"
-              onClick={sel.loadMore}
-            >
-              Show more...
-            </span>
-            <span class="text-[11px] leading-4 font-medium text-muted-foreground whitespace-nowrap">·</span>
-            <span
-              class="text-[11px] leading-4 font-medium text-muted-foreground whitespace-nowrap hover:text-primary cursor-pointer"
-              onClick={sel.loadAll}
-            >
-              Show all
-            </span>
+            {sel.isLoadingMore ? (
+              <span class="text-[11px] leading-4 font-medium text-muted-foreground whitespace-nowrap">
+                Loading...
+              </span>
+            ) : (
+              <>
+                <span
+                  class="text-[11px] leading-4 font-medium text-muted-foreground whitespace-nowrap hover:text-primary cursor-pointer"
+                  onClick={sel.loadMore}
+                >
+                  Show more...
+                </span>
+                <span class="text-[11px] leading-4 font-medium text-muted-foreground whitespace-nowrap">·</span>
+                <span
+                  class="text-[11px] leading-4 font-medium text-muted-foreground whitespace-nowrap hover:text-primary cursor-pointer"
+                  onClick={sel.loadAll}
+                >
+                  Show all
+                </span>
+              </>
+            )}
           </div>
         )}
       </div>

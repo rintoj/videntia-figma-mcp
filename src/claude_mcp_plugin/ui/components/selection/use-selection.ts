@@ -13,6 +13,7 @@ export function useSelection() {
   var [checkedIds, setCheckedIds] = useState<Record<string, boolean>>({});
   var [barVisible, setBarVisible] = useState(false);
   var [hasMore, setHasMore] = useState(false);
+  var [isLoadingMore, setIsLoadingMore] = useState(false);
   var [filterMode, setFilterMode] = useState<FilterMode>("selection");
   var [showFilterPopup, setShowFilterPopup] = useState(false);
   var [selectedNodeNames, setSelectedNodeNames] = useState<string[]>([]);
@@ -62,15 +63,18 @@ export function useSelection() {
       }
       if (msg.type === "search-results") {
         var incoming = Array.isArray(msg.nodes) ? msg.nodes : [];
-        if (msg.offset && msg.offset > 0) {
-          // Append to existing results
+        if (typeof msg.offset === "number" && msg.offset > 0) {
+          // Append to existing results, but only if offset matches current length (guards against race conditions)
           setSearchResults(function (prev) {
-            return (prev || []).concat(incoming);
+            var current = prev || [];
+            if (current.length !== msg.offset) return current;
+            return current.concat(incoming);
           });
         } else {
           setSearchResults(incoming);
         }
         setHasMore(!!msg.hasMore);
+        setIsLoadingMore(false);
       }
       if (msg.type === "selection-history-loaded" && !historyLoadedRef.current) {
         historyLoadedRef.current = true;
@@ -177,11 +181,15 @@ export function useSelection() {
   }
 
   function loadMore() {
+    if (isLoadingMore) return;
+    setIsLoadingMore(true);
     var currentCount = searchResults ? searchResults.length : 0;
     triggerSearch(searchQuery, filterMode, currentCount);
   }
 
   function loadAll() {
+    if (isLoadingMore) return;
+    setIsLoadingMore(true);
     var currentCount = searchResults ? searchResults.length : 0;
     triggerSearch(searchQuery, filterMode, currentCount, true);
   }
@@ -337,6 +345,7 @@ export function useSelection() {
     handlePrev,
     handleNext,
     hasMore,
+    isLoadingMore,
     loadMore,
     loadAll,
   };
