@@ -289,10 +289,10 @@ bun run pub:release
 
 ### After Merging to Main
 
-After every merge to `main`, **build and restart** so both the Figma plugin and the MCP server pick up the new code:
+After every merge to `main`, **switch to main, pull the latest, build, and restart** so both the Figma plugin and the MCP server pick up the new code:
 
 ```bash
-bun run build && launchctl stop com.claude-figma-mcp.socket && launchctl start com.claude-figma-mcp.socket
+git checkout main && git pull && bun run build && launchctl stop com.claude-figma-mcp.socket && launchctl start com.claude-figma-mcp.socket
 ```
 
 `bun run build` does two things:
