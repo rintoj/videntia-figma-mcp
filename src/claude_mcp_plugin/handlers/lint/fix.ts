@@ -176,13 +176,12 @@ export async function applyFixes(
             let paint = paints[propIdx];
 
             // Fix zero-opacity fills/strokes by removing them
-            let paintOpacity = paint ? paint.opacity : undefined;
-            if (paintOpacity !== null && paintOpacity !== undefined && paintOpacity === 0) {
+            if (paint && paint.opacity === 0) {
               let paintsCopy = (paints as Paint[]).slice();
               paintsCopy.splice(propIdx, 1);
               (fixNode as GeometryMixin)[propName] = paintsCopy as any;
               fv.fixed = true;
-              fv.fixedWith = 'removed 0% opacity ' + propName.slice(0, -1);
+              fv.fixedWith = 'removed 0% opacity ' + (propName === 'fills' ? 'fill' : 'stroke');
               let colorCats = categories as unknown as Record<string, import('./types').CategoryStats>;
               colorCats[fvCat].unbound = Math.max(0, colorCats[fvCat].unbound - 1);
               colorCats[fvCat].total = Math.max(0, colorCats[fvCat].total - 1);

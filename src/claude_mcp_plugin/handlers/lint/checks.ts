@@ -219,11 +219,11 @@ export function scanNode(
       for (let fi = 0; fi < fills.length; fi++) {
         if (!isColorFill(fills[fi])) continue;
 
+        let isIcon = isIconLike(node);
+        let catName: 'iconColors' | 'backgroundFills' = isIcon ? 'iconColors' : 'backgroundFills';
+
         // Check for zero-opacity fill (invisible — should be removed)
-        let fillOpacity = fills[fi].opacity;
-        if (fillOpacity !== null && fillOpacity !== undefined && fillOpacity === 0) {
-          let isIcon = isIconLike(node);
-          let catName: 'iconColors' | 'backgroundFills' = isIcon ? 'iconColors' : 'backgroundFills';
+        if (fills[fi].opacity === 0) {
           categories[catName].total++;
           categories[catName].unbound++;
           addViolation(
@@ -234,8 +234,6 @@ export function scanNode(
           continue;
         }
 
-        let isIcon = isIconLike(node);
-        let catName: 'iconColors' | 'backgroundFills' = isIcon ? 'iconColors' : 'backgroundFills';
         categories[catName].total++;
 
         let fillBound = isFillBound(node, 'fills', fi) || hasFillPaintStyle(node);
@@ -266,8 +264,7 @@ export function scanNode(
         if (!isColorFill(strokes[si])) continue;
 
         // Check for zero-opacity stroke (invisible — should be removed)
-        let strokeOpacity = strokes[si].opacity;
-        if (strokeOpacity !== null && strokeOpacity !== undefined && strokeOpacity === 0) {
+        if (strokes[si].opacity === 0) {
           categories.strokesBorders.total++;
           categories.strokesBorders.unbound++;
           addViolation(
