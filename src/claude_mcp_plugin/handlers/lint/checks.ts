@@ -221,6 +221,19 @@ export function scanNode(
 
         let isIcon = isIconLike(node);
         let catName: 'iconColors' | 'backgroundFills' = isIcon ? 'iconColors' : 'backgroundFills';
+
+        // Check for zero-opacity fill (invisible — should be removed)
+        if (fills[fi].opacity === 0) {
+          categories[catName].total++;
+          categories[catName].unbound++;
+          addViolation(
+            violations, violationsCappedRef, MAX_LINT_VIOLATIONS,
+            node, depth, 'MEDIUM', catName, 'fills[' + fi + ']',
+            'Fill with 0% opacity (invisible) — should be removed',
+          );
+          continue;
+        }
+
         categories[catName].total++;
 
         let fillBound = isFillBound(node, 'fills', fi) || hasFillPaintStyle(node);
@@ -249,6 +262,18 @@ export function scanNode(
     if (strokes && strokes !== (figma.mixed as unknown) && Array.isArray(strokes) && strokes.length > 0) {
       for (let si = 0; si < strokes.length; si++) {
         if (!isColorFill(strokes[si])) continue;
+
+        // Check for zero-opacity stroke (invisible — should be removed)
+        if (strokes[si].opacity === 0) {
+          categories.strokesBorders.total++;
+          categories.strokesBorders.unbound++;
+          addViolation(
+            violations, violationsCappedRef, MAX_LINT_VIOLATIONS,
+            node, depth, 'MEDIUM', 'strokesBorders', 'strokes[' + si + ']',
+            'Stroke with 0% opacity (invisible) — should be removed',
+          );
+          continue;
+        }
 
         categories.strokesBorders.total++;
         let strokeBound = isFillBound(node, 'strokes', si) || hasStrokePaintStyle(node);
