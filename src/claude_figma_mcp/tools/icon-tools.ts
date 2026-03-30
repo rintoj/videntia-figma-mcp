@@ -97,6 +97,56 @@ function buildIconSvg(svg: string, color: string, size: number): string {
 }
 
 /**
+ * Resolve create_icon params into the underlying create_svg params (+ optional insert_child).
+ * Exported for use by batch-tools to expand create_icon actions server-side.
+ */
+export function resolveCreateIconParams(params: {
+  parentId: string;
+  index?: number;
+  name: string;
+  color?: string;
+  colorVariable?: string;
+  size: number;
+}): {
+  createSvgParams: Record<string, unknown>;
+  insertChildIndex?: number;
+  iconName: string;
+} {
+  const { parentId, index, name: iconName, color, colorVariable, size } = params;
+  const icon = getIcon(iconName);
+  if (!icon) {
+    const suggestions = searchIcons(iconName, 5);
+    throw new Error(
+      `Icon "${iconName}" not found. Suggestions: ${suggestions.map((s) => s.name).join(", ")}`,
+    );
+  }
+
+  const effectiveColorVar =
+    colorVariable ??
+    (color !== undefined && color !== null && color !== "" && !looksLikeCssColor(color) ? color : undefined);
+  const effectiveCssColor =
+    color !== undefined && color !== null && color !== "" && looksLikeCssColor(color)
+      ? color
+      : "#000000";
+
+  const svgString = buildIconSvg(icon.svg, effectiveCssColor, size);
+
+  return {
+    createSvgParams: {
+      svgString,
+      x: 0,
+      y: 0,
+      name: icon.name,
+      parentId,
+      flatten: false,
+      colorVariable: effectiveColorVar,
+    },
+    insertChildIndex: index,
+    iconName: icon.name,
+  };
+}
+
+/**
  * Register icon lookup tools to the MCP server.
  * Pure server-side — no Figma communication required.
  */
