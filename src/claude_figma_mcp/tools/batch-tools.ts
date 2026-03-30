@@ -35,8 +35,6 @@ export function registerBatchTools(server: McpServer): void {
         // Pre-process: expand server-side-only commands (create_icon) into Figma-native commands.
         // create_icon → create_svg + optional insert_child (icon SVG resolved server-side).
         const expandedActions: typeof actions = [];
-        // Maps original action index → expanded index (for accurate error reporting)
-        const indexMap: Map<number, number> = new Map();
 
         for (let i = 0; i < actions.length; i++) {
           const { action, params: actionParams } = actions[i];
@@ -54,7 +52,6 @@ export function registerBatchTools(server: McpServer): void {
                 size: Number(p.size ?? 24),
               });
 
-              indexMap.set(i, expandedActions.length);
               expandedActions.push({
                 action: "create_svg",
                 params: resolved.createSvgParams as Record<string, unknown>,
@@ -72,7 +69,6 @@ export function registerBatchTools(server: McpServer): void {
               }
             } catch (error) {
               // Icon resolution failed — push a no-op that will surface the error clearly
-              indexMap.set(i, expandedActions.length);
               // Use a non-existent action that will fail in the plugin with a clear message
               expandedActions.push({
                 action: "create_icon",
@@ -82,7 +78,6 @@ export function registerBatchTools(server: McpServer): void {
               });
             }
           } else {
-            indexMap.set(i, expandedActions.length);
             expandedActions.push({ action, params: actionParams });
           }
         }
