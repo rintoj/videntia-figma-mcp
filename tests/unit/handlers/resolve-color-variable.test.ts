@@ -1,4 +1,4 @@
-import { resolveColorVariable } from "../../../src/hgraph_figma_plugin/handlers/icons";
+import { resolveColorVariable } from "../../../src/videntia_figma_plugin/handlers/icons";
 
 /**
  * Minimal Variable stub matching what resolveColorVariable needs.

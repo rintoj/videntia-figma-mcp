@@ -1,9 +1,9 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { registerDocumentTools } from "../../src/hgraph_figma_mcp/tools/document-tools";
-import type { GetDesignSystemResult } from "../../src/hgraph_figma_mcp/types/index";
+import { registerDocumentTools } from "../../src/videntia_figma_mcp/tools/document-tools";
+import type { GetDesignSystemResult } from "../../src/videntia_figma_mcp/types/index";
 
-jest.mock("../../src/hgraph_figma_mcp/utils/websocket", () => ({
+jest.mock("../../src/videntia_figma_mcp/utils/websocket", () => ({
   sendCommandToFigma: jest.fn(),
   joinChannel: jest.fn(),
   getOpenChannels: jest.fn().mockResolvedValue([]),
@@ -18,7 +18,7 @@ describe("get_design_system tool", () => {
   beforeEach(() => {
     server = new McpServer({ name: "test-server", version: "1.0.0" }, { capabilities: { tools: {} } });
 
-    mockSendCommand = require("../../src/hgraph_figma_mcp/utils/websocket").sendCommandToFigma;
+    mockSendCommand = require("../../src/videntia_figma_mcp/utils/websocket").sendCommandToFigma;
     mockSendCommand.mockClear();
 
     toolHandlers = new Map();

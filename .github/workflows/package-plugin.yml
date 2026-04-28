@@ -26,17 +26,17 @@ jobs:
       - name: Package Figma plugin
         run: |
           VERSION=$(jq -r '.version' package.json)
-          PLUGIN_ZIP="hgraph-figma-plugin-v${VERSION}.zip"
+          PLUGIN_ZIP="videntia-figma-plugin-v${VERSION}.zip"
           zip -j "$PLUGIN_ZIP" \
-            src/hgraph_figma_plugin/manifest.json \
-            src/hgraph_figma_plugin/code.js \
-            src/hgraph_figma_plugin/ui.html
+            src/videntia_figma_plugin/manifest.json \
+            src/videntia_figma_plugin/code.js \
+            src/videntia_figma_plugin/ui.html
           echo "plugin_zip=$PLUGIN_ZIP" >> $GITHUB_ENV
           echo "version=$VERSION" >> $GITHUB_ENV
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: hgraph-figma-plugin-${{ env.version }}
+          name: videntia-figma-plugin-${{ env.version }}
           path: ${{ env.plugin_zip }}
           retention-days: 90

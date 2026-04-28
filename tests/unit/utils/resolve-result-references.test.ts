@@ -1,5 +1,5 @@
-import { resolveResultReferences } from "../../../src/hgraph_figma_mcp/utils/resolve-result-references";
-import { BatchActionResult } from "../../../src/hgraph_figma_mcp/types";
+import { resolveResultReferences } from "../../../src/videntia_figma_mcp/utils/resolve-result-references";
+import { BatchActionResult } from "../../../src/videntia_figma_mcp/types";
 
 describe("resolveResultReferences", () => {
   const successResult = (index: number, result: any): BatchActionResult => ({

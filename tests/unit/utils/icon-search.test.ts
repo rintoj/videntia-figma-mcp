@@ -1,4 +1,4 @@
-import { searchIcons, getIcon, listIcons } from "../../../src/hgraph_figma_mcp/utils/icon-search";
+import { searchIcons, getIcon, listIcons } from "../../../src/videntia_figma_mcp/utils/icon-search";
 
 describe("icon-search", () => {
   describe("searchIcons", () => {

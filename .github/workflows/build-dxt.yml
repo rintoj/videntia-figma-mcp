@@ -59,9 +59,9 @@ jobs:
       run: |
         set -e
         echo "🔍 Validating build output..."
-        if [ ! -f "dist/hgraph_figma_mcp/server.cjs" ]; then
+        if [ ! -f "dist/videntia_figma_mcp/server.cjs" ]; then
           echo "❌ Error: Entry point not found after build"
-          echo "Expected: dist/hgraph_figma_mcp/server.cjs"
+          echo "Expected: dist/videntia_figma_mcp/server.cjs"
           ls -la dist/ || echo "dist/ directory not found"
           exit 1
         fi
@@ -83,12 +83,12 @@ jobs:
       run: |
         set -e
         VERSION=$(jq -r '.version' package.json)
-        PLUGIN_ZIP="hgraph-figma-plugin-v${VERSION}.zip"
+        PLUGIN_ZIP="videntia-figma-plugin-v${VERSION}.zip"
         echo "📦 Creating Figma plugin package: $PLUGIN_ZIP"
         zip -j "$PLUGIN_ZIP" \
-          src/hgraph_figma_plugin/manifest.json \
-          src/hgraph_figma_plugin/code.js \
-          src/hgraph_figma_plugin/ui.html
+          src/videntia_figma_plugin/manifest.json \
+          src/videntia_figma_plugin/code.js \
+          src/videntia_figma_plugin/ui.html
         echo "✅ Figma plugin package created: $PLUGIN_ZIP"
         echo "plugin_zip=$PLUGIN_ZIP" >> $GITHUB_ENV
 
@@ -108,7 +108,7 @@ jobs:
     - name: Upload Figma plugin artifact
       uses: actions/upload-artifact@v4
       with:
-        name: hgraph-figma-plugin-${{ steps.package.outputs.version }}
+        name: videntia-figma-plugin-${{ steps.package.outputs.version }}
         path: ${{ env.plugin_zip }}
         retention-days: 90
 

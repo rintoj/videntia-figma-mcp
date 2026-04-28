@@ -3,7 +3,7 @@ import { defineConfig } from 'tsup';
 export default defineConfig([
   // MCP server build (CJS + ESM)
   {
-    entry: ['src/hgraph_figma_mcp/server.ts', 'src/socket.ts'],
+    entry: ['src/videntia_figma_mcp/server.ts', 'src/socket.ts'],
     format: ['cjs', 'esm'],
     dts: true,
     clean: true,
@@ -16,8 +16,8 @@ export default defineConfig([
   },
   // Figma plugin build (IIFE, single bundled file)
   {
-    entry: { 'code': 'src/hgraph_figma_plugin/index.ts' },
-    outDir: 'src/hgraph_figma_plugin',
+    entry: { 'code': 'src/videntia_figma_plugin/index.ts' },
+    outDir: 'src/videntia_figma_plugin',
     format: ['iife'],
     target: 'es2017',
     bundle: true,

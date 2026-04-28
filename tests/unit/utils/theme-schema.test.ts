@@ -8,7 +8,7 @@ import {
   getScaleVariableNames,
   isStandardVariable,
   getStandardVariableOrder,
-} from "../../../src/hgraph_figma_mcp/utils/theme-schema";
+} from "../../../src/videntia_figma_mcp/utils/theme-schema";
 
 describe("Theme Schema", () => {
   describe("getStandardSchema", () => {

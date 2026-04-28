@@ -5,13 +5,13 @@ import { viteSingleFile } from 'vite-plugin-singlefile'
 
 export default defineConfig({
   plugins: [tailwindcss(), preact(), viteSingleFile()],
-  root: 'src/hgraph_figma_plugin/ui',
+  root: 'src/videntia_figma_plugin/ui',
   build: {
     outDir: '..',
     emptyOutDir: false,
     target: 'es2017',
     rollupOptions: {
-      input: 'src/hgraph_figma_plugin/ui/ui.html',
+      input: 'src/videntia_figma_plugin/ui/ui.html',
     },
   },
 })
