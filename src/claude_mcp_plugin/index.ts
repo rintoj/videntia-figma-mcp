@@ -243,10 +243,7 @@ figma.showUI(__html__, { width: 315, height: 430 });
 // Send file name to UI immediately on startup so it's available before WebSocket connects
 figma.ui.postMessage({ type: 'file-name', fileName: figma.root.name });
 
-// Auto-connect on plugin load
-figma.on('run', function () {
-  figma.ui.postMessage({ type: 'auto-connect' });
-});
+// Auto-connect is triggered after init-settings so saved URL/port are applied first.
 
 // Notify UI when the Figma selection changes
 figma.on('selectionchange', function () {
@@ -337,7 +334,7 @@ function updateSettings(settings: Record<string, unknown>): void {
       }
     }
 
-    // Send initial settings to UI
+    // Send initial settings then trigger auto-connect so the UI uses the saved URL/port.
     figma.ui.postMessage({
       type: 'init-settings',
       settings: {
@@ -351,6 +348,7 @@ function updateSettings(settings: Record<string, unknown>): void {
         activeTab: state.activeTab,
       },
     });
+    figma.ui.postMessage({ type: 'auto-connect' });
   } catch (error) {
     console.error('Error loading settings:', error);
   }
