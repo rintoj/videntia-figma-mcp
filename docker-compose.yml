@@ -5,10 +5,8 @@ services:
     restart: unless-stopped
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.videntia-figma-mcp.entrypoints=websecure"
+      - "traefik.http.routers.videntia-figma-mcp.entrypoints=web"
       - "traefik.http.routers.videntia-figma-mcp.rule=Host(`figma-mcp.videntia.dev`)"
-      - "traefik.http.routers.videntia-figma-mcp.tls=true"
-      - "traefik.http.routers.videntia-figma-mcp.tls.certresolver=letsencrypt"
       - "traefik.http.services.videntia-figma-mcp.loadbalancer.server.port=3055"
     networks:
       - dokploy-network
