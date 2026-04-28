@@ -7,7 +7,7 @@ COPY src/ ./src/
 COPY scripts/ ./scripts/
 
 RUN bun install --frozen-lockfile
-RUN bun run prebuild && bunx tsup && chmod +x dist/claude_figma_mcp/server.js dist/socket.js
+RUN bun run prebuild && bunx tsup && chmod +x dist/hgraph_figma_mcp/server.js dist/socket.js
 
 EXPOSE 3055
 

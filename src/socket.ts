@@ -1,499 +1,269 @@
-import { Server, ServerWebSocket } from "bun";
+import http from "node:http";
+import { WebSocketServer, WebSocket } from "ws";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
+import { SERVER_CONFIG, SERVER_INSTRUCTIONS } from "./hgraph_figma_mcp/config/config";
+import { registerTools } from "./hgraph_figma_mcp/tools";
+import { registerPrompts } from "./hgraph_figma_mcp/prompts";
 
 // Enhanced logging system
 const logger = {
-  info: (message: string, ...args: any[]) => {
-    console.log(`[INFO] ${message}`, ...args);
-  },
-  debug: (message: string, ...args: any[]) => {
-    console.log(`[DEBUG] ${message}`, ...args);
-  },
-  warn: (message: string, ...args: any[]) => {
-    console.warn(`[WARN] ${message}`, ...args);
-  },
-  error: (message: string, ...args: any[]) => {
-    console.error(`[ERROR] ${message}`, ...args);
-  },
+  info: (message: string, ...args: any[]) => console.log(`[INFO] ${message}`, ...args),
+  debug: (message: string, ...args: any[]) => console.log(`[DEBUG] ${message}`, ...args),
+  warn: (message: string, ...args: any[]) => console.warn(`[WARN] ${message}`, ...args),
+  error: (message: string, ...args: any[]) => console.error(`[ERROR] ${message}`, ...args),
 };
 
-// Store clients by channel
-const channels = new Map<string, Set<ServerWebSocket<any>>>();
+// ─── Figma relay state ────────────────────────────────────────────────────────
 
-// Store metadata per channel (e.g. Figma file name)
+const channels = new Map<string, Set<WebSocket>>();
 const channelMetadata = new Map<string, { fileName?: string; joinedAt: number }>();
-
-// WebSocket readyState constant (avoid depending on browser WebSocket global)
-const WS_OPEN = 1;
-
-// Keep track of channel statistics
-const stats = {
-  totalConnections: 0,
-  activeConnections: 0,
-  messagesSent: 0,
-  messagesReceived: 0,
-  errors: 0,
-};
+const stats = { totalConnections: 0, activeConnections: 0, messagesSent: 0, messagesReceived: 0, errors: 0 };
 
 function cleanupDeadConnections(): number {
-  let removedCount = 0;
-  for (const [channelName, clients] of channels) {
-    const deadClients: ServerWebSocket<any>[] = [];
-    for (const client of clients) {
-      if (client.readyState !== WS_OPEN) {
-        deadClients.push(client);
-      }
-    }
-    for (const dead of deadClients) {
-      clients.delete(dead);
-      removedCount++;
-    }
+  let removed = 0;
+  for (const [name, clients] of channels) {
+    const dead = [...clients].filter((c) => c.readyState !== WebSocket.OPEN);
+    dead.forEach((c) => clients.delete(c));
+    removed += dead.length;
     if (clients.size === 0) {
-      channels.delete(channelName);
-      channelMetadata.delete(channelName);
-      logger.info(`Removed stale channel: ${channelName}`);
+      channels.delete(name);
+      channelMetadata.delete(name);
+      logger.info(`Removed stale channel: ${name}`);
     }
   }
-  if (removedCount > 0) {
-    logger.info(`Cleanup: removed ${removedCount} dead connection(s)`);
-    // Decrement for zombie connections that died without triggering the close handler
-    stats.activeConnections = Math.max(0, stats.activeConnections - removedCount);
+  if (removed > 0) {
+    stats.activeConnections = Math.max(0, stats.activeConnections - removed);
+    logger.info(`Cleanup: removed ${removed} dead connection(s)`);
   }
-  return removedCount;
+  return removed;
 }
 
-function handleConnection(ws: ServerWebSocket<any>) {
-  // Track connection statistics
-  stats.totalConnections++;
-  stats.activeConnections++;
+function handleWebSocketMessage(ws: WebSocket, raw: string) {
+  const clientId: string = (ws as any)._clientId ?? "unknown";
+  stats.messagesReceived++;
+  const data = JSON.parse(raw);
 
-  // Assign a unique client ID for better tracking
-  const clientId = `client_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-  ws.data = { clientId };
-
-  // Don't add to clients immediately - wait for channel join
-  logger.info(`New client connected: ${clientId}`);
-
-  // Send welcome message to the new client
-  try {
-    ws.send(
-      JSON.stringify({
-        type: "system",
-        message: "Please join a channel to start communicating with Figma",
-      }),
-    );
-  } catch (error) {
-    logger.error(`Failed to send welcome message to client ${clientId}:`, error);
-    stats.errors++;
-  }
-}
-
-const server = Bun.serve({
-  port: 3055,
-  // uncomment this to allow connections in windows wsl
-  // hostname: "0.0.0.0",
-  fetch(req: Request, server: Server<any>) {
-    const url = new URL(req.url);
-
-    // Log incoming requests
-    logger.debug(`Received ${req.method} request to ${url.pathname}`);
-
-    // Handle CORS preflight
-    if (req.method === "OPTIONS") {
-      return new Response(null, {
-        headers: {
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-          "Access-Control-Allow-Headers": "Content-Type, Authorization",
-        },
-      });
+  if (data.type === "join") {
+    let channelName: string = data.channel;
+    if (!channelName) {
+      ws.send(JSON.stringify({ type: "error", message: "Channel name is required" }));
+      return;
     }
 
-    // Handle status endpoint
-    if (url.pathname === "/status") {
-      return new Response(
-        JSON.stringify({
-          status: "running",
-          uptime: process.uptime(),
-          stats,
-        }),
-        {
-          headers: {
-            "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": "*",
-          },
-        },
-      );
-    }
-
-    // Handle channels endpoint - list all active channels with metadata
-    if (url.pathname === "/channels") {
-      cleanupDeadConnections();
-      const channelList = Array.from(channels.entries()).map(([name, clients]) => ({
-        channel: name,
-        clients: clients.size,
-        fileName: channelMetadata.get(name)?.fileName ?? null,
-        joinedAt: channelMetadata.get(name)?.joinedAt ?? null,
-      }));
-      return new Response(JSON.stringify(channelList), {
-        headers: {
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*",
-        },
-      });
-    }
-
-    // Handle WebSocket upgrade
-    try {
-      const success = server.upgrade(req, {
-        headers: {
-          "Access-Control-Allow-Origin": "*",
-        },
-      });
-
-      if (success) {
-        return; // Upgraded to WebSocket
+    // Remove stale channels with same fileName
+    if (data.fileName) {
+      for (const [existing, clients] of channels) {
+        if (existing === channelName) continue;
+        if (channelMetadata.get(existing)?.fileName === data.fileName) {
+          clients.forEach((c) => c.close(1000, "Replaced by new connection"));
+          channels.delete(existing);
+          channelMetadata.delete(existing);
+          logger.info(`Removed stale channel ${existing} for file "${data.fileName}"`);
+        }
       }
-    } catch (error) {
-      logger.error("Failed to upgrade WebSocket connection:", error);
-      stats.errors++;
-      return new Response("Failed to upgrade to WebSocket", { status: 500 });
     }
 
-    // Return response for non-WebSocket requests
-    return new Response("Claude to Figma WebSocket server running. Try connecting with a WebSocket client.", {
-      headers: {
-        "Content-Type": "text/plain",
-        "Access-Control-Allow-Origin": "*",
-      },
+    // Deduplicate channel name
+    if (data.fileName && channels.has(channelName)) {
+      const existingMeta = channelMetadata.get(channelName);
+      if (existingMeta?.fileName && existingMeta.fileName !== data.fileName) {
+        let counter = 2;
+        let candidate = channelName;
+        while (channels.has(candidate) && channelMetadata.get(candidate)?.fileName !== data.fileName) {
+          candidate = `${channelName}-${counter++}`;
+        }
+        channelName = candidate;
+      }
+    }
+
+    if (!channels.has(channelName)) channels.set(channelName, new Set());
+    const channelClients = channels.get(channelName)!;
+    channelClients.add(ws);
+    (ws as any)._channel = channelName;
+    logger.info(`Client ${clientId} joined channel: ${channelName}`);
+
+    if (!channelMetadata.has(channelName)) {
+      channelMetadata.set(channelName, { fileName: data.fileName, joinedAt: Date.now() });
+    } else if (data.fileName) {
+      channelMetadata.get(channelName)!.fileName = data.fileName;
+    }
+
+    ws.send(JSON.stringify({ type: "system", message: `Joined channel: ${channelName}`, channel: channelName }));
+    ws.send(JSON.stringify({ type: "system", message: { id: data.id, result: `Connected to channel: ${channelName}` }, channel: channelName }));
+    stats.messagesSent += 2;
+
+    channelClients.forEach((c) => {
+      if (c !== ws && c.readyState === WebSocket.OPEN) {
+        c.send(JSON.stringify({ type: "system", event: "client_connected", message: "A new client has joined the channel", channel: channelName, clients: channelClients.size }));
+        stats.messagesSent++;
+      }
     });
-  },
-  websocket: {
-    idleTimeout: 60,
-    sendPings: true,
-    open: handleConnection,
-    message(ws: ServerWebSocket<any>, message: string | Buffer) {
-      try {
-        stats.messagesReceived++;
-        const clientId = ws.data?.clientId || "unknown";
+    return;
+  }
 
-        logger.debug(`Received message from client ${clientId}:`, typeof message === "string" ? message : "<binary>");
-        const data = JSON.parse(message as string);
-
-        if (data.type === "join") {
-          let channelName = data.channel;
-          if (!channelName || typeof channelName !== "string") {
-            logger.warn(`Client ${clientId} attempted to join without a valid channel name`);
-            ws.send(
-              JSON.stringify({
-                type: "error",
-                message: "Channel name is required",
-              }),
-            );
-            stats.messagesSent++;
-            return;
-          }
-
-          // Remove stale channels with the same fileName (plugin reconnected with new channel ID)
-          // A Figma file can only run one plugin instance at a time, so when a new
-          // join arrives with the same fileName but a different channel name, the old
-          // channel is definitively stale — forcibly close and remove it.
-          if (data.fileName) {
-            for (const [existingChannel, existingClients] of channels) {
-              if (existingChannel === channelName) continue;
-              const meta = channelMetadata.get(existingChannel);
-              if (meta?.fileName === data.fileName) {
-                for (const client of existingClients) {
-                  try {
-                    client.close(1000, "Replaced by new connection");
-                  } catch (_) {}
-                }
-                channels.delete(existingChannel);
-                channelMetadata.delete(existingChannel);
-                logger.info(
-                  `Removed stale channel ${existingChannel} for file "${data.fileName}" (replaced by ${channelName})`,
-                );
-              }
-            }
-          }
-
-          // Deduplicate channel name: if taken by a different file, append -2, -3, etc.
-          if (data.fileName && channels.has(channelName)) {
-            const existingMeta = channelMetadata.get(channelName);
-            if (existingMeta?.fileName && existingMeta.fileName !== data.fileName) {
-              let candidate = channelName;
-              let counter = 2;
-              while (channels.has(candidate)) {
-                const meta = channelMetadata.get(candidate);
-                if (!meta?.fileName || meta.fileName === data.fileName) break;
-                candidate = channelName + "-" + counter;
-                counter++;
-              }
-              channelName = candidate;
-            }
-          }
-
-          // Create channel if it doesn't exist
-          if (!channels.has(channelName)) {
-            logger.info(`Creating new channel: ${channelName}`);
-            channels.set(channelName, new Set());
-          }
-
-          // Add client to channel
-          const channelClients = channels.get(channelName)!;
-          channelClients.add(ws);
-          ws.data.channel = channelName;
-          logger.info(`Client ${clientId} joined channel: ${channelName}`);
-
-          // Store channel metadata (file name from Figma plugin)
-          if (!channelMetadata.has(channelName)) {
-            channelMetadata.set(channelName, {
-              fileName: data.fileName || undefined,
-              joinedAt: Date.now(),
-            });
-          } else if (data.fileName) {
-            const existing = channelMetadata.get(channelName)!;
-            existing.fileName = data.fileName;
-          }
-
-          // Notify client they joined successfully
-          try {
-            ws.send(
-              JSON.stringify({
-                type: "system",
-                message: `Joined channel: ${channelName}`,
-                channel: channelName,
-              }),
-            );
-            stats.messagesSent++;
-
-            ws.send(
-              JSON.stringify({
-                type: "system",
-                message: {
-                  id: data.id,
-                  result: "Connected to channel: " + channelName,
-                },
-                channel: channelName,
-              }),
-            );
-            stats.messagesSent++;
-
-            logger.debug(`Connection confirmation sent to client ${clientId} for channel ${channelName}`);
-          } catch (error) {
-            logger.error(`Failed to send join confirmation to client ${clientId}:`, error);
-            stats.errors++;
-          }
-
-          // Notify other clients in channel
-          try {
-            let notificationCount = 0;
-            channelClients.forEach((client) => {
-              if (client !== ws && client.readyState === WS_OPEN) {
-                client.send(
-                  JSON.stringify({
-                    type: "system",
-                    event: "client_connected",
-                    message: "A new client has joined the channel",
-                    channel: channelName,
-                    clients: channelClients.size,
-                  }),
-                );
-                stats.messagesSent++;
-                notificationCount++;
-              }
-            });
-            if (notificationCount > 0) {
-              logger.debug(`Notified ${notificationCount} other clients in channel ${channelName}`);
-            }
-          } catch (error) {
-            logger.error(`Error notifying channel about new client:`, error);
-            stats.errors++;
-          }
-
-          return;
-        }
-
-        // Handle regular messages
-        if (data.type === "message") {
-          const channelName = data.channel;
-          if (!channelName || typeof channelName !== "string") {
-            logger.warn(`Client ${clientId} sent message without a valid channel name`);
-            ws.send(
-              JSON.stringify({
-                type: "error",
-                message: "Channel name is required",
-              }),
-            );
-            stats.messagesSent++;
-            return;
-          }
-
-          const channelClients = channels.get(channelName);
-          if (!channelClients || !channelClients.has(ws)) {
-            logger.warn(`Client ${clientId} attempted to send to channel ${channelName} without joining first`);
-            ws.send(
-              JSON.stringify({
-                type: "error",
-                message: "You must join the channel first",
-              }),
-            );
-            stats.messagesSent++;
-            return;
-          }
-
-          // Broadcast to all OTHER clients in the channel (not the sender)
-          try {
-            let broadcastCount = 0;
-            channelClients.forEach((client) => {
-              // Only send to other clients, not back to the sender
-              if (client !== ws && client.readyState === WS_OPEN) {
-                logger.debug(`Broadcasting message to peer in channel ${channelName}`);
-                client.send(
-                  JSON.stringify({
-                    type: "broadcast",
-                    message: data.message,
-                    sender: "User",
-                    channel: channelName,
-                  }),
-                );
-                stats.messagesSent++;
-                broadcastCount++;
-              }
-            });
-            logger.info(`Broadcasted message to ${broadcastCount} peer(s) in channel ${channelName}`);
-
-            if (broadcastCount === 0) {
-              logger.warn(`No recipients for message in channel ${channelName}`);
-              try {
-                ws.send(
-                  JSON.stringify({
-                    type: "broadcast",
-                    message: {
-                      id: data.message?.id,
-                      error:
-                        "No Figma plugin is connected on this channel. The plugin may have been closed or reloaded.",
-                    },
-                    channel: channelName,
-                  }),
-                );
-                stats.messagesSent++;
-              } catch (sendError) {
-                logger.error(`Failed to send no-recipient error:`, sendError);
-                stats.errors++;
-              }
-            }
-          } catch (error) {
-            logger.error(`Error broadcasting message to channel ${channelName}:`, error);
-            stats.errors++;
-          }
-        }
-
-        // Handle progress updates
-        if (data.type === "progress_update") {
-          const channelName = data.channel;
-          if (!channelName || typeof channelName !== "string") {
-            logger.warn(`Client ${clientId} sent progress update without a valid channel name`);
-            return;
-          }
-
-          const channelClients = channels.get(channelName);
-          if (!channelClients) {
-            logger.warn(`Progress update for non-existent channel: ${channelName}`);
-            return;
-          }
-
-          logger.debug(
-            `Progress update for command ${data.id} in channel ${channelName}: ${data.message?.data?.status || "unknown"} - ${data.message?.data?.progress || 0}%`,
-          );
-
-          // Broadcast progress update to all clients in the channel
-          try {
-            channelClients.forEach((client) => {
-              if (client.readyState === WS_OPEN) {
-                client.send(JSON.stringify(data));
-                stats.messagesSent++;
-              }
-            });
-          } catch (error) {
-            logger.error(`Error broadcasting progress update:`, error);
-            stats.errors++;
-          }
-        }
-      } catch (err) {
-        stats.errors++;
-        logger.error("Error handling message:", err);
-        try {
-          // Send error back to client
-          ws.send(
-            JSON.stringify({
-              type: "error",
-              message: "Error processing your message: " + (err instanceof Error ? err.message : String(err)),
-            }),
-          );
-          stats.messagesSent++;
-        } catch (sendError) {
-          logger.error("Failed to send error message to client:", sendError);
-        }
+  if (data.type === "message") {
+    const channelName: string = data.channel;
+    const channelClients = channels.get(channelName);
+    if (!channelClients?.has(ws)) {
+      ws.send(JSON.stringify({ type: "error", message: "You must join the channel first" }));
+      return;
+    }
+    let broadcastCount = 0;
+    channelClients.forEach((c) => {
+      if (c !== ws && c.readyState === WebSocket.OPEN) {
+        c.send(JSON.stringify({ type: "broadcast", message: data.message, sender: "User", channel: channelName }));
+        stats.messagesSent++;
+        broadcastCount++;
       }
-    },
-    close(ws: ServerWebSocket<any>, code: number, reason: string) {
-      const clientId = ws.data?.clientId || "unknown";
-      logger.info(`WebSocket closed for client ${clientId}: Code ${code}, Reason: ${reason || "No reason provided"}`);
+    });
+    if (broadcastCount === 0) {
+      ws.send(JSON.stringify({ type: "broadcast", message: { id: data.message?.id, error: "No Figma plugin is connected on this channel." }, channel: channelName }));
+      stats.messagesSent++;
+    }
+    logger.info(`Broadcasted message to ${broadcastCount} peer(s) in channel ${channelName}`);
+    return;
+  }
 
-      // Remove client from their channel
-      const channelName = ws.data?.channel;
-      if (channelName) {
-        const clients = channels.get(channelName);
-        if (clients) {
-          clients.delete(ws);
-          logger.debug(`Removed client ${clientId} from channel ${channelName}`);
+  if (data.type === "progress_update") {
+    const channelClients = channels.get(data.channel);
+    channelClients?.forEach((c) => {
+      if (c.readyState === WebSocket.OPEN) { c.send(JSON.stringify(data)); stats.messagesSent++; }
+    });
+  }
+}
 
-          // Notify remaining clients about disconnection
-          clients.forEach((client) => {
-            if (client.readyState === WS_OPEN) {
-              try {
-                client.send(
-                  JSON.stringify({
-                    type: "system",
-                    event: "client_disconnected",
-                    message: "A client has left the channel",
-                    channel: channelName,
-                    clients: clients.size,
-                  }),
-                );
-                stats.messagesSent++;
-              } catch (error) {
-                logger.error(`Failed to send disconnect notification:`, error);
-              }
-            }
-          });
+// ─── MCP server factory ───────────────────────────────────────────────────────
 
-          if (clients.size === 0) {
-            channels.delete(channelName);
-            channelMetadata.delete(channelName);
-            logger.info(`Removed empty channel: ${channelName}`);
-          }
-        }
-      }
+function createMcpServer() {
+  const server = new McpServer(SERVER_CONFIG, { instructions: SERVER_INSTRUCTIONS });
+  registerTools(server);
+  registerPrompts(server);
+  return server;
+}
 
-      stats.activeConnections = Math.max(0, stats.activeConnections - 1);
-    },
-    drain(ws: ServerWebSocket<any>) {
-      const clientId = ws.data?.clientId || "unknown";
-      logger.debug(`WebSocket backpressure relieved for client ${clientId}`);
-    },
-  },
+// ─── HTTP server (shared) ─────────────────────────────────────────────────────
+
+const PORT = 3055;
+
+// Map sessionId → SSEServerTransport for routing POST /message requests
+const sseTransports = new Map<string, SSEServerTransport>();
+
+const httpServer = http.createServer(async (req, res) => {
+  const url = new URL(req.url ?? "/", `http://localhost`);
+
+  // CORS
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+  if (req.method === "OPTIONS") { res.writeHead(204); res.end(); return; }
+
+  // Status
+  if (url.pathname === "/status") {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ status: "running", uptime: process.uptime(), stats }));
+    return;
+  }
+
+  // Channels
+  if (url.pathname === "/channels") {
+    cleanupDeadConnections();
+    const list = [...channels.entries()].map(([name, clients]) => ({
+      channel: name, clients: clients.size,
+      fileName: channelMetadata.get(name)?.fileName ?? null,
+      joinedAt: channelMetadata.get(name)?.joinedAt ?? null,
+    }));
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify(list));
+    return;
+  }
+
+  // MCP SSE: GET /sse → open SSE stream
+  if (url.pathname === "/sse" && req.method === "GET") {
+    const transport = new SSEServerTransport("/message", res);
+    const mcpServer = createMcpServer();
+    sseTransports.set(transport.sessionId, transport);
+    transport.onclose = () => { sseTransports.delete(transport.sessionId); logger.info(`MCP session closed: ${transport.sessionId}`); };
+    await mcpServer.connect(transport);
+    logger.info(`MCP session started: ${transport.sessionId}`);
+    return;
+  }
+
+  // MCP SSE: POST /message → deliver JSON-RPC message to session
+  if (url.pathname === "/message" && req.method === "POST") {
+    const sessionId = url.searchParams.get("sessionId");
+    const transport = sessionId ? sseTransports.get(sessionId) : undefined;
+    if (!transport) {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Session not found" }));
+      return;
+    }
+    await transport.handlePostMessage(req, res);
+    return;
+  }
+
+  // Default
+  res.writeHead(200, { "Content-Type": "text/plain" });
+  res.end("Claude to Figma WebSocket server running. Try connecting with a WebSocket client.");
 });
 
-logger.info(`Claude to Figma WebSocket server running on port ${server.port}`);
-logger.info(`Status endpoint available at http://localhost:${server.port}/status`);
-logger.info(`Channels endpoint available at http://localhost:${server.port}/channels`);
+// ─── WebSocket server (attached to same http server) ─────────────────────────
 
-// Periodic cleanup of dead connections and stats logging
+const wss = new WebSocketServer({ server: httpServer });
+
+wss.on("connection", (ws) => {
+  stats.totalConnections++;
+  stats.activeConnections++;
+  const clientId = `client_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+  (ws as any)._clientId = clientId;
+  logger.info(`New client connected: ${clientId}`);
+
+  ws.send(JSON.stringify({ type: "system", message: "Please join a channel to start communicating with Figma" }));
+  stats.messagesSent++;
+
+  ws.on("message", (raw) => {
+    try { handleWebSocketMessage(ws, raw.toString()); }
+    catch (err) {
+      stats.errors++;
+      logger.error("Error handling message:", err);
+      ws.send(JSON.stringify({ type: "error", message: `Error processing message: ${err instanceof Error ? err.message : String(err)}` }));
+    }
+  });
+
+  ws.on("close", (code, reason) => {
+    logger.info(`Client ${clientId} disconnected: ${code} ${reason || ""}`);
+    const channelName: string | undefined = (ws as any)._channel;
+    if (channelName) {
+      const clients = channels.get(channelName);
+      if (clients) {
+        clients.delete(ws);
+        clients.forEach((c) => {
+          if (c.readyState === WebSocket.OPEN) {
+            c.send(JSON.stringify({ type: "system", event: "client_disconnected", message: "A client has left the channel", channel: channelName, clients: clients.size }));
+            stats.messagesSent++;
+          }
+        });
+        if (clients.size === 0) { channels.delete(channelName); channelMetadata.delete(channelName); }
+      }
+    }
+    stats.activeConnections = Math.max(0, stats.activeConnections - 1);
+  });
+});
+
+// ─── Start ────────────────────────────────────────────────────────────────────
+
+httpServer.listen(PORT, () => {
+  logger.info(`Claude to Figma WebSocket server running on port ${PORT}`);
+  logger.info(`Status endpoint available at http://localhost:${PORT}/status`);
+  logger.info(`Channels endpoint available at http://localhost:${PORT}/channels`);
+  logger.info(`MCP SSE endpoint: http://localhost:${PORT}/sse`);
+});
+
+// Periodic cleanup
 const CLEANUP_INTERVAL_MS = 30_000;
 const STATS_LOG_INTERVAL_MS = 5 * 60_000;
 let lastStatsLog = Date.now();
-
 setInterval(() => {
   const removed = cleanupDeadConnections();
   const now = Date.now();

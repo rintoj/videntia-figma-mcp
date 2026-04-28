@@ -16,7 +16,12 @@ export const reconnectInterval = reconnectArg ? parseInt(reconnectArg.split("=")
 export const figmaAccessToken = figmaTokenArg ? figmaTokenArg.split("=")[1] : process.env.FIGMA_ACCESS_TOKEN || "";
 
 // URL de WebSocket basada en el servidor (WS para localhost, WSS para remoto)
-export const WS_URL = serverUrl === "localhost" ? `ws://${serverUrl}` : `wss://${serverUrl}`;
+// Allow full override via FIGMA_SOCKET_URL env var (used in Docker)
+export const WS_URL = process.env.FIGMA_SOCKET_URL
+  ? process.env.FIGMA_SOCKET_URL
+  : serverUrl === "localhost"
+    ? `ws://${serverUrl}`
+    : `wss://${serverUrl}`;
 
 // Figma REST API base URL
 export const FIGMA_API_BASE_URL = "https://api.figma.com/v1";

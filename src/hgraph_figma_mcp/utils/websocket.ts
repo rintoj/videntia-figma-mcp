@@ -178,14 +178,26 @@ export function connectToFigma(port: number = defaultPort) {
 }
 
 /**
+ * Waits until the WebSocket is OPEN, initiating a connection if needed.
+ */
+async function waitForConnection(timeoutMs = 10000): Promise<void> {
+  if (ws?.readyState === WebSocket.OPEN) return;
+  connectToFigma();
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    if (ws?.readyState === WebSocket.OPEN) return;
+    await new Promise((r) => setTimeout(r, 100));
+  }
+  throw new Error("Not connected to Figma");
+}
+
+/**
  * Join a specific channel in Figma.
  * @param channelName - Name of the channel to join
  * @returns Promise that resolves when successfully joined the channel
  */
 export async function joinChannel(channelName: string): Promise<void> {
-  if (!ws || ws.readyState !== WebSocket.OPEN) {
-    throw new Error("Not connected to Figma");
-  }
+  await waitForConnection();
 
   // Validate the channel exists and has a Figma plugin connected
   try {
@@ -256,11 +268,20 @@ export function sendCommandToFigma<T = unknown>(
   params: unknown = {},
   timeoutMs: number = 30000,
 ): Promise<T> {
+  return waitForConnection().then(
+    () => _sendCommandToFigma<T>(command, params, timeoutMs),
+    (err) => Promise.reject(err),
+  ) as Promise<T>;
+}
+
+function _sendCommandToFigma<T = unknown>(
+  command: FigmaCommand,
+  params: unknown = {},
+  timeoutMs: number = 30000,
+): Promise<T> {
   return new Promise((resolve, reject) => {
-    // If not connected, try to connect first
     if (!ws || ws.readyState !== WebSocket.OPEN) {
-      connectToFigma();
-      reject(new Error("Not connected to Figma. Attempting to connect..."));
+      reject(new Error("Not connected to Figma"));
       return;
     }
 
