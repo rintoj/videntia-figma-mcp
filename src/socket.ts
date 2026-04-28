@@ -1,7 +1,10 @@
 import http from "node:http";
+import { randomUUID } from "node:crypto";
 import { WebSocketServer, WebSocket } from "ws";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import { SERVER_CONFIG, SERVER_INSTRUCTIONS } from "./videntia_figma_mcp/config/config";
 import { registerTools } from "./videntia_figma_mcp/tools";
 import { registerPrompts } from "./videntia_figma_mcp/prompts";
@@ -149,15 +152,31 @@ const PORT = 3055;
 // Map sessionId → SSEServerTransport for routing POST /message requests
 const sseTransports = new Map<string, SSEServerTransport>();
 
-const httpServer = http.createServer(async (req, res) => {
+// Map sessionId → StreamableHTTPServerTransport for /mcp endpoint
+const streamableTransports = new Map<string, StreamableHTTPServerTransport>();
+
+const httpServer = http.createServer(async (reqOrig, res) => {
+  let req: typeof reqOrig = reqOrig;
   const url = new URL(req.url ?? "/", `http://localhost`);
 
   // CORS
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Accept, Mcp-Session-Id");
 
   if (req.method === "OPTIONS") { res.writeHead(204); res.end(); return; }
+
+  // Log all incoming requests for debugging
+  logger.info(`${req.method} ${url.pathname} accept="${req.headers["accept"]}" origin="${req.headers["origin"] ?? ""}"`)
+
+  // OAuth discovery endpoints — required by MCP clients that probe for auth (e.g. Replit).
+  // We return minimal metadata indicating this server requires no authentication.
+  // OAuth/OIDC discovery endpoints — return 404 to indicate no auth required
+  if (url.pathname.startsWith("/.well-known/")) {
+    res.writeHead(404, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "Not configured" }));
+    return;
+  }
 
   // Status
   if (url.pathname === "/status") {
@@ -177,6 +196,96 @@ const httpServer = http.createServer(async (req, res) => {
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify(list));
     return;
+  }
+
+  // MCP Streamable HTTP: POST/GET /mcp (modern transport for Replit, Claude.ai, etc.)
+  if (url.pathname === "/mcp") {
+    // SDK 1.29+ uses Hono's getRequestListener to convert IncomingMessage → Web Request,
+    // which reads rawHeaders (not the parsed headers object). Patch both to satisfy the
+    // SDK's Accept header check when the client (e.g. Replit) omits the required values.
+    const origAccept = req.headers["accept"] ?? "";
+    if (!origAccept.includes("application/json") || !origAccept.includes("text/event-stream")) {
+      const REQUIRED_ACCEPT = "application/json, text/event-stream";
+      // Patch parsed headers
+      try { Object.defineProperty(req.headers, "accept", { value: REQUIRED_ACCEPT, writable: true, configurable: true, enumerable: true }); }
+      catch { req.headers["accept"] = REQUIRED_ACCEPT; }
+      // Patch raw headers array used by Hono's Node→Web conversion
+      const raw = req.rawHeaders;
+      const idx = raw.findIndex((h, i) => i % 2 === 0 && h.toLowerCase() === "accept");
+      if (idx >= 0) {
+        raw[idx + 1] = REQUIRED_ACCEPT;
+      } else {
+        raw.push("Accept", REQUIRED_ACCEPT);
+      }
+    }
+
+    if (req.method === "POST") {
+      let body = "";
+      req.on("data", (chunk) => { body += chunk; });
+      req.on("end", async () => {
+        try {
+          logger.info(`/mcp raw body(${body.length}): ${body.substring(0, 200)}`);
+          const parsedBody = JSON.parse(body);
+          const sessionId = req.headers["mcp-session-id"] as string | undefined;
+          let transport: StreamableHTTPServerTransport;
+
+          if (sessionId && streamableTransports.has(sessionId)) {
+            transport = streamableTransports.get(sessionId)!;
+          } else if (!sessionId && isInitializeRequest(parsedBody)) {
+            transport = new StreamableHTTPServerTransport({ sessionIdGenerator: () => randomUUID(), enableJsonResponse: true });
+            const mcpServer = createMcpServer();
+            transport.onclose = () => {
+              // Delay cleanup so follow-up requests (e.g. notifications/initialized) can still route here
+              const sid = transport.sessionId;
+              if (sid) setTimeout(() => streamableTransports.delete(sid), 60_000);
+            };
+            await mcpServer.connect(transport);
+          } else {
+            res.writeHead(400, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ error: "Bad request: missing or invalid session" }));
+            return;
+          }
+
+          logger.info(`/mcp body method="${parsedBody?.method}" id="${parsedBody?.id}"`);
+          await transport.handleRequest(req, res, parsedBody);
+
+          // sessionId is set by handleRequest after processing initialize
+          if (isInitializeRequest(parsedBody) && transport.sessionId && !streamableTransports.has(transport.sessionId)) {
+            streamableTransports.set(transport.sessionId, transport);
+            logger.info(`Streamable MCP session stored: ${transport.sessionId}`);
+          }
+        } catch (err) {
+          logger.error("Error handling /mcp POST:", err);
+          res.writeHead(500, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: "Internal server error" }));
+        }
+      });
+      return;
+    }
+
+    if (req.method === "GET") {
+      const sessionId = req.headers["mcp-session-id"] as string | undefined;
+      const transport = sessionId ? streamableTransports.get(sessionId) : undefined;
+      if (!transport) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Session not found" }));
+        return;
+      }
+      await transport.handleRequest(req, res);
+      return;
+    }
+
+    if (req.method === "DELETE") {
+      const sessionId = req.headers["mcp-session-id"] as string | undefined;
+      const transport = sessionId ? streamableTransports.get(sessionId) : undefined;
+      if (transport) {
+        await transport.handleRequest(req, res);
+        streamableTransports.delete(sessionId!);
+      } else {
+        res.writeHead(404); res.end();
+      }
+      return;
+    }
   }
 
   // MCP SSE: GET /sse → open SSE stream
