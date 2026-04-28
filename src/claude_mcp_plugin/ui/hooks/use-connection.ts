@@ -114,15 +114,20 @@ export function useConnection() {
 
   function scheduleReconnect(wasConnected: boolean) {
     cancelReconnect()
+
+    // Only auto-reconnect if the connection was previously working.
+    // For initial connection failures, just show the error and let the user retry manually.
+    if (!wasConnected) {
+      updateConnectionStatus(false, 'Connection failed', 'info')
+      return
+    }
+
     var delay = Math.min(
       RECONNECT_BASE_DELAY * Math.pow(2, reconnectAttemptRef.current),
       RECONNECT_MAX_DELAY
     )
     var seconds = Math.round(delay / 1000)
-    var msg = wasConnected
-      ? 'Connection lost. Reconnecting in ' + seconds + 's...'
-      : 'Connection failed. Retrying in ' + seconds + 's...'
-    updateConnectionStatus(false, msg, 'info')
+    updateConnectionStatus(false, 'Connection lost. Reconnecting in ' + seconds + 's...', 'info')
 
     reconnectTimerRef.current = setTimeout(function () {
       reconnectAttemptRef.current++
@@ -238,10 +243,17 @@ export function useConnection() {
     }
 
     serverPortRef.current = port
-    var url = serverUrlRef.current
-      ? (serverSecureRef.current ? 'wss://' : 'ws://') + serverUrlRef.current
-      : 'ws://localhost:' + port
-    var ws = new WebSocket(url)
+    var host = serverUrlRef.current || 'localhost'
+    var isLocalhost = host === 'localhost' || host === '127.0.0.1'
+    var protocol = serverSecureRef.current ? 'wss://' : 'ws://'
+    var url = isLocalhost ? 'ws://localhost:' + port : protocol + host
+    var ws: WebSocket
+    try {
+      ws = new WebSocket(url)
+    } catch (e: any) {
+      updateConnectionStatus(false, 'Connection failed', 'info')
+      return
+    }
     socketRef.current = ws
 
     ws.onopen = function () {

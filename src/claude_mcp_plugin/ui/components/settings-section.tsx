@@ -1,6 +1,7 @@
 import { h } from 'preact'
 import { useState } from 'preact/hooks'
 import { Toggle } from './toggle'
+import { SERVER_OPTIONS } from '../constants'
 
 interface SettingsSectionProps {
   port: number
@@ -17,7 +18,8 @@ interface SettingsSectionProps {
 
 export function SettingsSection({ port, serverUrl, serverSecure, readOnly, autoFocus, onPortChange, onServerUrlChange, onServerSecureChange, onReadOnlyChange, onAutoFocusChange }: SettingsSectionProps) {
   var [editPort, setEditPort] = useState(String(port))
-  var [editUrl, setEditUrl] = useState(serverUrl)
+
+  var selectedOption = SERVER_OPTIONS.find(function (o) { return o.host === serverUrl }) || SERVER_OPTIONS[0]
 
   function handlePortBlur() {
     var parsed = parseInt(editPort, 10)
@@ -34,17 +36,10 @@ export function SettingsSection({ port, serverUrl, serverSecure, readOnly, autoF
     }
   }
 
-  function handleUrlBlur() {
-    var trimmed = editUrl.trim()
-    if (trimmed !== serverUrl) {
-      onServerUrlChange(trimmed)
-    }
-  }
-
-  function handleUrlKeyDown(e: KeyboardEvent) {
-    if (e.key === 'Enter') {
-      (e.target as HTMLInputElement).blur()
-    }
+  function handleHostChange(host: string) {
+    var option = SERVER_OPTIONS.find(function (o) { return o.host === host }) || SERVER_OPTIONS[0]
+    onServerUrlChange(option.host)
+    onServerSecureChange(option.defaultSecure)
   }
 
   return (
@@ -56,32 +51,34 @@ export function SettingsSection({ port, serverUrl, serverSecure, readOnly, autoF
           <span class="text-muted-foreground text-xs font-medium leading-4">WebSocket server URL and port</span>
         </div>
         <div class="flex border border-border rounded-md overflow-hidden hover:border-input focus-within:border-ring">
-          <button
-            class={'flex items-center px-2 text-xs font-mono font-semibold border-r border-border transition-colors whitespace-nowrap ' + (serverSecure ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-accent hover:text-foreground')}
-            onClick={function () { onServerSecureChange(!serverSecure) }}
-            title={'Switch to ' + (serverSecure ? 'ws://' : 'wss://')}
-          >{serverSecure ? 'wss' : 'ws'}://</button>
-          <input
-            type="text"
-            value={editUrl}
-            placeholder={serverUrl || 'figma-mcp.videntia.dev'}
-            onInput={function (e) { setEditUrl((e.target as HTMLInputElement).value) }}
-            onBlur={handleUrlBlur}
-            onKeyDown={handleUrlKeyDown}
-            class="py-1.5 px-1.5 text-sm bg-transparent text-foreground outline-none flex-1 min-w-0"
-          />
-          <span class="flex items-center text-border text-sm select-none">|</span>
-          <input
-            type="number"
-            value={editPort}
-            placeholder={String(port)}
-            min={1024}
-            max={65535}
-            onInput={function (e) { setEditPort((e.target as HTMLInputElement).value) }}
-            onBlur={handlePortBlur}
-            onKeyDown={handlePortKeyDown}
-            class="py-1.5 px-1 text-sm bg-transparent text-foreground outline-none w-[56px] text-center"
-          />
+          <span class={'flex items-center px-2 text-xs font-mono font-semibold border-r border-border whitespace-nowrap select-none ' + (serverSecure ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground')}>
+            {serverSecure ? 'wss' : 'ws'}://
+          </span>
+          <select
+            value={selectedOption.host}
+            onChange={function (e) { handleHostChange((e.target as HTMLSelectElement).value) }}
+            class="py-1.5 px-1.5 text-sm bg-transparent text-foreground outline-none flex-1 min-w-0 cursor-pointer appearance-none"
+          >
+            {SERVER_OPTIONS.map(function (o) {
+              return <option key={o.host} value={o.host}>{o.label}</option>
+            })}
+          </select>
+          {selectedOption.showPort && (
+            <span class="flex items-center text-border text-sm select-none">|</span>
+          )}
+          {selectedOption.showPort && (
+            <input
+              type="number"
+              value={editPort}
+              placeholder={String(port)}
+              min={1024}
+              max={65535}
+              onInput={function (e) { setEditPort((e.target as HTMLInputElement).value) }}
+              onBlur={handlePortBlur}
+              onKeyDown={handlePortKeyDown}
+              class="py-1.5 px-1 text-sm bg-transparent text-foreground outline-none w-[56px] text-center"
+            />
+          )}
         </div>
       </div>
       <div class="h-px bg-border" />
