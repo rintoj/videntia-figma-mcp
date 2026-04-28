@@ -193,8 +193,12 @@ bun run format   # Auto-fix formatting
 | Design system | Spacing, typography, radius, full system initialization     |
 | Prototyping   | Reactions, connections, connector styles                    |
 | Accessibility | WCAG contrast validation, color audit                       |
+| Icons         | Search, create, and update Lucide icons                     |
+| Batch         | Execute multiple commands in a single round-trip            |
 
-Full command reference: see [docs/](docs/)
+Full reference: **[docs/tools.md](docs/tools.md)** — all 167 tools with parameters.
+
+JSX output format: **[docs/jsx-syntax-reference.md](docs/jsx-syntax-reference.md)**
 
 ---
 
@@ -208,6 +212,13 @@ This project contains two `manifest.json` files with different purposes:
 |------|---------|
 | `manifest.json` (root) | **DXT manifest** — packages the MCP server as a Claude Desktop extension (`dxt_version: "0.1"`). Used by `bun run build:dxt`. |
 | `src/videntia_figma_plugin/manifest.json` | **Figma plugin manifest** — tells Figma how to load the plugin (`code.js` + `ui.html`). Import this when installing the plugin in Figma. |
+
+### Documentation
+
+| File | Contents |
+|------|---------|
+| [`docs/tools.md`](docs/tools.md) | Complete reference for all 167 MCP tools |
+| [`docs/jsx-syntax-reference.md`](docs/jsx-syntax-reference.md) | JSX + Tailwind output format used by `get_selection`, `get_node_info`, etc. |
 
 ---
 
