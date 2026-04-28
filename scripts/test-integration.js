@@ -133,10 +133,10 @@ async function checkClaudeConfig() {
     }
     
     const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-    if (config.mcpServers && config.mcpServers['figma-mcp']) {
-      log.success('figma-mcp configuration found in Claude Desktop');
+    if (config.mcpServers && config.mcpServers['hgraph-figma-mcp']) {
+      log.success('hgraph-figma-mcp configuration found in Claude Desktop');
     } else {
-      log.warning('figma-mcp is not configured in Claude Desktop');
+      log.warning('hgraph-figma-mcp is not configured in Claude Desktop');
       const shouldConfigure = await askQuestion('Do you want to configure Claude Desktop now? (y/n)');
       
       if (shouldConfigure.toLowerCase() === 'y') {
