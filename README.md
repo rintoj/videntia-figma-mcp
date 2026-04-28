@@ -32,7 +32,7 @@ AI Tool  ↔  MCP Server  ↔  WebSocket Server  ↔  Figma Plugin
 #### Claude Code
 
 ```bash
-claude mcp add figma-mcp -- npx -y @hgraph/figma-mcp
+claude mcp add hgraph-figma-mcp -- npx -y @hgraph/figma-mcp
 ```
 
 #### Claude Desktop
@@ -42,7 +42,7 @@ Edit `~/Library/Application Support/Claude/claude_desktop_config.json`:
 ```json
 {
   "mcpServers": {
-    "figma-mcp": {
+    "hgraph-figma-mcp": {
       "command": "npx",
       "args": ["-y", "@hgraph/figma-mcp"]
     }
@@ -57,13 +57,26 @@ Go to **Settings → Tools & Integrations → New MCP Server** and add:
 ```json
 {
   "mcpServers": {
-    "figma-mcp": {
+    "hgraph-figma-mcp": {
       "command": "npx",
       "args": ["-y", "@hgraph/figma-mcp"]
     }
   }
 }
 ```
+
+#### Replit
+
+Replit Agent connects to MCP servers via a **remote URL** (SSE), not a local command. This requires a hosted HTTP/SSE endpoint of the MCP server.
+
+> **Note:** A hosted SSE endpoint is not yet available. If you need Replit support, please [open an issue](../../issues) — enough demand will prioritise it.
+
+Once a hosted endpoint exists, the setup will be:
+
+1. Go to **Replit → Tools → Integrations → MCP Servers**
+2. Click **Add MCP server**
+3. Enter name `hgraph-figma-mcp` and the server URL (e.g. `https://figma-mcp.videntia.dev/sse`)
+4. Click **Test & Save**
 
 ---
 
@@ -90,7 +103,7 @@ When self-hosting, point the plugin to `localhost` instead:
 
 ```bash
 # Claude Code
-claude mcp add figma-mcp -- npx -y @hgraph/figma-mcp --server=localhost
+claude mcp add hgraph-figma-mcp -- npx -y @hgraph/figma-mcp --server=localhost
 ```
 
 ---
@@ -134,7 +147,7 @@ bun test --watch     # Run tests in watch mode
 ### Point Claude Code at your local build
 
 ```bash
-claude mcp add figma-mcp -s user -- node /absolute/path/to/hgraph-figma-mcp/dist/hgraph_figma_mcp/server.js
+claude mcp add hgraph-figma-mcp -s user -- node /absolute/path/to/hgraph-figma-mcp/dist/hgraph_figma_mcp/server.js
 ```
 
 For Claude Desktop / Cursor, update the config to use `node` instead of `npx`:
@@ -142,7 +155,7 @@ For Claude Desktop / Cursor, update the config to use `node` instead of `npx`:
 ```json
 {
   "mcpServers": {
-    "figma-mcp": {
+    "hgraph-figma-mcp": {
       "command": "node",
       "args": ["/absolute/path/to/hgraph-figma-mcp/dist/hgraph_figma_mcp/server.js"]
     }

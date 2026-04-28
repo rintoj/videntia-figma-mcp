@@ -5,7 +5,7 @@
   "module": "dist/hgraph_figma_mcp/server.js",
   "main": "dist/hgraph_figma_mcp/server.js",
   "bin": {
-    "figma-mcp": "dist/hgraph_figma_mcp/server.js",
+    "hgraph-figma-mcp": "dist/hgraph_figma_mcp/server.js",
     "figma-mcp-socket": "dist/socket.js"
   },
   "files": [

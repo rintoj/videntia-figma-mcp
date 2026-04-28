@@ -304,7 +304,7 @@ async function runIntegrationTests() {
   
   log.info('\nTo complete integration tests, follow these steps:');
   log.info('1. Open Claude Desktop');
-  log.info('2. Select "figma-mcp" in the MCP selector');
+  log.info('2. Select "hgraph-figma-mcp" in the MCP selector');
   log.info('3. Open Figma and run the Figma MCP from your Development plugins');
   log.info('4. In the plugin, connect to WebSocket server (port 3055)');
   log.info('5. Test these commands in Claude:');
