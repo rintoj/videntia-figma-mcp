@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>hgraph-figma-mcp.socket</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>$BUN_PATH</string>
+        <string>run</string>
+        <string>$PROJECT_PATH/dist/socket.js</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>$PROJECT_PATH</string>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>KeepAlive</key>
+    <true/>
+
+    <key>StandardOutPath</key>
+    <string>$HOME/Library/Logs/hgraph-figma-mcp-socket.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>$HOME/Library/Logs/hgraph-figma-mcp-socket.error.log</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+        <key>BUN_EXEC_PATH</key>
+        <string>$BUN_PATH</string>
+        <key>BUN_PROJECT_PATH</key>
+        <string>$PROJECT_PATH</string>
+    </dict>
+</dict>
+</plist>

@@ -66,13 +66,13 @@ try {
 
 // Add MCP configuration
 config.mcpServers = config.mcpServers || {};
-config.mcpServers['FigmaStudioMCP'] = {
+config.mcpServers['figma-mcp'] = {
   command: 'npx',
   args: [`${packageName}@latest`]
 };
 
-console.log('Updated configuration for FigmaStudioMCP:');
-console.log(JSON.stringify(config.mcpServers['FigmaStudioMCP'], null, 2));
+console.log('Updated configuration for figma-mcp:');
+console.log(JSON.stringify(config.mcpServers['figma-mcp'], null, 2));
 
 // Write configuration
 try {
@@ -81,7 +81,7 @@ try {
   console.log('\nConfiguration completed successfully.');
   console.log('\nTo use this MCP in Claude Desktop:');
   console.log('1. Restart Claude Desktop if it\'s running');
-  console.log('2. Open Claude Desktop and select "FigmaStudioMCP" from the MCPs list');
+  console.log('2. Open Claude Desktop and select "figma-mcp" from the MCPs list');
   console.log(`3. Start the WebSocket server: npx ${packageName}-socket`);
   console.log('4. Install and run the Figma plugin');
 } catch (e) {
