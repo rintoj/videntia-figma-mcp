@@ -55,32 +55,32 @@ export function SettingsSection({ port, serverUrl, serverSecure, readOnly, autoF
           <span class="text-foreground text-sm font-medium leading-5">Server</span>
           <span class="text-muted-foreground text-xs font-medium leading-4">WebSocket server URL and port</span>
         </div>
-        <div class="flex gap-2">
-          <div class="flex flex-1 min-w-0 border border-border rounded-md overflow-hidden hover:border-input focus-within:border-ring">
-            <button
-              class={'flex items-center px-2 text-xs font-mono font-semibold border-r border-border transition-colors whitespace-nowrap ' + (serverSecure ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-accent hover:text-foreground')}
-              onClick={function () { onServerSecureChange(!serverSecure) }}
-              title={'Switch to ' + (serverSecure ? 'ws://' : 'wss://')}
-            >{serverSecure ? 'wss' : 'ws'}://</button>
-            <input
-              type="text"
-              value={editUrl}
-              placeholder="figma-mcp.videntia.dev"
-              onInput={function (e) { setEditUrl((e.target as HTMLInputElement).value) }}
-              onBlur={handleUrlBlur}
-              onKeyDown={handleUrlKeyDown}
-              class="py-1.5 px-2.5 text-sm bg-transparent text-foreground outline-none flex-1 min-w-0"
-            />
-          </div>
+        <div class="flex border border-border rounded-md overflow-hidden hover:border-input focus-within:border-ring">
+          <button
+            class={'flex items-center px-2 text-xs font-mono font-semibold border-r border-border transition-colors whitespace-nowrap ' + (serverSecure ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-accent hover:text-foreground')}
+            onClick={function () { onServerSecureChange(!serverSecure) }}
+            title={'Switch to ' + (serverSecure ? 'ws://' : 'wss://')}
+          >{serverSecure ? 'wss' : 'ws'}://</button>
+          <input
+            type="text"
+            value={editUrl}
+            placeholder={serverUrl || 'figma-mcp.videntia.dev'}
+            onInput={function (e) { setEditUrl((e.target as HTMLInputElement).value) }}
+            onBlur={handleUrlBlur}
+            onKeyDown={handleUrlKeyDown}
+            class="py-1.5 px-1.5 text-sm bg-transparent text-foreground outline-none flex-1 min-w-0"
+          />
+          <span class="flex items-center text-border text-sm select-none">|</span>
           <input
             type="number"
             value={editPort}
+            placeholder={String(port)}
             min={1024}
             max={65535}
             onInput={function (e) { setEditPort((e.target as HTMLInputElement).value) }}
             onBlur={handlePortBlur}
             onKeyDown={handlePortKeyDown}
-            class="border border-border rounded-md py-1.5 px-2.5 text-sm bg-transparent text-foreground outline-none w-[72px] text-center hover:border-input focus:border-ring"
+            class="py-1.5 px-1 text-sm bg-transparent text-foreground outline-none w-[56px] text-center"
           />
         </div>
       </div>
