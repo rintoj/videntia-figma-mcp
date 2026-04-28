@@ -1,5 +1,7 @@
 # Videntia Figma MCP
 
+![Videntia Figma MCP](docs/banner.jpg)
+
 A Model Context Protocol (MCP) server that lets Claude Desktop, Claude Code, Cursor, and other AI tools interact directly with Figma.
 
 ```
