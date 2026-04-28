@@ -1,6 +1,6 @@
-<img src="images/claude-figma-mcp-icon.png" alt="Claude Figma MCP" width="80" />
+<img src="images/claude-figma-mcp-icon.png" alt="Figma MCP" width="80" />
 
-# Claude Figma MCP
+# Figma MCP
 
 AI-powered design tool that enables Claude Desktop and other AI tools (GitHub Copilot, Cursor, etc.) to interact directly with Figma, enabling powerful AI-assisted design capabilities.
 
@@ -25,18 +25,22 @@ AI-powered design tool that enables Claude Desktop and other AI tools (GitHub Co
 
 No need to clone or build - just configure your AI client to use npx:
 
-**Claude Code**:
+**Claude Code (recommended)**:
 ```bash
-claude mcp add claude-figma-mcp -s user -- npx -y claude-figma-mcp
+# Connect to hosted server (figma-mcp.videntia.dev)
+claude mcp add figma-mcp -- npx -y @hgraph/figma-mcp --server=figma-mcp.videntia.dev
+
+# Or connect to local server (localhost:3055)
+claude mcp add figma-mcp -- npx -y @hgraph/figma-mcp
 ```
 
 **Claude Desktop** (macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`):
 ```json
 {
   "mcpServers": {
-    "ClaudeFigmaMCP": {
+    "figma-mcp": {
       "command": "npx",
-      "args": ["-y", "claude-figma-mcp"]
+      "args": ["-y", "@hgraph/figma-mcp", "--server=figma-mcp.videntia.dev"]
     }
   }
 }
@@ -46,9 +50,9 @@ claude mcp add claude-figma-mcp -s user -- npx -y claude-figma-mcp
 ```json
 {
   "mcpServers": {
-    "ClaudeFigmaMCP": {
+    "figma-mcp": {
       "command": "npx",
-      "args": ["-y", "claude-figma-mcp"]
+      "args": ["-y", "@hgraph/figma-mcp", "--server=figma-mcp.videntia.dev"]
     }
   }
 }
@@ -59,24 +63,24 @@ claude mcp add claude-figma-mcp -s user -- npx -y claude-figma-mcp
 Clone and build the project, then point to the local build:
 
 ```bash
-git clone https://github.com/rintoj/claude-figma-mcp.git
-cd claude-figma-mcp
+git clone https://github.com/rintoj/figma-mcp.git
+cd figma-mcp
 bun install
 bun run build
 ```
 
 **Claude Code**:
 ```bash
-claude mcp add claude-figma-mcp -s user -- node /ABSOLUTE/PATH/TO/claude-figma-mcp/dist/claude_figma_mcp/server.js
+claude mcp add figma-mcp -s user -- node /ABSOLUTE/PATH/TO/figma-mcp/dist/claude_figma_mcp/server.js
 ```
 
 **Claude Desktop / Cursor**:
 ```json
 {
   "mcpServers": {
-    "ClaudeFigmaMCP": {
+    "figma-mcp": {
       "command": "node",
-      "args": ["/ABSOLUTE/PATH/TO/claude-figma-mcp/dist/claude_figma_mcp/server.js"]
+      "args": ["/ABSOLUTE/PATH/TO/figma-mcp/dist/claude_figma_mcp/server.js"]
     }
   }
 }
@@ -86,24 +90,16 @@ claude mcp add claude-figma-mcp -s user -- node /ABSOLUTE/PATH/TO/claude-figma-m
 
 ### Step 3: Start the Socket Server
 
-#### Option A: Auto-start on macOS (Recommended)
+#### Option A: Hosted Server (Recommended)
+No setup needed — a hosted socket server is available at `figma-mcp.videntia.dev`. Just use `--server=figma-mcp.videntia.dev` in your MCP config above and open the Figma plugin.
 
-Install as a launchd service so the socket server starts automatically on login (shows as "Claude Figma MCP" in Login Items):
-
+#### Option B: Run Locally with Docker
 ```bash
-# Install the service (run from project root)
-sed -e "s|\$PROJECT_PATH|$(pwd)|g" \
-    -e "s|\$HOME|$HOME|g" \
-    -e "s|\$BUN_PATH|$(which bun)|g" \
-    scripts/com.claude-figma-mcp.socket.plist \
-    > ~/Library/LaunchAgents/com.claude-figma-mcp.socket.plist
-
-# Load and start
-launchctl load ~/Library/LaunchAgents/com.claude-figma-mcp.socket.plist
+docker compose up -d
 ```
+The socket server runs on port 3055.
 
-#### Option B: Run Manually
-
+#### Option C: Run Locally with Bun
 ```bash
 bun run socket
 ```
@@ -415,7 +411,7 @@ bun run test:integration  # Guided end-to-end testing
 ### Manual Verification Checklist
 - [ ] WebSocket server starts on port 3055
 - [ ] Figma plugin connects and generates channel ID
-- [ ] AI tool recognizes "ClaudeFigmaMCP" MCP (Claude Desktop, Cursor, etc.)
+- [ ] AI tool recognizes "figma-mcp" MCP (Claude Desktop, Cursor, etc.)
 - [ ] Basic commands execute (create rectangle, change color)
 - [ ] Error handling works (invalid commands, timeouts)
 - [ ] Channel communication works between AI tool and Figma
@@ -513,7 +509,13 @@ src/
 
 ## 📋 Version History
 
-### Current: 0.9.0
+### Current: 1.0.2
+- Renamed package to `@hgraph/figma-mcp`
+- Added hosted socket server at `figma-mcp.videntia.dev`
+- Plugin UI: server dropdown, connection animations, error states
+- Docker support for self-hosted socket server
+
+### Previous: 0.9.0
 - **🎨 Component Properties**: 5 new tools for managing component properties
   - `add_component_property`: Create BOOLEAN, TEXT, INSTANCE_SWAP, or VARIANT properties
   - `edit_component_property`: Update property name, default value, or preferred values
