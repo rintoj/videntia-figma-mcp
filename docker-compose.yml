@@ -1,0 +1,6 @@
+services:
+  socket:
+    build: .
+    ports:
+      - "3055:3055"
+    restart: unless-stopped

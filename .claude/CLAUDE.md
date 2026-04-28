@@ -289,19 +289,19 @@ bun run pub:release
 
 ### After Merging to Main
 
-After every merge to `main`, **switch to main, pull the latest, build, and restart** so both the Figma plugin and the MCP server pick up the new code:
+After every merge to `main`, **switch to main, pull the latest, build, and deploy via Docker**:
 
 ```bash
-git checkout main && git pull && bun run build && launchctl stop com.claude-figma-mcp.socket && launchctl start com.claude-figma-mcp.socket
+git checkout main && git pull && bun run build && docker compose up --build -d
 ```
 
 `bun run build` does two things:
 1. **Regenerates `src/claude_mcp_plugin/code.js`** from the TypeScript source modules — this is what Figma loads.
 2. **Rebuilds the MCP server** (`dist/`) — this is what Claude connects to.
 
-Then the `launchctl` commands restart the launchd-managed socket service (`~/Library/LaunchAgents/com.claude-figma-mcp.socket.plist`) so it picks up the new MCP server build.
+`docker compose up --build -d` rebuilds the Docker image and restarts the socket server container in the background.
 
-> **Reload in Figma:** After the build, re-run the plugin in Figma (close and reopen from Plugins menu) to load the new `code.js`.
+> **Reload in Figma:** After deploying, re-run the plugin in Figma (close and reopen from Plugins menu) to load the new `code.js`.
 
 ### Debug
 ```bash
