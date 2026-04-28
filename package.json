@@ -1,7 +1,7 @@
 {
   "name": "@hgraph/figma-mcp",
   "description": "Figma MCP - AI-powered design tool for Figma",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "module": "dist/hgraph_figma_mcp/server.js",
   "main": "dist/hgraph_figma_mcp/server.js",
   "bin": {
@@ -30,7 +30,6 @@
     "sync-version": "VERSION=$(jq -r '.version' package.json) && jq --arg version \"$VERSION\" '.version = $version' manifest.json > manifest.tmp && mv manifest.tmp manifest.json",
     "build:dxt": "npm run sync-version && npm run build && npm run pack",
     "pub:release": "bun run build && npm publish",
-    
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
@@ -69,7 +68,6 @@
     "zod": "^3.25.0"
   },
   "keywords": [
-    
     "figma",
     "mcp",
     "plugin",
