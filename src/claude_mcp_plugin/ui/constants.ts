@@ -40,3 +40,15 @@ export const ALLOWED_COMMANDS = new Set([
 export const MIN_PROGRESS_DISPLAY_MS = 600
 export const RECONNECT_BASE_DELAY = 1000
 export const RECONNECT_MAX_DELAY = 30000
+
+export interface ServerOption {
+  label: string
+  host: string
+  defaultSecure: boolean
+  showPort: boolean
+}
+
+export const SERVER_OPTIONS: ServerOption[] = [
+  { label: 'localhost', host: 'localhost', defaultSecure: false, showPort: true },
+  { label: 'figma-mcp.videntia.dev', host: 'figma-mcp.videntia.dev', defaultSecure: true, showPort: false },
+]

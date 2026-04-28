@@ -12,12 +12,14 @@
   "permissions": ["teamlibrary"],
   "networkAccess": {
     "allowedDomains": [
+      "wss://figma-mcp.videntia.dev",
       "https://images.unsplash.com",
       "https://picsum.photos"
     ],
     "devAllowedDomains": [
       "http://localhost:3055",
       "ws://localhost:3055",
+      "wss://figma-mcp.videntia.dev",
       "https://images.unsplash.com",
       "https://picsum.photos"
     ]

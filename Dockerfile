@@ -1,16 +1,14 @@
-# Use the Bun image as the base image
 FROM oven/bun:latest
 
-# Set the working directory in the container
 WORKDIR /app
 
-# Copy the current directory contents into the container at /app
-COPY package*.json ./
+COPY package*.json bun.lockb* tsup.config.ts tsconfig*.json ./
+COPY src/ ./src/
+COPY scripts/ ./scripts/
 
-RUN bun install
+RUN bun install --frozen-lockfile
+RUN bun run prebuild && bunx tsup && chmod +x dist/claude_figma_mcp/server.js dist/socket.js
 
-# Expose the port on which the API will listen
 EXPOSE 3055
 
-# Run the server when the container launches
-CMD ["bun", "src/talk_to_figma_mcp/server.ts"]
+CMD ["bun", "run", "dist/socket.js"]

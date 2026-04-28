@@ -10,6 +10,8 @@ import { consumeEarlyMessages } from './early-messages'
 
 export function App() {
   var [port, setPort] = useState(3055)
+  var [serverUrl, setServerUrl] = useState('figma-mcp.videntia.dev')
+  var [serverSecure, setServerSecure] = useState(true)
   var [readOnly, setReadOnly] = useState(false)
   var [autoFocus, setAutoFocus] = useState(false)
   var [activeTab, setActiveTab] = useState<TabId>('actions')
@@ -34,6 +36,14 @@ export function App() {
             if (msg.settings.serverPort) {
               setPort(msg.settings.serverPort)
               conn.setServerPort(msg.settings.serverPort)
+            }
+            if (msg.settings.serverUrl !== undefined) {
+              setServerUrl(msg.settings.serverUrl)
+              conn.setServerUrl(msg.settings.serverUrl)
+            }
+            if (msg.settings.serverSecure !== undefined) {
+              setServerSecure(msg.settings.serverSecure)
+              conn.setServerSecure(msg.settings.serverSecure)
             }
             if (msg.settings.readonlyMode !== undefined) {
               setReadOnly(msg.settings.readonlyMode)
@@ -106,6 +116,18 @@ export function App() {
     setPort(p)
   }
 
+  function handleServerUrlChange(url: string) {
+    setServerUrl(url)
+    connection.setServerUrl(url)
+    parent.postMessage({ pluginMessage: { type: 'update-settings', serverUrl: url } }, '*')
+  }
+
+  function handleServerSecureChange(secure: boolean) {
+    setServerSecure(secure)
+    connection.setServerSecure(secure)
+    parent.postMessage({ pluginMessage: { type: 'update-settings', serverSecure: secure } }, '*')
+  }
+
   function handleClose() {
     parent.postMessage({ pluginMessage: { type: 'close-plugin' } }, '*')
   }
@@ -122,9 +144,13 @@ export function App() {
           {activeTab === 'settings' && (
             <SettingsSection
               port={port}
+              serverUrl={serverUrl}
+              serverSecure={serverSecure}
               readOnly={readOnly}
               autoFocus={autoFocus}
               onPortChange={handlePortChange}
+              onServerUrlChange={handleServerUrlChange}
+              onServerSecureChange={handleServerSecureChange}
               onReadOnlyChange={handleReadOnlyChange}
               onAutoFocusChange={handleAutoFocusChange}
             />
@@ -137,6 +163,7 @@ export function App() {
           connected={connection.connState.connected}
           channelName={connection.connState.channelName}
           buttonDisabled={connection.connState.buttonDisabled}
+          statusClass={connection.connState.statusClass}
           readOnly={readOnly}
           onConnect={handleConnect}
           onDisconnect={handleDisconnect}

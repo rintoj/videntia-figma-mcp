@@ -175,6 +175,8 @@ import { batchActions } from './handlers/batch';
 
 const state = {
   serverPort: 3055,
+  serverUrl: 'figma-mcp.videntia.dev',
+  serverSecure: true,
   readonlyMode: false,
   autoFocus: false,
   prefsExpanded: true,
@@ -241,10 +243,7 @@ figma.showUI(__html__, { width: 315, height: 430 });
 // Send file name to UI immediately on startup so it's available before WebSocket connects
 figma.ui.postMessage({ type: 'file-name', fileName: figma.root.name });
 
-// Auto-connect on plugin load
-figma.on('run', function () {
-  figma.ui.postMessage({ type: 'auto-connect' });
-});
+// Auto-connect is triggered after init-settings so saved URL/port are applied first.
 
 // Notify UI when the Figma selection changes
 figma.on('selectionchange', function () {
@@ -269,6 +268,12 @@ function updateSettings(settings: Record<string, unknown>): void {
   if (settings['serverPort'] !== undefined && settings['serverPort'] !== null) {
     state.serverPort = settings['serverPort'] as number;
   }
+  if (settings['serverUrl'] !== undefined && settings['serverUrl'] !== null) {
+    state.serverUrl = settings['serverUrl'] as string;
+  }
+  if (settings['serverSecure'] !== undefined && settings['serverSecure'] !== null) {
+    state.serverSecure = settings['serverSecure'] as boolean;
+  }
   if (settings['readonlyMode'] !== undefined && settings['readonlyMode'] !== null) {
     state.readonlyMode = settings['readonlyMode'] as boolean;
   }
@@ -287,6 +292,8 @@ function updateSettings(settings: Record<string, unknown>): void {
   }
   figma.clientStorage.setAsync('settings:' + figma.root.name, {
     serverPort: state.serverPort,
+    serverUrl: state.serverUrl,
+    serverSecure: state.serverSecure,
     readonlyMode: state.readonlyMode,
     autoFocus: state.autoFocus,
     prefsExpanded: state.prefsExpanded,
@@ -302,6 +309,12 @@ function updateSettings(settings: Record<string, unknown>): void {
     if (savedSettings) {
       if (savedSettings['serverPort'] !== undefined && savedSettings['serverPort'] !== null) {
         state.serverPort = savedSettings['serverPort'] as number;
+      }
+      if (savedSettings['serverUrl'] !== undefined && savedSettings['serverUrl'] !== null) {
+        state.serverUrl = savedSettings['serverUrl'] as string;
+      }
+      if (savedSettings['serverSecure'] !== undefined && savedSettings['serverSecure'] !== null) {
+        state.serverSecure = savedSettings['serverSecure'] as boolean;
       }
       if (savedSettings['readonlyMode'] !== undefined && savedSettings['readonlyMode'] !== null) {
         state.readonlyMode = savedSettings['readonlyMode'] as boolean;
@@ -321,11 +334,13 @@ function updateSettings(settings: Record<string, unknown>): void {
       }
     }
 
-    // Send initial settings to UI
+    // Send initial settings then trigger auto-connect so the UI uses the saved URL/port.
     figma.ui.postMessage({
       type: 'init-settings',
       settings: {
         serverPort: state.serverPort,
+        serverUrl: state.serverUrl,
+        serverSecure: state.serverSecure,
         readonlyMode: state.readonlyMode,
         autoFocus: state.autoFocus,
         prefsExpanded: state.prefsExpanded,
@@ -333,6 +348,7 @@ function updateSettings(settings: Record<string, unknown>): void {
         activeTab: state.activeTab,
       },
     });
+    figma.ui.postMessage({ type: 'auto-connect' });
   } catch (error) {
     console.error('Error loading settings:', error);
   }
