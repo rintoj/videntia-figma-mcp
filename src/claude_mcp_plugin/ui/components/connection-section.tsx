@@ -1,19 +1,22 @@
 import { h } from 'preact'
 import { useState, useRef, useEffect } from 'preact/hooks'
-import { SignalIcon, LockIcon, UnplugIcon, PlugZapIcon } from './icons'
+import { SignalIcon, LockIcon, UnplugIcon, PlugZapIcon, SpinnerIcon } from './icons'
 
 interface ConnectionSectionProps {
   port: number
   connected: boolean
   channelName: string
   buttonDisabled: boolean
+  statusClass: string
   readOnly: boolean
   onConnect: (port: number) => void
   onDisconnect: () => void
   onPortChange: (port: number) => void
 }
 
-export function ConnectionSection({ port, connected, channelName, buttonDisabled, readOnly, onConnect, onDisconnect, onPortChange }: ConnectionSectionProps) {
+export function ConnectionSection({ port, connected, channelName, buttonDisabled, statusClass, readOnly, onConnect, onDisconnect, onPortChange }: ConnectionSectionProps) {
+  var connecting = buttonDisabled && !connected
+  var failed = !connected && !buttonDisabled && statusClass === 'info'
   var [editing, setEditing] = useState(false)
   var [editPort, setEditPort] = useState(String(port))
   var inputRef = useRef<HTMLInputElement>(null)
@@ -83,14 +86,28 @@ export function ConnectionSection({ port, connected, channelName, buttonDisabled
     )
   }
 
+  var statusColor = failed ? 'var(--color-error, #ef4444)' : 'var(--color-warning)'
+  var statusText = connecting ? 'Connecting...' : failed ? 'Failed to connect' : 'Disconnected'
+  var statusClass2 = connecting ? 'text-muted-foreground' : failed ? 'text-destructive' : 'text-warning'
+
   return (
     <div class="flex items-center justify-between px-3 py-1.5 gap-2.5">
       <div class="flex items-center gap-1.5 min-w-0 flex-1">
-        <SignalIcon color="var(--color-warning)" size={18} />
-        <span class="text-warning text-xs leading-4">Disconnected</span>
-        <span class="text-muted-foreground text-xs leading-4 cursor-pointer whitespace-nowrap hover:text-foreground" onClick={handlePortClick}>:{port}</span>
+        {connecting
+          ? <SpinnerIcon color="var(--color-muted-foreground, #888)" size={18} />
+          : <SignalIcon color={statusColor} size={18} />
+        }
+        <span class={'text-xs leading-4 ' + statusClass2}>{statusText}</span>
+        {!connecting && (
+          <span class="text-muted-foreground text-xs leading-4 cursor-pointer whitespace-nowrap hover:text-foreground" onClick={handlePortClick}>:{port}</span>
+        )}
       </div>
-      <button class="flex items-center gap-1 bg-primary border border-solid border-primary text-primary-foreground py-1 px-2 rounded-md cursor-pointer text-xs leading-4 font-medium whitespace-nowrap transition-colors hover:brightness-110" disabled={buttonDisabled} onClick={function () { onConnect(port) }}><UnplugIcon color="currentColor" size={14} /> Connect</button>
+      {connecting
+        ? <span class="flex items-center gap-1 text-muted-foreground text-xs leading-4 opacity-60"><SpinnerIcon color="currentColor" size={13} /></span>
+        : failed
+          ? <button class="flex items-center gap-1 bg-destructive border border-solid border-destructive text-destructive-foreground py-1 px-2 rounded-md cursor-pointer text-xs leading-4 font-medium whitespace-nowrap transition-colors hover:brightness-110 active:scale-95" onClick={function () { onConnect(port) }}><UnplugIcon color="currentColor" size={14} /> Retry</button>
+          : <button class="flex items-center gap-1 bg-primary border border-solid border-primary text-primary-foreground py-1 px-2 rounded-md cursor-pointer text-xs leading-4 font-medium whitespace-nowrap transition-colors hover:brightness-110 active:scale-95" onClick={function () { onConnect(port) }}><UnplugIcon color="currentColor" size={14} /> Connect</button>
+      }
     </div>
   )
 }

@@ -69,6 +69,7 @@ export function useConnection() {
   var reconnectAttemptRef = useRef(0)
   var serverPortRef = useRef(3055)
   var serverUrlRef = useRef('figma-mcp.videntia.dev')
+  var serverSecureRef = useRef(true)
   var progressStartTimesRef = useRef<Map<string, number>>(new Map())
   var connectedRef = useRef(false)
   // Track command metadata for action entries
@@ -238,7 +239,7 @@ export function useConnection() {
 
     serverPortRef.current = port
     var url = serverUrlRef.current
-      ? 'ws://' + serverUrlRef.current
+      ? (serverSecureRef.current ? 'wss://' : 'ws://') + serverUrlRef.current
       : 'ws://localhost:' + port
     var ws = new WebSocket(url)
     socketRef.current = ws
@@ -440,6 +441,10 @@ export function useConnection() {
     serverUrlRef.current = url
   }
 
+  function setServerSecure(secure: boolean) {
+    serverSecureRef.current = secure
+  }
+
   return {
     connState: connState,
     actions: actions,
@@ -452,5 +457,6 @@ export function useConnection() {
     triggerAutoConnect: triggerAutoConnect,
     setServerPort: setServerPort,
     setServerUrl: setServerUrl,
+    setServerSecure: setServerSecure,
   }
 }

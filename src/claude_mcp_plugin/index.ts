@@ -176,6 +176,7 @@ import { batchActions } from './handlers/batch';
 const state = {
   serverPort: 3055,
   serverUrl: 'figma-mcp.videntia.dev',
+  serverSecure: true,
   readonlyMode: false,
   autoFocus: false,
   prefsExpanded: true,
@@ -273,6 +274,9 @@ function updateSettings(settings: Record<string, unknown>): void {
   if (settings['serverUrl'] !== undefined && settings['serverUrl'] !== null) {
     state.serverUrl = settings['serverUrl'] as string;
   }
+  if (settings['serverSecure'] !== undefined && settings['serverSecure'] !== null) {
+    state.serverSecure = settings['serverSecure'] as boolean;
+  }
   if (settings['readonlyMode'] !== undefined && settings['readonlyMode'] !== null) {
     state.readonlyMode = settings['readonlyMode'] as boolean;
   }
@@ -292,6 +296,7 @@ function updateSettings(settings: Record<string, unknown>): void {
   figma.clientStorage.setAsync('settings:' + figma.root.name, {
     serverPort: state.serverPort,
     serverUrl: state.serverUrl,
+    serverSecure: state.serverSecure,
     readonlyMode: state.readonlyMode,
     autoFocus: state.autoFocus,
     prefsExpanded: state.prefsExpanded,
@@ -310,6 +315,9 @@ function updateSettings(settings: Record<string, unknown>): void {
       }
       if (savedSettings['serverUrl'] !== undefined && savedSettings['serverUrl'] !== null) {
         state.serverUrl = savedSettings['serverUrl'] as string;
+      }
+      if (savedSettings['serverSecure'] !== undefined && savedSettings['serverSecure'] !== null) {
+        state.serverSecure = savedSettings['serverSecure'] as boolean;
       }
       if (savedSettings['readonlyMode'] !== undefined && savedSettings['readonlyMode'] !== null) {
         state.readonlyMode = savedSettings['readonlyMode'] as boolean;
@@ -335,6 +343,7 @@ function updateSettings(settings: Record<string, unknown>): void {
       settings: {
         serverPort: state.serverPort,
         serverUrl: state.serverUrl,
+        serverSecure: state.serverSecure,
         readonlyMode: state.readonlyMode,
         autoFocus: state.autoFocus,
         prefsExpanded: state.prefsExpanded,
