@@ -3,11 +3,13 @@
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>com.claude-figma-mcp.socket</string>
+    <string>hgraph-figma-mcp.socket</string>
 
     <key>ProgramArguments</key>
     <array>
-        <string>$PROJECT_PATH/scripts/Claude Figma MCP.app/Contents/MacOS/Claude Figma MCP</string>
+        <string>$BUN_PATH</string>
+        <string>run</string>
+        <string>$PROJECT_PATH/dist/socket.js</string>
     </array>
 
     <key>WorkingDirectory</key>
@@ -20,10 +22,10 @@
     <true/>
 
     <key>StandardOutPath</key>
-    <string>$HOME/Library/Logs/claude-figma-mcp-socket.log</string>
+    <string>$HOME/Library/Logs/hgraph-figma-mcp-socket.log</string>
 
     <key>StandardErrorPath</key>
-    <string>$HOME/Library/Logs/claude-figma-mcp-socket.error.log</string>
+    <string>$HOME/Library/Logs/hgraph-figma-mcp-socket.error.log</string>
 
     <key>EnvironmentVariables</key>
     <dict>

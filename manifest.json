@@ -1,6 +1,6 @@
 {
   "dxt_version": "0.1",
-  "name": "figma-mcp",
+  "name": "hgraph-figma-mcp",
   "display_name": "Figma MCP",
   "description": "AI-powered design tool for Figma - enables Claude and other AI tools to interact directly with Figma for AI-assisted design capabilities.",
   "version": "0.6.0",

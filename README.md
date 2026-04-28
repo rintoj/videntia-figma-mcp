@@ -19,9 +19,11 @@ AI Tool  ↔  MCP Server  ↔  WebSocket Server  ↔  Figma Plugin
 
 ### Step 1 — Install the Figma Plugin
 
-1. Open Figma Desktop
-2. Go to **Menu → Plugins → Development → Import plugin from manifest...**
-3. Select `src/hgraph_figma_plugin/manifest.json` from this project
+1. Download the latest `hgraph-figma-plugin-vX.Y.Z.zip` from the [Releases](../../releases/latest) page
+2. Unzip it anywhere on your computer
+3. Open Figma Desktop
+4. Go to **Menu → Plugins → Development → Import plugin from manifest...**
+5. Select `manifest.json` from the unzipped folder
 
 ---
 
@@ -30,7 +32,7 @@ AI Tool  ↔  MCP Server  ↔  WebSocket Server  ↔  Figma Plugin
 #### Claude Code
 
 ```bash
-claude mcp add figma-mcp -- npx -y @hgraph/figma-mcp
+claude mcp add hgraph-figma-mcp -- npx -y @hgraph/figma-mcp
 ```
 
 #### Claude Desktop
@@ -40,7 +42,7 @@ Edit `~/Library/Application Support/Claude/claude_desktop_config.json`:
 ```json
 {
   "mcpServers": {
-    "figma-mcp": {
+    "hgraph-figma-mcp": {
       "command": "npx",
       "args": ["-y", "@hgraph/figma-mcp"]
     }
@@ -55,13 +57,26 @@ Go to **Settings → Tools & Integrations → New MCP Server** and add:
 ```json
 {
   "mcpServers": {
-    "figma-mcp": {
+    "hgraph-figma-mcp": {
       "command": "npx",
       "args": ["-y", "@hgraph/figma-mcp"]
     }
   }
 }
 ```
+
+#### Replit
+
+Replit Agent connects to MCP servers via a **remote URL** (SSE), not a local command. This requires a hosted HTTP/SSE endpoint of the MCP server.
+
+> **Note:** A hosted SSE endpoint is not yet available. If you need Replit support, please [open an issue](../../issues) — enough demand will prioritise it.
+
+Once a hosted endpoint exists, the setup will be:
+
+1. Go to **Replit → Tools → Integrations → MCP Servers**
+2. Click **Add MCP server**
+3. Enter name `hgraph-figma-mcp` and the server URL (e.g. `https://figma-mcp.videntia.dev/sse`)
+4. Click **Test & Save**
 
 ---
 
@@ -88,7 +103,7 @@ When self-hosting, point the plugin to `localhost` instead:
 
 ```bash
 # Claude Code
-claude mcp add figma-mcp -- npx -y @hgraph/figma-mcp --server=localhost
+claude mcp add hgraph-figma-mcp -- npx -y @hgraph/figma-mcp --server=localhost
 ```
 
 ---
@@ -110,8 +125,8 @@ claude mcp add figma-mcp -- npx -y @hgraph/figma-mcp --server=localhost
 ### Install and build
 
 ```bash
-git clone https://github.com/rintoj/figma-mcp.git
-cd figma-mcp
+git clone https://github.com/hgraph/hgraph-figma-mcp.git
+cd hgraph-figma-mcp
 bun install
 bun run build
 ```
@@ -132,7 +147,7 @@ bun test --watch     # Run tests in watch mode
 ### Point Claude Code at your local build
 
 ```bash
-claude mcp add figma-mcp -s user -- node /absolute/path/to/figma-mcp/dist/hgraph_figma_mcp/server.js
+claude mcp add hgraph-figma-mcp -s user -- node /absolute/path/to/hgraph-figma-mcp/dist/hgraph_figma_mcp/server.js
 ```
 
 For Claude Desktop / Cursor, update the config to use `node` instead of `npx`:
@@ -140,9 +155,9 @@ For Claude Desktop / Cursor, update the config to use `node` instead of `npx`:
 ```json
 {
   "mcpServers": {
-    "figma-mcp": {
+    "hgraph-figma-mcp": {
       "command": "node",
-      "args": ["/absolute/path/to/figma-mcp/dist/hgraph_figma_mcp/server.js"]
+      "args": ["/absolute/path/to/hgraph-figma-mcp/dist/hgraph_figma_mcp/server.js"]
     }
   }
 }
@@ -187,15 +202,28 @@ Full command reference: see [docs/](docs/)
 
 ---
 
+## Project Files
+
+### manifest.json files
+
+This project contains two `manifest.json` files with different purposes:
+
+| File | Purpose |
+|------|---------|
+| `manifest.json` (root) | **DXT manifest** — packages the MCP server as a Claude Desktop extension (`dxt_version: "0.1"`). Used by `bun run build:dxt`. |
+| `src/hgraph_figma_plugin/manifest.json` | **Figma plugin manifest** — tells Figma how to load the plugin (`code.js` + `ui.html`). Import this when installing the plugin in Figma. |
+
+---
+
 ## Troubleshooting
 
 | Problem                             | Fix                                                                                                                                      |
 | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
 | Can't connect to WebSocket          | Start the socket server (`bun run socket` or `docker compose up -d`)                                                                     |
-| Plugin not found                    | Re-import `manifest.json` via Figma → Plugins → Development                                                                              |
+| Plugin not found                    | Re-import `src/hgraph_figma_plugin/manifest.json` via Figma → Plugins → Development                                                      |
 | MCP not available in Claude Desktop | Restart Claude after editing the config file                                                                                             |
 | Font not found                      | Use `load_font_async` to verify font availability                                                                                        |
-| `set_image_fill` fails              | Only `images.unsplash.com` and `picsum.photos` are allowed by default; add your domain to `manifest.json → networkAccess.allowedDomains` |
+| `set_image_fill` fails              | Only `images.unsplash.com` and `picsum.photos` are allowed by default; add your domain to `src/hgraph_figma_plugin/manifest.json → networkAccess.allowedDomains` |
 | Timeout on complex operations       | Retry; large documents take longer                                                                                                       |
 
 ---
