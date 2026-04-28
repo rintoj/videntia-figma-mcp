@@ -5,7 +5,7 @@ import { sendProgressUpdate } from '../utils/helpers';
 import type { BatchAction, BatchActionResult } from '../types';
 
 // Max depth for field path navigation to prevent abuse.
-// NOTE: This logic is mirrored in src/hgraph_figma_mcp/utils/resolve-result-references.ts
+// NOTE: This logic is mirrored in src/videntia_figma_mcp/utils/resolve-result-references.ts
 // which has comprehensive unit tests. Keep both implementations in sync.
 const RESOLVE_MAX_PATH_DEPTH = 10;
 

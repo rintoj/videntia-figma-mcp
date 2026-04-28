@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>hgraph-figma-mcp.socket</string>
+    <string>videntia-figma-mcp.socket</string>
 
     <key>ProgramArguments</key>
     <array>
@@ -22,10 +22,10 @@
     <true/>
 
     <key>StandardOutPath</key>
-    <string>$HOME/Library/Logs/hgraph-figma-mcp-socket.log</string>
+    <string>$HOME/Library/Logs/videntia-figma-mcp-socket.log</string>
 
     <key>StandardErrorPath</key>
-    <string>$HOME/Library/Logs/hgraph-figma-mcp-socket.error.log</string>
+    <string>$HOME/Library/Logs/videntia-figma-mcp-socket.error.log</string>
 
     <key>EnvironmentVariables</key>
     <dict>

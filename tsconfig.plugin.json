@@ -10,5 +10,5 @@
     "noEmit": true,
     "types": ["@figma/plugin-typings"]
   },
-  "include": ["src/hgraph_figma_plugin/**/*.ts"]
+  "include": ["src/videntia_figma_plugin/**/*.ts"]
 }

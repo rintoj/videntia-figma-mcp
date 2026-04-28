@@ -1,11 +1,11 @@
 {
-  "name": "@hgraph/figma-mcp",
+  "name": "@videntia/figma-mcp",
   "description": "Figma MCP - AI-powered design tool for Figma",
   "version": "1.0.3",
-  "module": "dist/hgraph_figma_mcp/server.js",
-  "main": "dist/hgraph_figma_mcp/server.js",
+  "module": "dist/videntia_figma_mcp/server.js",
+  "main": "dist/videntia_figma_mcp/server.js",
   "bin": {
-    "hgraph-figma-mcp": "dist/hgraph_figma_mcp/server.js",
+    "videntia-figma-mcp": "dist/videntia_figma_mcp/server.js",
     "figma-mcp-socket": "dist/socket.js"
   },
   "files": [
@@ -17,12 +17,12 @@
   ],
   "type": "module",
   "scripts": {
-    "start": "bun run dist/hgraph_figma_mcp/server.js",
+    "start": "bun run dist/videntia_figma_mcp/server.js",
     "socket": "bun run dist/socket.js",
     "setup": "./scripts/setup.sh",
     "prebuild": "bun scripts/generate-icon-data.ts",
     "build:ui": "vite build --config vite.ui.config.ts",
-    "build": "bun run build:ui && tsup && chmod +x dist/hgraph_figma_mcp/server.js dist/socket.js",
+    "build": "bun run build:ui && tsup && chmod +x dist/videntia_figma_mcp/server.js dist/socket.js",
     "build:win": "tsup",
     "build:watch": "tsup --watch",
     "dev": "bun run build:watch",
@@ -79,10 +79,10 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/hgraph/figma-mcp.git"
+    "url": "git+https://github.com/videntia/figma-mcp.git"
   },
   "bugs": {
-    "url": "https://github.com/hgraph/figma-mcp/issues"
+    "url": "https://github.com/videntia/figma-mcp/issues"
   },
-  "homepage": "https://github.com/hgraph/figma-mcp#readme"
+  "homepage": "https://github.com/videntia/figma-mcp#readme"
 }

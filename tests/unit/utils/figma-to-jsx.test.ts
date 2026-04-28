@@ -1,5 +1,5 @@
-import { convertToJsx } from "../../../src/hgraph_figma_mcp/utils/figma-to-jsx";
-import type { FigmaNodeData } from "../../../src/hgraph_figma_mcp/types/index";
+import { convertToJsx } from "../../../src/videntia_figma_mcp/utils/figma-to-jsx";
+import type { FigmaNodeData } from "../../../src/videntia_figma_mcp/types/index";
 
 function makeNode(overrides: Partial<FigmaNodeData> = {}): FigmaNodeData {
   return {

@@ -3,14 +3,14 @@
  * npm package and produces a TypeScript module with a Map<string, string>.
  *
  * Usage: bun scripts/generate-icon-data.ts
- * Output: src/hgraph_figma_mcp/data/lucide-icons.ts
+ * Output: src/videntia_figma_mcp/data/lucide-icons.ts
  */
 
 import { readdir, readFile, mkdir, writeFile } from "node:fs/promises";
 import { join, basename } from "node:path";
 
 const ICONS_DIR = join(import.meta.dir, "..", "node_modules", "lucide-static", "icons");
-const OUTPUT_DIR = join(import.meta.dir, "..", "src", "hgraph_figma_mcp", "data");
+const OUTPUT_DIR = join(import.meta.dir, "..", "src", "videntia_figma_mcp", "data");
 const OUTPUT_FILE = join(OUTPUT_DIR, "lucide-icons.ts");
 
 async function main() {

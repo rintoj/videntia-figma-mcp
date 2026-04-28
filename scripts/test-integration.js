@@ -133,10 +133,10 @@ async function checkClaudeConfig() {
     }
     
     const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-    if (config.mcpServers && config.mcpServers['hgraph-figma-mcp']) {
-      log.success('hgraph-figma-mcp configuration found in Claude Desktop');
+    if (config.mcpServers && config.mcpServers['videntia-figma-mcp']) {
+      log.success('videntia-figma-mcp configuration found in Claude Desktop');
     } else {
-      log.warning('hgraph-figma-mcp is not configured in Claude Desktop');
+      log.warning('videntia-figma-mcp is not configured in Claude Desktop');
       const shouldConfigure = await askQuestion('Do you want to configure Claude Desktop now? (y/n)');
       
       if (shouldConfigure.toLowerCase() === 'y') {
@@ -249,7 +249,7 @@ async function checkFigmaPlugin() {
   
   try {
     log.info('This project uses a custom Figma MCP for Figma');
-    log.info('The plugin code is located in the src/hgraph_figma_plugin directory');
+    log.info('The plugin code is located in the src/videntia_figma_plugin directory');
     
     // Ask if the user has already installed the plugin
     const isPluginInstalled = await askQuestion('Have you installed the Figma MCP as a development plugin in Figma? (y/n)');
@@ -258,7 +258,7 @@ async function checkFigmaPlugin() {
       log.info('1. Open Figma');
       log.info('2. Go to Menu > Plugins > Development > New Plugin');
       log.info('3. Select "Link existing plugin"');
-      log.info('4. Navigate to and select the folder `src/hgraph_figma_plugin` from this repository');
+      log.info('4. Navigate to and select the folder `src/videntia_figma_plugin` from this repository');
       return false;
     } else {
       log.success('Plugin installed as per user');
@@ -304,7 +304,7 @@ async function runIntegrationTests() {
   
   log.info('\nTo complete integration tests, follow these steps:');
   log.info('1. Open Claude Desktop');
-  log.info('2. Select "hgraph-figma-mcp" in the MCP selector');
+  log.info('2. Select "videntia-figma-mcp" in the MCP selector');
   log.info('3. Open Figma and run the Figma MCP from your Development plugins');
   log.info('4. In the plugin, connect to WebSocket server (port 3055)');
   log.info('5. Test these commands in Claude:');

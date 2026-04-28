@@ -1,18 +1,18 @@
 {
   "dxt_version": "0.1",
-  "name": "hgraph-figma-mcp",
+  "name": "videntia-figma-mcp",
   "display_name": "Figma MCP",
   "description": "AI-powered design tool for Figma - enables Claude and other AI tools to interact directly with Figma for AI-assisted design capabilities.",
   "version": "0.6.0",
   "author": {
-    "name": "hgraph",
-    "url": "https://github.com/hgraph"
+    "name": "Videntia",
+    "url": "https://github.com/videntia"
   },
   "license": "MIT",
-  "homepage": "https://github.com/hgraph/figma-mcp",
+  "homepage": "https://github.com/videntia/figma-mcp",
   "repository": {
     "type": "git",
-    "url": "https://github.com/hgraph/figma-mcp.git"
+    "url": "https://github.com/videntia/figma-mcp.git"
   },
   "icon": "images/figma-mcp-icon.png",
   "compatibility": {
@@ -24,11 +24,11 @@
   },
   "server": {
     "type": "node",
-    "entry_point": "dist/hgraph_figma_mcp/server.cjs",
+    "entry_point": "dist/videntia_figma_mcp/server.cjs",
     "mcp_config": {
       "command": "node",
       "args": [
-        "${__dirname}/dist/hgraph_figma_mcp/server.cjs",
+        "${__dirname}/dist/videntia_figma_mcp/server.cjs",
         "--server=${user_config.server_url}"
       ],
       "env": {

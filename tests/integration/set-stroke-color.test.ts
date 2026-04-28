@@ -1,8 +1,8 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { registerModificationTools } from "../../src/hgraph_figma_mcp/tools/modification-tools";
+import { registerModificationTools } from "../../src/videntia_figma_mcp/tools/modification-tools";
 
-jest.mock("../../src/hgraph_figma_mcp/utils/websocket", () => ({
+jest.mock("../../src/videntia_figma_mcp/utils/websocket", () => ({
   sendCommandToFigma: jest.fn().mockResolvedValue({ name: "MockNode" }),
 }));
 
@@ -15,7 +15,7 @@ describe("set_stroke_color tool integration", () => {
   beforeEach(() => {
     server = new McpServer({ name: "test-server", version: "1.0.0" }, { capabilities: { tools: {} } });
 
-    mockSendCommand = require("../../src/hgraph_figma_mcp/utils/websocket").sendCommandToFigma;
+    mockSendCommand = require("../../src/videntia_figma_mcp/utils/websocket").sendCommandToFigma;
     mockSendCommand.mockClear();
 
     const originalTool = server.tool.bind(server);

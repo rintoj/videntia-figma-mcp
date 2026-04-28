@@ -1,4 +1,4 @@
-import { resolveDepth } from "../../../src/hgraph_figma_mcp/utils/output-format";
+import { resolveDepth } from "../../../src/videntia_figma_mcp/utils/output-format";
 
 describe("resolveDepth", () => {
   it("returns undefined for 'all'", () => {

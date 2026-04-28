@@ -17,7 +17,7 @@
     return a;
   };
 
-  // src/hgraph_figma_plugin/utils/helpers.ts
+  // src/videntia_figma_plugin/utils/helpers.ts
   var DEBUG = false;
   function debugLog(...args) {
     if (DEBUG) console.log(...args);
@@ -93,7 +93,7 @@
     }
   }
 
-  // src/hgraph_figma_plugin/handlers/document.ts
+  // src/videntia_figma_plugin/handlers/document.ts
   async function getFileKey() {
     const fileKey = figma.fileKey;
     if (!fileKey) {
@@ -200,7 +200,7 @@
     }
   }
 
-  // src/hgraph_figma_plugin/handlers/pages.ts
+  // src/videntia_figma_plugin/handlers/pages.ts
   async function createPage(params) {
     const name = params !== null && params !== void 0 ? params.name : void 0;
     if (!name || !name.trim()) {
@@ -281,7 +281,7 @@
     return pageInfo;
   }
 
-  // src/hgraph_figma_plugin/handlers/prototyping.ts
+  // src/videntia_figma_plugin/handlers/prototyping.ts
   async function getReactions(params) {
     const nodeIds = params["nodeIds"];
     if (!Array.isArray(nodeIds)) {
@@ -392,7 +392,7 @@
     };
   }
 
-  // src/hgraph_figma_plugin/utils/base64.ts
+  // src/videntia_figma_plugin/utils/base64.ts
   function customBase64Encode(bytes) {
     const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
     let base64 = "";
@@ -427,7 +427,7 @@
     return base64;
   }
 
-  // src/hgraph_figma_plugin/handlers/nodes.ts
+  // src/videntia_figma_plugin/handlers/nodes.ts
   async function createRectangle(params) {
     const x = params !== null && params !== void 0 && params["x"] !== null && params["x"] !== void 0 ? params["x"] : 0;
     const y = params !== null && params !== void 0 && params["y"] !== null && params["y"] !== void 0 ? params["y"] : 0;
@@ -967,7 +967,7 @@
     }
   }
 
-  // src/hgraph_figma_plugin/handlers/fills.ts
+  // src/videntia_figma_plugin/handlers/fills.ts
   async function setFillColor(params) {
     debugLog("setFillColor", params);
     const paramsObj = params !== null && params !== void 0 ? params : {};
@@ -1243,7 +1243,7 @@
     };
   }
 
-  // src/hgraph_figma_plugin/utils/color.ts
+  // src/videntia_figma_plugin/utils/color.ts
   function svgColorToFigmaRgb(colorStr) {
     if (!colorStr) return { r: 0, g: 0, b: 0 };
     const s = colorStr.trim().toLowerCase();
@@ -1290,7 +1290,7 @@
     return value;
   }
 
-  // src/hgraph_figma_plugin/utils/svg.ts
+  // src/videntia_figma_plugin/utils/svg.ts
   function parseSvgRootStroke(svgString) {
     const tagMatch = svgString.match(/<svg(\s[^>]*)?>/i);
     if (!tagMatch || !tagMatch[1]) return null;
@@ -1343,7 +1343,7 @@
     }
   }
 
-  // src/hgraph_figma_plugin/handlers/shapes.ts
+  // src/videntia_figma_plugin/handlers/shapes.ts
   async function createEllipse(params) {
     const paramsObj = params !== null && params !== void 0 ? params : {};
     const x = paramsObj["x"] !== void 0 ? paramsObj["x"] : 0;
@@ -1812,7 +1812,7 @@
     };
   }
 
-  // src/hgraph_figma_plugin/handlers/icons.ts
+  // src/videntia_figma_plugin/handlers/icons.ts
   async function updateIcon(params) {
     const nodeId = params !== null && params !== void 0 ? params["nodeId"] : void 0;
     const svgString = params !== null && params !== void 0 ? params["svgString"] : void 0;
@@ -1899,7 +1899,7 @@
     };
   }
 
-  // src/hgraph_figma_plugin/handlers/text.ts
+  // src/videntia_figma_plugin/handlers/text.ts
   var getDelimiterPos = (str, delimiter, startIdx = 0, endIdx = str.length) => {
     const indices = [];
     let temp = startIdx;
@@ -3393,7 +3393,7 @@
     }
   }
 
-  // src/hgraph_figma_plugin/handlers/effects.ts
+  // src/videntia_figma_plugin/handlers/effects.ts
   async function setEffects(params) {
     const nodeId = params["nodeId"];
     const effects = params["effects"];
@@ -3723,7 +3723,7 @@
     }
   }
 
-  // src/hgraph_figma_plugin/handlers/components.ts
+  // src/videntia_figma_plugin/handlers/components.ts
   async function getStyles() {
     const styles = {
       colors: await figma.getLocalPaintStylesAsync(),
@@ -4232,7 +4232,7 @@
     }
   }
 
-  // src/hgraph_figma_plugin/handlers/variables.ts
+  // src/videntia_figma_plugin/handlers/variables.ts
   async function findCollection(collectionIdOrName) {
     const collections = await figma.variables.getLocalVariableCollectionsAsync();
     let collection = collections.find((c) => c.id === collectionIdOrName);
@@ -5686,7 +5686,7 @@
     };
   }
 
-  // src/hgraph_figma_plugin/handlers/layout.ts
+  // src/videntia_figma_plugin/handlers/layout.ts
   async function findCollection2(collectionIdOrName) {
     const collections = await figma.variables.getLocalVariableCollectionsAsync();
     let collection = collections.find((c) => c.id === collectionIdOrName);
@@ -5931,7 +5931,7 @@
     };
   }
 
-  // src/hgraph_figma_plugin/handlers/selection.ts
+  // src/videntia_figma_plugin/handlers/selection.ts
   async function setFocus(params) {
     const nodeId = params["nodeId"];
     const node = await figma.getNodeByIdAsync(nodeId);
@@ -6348,7 +6348,7 @@
     };
   }
 
-  // src/hgraph_figma_plugin/handlers/annotations.ts
+  // src/videntia_figma_plugin/handlers/annotations.ts
   var ANNOTATION_SUPPORTED_TYPES = [
     "COMPONENT",
     "COMPONENT_SET",
@@ -6607,7 +6607,7 @@
     };
   }
 
-  // src/hgraph_figma_plugin/handlers/design-system.ts
+  // src/videntia_figma_plugin/handlers/design-system.ts
   function expandHex(hex) {
     if (hex.length === 3) {
       return hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
@@ -7653,7 +7653,7 @@
     };
   }
 
-  // src/hgraph_figma_plugin/handlers/lint/constants.ts
+  // src/videntia_figma_plugin/handlers/lint/constants.ts
   var MAX_LINT_DEPTH = 50;
   var MAX_LINT_VIOLATIONS = 500;
   var COLOR_EXACT_THRESHOLD = 5e-3;
@@ -7676,7 +7676,7 @@
   ];
   var DIM_TOLERANCE = 2;
 
-  // src/hgraph_figma_plugin/handlers/lint/helpers.ts
+  // src/videntia_figma_plugin/handlers/lint/helpers.ts
   function isFillBound(node, propKey, idx) {
     let bv = node.boundVariables;
     if (bv) {
@@ -7872,7 +7872,7 @@
     };
   }
 
-  // src/hgraph_figma_plugin/handlers/lint/checks.ts
+  // src/videntia_figma_plugin/handlers/lint/checks.ts
   function scanNode(node, depth, parent, parentBBox, chk, categories, violations, violationsCappedRef, totalNodesRef) {
     if (node.visible === false) return;
     if (depth > MAX_LINT_DEPTH) return;
@@ -8433,7 +8433,7 @@
     }
   }
 
-  // src/hgraph_figma_plugin/handlers/lint/fix.ts
+  // src/videntia_figma_plugin/handlers/lint/fix.ts
   function findBestColorVar(rawColor, category, colorVarEntries) {
     let bestEntry = null;
     let bestEffDist = Infinity;
@@ -8655,7 +8655,7 @@
     }
   }
 
-  // src/hgraph_figma_plugin/handlers/lint/index.ts
+  // src/videntia_figma_plugin/handlers/lint/index.ts
   async function lintFrame(params) {
     const lintParams = params;
     let nodeId = lintParams ? lintParams.nodeId : void 0;
@@ -8767,7 +8767,7 @@
     };
   }
 
-  // src/hgraph_figma_plugin/handlers/batch.ts
+  // src/videntia_figma_plugin/handlers/batch.ts
   var RESOLVE_MAX_PATH_DEPTH = 10;
   function resolveResultReferences(params, results) {
     if (params === null || params === void 0) return params;
@@ -8912,7 +8912,7 @@
     };
   }
 
-  // src/hgraph_figma_plugin/index.ts
+  // src/videntia_figma_plugin/index.ts
   var state = {
     serverPort: 3055
   };

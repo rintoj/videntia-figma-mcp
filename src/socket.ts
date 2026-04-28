@@ -2,9 +2,9 @@ import http from "node:http";
 import { WebSocketServer, WebSocket } from "ws";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
-import { SERVER_CONFIG, SERVER_INSTRUCTIONS } from "./hgraph_figma_mcp/config/config";
-import { registerTools } from "./hgraph_figma_mcp/tools";
-import { registerPrompts } from "./hgraph_figma_mcp/prompts";
+import { SERVER_CONFIG, SERVER_INSTRUCTIONS } from "./videntia_figma_mcp/config/config";
+import { registerTools } from "./videntia_figma_mcp/tools";
+import { registerPrompts } from "./videntia_figma_mcp/prompts";
 
 // Enhanced logging system
 const logger = {

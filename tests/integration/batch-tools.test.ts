@@ -1,8 +1,8 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { registerBatchTools } from "../../src/hgraph_figma_mcp/tools/batch-tools";
+import { registerBatchTools } from "../../src/videntia_figma_mcp/tools/batch-tools";
 
-jest.mock("../../src/hgraph_figma_mcp/utils/websocket", () => ({
+jest.mock("../../src/videntia_figma_mcp/utils/websocket", () => ({
   sendCommandToFigma: jest.fn(),
 }));
 
@@ -15,7 +15,7 @@ describe("batch_actions tool", () => {
   beforeEach(() => {
     server = new McpServer({ name: "test-server", version: "1.0.0" }, { capabilities: { tools: {} } });
 
-    mockSendCommand = require("../../src/hgraph_figma_mcp/utils/websocket").sendCommandToFigma;
+    mockSendCommand = require("../../src/videntia_figma_mcp/utils/websocket").sendCommandToFigma;
     mockSendCommand.mockClear();
 
     toolHandlers = new Map();
