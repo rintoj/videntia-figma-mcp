@@ -4,15 +4,18 @@ import { Toggle } from './toggle'
 
 interface SettingsSectionProps {
   port: number
+  serverUrl: string
   readOnly: boolean
   autoFocus: boolean
   onPortChange: (port: number) => void
+  onServerUrlChange: (url: string) => void
   onReadOnlyChange: (value: boolean) => void
   onAutoFocusChange: (value: boolean) => void
 }
 
-export function SettingsSection({ port, readOnly, autoFocus, onPortChange, onReadOnlyChange, onAutoFocusChange }: SettingsSectionProps) {
+export function SettingsSection({ port, serverUrl, readOnly, autoFocus, onPortChange, onServerUrlChange, onReadOnlyChange, onAutoFocusChange }: SettingsSectionProps) {
   var [editPort, setEditPort] = useState(String(port))
+  var [editUrl, setEditUrl] = useState(serverUrl)
 
   function handlePortBlur() {
     var parsed = parseInt(editPort, 10)
@@ -29,24 +32,48 @@ export function SettingsSection({ port, readOnly, autoFocus, onPortChange, onRea
     }
   }
 
+  function handleUrlBlur() {
+    var trimmed = editUrl.trim()
+    if (trimmed !== serverUrl) {
+      onServerUrlChange(trimmed)
+    }
+  }
+
+  function handleUrlKeyDown(e: KeyboardEvent) {
+    if (e.key === 'Enter') {
+      (e.target as HTMLInputElement).blur()
+    }
+  }
+
   return (
     <div class="flex flex-col gap-3 p-3 bg-card flex-1">
       <span class="text-muted-foreground text-[11px] font-semibold leading-4 uppercase tracking-wide">Connection</span>
-      <div class="flex items-start gap-3 py-1">
-        <div class="flex flex-col gap-1 flex-1 min-w-0">
-          <span class="text-foreground text-sm font-medium leading-5">Server Port</span>
-          <span class="text-muted-foreground text-xs font-medium leading-4">WebSocket port for MCP connection</span>
+      <div class="flex flex-col gap-1 py-1">
+        <div class="flex flex-col gap-1">
+          <span class="text-foreground text-sm font-medium leading-5">Server</span>
+          <span class="text-muted-foreground text-xs font-medium leading-4">WebSocket server URL and port</span>
         </div>
-        <input
-          type="number"
-          value={editPort}
-          min={1024}
-          max={65535}
-          onInput={function (e) { setEditPort((e.target as HTMLInputElement).value) }}
-          onBlur={handlePortBlur}
-          onKeyDown={handlePortKeyDown}
-          class="border border-border rounded-md py-1.5 px-2.5 text-sm bg-transparent text-foreground outline-none w-[72px] text-center hover:border-input focus:border-ring"
-        />
+        <div class="flex gap-2">
+          <input
+            type="text"
+            value={editUrl}
+            placeholder="figma-mcp.videntia.dev"
+            onInput={function (e) { setEditUrl((e.target as HTMLInputElement).value) }}
+            onBlur={handleUrlBlur}
+            onKeyDown={handleUrlKeyDown}
+            class="border border-border rounded-md py-1.5 px-2.5 text-sm bg-transparent text-foreground outline-none flex-1 min-w-0 hover:border-input focus:border-ring"
+          />
+          <input
+            type="number"
+            value={editPort}
+            min={1024}
+            max={65535}
+            onInput={function (e) { setEditPort((e.target as HTMLInputElement).value) }}
+            onBlur={handlePortBlur}
+            onKeyDown={handlePortKeyDown}
+            class="border border-border rounded-md py-1.5 px-2.5 text-sm bg-transparent text-foreground outline-none w-[72px] text-center hover:border-input focus:border-ring"
+          />
+        </div>
       </div>
       <div class="h-px bg-border" />
       <span class="text-muted-foreground text-[11px] font-semibold leading-4 uppercase tracking-wide">Preferences</span>

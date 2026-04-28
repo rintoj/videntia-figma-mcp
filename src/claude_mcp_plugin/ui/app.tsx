@@ -10,6 +10,7 @@ import { consumeEarlyMessages } from './early-messages'
 
 export function App() {
   var [port, setPort] = useState(3055)
+  var [serverUrl, setServerUrl] = useState('figma-mcp.videntia.dev')
   var [readOnly, setReadOnly] = useState(false)
   var [autoFocus, setAutoFocus] = useState(false)
   var [activeTab, setActiveTab] = useState<TabId>('actions')
@@ -34,6 +35,10 @@ export function App() {
             if (msg.settings.serverPort) {
               setPort(msg.settings.serverPort)
               conn.setServerPort(msg.settings.serverPort)
+            }
+            if (msg.settings.serverUrl !== undefined) {
+              setServerUrl(msg.settings.serverUrl)
+              conn.setServerUrl(msg.settings.serverUrl)
             }
             if (msg.settings.readonlyMode !== undefined) {
               setReadOnly(msg.settings.readonlyMode)
@@ -106,6 +111,12 @@ export function App() {
     setPort(p)
   }
 
+  function handleServerUrlChange(url: string) {
+    setServerUrl(url)
+    connection.setServerUrl(url)
+    parent.postMessage({ pluginMessage: { type: 'update-settings', serverUrl: url } }, '*')
+  }
+
   function handleClose() {
     parent.postMessage({ pluginMessage: { type: 'close-plugin' } }, '*')
   }
@@ -122,9 +133,11 @@ export function App() {
           {activeTab === 'settings' && (
             <SettingsSection
               port={port}
+              serverUrl={serverUrl}
               readOnly={readOnly}
               autoFocus={autoFocus}
               onPortChange={handlePortChange}
+              onServerUrlChange={handleServerUrlChange}
               onReadOnlyChange={handleReadOnlyChange}
               onAutoFocusChange={handleAutoFocusChange}
             />

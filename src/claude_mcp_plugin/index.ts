@@ -175,6 +175,7 @@ import { batchActions } from './handlers/batch';
 
 const state = {
   serverPort: 3055,
+  serverUrl: 'figma-mcp.videntia.dev',
   readonlyMode: false,
   autoFocus: false,
   prefsExpanded: true,
@@ -269,6 +270,9 @@ function updateSettings(settings: Record<string, unknown>): void {
   if (settings['serverPort'] !== undefined && settings['serverPort'] !== null) {
     state.serverPort = settings['serverPort'] as number;
   }
+  if (settings['serverUrl'] !== undefined && settings['serverUrl'] !== null) {
+    state.serverUrl = settings['serverUrl'] as string;
+  }
   if (settings['readonlyMode'] !== undefined && settings['readonlyMode'] !== null) {
     state.readonlyMode = settings['readonlyMode'] as boolean;
   }
@@ -287,6 +291,7 @@ function updateSettings(settings: Record<string, unknown>): void {
   }
   figma.clientStorage.setAsync('settings:' + figma.root.name, {
     serverPort: state.serverPort,
+    serverUrl: state.serverUrl,
     readonlyMode: state.readonlyMode,
     autoFocus: state.autoFocus,
     prefsExpanded: state.prefsExpanded,
@@ -302,6 +307,9 @@ function updateSettings(settings: Record<string, unknown>): void {
     if (savedSettings) {
       if (savedSettings['serverPort'] !== undefined && savedSettings['serverPort'] !== null) {
         state.serverPort = savedSettings['serverPort'] as number;
+      }
+      if (savedSettings['serverUrl'] !== undefined && savedSettings['serverUrl'] !== null) {
+        state.serverUrl = savedSettings['serverUrl'] as string;
       }
       if (savedSettings['readonlyMode'] !== undefined && savedSettings['readonlyMode'] !== null) {
         state.readonlyMode = savedSettings['readonlyMode'] as boolean;
@@ -326,6 +334,7 @@ function updateSettings(settings: Record<string, unknown>): void {
       type: 'init-settings',
       settings: {
         serverPort: state.serverPort,
+        serverUrl: state.serverUrl,
         readonlyMode: state.readonlyMode,
         autoFocus: state.autoFocus,
         prefsExpanded: state.prefsExpanded,
