@@ -1,4 +1,4 @@
-import { parseHexColor, resolveColor } from "../../../src/figma_mcp_plugin/handlers/fills";
+import { parseHexColor, resolveColor } from "../../../src/hgraph_figma_plugin/handlers/fills";
 
 describe("parseHexColor", () => {
   it("parses 6-digit hex", () => {

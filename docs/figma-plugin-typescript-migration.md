@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Figma plugin source (`src/figma_mcp_plugin/`) has been migrated from a single monolithic
+The Figma plugin source (`src/hgraph_figma_plugin/`) has been migrated from a single monolithic
 `code.js` (9,912 lines, plain JavaScript) to a structured TypeScript module tree (28 files,
 ~13,300 lines of typed TypeScript).
 
@@ -14,7 +14,7 @@ step bundles all TypeScript modules into that single file at build time.
 ## Module Map
 
 ```
-src/figma_mcp_plugin/
+src/hgraph_figma_plugin/
 ├── index.ts                       Entry point — plugin init, UI messaging, handleCommand dispatch
 ├── types.ts                       Shared TypeScript interfaces and types
 │
@@ -92,7 +92,7 @@ Dedicated TypeScript config for the Figma plugin source:
     "skipLibCheck": true,
     "types": ["@figma/plugin-typings"]
   },
-  "include": ["src/figma_mcp_plugin/**/*.ts"]
+  "include": ["src/hgraph_figma_plugin/**/*.ts"]
 }
 ```
 
@@ -103,8 +103,8 @@ Dedicated TypeScript config for the Figma plugin source:
 
 ```typescript
 {
-  entry: { 'code': 'src/figma_mcp_plugin/index.ts' },
-  outDir: 'src/figma_mcp_plugin',
+  entry: { 'code': 'src/hgraph_figma_plugin/index.ts' },
+  outDir: 'src/hgraph_figma_plugin',
   format: ['iife'],
   target: 'es2017',
   bundle: true,
@@ -117,7 +117,7 @@ Dedicated TypeScript config for the Figma plugin source:
 }
 ```
 
-This outputs directly to `src/figma_mcp_plugin/code.js`, which is the file Figma loads via `manifest.json`. The TypeScript migration is complete and live.
+This outputs directly to `src/hgraph_figma_plugin/code.js`, which is the file Figma loads via `manifest.json`. The TypeScript migration is complete and live.
 
 ---
 
@@ -135,8 +135,8 @@ Note: TypeScript compiles these at `target: es2017` but **does not downlevel** `
 
 To verify a file has no forbidden operators:
 ```bash
-grep -n '\?\.' src/figma_mcp_plugin/**/*.ts
-grep -n ' \?\? ' src/figma_mcp_plugin/**/*.ts
+grep -n '\?\.' src/hgraph_figma_plugin/**/*.ts
+grep -n ' \?\? ' src/hgraph_figma_plugin/**/*.ts
 ```
 
 ---
@@ -145,10 +145,10 @@ grep -n ' \?\? ' src/figma_mcp_plugin/**/*.ts
 
 ### Step 1: Choose the handler file
 
-Add the function to the appropriate handler in `src/figma_mcp_plugin/handlers/`.
+Add the function to the appropriate handler in `src/hgraph_figma_plugin/handlers/`.
 
 ```typescript
-// src/figma_mcp_plugin/handlers/nodes.ts (example)
+// src/hgraph_figma_plugin/handlers/nodes.ts (example)
 export async function myNewCommand(params: Record<string, unknown>): Promise<Record<string, unknown>> {
   const nodeId = params['nodeId'] as string;
   if (!nodeId) throw new Error('nodeId is required');
@@ -187,7 +187,7 @@ Add the new command string to the union in `src/hgraph_figma_mcp/types/index.ts`
 ```bash
 bun tsc --noEmit -p tsconfig.plugin.json   # type-check plugin source
 bun run build                               # full build
-ls -lh src/figma_mcp_plugin/code.js  # verify output
+ls -lh src/hgraph_figma_plugin/code.js  # verify output
 ```
 
 ---
@@ -202,14 +202,14 @@ bun tsc --noEmit -p tsconfig.plugin.json
 bun run build
 
 # Verify plugin output
-ls -lh src/figma_mcp_plugin/code.js
+ls -lh src/hgraph_figma_plugin/code.js
 ```
 
 ---
 
 ## Migration Status
 
-The TypeScript migration is **complete**. The plugin builds directly to `src/figma_mcp_plugin/code.js`
+The TypeScript migration is **complete**. The plugin builds directly to `src/hgraph_figma_plugin/code.js`
 (the file Figma loads via `manifest.json`). No further cutover steps are required.
 
 To verify the plugin after any change:
@@ -217,7 +217,7 @@ To verify the plugin after any change:
 ```bash
 bun tsc --noEmit -p tsconfig.plugin.json   # type-check plugin source (expect 0 errors)
 bun run build                               # full build
-ls -lh src/figma_mcp_plugin/code.js       # should be ~155 KB minified
+ls -lh src/hgraph_figma_plugin/code.js       # should be ~155 KB minified
 ```
 
 Smoke test in Figma (load plugin, open DevTools, verify no JS errors):

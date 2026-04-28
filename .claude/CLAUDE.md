@@ -56,7 +56,7 @@ src/
 │   │   └── figma-helpers.ts         # Helper functions
 │   └── types/
 │       └── index.ts                 # TypeScript definitions
-├── figma_mcp_plugin/
+├── hgraph_figma_plugin/
 │   └── code.js                      # Figma plugin code (4777 lines)
 └── socket.ts                        # WebSocket server
 
@@ -187,7 +187,7 @@ server.tool(
 );
 ```
 
-2. **Add Figma plugin handler** (`src/figma_mcp_plugin/code.js`)
+2. **Add Figma plugin handler** (`src/hgraph_figma_plugin/code.js`)
 ```javascript
 case "tool_name":
   return await toolNameHandler(params);
@@ -200,9 +200,9 @@ export type FigmaCommand =
   | "tool_name";  // Add new command
 ```
 
-4. **Add to `ALLOWED_COMMANDS`** (`src/figma_mcp_plugin/ui/constants.ts`) — the UI allowlist that gates which commands can be sent to the plugin. Without this, the command is blocked with "Command not permitted".
+4. **Add to `ALLOWED_COMMANDS`** (`src/hgraph_figma_plugin/ui/constants.ts`) — the UI allowlist that gates which commands can be sent to the plugin. Without this, the command is blocked with "Command not permitted".
 
-5. **Add to `READONLY_COMMANDS`** (`src/figma_mcp_plugin/index.ts`) — if the tool is read-only (does not modify design data). Without this, the command is blocked when readonly mode is active.
+5. **Add to `READONLY_COMMANDS`** (`src/hgraph_figma_plugin/index.ts`) — if the tool is read-only (does not modify design data). Without this, the command is blocked when readonly mode is active.
 
 6. **Write tests** (`tests/integration/`)
 ```typescript
@@ -296,7 +296,7 @@ git checkout main && git pull && bun run build && docker compose up --build -d
 ```
 
 `bun run build` does two things:
-1. **Regenerates `src/figma_mcp_plugin/code.js`** from the TypeScript source modules — this is what Figma loads.
+1. **Regenerates `src/hgraph_figma_plugin/code.js`** from the TypeScript source modules — this is what Figma loads.
 2. **Rebuilds the MCP server** (`dist/`) — this is what Claude connects to.
 
 `docker compose up --build -d` rebuilds the Docker image and restarts the socket server container in the background.

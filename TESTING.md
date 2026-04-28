@@ -91,7 +91,7 @@ This script will guide you through the complete testing process.
 
 1. Open Figma and go to **Menu > Plugins > Development > New Plugin**
 2. Select "Link existing plugin"
-3. Navigate to and select the folder `src/figma_mcp_plugin` from this repository
+3. Navigate to and select the folder `src/hgraph_figma_plugin` from this repository
 
 #### Connect Plugin to WebSocket Server
 

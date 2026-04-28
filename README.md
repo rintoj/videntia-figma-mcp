@@ -23,7 +23,7 @@ AI Tool  ↔  MCP Server  ↔  WebSocket Server  ↔  Figma Plugin
 
 1. Open Figma Desktop
 2. Go to **Menu → Plugins → Development → Import plugin from manifest...**
-3. Select `src/figma_mcp_plugin/manifest.json` from this project
+3. Select `src/hgraph_figma_plugin/manifest.json` from this project
 
 ---
 
@@ -116,7 +116,7 @@ bun run build
 ```
 
 `bun run build` does two things:
-1. Regenerates `src/figma_mcp_plugin/code.js` from TypeScript source (what Figma loads)
+1. Regenerates `src/hgraph_figma_plugin/code.js` from TypeScript source (what Figma loads)
 2. Builds the MCP server into `dist/` (what Claude connects to)
 
 ### Development workflow
