@@ -59,9 +59,9 @@ jobs:
       run: |
         set -e
         echo "🔍 Validating build output..."
-        if [ ! -f "dist/claude_figma_mcp/server.cjs" ]; then
+        if [ ! -f "dist/hgraph_figma_mcp/server.cjs" ]; then
           echo "❌ Error: Entry point not found after build"
-          echo "Expected: dist/claude_figma_mcp/server.cjs"
+          echo "Expected: dist/hgraph_figma_mcp/server.cjs"
           ls -la dist/ || echo "dist/ directory not found"
           exit 1
         fi
@@ -71,35 +71,56 @@ jobs:
           exit 1
         fi
         echo "✅ Build output validated successfully"
-    
+
     - name: Create DXT package
       run: |
         set -e
         echo "📦 Creating DXT package..."
         dxt pack
         echo "✅ DXT package created successfully"
-      
+
+    - name: Package Figma plugin
+      run: |
+        set -e
+        VERSION=$(jq -r '.version' package.json)
+        PLUGIN_ZIP="hgraph-figma-plugin-v${VERSION}.zip"
+        echo "📦 Creating Figma plugin package: $PLUGIN_ZIP"
+        zip -j "$PLUGIN_ZIP" \
+          src/hgraph_figma_plugin/manifest.json \
+          src/hgraph_figma_plugin/code.js \
+          src/hgraph_figma_plugin/ui.html
+        echo "✅ Figma plugin package created: $PLUGIN_ZIP"
+        echo "plugin_zip=$PLUGIN_ZIP" >> $GITHUB_ENV
+
     - name: Get package info
       id: package
       run: |
         echo "name=$(jq -r '.name' package.json)" >> $GITHUB_OUTPUT
         echo "version=$(jq -r '.version' package.json)" >> $GITHUB_OUTPUT
-        
+
     - name: Upload DXT artifact
       uses: actions/upload-artifact@v4
       with:
         name: ${{ steps.package.outputs.name }}-${{ steps.package.outputs.version }}.dxt
         path: ${{ steps.package.outputs.name }}.dxt
         retention-days: 90
-        
+
+    - name: Upload Figma plugin artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: hgraph-figma-plugin-${{ steps.package.outputs.version }}
+        path: ${{ env.plugin_zip }}
+        retention-days: 90
+
     - name: Upload to release (on release only)
       if: github.event_name == 'release'
       run: |
         set -e
-        echo "📦 Uploading DXT package to release..."
+        echo "📦 Uploading packages to release..."
         gh release upload ${{ github.event.release.tag_name }} \
           ${{ steps.package.outputs.name }}.dxt \
+          ${{ env.plugin_zip }} \
           --clobber
-        echo "✅ DXT package uploaded successfully"
+        echo "✅ Packages uploaded successfully"
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,42 @@
+name: Package Figma Plugin
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Build plugin
+        run: bun run build
+
+      - name: Package Figma plugin
+        run: |
+          VERSION=$(jq -r '.version' package.json)
+          PLUGIN_ZIP="hgraph-figma-plugin-v${VERSION}.zip"
+          zip -j "$PLUGIN_ZIP" \
+            src/hgraph_figma_plugin/manifest.json \
+            src/hgraph_figma_plugin/code.js \
+            src/hgraph_figma_plugin/ui.html
+          echo "plugin_zip=$PLUGIN_ZIP" >> $GITHUB_ENV
+          echo "version=$VERSION" >> $GITHUB_ENV
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: hgraph-figma-plugin-${{ env.version }}
+          path: ${{ env.plugin_zip }}
+          retention-days: 90
