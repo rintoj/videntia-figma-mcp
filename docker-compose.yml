@@ -2,6 +2,17 @@ services:
   socket:
     build: .
     container_name: videntia-figma-mcp
-    ports:
-      - "3055:3055"
     restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.videntia-figma-mcp.entrypoints=websecure"
+      - "traefik.http.routers.videntia-figma-mcp.rule=Host(`figma-mcp.videntia.dev`)"
+      - "traefik.http.routers.videntia-figma-mcp.tls=true"
+      - "traefik.http.routers.videntia-figma-mcp.tls.certresolver=letsencrypt"
+      - "traefik.http.services.videntia-figma-mcp.loadbalancer.server.port=3055"
+    networks:
+      - dokploy-network
+
+networks:
+  dokploy-network:
+    external: true

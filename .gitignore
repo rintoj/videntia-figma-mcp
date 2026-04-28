@@ -44,3 +44,4 @@ src/claude_figma_mcp/data/lucide-icons.ts
 src/claude_mcp_plugin/code.js
 src/claude_mcp_plugin/code.next.js
 src/claude_mcp_plugin/ui.html
+.playwright-mcp
