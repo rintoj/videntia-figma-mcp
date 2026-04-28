@@ -1,7 +1,7 @@
 {
   "name": "claude-figma-mcp",
   "description": "Claude Figma MCP - AI-powered design tool for Figma",
-  "version": "0.10.0",
+  "version": "1.0.2",
   "module": "dist/claude_figma_mcp/server.js",
   "main": "dist/claude_figma_mcp/server.js",
   "bin": {

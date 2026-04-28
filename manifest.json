@@ -28,11 +28,21 @@
     "mcp_config": {
       "command": "node",
       "args": [
-        "${__dirname}/dist/claude_figma_mcp/server.cjs"
+        "${__dirname}/dist/claude_figma_mcp/server.cjs",
+        "--server=${user_config.server_url}"
       ],
       "env": {
         "NODE_ENV": "production"
       }
+    }
+  },
+  "user_config": {
+    "server_url": {
+      "type": "string",
+      "title": "Socket Server URL",
+      "description": "WebSocket socket server host. Use 'localhost' for local dev or 'figma-mcp.videntia.dev' for the hosted server.",
+      "default": "figma-mcp.videntia.dev",
+      "required": false
     }
   },
   "tools_generated": true
