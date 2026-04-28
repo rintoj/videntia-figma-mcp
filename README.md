@@ -67,15 +67,11 @@ Go to **Settings → Tools & Integrations → New MCP Server** and add:
 
 #### Replit
 
-Replit Agent connects to MCP servers via a **remote URL** (SSE), not a local command. This requires a hosted HTTP/SSE endpoint of the MCP server.
-
-> **Note:** A hosted SSE endpoint is not yet available. If you need Replit support, please [open an issue](../../issues) — enough demand will prioritise it.
-
-Once a hosted endpoint exists, the setup will be:
+Replit Agent connects to MCP servers via a **remote URL** (SSE), not a local command.
 
 1. Go to **Replit → Tools → Integrations → MCP Servers**
 2. Click **Add MCP server**
-3. Enter name `videntia-figma-mcp` and the server URL (e.g. `https://figma-mcp.videntia.dev/sse`)
+3. Enter name `videntia-figma-mcp` and URL: `http://figma-mcp.videntia.dev/sse`
 4. Click **Test & Save**
 
 ---
@@ -85,7 +81,7 @@ Once a hosted endpoint exists, the setup will be:
 The socket server relays messages between your AI tool and Figma.
 
 **Option A — Hosted (default, no setup needed)**
-A server is already running at `figma-mcp.videntia.dev`. The plugin connects to it automatically.
+A server is already running at `ws://figma-mcp.videntia.dev`. The plugin connects to it automatically.
 
 **Option B — Docker (self-hosted)**
 
@@ -125,7 +121,7 @@ claude mcp add videntia-figma-mcp -- npx -y @videntia/figma-mcp --server=localho
 ### Install and build
 
 ```bash
-git clone https://github.com/videntia/videntia-figma-mcp.git
+git clone https://github.com/rintoj/videntia-figma-mcp.git
 cd videntia-figma-mcp
 bun install
 bun run build
