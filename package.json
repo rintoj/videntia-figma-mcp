@@ -1,12 +1,12 @@
 {
-  "name": "claude-figma-mcp",
+  "name": "@hgraph/figma-mcp",
   "description": "Claude Figma MCP - AI-powered design tool for Figma",
   "version": "1.0.2",
   "module": "dist/claude_figma_mcp/server.js",
   "main": "dist/claude_figma_mcp/server.js",
   "bin": {
-    "claude-figma-mcp": "dist/claude_figma_mcp/server.js",
-    "claude-figma-mcp-socket": "dist/socket.js"
+    "figma-mcp": "dist/claude_figma_mcp/server.js",
+    "figma-mcp-socket": "dist/socket.js"
   },
   "files": [
     "dist",
@@ -81,10 +81,10 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/rintoj/claude-figma-mcp.git"
+    "url": "git+https://github.com/hgraph/figma-mcp.git"
   },
   "bugs": {
-    "url": "https://github.com/rintoj/claude-figma-mcp/issues"
+    "url": "https://github.com/hgraph/figma-mcp/issues"
   },
-  "homepage": "https://github.com/rintoj/claude-figma-mcp#readme"
+  "homepage": "https://github.com/hgraph/figma-mcp#readme"
 }

@@ -1,18 +1,18 @@
 {
   "dxt_version": "0.1",
-  "name": "claude-figma-mcp",
-  "display_name": "Claude Figma MCP",
+  "name": "figma-mcp",
+  "display_name": "Figma MCP",
   "description": "AI-powered design tool for Figma - enables Claude and other AI tools to interact directly with Figma for AI-assisted design capabilities.",
   "version": "0.6.0",
   "author": {
-    "name": "rintoj",
-    "url": "https://github.com/rintoj"
+    "name": "hgraph",
+    "url": "https://github.com/hgraph"
   },
   "license": "MIT",
-  "homepage": "https://github.com/rintoj/claude-figma-mcp",
+  "homepage": "https://github.com/hgraph/figma-mcp",
   "repository": {
     "type": "git",
-    "url": "https://github.com/rintoj/claude-figma-mcp.git"
+    "url": "https://github.com/hgraph/figma-mcp.git"
   },
   "icon": "images/claude-figma-mcp-icon.png",
   "compatibility": {
