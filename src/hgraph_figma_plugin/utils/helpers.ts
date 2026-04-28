@@ -1,4 +1,4 @@
-// General-purpose helper utilities for the Claude Figma MCP plugin.
+// Figma MCP plugin.
 
 import type { CommandProgressMessage, ProgressPayload } from '../types';
 

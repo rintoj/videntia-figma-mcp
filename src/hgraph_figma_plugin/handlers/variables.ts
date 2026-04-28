@@ -1,4 +1,4 @@
-// Variable management handlers for the Claude Figma MCP plugin.
+// Figma MCP plugin.
 // Covers: variable CRUD, collections, mode management, color scales,
 // audit, schema import/export, and theme application.
 

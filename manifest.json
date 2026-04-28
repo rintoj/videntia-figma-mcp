@@ -14,7 +14,7 @@
     "type": "git",
     "url": "https://github.com/hgraph/figma-mcp.git"
   },
-  "icon": "images/claude-figma-mcp-icon.png",
+  "icon": "images/figma-mcp-icon.png",
   "compatibility": {
     "platforms": [
       "darwin",

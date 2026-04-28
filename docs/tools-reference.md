@@ -1,4 +1,4 @@
-# Claude Figma MCP — Tools Reference
+# Figma MCP — Tools Reference
 
 ---
 
@@ -22,7 +22,7 @@ of the connected Figma channel. Do NOT use a sub-agent — run all tool calls di
      correction in the code itself, or a documentation correction in this file.
    - Present your diagnosis, then **apply the fix immediately** without asking for permission
      (edit source files and/or docs as needed), then run:
-     `bun run build && launchctl stop com.claude-figma-mcp.socket && launchctl start com.claude-figma-mcp.socket`
+     `bun run build && docker compose restart`
    - Wait a moment for the server to restart, then re-run `get_open_channels` and `join_channel` (channel IDs may change after restart), then **retry the same tool**. If it passes, continue to
      the next tool. If it fails again, stop and re-diagnose.
 4. **Track state**: store node IDs, collection IDs, variable IDs, and style IDs returned by

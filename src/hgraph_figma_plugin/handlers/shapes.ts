@@ -1,4 +1,4 @@
-// Shape creation handler functions for the Claude Figma MCP plugin.
+// Figma MCP plugin.
 
 import { parseSvgRootStroke, propagateStrokeToShapes } from '../utils/svg';
 import { debugLog, parseNum } from '../utils/helpers';

@@ -1,6 +1,6 @@
 # Design System
 
-> Source: Claude Figma MCP plugin UI (dark theme)
+> Source: Figma MCP plugin UI (dark theme)
 > Colors extracted from selected frames and mapped to Tailwind color theory semantics.
 
 ## Color Variables

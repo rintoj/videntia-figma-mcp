@@ -1,4 +1,4 @@
-// Design-system handler functions for the Claude Figma MCP plugin.
+// Figma MCP plugin.
 
 import { debugLog, sendProgressUpdate, getFontStyle } from '../utils/helpers';
 import { parseSvgRootStroke, propagateStrokeToShapes } from '../utils/svg';

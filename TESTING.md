@@ -1,6 +1,6 @@
-# Testing Guide for Claude Figma MCP
+# Testing Guide for Figma MCP
 
-This document provides a detailed guide for testing the Claude Figma MCP project, including both automated tests and manual integration tests.
+This document provides a detailed guide for testing the Figma MCP project, including both automated tests and manual integration tests.
 
 ## Testing Approaches
 
@@ -74,7 +74,7 @@ This script will guide you through the complete testing process.
 | Test case | Steps | Expected result |
 | -------------- | ----- | ------------------ |
 | Dependencies installation | Run `bun install` | All dependencies are installed without errors |
-| Claude configuration | Run `bun run configure-claude` | Script executed correctly, successful configuration message |
+| Claude configuration | Run `bun run configure` | Script executed correctly, successful configuration message |
 | Verify configuration | Check `claude_desktop_config.json` file | Contains configuration for "FigmaStudioMCP" |
 
 ### 2. WebSocket Server Configuration
@@ -105,7 +105,7 @@ This script will guide you through the complete testing process.
 To test if the Figma plugin is correctly communicating with the Claude MCP server:
 
 1. Start the WebSocket server
-2. Open Figma and run the Claude Figma MCP plugin from your Development plugins
+2. Open Figma and run the Figma MCP plugin from your Development plugins
 3. Connect to the WebSocket server 
 4. Open Claude Desktop and select the "FigmaStudioMCP" MCP
 5. Test a simple command in Claude like: "Can you show me information about my current Figma document?"
@@ -137,7 +137,7 @@ Claude should be able to communicate with Figma and return information about the
 
 | Problem | Possible cause | Solution |
 | -------- | ------------- | -------- |
-| "MCP does not appear in Claude Desktop" | Incorrect configuration | Verify configuration file and run `bun run configure-claude` |
+| "MCP does not appear in Claude Desktop" | Incorrect configuration | Verify configuration file and run `bun run configure` |
 | "Claude does not respond to Figma commands" | MCP not selected | Select "FigmaStudioMCP" in the MCPs menu |
 | "Error executing MCP command" | Missing dependencies | Reinstall with `bun install` |
 | "Claude cannot execute commands in Figma" | Channel not joined | Verify that `join_channel` was executed |

@@ -1,4 +1,4 @@
-// Shared TypeScript types for the Claude Figma MCP plugin.
+// Figma MCP plugin.
 // The Figma plugin API is available globally via @figma/plugin-typings.
 
 // ---------------------------------------------------------------------------

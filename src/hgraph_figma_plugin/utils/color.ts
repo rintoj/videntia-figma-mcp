@@ -1,4 +1,4 @@
-// Color-related utility functions for the Claude Figma MCP plugin.
+// Figma MCP plugin.
 
 import type { RgbColor, RgbaColor, VariableResolvedType, VariableValue } from '../types';
 

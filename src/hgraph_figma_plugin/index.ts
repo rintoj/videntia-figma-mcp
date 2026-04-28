@@ -1,4 +1,4 @@
-// Claude Figma MCP Plugin — Entry Point
+// Figma MCP Plugin — Entry Point
 // All handler modules are imported and wired to the handleCommand dispatch.
 
 // Utils

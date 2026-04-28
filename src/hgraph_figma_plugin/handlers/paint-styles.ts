@@ -1,4 +1,4 @@
-// Paint/color style handler functions for the Claude Figma MCP plugin.
+// Figma MCP plugin.
 
 import { resolveColor, parseHexColor } from './fills';
 

@@ -1,4 +1,4 @@
-// Base64 encoding utility for the Claude Figma MCP plugin.
+// Figma MCP plugin.
 //
 // Figma's plugin sandbox does not expose the browser's `btoa` / `atob` in all
 // contexts, so we use a pure-JS implementation that works on Uint8Array /

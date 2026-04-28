@@ -1,4 +1,4 @@
-// SVG-related utility functions for the Claude Figma MCP plugin.
+// Figma MCP plugin.
 
 import type { SvgRootStroke } from '../types';
 import { svgColorToFigmaRgb } from './color';

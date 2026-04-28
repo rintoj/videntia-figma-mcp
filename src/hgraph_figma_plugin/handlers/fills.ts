@@ -1,4 +1,4 @@
-// Fill and stroke handler functions for the Claude Figma MCP plugin.
+// Figma MCP plugin.
 
 import { debugLog } from '../utils/helpers';
 

@@ -1,4 +1,4 @@
-# Claude Figma MCP - Project Guide
+# Figma MCP - Project Guide
 
 ## Overview
 

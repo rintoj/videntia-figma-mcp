@@ -1,6 +1,4 @@
-<img src="images/claude-figma-mcp-icon.png" alt="Figma MCP" width="80" />
-
-# Figma MCP
+# HGraph Figma MCP
 
 A Model Context Protocol (MCP) server that lets Claude Desktop, Claude Code, Cursor, and other AI tools interact directly with Figma.
 
@@ -75,16 +73,19 @@ The socket server relays messages between your AI tool and Figma.
 A server is already running at `figma-mcp.videntia.dev`. The plugin connects to it automatically.
 
 **Option B — Docker (self-hosted)**
+
 ```bash
 docker compose up -d
 ```
 
 **Option C — Bun (self-hosted)**
+
 ```bash
 bun run socket
 ```
 
 When self-hosting, point the plugin to `localhost` instead:
+
 ```bash
 # Claude Code
 claude mcp add figma-mcp -- npx -y @hgraph/figma-mcp --server=localhost
@@ -94,9 +95,9 @@ claude mcp add figma-mcp -- npx -y @hgraph/figma-mcp --server=localhost
 
 ### Step 4 — Connect to Figma
 
-1. In Figma, run: **Plugins → Development → Claude Figma MCP**
+1. In Figma, run: **Plugins → Development → Figma MCP**
 2. The plugin shows a **Channel ID**
-3. Ask Claude: *"Connect to Figma channel abc123"*
+3. Ask Claude: _"Connect to Figma channel abc123"_
 
 ---
 
@@ -116,6 +117,7 @@ bun run build
 ```
 
 `bun run build` does two things:
+
 1. Regenerates `src/hgraph_figma_plugin/code.js` from TypeScript source (what Figma loads)
 2. Builds the MCP server into `dist/` (what Claude connects to)
 
@@ -134,6 +136,7 @@ claude mcp add figma-mcp -s user -- node /absolute/path/to/figma-mcp/dist/hgraph
 ```
 
 For Claude Desktop / Cursor, update the config to use `node` instead of `npx`:
+
 ```json
 {
   "mcpServers": {
@@ -168,17 +171,17 @@ bun run format   # Auto-fix formatting
 
 ## Capabilities
 
-| Category | What you can do |
-|----------|----------------|
-| Document | Read selections, inspect nodes, export assets, manage pages |
-| Creation | Frames, shapes, text, SVGs, components |
-| Modification | Colors, fills, strokes, effects, auto-layout, corner radius |
-| Text | Font, size, weight, spacing, line height, text styles |
-| Components | Create, instance, variants, properties, overrides |
-| Variables | Collections, tokens, modes (Light/Dark), color scales |
-| Design system | Spacing, typography, radius, full system initialization |
-| Prototyping | Reactions, connections, connector styles |
-| Accessibility | WCAG contrast validation, color audit |
+| Category      | What you can do                                             |
+| ------------- | ----------------------------------------------------------- |
+| Document      | Read selections, inspect nodes, export assets, manage pages |
+| Creation      | Frames, shapes, text, SVGs, components                      |
+| Modification  | Colors, fills, strokes, effects, auto-layout, corner radius |
+| Text          | Font, size, weight, spacing, line height, text styles       |
+| Components    | Create, instance, variants, properties, overrides           |
+| Variables     | Collections, tokens, modes (Light/Dark), color scales       |
+| Design system | Spacing, typography, radius, full system initialization     |
+| Prototyping   | Reactions, connections, connector styles                    |
+| Accessibility | WCAG contrast validation, color audit                       |
 
 Full command reference: see [docs/](docs/)
 
@@ -186,14 +189,14 @@ Full command reference: see [docs/](docs/)
 
 ## Troubleshooting
 
-| Problem | Fix |
-|---------|-----|
-| Can't connect to WebSocket | Start the socket server (`bun run socket` or `docker compose up -d`) |
-| Plugin not found | Re-import `manifest.json` via Figma → Plugins → Development |
-| MCP not available in Claude Desktop | Restart Claude after editing the config file |
-| Font not found | Use `load_font_async` to verify font availability |
-| `set_image_fill` fails | Only `images.unsplash.com` and `picsum.photos` are allowed by default; add your domain to `manifest.json → networkAccess.allowedDomains` |
-| Timeout on complex operations | Retry; large documents take longer |
+| Problem                             | Fix                                                                                                                                      |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Can't connect to WebSocket          | Start the socket server (`bun run socket` or `docker compose up -d`)                                                                     |
+| Plugin not found                    | Re-import `manifest.json` via Figma → Plugins → Development                                                                              |
+| MCP not available in Claude Desktop | Restart Claude after editing the config file                                                                                             |
+| Font not found                      | Use `load_font_async` to verify font availability                                                                                        |
+| `set_image_fill` fails              | Only `images.unsplash.com` and `picsum.photos` are allowed by default; add your domain to `manifest.json → networkAccess.allowedDomains` |
+| Timeout on complex operations       | Retry; large documents take longer                                                                                                       |
 
 ---
 
