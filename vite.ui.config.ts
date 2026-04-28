@@ -5,13 +5,13 @@ import { viteSingleFile } from 'vite-plugin-singlefile'
 
 export default defineConfig({
   plugins: [tailwindcss(), preact(), viteSingleFile()],
-  root: 'src/claude_mcp_plugin/ui',
+  root: 'src/figma_mcp_plugin/ui',
   build: {
     outDir: '..',
     emptyOutDir: false,
     target: 'es2017',
     rollupOptions: {
-      input: 'src/claude_mcp_plugin/ui/ui.html',
+      input: 'src/figma_mcp_plugin/ui/ui.html',
     },
   },
 })

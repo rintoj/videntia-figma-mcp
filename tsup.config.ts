@@ -3,7 +3,7 @@ import { defineConfig } from 'tsup';
 export default defineConfig([
   // MCP server build (CJS + ESM)
   {
-    entry: ['src/claude_figma_mcp/server.ts', 'src/socket.ts'],
+    entry: ['src/hgraph_figma_mcp/server.ts', 'src/socket.ts'],
     format: ['cjs', 'esm'],
     dts: true,
     clean: true,
@@ -16,8 +16,8 @@ export default defineConfig([
   },
   // Figma plugin build (IIFE, single bundled file)
   {
-    entry: { 'code': 'src/claude_mcp_plugin/index.ts' },
-    outDir: 'src/claude_mcp_plugin',
+    entry: { 'code': 'src/figma_mcp_plugin/index.ts' },
+    outDir: 'src/figma_mcp_plugin',
     format: ['iife'],
     target: 'es2017',
     bundle: true,

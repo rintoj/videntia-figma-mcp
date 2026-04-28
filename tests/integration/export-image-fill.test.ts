@@ -1,11 +1,11 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { registerDocumentTools } from "../../src/claude_figma_mcp/tools/document-tools";
+import { registerDocumentTools } from "../../src/hgraph_figma_mcp/tools/document-tools";
 import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
 
-jest.mock("../../src/claude_figma_mcp/utils/websocket", () => ({
+jest.mock("../../src/hgraph_figma_mcp/utils/websocket", () => ({
   sendCommandToFigma: jest.fn(),
   joinChannel: jest.fn(),
   getOpenChannels: jest.fn().mockResolvedValue([]),
@@ -21,7 +21,7 @@ describe("export_image_fill tool", () => {
   beforeEach(() => {
     server = new McpServer({ name: "test-server", version: "1.0.0" }, { capabilities: { tools: {} } });
 
-    mockSendCommand = require("../../src/claude_figma_mcp/utils/websocket").sendCommandToFigma;
+    mockSendCommand = require("../../src/hgraph_figma_mcp/utils/websocket").sendCommandToFigma;
     mockSendCommand.mockClear();
 
     toolHandlers = new Map();

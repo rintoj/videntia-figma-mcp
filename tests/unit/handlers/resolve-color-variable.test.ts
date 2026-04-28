@@ -1,4 +1,4 @@
-import { resolveColorVariable } from "../../../src/claude_mcp_plugin/handlers/icons";
+import { resolveColorVariable } from "../../../src/figma_mcp_plugin/handlers/icons";
 
 /**
  * Minimal Variable stub matching what resolveColorVariable needs.

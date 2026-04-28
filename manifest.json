@@ -24,11 +24,11 @@
   },
   "server": {
     "type": "node",
-    "entry_point": "dist/claude_figma_mcp/server.cjs",
+    "entry_point": "dist/hgraph_figma_mcp/server.cjs",
     "mcp_config": {
       "command": "node",
       "args": [
-        "${__dirname}/dist/claude_figma_mcp/server.cjs",
+        "${__dirname}/dist/hgraph_figma_mcp/server.cjs",
         "--server=${user_config.server_url}"
       ],
       "env": {

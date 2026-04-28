@@ -1,8 +1,8 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { registerComponentTools } from "../../src/claude_figma_mcp/tools/component-tools";
+import { registerComponentTools } from "../../src/hgraph_figma_mcp/tools/component-tools";
 
-jest.mock("../../src/claude_figma_mcp/utils/websocket", () => ({
+jest.mock("../../src/hgraph_figma_mcp/utils/websocket", () => ({
   sendCommandToFigma: jest.fn(),
 }));
 
@@ -15,7 +15,7 @@ describe("component tools integration", () => {
   beforeEach(() => {
     server = new McpServer({ name: "test-server", version: "1.0.0" }, { capabilities: { tools: {} } });
 
-    mockSendCommand = require("../../src/claude_figma_mcp/utils/websocket").sendCommandToFigma;
+    mockSendCommand = require("../../src/hgraph_figma_mcp/utils/websocket").sendCommandToFigma;
     mockSendCommand.mockClear();
 
     toolHandlers = new Map();

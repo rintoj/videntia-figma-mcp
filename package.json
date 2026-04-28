@@ -2,10 +2,10 @@
   "name": "@hgraph/figma-mcp",
   "description": "Claude Figma MCP - AI-powered design tool for Figma",
   "version": "1.0.2",
-  "module": "dist/claude_figma_mcp/server.js",
-  "main": "dist/claude_figma_mcp/server.js",
+  "module": "dist/hgraph_figma_mcp/server.js",
+  "main": "dist/hgraph_figma_mcp/server.js",
   "bin": {
-    "figma-mcp": "dist/claude_figma_mcp/server.js",
+    "figma-mcp": "dist/hgraph_figma_mcp/server.js",
     "figma-mcp-socket": "dist/socket.js"
   },
   "files": [
@@ -17,12 +17,12 @@
   ],
   "type": "module",
   "scripts": {
-    "start": "bun run dist/claude_figma_mcp/server.js",
+    "start": "bun run dist/hgraph_figma_mcp/server.js",
     "socket": "bun run dist/socket.js",
     "setup": "./scripts/setup.sh",
     "prebuild": "bun scripts/generate-icon-data.ts",
     "build:ui": "vite build --config vite.ui.config.ts",
-    "build": "bun run build:ui && tsup && chmod +x dist/claude_figma_mcp/server.js dist/socket.js",
+    "build": "bun run build:ui && tsup && chmod +x dist/hgraph_figma_mcp/server.js dist/socket.js",
     "build:win": "tsup",
     "build:watch": "tsup --watch",
     "dev": "bun run build:watch",

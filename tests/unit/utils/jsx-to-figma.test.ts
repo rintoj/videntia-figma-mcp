@@ -1,6 +1,6 @@
-import { parseJsx } from "../../../src/claude_figma_mcp/utils/jsx-to-figma";
-import { convertToJsx } from "../../../src/claude_figma_mcp/utils/figma-to-jsx";
-import type { FigmaNodeData } from "../../../src/claude_figma_mcp/types/index";
+import { parseJsx } from "../../../src/hgraph_figma_mcp/utils/jsx-to-figma";
+import { convertToJsx } from "../../../src/hgraph_figma_mcp/utils/figma-to-jsx";
+import type { FigmaNodeData } from "../../../src/hgraph_figma_mcp/types/index";
 
 function makeNode(overrides: Partial<FigmaNodeData> = {}): FigmaNodeData {
   return {

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { coerceArray } from "../../../src/claude_figma_mcp/utils/coerce-array";
+import { coerceArray } from "../../../src/hgraph_figma_mcp/utils/coerce-array";
 
 describe("coerceArray", () => {
   const stringArraySchema = coerceArray(z.array(z.string()));
