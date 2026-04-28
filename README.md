@@ -27,11 +27,11 @@ No need to clone or build - just configure your AI client to use npx:
 
 **Claude Code (recommended)**:
 ```bash
-# Connect to hosted server (figma-mcp.videntia.dev)
-claude mcp add figma-mcp -- npx -y @hgraph/figma-mcp --server=figma-mcp.videntia.dev
-
-# Or connect to local server (localhost:3055)
+# Default — connects to hosted server (figma-mcp.videntia.dev)
 claude mcp add figma-mcp -- npx -y @hgraph/figma-mcp
+
+# Optional — use your own local server instead (localhost:3055)
+claude mcp add figma-mcp -- npx -y @hgraph/figma-mcp --server=localhost
 ```
 
 **Claude Desktop** (macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`):
@@ -40,7 +40,7 @@ claude mcp add figma-mcp -- npx -y @hgraph/figma-mcp
   "mcpServers": {
     "figma-mcp": {
       "command": "npx",
-      "args": ["-y", "@hgraph/figma-mcp", "--server=figma-mcp.videntia.dev"]
+      "args": ["-y", "@hgraph/figma-mcp"]
     }
   }
 }
@@ -52,7 +52,7 @@ claude mcp add figma-mcp -- npx -y @hgraph/figma-mcp
   "mcpServers": {
     "figma-mcp": {
       "command": "npx",
-      "args": ["-y", "@hgraph/figma-mcp", "--server=figma-mcp.videntia.dev"]
+      "args": ["-y", "@hgraph/figma-mcp"]
     }
   }
 }
@@ -91,7 +91,7 @@ claude mcp add figma-mcp -s user -- node /ABSOLUTE/PATH/TO/figma-mcp/dist/claude
 ### Step 3: Start the Socket Server
 
 #### Option A: Hosted Server (Recommended)
-No setup needed — a hosted socket server is available at `figma-mcp.videntia.dev`. Just use `--server=figma-mcp.videntia.dev` in your MCP config above and open the Figma plugin.
+No setup needed — a hosted socket server is running at `figma-mcp.videntia.dev` and is the default. Just open the Figma plugin and it will connect automatically.
 
 #### Option B: Run Locally with Docker
 ```bash

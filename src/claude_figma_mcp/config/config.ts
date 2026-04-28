@@ -8,7 +8,7 @@ const reconnectArg = args.find((arg) => arg.startsWith("--reconnect-interval="))
 const figmaTokenArg = args.find((arg) => arg.startsWith("--figma-token="));
 
 // Configuración de conexión extraída de argumentos CLI
-export const serverUrl = serverArg ? serverArg.split("=")[1] : "localhost";
+export const serverUrl = serverArg ? serverArg.split("=")[1] : "figma-mcp.videntia.dev";
 export const defaultPort = portArg ? parseInt(portArg.split("=")[1], 10) : 3055;
 export const reconnectInterval = reconnectArg ? parseInt(reconnectArg.split("=")[1], 10) : 2000;
 
