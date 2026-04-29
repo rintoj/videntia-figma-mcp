@@ -49,7 +49,7 @@ export function parseCookies(cookieHeader: string): Record<string, string> {
   return Object.fromEntries(
     cookieHeader
       .split(';')
-      .map(c => c.trim().split('=').map(s => s.trim()))
+      .map(c => { const i = c.indexOf('='); return i >= 0 ? [c.slice(0, i).trim(), c.slice(i + 1).trim()] : [] })
       .filter(p => p.length === 2),
   )
 }

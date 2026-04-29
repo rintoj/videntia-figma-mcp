@@ -10,8 +10,5 @@ export default defineConfig({
     outDir: '../../dist/portal',
     emptyOutDir: true,
     target: 'es2020',
-    rollupOptions: {
-      input: 'src/portal/index.html',
-    },
   },
 })

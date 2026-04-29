@@ -26,4 +26,10 @@ describe('session', () => {
     expect(cookies['session']).toBe('abc123')
     expect(cookies['other']).toBe('xyz')
   })
+
+  it('parseCookies handles values containing = signs', () => {
+    const cookies = parseCookies('session=eyJhbGc==; other=xyz')
+    expect(cookies['session']).toBe('eyJhbGc==')
+    expect(cookies['other']).toBe('xyz')
+  })
 })
