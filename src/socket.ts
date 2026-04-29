@@ -1,5 +1,8 @@
 import http from "node:http";
 import { randomUUID } from "node:crypto";
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import { dirname, join } from 'node:path'
 import { WebSocketServer, WebSocket } from "ws";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
@@ -8,6 +11,10 @@ import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import { SERVER_CONFIG, SERVER_INSTRUCTIONS } from "./videntia_figma_mcp/config/config";
 import { registerTools } from "./videntia_figma_mcp/tools";
 import { registerPrompts } from "./videntia_figma_mcp/prompts";
+import { register, verifyEmail, login } from './auth/accounts'
+import { createToken, listTokens, revokeToken, validateKey } from './auth/tokens'
+import { signJwt, verifyJwt, parseCookies } from './auth/session'
+import { sendVerificationEmail } from './auth/email'
 
 // Enhanced logging system
 const logger = {
@@ -16,6 +23,63 @@ const logger = {
   warn: (message: string, ...args: any[]) => console.warn(`[WARN] ${message}`, ...args),
   error: (message: string, ...args: any[]) => console.error(`[ERROR] ${message}`, ...args),
 };
+
+// ─── API key auth ─────────────────────────────────────────────────────────────
+
+// API_KEY env var is now optional — used only as a local-dev fallback
+function isAuthorized(req: http.IncomingMessage): boolean {
+  const envKey = process.env.API_KEY
+  const authHeader = req.headers["authorization"];
+  const url = new URL(req.url ?? "/", "http://localhost");
+  const keyFromQuery = url.searchParams.get("apiKey")
+  const incomingKey = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : keyFromQuery
+
+  if (!incomingKey) return false
+
+  // Fallback: match env var (local dev only)
+  if (envKey && incomingKey === envKey) return true
+
+  // Primary: validate against DB
+  return validateKey(incomingKey) !== null
+}
+
+function rejectUnauthorized(res: http.ServerResponse): void {
+  res.writeHead(401, { "Content-Type": "application/json" });
+  res.end(JSON.stringify({ error: "Unauthorized" }));
+}
+
+// ─── Session helpers ──────────────────────────────────────────────────────────
+
+const SESSION_SECRET = process.env.SESSION_SECRET ?? 'dev-secret-change-in-production'
+if (!process.env.SESSION_SECRET) {
+  logger.warn('SESSION_SECRET env var not set — using insecure default. Set it in production!')
+}
+
+function getSessionUser(req: http.IncomingMessage): { userId: string; email?: string } | null {
+  const cookieHeader = req.headers['cookie'] ?? ''
+  const cookies = parseCookies(cookieHeader)
+  const token = cookies['session']
+  if (!token) return null
+  return verifyJwt(token, SESSION_SECRET)
+}
+
+function setSessionCookie(res: http.ServerResponse, userId: string, email: string): void {
+  const token = signJwt({ userId, email }, SESSION_SECRET)
+  res.setHeader('Set-Cookie', `session=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${7 * 24 * 3600}`)
+}
+
+function clearSessionCookie(res: http.ServerResponse): void {
+  res.setHeader('Set-Cookie', 'session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0')
+}
+
+async function readBody(req: http.IncomingMessage): Promise<string> {
+  return new Promise((resolve, reject) => {
+    let body = ''
+    req.on('data', chunk => { body += chunk })
+    req.on('end', () => resolve(body))
+    req.on('error', reject)
+  })
+}
 
 // ─── Figma relay state ────────────────────────────────────────────────────────
 
@@ -162,9 +226,131 @@ const httpServer = http.createServer(async (reqOrig, res) => {
   // CORS
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Accept, Mcp-Session-Id");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Accept, Authorization, Mcp-Session-Id");
 
   if (req.method === "OPTIONS") { res.writeHead(204); res.end(); return; }
+
+  // ── Portal SPA (no auth required) ──────────────────────────────────────────
+  if (url.pathname.startsWith('/portal')) {
+    try {
+      const __dir = dirname(fileURLToPath(import.meta.url))
+      const html = readFileSync(join(__dir, 'portal', 'index.html'), 'utf-8')
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' })
+      res.end(html)
+    } catch {
+      res.writeHead(503, { 'Content-Type': 'text/plain' })
+      res.end('Portal not built yet. Run: bun run build:portal')
+    }
+    return
+  }
+
+  // ── Auth API (no bearer auth required) ────────────────────────────────────
+  if (url.pathname.startsWith('/api/auth')) {
+    res.setHeader('Content-Type', 'application/json')
+
+    // POST /api/auth/register
+    if (url.pathname === '/api/auth/register' && req.method === 'POST') {
+      try {
+        const { email, password } = JSON.parse(await readBody(req))
+        if (!email || !password) throw new Error('email and password are required')
+        const { verifyToken } = await register(email, password)
+        await sendVerificationEmail(email, verifyToken)
+        res.writeHead(200)
+        res.end(JSON.stringify({ message: 'Registration successful. Check your email to verify your account.' }))
+      } catch (err) {
+        res.writeHead(400)
+        res.end(JSON.stringify({ error: err instanceof Error ? err.message : 'Registration failed' }))
+      }
+      return
+    }
+
+    // GET /api/auth/verify?token=
+    if (url.pathname === '/api/auth/verify' && req.method === 'GET') {
+      const token = url.searchParams.get('token') ?? ''
+      try {
+        await verifyEmail(token)
+        res.writeHead(302, { Location: '/portal#/login?verified=1' })
+        res.end()
+      } catch {
+        res.writeHead(302, { Location: '/portal#/login?error=invalid-token' })
+        res.end()
+      }
+      return
+    }
+
+    // POST /api/auth/login
+    if (url.pathname === '/api/auth/login' && req.method === 'POST') {
+      try {
+        const { email, password } = JSON.parse(await readBody(req))
+        const userId = await login(email, password)
+        setSessionCookie(res, userId, email)
+        res.writeHead(200)
+        res.end(JSON.stringify({ message: 'Logged in' }))
+      } catch (err) {
+        res.writeHead(401)
+        res.end(JSON.stringify({ error: err instanceof Error ? err.message : 'Login failed' }))
+      }
+      return
+    }
+
+    // POST /api/auth/logout
+    if (url.pathname === '/api/auth/logout' && req.method === 'POST') {
+      clearSessionCookie(res)
+      res.writeHead(200)
+      res.end(JSON.stringify({ message: 'Logged out' }))
+      return
+    }
+
+    // GET /api/auth/me
+    if (url.pathname === '/api/auth/me' && req.method === 'GET') {
+      const user = getSessionUser(req)
+      if (!user) { res.writeHead(401); res.end(JSON.stringify({ error: 'Not authenticated' })); return }
+      res.writeHead(200)
+      res.end(JSON.stringify({ userId: user.userId, email: user.email }))
+      return
+    }
+  }
+
+  // ── Token API (session auth required) ─────────────────────────────────────
+  if (url.pathname.startsWith('/api/tokens')) {
+    res.setHeader('Content-Type', 'application/json')
+    const user = getSessionUser(req)
+    if (!user) { res.writeHead(401); res.end(JSON.stringify({ error: 'Not authenticated' })); return }
+
+    // GET /api/tokens
+    if (url.pathname === '/api/tokens' && req.method === 'GET') {
+      res.writeHead(200)
+      res.end(JSON.stringify(listTokens(user.userId)))
+      return
+    }
+
+    // POST /api/tokens
+    if (url.pathname === '/api/tokens' && req.method === 'POST') {
+      try {
+        const { name } = JSON.parse(await readBody(req))
+        if (!name) throw new Error('name is required')
+        const { id, fullKey } = await createToken(user.userId, name)
+        res.writeHead(201)
+        res.end(JSON.stringify({ id, fullKey, message: 'Copy this key — it will not be shown again.' }))
+      } catch (err) {
+        res.writeHead(400)
+        res.end(JSON.stringify({ error: err instanceof Error ? err.message : 'Failed to create token' }))
+      }
+      return
+    }
+
+    // DELETE /api/tokens/:id
+    const tokenIdMatch = url.pathname.match(/^\/api\/tokens\/([^/]+)$/)
+    if (tokenIdMatch && req.method === 'DELETE') {
+      revokeToken(tokenIdMatch[1], user.userId)
+      res.writeHead(200)
+      res.end(JSON.stringify({ message: 'Token revoked' }))
+      return
+    }
+  }
+
+  // ── Bearer auth for MCP/WS/SSE endpoints ──────────────────────────────────
+  if (!isAuthorized(req)) { rejectUnauthorized(res); return; }
 
   // Log all incoming requests for debugging
   logger.info(`${req.method} ${url.pathname} accept="${req.headers["accept"]}" origin="${req.headers["origin"] ?? ""}"`)
@@ -321,7 +507,11 @@ const httpServer = http.createServer(async (reqOrig, res) => {
 
 const wss = new WebSocketServer({ server: httpServer });
 
-wss.on("connection", (ws) => {
+wss.on("connection", (ws, req) => {
+  if (!isAuthorized(req)) {
+    ws.close(4401, "Unauthorized");
+    return;
+  }
   stats.totalConnections++;
   stats.activeConnections++;
   const clientId = `client_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
