@@ -23,7 +23,7 @@
     "prebuild": "bun scripts/generate-icon-data.ts",
     "build:ui": "vite build --config vite.ui.config.ts",
     "build:portal": "vite build --config vite.portal.config.ts",
-    "build": "bun run build:ui && bun run build:portal && tsup && chmod +x dist/videntia_figma_mcp/server.js dist/socket.js",
+    "build": "bun run build:ui && tsup && chmod +x dist/videntia_figma_mcp/server.js dist/socket.js && bun run build:portal",
     "build:win": "tsup",
     "build:watch": "tsup --watch",
     "dev": "bun run build:watch",
