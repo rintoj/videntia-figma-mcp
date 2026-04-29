@@ -1,8 +1,7 @@
 import http from "node:http";
 import { randomUUID } from "node:crypto";
 import { readFileSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
-import { dirname, join } from 'node:path'
+import { join } from 'node:path'
 import { WebSocketServer, WebSocket } from "ws";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
@@ -72,10 +71,21 @@ function clearSessionCookie(res: http.ServerResponse): void {
   res.setHeader('Set-Cookie', 'session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0')
 }
 
+const MAX_BODY_BYTES = 64 * 1024 // 64 KB
+
 async function readBody(req: http.IncomingMessage): Promise<string> {
   return new Promise((resolve, reject) => {
     let body = ''
-    req.on('data', chunk => { body += chunk })
+    let size = 0
+    req.on('data', (chunk: Buffer) => {
+      size += chunk.length
+      if (size > MAX_BODY_BYTES) {
+        req.destroy()
+        reject(new Error('Request body too large'))
+        return
+      }
+      body += chunk
+    })
     req.on('end', () => resolve(body))
     req.on('error', reject)
   })
@@ -233,8 +243,7 @@ const httpServer = http.createServer(async (reqOrig, res) => {
   // ── Portal SPA (no auth required) ──────────────────────────────────────────
   if (url.pathname.startsWith('/portal')) {
     try {
-      const __dir = dirname(fileURLToPath(import.meta.url))
-      const html = readFileSync(join(__dir, 'portal', 'index.html'), 'utf-8')
+      const html = readFileSync(join(process.cwd(), 'dist', 'portal', 'index.html'), 'utf-8')
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' })
       res.end(html)
     } catch {
