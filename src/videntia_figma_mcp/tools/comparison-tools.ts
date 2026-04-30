@@ -36,6 +36,136 @@ function gcJobs() {
   }
 }
 
+interface FigmaChild {
+  id?: string;
+  name?: string;
+  type?: string;
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+  characters?: string;
+  children?: FigmaChild[];
+}
+
+function extractRootNode(info: Record<string, unknown>): FigmaChild | null {
+  const nodes = info["nodes"];
+  if (Array.isArray(nodes) && nodes.length > 0) return nodes[0] as FigmaChild;
+  const node = info["node"];
+  if (node && typeof node === "object") return node as FigmaChild;
+  if (info["id"]) return info as FigmaChild;
+  return null;
+}
+
+function findFirstText(node: FigmaChild, maxLen = 60): string | undefined {
+  if (node.type === "TEXT" && typeof node.characters === "string" && node.characters.trim().length > 0) {
+    return node.characters.trim().slice(0, maxLen);
+  }
+  if (Array.isArray(node.children)) {
+    for (const child of node.children) {
+      const found = findFirstText(child, maxLen);
+      if (found) return found;
+    }
+  }
+  return undefined;
+}
+
+const SEMANTIC_TAG_MAP: Array<[RegExp, string]> = [
+  [/\bheader\b/i, "header"],
+  [/\bnav(igation)?\b/i, "nav"],
+  [/\bfooter\b/i, "footer"],
+  [/\bmain\b/i, "main"],
+  [/\baside|sidebar\b/i, "aside"],
+  [/\bsection\b/i, "section"],
+  [/\barticle\b/i, "article"],
+  [/\bbutton|btn\b/i, "button"],
+  [/\bform\b/i, "form"],
+  [/\bdialog|modal\b/i, '[role="dialog"]'],
+];
+
+function nameToKebab(name: string): string {
+  return name
+    .replace(/[\/]+/g, "-")
+    .replace(/([a-z])([A-Z])/g, "$1-$2")
+    .replace(/[^a-zA-Z0-9-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .toLowerCase();
+}
+
+function buildSelectorCandidates(node: FigmaChild, primaryText?: string): string[] {
+  const candidates: string[] = [];
+  if (node.id) candidates.push(`[data-figma-id="${node.id}"]`);
+  if (node.name) {
+    for (const [pattern, tag] of SEMANTIC_TAG_MAP) {
+      if (pattern.test(node.name)) {
+        candidates.push(tag);
+        break;
+      }
+    }
+    const kebab = nameToKebab(node.name);
+    if (kebab.length > 0) candidates.push(`[class*="${kebab}"]`);
+  }
+  if (primaryText && primaryText.length <= 40) {
+    const escaped = primaryText.replace(/"/g, '\\"');
+    candidates.push(`:has-text("${escaped}")`);
+  }
+  return Array.from(new Set(candidates));
+}
+
+interface PlannedSection {
+  nodeId: string;
+  name: string | null;
+  type: string | null;
+  bbox: { x: number; y: number; width: number; height: number } | null;
+  primaryText: string | null;
+  selectorCandidates: string[];
+  childCount: number;
+}
+
+function toBbox(node: FigmaChild): PlannedSection["bbox"] {
+  if (
+    typeof node.x === "number" &&
+    typeof node.y === "number" &&
+    typeof node.width === "number" &&
+    typeof node.height === "number"
+  ) {
+    return { x: node.x, y: node.y, width: node.width, height: node.height };
+  }
+  return null;
+}
+
+function buildSections(root: FigmaChild, maxDepth: number): PlannedSection[] {
+  const sections: PlannedSection[] = [];
+  const SKIP_TYPES = new Set(["VECTOR", "BOOLEAN_OPERATION", "LINE", "ELLIPSE", "STAR", "POLYGON"]);
+  const MIN_AREA = 400; // ignore tiny decorative elements
+
+  function visit(node: FigmaChild, depth: number) {
+    if (!Array.isArray(node.children)) return;
+    for (const child of node.children) {
+      if (!child.id) continue;
+      if (child.type && SKIP_TYPES.has(child.type)) continue;
+      const bbox = toBbox(child);
+      if (bbox && bbox.width * bbox.height < MIN_AREA) continue;
+
+      const primaryText = findFirstText(child);
+      sections.push({
+        nodeId: child.id,
+        name: child.name ?? null,
+        type: child.type ?? null,
+        bbox,
+        primaryText: primaryText ?? null,
+        selectorCandidates: buildSelectorCandidates(child, primaryText),
+        childCount: Array.isArray(child.children) ? child.children.length : 0,
+      });
+      if (depth + 1 < maxDepth) visit(child, depth + 1);
+    }
+  }
+
+  visit(root, 0);
+  return sections;
+}
+
 async function runCompare(input: CompareInput): Promise<Record<string, unknown>> {
   const { nodeId, url, channel, selector, tolerance, mode, actions } = input;
 
@@ -155,18 +285,49 @@ export function registerComparisonTools(server: McpServer): void {
   }
 
   server.tool(
-    "compare_figma_to_web",
-    "Compare a Figma node to a live URL (synchronous). Exports the node, screenshots the URL, returns pixel diff and style deviations. Use this only for fast pages — for slow pages (Replit, etc.) use start_compare_figma_to_web + get_compare_result to avoid client-side 30s timeouts.",
-    compareInputSchema,
-    async (input) => {
-      const result = await runCompare(input as CompareInput);
-      return { content: buildResultContent(result) as any };
+    "plan_figma_comparison",
+    "Decompose a Figma node into logical sections for compare_figma_to_web. Returns each child with bbox, primary text, and a ranked list of CSS selector candidates (data-figma-id, semantic tag, text anchor, name-derived class). Call this BEFORE compare_figma_to_web on any page-level or multi-section node — comparing the whole page produces useless diffs.",
+    {
+      nodeId: z.string().describe("Figma node ID to decompose (e.g. '2824:12737')"),
+      channel: z
+        .string()
+        .optional()
+        .describe("Figma channel ID to join before reading (auto-joined if not already connected)"),
+      maxDepth: z
+        .number()
+        .int()
+        .min(1)
+        .max(3)
+        .default(1)
+        .describe("How deep to walk children (default 1: immediate children only)"),
+    },
+    async ({ nodeId, channel, maxDepth }) => {
+      if (channel && getCurrentChannel() !== channel) {
+        await joinChannel(channel);
+      }
+      const info = (await sendCommandToFigma("get_node_info", { nodeId, depth: maxDepth + 1 })) as Record<
+        string,
+        unknown
+      >;
+      const root = extractRootNode(info);
+      if (!root) {
+        return { content: [{ type: "text", text: JSON.stringify({ error: "Node not found", nodeId }, null, 2) }] };
+      }
+      const sections = buildSections(root, maxDepth);
+      const payload = {
+        nodeId: root.id ?? nodeId,
+        name: root.name ?? null,
+        type: root.type ?? null,
+        sectionCount: sections.length,
+        sections,
+      };
+      return { content: [{ type: "text", text: JSON.stringify(payload, null, 2) }] };
     },
   );
 
   server.tool(
     "start_compare_figma_to_web",
-    "Async variant of compare_figma_to_web. Returns { jobId } immediately; poll get_compare_result with the jobId until status is 'done' or 'failed'. Use this for slow pages (Replit cold starts, staging environments) where the synchronous tool would exceed the client's 30s request timeout.",
+    "Compare a Figma node to a live URL. Exports the node, screenshots the URL, and returns a jobId immediately; poll get_compare_result with the jobId until status is 'done' or 'failed'. For page-level or multi-section nodes, run plan_figma_comparison FIRST to get section-level selectors — whole-page comparisons produce noisy, low-signal diffs.",
     compareInputSchema,
     async (input) => {
       gcJobs();
