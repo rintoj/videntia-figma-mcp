@@ -45,7 +45,11 @@ export function toPascalCase(name: string): string {
  * "Show Icon" → "showIcon", "Size" → "size", "show-icon" → "showIcon"
  */
 export function toCamelCase(name: string): string {
-  const parts = name.split(/[\s\-_]+/).filter((s) => s.length > 0);
+  const parts = name
+    .split(/[\s\-_]+/)
+    .filter((s) => s.length > 0)
+    .map((s) => s.replace(/[^a-zA-Z0-9]/g, ""))
+    .filter((s) => s.length > 0);
   if (parts.length === 0) return name;
   return parts
     .map((s, i) => (i === 0 ? s.charAt(0).toLowerCase() + s.slice(1) : s.charAt(0).toUpperCase() + s.slice(1)))
@@ -247,10 +251,11 @@ function buildTailwindClasses(node: FigmaNodeData, parentLayoutMode?: string): s
           }
           // Other gradients (no direction, radial, angular, diamond) → handled by buildStyleAttribute
         } else {
+          const isVector = node.type === "VECTOR";
           if (fillBinding) {
-            classes.push(`bg-${normalizeName(fillBinding)}`);
+            classes.push(`${isVector ? "fill" : "bg"}-${normalizeName(fillBinding)}`);
           } else if (fill.color) {
-            classes.push(`bg-[${fill.color}]${fillOpacitySuffix}`);
+            classes.push(`${isVector ? "fill" : "bg"}-[${fill.color}]${fillOpacitySuffix}`);
           }
         }
       }
@@ -280,26 +285,44 @@ function buildTailwindClasses(node: FigmaNodeData, parentLayoutMode?: string): s
       classes.push(`text-${normalizeName(node.textStyleName)}`);
     } else {
       // Individual typography properties
-      if (node.fontSize) classes.push(`text-[${node.fontSize}px]`);
+      if (node.fontSize) {
+        if (bindings["fontSize/0"]) {
+          classes.push(`text-${normalizeName(bindings["fontSize/0"])}`);
+        } else {
+          classes.push(`text-[${node.fontSize}px]`);
+        }
+      }
       if (node.fontWeight !== undefined && node.fontWeight !== 400) {
-        classes.push(fontWeightClass(node.fontWeight));
+        if (bindings["fontWeight/0"]) {
+          classes.push(`font-${normalizeName(bindings["fontWeight/0"])}`);
+        } else {
+          classes.push(fontWeightClass(node.fontWeight));
+        }
       }
       if (node.lineHeight !== undefined) {
-        if (node.lineHeightUnit === "percent") {
+        if (bindings["lineHeight/0"]) {
+          classes.push(`leading-${normalizeName(bindings["lineHeight/0"])}`);
+        } else if (node.lineHeightUnit === "percent") {
           classes.push(`leading-[${node.lineHeight}%]`);
         } else {
           classes.push(`leading-[${node.lineHeight}px]`);
         }
       }
       if (node.letterSpacing !== undefined && node.letterSpacing !== 0) {
-        if (node.letterSpacingUnit === "percent") {
+        if (bindings["letterSpacing/0"]) {
+          classes.push(`tracking-${normalizeName(bindings["letterSpacing/0"])}`);
+        } else if (node.letterSpacingUnit === "percent") {
           classes.push(`tracking-[${node.letterSpacing / 100}em]`);
         } else {
           classes.push(`tracking-[${node.letterSpacing}px]`);
         }
       }
       if (node.fontFamily && node.fontFamily !== "Inter") {
-        classes.push(`font-['${node.fontFamily.replace(/ /g, "_")}']`);
+        if (bindings["fontFamily/0"]) {
+          classes.push(`font-${normalizeName(bindings["fontFamily/0"])}`);
+        } else {
+          classes.push(`font-['${node.fontFamily.replace(/ /g, "_")}']`);
+        }
       }
     }
 
@@ -319,6 +342,9 @@ function buildTailwindClasses(node: FigmaNodeData, parentLayoutMode?: string): s
   }
 
   // --- Corners ---
+  if (node.type === "ELLIPSE") {
+    classes.push("rounded-full");
+  }
   const crBinding = bindings["cornerRadius"];
   if (node.cornerRadius !== undefined && node.cornerRadius > 0) {
     if (crBinding) {
