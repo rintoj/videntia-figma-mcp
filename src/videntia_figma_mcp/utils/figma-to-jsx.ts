@@ -167,7 +167,8 @@ function buildTailwindClasses(node: FigmaNodeData, parentLayoutMode?: string): s
     if (isNoneLayout) {
       classes.push("w-full");
     } else if (isCrossAxisH) {
-      // Cross-axis stretch is CSS default — omit (don't emit flex-1 or w-full)
+      // Cross-axis FILL in a vertical parent: w-full needed because parent may use items-start
+      classes.push("w-full");
     } else {
       classes.push("flex-1");
     }
@@ -180,7 +181,8 @@ function buildTailwindClasses(node: FigmaNodeData, parentLayoutMode?: string): s
     if (isNoneLayout) {
       classes.push("h-full");
     } else if (isCrossAxisV) {
-      // Cross-axis stretch is CSS default — omit
+      // Cross-axis FILL in a horizontal parent: h-full needed because parent may use items-start
+      classes.push("h-full");
     } else if (node.layoutSizingHorizontal === "FILL" && !isCrossAxisH) {
       // Both axes FILL: horizontal already emitted flex-1, use h-full for vertical
       classes.push("h-full");
@@ -194,34 +196,32 @@ function buildTailwindClasses(node: FigmaNodeData, parentLayoutMode?: string): s
   const pr = node.paddingRight ?? 0;
   const pb = node.paddingBottom ?? 0;
   const pl = node.paddingLeft ?? 0;
-  const hasPadding = pt > 0 || pr > 0 || pb > 0 || pl > 0;
+  // A side is "active" if it has a non-zero value OR a token binding (binding overrides zero raw value)
+  const ptActive = pt > 0 || !!bindings["paddingTop"];
+  const prActive = pr > 0 || !!bindings["paddingRight"];
+  const pbActive = pb > 0 || !!bindings["paddingBottom"];
+  const plActive = pl > 0 || !!bindings["paddingLeft"];
+  const hasPadding = ptActive || prActive || pbActive || plActive;
 
   if (hasPadding) {
     if (pt === pr && pr === pb && pb === pl) {
-      if (bindings["paddingTop"]) {
-        classes.push(`p-${normalizeName(bindings["paddingTop"])}`);
-      } else {
-        classes.push(`p-[${pt}px]`);
-      }
+      // Uniform: prefer paddingTop binding (or any available binding) as shorthand
+      const uniBinding = bindings["paddingTop"] || bindings["paddingRight"] || bindings["paddingBottom"] || bindings["paddingLeft"];
+      classes.push(uniBinding ? `p-${normalizeName(uniBinding)}` : `p-[${pt}px]`);
     } else if (pt === pb && pl === pr) {
-      if (bindings["paddingLeft"]) {
-        classes.push(`px-${normalizeName(bindings["paddingLeft"])}`);
-      } else {
-        classes.push(`px-[${pl}px]`);
+      // Symmetric: px + py
+      if (plActive) {
+        classes.push(bindings["paddingLeft"] ? `px-${normalizeName(bindings["paddingLeft"])}` : `px-[${pl}px]`);
       }
-      if (bindings["paddingTop"]) {
-        classes.push(`py-${normalizeName(bindings["paddingTop"])}`);
-      } else {
-        classes.push(`py-[${pt}px]`);
+      if (ptActive) {
+        classes.push(bindings["paddingTop"] ? `py-${normalizeName(bindings["paddingTop"])}` : `py-[${pt}px]`);
       }
     } else {
-      if (pt > 0) classes.push(bindings["paddingTop"] ? `pt-${normalizeName(bindings["paddingTop"])}` : `pt-[${pt}px]`);
-      if (pr > 0)
-        classes.push(bindings["paddingRight"] ? `pr-${normalizeName(bindings["paddingRight"])}` : `pr-[${pr}px]`);
-      if (pb > 0)
-        classes.push(bindings["paddingBottom"] ? `pb-${normalizeName(bindings["paddingBottom"])}` : `pb-[${pb}px]`);
-      if (pl > 0)
-        classes.push(bindings["paddingLeft"] ? `pl-${normalizeName(bindings["paddingLeft"])}` : `pl-[${pl}px]`);
+      // Individual sides — emit a class for each active side
+      if (ptActive) classes.push(bindings["paddingTop"] ? `pt-${normalizeName(bindings["paddingTop"])}` : `pt-[${pt}px]`);
+      if (prActive) classes.push(bindings["paddingRight"] ? `pr-${normalizeName(bindings["paddingRight"])}` : `pr-[${pr}px]`);
+      if (pbActive) classes.push(bindings["paddingBottom"] ? `pb-${normalizeName(bindings["paddingBottom"])}` : `pb-[${pb}px]`);
+      if (plActive) classes.push(bindings["paddingLeft"] ? `pl-${normalizeName(bindings["paddingLeft"])}` : `pl-[${pl}px]`);
     }
   }
 
@@ -293,11 +293,13 @@ function buildTailwindClasses(node: FigmaNodeData, parentLayoutMode?: string): s
       // Text style covers font size, weight, line height, letter spacing, font family
       classes.push(`text-${normalizeName(node.textStyleName)}`);
     } else {
-      // Individual typography properties
-      if (bindings["fontSize/0"]) {
-        classes.push(`text-${normalizeName(bindings["fontSize/0"])}`);
-      } else if (node.fontSize) {
-        classes.push(`text-[${node.fontSize}px]`);
+      // Individual typography properties — prefer token bindings over raw values
+      if (node.fontSize) {
+        if (bindings["fontSize/0"]) {
+          classes.push(`text-${normalizeName(bindings["fontSize/0"])}`);
+        } else {
+          classes.push(`text-[${node.fontSize}px]`);
+        }
       }
       if (bindings["fontWeight/0"]) {
         classes.push(`font-${normalizeName(bindings["fontWeight/0"])}`);
@@ -357,7 +359,9 @@ function buildTailwindClasses(node: FigmaNodeData, parentLayoutMode?: string): s
     classes.push("rounded-full");
   }
   const crBinding = bindings["cornerRadius"];
-  if (node.cornerRadius !== undefined && node.cornerRadius > 0) {
+  if (node.type === "ELLIPSE") {
+    classes.push("rounded-full");
+  } else if (node.cornerRadius !== undefined && node.cornerRadius > 0) {
     if (crBinding) {
       classes.push(`rounded-${normalizeName(crBinding)}`);
     } else {
@@ -370,21 +374,18 @@ function buildTailwindClasses(node: FigmaNodeData, parentLayoutMode?: string): s
     node.bottomRightRadius !== undefined ||
     node.bottomLeftRadius !== undefined
   ) {
-    if (node.topLeftRadius !== undefined) {
-      const tlBinding = bindings["topLeftRadius"];
-      classes.push(tlBinding ? `rounded-tl-${normalizeName(tlBinding)}` : `rounded-tl-[${node.topLeftRadius}px]`);
-    }
-    if (node.topRightRadius !== undefined) {
-      const trBinding = bindings["topRightRadius"];
-      classes.push(trBinding ? `rounded-tr-${normalizeName(trBinding)}` : `rounded-tr-[${node.topRightRadius}px]`);
-    }
-    if (node.bottomRightRadius !== undefined) {
-      const brBinding = bindings["bottomRightRadius"];
-      classes.push(brBinding ? `rounded-br-${normalizeName(brBinding)}` : `rounded-br-[${node.bottomRightRadius}px]`);
-    }
-    if (node.bottomLeftRadius !== undefined) {
-      const blBinding = bindings["bottomLeftRadius"];
-      classes.push(blBinding ? `rounded-bl-${normalizeName(blBinding)}` : `rounded-bl-[${node.bottomLeftRadius}px]`);
+    const tlBinding = bindings["topLeftRadius"];
+    const trBinding = bindings["topRightRadius"];
+    const brBinding = bindings["bottomRightRadius"];
+    const blBinding = bindings["bottomLeftRadius"];
+    // If all four corners have the same binding, collapse to a single rounded- class
+    if (tlBinding && tlBinding === trBinding && trBinding === brBinding && brBinding === blBinding) {
+      classes.push(`rounded-${normalizeName(tlBinding)}`);
+    } else {
+      if (node.topLeftRadius) classes.push(tlBinding ? `rounded-tl-${normalizeName(tlBinding)}` : `rounded-tl-[${node.topLeftRadius}px]`);
+      if (node.topRightRadius) classes.push(trBinding ? `rounded-tr-${normalizeName(trBinding)}` : `rounded-tr-[${node.topRightRadius}px]`);
+      if (node.bottomRightRadius) classes.push(brBinding ? `rounded-br-${normalizeName(brBinding)}` : `rounded-br-[${node.bottomRightRadius}px]`);
+      if (node.bottomLeftRadius) classes.push(blBinding ? `rounded-bl-${normalizeName(blBinding)}` : `rounded-bl-[${node.bottomLeftRadius}px]`);
     }
   }
 
@@ -406,7 +407,8 @@ function buildTailwindClasses(node: FigmaNodeData, parentLayoutMode?: string): s
 
   // --- Opacity ---
   if (node.opacity !== undefined && node.opacity !== 1) {
-    classes.push(`opacity-[${node.opacity}]`);
+    const opacityVal = parseFloat(node.opacity.toPrecision(4));
+    classes.push(`opacity-[${opacityVal}]`);
   }
 
   return classes;
@@ -458,6 +460,14 @@ function buildStyleAttribute(node: FigmaNodeData): Record<string, string> | null
   const firstImageFill = node.fills?.find((f) => f.isImage);
   if (firstImageFill?.imageRef) {
     style.backgroundImage = `url(${firstImageFill.imageRef})`;
+  }
+
+  // SVG fill → fill CSS property (not bg-)
+  if (node.type === "VECTOR" || node.type === "LINE") {
+    const solidFill = node.fills?.find((f) => !f.isImage && !f.gradient && f.color);
+    if (solidFill?.color) {
+      style.fill = solidFill.color;
+    }
   }
 
   // Rotation
