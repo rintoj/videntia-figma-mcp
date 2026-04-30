@@ -159,7 +159,8 @@ function buildTailwindClasses(node: FigmaNodeData, parentLayoutMode?: string): s
     classes.push(`w-[${node.width}px]`);
   } else if (node.layoutSizingHorizontal === "FILL") {
     if (isCrossAxisH) {
-      // Cross-axis stretch is CSS default — omit (don't emit flex-1 or w-full)
+      // Cross-axis FILL in a vertical parent: w-full needed because parent may use items-start
+      classes.push("w-full");
     } else {
       classes.push("flex-1");
     }
@@ -170,7 +171,8 @@ function buildTailwindClasses(node: FigmaNodeData, parentLayoutMode?: string): s
     classes.push(`h-[${node.height}px]`);
   } else if (node.layoutSizingVertical === "FILL") {
     if (isCrossAxisV) {
-      // Cross-axis stretch is CSS default — omit
+      // Cross-axis FILL in a horizontal parent: h-full needed because parent may use items-start
+      classes.push("h-full");
     } else if (node.layoutSizingHorizontal === "FILL" && !isCrossAxisH) {
       // Both axes FILL: horizontal already emitted flex-1, use h-full for vertical
       classes.push("h-full");
@@ -246,7 +248,8 @@ function buildTailwindClasses(node: FigmaNodeData, parentLayoutMode?: string): s
             if (stops.length >= 2) classes.push(`to-[${stops[stops.length - 1].color}]`);
           }
           // Other gradients (no direction, radial, angular, diamond) → handled by buildStyleAttribute
-        } else {
+        } else if (node.type !== "VECTOR" && node.type !== "LINE") {
+          // SVG fills are handled via style.fill, not bg- classes
           if (fillBinding) {
             classes.push(`bg-${normalizeName(fillBinding)}`);
           } else if (fill.color) {
@@ -320,7 +323,9 @@ function buildTailwindClasses(node: FigmaNodeData, parentLayoutMode?: string): s
 
   // --- Corners ---
   const crBinding = bindings["cornerRadius"];
-  if (node.cornerRadius !== undefined && node.cornerRadius > 0) {
+  if (node.type === "ELLIPSE") {
+    classes.push("rounded-full");
+  } else if (node.cornerRadius !== undefined && node.cornerRadius > 0) {
     if (crBinding) {
       classes.push(`rounded-${normalizeName(crBinding)}`);
     } else {
@@ -409,6 +414,14 @@ function buildStyleAttribute(node: FigmaNodeData): Record<string, string> | null
   const firstImageFill = node.fills?.find((f) => f.isImage);
   if (firstImageFill?.imageRef) {
     style.backgroundImage = `url(${firstImageFill.imageRef})`;
+  }
+
+  // SVG fill → fill CSS property (not bg-)
+  if (node.type === "VECTOR" || node.type === "LINE") {
+    const solidFill = node.fills?.find((f) => !f.isImage && !f.gradient && f.color);
+    if (solidFill?.color) {
+      style.fill = solidFill.color;
+    }
   }
 
   // Rotation
