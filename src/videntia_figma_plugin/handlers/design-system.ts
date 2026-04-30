@@ -1,7 +1,7 @@
 // Figma MCP plugin.
 
-import { debugLog, sendProgressUpdate, getFontStyle } from '../utils/helpers';
-import { parseSvgRootStroke, propagateStrokeToShapes } from '../utils/svg';
+import { debugLog, sendProgressUpdate, getFontStyle } from "../utils/helpers";
+import { parseSvgRootStroke, propagateStrokeToShapes } from "../utils/svg";
 
 // ---------------------------------------------------------------------------
 // Internal helpers (shared by createFromData / setupDesignSystem)
@@ -19,10 +19,8 @@ function expandHex(hex: string): string {
 function parseColor(colorStr: string | undefined): RGB {
   if (!colorStr) return { r: 0, g: 0, b: 0 };
 
-  if (colorStr.indexOf('rgba') === 0) {
-    const m = colorStr.match(
-      /rgba\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*([\d.]+)\s*\)/,
-    );
+  if (colorStr.indexOf("rgba") === 0) {
+    const m = colorStr.match(/rgba\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*([\d.]+)\s*\)/);
     if (m) {
       return {
         r: parseInt(m[1]) / 255,
@@ -32,7 +30,7 @@ function parseColor(colorStr: string | undefined): RGB {
     }
   }
 
-  if (colorStr.indexOf('rgb') === 0) {
+  if (colorStr.indexOf("rgb") === 0) {
     const m = colorStr.match(/rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)/);
     if (m) {
       return {
@@ -43,7 +41,7 @@ function parseColor(colorStr: string | undefined): RGB {
     }
   }
 
-  const hex = expandHex(colorStr.replace('#', ''));
+  const hex = expandHex(colorStr.replace("#", ""));
   const r = parseInt(hex.substring(0, 2), 16) / 255;
   const g = parseInt(hex.substring(2, 4), 16) / 255;
   const b = parseInt(hex.substring(4, 6), 16) / 255;
@@ -57,10 +55,8 @@ function parseColor(colorStr: string | undefined): RGB {
 /** Parse alpha channel from an rgba string (returns 1 for non-rgba). */
 function parseOpacity(colorStr: string | undefined): number {
   if (!colorStr) return 1;
-  if (colorStr.indexOf('rgba') === 0) {
-    const m = colorStr.match(
-      /rgba\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*([\d.]+)\s*\)/,
-    );
+  if (colorStr.indexOf("rgba") === 0) {
+    const m = colorStr.match(/rgba\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*([\d.]+)\s*\)/);
     if (m) return parseFloat(m[4]);
   }
   return 1;
@@ -68,98 +64,101 @@ function parseOpacity(colorStr: string | undefined): number {
 
 /** Build a Figma paint from a serialised fill descriptor. */
 function buildFigmaPaint(fillData: Record<string, unknown>): Paint {
-  const gradient = fillData['gradient'] as Record<string, unknown> | undefined;
+  const gradient = fillData["gradient"] as Record<string, unknown> | undefined;
   if (gradient) {
-    const rawStops = (gradient['stops'] as Array<Record<string, unknown>>) || [];
+    const rawStops = (gradient["stops"] as Array<Record<string, unknown>>) || [];
     const stops: ColorStop[] = rawStops.map((s) => {
-      const color = s['color'] as string | undefined;
+      const color = s["color"] as string | undefined;
       return {
         color: Object.assign(parseColor(color), { a: parseOpacity(color) }) as RGBA,
-        position: s['position'] as number,
+        position: s["position"] as number,
       };
     });
     return {
-      type: gradient['type'] as GradientPaint['type'],
+      type: gradient["type"] as GradientPaint["type"],
       gradientStops: stops,
-      gradientTransform: [[1, 0, 0], [0, 1, 0]] as Transform,
+      gradientTransform: [
+        [1, 0, 0],
+        [0, 1, 0],
+      ] as Transform,
       visible: true,
     } as GradientPaint;
   }
 
-  if (fillData['isImage']) {
+  if (fillData["isImage"]) {
     const paint: Record<string, unknown> = {
-      type: 'IMAGE',
+      type: "IMAGE",
       visible: true,
-      scaleMode: 'FILL',
+      scaleMode: "FILL",
     };
-    if (fillData['imageRef']) {
-      paint['imageHash'] = fillData['imageRef'];
+    if (fillData["imageRef"]) {
+      paint["imageHash"] = fillData["imageRef"];
     }
     return paint as unknown as Paint;
   }
 
-  const color = fillData['color'] as string | undefined;
+  const color = fillData["color"] as string | undefined;
   const solidPaint: Record<string, unknown> = {
-    type: 'SOLID',
+    type: "SOLID",
     color: parseColor(color),
     visible: true,
   };
-  const opacity = fillData['opacity'] as number | undefined;
+  const opacity = fillData["opacity"] as number | undefined;
   if (opacity !== undefined && opacity < 1) {
-    solidPaint['opacity'] = opacity;
+    solidPaint["opacity"] = opacity;
   }
   return solidPaint as unknown as SolidPaint;
 }
 
 /** Build a Figma effect from a serialised effect descriptor. */
 function buildFigmaEffect(effectData: Record<string, unknown>): Effect {
-  const type = effectData['type'] as string;
+  const type = effectData["type"] as string;
 
-  if (type === 'DROP_SHADOW' || type === 'INNER_SHADOW') {
-    const colorStr = effectData['color'] as string | undefined;
+  if (type === "DROP_SHADOW" || type === "INNER_SHADOW") {
+    const colorStr = effectData["color"] as string | undefined;
     const color: RGBA = colorStr
-      ? Object.assign(parseColor(colorStr), { a: parseOpacity(colorStr) }) as RGBA
+      ? (Object.assign(parseColor(colorStr), { a: parseOpacity(colorStr) }) as RGBA)
       : { r: 0, g: 0, b: 0, a: 0.25 };
-    const rawOffset = effectData['offset'] as Record<string, number> | undefined;
+    const rawOffset = effectData["offset"] as Record<string, number> | undefined;
     return {
-      type: type as 'DROP_SHADOW' | 'INNER_SHADOW',
+      type: type as "DROP_SHADOW" | "INNER_SHADOW",
       color,
-      offset: rawOffset !== undefined
-        ? { x: rawOffset['x'] !== undefined ? rawOffset['x'] : 0, y: rawOffset['y'] !== undefined ? rawOffset['y'] : 0 }
-        : { x: 0, y: 0 },
-      radius: effectData['radius'] !== undefined ? (effectData['radius'] as number) : 0,
-      spread: effectData['spread'] !== undefined ? (effectData['spread'] as number) : 0,
-      visible:
-        effectData['visible'] !== undefined ? (effectData['visible'] as boolean) : true,
+      offset:
+        rawOffset !== undefined
+          ? {
+              x: rawOffset["x"] !== undefined ? rawOffset["x"] : 0,
+              y: rawOffset["y"] !== undefined ? rawOffset["y"] : 0,
+            }
+          : { x: 0, y: 0 },
+      radius: effectData["radius"] !== undefined ? (effectData["radius"] as number) : 0,
+      spread: effectData["spread"] !== undefined ? (effectData["spread"] as number) : 0,
+      visible: effectData["visible"] !== undefined ? (effectData["visible"] as boolean) : true,
       blendMode:
-        effectData['blendMode'] !== undefined
-          ? (effectData['blendMode'] as BlendMode)
-          : ('NORMAL' as BlendMode),
+        effectData["blendMode"] !== undefined ? (effectData["blendMode"] as BlendMode) : ("NORMAL" as BlendMode),
     } as DropShadowEffect | InnerShadowEffect;
   }
 
-  if (type === 'LAYER_BLUR' || type === 'BACKGROUND_BLUR') {
+  if (type === "LAYER_BLUR" || type === "BACKGROUND_BLUR") {
     return {
-      type: type as 'LAYER_BLUR' | 'BACKGROUND_BLUR',
-      radius: effectData['radius'] !== undefined ? (effectData['radius'] as number) : 0,
-      visible:
-        effectData['visible'] !== undefined ? (effectData['visible'] as boolean) : true,
+      type: type as "LAYER_BLUR" | "BACKGROUND_BLUR",
+      radius: effectData["radius"] !== undefined ? (effectData["radius"] as number) : 0,
+      visible: effectData["visible"] !== undefined ? (effectData["visible"] as boolean) : true,
     } as BlurEffect;
   }
 
   // Fallback for other effect types
   const effect: Record<string, unknown> = { type, visible: true };
-  if (effectData['radius'] !== undefined) effect['radius'] = effectData['radius'];
-  if (effectData['offset']) {
-    const off = effectData['offset'] as Record<string, number>;
-    effect['offset'] = { x: off['x'], y: off['y'] };
+  if (effectData["radius"] !== undefined) effect["radius"] = effectData["radius"];
+  if (effectData["offset"]) {
+    const off = effectData["offset"] as Record<string, number>;
+    effect["offset"] = { x: off["x"], y: off["y"] };
   }
-  if (effectData['spread'] !== undefined) effect['spread'] = effectData['spread'];
-  if (effectData['color']) {
-    const colorStr = effectData['color'] as string;
-    effect['color'] = Object.assign(parseColor(colorStr), { a: parseOpacity(colorStr) });
+  if (effectData["spread"] !== undefined) effect["spread"] = effectData["spread"];
+  if (effectData["color"]) {
+    const colorStr = effectData["color"] as string;
+    effect["color"] = Object.assign(parseColor(colorStr), { a: parseOpacity(colorStr) });
   }
-  if (effectData['blendMode']) effect['blendMode'] = effectData['blendMode'];
+  if (effectData["blendMode"]) effect["blendMode"] = effectData["blendMode"];
   return effect as unknown as Effect;
 }
 
@@ -167,45 +166,35 @@ function buildFigmaEffect(effectData: Record<string, unknown>): Effect {
  * Build a valid Figma effect for use in effect styles.
  * Only supports DROP_SHADOW, INNER_SHADOW, LAYER_BLUR, BACKGROUND_BLUR.
  */
-function buildValidStyleEffect(
-  effect: Record<string, unknown>,
-): DropShadowEffect | InnerShadowEffect | BlurEffect {
-  if (!effect['type']) {
-    throw new Error('Each effect must have a type property');
+function buildValidStyleEffect(effect: Record<string, unknown>): DropShadowEffect | InnerShadowEffect | BlurEffect {
+  if (!effect["type"]) {
+    throw new Error("Each effect must have a type property");
   }
 
-  switch (effect['type']) {
-    case 'DROP_SHADOW':
-    case 'INNER_SHADOW':
+  switch (effect["type"]) {
+    case "DROP_SHADOW":
+    case "INNER_SHADOW":
       return {
-        type: effect['type'] as 'DROP_SHADOW' | 'INNER_SHADOW',
-        color: (effect['color'] as RGBA) || { r: 0, g: 0, b: 0, a: 0.5 },
-        offset: (effect['offset'] as Vector) || { x: 0, y: 0 },
-        radius:
-          effect['radius'] !== undefined ? (effect['radius'] as number) : 5,
-        spread:
-          effect['spread'] !== undefined ? (effect['spread'] as number) : 0,
-        visible:
-          effect['visible'] !== undefined ? (effect['visible'] as boolean) : true,
-        blendMode:
-          effect['blendMode'] !== undefined
-            ? (effect['blendMode'] as BlendMode)
-            : ('NORMAL' as BlendMode),
+        type: effect["type"] as "DROP_SHADOW" | "INNER_SHADOW",
+        color: (effect["color"] as RGBA) || { r: 0, g: 0, b: 0, a: 0.5 },
+        offset: (effect["offset"] as Vector) || { x: 0, y: 0 },
+        radius: effect["radius"] !== undefined ? (effect["radius"] as number) : 5,
+        spread: effect["spread"] !== undefined ? (effect["spread"] as number) : 0,
+        visible: effect["visible"] !== undefined ? (effect["visible"] as boolean) : true,
+        blendMode: effect["blendMode"] !== undefined ? (effect["blendMode"] as BlendMode) : ("NORMAL" as BlendMode),
       } as DropShadowEffect | InnerShadowEffect;
-    case 'LAYER_BLUR':
-    case 'BACKGROUND_BLUR':
+    case "LAYER_BLUR":
+    case "BACKGROUND_BLUR":
       return {
-        type: effect['type'] as 'LAYER_BLUR' | 'BACKGROUND_BLUR',
-        radius:
-          effect['radius'] !== undefined ? (effect['radius'] as number) : 5,
-        visible:
-          effect['visible'] !== undefined ? (effect['visible'] as boolean) : true,
+        type: effect["type"] as "LAYER_BLUR" | "BACKGROUND_BLUR",
+        radius: effect["radius"] !== undefined ? (effect["radius"] as number) : 5,
+        visible: effect["visible"] !== undefined ? (effect["visible"] as boolean) : true,
       } as BlurEffect;
     default:
       throw new Error(
-        'Unsupported effect type for style: ' +
-          String(effect['type']) +
-          '. Supported: DROP_SHADOW, INNER_SHADOW, LAYER_BLUR, BACKGROUND_BLUR',
+        "Unsupported effect type for style: " +
+          String(effect["type"]) +
+          ". Supported: DROP_SHADOW, INNER_SHADOW, LAYER_BLUR, BACKGROUND_BLUR",
       );
   }
 }
@@ -218,7 +207,7 @@ async function setCharacters(node: TextNode, characters: string): Promise<void> 
   try {
     node.characters = characters;
   } catch (e) {
-    console.warn('setCharacters: failed to set characters:', e);
+    console.warn("setCharacters: failed to set characters:", e);
   }
 }
 
@@ -231,18 +220,13 @@ async function setCharacters(node: TextNode, characters: string): Promise<void> 
  * Each element in `data` describes a node tree with properties matching
  * the Figma node schema produced by `readMyDesign`.
  */
-export async function createFromData(
-  params: Record<string, unknown>,
-): Promise<Record<string, unknown>> {
-  const data = params['data'] as Array<Record<string, unknown>> | undefined;
-  const parentId = params['parentId'] as string | undefined;
-  const nextToId = params['nextToId'] as string | undefined;
-  const xParam = params['x'] as number | undefined;
-  const yParam = params['y'] as number | undefined;
-  const replaceChildren =
-    params['replaceChildren'] !== undefined
-      ? (params['replaceChildren'] as boolean)
-      : false;
+export async function createFromData(params: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const data = params["data"] as Array<Record<string, unknown>> | undefined;
+  const parentId = params["parentId"] as string | undefined;
+  const nextToId = params["nextToId"] as string | undefined;
+  const xParam = params["x"] as number | undefined;
+  const yParam = params["y"] as number | undefined;
+  const replaceChildren = params["replaceChildren"] !== undefined ? (params["replaceChildren"] as boolean) : false;
 
   if (!Array.isArray(data) || data.length === 0) {
     throw new Error("create_from_data requires a non-empty 'data' array");
@@ -256,7 +240,7 @@ export async function createFromData(
       varNameMap.set(v.name, v);
     }
   } catch (e) {
-    console.warn('Failed to load local variables:', e);
+    console.warn("Failed to load local variables:", e);
   }
 
   // Build text style name → style object map
@@ -267,7 +251,7 @@ export async function createFromData(
       textStyleMap.set(s.name, s);
     }
   } catch (e) {
-    console.warn('Failed to load local text styles:', e);
+    console.warn("Failed to load local text styles:", e);
   }
 
   // Build effect style name → style object map
@@ -278,15 +262,15 @@ export async function createFromData(
       effectStyleMap.set(s.name, s);
     }
   } catch (e) {
-    console.warn('Failed to load local effect styles:', e);
+    console.warn("Failed to load local effect styles:", e);
   }
 
   // Resolve parent
   let parent: BaseNode & ChildrenMixin;
   if (parentId) {
     const resolved = await figma.getNodeByIdAsync(parentId);
-    if (!resolved || !('appendChild' in resolved)) {
-      throw new Error('Invalid parent node: ' + parentId);
+    if (!resolved || !("appendChild" in resolved)) {
+      throw new Error("Invalid parent node: " + parentId);
     }
     parent = resolved as BaseNode & ChildrenMixin;
   } else {
@@ -301,16 +285,12 @@ export async function createFromData(
   if (nextToId) {
     const refNode = await figma.getNodeByIdAsync(nextToId);
     if (!refNode) {
-      throw new Error('nextToId node not found: ' + nextToId);
+      throw new Error("nextToId node not found: " + nextToId);
     }
     const ref = refNode as LayoutMixin;
     resolvedX = ref.x + ref.width + GAP;
     resolvedY = ref.y;
-  } else if (
-    resolvedX === undefined &&
-    resolvedY === undefined &&
-    !parentId
-  ) {
+  } else if (resolvedX === undefined && resolvedY === undefined && !parentId) {
     const children = (parent as PageNode).children;
     if (children.length > 0) {
       let maxRight = -Infinity;
@@ -333,12 +313,10 @@ export async function createFromData(
 
   // Build component lookup map once for INSTANCE resolution (avoids O(N*M) page scans)
   const componentLookup = new Map<string, ComponentNode>();
-  const allPageComponents = figma.currentPage.findAll(
-    (n) => n.type === 'COMPONENT',
-  ) as ComponentNode[];
+  const allPageComponents = figma.currentPage.findAll((n) => n.type === "COMPONENT") as ComponentNode[];
   for (const comp of allPageComponents) {
     componentLookup.set(comp.name, comp);
-    if (comp.parent && comp.parent.type === 'COMPONENT_SET') {
+    if (comp.parent && comp.parent.type === "COMPONENT_SET") {
       if (!componentLookup.has(comp.parent.name)) {
         componentLookup.set(comp.parent.name, comp);
       }
@@ -358,34 +336,26 @@ export async function createFromData(
     let skipChildRecursion = false;
 
     // CHECK: does nodeData.id reference an existing Figma node?
-    if (nodeData['id']) {
+    if (nodeData["id"]) {
       try {
-        const existing = await figma.getNodeByIdAsync(
-          nodeData['id'] as string,
-        );
+        const existing = await figma.getNodeByIdAsync(nodeData["id"] as string);
         if (existing) {
           const existingScene = existing as SceneNode;
           const existingType = existingScene.type;
-          const jsxType = nodeData['type'] as string;
+          const jsxType = nodeData["type"] as string;
 
           const isTypeCompatible =
             existingType === jsxType ||
-            (jsxType === 'FRAME' && existingType === 'COMPONENT') ||
-            (jsxType === 'FRAME' && existingType === 'INSTANCE') ||
-            (jsxType === 'COMPONENT' && existingType === 'FRAME');
+            (jsxType === "FRAME" && existingType === "COMPONENT") ||
+            (jsxType === "FRAME" && existingType === "INSTANCE") ||
+            (jsxType === "COMPONENT" && existingType === "FRAME");
 
-          if (jsxType === 'COMPONENT_SET') {
+          if (jsxType === "COMPONENT_SET") {
             console.warn(
-              'Cannot update COMPONENT_SET "' +
-                String(existingScene.name) +
-                '" in-place — creating new node',
+              'Cannot update COMPONENT_SET "' + String(existingScene.name) + '" in-place — creating new node',
             );
-          } else if (jsxType === 'SVG') {
-            console.warn(
-              'Cannot update SVG node "' +
-                String(existingScene.name) +
-                '" in-place — creating new node',
-            );
+          } else if (jsxType === "SVG") {
+            console.warn('Cannot update SVG node "' + String(existingScene.name) + '" in-place — creating new node');
           } else if (!isTypeCompatible) {
             console.warn(
               'Type mismatch: JSX type "' +
@@ -393,32 +363,24 @@ export async function createFromData(
                 '" does not match existing node type "' +
                 existingType +
                 '" for id "' +
-                String(nodeData['id']) +
+                String(nodeData["id"]) +
                 '" — creating new node',
             );
           } else {
             node = existingScene;
             isUpdate = true;
 
-            if (replaceChildren && 'children' in node) {
+            if (replaceChildren && "children" in node) {
               const withChildren = node as SceneNode & ChildrenMixin;
-              for (
-                let i = withChildren.children.length - 1;
-                i >= 0;
-                i--
-              ) {
+              for (let i = withChildren.children.length - 1; i >= 0; i--) {
                 withChildren.children[i].remove();
               }
             }
 
-            if (existing.type === 'TEXT') {
+            if (existing.type === "TEXT") {
               const textNode = existing as TextNode;
-              const family = nodeData['fontFamily'] !== undefined
-                ? (nodeData['fontFamily'] as string)
-                : 'Inter';
-              const weight = nodeData['fontWeight'] !== undefined
-                ? (nodeData['fontWeight'] as number)
-                : 400;
+              const family = nodeData["fontFamily"] !== undefined ? (nodeData["fontFamily"] as string) : "Inter";
+              const weight = nodeData["fontWeight"] !== undefined ? (nodeData["fontWeight"] as number) : 400;
               try {
                 await figma.loadFontAsync({
                   family,
@@ -428,102 +390,74 @@ export async function createFromData(
               } catch (e) {
                 try {
                   await figma.loadFontAsync({
-                    family: 'Inter',
-                    style: 'Regular',
+                    family: "Inter",
+                    style: "Regular",
                   });
                   textNode.fontName = {
-                    family: 'Inter',
-                    style: 'Regular',
+                    family: "Inter",
+                    style: "Regular",
                   };
                 } catch (e2) {
-                  console.warn(
-                    'Failed to load fallback font Inter Regular:',
-                    e2,
-                  );
+                  console.warn("Failed to load fallback font Inter Regular:", e2);
                 }
               }
-              if (nodeData['characters']) {
-                await setCharacters(
-                  textNode,
-                  nodeData['characters'] as string,
-                );
+              if (nodeData["characters"]) {
+                await setCharacters(textNode, nodeData["characters"] as string);
               }
             }
           }
         }
       } catch (e) {
-        console.warn(
-          'Could not find node with id "' +
-            String(nodeData['id']) +
-            '" — creating new node',
-        );
+        console.warn('Could not find node with id "' + String(nodeData["id"]) + '" — creating new node');
       }
     }
 
-    const jsxType = nodeData['type'] as string;
+    const jsxType = nodeData["type"] as string;
 
-    if (node === null && jsxType === 'TEXT') {
+    if (node === null && jsxType === "TEXT") {
       const textNode = figma.createText();
-      const family = nodeData['fontFamily'] !== undefined
-        ? (nodeData['fontFamily'] as string)
-        : 'Inter';
-      const weight = nodeData['fontWeight'] !== undefined
-        ? (nodeData['fontWeight'] as number)
-        : 400;
+      const family = nodeData["fontFamily"] !== undefined ? (nodeData["fontFamily"] as string) : "Inter";
+      const weight = nodeData["fontWeight"] !== undefined ? (nodeData["fontWeight"] as number) : 400;
       try {
         await figma.loadFontAsync({ family, style: getFontStyle(weight) });
         textNode.fontName = { family, style: getFontStyle(weight) };
       } catch (e) {
         try {
-          await figma.loadFontAsync({ family: 'Inter', style: 'Regular' });
-          textNode.fontName = { family: 'Inter', style: 'Regular' };
+          await figma.loadFontAsync({ family: "Inter", style: "Regular" });
+          textNode.fontName = { family: "Inter", style: "Regular" };
         } catch (e2) {
-          console.warn('Failed to load fallback font Inter Regular:', e2);
+          console.warn("Failed to load fallback font Inter Regular:", e2);
         }
       }
-      if (nodeData['characters']) {
-        await setCharacters(textNode, nodeData['characters'] as string);
+      if (nodeData["characters"]) {
+        await setCharacters(textNode, nodeData["characters"] as string);
       }
       node = textNode;
-    } else if (node === null && jsxType === 'COMPONENT') {
+    } else if (node === null && jsxType === "COMPONENT") {
       const comp = figma.createComponent();
       comp.fills = [];
       node = comp;
-    } else if (node === null && jsxType === 'COMPONENT_SET') {
+    } else if (node === null && jsxType === "COMPONENT_SET") {
       const tempFrame = figma.createFrame();
-      tempFrame.name =
-        nodeData['name'] !== undefined
-          ? (nodeData['name'] as string)
-          : 'ComponentSet';
+      tempFrame.name = nodeData["name"] !== undefined ? (nodeData["name"] as string) : "ComponentSet";
       tempFrame.fills = [];
       parentNode.appendChild(tempFrame);
 
       try {
         const childComponents: ComponentNode[] = [];
-        const childrenData =
-          nodeData['children'] as Array<Record<string, unknown>> | undefined;
+        const childrenData = nodeData["children"] as Array<Record<string, unknown>> | undefined;
         if (childrenData && childrenData.length > 0) {
           for (const child of childrenData) {
-            const childNode = await createNode(
-              child,
-              tempFrame as unknown as BaseNode & ChildrenMixin,
-              false,
-            );
-            if (childNode && childNode.type === 'COMPONENT') {
+            const childNode = await createNode(child, tempFrame as unknown as BaseNode & ChildrenMixin, false);
+            if (childNode && childNode.type === "COMPONENT") {
               childComponents.push(childNode as ComponentNode);
             }
           }
         }
 
         if (childComponents.length > 0) {
-          const set = figma.combineAsVariants(
-            childComponents,
-            parentNode as FrameNode,
-          );
-          set.name =
-            nodeData['name'] !== undefined
-              ? (nodeData['name'] as string)
-              : 'ComponentSet';
+          const set = figma.combineAsVariants(childComponents, parentNode as FrameNode);
+          set.name = nodeData["name"] !== undefined ? (nodeData["name"] as string) : "ComponentSet";
           node = set;
         } else {
           const fallback = figma.createComponent();
@@ -539,100 +473,73 @@ export async function createFromData(
         }
       }
 
-      const propDefs = nodeData['componentPropertyDefinitions'] as
-        | Record<string, Record<string, unknown>>
-        | undefined;
-      if (propDefs && node !== null && node.type === 'COMPONENT_SET') {
+      const propDefs = nodeData["componentPropertyDefinitions"] as Record<string, Record<string, unknown>> | undefined;
+      if (propDefs && node !== null && node.type === "COMPONENT_SET") {
         const setNode = node as ComponentSetNode;
         for (const propName of Object.keys(propDefs)) {
           const def = propDefs[propName];
-          if (def['type'] === 'VARIANT') continue;
+          if (def["type"] === "VARIANT") continue;
           try {
-            const defaultVal =
-              def['default'] !== undefined
-                ? def['default']
-                : def['type'] === 'BOOLEAN'
-                ? true
-                : '';
+            const defaultVal = def["default"] !== undefined ? def["default"] : def["type"] === "BOOLEAN" ? true : "";
             setNode.addComponentProperty(
               propName,
-              def['type'] as ComponentPropertyType,
+              def["type"] as ComponentPropertyType,
               defaultVal as string | boolean,
             );
           } catch (e) {
-            console.warn(
-              'Failed to add component property "' + propName + '":',
-              e,
-            );
+            console.warn('Failed to add component property "' + propName + '":', e);
           }
         }
       }
 
       skipChildRecursion = true;
-    } else if (node === null && jsxType === 'INSTANCE') {
+    } else if (node === null && jsxType === "INSTANCE") {
       const componentName =
-        nodeData['mainComponentName'] !== undefined
-          ? (nodeData['mainComponentName'] as string)
-          : (nodeData['name'] as string);
+        nodeData["mainComponentName"] !== undefined
+          ? (nodeData["mainComponentName"] as string)
+          : (nodeData["name"] as string);
       const sourceComponent =
-        componentLookup.get(componentName) !== undefined
-          ? componentLookup.get(componentName)
-          : null;
+        componentLookup.get(componentName) !== undefined ? componentLookup.get(componentName) : null;
 
       if (sourceComponent) {
         const instance = sourceComponent.createInstance();
-        const compProps = nodeData['componentProperties'] as
-          | Record<string, Record<string, unknown>>
-          | undefined;
+        const compProps = nodeData["componentProperties"] as Record<string, Record<string, unknown>> | undefined;
         if (compProps) {
           const propsToSet: Record<string, string | boolean> = {};
           for (const key of Object.keys(compProps)) {
-            propsToSet[key] = compProps[key]['value'] as string | boolean;
+            propsToSet[key] = compProps[key]["value"] as string | boolean;
           }
           try {
             instance.setProperties(propsToSet);
           } catch (e) {
-            console.warn('Failed to set instance properties:', e);
+            console.warn("Failed to set instance properties:", e);
           }
         }
         node = instance;
       } else {
         const fallback = figma.createFrame();
         fallback.fills = [];
-        console.warn(
-          'Component "' +
-            componentName +
-            '" not found — created frame as fallback',
-        );
+        console.warn('Component "' + componentName + '" not found — created frame as fallback');
         node = fallback;
       }
-    } else if (
-      node === null &&
-      jsxType === 'SVG' &&
-      nodeData['svgString']
-    ) {
+    } else if (node === null && jsxType === "SVG" && nodeData["svgString"]) {
       let svgCreatedFromString = false;
       let svgNode: FrameNode | SceneNode;
       try {
-        svgNode = figma.createNodeFromSvg(nodeData['svgString'] as string);
+        svgNode = figma.createNodeFromSvg(nodeData["svgString"] as string);
         svgCreatedFromString = true;
       } catch (e) {
-        console.warn('Failed to create SVG node, falling back to frame:', e);
+        console.warn("Failed to create SVG node, falling back to frame:", e);
         const frame = figma.createFrame();
         frame.fills = [];
         svgNode = frame;
       }
-      svgNode.name =
-        nodeData['name'] !== undefined
-          ? (nodeData['name'] as string)
-          : 'SVG';
+      svgNode.name = nodeData["name"] !== undefined ? (nodeData["name"] as string) : "SVG";
       if (svgCreatedFromString) {
-        const svgRootStroke = parseSvgRootStroke(
-          nodeData['svgString'] as string,
-        );
+        const svgRootStroke = parseSvgRootStroke(nodeData["svgString"] as string);
         if (svgRootStroke) {
           propagateStrokeToShapes(svgNode as SceneNode, svgRootStroke);
-          if ('strokes' in svgNode) {
+          if ("strokes" in svgNode) {
             (svgNode as GeometryMixin).strokes = [];
           }
         }
@@ -642,22 +549,15 @@ export async function createFromData(
       }
       if (isRoot && rootX !== undefined) (svgNode as LayoutMixin).x = rootX;
       if (isRoot && rootY !== undefined) (svgNode as LayoutMixin).y = rootY;
-      if (
-        nodeData['width'] !== undefined &&
-        nodeData['height'] !== undefined
-      ) {
-        (svgNode as LayoutMixin & {
-          resize: (w: number, h: number) => void;
-        }).resize(
-          nodeData['width'] as number,
-          nodeData['height'] as number,
-        );
+      if (nodeData["width"] !== undefined && nodeData["height"] !== undefined) {
+        (
+          svgNode as LayoutMixin & {
+            resize: (w: number, h: number) => void;
+          }
+        ).resize(nodeData["width"] as number, nodeData["height"] as number);
       }
       return svgNode as SceneNode;
-    } else if (
-      node === null &&
-      (jsxType === 'RECTANGLE' || jsxType === 'VECTOR' || jsxType === 'LINE')
-    ) {
+    } else if (node === null && (jsxType === "RECTANGLE" || jsxType === "VECTOR" || jsxType === "LINE")) {
       node = figma.createRectangle();
     } else if (node === null) {
       // Known limitation: ELLIPSE, POLYGON, STAR, and other unsupported node types
@@ -673,13 +573,10 @@ export async function createFromData(
     const n = node as SceneNode;
 
     // Set name
-    n.name =
-      nodeData['name'] !== undefined
-        ? (nodeData['name'] as string)
-        : 'Node';
+    n.name = nodeData["name"] !== undefined ? (nodeData["name"] as string) : "Node";
 
     // Append to parent FIRST (required for layout properties)
-    if (!isUpdate && jsxType !== 'COMPONENT_SET') {
+    if (!isUpdate && jsxType !== "COMPONENT_SET") {
       if (n.parent !== parentNode) {
         parentNode.appendChild(n);
       }
@@ -694,49 +591,45 @@ export async function createFromData(
     }
 
     // Set layout mode FIRST (gate for other layout props)
-    const layoutMode = nodeData['layoutMode'] as string | undefined;
-    if (layoutMode && layoutMode !== 'NONE') {
-      (n as AutoLayoutMixin).layoutMode =
-        layoutMode as AutoLayoutMixin['layoutMode'];
+    const layoutMode = nodeData["layoutMode"] as string | undefined;
+    if (layoutMode && layoutMode !== "NONE") {
+      (n as AutoLayoutMixin).layoutMode = layoutMode as AutoLayoutMixin["layoutMode"];
 
-      if (nodeData['primaryAxisAlignItems']) {
-        (n as AutoLayoutMixin).primaryAxisAlignItems =
-          nodeData['primaryAxisAlignItems'] as AutoLayoutMixin['primaryAxisAlignItems'];
+      if (nodeData["primaryAxisAlignItems"]) {
+        (n as AutoLayoutMixin).primaryAxisAlignItems = nodeData[
+          "primaryAxisAlignItems"
+        ] as AutoLayoutMixin["primaryAxisAlignItems"];
       }
-      if (nodeData['counterAxisAlignItems']) {
-        (n as AutoLayoutMixin).counterAxisAlignItems =
-          nodeData['counterAxisAlignItems'] as AutoLayoutMixin['counterAxisAlignItems'];
+      if (nodeData["counterAxisAlignItems"]) {
+        (n as AutoLayoutMixin).counterAxisAlignItems = nodeData[
+          "counterAxisAlignItems"
+        ] as AutoLayoutMixin["counterAxisAlignItems"];
       }
-      if (nodeData['itemSpacing'] !== undefined) {
-        (n as AutoLayoutMixin).itemSpacing = nodeData['itemSpacing'] as number;
+      if (nodeData["itemSpacing"] !== undefined) {
+        (n as AutoLayoutMixin).itemSpacing = nodeData["itemSpacing"] as number;
       }
-      if (nodeData['counterAxisSpacing'] !== undefined) {
-        (n as AutoLayoutMixin).counterAxisSpacing =
-          nodeData['counterAxisSpacing'] as number;
+      if (nodeData["counterAxisSpacing"] !== undefined) {
+        (n as AutoLayoutMixin).counterAxisSpacing = nodeData["counterAxisSpacing"] as number;
       }
-      if (nodeData['layoutWrap']) {
-        (n as AutoLayoutMixin).layoutWrap =
-          nodeData['layoutWrap'] as AutoLayoutMixin['layoutWrap'];
+      if (nodeData["layoutWrap"]) {
+        (n as AutoLayoutMixin).layoutWrap = nodeData["layoutWrap"] as AutoLayoutMixin["layoutWrap"];
       }
-      if (nodeData['paddingTop'] !== undefined) {
-        (n as AutoLayoutMixin).paddingTop = nodeData['paddingTop'] as number;
+      if (nodeData["paddingTop"] !== undefined) {
+        (n as AutoLayoutMixin).paddingTop = nodeData["paddingTop"] as number;
       }
-      if (nodeData['paddingRight'] !== undefined) {
-        (n as AutoLayoutMixin).paddingRight =
-          nodeData['paddingRight'] as number;
+      if (nodeData["paddingRight"] !== undefined) {
+        (n as AutoLayoutMixin).paddingRight = nodeData["paddingRight"] as number;
       }
-      if (nodeData['paddingBottom'] !== undefined) {
-        (n as AutoLayoutMixin).paddingBottom =
-          nodeData['paddingBottom'] as number;
+      if (nodeData["paddingBottom"] !== undefined) {
+        (n as AutoLayoutMixin).paddingBottom = nodeData["paddingBottom"] as number;
       }
-      if (nodeData['paddingLeft'] !== undefined) {
-        (n as AutoLayoutMixin).paddingLeft =
-          nodeData['paddingLeft'] as number;
+      if (nodeData["paddingLeft"] !== undefined) {
+        (n as AutoLayoutMixin).paddingLeft = nodeData["paddingLeft"] as number;
       }
     }
 
     // Clipping
-    if (nodeData['clipsContent']) {
+    if (nodeData["clipsContent"]) {
       (n as FrameNode).clipsContent = true;
     }
 
@@ -744,175 +637,149 @@ export async function createFromData(
     const parentHasLayout =
       parentNode !== null &&
       parentNode !== undefined &&
-      'layoutMode' in parentNode &&
+      "layoutMode" in parentNode &&
       (parentNode as AutoLayoutMixin).layoutMode !== undefined &&
-      (parentNode as AutoLayoutMixin).layoutMode !== 'NONE';
+      (parentNode as AutoLayoutMixin).layoutMode !== "NONE";
 
     // Apply layout sizing BEFORE resize — resize() can reset sizing modes.
-    if (nodeData['layoutSizingHorizontal']) {
-      const requestedH = nodeData['layoutSizingHorizontal'] as LayoutMixin['layoutSizingHorizontal'];
-      ((n as unknown) as LayoutMixin).layoutSizingHorizontal =
-        requestedH === 'FILL' && !parentHasLayout ? 'FIXED' : requestedH;
-    } else if (nodeData['layoutMode']) {
-      ((n as unknown) as LayoutMixin).layoutSizingHorizontal = 'HUG';
+    if (nodeData["layoutSizingHorizontal"]) {
+      const requestedH = nodeData["layoutSizingHorizontal"] as LayoutMixin["layoutSizingHorizontal"];
+      (n as unknown as LayoutMixin).layoutSizingHorizontal =
+        requestedH === "FILL" && !parentHasLayout ? "FIXED" : requestedH;
+    } else if (nodeData["layoutMode"]) {
+      (n as unknown as LayoutMixin).layoutSizingHorizontal = "HUG";
     }
-    if (nodeData['layoutSizingVertical']) {
-      const requestedV = nodeData['layoutSizingVertical'] as LayoutMixin['layoutSizingVertical'];
-      ((n as unknown) as LayoutMixin).layoutSizingVertical =
-        requestedV === 'FILL' && !parentHasLayout ? 'FIXED' : requestedV;
-    } else if (nodeData['layoutMode']) {
-      ((n as unknown) as LayoutMixin).layoutSizingVertical = 'HUG';
+    if (nodeData["layoutSizingVertical"]) {
+      const requestedV = nodeData["layoutSizingVertical"] as LayoutMixin["layoutSizingVertical"];
+      (n as unknown as LayoutMixin).layoutSizingVertical =
+        requestedV === "FILL" && !parentHasLayout ? "FIXED" : requestedV;
+    } else if (nodeData["layoutMode"]) {
+      (n as unknown as LayoutMixin).layoutSizingVertical = "HUG";
     }
 
     // Sizing (explicit dimensions) — applied after layout sizing
     const nLayout = n as LayoutMixin;
-    if (
-      nodeData['width'] !== undefined &&
-      nodeData['height'] !== undefined
-    ) {
+    if (nodeData["width"] !== undefined && nodeData["height"] !== undefined) {
       (n as LayoutMixin & { resize: (w: number, h: number) => void }).resize(
-        nodeData['width'] as number,
-        nodeData['height'] as number,
+        nodeData["width"] as number,
+        nodeData["height"] as number,
       );
-    } else if (nodeData['width'] !== undefined) {
+    } else if (nodeData["width"] !== undefined) {
       (n as LayoutMixin & { resize: (w: number, h: number) => void }).resize(
-        nodeData['width'] as number,
+        nodeData["width"] as number,
         nLayout.height,
       );
-    } else if (nodeData['height'] !== undefined) {
+    } else if (nodeData["height"] !== undefined) {
       (n as LayoutMixin & { resize: (w: number, h: number) => void }).resize(
         nLayout.width,
-        nodeData['height'] as number,
+        nodeData["height"] as number,
       );
     }
 
     // Fills
-    const fills = nodeData['fills'] as Array<Record<string, unknown>> | undefined;
+    const fills = nodeData["fills"] as Array<Record<string, unknown>> | undefined;
     if (fills && fills.length > 0) {
       (n as GeometryMixin).fills = fills.map((f) => buildFigmaPaint(f));
     }
 
     // Strokes
-    const strokes = nodeData['strokes'] as Array<Record<string, unknown>> | undefined;
+    const strokes = nodeData["strokes"] as Array<Record<string, unknown>> | undefined;
     if (strokes && strokes.length > 0) {
       (n as GeometryMixin).strokes = strokes.map((s) => buildFigmaPaint(s));
     }
-    if (nodeData['strokeWeight']) {
-      (n as GeometryMixin).strokeWeight = nodeData['strokeWeight'] as number;
+    if (nodeData["strokeWeight"]) {
+      (n as GeometryMixin).strokeWeight = nodeData["strokeWeight"] as number;
     }
     const hasIndividualStrokes =
-      nodeData['strokeTopWeight'] !== undefined ||
-      nodeData['strokeBottomWeight'] !== undefined ||
-      nodeData['strokeLeftWeight'] !== undefined ||
-      nodeData['strokeRightWeight'] !== undefined;
+      nodeData["strokeTopWeight"] !== undefined ||
+      nodeData["strokeBottomWeight"] !== undefined ||
+      nodeData["strokeLeftWeight"] !== undefined ||
+      nodeData["strokeRightWeight"] !== undefined;
     if (hasIndividualStrokes) {
       const nGeom = n as IndividualStrokesMixin;
-      nGeom.strokeTopWeight =
-        nodeData['strokeTopWeight'] !== undefined
-          ? (nodeData['strokeTopWeight'] as number)
-          : 0;
+      nGeom.strokeTopWeight = nodeData["strokeTopWeight"] !== undefined ? (nodeData["strokeTopWeight"] as number) : 0;
       nGeom.strokeBottomWeight =
-        nodeData['strokeBottomWeight'] !== undefined
-          ? (nodeData['strokeBottomWeight'] as number)
-          : 0;
+        nodeData["strokeBottomWeight"] !== undefined ? (nodeData["strokeBottomWeight"] as number) : 0;
       nGeom.strokeLeftWeight =
-        nodeData['strokeLeftWeight'] !== undefined
-          ? (nodeData['strokeLeftWeight'] as number)
-          : 0;
+        nodeData["strokeLeftWeight"] !== undefined ? (nodeData["strokeLeftWeight"] as number) : 0;
       nGeom.strokeRightWeight =
-        nodeData['strokeRightWeight'] !== undefined
-          ? (nodeData['strokeRightWeight'] as number)
-          : 0;
+        nodeData["strokeRightWeight"] !== undefined ? (nodeData["strokeRightWeight"] as number) : 0;
     }
 
     // Corner radius
-    if (nodeData['cornerRadius']) {
-      (n as CornerMixin).cornerRadius = nodeData['cornerRadius'] as number;
+    if (nodeData["cornerRadius"]) {
+      (n as CornerMixin).cornerRadius = nodeData["cornerRadius"] as number;
     }
-    if (nodeData['topLeftRadius']) {
-      (n as RectangleCornerMixin).topLeftRadius =
-        nodeData['topLeftRadius'] as number;
+    if (nodeData["topLeftRadius"]) {
+      (n as RectangleCornerMixin).topLeftRadius = nodeData["topLeftRadius"] as number;
     }
-    if (nodeData['topRightRadius']) {
-      (n as RectangleCornerMixin).topRightRadius =
-        nodeData['topRightRadius'] as number;
+    if (nodeData["topRightRadius"]) {
+      (n as RectangleCornerMixin).topRightRadius = nodeData["topRightRadius"] as number;
     }
-    if (nodeData['bottomRightRadius']) {
-      (n as RectangleCornerMixin).bottomRightRadius =
-        nodeData['bottomRightRadius'] as number;
+    if (nodeData["bottomRightRadius"]) {
+      (n as RectangleCornerMixin).bottomRightRadius = nodeData["bottomRightRadius"] as number;
     }
-    if (nodeData['bottomLeftRadius']) {
-      (n as RectangleCornerMixin).bottomLeftRadius =
-        nodeData['bottomLeftRadius'] as number;
+    if (nodeData["bottomLeftRadius"]) {
+      (n as RectangleCornerMixin).bottomLeftRadius = nodeData["bottomLeftRadius"] as number;
     }
 
     // Effects
-    const effectsData = nodeData['effects'] as Array<Record<string, unknown>> | undefined;
+    const effectsData = nodeData["effects"] as Array<Record<string, unknown>> | undefined;
     if (effectsData && effectsData.length > 0) {
-      (n as BlendMixin).effects = effectsData.map((e) =>
-        buildFigmaEffect(e),
-      );
+      (n as BlendMixin).effects = effectsData.map((e) => buildFigmaEffect(e));
     }
 
     // Apply effect style if present
-    if (nodeData['effectStyleName']) {
-      const eStyle = effectStyleMap.get(nodeData['effectStyleName'] as string);
+    if (nodeData["effectStyleName"]) {
+      const eStyle = effectStyleMap.get(nodeData["effectStyleName"] as string);
       if (eStyle) {
         await (n as BlendMixin).setEffectStyleIdAsync(eStyle.id);
       }
     }
 
     // Opacity
-    if (nodeData['opacity'] !== undefined) {
-      (n as BlendMixin).opacity = nodeData['opacity'] as number;
+    if (nodeData["opacity"] !== undefined) {
+      (n as BlendMixin).opacity = nodeData["opacity"] as number;
     }
 
     // Rotation
-    if (nodeData['rotation']) {
-      (n as LayoutMixin).rotation = nodeData['rotation'] as number;
+    if (nodeData["rotation"]) {
+      (n as LayoutMixin).rotation = nodeData["rotation"] as number;
     }
 
     // Text properties
-    if (jsxType === 'TEXT') {
+    if (jsxType === "TEXT") {
       const textN = n as TextNode;
-      if (nodeData['fontSize']) textN.fontSize = nodeData['fontSize'] as number;
-      if (nodeData['lineHeight'] !== undefined) {
+      if (nodeData["fontSize"]) textN.fontSize = nodeData["fontSize"] as number;
+      if (nodeData["lineHeight"] !== undefined) {
         textN.lineHeight =
-          nodeData['lineHeightUnit'] === 'percent'
-            ? { value: nodeData['lineHeight'] as number, unit: 'PERCENT' }
-            : { value: nodeData['lineHeight'] as number, unit: 'PIXELS' };
+          nodeData["lineHeightUnit"] === "percent"
+            ? { value: nodeData["lineHeight"] as number, unit: "PERCENT" }
+            : { value: nodeData["lineHeight"] as number, unit: "PIXELS" };
       }
-      if (nodeData['letterSpacing'] !== undefined) {
+      if (nodeData["letterSpacing"] !== undefined) {
         textN.letterSpacing =
-          nodeData['letterSpacingUnit'] === 'percent'
+          nodeData["letterSpacingUnit"] === "percent"
             ? {
-                value: nodeData['letterSpacing'] as number,
-                unit: 'PERCENT',
+                value: nodeData["letterSpacing"] as number,
+                unit: "PERCENT",
               }
             : {
-                value: nodeData['letterSpacing'] as number,
-                unit: 'PIXELS',
+                value: nodeData["letterSpacing"] as number,
+                unit: "PIXELS",
               };
       }
-      if (nodeData['textAlignHorizontal']) {
-        textN.textAlignHorizontal =
-          nodeData['textAlignHorizontal'] as TextNode['textAlignHorizontal'];
+      if (nodeData["textAlignHorizontal"]) {
+        textN.textAlignHorizontal = nodeData["textAlignHorizontal"] as TextNode["textAlignHorizontal"];
       }
-      if (
-        nodeData['textCase'] &&
-        nodeData['textCase'] !== 'ORIGINAL'
-      ) {
-        textN.textCase = nodeData['textCase'] as TextNode['textCase'];
+      if (nodeData["textCase"] && nodeData["textCase"] !== "ORIGINAL") {
+        textN.textCase = nodeData["textCase"] as TextNode["textCase"];
       }
-      if (
-        nodeData['textDecoration'] &&
-        nodeData['textDecoration'] !== 'NONE'
-      ) {
-        textN.textDecoration =
-          nodeData['textDecoration'] as TextNode['textDecoration'];
+      if (nodeData["textDecoration"] && nodeData["textDecoration"] !== "NONE") {
+        textN.textDecoration = nodeData["textDecoration"] as TextNode["textDecoration"];
       }
-      if (nodeData['textStyleName']) {
-        const style = textStyleMap.get(nodeData['textStyleName'] as string);
+      if (nodeData["textStyleName"]) {
+        const style = textStyleMap.get(nodeData["textStyleName"] as string);
         if (style) {
           await textN.setTextStyleIdAsync(style.id);
         }
@@ -920,78 +787,49 @@ export async function createFromData(
     }
 
     // Child alignment override (self-start, self-center, self-end, self-stretch)
-    if (nodeData['layoutAlign']) {
+    if (nodeData["layoutAlign"]) {
       const nParent = n.parent;
-      if (
-        nParent &&
-        'layoutMode' in nParent &&
-        (nParent as AutoLayoutMixin).layoutMode !== 'NONE'
-      ) {
-        ((n as unknown) as LayoutMixin).layoutAlign = nodeData['layoutAlign'] as LayoutMixin['layoutAlign'];
+      if (nParent && "layoutMode" in nParent && (nParent as AutoLayoutMixin).layoutMode !== "NONE") {
+        (n as unknown as LayoutMixin).layoutAlign = nodeData["layoutAlign"] as LayoutMixin["layoutAlign"];
       }
     }
 
     // Absolute positioning (after appendChild)
-    if (nodeData['layoutPositioning'] === 'ABSOLUTE') {
+    if (nodeData["layoutPositioning"] === "ABSOLUTE") {
       const nParent = n.parent;
-      if (
-        nParent &&
-        'layoutMode' in nParent &&
-        (nParent as AutoLayoutMixin).layoutMode !== 'NONE'
-      ) {
-        ((n as unknown) as LayoutMixin).layoutPositioning = 'ABSOLUTE';
+      if (nParent && "layoutMode" in nParent && (nParent as AutoLayoutMixin).layoutMode !== "NONE") {
+        (n as unknown as LayoutMixin).layoutPositioning = "ABSOLUTE";
       }
-      if (nodeData['x'] !== undefined) {
-        (n as LayoutMixin).x = nodeData['x'] as number;
+      if (nodeData["x"] !== undefined) {
+        (n as LayoutMixin).x = nodeData["x"] as number;
       }
-      if (nodeData['y'] !== undefined) {
-        (n as LayoutMixin).y = nodeData['y'] as number;
+      if (nodeData["y"] !== undefined) {
+        (n as LayoutMixin).y = nodeData["y"] as number;
       }
     }
 
     // Variable bindings (after properties are set)
-    const bindings = nodeData['bindings'] as
-      | Record<string, string>
-      | undefined;
+    const bindings = nodeData["bindings"] as Record<string, string> | undefined;
     if (bindings) {
       for (const field of Object.keys(bindings)) {
         const varName = bindings[field];
         const variable = varNameMap.get(varName);
         if (!variable) continue;
 
-        if (
-          field.indexOf('fills/') === 0 ||
-          field.indexOf('strokes/') === 0
-        ) {
-          const parts = field.split('/');
-          const prop = parts[0] as 'fills' | 'strokes';
+        if (field.indexOf("fills/") === 0 || field.indexOf("strokes/") === 0) {
+          const parts = field.split("/");
+          const prop = parts[0] as "fills" | "strokes";
           const idx = parseInt(parts[1]);
-          const paints = [
-            ...((n as GeometryMixin)[prop] as ReadonlyArray<Paint>),
-          ];
+          const paints = [...((n as GeometryMixin)[prop] as ReadonlyArray<Paint>)];
           if (paints[idx]) {
-            paints[idx] = figma.variables.setBoundVariableForPaint(
-              paints[idx] as SolidPaint,
-              'color',
-              variable,
-            );
+            paints[idx] = figma.variables.setBoundVariableForPaint(paints[idx] as SolidPaint, "color", variable);
             (n as GeometryMixin)[prop] = paints;
           }
         } else {
           try {
-            (n as SceneNodeMixin).setBoundVariable(
-              field as VariableBindableNodeField,
-              variable,
-            );
+            (n as SceneNodeMixin).setBoundVariable(field as VariableBindableNodeField, variable);
           } catch (e) {
-            console.warn(
-              'Failed to bind variable "' +
-                varName +
-                '" to field "' +
-                field +
-                '":',
-              e,
-            );
+            console.warn('Failed to bind variable "' + varName + '" to field "' + field + '":', e);
           }
         }
       }
@@ -999,14 +837,8 @@ export async function createFromData(
 
     // Recursively create children
     const skipChildrenForUpdate = isUpdate && !replaceChildren;
-    const childrenData =
-      nodeData['children'] as Array<Record<string, unknown>> | undefined;
-    if (
-      !skipChildRecursion &&
-      !skipChildrenForUpdate &&
-      childrenData &&
-      childrenData.length > 0
-    ) {
+    const childrenData = nodeData["children"] as Array<Record<string, unknown>> | undefined;
+    if (!skipChildRecursion && !skipChildrenForUpdate && childrenData && childrenData.length > 0) {
       for (const child of childrenData) {
         await createNode(child, n as unknown as BaseNode & ChildrenMixin, false);
       }
@@ -1016,7 +848,7 @@ export async function createFromData(
       id: n.id,
       name: n.name,
       type: n.type,
-      action: isUpdate ? 'updated' : 'created',
+      action: isUpdate ? "updated" : "created",
     });
     return n;
   }
@@ -1035,11 +867,8 @@ export async function createFromData(
     // createNode always pushes the root entry last (after all children),
     // so createdNodes[last] reflects the root's create-vs-update action.
     // This avoids a redundant getNodeByIdAsync call in the outer loop.
-    const rootAction =
-      createdNodes.length > prevCount
-        ? createdNodes[createdNodes.length - 1]['action']
-        : 'created';
-    if (rootAction !== 'updated') {
+    const rootAction = createdNodes.length > prevCount ? createdNodes[createdNodes.length - 1]["action"] : "created";
+    if (rootAction !== "updated") {
       xOffset += ((node as LayoutMixin).width !== undefined ? (node as LayoutMixin).width : 100) + 40;
     }
   }
@@ -1080,8 +909,7 @@ export async function getDesignSystem(): Promise<Record<string, unknown>> {
   for (let vi = 0; vi < allVariables.length; vi++) {
     const v = allVariables[vi];
     const collection = collectionMap[v.variableCollectionId];
-    const collectionName =
-      collection !== undefined ? collection.name : '';
+    const collectionName = collection !== undefined ? collection.name : "";
     const modes = collection !== undefined ? collection.modes : [];
 
     const values: Array<Record<string, unknown>> = [];
@@ -1093,15 +921,12 @@ export async function getDesignSystem(): Promise<Record<string, unknown>> {
       if (
         rawValue !== null &&
         rawValue !== undefined &&
-        typeof rawValue === 'object' &&
-        (rawValue as unknown as Record<string, unknown>)['type'] === 'VARIABLE_ALIAS'
+        typeof rawValue === "object" &&
+        (rawValue as unknown as Record<string, unknown>)["type"] === "VARIABLE_ALIAS"
       ) {
-        const aliasId = (rawValue as unknown as Record<string, unknown>)['id'] as string;
+        const aliasId = (rawValue as unknown as Record<string, unknown>)["id"] as string;
         const aliasVar = figma.variables.getVariableById(aliasId);
-        resolvedValue =
-          aliasVar !== null && aliasVar !== undefined
-            ? aliasVar.name
-            : aliasId;
+        resolvedValue = aliasVar !== null && aliasVar !== undefined ? aliasVar.name : aliasId;
       }
 
       values.push({
@@ -1114,7 +939,7 @@ export async function getDesignSystem(): Promise<Record<string, unknown>> {
     variables.push({
       id: v.id,
       name: v.name,
-      description: v.description !== undefined ? v.description : '',
+      description: v.description !== undefined ? v.description : "",
       resolvedType: v.resolvedType,
       collectionName,
       values,
@@ -1132,7 +957,7 @@ export async function getDesignSystem(): Promise<Record<string, unknown>> {
       fontName:
         ts.fontName !== null && ts.fontName !== undefined
           ? { family: ts.fontName.family, style: ts.fontName.style }
-          : { family: '', style: '' },
+          : { family: "", style: "" },
       lineHeight: ts.lineHeight,
     });
   }
@@ -1149,19 +974,19 @@ export async function getDesignSystem(): Promise<Record<string, unknown>> {
           type: eff.type,
           visible: eff.visible,
         };
-        if ('color' in eff && eff.color) {
+        if ("color" in eff && eff.color) {
           const c = eff.color as RGBA;
-          mappedEff['color'] = { r: c.r, g: c.g, b: c.b, a: c.a };
+          mappedEff["color"] = { r: c.r, g: c.g, b: c.b, a: c.a };
         }
-        if ('offset' in eff && eff.offset) {
+        if ("offset" in eff && eff.offset) {
           const off = eff.offset as Vector;
-          mappedEff['offset'] = { x: off.x, y: off.y };
+          mappedEff["offset"] = { x: off.x, y: off.y };
         }
-        if ('radius' in eff && eff.radius !== undefined) {
-          mappedEff['radius'] = eff.radius;
+        if ("radius" in eff && eff.radius !== undefined) {
+          mappedEff["radius"] = eff.radius;
         }
-        if ('spread' in eff && eff.spread !== undefined) {
-          mappedEff['spread'] = eff.spread;
+        if ("spread" in eff && eff.spread !== undefined) {
+          mappedEff["spread"] = eff.spread;
         }
         mappedEffects.push(mappedEff);
       }
@@ -1169,7 +994,7 @@ export async function getDesignSystem(): Promise<Record<string, unknown>> {
     mappedEffectStyles.push({
       id: es.id,
       name: es.name,
-      description: es.description !== undefined ? es.description : '',
+      description: es.description !== undefined ? es.description : "",
       effects: mappedEffects,
     });
   }
@@ -1197,23 +1022,21 @@ export async function getDesignSystem(): Promise<Record<string, unknown>> {
  * Create or update an entire design system in a single call.
  * Supports variable collections, text styles, effect styles, and pages.
  */
-export async function setupDesignSystem(
-  params: Record<string, unknown>,
-): Promise<Record<string, unknown>> {
+export async function setupDesignSystem(params: Record<string, unknown>): Promise<Record<string, unknown>> {
   const inputCollections =
     params !== null &&
     params !== undefined &&
-    Array.isArray(params['collections']) &&
-    (params['collections'] as unknown[]).length > 0
-      ? (params['collections'] as Array<Record<string, unknown>>)
+    Array.isArray(params["collections"]) &&
+    (params["collections"] as unknown[]).length > 0
+      ? (params["collections"] as Array<Record<string, unknown>>)
       : [];
   const inputTextStyles =
-    params !== null && params !== undefined && params['textStyles']
-      ? (params['textStyles'] as Array<Record<string, unknown>>)
+    params !== null && params !== undefined && params["textStyles"]
+      ? (params["textStyles"] as Array<Record<string, unknown>>)
       : [];
   const inputEffectStyles =
-    params !== null && params !== undefined && params['effectStyles']
-      ? (params['effectStyles'] as Array<Record<string, unknown>>)
+    params !== null && params !== undefined && params["effectStyles"]
+      ? (params["effectStyles"] as Array<Record<string, unknown>>)
       : [];
 
   const varResult: Record<string, unknown> = {
@@ -1245,14 +1068,10 @@ export async function setupDesignSystem(
 
     for (let colIdx = 0; colIdx < inputCollections.length; colIdx++) {
       const colDef = inputCollections[colIdx];
-      const colName =
-        colDef['name'] !== undefined
-          ? (colDef['name'] as string)
-          : 'Design Tokens';
+      const colName = colDef["name"] !== undefined ? (colDef["name"] as string) : "Design Tokens";
       const colVars =
-        colDef['variables'] !== undefined &&
-        Array.isArray(colDef['variables'])
-          ? (colDef['variables'] as Array<Record<string, unknown>>)
+        colDef["variables"] !== undefined && Array.isArray(colDef["variables"])
+          ? (colDef["variables"] as Array<Record<string, unknown>>)
           : [];
 
       let targetCollection: VariableCollection | null = null;
@@ -1275,10 +1094,7 @@ export async function setupDesignSystem(
       const varByName: Record<string, Variable> = {};
       for (let evi = 0; evi < allLocalVars.length; evi++) {
         const ev = allLocalVars[evi];
-        if (
-          targetCollection !== null &&
-          ev.variableCollectionId === targetCollection.id
-        ) {
+        if (targetCollection !== null && ev.variableCollectionId === targetCollection.id) {
           varByName[ev.name] = ev;
         }
       }
@@ -1286,34 +1102,33 @@ export async function setupDesignSystem(
       for (let vi = 0; vi < colVars.length; vi++) {
         const vDef = colVars[vi];
         try {
-          const existing = varByName[vDef['name'] as string];
+          const existing = varByName[vDef["name"] as string];
           if (existing) {
-            existing.setValueForMode(defaultModeId, vDef['value'] as VariableValue);
-            if (vDef['description'] !== undefined) {
-              existing.description = vDef['description'] as string;
+            existing.setValueForMode(defaultModeId, vDef["value"] as VariableValue);
+            if (vDef["description"] !== undefined) {
+              existing.description = vDef["description"] as string;
             }
-            (varResult['updated'] as number);
-            varResult['updated'] = (varResult['updated'] as number) + 1;
+            varResult["updated"] as number;
+            varResult["updated"] = (varResult["updated"] as number) + 1;
           } else {
-            const resolvedType: VariableResolvedDataType =
-              vDef['type'] === 'COLOR' ? 'COLOR' : 'FLOAT';
+            const resolvedType: VariableResolvedDataType = vDef["type"] === "COLOR" ? "COLOR" : "FLOAT";
             const newVar = figma.variables.createVariable(
-              vDef['name'] as string,
+              vDef["name"] as string,
               targetCollection as VariableCollection,
               resolvedType,
             );
-            newVar.setValueForMode(defaultModeId, vDef['value'] as VariableValue);
-            if (vDef['description'] !== undefined) {
-              newVar.description = vDef['description'] as string;
+            newVar.setValueForMode(defaultModeId, vDef["value"] as VariableValue);
+            if (vDef["description"] !== undefined) {
+              newVar.description = vDef["description"] as string;
             }
-            varByName[vDef['name'] as string] = newVar;
+            varByName[vDef["name"] as string] = newVar;
             allLocalVars.push(newVar);
-            varResult['created'] = (varResult['created'] as number) + 1;
+            varResult["created"] = (varResult["created"] as number) + 1;
           }
         } catch (e) {
-          varResult['failed'] = (varResult['failed'] as number) + 1;
-          (varResult['errors'] as Array<Record<string, unknown>>).push({
-            name: colName + '/' + String(vDef['name']),
+          varResult["failed"] = (varResult["failed"] as number) + 1;
+          (varResult["errors"] as Array<Record<string, unknown>>).push({
+            name: colName + "/" + String(vDef["name"]),
             error: e instanceof Error ? e.message : String(e),
           });
         }
@@ -1332,54 +1147,45 @@ export async function setupDesignSystem(
     for (let ti = 0; ti < inputTextStyles.length; ti++) {
       const tsDef = inputTextStyles[ti];
       try {
-        const fontFamily =
-          tsDef['fontFamily'] !== undefined
-            ? (tsDef['fontFamily'] as string)
-            : 'Inter';
-        const fontStyle =
-          tsDef['fontStyle'] !== undefined
-            ? (tsDef['fontStyle'] as string)
-            : 'Regular';
+        const fontFamily = tsDef["fontFamily"] !== undefined ? (tsDef["fontFamily"] as string) : "Inter";
+        const fontStyle = tsDef["fontStyle"] !== undefined ? (tsDef["fontStyle"] as string) : "Regular";
         await figma.loadFontAsync({ family: fontFamily, style: fontStyle });
 
-        const existingTs = tsByName[tsDef['name'] as string];
+        const existingTs = tsByName[tsDef["name"] as string];
         if (existingTs) {
           existingTs.fontName = { family: fontFamily, style: fontStyle };
-          existingTs.fontSize = tsDef['fontSize'] as number;
-          if (tsDef['lineHeight'] !== undefined) {
-            existingTs.lineHeight =
-              tsDef['lineHeight'] as TextStyle['lineHeight'];
+          existingTs.fontSize = tsDef["fontSize"] as number;
+          if (tsDef["lineHeight"] !== undefined) {
+            existingTs.lineHeight = tsDef["lineHeight"] as TextStyle["lineHeight"];
           }
-          if (tsDef['letterSpacing'] !== undefined) {
-            existingTs.letterSpacing =
-              tsDef['letterSpacing'] as TextStyle['letterSpacing'];
+          if (tsDef["letterSpacing"] !== undefined) {
+            existingTs.letterSpacing = tsDef["letterSpacing"] as TextStyle["letterSpacing"];
           }
-          if (tsDef['description'] !== undefined) {
-            existingTs.description = tsDef['description'] as string;
+          if (tsDef["description"] !== undefined) {
+            existingTs.description = tsDef["description"] as string;
           }
-          tsResult['updated'] = (tsResult['updated'] as number) + 1;
+          tsResult["updated"] = (tsResult["updated"] as number) + 1;
         } else {
           const newTs = figma.createTextStyle();
-          newTs.name = tsDef['name'] as string;
+          newTs.name = tsDef["name"] as string;
           newTs.fontName = { family: fontFamily, style: fontStyle };
-          newTs.fontSize = tsDef['fontSize'] as number;
-          if (tsDef['lineHeight'] !== undefined) {
-            newTs.lineHeight = tsDef['lineHeight'] as TextStyle['lineHeight'];
+          newTs.fontSize = tsDef["fontSize"] as number;
+          if (tsDef["lineHeight"] !== undefined) {
+            newTs.lineHeight = tsDef["lineHeight"] as TextStyle["lineHeight"];
           }
-          if (tsDef['letterSpacing'] !== undefined) {
-            newTs.letterSpacing =
-              tsDef['letterSpacing'] as TextStyle['letterSpacing'];
+          if (tsDef["letterSpacing"] !== undefined) {
+            newTs.letterSpacing = tsDef["letterSpacing"] as TextStyle["letterSpacing"];
           }
-          if (tsDef['description'] !== undefined) {
-            newTs.description = tsDef['description'] as string;
+          if (tsDef["description"] !== undefined) {
+            newTs.description = tsDef["description"] as string;
           }
-          tsByName[tsDef['name'] as string] = newTs;
-          tsResult['created'] = (tsResult['created'] as number) + 1;
+          tsByName[tsDef["name"] as string] = newTs;
+          tsResult["created"] = (tsResult["created"] as number) + 1;
         }
       } catch (e) {
-        tsResult['failed'] = (tsResult['failed'] as number) + 1;
-        (tsResult['errors'] as Array<Record<string, unknown>>).push({
-          name: tsDef['name'],
+        tsResult["failed"] = (tsResult["failed"] as number) + 1;
+        (tsResult["errors"] as Array<Record<string, unknown>>).push({
+          name: tsDef["name"],
           error: e instanceof Error ? e.message : String(e),
         });
       }
@@ -1397,38 +1203,32 @@ export async function setupDesignSystem(
     for (let ei = 0; ei < inputEffectStyles.length; ei++) {
       const esDef = inputEffectStyles[ei];
       try {
-        if (
-          !esDef['effects'] ||
-          !Array.isArray(esDef['effects']) ||
-          (esDef['effects'] as unknown[]).length === 0
-        ) {
-          throw new Error('effects must be a non-empty array');
+        if (!esDef["effects"] || !Array.isArray(esDef["effects"]) || (esDef["effects"] as unknown[]).length === 0) {
+          throw new Error("effects must be a non-empty array");
         }
-        const validEffects = (
-          esDef['effects'] as Array<Record<string, unknown>>
-        ).map(buildValidStyleEffect);
+        const validEffects = (esDef["effects"] as Array<Record<string, unknown>>).map(buildValidStyleEffect);
 
-        const existingEs = esByName[esDef['name'] as string];
+        const existingEs = esByName[esDef["name"] as string];
         if (existingEs) {
           existingEs.effects = validEffects;
-          if (esDef['description'] !== undefined) {
-            existingEs.description = esDef['description'] as string;
+          if (esDef["description"] !== undefined) {
+            existingEs.description = esDef["description"] as string;
           }
-          esResult['updated'] = (esResult['updated'] as number) + 1;
+          esResult["updated"] = (esResult["updated"] as number) + 1;
         } else {
           const newEs = figma.createEffectStyle();
-          newEs.name = esDef['name'] as string;
+          newEs.name = esDef["name"] as string;
           newEs.effects = validEffects;
-          if (esDef['description'] !== undefined) {
-            newEs.description = esDef['description'] as string;
+          if (esDef["description"] !== undefined) {
+            newEs.description = esDef["description"] as string;
           }
-          esByName[esDef['name'] as string] = newEs;
-          esResult['created'] = (esResult['created'] as number) + 1;
+          esByName[esDef["name"] as string] = newEs;
+          esResult["created"] = (esResult["created"] as number) + 1;
         }
       } catch (e) {
-        esResult['failed'] = (esResult['failed'] as number) + 1;
-        (esResult['errors'] as Array<Record<string, unknown>>).push({
-          name: esDef['name'],
+        esResult["failed"] = (esResult["failed"] as number) + 1;
+        (esResult["errors"] as Array<Record<string, unknown>>).push({
+          name: esDef["name"],
           error: e instanceof Error ? e.message : String(e),
         });
       }
@@ -1436,38 +1236,37 @@ export async function setupDesignSystem(
   }
 
   // Clean up empty error arrays
-  if ((varResult['errors'] as unknown[]).length === 0) {
-    delete varResult['errors'];
+  if ((varResult["errors"] as unknown[]).length === 0) {
+    delete varResult["errors"];
   }
-  if ((tsResult['errors'] as unknown[]).length === 0) {
-    delete tsResult['errors'];
+  if ((tsResult["errors"] as unknown[]).length === 0) {
+    delete tsResult["errors"];
   }
-  if ((esResult['errors'] as unknown[]).length === 0) {
-    delete esResult['errors'];
+  if ((esResult["errors"] as unknown[]).length === 0) {
+    delete esResult["errors"];
   }
 
   // --- Pages: ensure required pages exist ---
   const requiredPages =
     params !== null &&
     params !== undefined &&
-    Array.isArray(params['pages']) &&
-    (params['pages'] as unknown[]).length > 0
-      ? (params['pages'] as string[])
-      : ['Screens', 'Components', 'Draft'];
+    Array.isArray(params["pages"]) &&
+    (params["pages"] as unknown[]).length > 0
+      ? (params["pages"] as string[])
+      : ["Screens", "Components", "Draft"];
 
   await figma.loadAllPagesAsync();
   const existingPages = figma.root.children;
 
   const existingPageNames: Record<string, PageNode> = {};
   for (let epi = 0; epi < existingPages.length; epi++) {
-    existingPageNames[existingPages[epi].name.toLowerCase()] =
-      existingPages[epi];
+    existingPageNames[existingPages[epi].name.toLowerCase()] = existingPages[epi];
   }
 
   const firstRequired = requiredPages[0];
   if (
     existingPages.length === 1 &&
-    existingPages[0].name === 'Page 1' &&
+    existingPages[0].name === "Page 1" &&
     existingPages[0].children.length === 0 &&
     !existingPageNames[firstRequired.toLowerCase()]
   ) {

@@ -10,7 +10,15 @@ export interface NodeInfo {
   fontInfo?: string;
 }
 
-export type FilterMode = "selection" | "name_or_id" | "content" | "type" | "variable" | "text_styles" | "typography" | "color";
+export type FilterMode =
+  | "selection"
+  | "name_or_id"
+  | "content"
+  | "type"
+  | "variable"
+  | "text_styles"
+  | "typography"
+  | "color";
 
 export var FILTER_OPTIONS: Array<{ value: FilterMode; label: string; icon: string }> = [
   { value: "selection", label: "Selection", icon: "cursor" },

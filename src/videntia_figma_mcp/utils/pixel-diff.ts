@@ -15,7 +15,7 @@ export interface DiffResult {
 export async function diffImages(
   referenceBuffer: Buffer,
   actualBuffer: Buffer,
-  options: DiffOptions
+  options: DiffOptions,
 ): Promise<DiffResult> {
   const ref = PNG.sync.read(referenceBuffer);
   const act = PNG.sync.read(actualBuffer);
@@ -27,14 +27,7 @@ export async function diffImages(
   const actData = resizeImageData(act, width, height);
 
   const diffPng = new PNG({ width, height });
-  const mismatchedPixels = pixelmatch(
-    refData,
-    actData,
-    diffPng.data,
-    width,
-    height,
-    { threshold: options.tolerance }
-  );
+  const mismatchedPixels = pixelmatch(refData, actData, diffPng.data, width, height, { threshold: options.tolerance });
 
   const totalPixels = width * height;
   const diffBuffer = PNG.sync.write(diffPng);

@@ -62,7 +62,7 @@ export function useSelection() {
         setBarVisible(true);
       }
       if (msg.type === "search-results") {
-        var incoming = Array.isArray(msg.nodes) ? msg.nodes : [];
+        var incoming = Array.isArray(msg.nodes) ? (msg.nodes as NodeInfo[]) : [];
         if (typeof msg.offset === "number" && msg.offset > 0) {
           // Append to existing results, but only if offset matches current length (guards against race conditions)
           setSearchResults(function (prev) {
@@ -176,7 +176,13 @@ export function useSelection() {
     var q = trimmed.length > 0 ? trimmed : "*";
     var off = offset || 0;
     searchTimerRef.current = setTimeout(function () {
-      var msg: any = { type: "search-nodes-ui", query: q, filter: filter, offset: off, limit: all ? 999999 : undefined };
+      var msg: any = {
+        type: "search-nodes-ui",
+        query: q,
+        filter: filter,
+        offset: off,
+        limit: all ? 999999 : undefined,
+      };
       if (entirePage) msg.entirePage = true;
       parent.postMessage({ pluginMessage: msg }, "*");
     }, 300);
@@ -281,7 +287,10 @@ export function useSelection() {
   function selectCheckedInFigma() {
     var ids = Object.keys(checkedIds);
     if (ids.length > 0) {
-      parent.postMessage({ pluginMessage: { type: "execute-command", command: "set_selections", params: { nodeIds: ids } } }, "*");
+      parent.postMessage(
+        { pluginMessage: { type: "execute-command", command: "set_selections", params: { nodeIds: ids } } },
+        "*",
+      );
     }
   }
 

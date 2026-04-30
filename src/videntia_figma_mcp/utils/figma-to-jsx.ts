@@ -157,7 +157,7 @@ function buildTailwindClasses(node: FigmaNodeData, parentLayoutMode?: string): s
   // Cross-axis FILL is the CSS flexbox default (align-items: stretch) — omit it.
   // Primary-axis FILL = flex-1. w-full/h-full only when explicitly needed.
   // NONE-layout parent = absolute positioning context; FILL means fill the parent frame.
-  const isCrossAxisH = parentLayoutMode === "VERTICAL";   // horizontal is cross-axis of vertical parent
+  const isCrossAxisH = parentLayoutMode === "VERTICAL"; // horizontal is cross-axis of vertical parent
   const isCrossAxisV = parentLayoutMode === "HORIZONTAL"; // vertical is cross-axis of horizontal parent
   const isNoneLayout = parentLayoutMode === "NONE";
 
@@ -206,7 +206,8 @@ function buildTailwindClasses(node: FigmaNodeData, parentLayoutMode?: string): s
   if (hasPadding) {
     if (pt === pr && pr === pb && pb === pl) {
       // Uniform: prefer paddingTop binding (or any available binding) as shorthand
-      const uniBinding = bindings["paddingTop"] || bindings["paddingRight"] || bindings["paddingBottom"] || bindings["paddingLeft"];
+      const uniBinding =
+        bindings["paddingTop"] || bindings["paddingRight"] || bindings["paddingBottom"] || bindings["paddingLeft"];
       classes.push(uniBinding ? `p-${normalizeName(uniBinding)}` : `p-[${pt}px]`);
     } else if (pt === pb && pl === pr) {
       // Symmetric: px + py
@@ -218,10 +219,14 @@ function buildTailwindClasses(node: FigmaNodeData, parentLayoutMode?: string): s
       }
     } else {
       // Individual sides — emit a class for each active side
-      if (ptActive) classes.push(bindings["paddingTop"] ? `pt-${normalizeName(bindings["paddingTop"])}` : `pt-[${pt}px]`);
-      if (prActive) classes.push(bindings["paddingRight"] ? `pr-${normalizeName(bindings["paddingRight"])}` : `pr-[${pr}px]`);
-      if (pbActive) classes.push(bindings["paddingBottom"] ? `pb-${normalizeName(bindings["paddingBottom"])}` : `pb-[${pb}px]`);
-      if (plActive) classes.push(bindings["paddingLeft"] ? `pl-${normalizeName(bindings["paddingLeft"])}` : `pl-[${pl}px]`);
+      if (ptActive)
+        classes.push(bindings["paddingTop"] ? `pt-${normalizeName(bindings["paddingTop"])}` : `pt-[${pt}px]`);
+      if (prActive)
+        classes.push(bindings["paddingRight"] ? `pr-${normalizeName(bindings["paddingRight"])}` : `pr-[${pr}px]`);
+      if (pbActive)
+        classes.push(bindings["paddingBottom"] ? `pb-${normalizeName(bindings["paddingBottom"])}` : `pb-[${pb}px]`);
+      if (plActive)
+        classes.push(bindings["paddingLeft"] ? `pl-${normalizeName(bindings["paddingLeft"])}` : `pl-[${pl}px]`);
     }
   }
 
@@ -382,10 +387,14 @@ function buildTailwindClasses(node: FigmaNodeData, parentLayoutMode?: string): s
     if (tlBinding && tlBinding === trBinding && trBinding === brBinding && brBinding === blBinding) {
       classes.push(`rounded-${normalizeName(tlBinding)}`);
     } else {
-      if (node.topLeftRadius) classes.push(tlBinding ? `rounded-tl-${normalizeName(tlBinding)}` : `rounded-tl-[${node.topLeftRadius}px]`);
-      if (node.topRightRadius) classes.push(trBinding ? `rounded-tr-${normalizeName(trBinding)}` : `rounded-tr-[${node.topRightRadius}px]`);
-      if (node.bottomRightRadius) classes.push(brBinding ? `rounded-br-${normalizeName(brBinding)}` : `rounded-br-[${node.bottomRightRadius}px]`);
-      if (node.bottomLeftRadius) classes.push(blBinding ? `rounded-bl-${normalizeName(blBinding)}` : `rounded-bl-[${node.bottomLeftRadius}px]`);
+      if (node.topLeftRadius)
+        classes.push(tlBinding ? `rounded-tl-${normalizeName(tlBinding)}` : `rounded-tl-[${node.topLeftRadius}px]`);
+      if (node.topRightRadius)
+        classes.push(trBinding ? `rounded-tr-${normalizeName(trBinding)}` : `rounded-tr-[${node.topRightRadius}px]`);
+      if (node.bottomRightRadius)
+        classes.push(brBinding ? `rounded-br-${normalizeName(brBinding)}` : `rounded-br-[${node.bottomRightRadius}px]`);
+      if (node.bottomLeftRadius)
+        classes.push(blBinding ? `rounded-bl-${normalizeName(blBinding)}` : `rounded-bl-[${node.bottomLeftRadius}px]`);
     }
   }
 
@@ -636,9 +645,10 @@ function buildComponentAstAttrs(node: FigmaNodeData): t.JSXAttribute[] {
       // Emoji-prefixed visibility props (e.g. "👁  caption") collide with real props (e.g. "caption").
       // Detect by checking if the original key starts with a non-ASCII character and prefix with "show".
       const startsWithEmoji = /^[^\x00-\x7F]/.test(key.trim());
-      const camelKey = startsWithEmoji && rawCamelKey
-        ? "show" + rawCamelKey.charAt(0).toUpperCase() + rawCamelKey.slice(1)
-        : rawCamelKey;
+      const camelKey =
+        startsWithEmoji && rawCamelKey
+          ? "show" + rawCamelKey.charAt(0).toUpperCase() + rawCamelKey.slice(1)
+          : rawCamelKey;
       if (prop.type === "BOOLEAN") {
         attrs.push(t.jsxAttribute(t.jsxIdentifier(camelKey), t.jsxExpressionContainer(t.booleanLiteral(prop.value))));
       } else if (prop.type === "TEXT") {
@@ -731,9 +741,7 @@ function nodeToAst(node: FigmaNodeData, parentLayoutMode?: string): t.JSXElement
   const hasVisibleChildren = node.children && node.children.filter((c) => c.visible !== false).length > 0;
   const isTruncated = !hasVisibleChildren && node._childCount !== undefined && node._childCount > 0;
 
-  const isSelfClosing =
-    tag === "svg" ||
-    (node.type !== "TEXT" && !hasVisibleChildren && !isTruncated);
+  const isSelfClosing = tag === "svg" || (node.type !== "TEXT" && !hasVisibleChildren && !isTruncated);
 
   const opening = t.jsxOpeningElement(t.jsxIdentifier(tag), attrs, isSelfClosing);
   const closing = isSelfClosing ? null : t.jsxClosingElement(t.jsxIdentifier(tag));

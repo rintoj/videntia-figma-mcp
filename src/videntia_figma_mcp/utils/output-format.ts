@@ -10,11 +10,28 @@ import type { NodeListResult } from "../types/index.js";
  */
 export const fieldsSchema = z.array(
   z.enum([
-    "id", "name", "type", "fills", "strokes", "cornerRadius",
-    "absoluteBoundingBox", "characters", "style", "children",
-    "effects", "opacity", "blendMode", "constraints",
-    "layoutMode", "padding", "itemSpacing", "componentProperties",
-    "textStyleId", "effectStyleId", "mainComponentId", "bindingIds",
+    "id",
+    "name",
+    "type",
+    "fills",
+    "strokes",
+    "cornerRadius",
+    "absoluteBoundingBox",
+    "characters",
+    "style",
+    "children",
+    "effects",
+    "opacity",
+    "blendMode",
+    "constraints",
+    "layoutMode",
+    "padding",
+    "itemSpacing",
+    "componentProperties",
+    "textStyleId",
+    "effectStyleId",
+    "mainComponentId",
+    "bindingIds",
   ]),
 );
 
@@ -61,4 +78,3 @@ export async function fetchNodesAsJsx(nodeIds: string[], depth?: number, fields?
   const selection = (result?.nodes ?? []).map((n) => filterNodeData(n, fields));
   return convertToJsx(selection);
 }
-

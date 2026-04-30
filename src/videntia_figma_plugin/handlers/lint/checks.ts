@@ -1,4 +1,4 @@
-import type { Violation, ViolationDetails, ActiveChecks, LintCategories } from './types';
+import type { Violation, ViolationDetails, ActiveChecks, LintCategories } from "./types";
 import {
   addViolation,
   isFillBound,
@@ -10,8 +10,15 @@ import {
   hasTextStyle,
   hasEffectStyle,
   hasFontVariableBindings,
-} from './helpers';
-import { MAX_LINT_DEPTH, MAX_LINT_VIOLATIONS, DEVICE_SIZES, DIM_TOLERANCE, SCREEN_NAME_PATTERN, VALID_BREAKPOINTS } from './constants';
+} from "./helpers";
+import {
+  MAX_LINT_DEPTH,
+  MAX_LINT_VIOLATIONS,
+  DEVICE_SIZES,
+  DIM_TOLERANCE,
+  SCREEN_NAME_PATTERN,
+  VALID_BREAKPOINTS,
+} from "./constants";
 
 export function scanNode(
   node: SceneNode,
@@ -35,26 +42,34 @@ export function scanNode(
   let nodeType = node.type;
 
   // Detect if this node is a Screen/ frame (screen root)
-  let nodeName = '';
-  try { nodeName = node.name || ''; } catch (_e) {}
-  let isScreenRoot = (nodeType === 'FRAME' || nodeType === 'COMPONENT') && nodeName.indexOf('Screen/') === 0;
+  let nodeName = "";
+  try {
+    nodeName = node.name || "";
+  } catch (_e) {}
+  let isScreenRoot = (nodeType === "FRAME" || nodeType === "COMPONENT") && nodeName.indexOf("Screen/") === 0;
   let localInsideScreen = insideScreen || isScreenRoot;
 
   // ── ROOT FRAME checks (screen root frame only, must be direct child of PAGE) ──
   let isPageChild = false;
-  try { isPageChild = node.parent !== null && node.parent !== undefined && node.parent.type === 'PAGE'; } catch (_e) {}
+  try {
+    isPageChild = node.parent !== null && node.parent !== undefined && node.parent.type === "PAGE";
+  } catch (_e) {}
   if (chk.rootFrame && isScreenRoot && isPageChild) {
     let DIM_TOL = DIM_TOLERANCE;
 
     let rfLayoutMode: string | null = null;
-    try { rfLayoutMode = (node as FrameNode).layoutMode; } catch (_e) {}
-    let rfHasLayout = rfLayoutMode && rfLayoutMode !== 'NONE';
+    try {
+      rfLayoutMode = (node as FrameNode).layoutMode;
+    } catch (_e) {}
+    let rfHasLayout = rfLayoutMode && rfLayoutMode !== "NONE";
 
     let rfWidth = 0;
-    try { rfWidth = (node as FrameNode).width; } catch (_e) {}
+    try {
+      rfWidth = (node as FrameNode).width;
+    } catch (_e) {}
 
     // Detect device from width
-    let rfDevice: typeof DEVICE_SIZES[0] | null = null;
+    let rfDevice: (typeof DEVICE_SIZES)[0] | null = null;
     for (let rfdi = 0; rfdi < DEVICE_SIZES.length; rfdi++) {
       if (Math.abs(rfWidth - DEVICE_SIZES[rfdi].width) <= DIM_TOL) {
         rfDevice = DEVICE_SIZES[rfdi];
@@ -65,16 +80,26 @@ export function scanNode(
     if (rfHasLayout) {
       // Check 1: width sizing must be FIXED
       let rfSizingH: string | null = null;
-      try { rfSizingH = (node as FrameNode).layoutSizingHorizontal; } catch (_e) {}
+      try {
+        rfSizingH = (node as FrameNode).layoutSizingHorizontal;
+      } catch (_e) {}
       categories.rootFrame.total++;
-      if (rfSizingH === 'FIXED') {
+      if (rfSizingH === "FIXED") {
         categories.rootFrame.bound++;
       } else {
         categories.rootFrame.unbound++;
         addViolation(
-          violations, violationsCappedRef, MAX_LINT_VIOLATIONS,
-          node, depth, 'CRITICAL', 'rootFrame', 'layoutSizingHorizontal',
-          'Root frame width must be FIXED (currently: ' + (rfSizingH !== null && rfSizingH !== undefined ? rfSizingH : 'unknown') + ')',
+          violations,
+          violationsCappedRef,
+          MAX_LINT_VIOLATIONS,
+          node,
+          depth,
+          "CRITICAL",
+          "rootFrame",
+          "layoutSizingHorizontal",
+          "Root frame width must be FIXED (currently: " +
+            (rfSizingH !== null && rfSizingH !== undefined ? rfSizingH : "unknown") +
+            ")",
         );
       }
     }
@@ -86,32 +111,52 @@ export function scanNode(
     } else {
       categories.rootFrame.unbound++;
       addViolation(
-        violations, violationsCappedRef, MAX_LINT_VIOLATIONS,
-        node, depth, 'HIGH', 'rootFrame', 'width',
-        'Root frame width (' + rfWidth + 'px) does not match a standard device width — expected: desktop=1440, tablet=768, mobile=375',
+        violations,
+        violationsCappedRef,
+        MAX_LINT_VIOLATIONS,
+        node,
+        depth,
+        "HIGH",
+        "rootFrame",
+        "width",
+        "Root frame width (" +
+          rfWidth +
+          "px) does not match a standard device width — expected: desktop=1440, tablet=768, mobile=375",
       );
     }
 
     if (rfHasLayout) {
       // Check 3: height sizing must be HUG
       let rfSizingV: string | null = null;
-      try { rfSizingV = (node as FrameNode).layoutSizingVertical; } catch (_e) {}
+      try {
+        rfSizingV = (node as FrameNode).layoutSizingVertical;
+      } catch (_e) {}
       categories.rootFrame.total++;
-      if (rfSizingV === 'HUG') {
+      if (rfSizingV === "HUG") {
         categories.rootFrame.bound++;
       } else {
         categories.rootFrame.unbound++;
         addViolation(
-          violations, violationsCappedRef, MAX_LINT_VIOLATIONS,
-          node, depth, 'HIGH', 'rootFrame', 'layoutSizingVertical',
-          'Root frame height must be HUG (currently: ' + (rfSizingV !== null && rfSizingV !== undefined ? rfSizingV : 'unknown') + ') — use minHeight for the minimum height constraint',
+          violations,
+          violationsCappedRef,
+          MAX_LINT_VIOLATIONS,
+          node,
+          depth,
+          "HIGH",
+          "rootFrame",
+          "layoutSizingVertical",
+          "Root frame height must be HUG (currently: " +
+            (rfSizingV !== null && rfSizingV !== undefined ? rfSizingV : "unknown") +
+            ") — use minHeight for the minimum height constraint",
         );
       }
 
       // Check 4: minHeight must be set (and should match device height)
       let rfMinHeight: number | null = null;
-      try { rfMinHeight = (node as FrameNode).minHeight; } catch (_e) {}
-      let rfMinHeightNum = (rfMinHeight !== null && rfMinHeight !== undefined) ? rfMinHeight : 0;
+      try {
+        rfMinHeight = (node as FrameNode).minHeight;
+      } catch (_e) {}
+      let rfMinHeightNum = rfMinHeight !== null && rfMinHeight !== undefined ? rfMinHeight : 0;
       let rfExpectedMinH = rfDevice ? rfDevice.minHeight : 0;
 
       categories.rootFrame.total++;
@@ -119,22 +164,41 @@ export function scanNode(
         categories.rootFrame.bound++;
         if (rfDevice && Math.abs(rfMinHeightNum - rfExpectedMinH) > DIM_TOL) {
           addViolation(
-            violations, violationsCappedRef, MAX_LINT_VIOLATIONS,
-            node, depth, 'MEDIUM', 'rootFrame', 'minHeight',
-            'Root frame minHeight (' + rfMinHeightNum + 'px) does not match expected ' + rfDevice.name + ' height (' + rfExpectedMinH + 'px)',
+            violations,
+            violationsCappedRef,
+            MAX_LINT_VIOLATIONS,
+            node,
+            depth,
+            "MEDIUM",
+            "rootFrame",
+            "minHeight",
+            "Root frame minHeight (" +
+              rfMinHeightNum +
+              "px) does not match expected " +
+              rfDevice.name +
+              " height (" +
+              rfExpectedMinH +
+              "px)",
           );
         }
       } else {
         categories.rootFrame.unbound++;
-        let rfMinHMsg = 'Root frame minHeight not set';
+        let rfMinHMsg = "Root frame minHeight not set";
         if (rfDevice) {
-          rfMinHMsg += ' — expected ' + rfExpectedMinH + 'px for ' + rfDevice.name;
+          rfMinHMsg += " — expected " + rfExpectedMinH + "px for " + rfDevice.name;
         } else {
-          rfMinHMsg += ' — set to the device viewport height';
+          rfMinHMsg += " — set to the device viewport height";
         }
         addViolation(
-          violations, violationsCappedRef, MAX_LINT_VIOLATIONS,
-          node, depth, 'HIGH', 'rootFrame', 'minHeight', rfMinHMsg,
+          violations,
+          violationsCappedRef,
+          MAX_LINT_VIOLATIONS,
+          node,
+          depth,
+          "HIGH",
+          "rootFrame",
+          "minHeight",
+          rfMinHMsg,
         );
       }
     }
@@ -149,39 +213,60 @@ export function scanNode(
     } else {
       categories.screenNaming.unbound++;
       // Provide specific feedback about what's wrong
-      let snMsg = 'Screen name "' + nodeName + '" does not follow convention — expected: Screen/{Feature}@{Breakpoint}/{View}[/{State}]';
+      let snMsg =
+        'Screen name "' +
+        nodeName +
+        '" does not follow convention — expected: Screen/{Feature}@{Breakpoint}/{View}[/{State}]';
 
-      if (nodeName.indexOf(' ') !== -1) {
+      if (nodeName.indexOf(" ") !== -1) {
         snMsg = 'Screen name "' + nodeName + '" contains spaces — use kebab-case (e.g. Step-1-Email)';
       } else {
         // Check for missing or invalid breakpoint
-        let atIdx = nodeName.indexOf('@');
+        let atIdx = nodeName.indexOf("@");
         if (atIdx === -1) {
           snMsg = 'Screen name "' + nodeName + '" missing breakpoint — append @sm, @md, or @lg to the feature name';
         } else {
           let afterAt = nodeName.substring(atIdx + 1);
-          let slashIdx = afterAt.indexOf('/');
+          let slashIdx = afterAt.indexOf("/");
           let bp = slashIdx !== -1 ? afterAt.substring(0, slashIdx) : afterAt;
           let bpValid = false;
           for (let bpi = 0; bpi < VALID_BREAKPOINTS.length; bpi++) {
-            if (bp === VALID_BREAKPOINTS[bpi]) { bpValid = true; break; }
+            if (bp === VALID_BREAKPOINTS[bpi]) {
+              bpValid = true;
+              break;
+            }
           }
           if (!bpValid) {
-            snMsg = 'Screen name "' + nodeName + '" has invalid breakpoint "@' + bp + '" — use @sm (375), @md (768), or @lg (1440)';
+            snMsg =
+              'Screen name "' +
+              nodeName +
+              '" has invalid breakpoint "@' +
+              bp +
+              '" — use @sm (375), @md (768), or @lg (1440)';
           } else if (slashIdx === -1) {
-            snMsg = 'Screen name "' + nodeName + '" missing view segment after breakpoint — expected: Screen/{Feature}@{bp}/{View}';
+            snMsg =
+              'Screen name "' +
+              nodeName +
+              '" missing view segment after breakpoint — expected: Screen/{Feature}@{bp}/{View}';
           }
         }
       }
       addViolation(
-        violations, violationsCappedRef, MAX_LINT_VIOLATIONS,
-        node, depth, 'HIGH', 'screenNaming', 'name', snMsg,
+        violations,
+        violationsCappedRef,
+        MAX_LINT_VIOLATIONS,
+        node,
+        depth,
+        "HIGH",
+        "screenNaming",
+        "name",
+        snMsg,
       );
     }
   }
 
   // ── TEXT STYLE checks ──
-  if (localInsideScreen && chk.textStyles && nodeType === 'TEXT') {
+  if (localInsideScreen && chk.textStyles && nodeType === "TEXT") {
     categories.typography.total++;
 
     if (hasTextStyle(node)) {
@@ -189,24 +274,45 @@ export function scanNode(
       try {
         if ((node as TextNode).textStyleId === figma.mixed) {
           addViolation(
-            violations, violationsCappedRef, MAX_LINT_VIOLATIONS,
-            node, depth, 'LOW', 'typography', 'textStyleId', 'Text style override present (mixed styles in segments)',
+            violations,
+            violationsCappedRef,
+            MAX_LINT_VIOLATIONS,
+            node,
+            depth,
+            "LOW",
+            "typography",
+            "textStyleId",
+            "Text style override present (mixed styles in segments)",
           );
         }
       } catch (_e) {}
     } else {
       categories.typography.unbound++;
       addViolation(
-        violations, violationsCappedRef, MAX_LINT_VIOLATIONS,
-        node, depth, 'HIGH', 'typography', 'textStyleId', 'Text node without textStyleId applied',
+        violations,
+        violationsCappedRef,
+        MAX_LINT_VIOLATIONS,
+        node,
+        depth,
+        "HIGH",
+        "typography",
+        "textStyleId",
+        "Text node without textStyleId applied",
       );
     }
 
     // Check for direct font variable bindings (CRITICAL)
     if (hasFontVariableBindings(node)) {
       addViolation(
-        violations, violationsCappedRef, MAX_LINT_VIOLATIONS,
-        node, depth, 'CRITICAL', 'typography', 'fontVariables', 'Font variable bound directly to text (should use text style instead)',
+        violations,
+        violationsCappedRef,
+        MAX_LINT_VIOLATIONS,
+        node,
+        depth,
+        "CRITICAL",
+        "typography",
+        "fontVariables",
+        "Font variable bound directly to text (should use text style instead)",
       );
     }
   }
@@ -214,41 +320,56 @@ export function scanNode(
   // ── FILL / COLOR checks ──
   if (localInsideScreen && chk.colors) {
     let fills: ReadonlyArray<Paint> | null = null;
-    if ('fills' in node) { fills = (node as GeometryMixin).fills as ReadonlyArray<Paint>; }
+    if ("fills" in node) {
+      fills = (node as GeometryMixin).fills as ReadonlyArray<Paint>;
+    }
     if (fills && fills !== (figma.mixed as unknown) && Array.isArray(fills)) {
       for (let fi = 0; fi < fills.length; fi++) {
         if (!isColorFill(fills[fi])) continue;
 
         let isIcon = isIconLike(node);
-        let catName: 'iconColors' | 'backgroundFills' = isIcon ? 'iconColors' : 'backgroundFills';
+        let catName: "iconColors" | "backgroundFills" = isIcon ? "iconColors" : "backgroundFills";
 
         // Check for zero-opacity fill (invisible — should be removed)
         if (fills[fi].opacity === 0) {
           categories[catName].total++;
           categories[catName].unbound++;
           addViolation(
-            violations, violationsCappedRef, MAX_LINT_VIOLATIONS,
-            node, depth, 'MEDIUM', catName, 'fills[' + fi + ']',
-            'Fill with 0% opacity (invisible) — should be removed',
+            violations,
+            violationsCappedRef,
+            MAX_LINT_VIOLATIONS,
+            node,
+            depth,
+            "MEDIUM",
+            catName,
+            "fills[" + fi + "]",
+            "Fill with 0% opacity (invisible) — should be removed",
           );
           continue;
         }
 
         categories[catName].total++;
 
-        let fillBound = isFillBound(node, 'fills', fi) || hasFillPaintStyle(node);
+        let fillBound = isFillBound(node, "fills", fi) || hasFillPaintStyle(node);
         if (fillBound) {
           categories[catName].bound++;
         } else {
           categories[catName].unbound++;
           let fillType = fills[fi].type;
-          let isGradient = fillType !== 'SOLID' && typeof fillType === 'string' && fillType.indexOf('GRADIENT_') === 0;
+          let isGradient = fillType !== "SOLID" && typeof fillType === "string" && fillType.indexOf("GRADIENT_") === 0;
           let fillMsg = isGradient
-            ? 'Gradient fill without a color style applied — create a color style with create_color_style and apply via set_color_style_id'
-            : 'Color using raw hex value (no variable or paint style bound)';
+            ? "Gradient fill without a color style applied — create a color style with create_color_style and apply via set_color_style_id"
+            : "Color using raw hex value (no variable or paint style bound)";
           addViolation(
-            violations, violationsCappedRef, MAX_LINT_VIOLATIONS,
-            node, depth, 'HIGH', catName, 'fills[' + fi + ']', fillMsg,
+            violations,
+            violationsCappedRef,
+            MAX_LINT_VIOLATIONS,
+            node,
+            depth,
+            "HIGH",
+            catName,
+            "fills[" + fi + "]",
+            fillMsg,
           );
         }
       }
@@ -258,7 +379,9 @@ export function scanNode(
   // ── STROKE checks ──
   if (localInsideScreen && chk.colors) {
     let strokes: ReadonlyArray<Paint> | null = null;
-    if ('strokes' in node) { strokes = (node as GeometryMixin).strokes as ReadonlyArray<Paint>; }
+    if ("strokes" in node) {
+      strokes = (node as GeometryMixin).strokes as ReadonlyArray<Paint>;
+    }
     if (strokes && strokes !== (figma.mixed as unknown) && Array.isArray(strokes) && strokes.length > 0) {
       for (let si = 0; si < strokes.length; si++) {
         if (!isColorFill(strokes[si])) continue;
@@ -268,22 +391,35 @@ export function scanNode(
           categories.strokesBorders.total++;
           categories.strokesBorders.unbound++;
           addViolation(
-            violations, violationsCappedRef, MAX_LINT_VIOLATIONS,
-            node, depth, 'MEDIUM', 'strokesBorders', 'strokes[' + si + ']',
-            'Stroke with 0% opacity (invisible) — should be removed',
+            violations,
+            violationsCappedRef,
+            MAX_LINT_VIOLATIONS,
+            node,
+            depth,
+            "MEDIUM",
+            "strokesBorders",
+            "strokes[" + si + "]",
+            "Stroke with 0% opacity (invisible) — should be removed",
           );
           continue;
         }
 
         categories.strokesBorders.total++;
-        let strokeBound = isFillBound(node, 'strokes', si) || hasStrokePaintStyle(node);
+        let strokeBound = isFillBound(node, "strokes", si) || hasStrokePaintStyle(node);
         if (strokeBound) {
           categories.strokesBorders.bound++;
         } else {
           categories.strokesBorders.unbound++;
           addViolation(
-            violations, violationsCappedRef, MAX_LINT_VIOLATIONS,
-            node, depth, 'HIGH', 'strokesBorders', 'strokes[' + si + ']', 'Stroke color using raw hex value (no variable or paint style bound)',
+            violations,
+            violationsCappedRef,
+            MAX_LINT_VIOLATIONS,
+            node,
+            depth,
+            "HIGH",
+            "strokesBorders",
+            "strokes[" + si + "]",
+            "Stroke color using raw hex value (no variable or paint style bound)",
           );
         }
       }
@@ -291,32 +427,49 @@ export function scanNode(
   }
 
   // ── SPACING checks (auto-layout frames) ──
-  if (localInsideScreen && chk.spacing && (nodeType === 'FRAME' || nodeType === 'COMPONENT' || nodeType === 'COMPONENT_SET' || nodeType === 'INSTANCE')) {
+  if (
+    localInsideScreen &&
+    chk.spacing &&
+    (nodeType === "FRAME" || nodeType === "COMPONENT" || nodeType === "COMPONENT_SET" || nodeType === "INSTANCE")
+  ) {
     let layoutMode: string | null = null;
-    try { layoutMode = (node as FrameNode).layoutMode; } catch (_e) {}
+    try {
+      layoutMode = (node as FrameNode).layoutMode;
+    } catch (_e) {}
 
-    if (layoutMode && layoutMode !== 'NONE') {
+    if (layoutMode && layoutMode !== "NONE") {
       // Check itemSpacing
       let itemSpacing = 0;
-      try { itemSpacing = (node as FrameNode).itemSpacing; } catch (_e) {}
+      try {
+        itemSpacing = (node as FrameNode).itemSpacing;
+      } catch (_e) {}
       if (itemSpacing > 0) {
         categories.spacing.total++;
-        if (isScalarBound(node, 'itemSpacing')) {
+        if (isScalarBound(node, "itemSpacing")) {
           categories.spacing.bound++;
         } else {
           categories.spacing.unbound++;
           addViolation(
-            violations, violationsCappedRef, MAX_LINT_VIOLATIONS,
-            node, depth, 'MEDIUM', 'spacing', 'itemSpacing', 'Item spacing using raw number (' + itemSpacing + ') — no variable bound',
+            violations,
+            violationsCappedRef,
+            MAX_LINT_VIOLATIONS,
+            node,
+            depth,
+            "MEDIUM",
+            "spacing",
+            "itemSpacing",
+            "Item spacing using raw number (" + itemSpacing + ") — no variable bound",
           );
         }
       }
 
       // Check padding
-      let paddingProps = ['paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft'];
+      let paddingProps = ["paddingTop", "paddingRight", "paddingBottom", "paddingLeft"];
       for (let ppi = 0; ppi < paddingProps.length; ppi++) {
         let padVal = 0;
-        try { padVal = (node as FrameNode)[paddingProps[ppi] as keyof FrameNode] as number; } catch (_e) {}
+        try {
+          padVal = (node as FrameNode)[paddingProps[ppi] as keyof FrameNode] as number;
+        } catch (_e) {}
         if (padVal > 0) {
           categories.spacing.total++;
           if (isScalarBound(node, paddingProps[ppi])) {
@@ -324,8 +477,15 @@ export function scanNode(
           } else {
             categories.spacing.unbound++;
             addViolation(
-              violations, violationsCappedRef, MAX_LINT_VIOLATIONS,
-              node, depth, 'MEDIUM', 'spacing', paddingProps[ppi], paddingProps[ppi] + ' using raw number (' + padVal + ') — no variable bound',
+              violations,
+              violationsCappedRef,
+              MAX_LINT_VIOLATIONS,
+              node,
+              depth,
+              "MEDIUM",
+              "spacing",
+              paddingProps[ppi],
+              paddingProps[ppi] + " using raw number (" + padVal + ") — no variable bound",
             );
           }
         }
@@ -334,33 +494,52 @@ export function scanNode(
   }
 
   // ── BORDER RADIUS checks ──
-  if (localInsideScreen && chk.radius && (nodeType === 'FRAME' || nodeType === 'RECTANGLE' || nodeType === 'COMPONENT' || nodeType === 'INSTANCE' || nodeType === 'ELLIPSE')) {
+  if (
+    localInsideScreen &&
+    chk.radius &&
+    (nodeType === "FRAME" ||
+      nodeType === "RECTANGLE" ||
+      nodeType === "COMPONENT" ||
+      nodeType === "INSTANCE" ||
+      nodeType === "ELLIPSE")
+  ) {
     let cornerRadius: number | symbol = 0;
-    try { cornerRadius = (node as RectangleNode).cornerRadius; } catch (_e) {}
+    try {
+      cornerRadius = (node as RectangleNode).cornerRadius;
+    } catch (_e) {}
 
     if (cornerRadius && cornerRadius !== figma.mixed && (cornerRadius as number) > 0) {
       categories.borderRadius.total++;
       if (
-        isScalarBound(node, 'topLeftRadius') ||
-        isScalarBound(node, 'topRightRadius') ||
-        isScalarBound(node, 'bottomLeftRadius') ||
-        isScalarBound(node, 'bottomRightRadius') ||
-        isScalarBound(node, 'cornerRadius')
+        isScalarBound(node, "topLeftRadius") ||
+        isScalarBound(node, "topRightRadius") ||
+        isScalarBound(node, "bottomLeftRadius") ||
+        isScalarBound(node, "bottomRightRadius") ||
+        isScalarBound(node, "cornerRadius")
       ) {
         categories.borderRadius.bound++;
       } else {
         categories.borderRadius.unbound++;
         addViolation(
-          violations, violationsCappedRef, MAX_LINT_VIOLATIONS,
-          node, depth, 'MEDIUM', 'borderRadius', 'cornerRadius', 'Border radius using raw number (' + (cornerRadius as number) + ') — no variable bound',
+          violations,
+          violationsCappedRef,
+          MAX_LINT_VIOLATIONS,
+          node,
+          depth,
+          "MEDIUM",
+          "borderRadius",
+          "cornerRadius",
+          "Border radius using raw number (" + (cornerRadius as number) + ") — no variable bound",
         );
       }
     } else if (cornerRadius === figma.mixed) {
       // Individual corners set — check each
-      let radiusProps = ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'];
+      let radiusProps = ["topLeftRadius", "topRightRadius", "bottomLeftRadius", "bottomRightRadius"];
       for (let ri = 0; ri < radiusProps.length; ri++) {
         let rVal = 0;
-        try { rVal = (node as RectangleNode)[radiusProps[ri] as keyof RectangleNode] as number; } catch (_e) {}
+        try {
+          rVal = (node as RectangleNode)[radiusProps[ri] as keyof RectangleNode] as number;
+        } catch (_e) {}
         if (rVal > 0) {
           categories.borderRadius.total++;
           if (isScalarBound(node, radiusProps[ri])) {
@@ -368,8 +547,15 @@ export function scanNode(
           } else {
             categories.borderRadius.unbound++;
             addViolation(
-              violations, violationsCappedRef, MAX_LINT_VIOLATIONS,
-              node, depth, 'MEDIUM', 'borderRadius', radiusProps[ri], radiusProps[ri] + ' using raw number (' + rVal + ') — no variable bound',
+              violations,
+              violationsCappedRef,
+              MAX_LINT_VIOLATIONS,
+              node,
+              depth,
+              "MEDIUM",
+              "borderRadius",
+              radiusProps[ri],
+              radiusProps[ri] + " using raw number (" + rVal + ") — no variable bound",
             );
           }
         }
@@ -380,11 +566,16 @@ export function scanNode(
   // ── EFFECT STYLE checks ──
   if (localInsideScreen && chk.effectStyles) {
     let effects: ReadonlyArray<Effect> | null = null;
-    try { effects = (node as BlendMixin).effects; } catch (_e) {}
+    try {
+      effects = (node as BlendMixin).effects;
+    } catch (_e) {}
     if (effects && Array.isArray(effects) && effects.length > 0) {
       let hasVisibleEffects = false;
       for (let efi = 0; efi < effects.length; efi++) {
-        if (effects[efi].visible !== false) { hasVisibleEffects = true; break; }
+        if (effects[efi].visible !== false) {
+          hasVisibleEffects = true;
+          break;
+        }
       }
       if (hasVisibleEffects) {
         categories.effectStyles.total++;
@@ -399,8 +590,15 @@ export function scanNode(
             }
           }
           addViolation(
-            violations, violationsCappedRef, MAX_LINT_VIOLATIONS,
-            node, depth, 'CRITICAL', 'effectStyles', 'effectStyleId', 'Raw ' + effectTypes.join('/') + ' effect (no effect style applied)',
+            violations,
+            violationsCappedRef,
+            MAX_LINT_VIOLATIONS,
+            node,
+            depth,
+            "CRITICAL",
+            "effectStyles",
+            "effectStyleId",
+            "Raw " + effectTypes.join("/") + " effect (no effect style applied)",
           );
         }
       }
@@ -408,46 +606,71 @@ export function scanNode(
   }
 
   // ── AUTO-LAYOUT compliance ──
-  if (localInsideScreen && chk.autoLayout && (nodeType === 'FRAME' || nodeType === 'COMPONENT' || nodeType === 'COMPONENT_SET')) {
+  if (
+    localInsideScreen &&
+    chk.autoLayout &&
+    (nodeType === "FRAME" || nodeType === "COMPONENT" || nodeType === "COMPONENT_SET")
+  ) {
     // Skip icon-like frames — they intentionally use absolute positioning for SVG paths
     let skipAutoLayoutCheck = isIconLike(node);
 
     let hasLayout = false;
-    if ('layoutMode' in node) {
+    if ("layoutMode" in node) {
       const lm = (node as FrameNode).layoutMode;
-      hasLayout = lm && lm !== 'NONE' ? true : false;
+      hasLayout = lm && lm !== "NONE" ? true : false;
     }
 
     if (!hasLayout && !skipAutoLayoutCheck) {
       let childCount = 0;
-      if ('children' in node) {
+      if ("children" in node) {
         const childrenArr = (node as FrameNode).children;
         childCount = childrenArr ? childrenArr.length : 0;
       }
       if (childCount > 0) {
         addViolation(
-          violations, violationsCappedRef, MAX_LINT_VIOLATIONS,
-          node, depth, 'MEDIUM', 'autoLayout', 'layoutMode', 'Frame has ' + childCount + ' children but no auto-layout set',
+          violations,
+          violationsCappedRef,
+          MAX_LINT_VIOLATIONS,
+          node,
+          depth,
+          "MEDIUM",
+          "autoLayout",
+          "layoutMode",
+          "Frame has " + childCount + " children but no auto-layout set",
         );
       }
     } else {
       let alChildren: ReadonlyArray<SceneNode> | null = null;
-      if ('children' in node) { alChildren = (node as FrameNode).children; }
+      if ("children" in node) {
+        alChildren = (node as FrameNode).children;
+      }
       if (alChildren && alChildren.length > 0) {
         let absChildCount = 0;
         for (let alci = 0; alci < alChildren.length; alci++) {
           const alChild = alChildren[alci];
           let alChildPos: string | null = null;
-          if ('layoutPositioning' in alChild) { alChildPos = (alChild as SceneNode & { layoutPositioning?: string }).layoutPositioning as string; }
-          if (alChildPos === 'ABSOLUTE') {
+          if ("layoutPositioning" in alChild) {
+            alChildPos = (alChild as SceneNode & { layoutPositioning?: string }).layoutPositioning as string;
+          }
+          if (alChildPos === "ABSOLUTE") {
             absChildCount++;
           }
         }
         if (absChildCount > 0) {
           addViolation(
-            violations, violationsCappedRef, MAX_LINT_VIOLATIONS,
-            node, depth, 'LOW', 'autoLayout', 'layoutPositioning',
-            'Auto-layout frame has ' + absChildCount + ' absolute-positioned ' + (absChildCount === 1 ? 'child' : 'children') + ' — verify intentional',
+            violations,
+            violationsCappedRef,
+            MAX_LINT_VIOLATIONS,
+            node,
+            depth,
+            "LOW",
+            "autoLayout",
+            "layoutPositioning",
+            "Auto-layout frame has " +
+              absChildCount +
+              " absolute-positioned " +
+              (absChildCount === 1 ? "child" : "children") +
+              " — verify intentional",
           );
         }
       }
@@ -457,26 +680,32 @@ export function scanNode(
   // ── OVERFLOW check ──
   if (localInsideScreen && !isScreenRoot && chk.overflow && parent !== null && parent !== undefined) {
     let ovPositioning: string | null = null;
-    try { ovPositioning = (node as SceneNode & { layoutPositioning?: string }).layoutPositioning as string; } catch (_e) {}
-    let ovName = '';
-    try { ovName = node.name || ''; } catch (_e) {}
-    let skipOv = ovPositioning === 'ABSOLUTE' ||
-                 ovName.indexOf('Icon/') === 0 ||
-                 ovName.indexOf('Image/') === 0;
+    try {
+      ovPositioning = (node as SceneNode & { layoutPositioning?: string }).layoutPositioning as string;
+    } catch (_e) {}
+    let ovName = "";
+    try {
+      ovName = node.name || "";
+    } catch (_e) {}
+    let skipOv = ovPositioning === "ABSOLUTE" || ovName.indexOf("Icon/") === 0 || ovName.indexOf("Image/") === 0;
     if (!skipOv) {
       let childBBox: Rect | null = null;
-      try { childBBox = (node as SceneNode & { absoluteBoundingBox?: Rect }).absoluteBoundingBox as Rect; } catch (_e) {}
+      try {
+        childBBox = (node as SceneNode & { absoluteBoundingBox?: Rect }).absoluteBoundingBox as Rect;
+      } catch (_e) {}
       if (childBBox && parentBBox) {
         let OV_TOL = 1;
         categories.overflow.total++;
-        let hOverflow = (childBBox.x + childBBox.width) - (parentBBox.x + parentBBox.width);
+        let hOverflow = childBBox.x + childBBox.width - (parentBBox.x + parentBBox.width);
         let hasHOv = hOverflow > OV_TOL;
         let hasVOv = false;
         let vOverflow = 0;
         let parentSizingV: string | null = null;
-        try { parentSizingV = (parent as FrameNode).layoutSizingVertical; } catch (_e) {}
-        if (parentSizingV === 'FIXED') {
-          vOverflow = (childBBox.y + childBBox.height) - (parentBBox.y + parentBBox.height);
+        try {
+          parentSizingV = (parent as FrameNode).layoutSizingVertical;
+        } catch (_e) {}
+        if (parentSizingV === "FIXED") {
+          vOverflow = childBBox.y + childBBox.height - (parentBBox.y + parentBBox.height);
           hasVOv = vOverflow > OV_TOL;
         }
         if (hasHOv || hasVOv) {
@@ -484,30 +713,42 @@ export function scanNode(
           if (hasHOv) {
             let hAmt = Math.ceil(hOverflow);
             let hDetails: ViolationDetails = {
-              axis: 'horizontal',
+              axis: "horizontal",
               overflowAmount: hAmt,
               childRight: Math.round(childBBox.x + childBBox.width),
               parentRight: Math.round(parentBBox.x + parentBBox.width),
             };
             addViolation(
-              violations, violationsCappedRef, MAX_LINT_VIOLATIONS,
-              node, depth, 'CRITICAL', 'overflow', 'absoluteBoundingBox',
-              'Horizontal overflow: child extends ' + hAmt + 'px beyond parent right edge',
+              violations,
+              violationsCappedRef,
+              MAX_LINT_VIOLATIONS,
+              node,
+              depth,
+              "CRITICAL",
+              "overflow",
+              "absoluteBoundingBox",
+              "Horizontal overflow: child extends " + hAmt + "px beyond parent right edge",
               hDetails,
             );
           }
           if (hasVOv) {
             let vAmt = Math.ceil(vOverflow);
             let vDetails: ViolationDetails = {
-              axis: 'vertical',
+              axis: "vertical",
               overflowAmount: vAmt,
               childBottom: Math.round(childBBox.y + childBBox.height),
               parentBottom: Math.round(parentBBox.y + parentBBox.height),
             };
             addViolation(
-              violations, violationsCappedRef, MAX_LINT_VIOLATIONS,
-              node, depth, 'CRITICAL', 'overflow', 'absoluteBoundingBox',
-              'Vertical overflow: child extends ' + vAmt + 'px beyond parent bottom edge',
+              violations,
+              violationsCappedRef,
+              MAX_LINT_VIOLATIONS,
+              node,
+              depth,
+              "CRITICAL",
+              "overflow",
+              "absoluteBoundingBox",
+              "Vertical overflow: child extends " + vAmt + "px beyond parent bottom edge",
               vDetails,
             );
           }
@@ -519,14 +760,27 @@ export function scanNode(
   }
 
   // ── Recurse into children ──
-  if ('children' in node && (node as ChildrenMixin).children) {
+  if ("children" in node && (node as ChildrenMixin).children) {
     let nodeBBox: Rect | null = null;
     if (chk.overflow) {
-      try { nodeBBox = (node as SceneNode & { absoluteBoundingBox?: Rect }).absoluteBoundingBox as Rect; } catch (_e) {}
+      try {
+        nodeBBox = (node as SceneNode & { absoluteBoundingBox?: Rect }).absoluteBoundingBox as Rect;
+      } catch (_e) {}
     }
     let nodeChildren = (node as ChildrenMixin).children;
     for (let ci = 0; ci < nodeChildren.length; ci++) {
-      scanNode(nodeChildren[ci], depth + 1, node, nodeBBox, chk, categories, violations, violationsCappedRef, totalNodesRef, localInsideScreen);
+      scanNode(
+        nodeChildren[ci],
+        depth + 1,
+        node,
+        nodeBBox,
+        chk,
+        categories,
+        violations,
+        violationsCappedRef,
+        totalNodesRef,
+        localInsideScreen,
+      );
     }
   }
 }

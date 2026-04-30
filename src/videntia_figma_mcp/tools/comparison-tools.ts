@@ -43,11 +43,11 @@ async function runCompare(input: CompareInput): Promise<Record<string, unknown>>
     await joinChannel(channel);
   }
 
-  const figmaExport = await sendCommandToFigma("export_node_as_image", {
+  const figmaExport = (await sendCommandToFigma("export_node_as_image", {
     nodeId,
     format: "PNG",
     scale: 1,
-  }) as { imageData: string };
+  })) as { imageData: string };
 
   const referenceBuffer = Buffer.from(figmaExport.imageData, "base64");
   const capture = await captureUrl({ url, selector, figmaId: nodeId, referenceBuffer, actions });
@@ -61,8 +61,8 @@ async function runCompare(input: CompareInput): Promise<Record<string, unknown>>
     locateStrategy: capture.selector
       ? "selector"
       : capture.matchConfidence !== undefined
-      ? "template-match"
-      : "full-viewport",
+        ? "template-match"
+        : "full-viewport",
     figmaImageBase64: referenceBuffer.toString("base64"),
     webImageBase64: capture.screenshot.toString("base64"),
   };
@@ -77,7 +77,7 @@ async function runCompare(input: CompareInput): Promise<Record<string, unknown>>
   }
 
   if (mode === "styles" || mode === "both") {
-    const nodeData = await sendCommandToFigma("get_node_info", { nodeId }) as Record<string, unknown>;
+    const nodeData = (await sendCommandToFigma("get_node_info", { nodeId })) as Record<string, unknown>;
     const figmaStyles = figmaNodeToStyles(nodeData);
 
     const browser = await chromium.launch({
@@ -88,12 +88,21 @@ async function runCompare(input: CompareInput): Promise<Record<string, unknown>>
       const page = await browser.newPage();
       await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
       const targetSelector = capture.selector ?? "body";
-      const computedStyles = await page.evaluate(({ sel, props }: { sel: string; props: string[] }) => {
-        const el = document.querySelector(sel);
-        if (!el) return {};
-        const cs = window.getComputedStyle(el);
-        return Object.fromEntries(props.map((p) => [p, cs.getPropertyValue(p.replace(/([A-Z])/g, "-$1").toLowerCase())]));
-      }, { sel: targetSelector, props: [...COMPARABLE_STYLE_PROPERTIES] });
+      const computedStyles = await page.evaluate(
+        ({ sel, props }: { sel: string; props: string[] }) => {
+          const doc = (globalThis as unknown as { document: { querySelector: (s: string) => unknown } }).document;
+          const win = globalThis as unknown as {
+            getComputedStyle: (el: unknown) => { getPropertyValue: (p: string) => string };
+          };
+          const el = doc.querySelector(sel);
+          if (!el) return {};
+          const cs = win.getComputedStyle(el);
+          return Object.fromEntries(
+            props.map((p) => [p, cs.getPropertyValue(p.replace(/([A-Z])/g, "-$1").toLowerCase())]),
+          );
+        },
+        { sel: targetSelector, props: [...COMPARABLE_STYLE_PROPERTIES] },
+      );
       result.styleDeviations = compareStyles(figmaStyles, computedStyles as Record<string, string>);
     } finally {
       await browser.close();
@@ -106,24 +115,30 @@ async function runCompare(input: CompareInput): Promise<Record<string, unknown>>
 const compareInputSchema = {
   nodeId: z.string().describe("Figma node ID to compare (e.g. '2824:12737')"),
   url: z.string().describe("Target URL (any http/https URL, local dev server, staging, prod)"),
-  channel: z.string().optional().describe("Figma channel ID to join before exporting (auto-joined if not already connected)"),
+  channel: z
+    .string()
+    .optional()
+    .describe("Figma channel ID to join before exporting (auto-joined if not already connected)"),
   selector: z.string().optional().describe("CSS selector to crop the page to the matching element"),
   tolerance: z.number().min(0).max(1).default(0.1).describe("Pixel diff tolerance 0–1 (default 0.1)"),
   mode: z.enum(["screenshot", "styles", "both"]).default("both").describe("Comparison mode"),
-  actions: z.array(z.discriminatedUnion("type", [
-    z.object({ type: z.literal("hover"), selector: z.string() }),
-    z.object({ type: z.literal("click"), selector: z.string() }),
-    z.object({ type: z.literal("wait"), ms: z.number() }),
-    z.object({ type: z.literal("scroll"), selector: z.string() }),
-  ])).optional().describe("Interactions to perform before screenshot"),
+  actions: z
+    .array(
+      z.discriminatedUnion("type", [
+        z.object({ type: z.literal("hover"), selector: z.string() }),
+        z.object({ type: z.literal("click"), selector: z.string() }),
+        z.object({ type: z.literal("wait"), ms: z.number() }),
+        z.object({ type: z.literal("scroll"), selector: z.string() }),
+      ]),
+    )
+    .optional()
+    .describe("Interactions to perform before screenshot"),
 };
 
 export function registerComparisonTools(server: McpServer): void {
   function buildResultContent(result: Record<string, unknown>) {
     const { diffImageBase64, figmaImageBase64, webImageBase64, ...rest } = result;
-    const content: Array<Record<string, unknown>> = [
-      { type: "text", text: JSON.stringify(rest, null, 2) },
-    ];
+    const content: Array<Record<string, unknown>> = [{ type: "text", text: JSON.stringify(rest, null, 2) }];
     if (typeof figmaImageBase64 === "string") {
       content.push({ type: "text", text: "Figma reference:" });
       content.push({ type: "image", data: figmaImageBase64, mimeType: "image/png" });
@@ -146,7 +161,7 @@ export function registerComparisonTools(server: McpServer): void {
     async (input) => {
       const result = await runCompare(input as CompareInput);
       return { content: buildResultContent(result) as any };
-    }
+    },
   );
 
   server.tool(
@@ -168,12 +183,12 @@ export function registerComparisonTools(server: McpServer): void {
             finishedAt: Date.now(),
             error: err instanceof Error ? err.message : String(err),
           });
-        }
+        },
       );
       return {
         content: [{ type: "text", text: JSON.stringify({ jobId, status: "running" }, null, 2) }],
       };
-    }
+    },
   );
 
   server.tool(
@@ -198,7 +213,7 @@ export function registerComparisonTools(server: McpServer): void {
       const payload: Record<string, unknown> = { jobId, status: job.status, elapsedMs };
       if (job.error) payload.error = job.error;
       return { content: [{ type: "text", text: JSON.stringify(payload, null, 2) }] };
-    }
+    },
   );
 
   server.tool(
@@ -206,7 +221,9 @@ export function registerComparisonTools(server: McpServer): void {
     "Compare a Figma node to an inline React component. Claude provides a file map (path → content); the tool serves it locally and diffs against the Figma node export. npm packages are resolved via esm.sh CDN.",
     {
       nodeId: z.string().describe("Figma node ID to compare (e.g. '2824:12737')"),
-      files: z.record(z.string(), z.string()).describe("File map: { '/App.tsx': '<tsx content>', '/Button.tsx': '...' }"),
+      files: z
+        .record(z.string(), z.string())
+        .describe("File map: { '/App.tsx': '<tsx content>', '/Button.tsx': '...' }"),
       entry: z.string().default("/App.tsx").describe("Entry file path from the file map (default: /App.tsx)"),
       selector: z.string().optional().describe("CSS selector to crop to the matching element"),
       tolerance: z.number().min(0).max(1).default(0.1).describe("Pixel diff tolerance 0–1 (default 0.1)"),
@@ -214,11 +231,11 @@ export function registerComparisonTools(server: McpServer): void {
     async ({ nodeId, files, entry, selector, tolerance }) => {
       const sandpack = await startSandpackServer(files, entry);
       try {
-        const figmaExport = await sendCommandToFigma("export_node_as_image", {
+        const figmaExport = (await sendCommandToFigma("export_node_as_image", {
           nodeId,
           format: "PNG",
           scale: 1,
-        }) as { imageData: string };
+        })) as { imageData: string };
 
         const referenceBuffer = Buffer.from(figmaExport.imageData, "base64");
         await new Promise((r) => setTimeout(r, 1000));
@@ -227,26 +244,33 @@ export function registerComparisonTools(server: McpServer): void {
         const diff = await diffImages(referenceBuffer, capture.screenshot, { tolerance });
 
         return {
-          content: [{
-            type: "text",
-            text: JSON.stringify({
-              nodeId,
-              entry,
-              selector: capture.selector ?? null,
-              match: diff.deviationPercent === 0,
-              mismatchedPixels: diff.mismatchedPixels,
-              totalPixels: diff.totalPixels,
-              deviationPercent: diff.deviationPercent,
-            }, null, 2),
-          }, {
-            type: "image",
-            data: diff.diffPng.toString("base64"),
-            mimeType: "image/png",
-          }],
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(
+                {
+                  nodeId,
+                  entry,
+                  selector: capture.selector ?? null,
+                  match: diff.deviationPercent === 0,
+                  mismatchedPixels: diff.mismatchedPixels,
+                  totalPixels: diff.totalPixels,
+                  deviationPercent: diff.deviationPercent,
+                },
+                null,
+                2,
+              ),
+            },
+            {
+              type: "image",
+              data: diff.diffPng.toString("base64"),
+              mimeType: "image/png",
+            },
+          ],
         };
       } finally {
         sandpack.stop();
       }
-    }
+    },
   );
 }

@@ -1,3 +1,4 @@
+/// <reference types="@figma/plugin-typings" />
 import { resolveColorVariable } from "../../../src/videntia_figma_plugin/handlers/icons";
 
 /**
@@ -64,10 +65,7 @@ describe("resolveColorVariable", () => {
   it("suffix-matches when no exact/normalised/ci match exists", async () => {
     // "icon/muted" doesn't exist exactly, but test with a suffix that
     // only matches via suffix
-    const testVars = [
-      makeVar("semantic/icon/muted"),
-      makeVar("color/icon/muted"),
-    ];
+    const testVars = [makeVar("semantic/icon/muted"), makeVar("color/icon/muted")];
     const result = await resolveColorVariable("icon/muted", testVars);
     expect(result).not.toBeNull();
     // "color/icon/muted" is shorter than "semantic/icon/muted"
@@ -83,10 +81,7 @@ describe("resolveColorVariable", () => {
 
   // Tie-break: alphabetical when equal length
   it("breaks ties alphabetically for equal-length suffix matches", async () => {
-    const testVars = [
-      makeVar("zz/icon/muted"),
-      makeVar("aa/icon/muted"),
-    ];
+    const testVars = [makeVar("zz/icon/muted"), makeVar("aa/icon/muted")];
     const result = await resolveColorVariable("icon/muted", testVars);
     expect(result).not.toBeNull();
     expect(result!.name).toBe("aa/icon/muted");

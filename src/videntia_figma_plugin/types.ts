@@ -37,57 +37,57 @@ export interface BaseMessage {
 }
 
 export interface AutoConnectMessage extends BaseMessage {
-  type: 'auto-connect';
+  type: "auto-connect";
 }
 
 export interface FileNameMessage extends BaseMessage {
-  type: 'file-name';
+  type: "file-name";
   fileName: string;
 }
 
 export interface UpdateSettingsMessage extends BaseMessage {
-  type: 'update-settings';
+  type: "update-settings";
   serverPort?: number;
   readonlyMode?: boolean;
   autoFocus?: boolean;
 }
 
 export interface NotifyMessage extends BaseMessage {
-  type: 'notify';
+  type: "notify";
   message: string;
 }
 
 export interface ClosePluginMessage extends BaseMessage {
-  type: 'close-plugin';
+  type: "close-plugin";
 }
 
 export interface GetFileNameMessage extends BaseMessage {
-  type: 'get-file-name';
+  type: "get-file-name";
 }
 
 export interface ExecuteCommandMessage extends BaseMessage {
-  type: 'execute-command';
+  type: "execute-command";
   id: string;
   command: string;
   params: Record<string, unknown>;
 }
 
 export interface CommandResultMessage extends BaseMessage {
-  type: 'command-result';
+  type: "command-result";
   id: string;
   command: string;
   result: unknown;
 }
 
 export interface CommandErrorMessage extends BaseMessage {
-  type: 'command-error';
+  type: "command-error";
   id: string;
   command: string;
   error: string;
 }
 
 export interface CommandProgressMessage extends BaseMessage {
-  type: 'command_progress';
+  type: "command_progress";
   commandId: string;
   commandType: string;
   status: string;
@@ -154,11 +154,6 @@ export interface SvgRootStroke {
 // Variable value types
 // ---------------------------------------------------------------------------
 
-export type VariableResolvedType = 'COLOR' | 'FLOAT' | 'STRING' | 'BOOLEAN';
+export type VariableResolvedType = "COLOR" | "FLOAT" | "STRING" | "BOOLEAN";
 
-export type VariableValue =
-  | RgbaColor
-  | number
-  | string
-  | boolean
-  | { type: 'VARIABLE_ALIAS'; id: string };
+export type VariableValue = RgbaColor | number | string | boolean | { type: "VARIABLE_ALIAS"; id: string };

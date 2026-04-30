@@ -12,20 +12,31 @@ type AnnotatableNode = BaseNode & { readonly annotations: ReadonlyArray<Annotati
 // ---------------------------------------------------------------------------
 
 const ANNOTATION_SUPPORTED_TYPES = [
-  'COMPONENT',
-  'COMPONENT_SET',
-  'ELLIPSE',
-  'FRAME',
-  'INSTANCE',
-  'LINE',
-  'POLYGON',
-  'RECTANGLE',
-  'STAR',
-  'TEXT',
-  'VECTOR',
+  "COMPONENT",
+  "COMPONENT_SET",
+  "ELLIPSE",
+  "FRAME",
+  "INSTANCE",
+  "LINE",
+  "POLYGON",
+  "RECTANGLE",
+  "STAR",
+  "TEXT",
+  "VECTOR",
 ];
 
-const ANNOTATION_VALID_COLORS = ['blue', 'green', 'yellow', 'orange', 'red', 'purple', 'gray', 'teal', 'pink', 'violet'];
+const ANNOTATION_VALID_COLORS = [
+  "blue",
+  "green",
+  "yellow",
+  "orange",
+  "red",
+  "purple",
+  "gray",
+  "teal",
+  "pink",
+  "violet",
+];
 
 // ---------------------------------------------------------------------------
 // Private helpers
@@ -40,8 +51,8 @@ function isAnnotationSupported(node: BaseNode): boolean {
 // ---------------------------------------------------------------------------
 
 export async function getAnnotations(params: Record<string, unknown>): Promise<Record<string, unknown>> {
-  const nodeId = params['nodeId'] as string;
-  const includeCategories = params['includeCategories'] as boolean | undefined;
+  const nodeId = params["nodeId"] as string;
+  const includeCategories = params["includeCategories"] as boolean | undefined;
 
   const targetNode = await figma.getNodeByIdAsync(nodeId);
   if (!targetNode) {
@@ -68,17 +79,17 @@ export async function getAnnotations(params: Record<string, unknown>): Promise<R
     const ann = rawAnnotations[i];
     const entry: Record<string, unknown> = {
       index: i,
-      label: (ann.label !== null && ann.label !== undefined) ? ann.label : '',
-      labelMarkdown: (ann.labelMarkdown !== null && ann.labelMarkdown !== undefined) ? ann.labelMarkdown : '',
+      label: ann.label !== null && ann.label !== undefined ? ann.label : "",
+      labelMarkdown: ann.labelMarkdown !== null && ann.labelMarkdown !== undefined ? ann.labelMarkdown : "",
     };
 
     if (ann.categoryId) {
-      entry['categoryId'] = ann.categoryId;
+      entry["categoryId"] = ann.categoryId;
       if (includeCategories) {
         try {
           const category = await figma.annotations.getAnnotationCategoryByIdAsync(ann.categoryId);
           if (category) {
-            entry['category'] = {
+            entry["category"] = {
               id: category.id,
               label: category.label,
               color: category.color,
@@ -92,7 +103,7 @@ export async function getAnnotations(params: Record<string, unknown>): Promise<R
     }
 
     if (ann.properties && ann.properties.length > 0) {
-      entry['properties'] = ann.properties;
+      entry["properties"] = ann.properties;
     }
 
     annotations.push(entry);
@@ -109,11 +120,11 @@ export async function getAnnotations(params: Record<string, unknown>): Promise<R
 }
 
 export async function setAnnotation(params: Record<string, unknown>): Promise<Record<string, unknown>> {
-  const nodeId = params['nodeId'] as string;
-  const labelMarkdown = params['labelMarkdown'] as string | undefined;
-  const categoryId = params['categoryId'] as string | undefined;
-  const properties = params['properties'] as unknown[] | undefined;
-  const annotationId = params['annotationId'] as string | number | null | undefined;
+  const nodeId = params["nodeId"] as string;
+  const labelMarkdown = params["labelMarkdown"] as string | undefined;
+  const categoryId = params["categoryId"] as string | undefined;
+  const properties = params["properties"] as unknown[] | undefined;
+  const annotationId = params["annotationId"] as string | number | null | undefined;
 
   const node = await figma.getNodeByIdAsync(nodeId);
   if (!node) {
@@ -121,17 +132,19 @@ export async function setAnnotation(params: Record<string, unknown>): Promise<Re
   }
 
   if (!isAnnotationSupported(node)) {
-    throw new Error(`Node type ${node.type} does not support annotations. Supported types: ${ANNOTATION_SUPPORTED_TYPES.join(', ')}`);
+    throw new Error(
+      `Node type ${node.type} does not support annotations. Supported types: ${ANNOTATION_SUPPORTED_TYPES.join(", ")}`,
+    );
   }
 
   const annotation: Record<string, unknown> = {
-    labelMarkdown: (labelMarkdown !== null && labelMarkdown !== undefined) ? labelMarkdown : '',
+    labelMarkdown: labelMarkdown !== null && labelMarkdown !== undefined ? labelMarkdown : "",
   };
   if (categoryId) {
-    annotation['categoryId'] = categoryId;
+    annotation["categoryId"] = categoryId;
   }
   if (properties && Array.isArray(properties) && properties.length > 0) {
-    annotation['properties'] = properties;
+    annotation["properties"] = properties;
   }
 
   const annotatedNode = node as unknown as AnnotatableNode;
@@ -140,11 +153,11 @@ export async function setAnnotation(params: Record<string, unknown>): Promise<Re
   // Deep-copy existing annotations (readonly objects from Figma)
   const existingAnnotations: Record<string, unknown>[] = rawAnnotations.map((a) => {
     const copy: Record<string, unknown> = {
-      labelMarkdown: (a.labelMarkdown !== null && a.labelMarkdown !== undefined) ? a.labelMarkdown : '',
+      labelMarkdown: a.labelMarkdown !== null && a.labelMarkdown !== undefined ? a.labelMarkdown : "",
     };
-    if (a.categoryId) copy['categoryId'] = a.categoryId;
+    if (a.categoryId) copy["categoryId"] = a.categoryId;
     if (a.properties) {
-      copy['properties'] = a.properties.map((p) => Object.assign({}, p));
+      copy["properties"] = a.properties.map((p) => Object.assign({}, p));
     }
     return copy;
   });
@@ -156,7 +169,7 @@ export async function setAnnotation(params: Record<string, unknown>): Promise<Re
     if (isNaN(idx) || idx < 0 || idx >= existingAnnotations.length) {
       const rangeMsg =
         existingAnnotations.length === 0
-          ? 'no annotations exist on this node'
+          ? "no annotations exist on this node"
           : `valid range: 0-${existingAnnotations.length - 1}`;
       throw new Error(`Invalid annotation index ${annotationId}. ${rangeMsg}`);
     }
@@ -167,7 +180,7 @@ export async function setAnnotation(params: Record<string, unknown>): Promise<Re
     existingAnnotations.push(annotation);
   }
 
-  (annotatedNode as unknown as Record<string, unknown>)['annotations'] = existingAnnotations;
+  (annotatedNode as unknown as Record<string, unknown>)["annotations"] = existingAnnotations;
 
   return {
     success: true,
@@ -180,10 +193,10 @@ export async function setAnnotation(params: Record<string, unknown>): Promise<Re
 }
 
 export async function setMultipleAnnotations(params: Record<string, unknown>): Promise<Record<string, unknown>> {
-  const annotations = params['annotations'] as Record<string, unknown>[] | undefined;
+  const annotations = params["annotations"] as Record<string, unknown>[] | undefined;
 
   if (!Array.isArray(annotations)) {
-    throw new Error('annotations must be an array');
+    throw new Error("annotations must be an array");
   }
 
   const results: Record<string, unknown>[] = [];
@@ -193,17 +206,21 @@ export async function setMultipleAnnotations(params: Record<string, unknown>): P
   for (const entry of annotations) {
     try {
       const result = await setAnnotation({
-        nodeId: entry['nodeId'],
-        labelMarkdown: entry['labelMarkdown'],
-        categoryId: entry['categoryId'],
-        properties: entry['properties'],
-        annotationId: entry['annotationId'],
+        nodeId: entry["nodeId"],
+        labelMarkdown: entry["labelMarkdown"],
+        categoryId: entry["categoryId"],
+        properties: entry["properties"],
+        annotationId: entry["annotationId"],
       } as Record<string, unknown>);
-      results.push({ success: true, nodeId: entry['nodeId'], annotationIndex: result['annotationIndex'] });
+      results.push({ success: true, nodeId: entry["nodeId"], annotationIndex: result["annotationIndex"] });
       applied++;
     } catch (e) {
       const err = e as Error;
-      results.push({ success: false, nodeId: entry['nodeId'], error: (err.message !== null && err.message !== undefined) ? err.message : String(e) });
+      results.push({
+        success: false,
+        nodeId: entry["nodeId"],
+        error: err.message !== null && err.message !== undefined ? err.message : String(e),
+      });
       failed++;
     }
   }
@@ -236,16 +253,16 @@ export async function getAnnotationCategories(): Promise<Record<string, unknown>
 }
 
 export async function createAnnotationCategory(params: Record<string, unknown>): Promise<Record<string, unknown>> {
-  const label = params['label'] as string | undefined;
-  const color = params['color'] as string | undefined;
+  const label = params["label"] as string | undefined;
+  const color = params["color"] as string | undefined;
 
-  if (!label || typeof label !== 'string' || label.trim() === '') {
-    throw new Error('label is required and must be a non-empty string');
+  if (!label || typeof label !== "string" || label.trim() === "") {
+    throw new Error("label is required and must be a non-empty string");
   }
 
-  const categoryColor = (color !== null && color !== undefined) ? color : 'blue';
+  const categoryColor = color !== null && color !== undefined ? color : "blue";
   if (!ANNOTATION_VALID_COLORS.includes(categoryColor)) {
-    throw new Error(`Invalid color "${categoryColor}". Valid colors: ${ANNOTATION_VALID_COLORS.join(', ')}`);
+    throw new Error(`Invalid color "${categoryColor}". Valid colors: ${ANNOTATION_VALID_COLORS.join(", ")}`);
   }
 
   const category = await figma.annotations.addAnnotationCategoryAsync({
@@ -265,12 +282,12 @@ export async function createAnnotationCategory(params: Record<string, unknown>):
 }
 
 export async function updateAnnotationCategory(params: Record<string, unknown>): Promise<Record<string, unknown>> {
-  const categoryId = params['categoryId'] as string | undefined;
-  const label = params['label'] as string | null | undefined;
-  const color = params['color'] as string | null | undefined;
+  const categoryId = params["categoryId"] as string | undefined;
+  const label = params["label"] as string | null | undefined;
+  const color = params["color"] as string | null | undefined;
 
   if (!categoryId) {
-    throw new Error('categoryId is required');
+    throw new Error("categoryId is required");
   }
 
   const category = await figma.annotations.getAnnotationCategoryByIdAsync(categoryId);
@@ -279,19 +296,19 @@ export async function updateAnnotationCategory(params: Record<string, unknown>):
   }
 
   if (category.isPreset) {
-    throw new Error('Cannot modify a preset annotation category');
+    throw new Error("Cannot modify a preset annotation category");
   }
 
   if (label !== undefined && label !== null) {
-    if (typeof label !== 'string' || label.trim() === '') {
-      throw new Error('label must be a non-empty string');
+    if (typeof label !== "string" || label.trim() === "") {
+      throw new Error("label must be a non-empty string");
     }
     category.setLabel(label.trim());
   }
 
   if (color !== undefined && color !== null) {
     if (!ANNOTATION_VALID_COLORS.includes(color)) {
-      throw new Error(`Invalid color "${color}". Valid colors: ${ANNOTATION_VALID_COLORS.join(', ')}`);
+      throw new Error(`Invalid color "${color}". Valid colors: ${ANNOTATION_VALID_COLORS.join(", ")}`);
     }
     category.setColor(color as AnnotationCategoryColor);
   }
@@ -308,10 +325,10 @@ export async function updateAnnotationCategory(params: Record<string, unknown>):
 }
 
 export async function deleteAnnotationCategory(params: Record<string, unknown>): Promise<Record<string, unknown>> {
-  const categoryId = params['categoryId'] as string | undefined;
+  const categoryId = params["categoryId"] as string | undefined;
 
   if (!categoryId) {
-    throw new Error('categoryId is required');
+    throw new Error("categoryId is required");
   }
 
   const category = await figma.annotations.getAnnotationCategoryByIdAsync(categoryId);
@@ -320,7 +337,7 @@ export async function deleteAnnotationCategory(params: Record<string, unknown>):
   }
 
   if (category.isPreset) {
-    throw new Error('Cannot delete a preset annotation category');
+    throw new Error("Cannot delete a preset annotation category");
   }
 
   category.remove();
@@ -330,4 +347,3 @@ export async function deleteAnnotationCategory(params: Record<string, unknown>):
     deletedCategoryId: categoryId,
   };
 }
-

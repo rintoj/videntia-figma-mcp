@@ -2,12 +2,12 @@
 // Focus and selection
 // ---------------------------------------------------------------------------
 
-import { serializeNodes } from './node-serializer';
+import { serializeNodes } from "./node-serializer";
 
 function getPage(node: BaseNode): PageNode | null {
   let current: BaseNode | null = node;
   while (current) {
-    if (current.type === 'PAGE') return current as PageNode;
+    if (current.type === "PAGE") return current as PageNode;
     current = current.parent;
   }
   return null;
@@ -17,7 +17,7 @@ function getPage(node: BaseNode): PageNode | null {
  * Check whether a scene node is fully visible in the current viewport.
  */
 function isNodeVisibleInViewport(node: SceneNode): boolean {
-  if (!('absoluteBoundingBox' in node)) return false;
+  if (!("absoluteBoundingBox" in node)) return false;
   var bounds = (node as any).absoluteBoundingBox as { x: number; y: number; width: number; height: number } | null;
   if (!bounds) return false;
 
@@ -71,7 +71,7 @@ export async function softFocusNode(nodeId: string): Promise<void> {
 }
 
 export async function setFocus(params: Record<string, unknown>): Promise<Record<string, unknown>> {
-  const nodeId = params['nodeId'] as string;
+  const nodeId = params["nodeId"] as string;
   const node = await figma.getNodeByIdAsync(nodeId);
 
   if (!node) {
@@ -90,10 +90,10 @@ export async function setFocus(params: Record<string, unknown>): Promise<Record<
 }
 
 export async function setSelections(params: Record<string, unknown>): Promise<Record<string, unknown>> {
-  const nodeIds = params['nodeIds'] as string[] | undefined;
+  const nodeIds = params["nodeIds"] as string[] | undefined;
 
   if (!Array.isArray(nodeIds) || nodeIds.length === 0) {
-    throw new Error('nodeIds must be a non-empty array');
+    throw new Error("nodeIds must be a non-empty array");
   }
 
   const nodes: SceneNode[] = [];
@@ -105,7 +105,7 @@ export async function setSelections(params: Record<string, unknown>): Promise<Re
   }
 
   if (nodes.length === 0) {
-    throw new Error('No valid nodes found with provided IDs');
+    throw new Error("No valid nodes found with provided IDs");
   }
 
   // Navigate to the page of the first node (all nodes must be on the same page)
@@ -133,13 +133,13 @@ export async function setSelections(params: Record<string, unknown>): Promise<Re
 // ---------------------------------------------------------------------------
 
 export async function scanNodesByTypes(params: Record<string, unknown>): Promise<Record<string, unknown>> {
-  const nodeId = params['nodeId'] as string;
-  const types = params['types'] as string[] | undefined;
-  const limit = (params['limit'] !== undefined && params['limit'] !== null) ? (params['limit'] as number) : 50;
-  const depth = params['depth'] as number | undefined;
+  const nodeId = params["nodeId"] as string;
+  const types = params["types"] as string[] | undefined;
+  const limit = params["limit"] !== undefined && params["limit"] !== null ? (params["limit"] as number) : 50;
+  const depth = params["depth"] as number | undefined;
 
   if (!Array.isArray(types) || types.length === 0) {
-    throw new Error('types must be a non-empty array');
+    throw new Error("types must be a non-empty array");
   }
 
   const node = await figma.getNodeByIdAsync(nodeId);
@@ -154,7 +154,7 @@ export async function scanNodesByTypes(params: Record<string, unknown>): Promise
     if (types.includes(n.type)) {
       matchedIds.push(n.id);
     }
-    if ('children' in n) {
+    if ("children" in n) {
       for (const child of (n as ChildrenMixin).children) {
         if (matchedIds.length >= limit) break;
         scanNode(child as SceneNode);
@@ -162,7 +162,7 @@ export async function scanNodesByTypes(params: Record<string, unknown>): Promise
     }
   };
 
-  if ('children' in node) {
+  if ("children" in node) {
     for (const child of (node as ChildrenMixin).children) {
       if (matchedIds.length >= limit) break;
       scanNode(child as SceneNode);
@@ -175,5 +175,3 @@ export async function scanNodesByTypes(params: Record<string, unknown>): Promise
 
   return await serializeNodes({ nodeIds: matchedIds, depth: depth });
 }
-
-

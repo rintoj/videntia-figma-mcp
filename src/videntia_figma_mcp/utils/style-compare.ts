@@ -30,7 +30,7 @@ export const COMPARABLE_STYLE_PROPERTIES = [
 
 export function compareStyles(
   figmaStyles: Record<string, string>,
-  computedStyles: Record<string, string>
+  computedStyles: Record<string, string>,
 ): StyleDeviation[] {
   const deviations: StyleDeviation[] = [];
   for (const [property, figmaValue] of Object.entries(figmaStyles)) {

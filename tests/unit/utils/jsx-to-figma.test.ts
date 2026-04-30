@@ -689,9 +689,7 @@ describe("parseJsx", () => {
   it("should round-trip effect style name", () => {
     const original = makeNode({
       effectStyleName: "shadow/subtle",
-      effects: [
-        { type: "DROP_SHADOW", offset: { x: 0, y: 1 }, radius: 2, spread: 0, color: "#000000" },
-      ],
+      effects: [{ type: "DROP_SHADOW", offset: { x: 0, y: 1 }, radius: 2, spread: 0, color: "#000000" }],
     });
     const jsx = convertToJsx([original]);
     expect(jsx).toContain("shadow-shadow-subtle");
@@ -1855,8 +1853,7 @@ describe("parseJsx - bare flex defaults to HORIZONTAL", () => {
   });
 
   it("should preserve root stroke attribute in svgString", () => {
-    const svg =
-      '<svg width="24" height="24" viewBox="0 0 24 24" stroke="#ff0000"><path d="M0 0" /></svg>';
+    const svg = '<svg width="24" height="24" viewBox="0 0 24 24" stroke="#ff0000"><path d="M0 0" /></svg>';
     const nodes = parseJsx(svg);
     expect(nodes[0].type).toBe("SVG");
     expect(nodes[0].svgString).toContain('stroke="#ff0000"');
@@ -1878,7 +1875,7 @@ describe("parseJsx - bare flex defaults to HORIZONTAL", () => {
     expect(nodes[0].svgString).toContain('stroke-opacity="0.5"');
   });
 
-  it("should preserve stroke=\"none\" in svgString (no-stroke marker is passed through)", () => {
+  it('should preserve stroke="none" in svgString (no-stroke marker is passed through)', () => {
     const svg = '<svg width="24" height="24" stroke="none"><path d="M0 0" /></svg>';
     const nodes = parseJsx(svg);
     expect(nodes[0].svgString).toContain('stroke="none"');
@@ -2009,7 +2006,8 @@ describe("parseJsx - CSS string format in style attribute", () => {
   });
 
   it("should handle individual padding properties", () => {
-    const jsx = '<div id="1:1" name="T" style="padding-top: 5px; padding-right: 10px; padding-bottom: 15px; padding-left: 20px;" />';
+    const jsx =
+      '<div id="1:1" name="T" style="padding-top: 5px; padding-right: 10px; padding-bottom: 15px; padding-left: 20px;" />';
     const nodes = parseJsx(jsx);
     expect(nodes[0].paddingTop).toBe(5);
     expect(nodes[0].paddingRight).toBe(10);
@@ -2036,7 +2034,8 @@ describe("parseJsx - CSS string format in style attribute", () => {
   });
 
   it("should handle text properties on TEXT nodes", () => {
-    const jsx = '<span id="1:1" name="T" style="font-size: 18px; font-weight: 600; line-height: 24px; letter-spacing: 1px; text-align: center; text-transform: uppercase;">Hello</span>';
+    const jsx =
+      '<span id="1:1" name="T" style="font-size: 18px; font-weight: 600; line-height: 24px; letter-spacing: 1px; text-align: center; text-transform: uppercase;">Hello</span>';
     const nodes = parseJsx(jsx);
     expect(nodes[0].fontSize).toBe(18);
     expect(nodes[0].fontWeight).toBe(600);

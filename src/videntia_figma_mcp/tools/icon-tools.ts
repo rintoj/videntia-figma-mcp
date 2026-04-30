@@ -20,30 +20,161 @@ function isValidCssColor(color: string): boolean {
  * as design token names and routed to variable resolution instead.
  */
 const CSS_NAMED_COLORS = new Set([
-  'aliceblue','antiquewhite','aqua','aquamarine','azure','beige','bisque','black',
-  'blanchedalmond','blue','blueviolet','brown','burlywood','cadetblue','chartreuse',
-  'chocolate','coral','cornflowerblue','cornsilk','crimson','cyan','darkblue',
-  'darkcyan','darkgoldenrod','darkgray','darkgreen','darkgrey','darkkhaki',
-  'darkmagenta','darkolivegreen','darkorange','darkorchid','darkred','darksalmon',
-  'darkseagreen','darkslateblue','darkslategray','darkslategrey','darkturquoise',
-  'darkviolet','deeppink','deepskyblue','dimgray','dimgrey','dodgerblue','firebrick',
-  'floralwhite','forestgreen','fuchsia','gainsboro','ghostwhite','gold','goldenrod',
-  'gray','green','greenyellow','grey','honeydew','hotpink','indianred','indigo',
-  'ivory','khaki','lavender','lavenderblush','lawngreen','lemonchiffon','lightblue',
-  'lightcoral','lightcyan','lightgoldenrodyellow','lightgray','lightgreen','lightgrey',
-  'lightpink','lightsalmon','lightseagreen','lightskyblue','lightslategray',
-  'lightslategrey','lightsteelblue','lightyellow','lime','limegreen','linen','magenta',
-  'maroon','mediumaquamarine','mediumblue','mediumorchid','mediumpurple','mediumseagreen',
-  'mediumslateblue','mediumspringgreen','mediumturquoise','mediumvioletred','midnightblue',
-  'mintcream','mistyrose','moccasin','navajowhite','navy','oldlace','olive','olivedrab',
-  'orange','orangered','orchid','palegoldenrod','palegreen','paleturquoise',
-  'palevioletred','papayawhip','peachpuff','peru','pink','plum','powderblue','purple',
-  'rebeccapurple','red','rosybrown','royalblue','saddlebrown','salmon','sandybrown',
-  'seagreen','seashell','sienna','silver','skyblue','slateblue','slategray','slategrey',
-  'snow','springgreen','steelblue','tan','teal','thistle','tomato','transparent',
-  'turquoise','violet','wheat','white','whitesmoke','yellow','yellowgreen',
+  "aliceblue",
+  "antiquewhite",
+  "aqua",
+  "aquamarine",
+  "azure",
+  "beige",
+  "bisque",
+  "black",
+  "blanchedalmond",
+  "blue",
+  "blueviolet",
+  "brown",
+  "burlywood",
+  "cadetblue",
+  "chartreuse",
+  "chocolate",
+  "coral",
+  "cornflowerblue",
+  "cornsilk",
+  "crimson",
+  "cyan",
+  "darkblue",
+  "darkcyan",
+  "darkgoldenrod",
+  "darkgray",
+  "darkgreen",
+  "darkgrey",
+  "darkkhaki",
+  "darkmagenta",
+  "darkolivegreen",
+  "darkorange",
+  "darkorchid",
+  "darkred",
+  "darksalmon",
+  "darkseagreen",
+  "darkslateblue",
+  "darkslategray",
+  "darkslategrey",
+  "darkturquoise",
+  "darkviolet",
+  "deeppink",
+  "deepskyblue",
+  "dimgray",
+  "dimgrey",
+  "dodgerblue",
+  "firebrick",
+  "floralwhite",
+  "forestgreen",
+  "fuchsia",
+  "gainsboro",
+  "ghostwhite",
+  "gold",
+  "goldenrod",
+  "gray",
+  "green",
+  "greenyellow",
+  "grey",
+  "honeydew",
+  "hotpink",
+  "indianred",
+  "indigo",
+  "ivory",
+  "khaki",
+  "lavender",
+  "lavenderblush",
+  "lawngreen",
+  "lemonchiffon",
+  "lightblue",
+  "lightcoral",
+  "lightcyan",
+  "lightgoldenrodyellow",
+  "lightgray",
+  "lightgreen",
+  "lightgrey",
+  "lightpink",
+  "lightsalmon",
+  "lightseagreen",
+  "lightskyblue",
+  "lightslategray",
+  "lightslategrey",
+  "lightsteelblue",
+  "lightyellow",
+  "lime",
+  "limegreen",
+  "linen",
+  "magenta",
+  "maroon",
+  "mediumaquamarine",
+  "mediumblue",
+  "mediumorchid",
+  "mediumpurple",
+  "mediumseagreen",
+  "mediumslateblue",
+  "mediumspringgreen",
+  "mediumturquoise",
+  "mediumvioletred",
+  "midnightblue",
+  "mintcream",
+  "mistyrose",
+  "moccasin",
+  "navajowhite",
+  "navy",
+  "oldlace",
+  "olive",
+  "olivedrab",
+  "orange",
+  "orangered",
+  "orchid",
+  "palegoldenrod",
+  "palegreen",
+  "paleturquoise",
+  "palevioletred",
+  "papayawhip",
+  "peachpuff",
+  "peru",
+  "pink",
+  "plum",
+  "powderblue",
+  "purple",
+  "rebeccapurple",
+  "red",
+  "rosybrown",
+  "royalblue",
+  "saddlebrown",
+  "salmon",
+  "sandybrown",
+  "seagreen",
+  "seashell",
+  "sienna",
+  "silver",
+  "skyblue",
+  "slateblue",
+  "slategray",
+  "slategrey",
+  "snow",
+  "springgreen",
+  "steelblue",
+  "tan",
+  "teal",
+  "thistle",
+  "tomato",
+  "transparent",
+  "turquoise",
+  "violet",
+  "wheat",
+  "white",
+  "whitesmoke",
+  "yellow",
+  "yellowgreen",
   // CSS global keywords accepted as color values
-  'currentcolor','inherit','initial','unset','revert',
+  "currentcolor",
+  "inherit",
+  "initial",
+  "unset",
+  "revert",
 ]);
 
 /**
@@ -116,18 +247,14 @@ export function resolveCreateIconParams(params: {
   const icon = getIcon(iconName);
   if (!icon) {
     const suggestions = searchIcons(iconName, 5);
-    throw new Error(
-      `Icon "${iconName}" not found. Suggestions: ${suggestions.map((s) => s.name).join(", ")}`,
-    );
+    throw new Error(`Icon "${iconName}" not found. Suggestions: ${suggestions.map((s) => s.name).join(", ")}`);
   }
 
   const effectiveColorVar =
     colorVariable ??
     (color !== undefined && color !== null && color !== "" && !looksLikeCssColor(color) ? color : undefined);
   const effectiveCssColor =
-    color !== undefined && color !== null && color !== "" && looksLikeCssColor(color)
-      ? color
-      : "#000000";
+    color !== undefined && color !== null && color !== "" && looksLikeCssColor(color) ? color : "#000000";
 
   const svgString = buildIconSvg(icon.svg, effectiveCssColor, size);
 
@@ -313,8 +440,18 @@ export function registerIconTools(server: McpServer): void {
         .optional()
         .describe("Zero-based position within the parent's children array (omit to append at the end)"),
       name: z.string().describe('Lucide icon name (e.g. "arrow-left", "bell", "check")'),
-      color: z.string().optional().describe('Icon color. Accepts a CSS color ("#6b7280", "rgb(…)") OR a design token name ("gray-500", "text-text-secondary", "semantic/icon/muted"). Token names (anything with a hyphen or slash) are automatically routed to variable binding — no need to use colorVariable separately.'),
-      colorVariable: z.string().optional().describe('Explicit Figma variable name for the icon stroke color. Only needed if color is also a valid CSS color and you still want variable binding. Supports Tailwind-style ("gray-500"), semantic paths ("text/secondary"), or exact names.'),
+      color: z
+        .string()
+        .optional()
+        .describe(
+          'Icon color. Accepts a CSS color ("#6b7280", "rgb(…)") OR a design token name ("gray-500", "text-text-secondary", "semantic/icon/muted"). Token names (anything with a hyphen or slash) are automatically routed to variable binding — no need to use colorVariable separately.',
+        ),
+      colorVariable: z
+        .string()
+        .optional()
+        .describe(
+          'Explicit Figma variable name for the icon stroke color. Only needed if color is also a valid CSS color and you still want variable binding. Supports Tailwind-style ("gray-500"), semantic paths ("text/secondary"), or exact names.',
+        ),
       size: z.coerce.number().positive().describe("Icon size in pixels applied to both width and height"),
     },
     async ({ parentId, index, name: iconName, color, colorVariable, size }) => {
@@ -346,9 +483,7 @@ export function registerIconTools(server: McpServer): void {
           colorVariable ??
           (color !== undefined && color !== null && color !== "" && !looksLikeCssColor(color) ? color : undefined);
         const effectiveCssColor =
-          color !== undefined && color !== null && color !== "" && looksLikeCssColor(color)
-            ? color
-            : "#000000";
+          color !== undefined && color !== null && color !== "" && looksLikeCssColor(color) ? color : "#000000";
 
         const svgString = buildIconSvg(icon.svg, effectiveCssColor, size);
 
@@ -363,7 +498,10 @@ export function registerIconTools(server: McpServer): void {
         });
 
         const typedResult = createResult as {
-          id: string; name: string; width: number; height: number;
+          id: string;
+          name: string;
+          width: number;
+          height: number;
           colorVariableBound?: boolean;
           colorVariableWarning?: string;
         };
@@ -435,8 +573,18 @@ export function registerIconTools(server: McpServer): void {
     {
       nodeId: z.string().describe("ID of the existing icon node to replace"),
       name: z.string().describe('New Lucide icon name (e.g. "arrow-left", "bell", "check")'),
-      color: z.string().optional().describe('Icon color. Accepts a CSS color ("#6b7280", "rgb(…)") OR a design token name ("gray-500", "text-text-secondary"). Token names (anything with a hyphen or slash) are automatically routed to variable binding.'),
-      colorVariable: z.string().optional().describe('Explicit Figma variable name for the icon stroke color. Only needed when color is also a valid CSS color and you still want variable binding.'),
+      color: z
+        .string()
+        .optional()
+        .describe(
+          'Icon color. Accepts a CSS color ("#6b7280", "rgb(…)") OR a design token name ("gray-500", "text-text-secondary"). Token names (anything with a hyphen or slash) are automatically routed to variable binding.',
+        ),
+      colorVariable: z
+        .string()
+        .optional()
+        .describe(
+          "Explicit Figma variable name for the icon stroke color. Only needed when color is also a valid CSS color and you still want variable binding.",
+        ),
       size: z.coerce.number().positive().describe("Icon size in pixels applied to both width and height"),
     },
     async ({ nodeId, name: iconName, color, colorVariable, size }) => {
@@ -466,9 +614,7 @@ export function registerIconTools(server: McpServer): void {
           colorVariable ??
           (color !== undefined && color !== null && color !== "" && !looksLikeCssColor(color) ? color : undefined);
         const effectiveCssColor =
-          color !== undefined && color !== null && color !== "" && looksLikeCssColor(color)
-            ? color
-            : "#000000";
+          color !== undefined && color !== null && color !== "" && looksLikeCssColor(color) ? color : "#000000";
 
         const svgString = buildIconSvg(icon.svg, effectiveCssColor, size);
 
@@ -480,7 +626,10 @@ export function registerIconTools(server: McpServer): void {
         });
 
         const typedResult = result as {
-          id: string; name: string; parentId: string; index: number;
+          id: string;
+          name: string;
+          parentId: string;
+          index: number;
           colorVariableBound?: boolean;
           colorVariableWarning?: string;
         };

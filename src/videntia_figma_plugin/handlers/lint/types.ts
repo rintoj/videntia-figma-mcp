@@ -1,20 +1,20 @@
-export type ViolationSeverity = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
+export type ViolationSeverity = "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
 
 export type ViolationCategory =
-  | 'rootFrame'
-  | 'typography'
-  | 'spacing'
-  | 'borderRadius'
-  | 'iconColors'
-  | 'strokesBorders'
-  | 'backgroundFills'
-  | 'effectStyles'
-  | 'overflow'
-  | 'autoLayout'
-  | 'screenNaming';
+  | "rootFrame"
+  | "typography"
+  | "spacing"
+  | "borderRadius"
+  | "iconColors"
+  | "strokesBorders"
+  | "backgroundFills"
+  | "effectStyles"
+  | "overflow"
+  | "autoLayout"
+  | "screenNaming";
 
 export interface ViolationDetails {
-  axis?: 'horizontal' | 'vertical';
+  axis?: "horizontal" | "vertical";
   overflowAmount?: number;
   childRight?: number;
   parentRight?: number;

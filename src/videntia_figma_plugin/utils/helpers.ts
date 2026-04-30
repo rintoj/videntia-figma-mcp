@@ -1,6 +1,6 @@
 // Figma MCP plugin.
 
-import type { CommandProgressMessage, ProgressPayload } from '../types';
+import type { CommandProgressMessage, ProgressPayload } from "../types";
 
 // Figma plugin sandbox exposes the Web Crypto API (not in lib.es2017 — declare minimally)
 declare const crypto: { getRandomValues: <T extends ArrayBufferView>(array: T) => T };
@@ -30,7 +30,7 @@ export function sendProgressUpdate(
   payload: ProgressPayload | null = null,
 ): CommandProgressMessage {
   const update: CommandProgressMessage = {
-    type: 'command_progress',
+    type: "command_progress",
     commandId,
     commandType,
     status,
@@ -43,10 +43,7 @@ export function sendProgressUpdate(
 
   // Add optional chunk information if present
   if (payload !== null) {
-    if (
-      payload.currentChunk !== undefined &&
-      payload.totalChunks !== undefined
-    ) {
+    if (payload.currentChunk !== undefined && payload.totalChunks !== undefined) {
       update.currentChunk = payload.currentChunk;
       update.totalChunks = payload.totalChunks;
       update.chunkSize = payload.chunkSize;
@@ -65,20 +62,13 @@ export function sendProgressUpdate(
 // Unique-by helper
 // ---------------------------------------------------------------------------
 
-export function uniqBy<T>(
-  arr: T[],
-  predicate: ((item: T) => unknown) | keyof T,
-): T[] {
-  const cb =
-    typeof predicate === 'function'
-      ? predicate
-      : (o: T) => o[predicate as keyof T];
+export function uniqBy<T>(arr: T[], predicate: ((item: T) => unknown) | keyof T): T[] {
+  const cb = typeof predicate === "function" ? predicate : (o: T) => o[predicate as keyof T];
 
   return [
     ...arr
       .reduce((map, item) => {
-        const key =
-          item === null || item === undefined ? item : (cb(item) as unknown);
+        const key = item === null || item === undefined ? item : (cb(item) as unknown);
 
         if (!map.has(key)) {
           map.set(key, item);
@@ -95,7 +85,7 @@ export function uniqBy<T>(
 // ---------------------------------------------------------------------------
 
 export function delay(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 // ---------------------------------------------------------------------------
@@ -105,12 +95,7 @@ export function delay(ms: number): Promise<void> {
 export function generateCommandId(): string {
   const buf = new Uint32Array(3);
   crypto.getRandomValues(buf);
-  return (
-    'cmd_' +
-    buf[0].toString(36) +
-    buf[1].toString(36) +
-    buf[2].toString(36)
-  );
+  return "cmd_" + buf[0].toString(36) + buf[1].toString(36) + buf[2].toString(36);
 }
 
 // ---------------------------------------------------------------------------
@@ -129,15 +114,25 @@ export function parseNum(x: unknown, fallback: number): number {
 
 export function getFontStyle(weight: number): string {
   switch (weight) {
-    case 100: return 'Thin';
-    case 200: return 'Extra Light';
-    case 300: return 'Light';
-    case 400: return 'Regular';
-    case 500: return 'Medium';
-    case 600: return 'Semi Bold';
-    case 700: return 'Bold';
-    case 800: return 'Extra Bold';
-    case 900: return 'Black';
-    default: return 'Regular';
+    case 100:
+      return "Thin";
+    case 200:
+      return "Extra Light";
+    case 300:
+      return "Light";
+    case 400:
+      return "Regular";
+    case 500:
+      return "Medium";
+    case 600:
+      return "Semi Bold";
+    case 700:
+      return "Bold";
+    case 800:
+      return "Extra Bold";
+    case 900:
+      return "Black";
+    default:
+      return "Regular";
   }
 }

@@ -236,7 +236,11 @@ export function registerTextTools(server: McpServer): void {
     "Set the font weight of a text node in Figma",
     {
       nodeId: z.string().describe("The ID of the text node to modify"),
-      weight: z.coerce.number().describe("Font weight as a multiple of 100 (100=Thin, 200=ExtraLight, 300=Light, 400=Regular, 500=Medium, 600=SemiBold, 700=Bold, 800=ExtraBold, 900=Black) — must be available in the font family"),
+      weight: z.coerce
+        .number()
+        .describe(
+          "Font weight as a multiple of 100 (100=Thin, 200=ExtraLight, 300=Light, 400=Regular, 500=Medium, 600=SemiBold, 700=Bold, 800=ExtraBold, 900=Black) — must be available in the font family",
+        ),
     },
     async ({ nodeId, weight }) => {
       nodeId = normalizeNodeId(nodeId);
@@ -273,8 +277,17 @@ export function registerTextTools(server: McpServer): void {
     "Set the letter spacing of a text node in Figma",
     {
       nodeId: z.string().describe("The ID of the text node to modify"),
-      spacing: z.coerce.number().describe("Letter spacing value — negative values tighten, positive values loosen (e.g. 0 = normal, 1 = slightly loose, -0.5 = slightly tight)"),
-      unit: z.enum(["PIXELS", "PERCENT"]).optional().describe("Unit for spacing: PIXELS = absolute pixel value, PERCENT = relative to font size (e.g. 5 PERCENT = 5% of font size; default: PIXELS)"),
+      spacing: z.coerce
+        .number()
+        .describe(
+          "Letter spacing value — negative values tighten, positive values loosen (e.g. 0 = normal, 1 = slightly loose, -0.5 = slightly tight)",
+        ),
+      unit: z
+        .enum(["PIXELS", "PERCENT"])
+        .optional()
+        .describe(
+          "Unit for spacing: PIXELS = absolute pixel value, PERCENT = relative to font size (e.g. 5 PERCENT = 5% of font size; default: PIXELS)",
+        ),
     },
     async ({ nodeId, spacing, unit }) => {
       nodeId = normalizeNodeId(nodeId);
@@ -312,8 +325,15 @@ export function registerTextTools(server: McpServer): void {
     "Set the line height of a text node in Figma",
     {
       nodeId: z.string().describe("The ID of the text node to modify"),
-      height: z.coerce.number().describe("Line height value — ignored when unit is AUTO (e.g. 24 for 24px, or 150 for 150%)"),
-      unit: z.enum(["PIXELS", "PERCENT", "AUTO"]).optional().describe("Unit: PIXELS = fixed pixel height, PERCENT = percentage of font size (e.g. 150 = 1.5× font size), AUTO = let Figma calculate based on font metrics (ignores height value; default: PIXELS)"),
+      height: z.coerce
+        .number()
+        .describe("Line height value — ignored when unit is AUTO (e.g. 24 for 24px, or 150 for 150%)"),
+      unit: z
+        .enum(["PIXELS", "PERCENT", "AUTO"])
+        .optional()
+        .describe(
+          "Unit: PIXELS = fixed pixel height, PERCENT = percentage of font size (e.g. 150 = 1.5× font size), AUTO = let Figma calculate based on font metrics (ignores height value; default: PIXELS)",
+        ),
     },
     async ({ nodeId, height, unit }) => {
       nodeId = normalizeNodeId(nodeId);
@@ -351,7 +371,9 @@ export function registerTextTools(server: McpServer): void {
     "Set the paragraph spacing of a text node in Figma",
     {
       nodeId: z.string().describe("The ID of the text node to modify"),
-      spacing: z.coerce.number().describe("Space added between paragraphs in pixels (≥ 0; similar to CSS margin-bottom on paragraphs)"),
+      spacing: z.coerce
+        .number()
+        .describe("Space added between paragraphs in pixels (≥ 0; similar to CSS margin-bottom on paragraphs)"),
     },
     async ({ nodeId, spacing }) => {
       nodeId = normalizeNodeId(nodeId);
@@ -388,7 +410,11 @@ export function registerTextTools(server: McpServer): void {
     "Set the text case of a text node in Figma",
     {
       nodeId: z.string().describe("The ID of the text node to modify"),
-      textCase: z.enum(["ORIGINAL", "UPPER", "LOWER", "TITLE"]).describe("Text case transform: ORIGINAL = preserve the typed casing as-is, UPPER = ALL CAPS, LOWER = all lowercase, TITLE = Capitalize Each Word"),
+      textCase: z
+        .enum(["ORIGINAL", "UPPER", "LOWER", "TITLE"])
+        .describe(
+          "Text case transform: ORIGINAL = preserve the typed casing as-is, UPPER = ALL CAPS, LOWER = all lowercase, TITLE = Capitalize Each Word",
+        ),
     },
     async ({ nodeId, textCase }) => {
       nodeId = normalizeNodeId(nodeId);
@@ -475,7 +501,9 @@ export function registerTextTools(server: McpServer): void {
           "lineHeight",
           "fontWeight",
         ])
-        .describe("Style property to segment by — returns runs of text that share the same value for this property: fontName = font family+style, fontSize = size in px, fontWeight = weight number, fills = fill color objects, fillStyleId = applied fill style ID, textStyleId = applied text style ID, letterSpacing = spacing value, lineHeight = line height value, textCase = case transform, textDecoration = underline/strikethrough"),
+        .describe(
+          "Style property to segment by — returns runs of text that share the same value for this property: fontName = font family+style, fontSize = size in px, fontWeight = weight number, fills = fill color objects, fillStyleId = applied fill style ID, textStyleId = applied text style ID, letterSpacing = spacing value, lineHeight = line height value, textCase = case transform, textDecoration = underline/strikethrough",
+        ),
     },
     async ({ nodeId, property }) => {
       nodeId = normalizeNodeId(nodeId);
@@ -609,15 +637,31 @@ export function registerTextTools(server: McpServer): void {
       name: z.string().describe("Name for the text style (e.g., 'Heading/H1')"),
       fontSize: z.coerce.number().describe("Font size in pixels"),
       fontFamily: z.string().describe("Font family name"),
-      fontStyle: z.string().optional().describe("Font style string as shown in Figma (e.g. 'Regular', 'Bold', 'Italic', 'Medium Italic') — if provided, takes priority over fontWeight"),
-      fontWeight: z.coerce.number().optional().describe("Font weight 100–900 (ignored if fontStyle is provided; used to resolve the style string when fontStyle is omitted)"),
+      fontStyle: z
+        .string()
+        .optional()
+        .describe(
+          "Font style string as shown in Figma (e.g. 'Regular', 'Bold', 'Italic', 'Medium Italic') — if provided, takes priority over fontWeight",
+        ),
+      fontWeight: z.coerce
+        .number()
+        .optional()
+        .describe(
+          "Font weight 100–900 (ignored if fontStyle is provided; used to resolve the style string when fontStyle is omitted)",
+        ),
       lineHeight: z
         .object({
           value: z.coerce.number().describe("Line height value (ignored when unit is AUTO)"),
-          unit: z.enum(["PIXELS", "PERCENT", "AUTO"]).describe("PIXELS = absolute px, PERCENT = % of font size (e.g. 150 = 1.5×), AUTO = font-native line height"),
+          unit: z
+            .enum(["PIXELS", "PERCENT", "AUTO"])
+            .describe(
+              "PIXELS = absolute px, PERCENT = % of font size (e.g. 150 = 1.5×), AUTO = font-native line height",
+            ),
         })
         .optional()
-        .describe("Line height — e.g. {value:24, unit:'PIXELS'} or {value:150, unit:'PERCENT'} or {value:0, unit:'AUTO'}"),
+        .describe(
+          "Line height — e.g. {value:24, unit:'PIXELS'} or {value:150, unit:'PERCENT'} or {value:0, unit:'AUTO'}",
+        ),
       letterSpacing: z
         .object({
           value: z.coerce.number().describe("Spacing amount (negative = tighten, positive = loosen)"),
@@ -625,8 +669,16 @@ export function registerTextTools(server: McpServer): void {
         })
         .optional()
         .describe("Letter spacing — e.g. {value:0.5, unit:'PIXELS'} or {value:2, unit:'PERCENT'}"),
-      textCase: z.enum(["ORIGINAL", "UPPER", "LOWER", "TITLE"]).optional().describe("Text case transform: ORIGINAL = no transform, UPPER = ALL CAPS, LOWER = all lowercase, TITLE = Capitalize Each Word"),
-      textDecoration: z.enum(["NONE", "UNDERLINE", "STRIKETHROUGH"]).optional().describe("Text decoration: NONE = no decoration, UNDERLINE = underline, STRIKETHROUGH = strikethrough"),
+      textCase: z
+        .enum(["ORIGINAL", "UPPER", "LOWER", "TITLE"])
+        .optional()
+        .describe(
+          "Text case transform: ORIGINAL = no transform, UPPER = ALL CAPS, LOWER = all lowercase, TITLE = Capitalize Each Word",
+        ),
+      textDecoration: z
+        .enum(["NONE", "UNDERLINE", "STRIKETHROUGH"])
+        .optional()
+        .describe("Text decoration: NONE = no decoration, UNDERLINE = underline, STRIKETHROUGH = strikethrough"),
       description: z.string().optional().describe("Optional description"),
     },
     async ({
@@ -800,7 +852,9 @@ export function registerTextTools(server: McpServer): void {
     "delete_text_style",
     "Delete a text style from the document",
     {
-      styleId: z.string().describe("The ID or name of the text style to delete (e.g. 'S:abc123,' or 'body/md' or 'body-md')"),
+      styleId: z
+        .string()
+        .describe("The ID or name of the text style to delete (e.g. 'S:abc123,' or 'body/md' or 'body-md')"),
     },
     async ({ styleId }) => {
       try {
@@ -834,17 +888,29 @@ export function registerTextTools(server: McpServer): void {
     "update_text_style",
     "Update an existing text style's properties",
     {
-      styleId: z.string().describe("The ID or name of the text style to update (e.g. 'S:abc123,' or 'body/md' or 'body-md')"),
+      styleId: z
+        .string()
+        .describe("The ID or name of the text style to update (e.g. 'S:abc123,' or 'body/md' or 'body-md')"),
       name: z.string().optional().describe("New name for the text style"),
       description: z.string().optional().describe("New description for the text style"),
       fontSize: z.coerce.number().optional().describe("New font size in pixels"),
       fontFamily: z.string().optional().describe("New font family name"),
-      fontStyle: z.string().optional().describe("Font style string as shown in Figma (e.g. 'Regular', 'Bold Italic') — if provided, takes priority over fontWeight"),
-      fontWeight: z.coerce.number().optional().describe("Font weight 100–900 — IGNORED if fontStyle is also provided; use one or the other, not both"),
+      fontStyle: z
+        .string()
+        .optional()
+        .describe(
+          "Font style string as shown in Figma (e.g. 'Regular', 'Bold Italic') — if provided, takes priority over fontWeight",
+        ),
+      fontWeight: z.coerce
+        .number()
+        .optional()
+        .describe("Font weight 100–900 — IGNORED if fontStyle is also provided; use one or the other, not both"),
       lineHeight: z
         .object({
           value: z.coerce.number().describe("Line height value (ignored when unit is AUTO)"),
-          unit: z.enum(["PIXELS", "PERCENT", "AUTO"]).describe("PIXELS = absolute px, PERCENT = % of font size, AUTO = font-native"),
+          unit: z
+            .enum(["PIXELS", "PERCENT", "AUTO"])
+            .describe("PIXELS = absolute px, PERCENT = % of font size, AUTO = font-native"),
         })
         .optional()
         .describe("Line height — e.g. {value:24, unit:'PIXELS'} or {value:0, unit:'AUTO'}"),
@@ -855,8 +921,16 @@ export function registerTextTools(server: McpServer): void {
         })
         .optional()
         .describe("Letter spacing — e.g. {value:0.5, unit:'PIXELS'}"),
-      textCase: z.enum(["ORIGINAL", "UPPER", "LOWER", "TITLE"]).optional().describe("Text case: ORIGINAL = no transform, UPPER = ALL CAPS, LOWER = lowercase, TITLE = Capitalize Each Word"),
-      textDecoration: z.enum(["NONE", "UNDERLINE", "STRIKETHROUGH"]).optional().describe("Text decoration: NONE, UNDERLINE, or STRIKETHROUGH"),
+      textCase: z
+        .enum(["ORIGINAL", "UPPER", "LOWER", "TITLE"])
+        .optional()
+        .describe(
+          "Text case: ORIGINAL = no transform, UPPER = ALL CAPS, LOWER = lowercase, TITLE = Capitalize Each Word",
+        ),
+      textDecoration: z
+        .enum(["NONE", "UNDERLINE", "STRIKETHROUGH"])
+        .optional()
+        .describe("Text decoration: NONE, UNDERLINE, or STRIKETHROUGH"),
       paragraphSpacing: z.coerce.number().optional().describe("Space between paragraphs in pixels (≥ 0)"),
       paragraphIndent: z.coerce.number().optional().describe("First-line indent within each paragraph in pixels (≥ 0)"),
     },

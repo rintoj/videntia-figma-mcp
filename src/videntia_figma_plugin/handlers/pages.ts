@@ -11,13 +11,11 @@ export async function createPage(params: CreatePageParams): Promise<CreatePageRe
   const name = params !== null && params !== undefined ? params.name : undefined;
 
   if (!name || !name.trim()) {
-    throw new Error('Missing or empty name parameter');
+    throw new Error("Missing or empty name parameter");
   }
 
   const trimmedName = name.trim();
-  const existing = figma.root.children.find(
-    (p) => p.name.toLowerCase() === trimmedName.toLowerCase(),
-  );
+  const existing = figma.root.children.find((p) => p.name.toLowerCase() === trimmedName.toLowerCase());
   if (existing) {
     throw new Error(`A page named "${existing.name}" already exists (ID: ${existing.id})`);
   }
@@ -47,11 +45,11 @@ export async function renamePage(params: RenamePageParams): Promise<RenamePageRe
   const name = params !== null && params !== undefined ? params.name : undefined;
 
   if (!pageId) {
-    throw new Error('Missing pageId parameter');
+    throw new Error("Missing pageId parameter");
   }
 
   if (!name || !name.trim()) {
-    throw new Error('Missing or empty name parameter');
+    throw new Error("Missing or empty name parameter");
   }
 
   const node = await figma.getNodeByIdAsync(pageId);
@@ -59,7 +57,7 @@ export async function renamePage(params: RenamePageParams): Promise<RenamePageRe
     throw new Error(`Page not found with ID: ${pageId}`);
   }
 
-  if (node.type !== 'PAGE') {
+  if (node.type !== "PAGE") {
     throw new Error(`Node ${pageId} is not a page (type: ${node.type})`);
   }
 
@@ -95,11 +93,11 @@ export async function deletePage(params: DeletePageParams): Promise<DeletePageRe
   const pageId = params !== null && params !== undefined ? params.pageId : undefined;
 
   if (!pageId) {
-    throw new Error('Missing pageId parameter');
+    throw new Error("Missing pageId parameter");
   }
 
   if (figma.root.children.length <= 1) {
-    throw new Error('Cannot delete the last remaining page');
+    throw new Error("Cannot delete the last remaining page");
   }
 
   const node = await figma.getNodeByIdAsync(pageId);
@@ -107,7 +105,7 @@ export async function deletePage(params: DeletePageParams): Promise<DeletePageRe
     throw new Error(`Page not found with ID: ${pageId}`);
   }
 
-  if (node.type !== 'PAGE') {
+  if (node.type !== "PAGE") {
     throw new Error(`Node ${pageId} is not a page (type: ${node.type})`);
   }
 

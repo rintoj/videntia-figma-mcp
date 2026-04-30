@@ -1,27 +1,21 @@
 // Batch actions handler — executes multiple commands in a single round-trip.
 // handleCommand is injected to avoid a circular module dependency.
 
-import { sendProgressUpdate } from '../utils/helpers';
-import type { BatchAction, BatchActionResult } from '../types';
+import { sendProgressUpdate } from "../utils/helpers";
+import type { BatchAction, BatchActionResult } from "../types";
 
 // Max depth for field path navigation to prevent abuse.
 // NOTE: This logic is mirrored in src/videntia_figma_mcp/utils/resolve-result-references.ts
 // which has comprehensive unit tests. Keep both implementations in sync.
 const RESOLVE_MAX_PATH_DEPTH = 10;
 
-export type HandleCommandFn = (
-  command: string,
-  params: Record<string, unknown>,
-) => Promise<unknown>;
+export type HandleCommandFn = (command: string, params: Record<string, unknown>) => Promise<unknown>;
 
 // Resolves $result[N].field references in action params against previous results.
-function resolveResultReferences(
-  params: unknown,
-  results: BatchActionResult[],
-): unknown {
+function resolveResultReferences(params: unknown, results: BatchActionResult[]): unknown {
   if (params === null || params === undefined) return params;
 
-  if (typeof params === 'string') {
+  if (typeof params === "string") {
     const refMatch = params.match(/^\$result\[(\d+)\](.*)$/);
     if (refMatch) {
       const refIndex = parseInt(refMatch[1], 10);
@@ -29,23 +23,21 @@ function resolveResultReferences(
 
       if (refIndex >= results.length) {
         throw new Error(
-          '$result[' +
+          "$result[" +
             refIndex +
-            '] references action that has not executed yet (only ' +
+            "] references action that has not executed yet (only " +
             results.length +
-            ' completed)',
+            " completed)",
         );
       }
 
       const referencedResult = results[refIndex];
       if (!referencedResult.success) {
         throw new Error(
-          '$result[' +
+          "$result[" +
             refIndex +
-            '] references a failed action: ' +
-            (referencedResult.error !== undefined
-              ? referencedResult.error
-              : 'unknown error'),
+            "] references a failed action: " +
+            (referencedResult.error !== undefined ? referencedResult.error : "unknown error"),
         );
       }
 
@@ -56,11 +48,11 @@ function resolveResultReferences(
         if (segments) {
           if (segments.length > RESOLVE_MAX_PATH_DEPTH) {
             throw new Error(
-              'Field path exceeds maximum depth of ' +
+              "Field path exceeds maximum depth of " +
                 RESOLVE_MAX_PATH_DEPTH +
-                ': $result[' +
+                ": $result[" +
                 refIndex +
-                ']' +
+                "]" +
                 fieldPath,
             );
           }
@@ -68,15 +60,10 @@ function resolveResultReferences(
             const segment = segments[s];
             if (value === null || value === undefined) {
               throw new Error(
-                "Cannot access '" +
-                  segment +
-                  "' on null/undefined in $result[" +
-                  refIndex +
-                  ']' +
-                  fieldPath,
+                "Cannot access '" + segment + "' on null/undefined in $result[" + refIndex + "]" + fieldPath,
               );
             }
-            if (segment.startsWith('[')) {
+            if (segment.startsWith("[")) {
               const arrIndex = parseInt(segment.slice(1, -1), 10);
               value = (value as unknown[])[arrIndex];
             } else {
@@ -98,14 +85,11 @@ function resolveResultReferences(
     });
   }
 
-  if (typeof params === 'object') {
+  if (typeof params === "object") {
     const resolved: Record<string, unknown> = {};
     const keys = Object.keys(params as object);
     for (let k = 0; k < keys.length; k++) {
-      resolved[keys[k]] = resolveResultReferences(
-        (params as Record<string, unknown>)[keys[k]],
-        results,
-      );
+      resolved[keys[k]] = resolveResultReferences((params as Record<string, unknown>)[keys[k]], results);
     }
     return resolved;
   }
@@ -117,10 +101,10 @@ export async function batchActions(
   params: Record<string, unknown>,
   handleCommand: HandleCommandFn,
 ): Promise<Record<string, unknown>> {
-  const rawActions = params !== null && params !== undefined ? params['actions'] : undefined;
+  const rawActions = params !== null && params !== undefined ? params["actions"] : undefined;
   const stopOnError =
-    params !== null && params !== undefined && params['stopOnError'] !== undefined
-      ? (params['stopOnError'] as boolean)
+    params !== null && params !== undefined && params["stopOnError"] !== undefined
+      ? (params["stopOnError"] as boolean)
       : false;
 
   if (!Array.isArray(rawActions) || rawActions.length === 0) {
@@ -132,9 +116,9 @@ export async function batchActions(
   let succeeded = 0;
   let failed = 0;
   const commandId =
-    params !== null && params !== undefined && params['commandId'] !== undefined
-      ? String(params['commandId'])
-      : 'batch';
+    params !== null && params !== undefined && params["commandId"] !== undefined
+      ? String(params["commandId"])
+      : "batch";
   const totalActions = actions.length;
   const shouldSendProgress = totalActions > 1;
   // Emit ~10 progress updates regardless of batch size (at least 1 per action for small batches)
@@ -144,12 +128,12 @@ export async function batchActions(
     const { action, params: actionParams } = actions[i];
 
     // Block recursive batch_actions calls
-    if (action === 'batch_actions') {
+    if (action === "batch_actions") {
       results.push({
         index: i,
         action,
         success: false,
-        error: 'Recursive batch_actions calls are not allowed',
+        error: "Recursive batch_actions calls are not allowed",
       });
       failed++;
       if (stopOnError) break;
@@ -171,8 +155,7 @@ export async function batchActions(
         index: i,
         action,
         success: false,
-        error:
-          error instanceof Error ? error.message : String(error),
+        error: error instanceof Error ? error.message : String(error),
       });
       failed++;
 
@@ -181,8 +164,8 @@ export async function batchActions(
         const progress = Math.round(((i + 1) / totalActions) * 100);
         sendProgressUpdate(
           commandId,
-          'batch_actions',
-          'in_progress',
+          "batch_actions",
+          "in_progress",
           progress,
           totalActions,
           i + 1,
@@ -198,8 +181,8 @@ export async function batchActions(
       const progress = Math.round(((i + 1) / totalActions) * 100);
       sendProgressUpdate(
         commandId,
-        'batch_actions',
-        'in_progress',
+        "batch_actions",
+        "in_progress",
         progress,
         totalActions,
         i + 1,

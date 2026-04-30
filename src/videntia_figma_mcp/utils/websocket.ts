@@ -185,7 +185,7 @@ async function waitForConnection(timeoutMs = 10000): Promise<void> {
   connectToFigma();
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {
-    if (ws?.readyState === WebSocket.OPEN) return;
+    if ((ws as WebSocket | null)?.readyState === WebSocket.OPEN) return;
     await new Promise((r) => setTimeout(r, 100));
   }
   throw new Error("Not connected to Figma");
@@ -291,9 +291,7 @@ function _sendCommandToFigma<T = unknown>(
       getOpenChannels()
         .then((channels) => {
           if (channels.length > 0) {
-            const channelList = channels
-              .map((ch) => `  - ${ch.channel} (${ch.fileName || "unknown file"})`)
-              .join("\n");
+            const channelList = channels.map((ch) => `  - ${ch.channel} (${ch.fileName || "unknown file"})`).join("\n");
             reject(
               new Error(
                 `No active Figma connection.\nAvailable channels:\n${channelList}\n\nUse join_channel with one of the above channel IDs to connect.`,

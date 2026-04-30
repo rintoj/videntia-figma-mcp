@@ -58,7 +58,7 @@ export async function captureUrl(options: CaptureOptions): Promise<CaptureResult
     // Strategy 2: data-figma-id attribute
     if (options.figmaId) {
       const element = page.locator(`[data-figma-id="${options.figmaId}"]`).first();
-      if (await element.count() > 0) {
+      if ((await element.count()) > 0) {
         const screenshot = await element.screenshot();
         const box = await element.boundingBox();
         return {

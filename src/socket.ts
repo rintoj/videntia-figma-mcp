@@ -1,7 +1,7 @@
 import http from "node:http";
 import { randomUUID } from "node:crypto";
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { WebSocketServer, WebSocket } from "ws";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
@@ -10,10 +10,10 @@ import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import { SERVER_CONFIG, SERVER_INSTRUCTIONS } from "./videntia_figma_mcp/config/config";
 import { registerTools } from "./videntia_figma_mcp/tools";
 import { registerPrompts } from "./videntia_figma_mcp/prompts";
-import { register, verifyEmail, login } from './auth/accounts'
-import { createToken, listTokens, revokeToken, validateKey } from './auth/tokens'
-import { signJwt, verifyJwt, parseCookies } from './auth/session'
-import { sendVerificationEmail } from './auth/email'
+import { register, verifyEmail, login } from "./auth/accounts";
+import { createToken, listTokens, revokeToken, validateKey } from "./auth/tokens";
+import { signJwt, verifyJwt, parseCookies } from "./auth/session";
+import { sendVerificationEmail } from "./auth/email";
 
 // Enhanced logging system
 const logger = {
@@ -26,24 +26,24 @@ const logger = {
 // ─── API key auth ─────────────────────────────────────────────────────────────
 
 // Set REQUIRE_API_KEY=true to enforce token auth; any other value disables it
-const REQUIRE_API_KEY = process.env.REQUIRE_API_KEY === "true"
+const REQUIRE_API_KEY = process.env.REQUIRE_API_KEY === "true";
 
 // API_KEY env var is now optional — used only as a local-dev fallback
 function isAuthorized(req: http.IncomingMessage): boolean {
-  if (!REQUIRE_API_KEY) return true
-  const envKey = process.env.API_KEY
+  if (!REQUIRE_API_KEY) return true;
+  const envKey = process.env.API_KEY;
   const authHeader = req.headers["authorization"];
   const url = new URL(req.url ?? "/", "http://localhost");
-  const keyFromQuery = url.searchParams.get("apiKey")
-  const incomingKey = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : keyFromQuery
+  const keyFromQuery = url.searchParams.get("apiKey");
+  const incomingKey = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : keyFromQuery;
 
-  if (!incomingKey) return false
+  if (!incomingKey) return false;
 
   // Fallback: match env var (local dev only)
-  if (envKey && incomingKey === envKey) return true
+  if (envKey && incomingKey === envKey) return true;
 
   // Primary: validate against DB
-  return validateKey(incomingKey) !== null
+  return validateKey(incomingKey) !== null;
 }
 
 function rejectUnauthorized(res: http.ServerResponse): void {
@@ -53,46 +53,46 @@ function rejectUnauthorized(res: http.ServerResponse): void {
 
 // ─── Session helpers ──────────────────────────────────────────────────────────
 
-const SESSION_SECRET = process.env.SESSION_SECRET ?? 'dev-secret-change-in-production'
+const SESSION_SECRET = process.env.SESSION_SECRET ?? "dev-secret-change-in-production";
 if (!process.env.SESSION_SECRET) {
-  logger.warn('SESSION_SECRET env var not set — using insecure default. Set it in production!')
+  logger.warn("SESSION_SECRET env var not set — using insecure default. Set it in production!");
 }
 
 function getSessionUser(req: http.IncomingMessage): { userId: string; email?: string } | null {
-  const cookieHeader = req.headers['cookie'] ?? ''
-  const cookies = parseCookies(cookieHeader)
-  const token = cookies['session']
-  if (!token) return null
-  return verifyJwt(token, SESSION_SECRET)
+  const cookieHeader = req.headers["cookie"] ?? "";
+  const cookies = parseCookies(cookieHeader);
+  const token = cookies["session"];
+  if (!token) return null;
+  return verifyJwt(token, SESSION_SECRET);
 }
 
 function setSessionCookie(res: http.ServerResponse, userId: string, email: string): void {
-  const token = signJwt({ userId, email }, SESSION_SECRET)
-  res.setHeader('Set-Cookie', `session=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${7 * 24 * 3600}`)
+  const token = signJwt({ userId, email }, SESSION_SECRET);
+  res.setHeader("Set-Cookie", `session=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${7 * 24 * 3600}`);
 }
 
 function clearSessionCookie(res: http.ServerResponse): void {
-  res.setHeader('Set-Cookie', 'session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0')
+  res.setHeader("Set-Cookie", "session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0");
 }
 
-const MAX_BODY_BYTES = 64 * 1024 // 64 KB
+const MAX_BODY_BYTES = 64 * 1024; // 64 KB
 
 async function readBody(req: http.IncomingMessage): Promise<string> {
   return new Promise((resolve, reject) => {
-    let body = ''
-    let size = 0
-    req.on('data', (chunk: Buffer) => {
-      size += chunk.length
+    let body = "";
+    let size = 0;
+    req.on("data", (chunk: Buffer) => {
+      size += chunk.length;
       if (size > MAX_BODY_BYTES) {
-        req.destroy()
-        reject(new Error('Request body too large'))
-        return
+        req.destroy();
+        reject(new Error("Request body too large"));
+        return;
       }
-      body += chunk
-    })
-    req.on('end', () => resolve(body))
-    req.on('error', reject)
-  })
+      body += chunk;
+    });
+    req.on("end", () => resolve(body));
+    req.on("error", reject);
+  });
 }
 
 // ─── Figma relay state ────────────────────────────────────────────────────────
@@ -171,12 +171,26 @@ function handleWebSocketMessage(ws: WebSocket, raw: string) {
     }
 
     ws.send(JSON.stringify({ type: "system", message: `Joined channel: ${channelName}`, channel: channelName }));
-    ws.send(JSON.stringify({ type: "system", message: { id: data.id, result: `Connected to channel: ${channelName}` }, channel: channelName }));
+    ws.send(
+      JSON.stringify({
+        type: "system",
+        message: { id: data.id, result: `Connected to channel: ${channelName}` },
+        channel: channelName,
+      }),
+    );
     stats.messagesSent += 2;
 
     channelClients.forEach((c) => {
       if (c !== ws && c.readyState === WebSocket.OPEN) {
-        c.send(JSON.stringify({ type: "system", event: "client_connected", message: "A new client has joined the channel", channel: channelName, clients: channelClients.size }));
+        c.send(
+          JSON.stringify({
+            type: "system",
+            event: "client_connected",
+            message: "A new client has joined the channel",
+            channel: channelName,
+            clients: channelClients.size,
+          }),
+        );
         stats.messagesSent++;
       }
     });
@@ -199,7 +213,13 @@ function handleWebSocketMessage(ws: WebSocket, raw: string) {
       }
     });
     if (broadcastCount === 0) {
-      ws.send(JSON.stringify({ type: "broadcast", message: { id: data.message?.id, error: "No Figma plugin is connected on this channel." }, channel: channelName }));
+      ws.send(
+        JSON.stringify({
+          type: "broadcast",
+          message: { id: data.message?.id, error: "No Figma plugin is connected on this channel." },
+          channel: channelName,
+        }),
+      );
       stats.messagesSent++;
     }
     logger.info(`Broadcasted message to ${broadcastCount} peer(s) in channel ${channelName}`);
@@ -209,7 +229,10 @@ function handleWebSocketMessage(ws: WebSocket, raw: string) {
   if (data.type === "progress_update") {
     const channelClients = channels.get(data.channel);
     channelClients?.forEach((c) => {
-      if (c.readyState === WebSocket.OPEN) { c.send(JSON.stringify(data)); stats.messagesSent++; }
+      if (c.readyState === WebSocket.OPEN) {
+        c.send(JSON.stringify(data));
+        stats.messagesSent++;
+      }
     });
   }
 }
@@ -242,131 +265,148 @@ const httpServer = http.createServer(async (reqOrig, res) => {
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Accept, Authorization, Mcp-Session-Id");
 
-  if (req.method === "OPTIONS") { res.writeHead(204); res.end(); return; }
+  if (req.method === "OPTIONS") {
+    res.writeHead(204);
+    res.end();
+    return;
+  }
 
   // ── Portal SPA (no auth required) ──────────────────────────────────────────
-  if (url.pathname.startsWith('/portal')) {
+  if (url.pathname.startsWith("/portal")) {
     try {
-      const html = readFileSync(join(process.cwd(), 'dist', 'portal', 'index.html'), 'utf-8')
-      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' })
-      res.end(html)
+      const html = readFileSync(join(process.cwd(), "dist", "portal", "index.html"), "utf-8");
+      res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+      res.end(html);
     } catch {
-      res.writeHead(503, { 'Content-Type': 'text/plain' })
-      res.end('Portal not built yet. Run: bun run build:portal')
+      res.writeHead(503, { "Content-Type": "text/plain" });
+      res.end("Portal not built yet. Run: bun run build:portal");
     }
-    return
+    return;
   }
 
   // ── Auth API (no bearer auth required) ────────────────────────────────────
-  if (url.pathname.startsWith('/api/auth')) {
-    res.setHeader('Content-Type', 'application/json')
+  if (url.pathname.startsWith("/api/auth")) {
+    res.setHeader("Content-Type", "application/json");
 
     // POST /api/auth/register
-    if (url.pathname === '/api/auth/register' && req.method === 'POST') {
+    if (url.pathname === "/api/auth/register" && req.method === "POST") {
       try {
-        const { email, password } = JSON.parse(await readBody(req))
-        if (!email || !password) throw new Error('email and password are required')
-        const { verifyToken } = await register(email, password)
-        await sendVerificationEmail(email, verifyToken)
-        res.writeHead(200)
-        res.end(JSON.stringify({ message: 'Registration successful. Check your email to verify your account.' }))
+        const { email, password } = JSON.parse(await readBody(req));
+        if (!email || !password) throw new Error("email and password are required");
+        const { verifyToken } = await register(email, password);
+        await sendVerificationEmail(email, verifyToken);
+        res.writeHead(200);
+        res.end(JSON.stringify({ message: "Registration successful. Check your email to verify your account." }));
       } catch (err) {
-        res.writeHead(400)
-        res.end(JSON.stringify({ error: err instanceof Error ? err.message : 'Registration failed' }))
+        res.writeHead(400);
+        res.end(JSON.stringify({ error: err instanceof Error ? err.message : "Registration failed" }));
       }
-      return
+      return;
     }
 
     // GET /api/auth/verify?token=
-    if (url.pathname === '/api/auth/verify' && req.method === 'GET') {
-      const token = url.searchParams.get('token') ?? ''
+    if (url.pathname === "/api/auth/verify" && req.method === "GET") {
+      const token = url.searchParams.get("token") ?? "";
       try {
-        await verifyEmail(token)
-        res.writeHead(302, { Location: '/portal#/login?verified=1' })
-        res.end()
+        await verifyEmail(token);
+        res.writeHead(302, { Location: "/portal#/login?verified=1" });
+        res.end();
       } catch {
-        res.writeHead(302, { Location: '/portal#/login?error=invalid-token' })
-        res.end()
+        res.writeHead(302, { Location: "/portal#/login?error=invalid-token" });
+        res.end();
       }
-      return
+      return;
     }
 
     // POST /api/auth/login
-    if (url.pathname === '/api/auth/login' && req.method === 'POST') {
+    if (url.pathname === "/api/auth/login" && req.method === "POST") {
       try {
-        const { email, password } = JSON.parse(await readBody(req))
-        const userId = await login(email, password)
-        setSessionCookie(res, userId, email)
-        res.writeHead(200)
-        res.end(JSON.stringify({ message: 'Logged in' }))
+        const { email, password } = JSON.parse(await readBody(req));
+        const userId = await login(email, password);
+        setSessionCookie(res, userId, email);
+        res.writeHead(200);
+        res.end(JSON.stringify({ message: "Logged in" }));
       } catch (err) {
-        res.writeHead(401)
-        res.end(JSON.stringify({ error: err instanceof Error ? err.message : 'Login failed' }))
+        res.writeHead(401);
+        res.end(JSON.stringify({ error: err instanceof Error ? err.message : "Login failed" }));
       }
-      return
+      return;
     }
 
     // POST /api/auth/logout
-    if (url.pathname === '/api/auth/logout' && req.method === 'POST') {
-      clearSessionCookie(res)
-      res.writeHead(200)
-      res.end(JSON.stringify({ message: 'Logged out' }))
-      return
+    if (url.pathname === "/api/auth/logout" && req.method === "POST") {
+      clearSessionCookie(res);
+      res.writeHead(200);
+      res.end(JSON.stringify({ message: "Logged out" }));
+      return;
     }
 
     // GET /api/auth/me
-    if (url.pathname === '/api/auth/me' && req.method === 'GET') {
-      const user = getSessionUser(req)
-      if (!user) { res.writeHead(401); res.end(JSON.stringify({ error: 'Not authenticated' })); return }
-      res.writeHead(200)
-      res.end(JSON.stringify({ userId: user.userId, email: user.email }))
-      return
+    if (url.pathname === "/api/auth/me" && req.method === "GET") {
+      const user = getSessionUser(req);
+      if (!user) {
+        res.writeHead(401);
+        res.end(JSON.stringify({ error: "Not authenticated" }));
+        return;
+      }
+      res.writeHead(200);
+      res.end(JSON.stringify({ userId: user.userId, email: user.email }));
+      return;
     }
   }
 
   // ── Token API (session auth required) ─────────────────────────────────────
-  if (url.pathname.startsWith('/api/tokens')) {
-    res.setHeader('Content-Type', 'application/json')
-    const user = getSessionUser(req)
-    if (!user) { res.writeHead(401); res.end(JSON.stringify({ error: 'Not authenticated' })); return }
+  if (url.pathname.startsWith("/api/tokens")) {
+    res.setHeader("Content-Type", "application/json");
+    const user = getSessionUser(req);
+    if (!user) {
+      res.writeHead(401);
+      res.end(JSON.stringify({ error: "Not authenticated" }));
+      return;
+    }
 
     // GET /api/tokens
-    if (url.pathname === '/api/tokens' && req.method === 'GET') {
-      res.writeHead(200)
-      res.end(JSON.stringify(listTokens(user.userId)))
-      return
+    if (url.pathname === "/api/tokens" && req.method === "GET") {
+      res.writeHead(200);
+      res.end(JSON.stringify(listTokens(user.userId)));
+      return;
     }
 
     // POST /api/tokens
-    if (url.pathname === '/api/tokens' && req.method === 'POST') {
+    if (url.pathname === "/api/tokens" && req.method === "POST") {
       try {
-        const { name } = JSON.parse(await readBody(req))
-        if (!name) throw new Error('name is required')
-        const { id, fullKey } = await createToken(user.userId, name)
-        res.writeHead(201)
-        res.end(JSON.stringify({ id, fullKey, message: 'Copy this key — it will not be shown again.' }))
+        const { name } = JSON.parse(await readBody(req));
+        if (!name) throw new Error("name is required");
+        const { id, fullKey } = await createToken(user.userId, name);
+        res.writeHead(201);
+        res.end(JSON.stringify({ id, fullKey, message: "Copy this key — it will not be shown again." }));
       } catch (err) {
-        res.writeHead(400)
-        res.end(JSON.stringify({ error: err instanceof Error ? err.message : 'Failed to create token' }))
+        res.writeHead(400);
+        res.end(JSON.stringify({ error: err instanceof Error ? err.message : "Failed to create token" }));
       }
-      return
+      return;
     }
 
     // DELETE /api/tokens/:id
-    const tokenIdMatch = url.pathname.match(/^\/api\/tokens\/([^/]+)$/)
-    if (tokenIdMatch && req.method === 'DELETE') {
-      revokeToken(tokenIdMatch[1], user.userId)
-      res.writeHead(200)
-      res.end(JSON.stringify({ message: 'Token revoked' }))
-      return
+    const tokenIdMatch = url.pathname.match(/^\/api\/tokens\/([^/]+)$/);
+    if (tokenIdMatch && req.method === "DELETE") {
+      revokeToken(tokenIdMatch[1], user.userId);
+      res.writeHead(200);
+      res.end(JSON.stringify({ message: "Token revoked" }));
+      return;
     }
   }
 
   // ── Bearer auth for MCP/WS/SSE endpoints ──────────────────────────────────
-  if (!isAuthorized(req)) { rejectUnauthorized(res); return; }
+  if (!isAuthorized(req)) {
+    rejectUnauthorized(res);
+    return;
+  }
 
   // Log all incoming requests for debugging
-  logger.info(`${req.method} ${url.pathname} accept="${req.headers["accept"]}" origin="${req.headers["origin"] ?? ""}"`)
+  logger.info(
+    `${req.method} ${url.pathname} accept="${req.headers["accept"]}" origin="${req.headers["origin"] ?? ""}"`,
+  );
 
   // OAuth discovery endpoints — required by MCP clients that probe for auth (e.g. Replit).
   // We return minimal metadata indicating this server requires no authentication.
@@ -388,7 +428,8 @@ const httpServer = http.createServer(async (reqOrig, res) => {
   if (url.pathname === "/channels") {
     cleanupDeadConnections();
     const list = [...channels.entries()].map(([name, clients]) => ({
-      channel: name, clients: clients.size,
+      channel: name,
+      clients: clients.size,
       fileName: channelMetadata.get(name)?.fileName ?? null,
       joinedAt: channelMetadata.get(name)?.joinedAt ?? null,
     }));
@@ -406,8 +447,16 @@ const httpServer = http.createServer(async (reqOrig, res) => {
     if (!origAccept.includes("application/json") || !origAccept.includes("text/event-stream")) {
       const REQUIRED_ACCEPT = "application/json, text/event-stream";
       // Patch parsed headers
-      try { Object.defineProperty(req.headers, "accept", { value: REQUIRED_ACCEPT, writable: true, configurable: true, enumerable: true }); }
-      catch { req.headers["accept"] = REQUIRED_ACCEPT; }
+      try {
+        Object.defineProperty(req.headers, "accept", {
+          value: REQUIRED_ACCEPT,
+          writable: true,
+          configurable: true,
+          enumerable: true,
+        });
+      } catch {
+        req.headers["accept"] = REQUIRED_ACCEPT;
+      }
       // Patch raw headers array used by Hono's Node→Web conversion
       const raw = req.rawHeaders;
       const idx = raw.findIndex((h, i) => i % 2 === 0 && h.toLowerCase() === "accept");
@@ -420,7 +469,9 @@ const httpServer = http.createServer(async (reqOrig, res) => {
 
     if (req.method === "POST") {
       let body = "";
-      req.on("data", (chunk) => { body += chunk; });
+      req.on("data", (chunk) => {
+        body += chunk;
+      });
       req.on("end", async () => {
         try {
           logger.info(`/mcp raw body(${body.length}): ${body.substring(0, 200)}`);
@@ -431,7 +482,10 @@ const httpServer = http.createServer(async (reqOrig, res) => {
           if (sessionId && streamableTransports.has(sessionId)) {
             transport = streamableTransports.get(sessionId)!;
           } else if (!sessionId && isInitializeRequest(parsedBody)) {
-            transport = new StreamableHTTPServerTransport({ sessionIdGenerator: () => randomUUID(), enableJsonResponse: true });
+            transport = new StreamableHTTPServerTransport({
+              sessionIdGenerator: () => randomUUID(),
+              enableJsonResponse: true,
+            });
             const mcpServer = createMcpServer();
             transport.onclose = () => {
               // Delay cleanup so follow-up requests (e.g. notifications/initialized) can still route here
@@ -449,7 +503,11 @@ const httpServer = http.createServer(async (reqOrig, res) => {
           await transport.handleRequest(req, res, parsedBody);
 
           // sessionId is set by handleRequest after processing initialize
-          if (isInitializeRequest(parsedBody) && transport.sessionId && !streamableTransports.has(transport.sessionId)) {
+          if (
+            isInitializeRequest(parsedBody) &&
+            transport.sessionId &&
+            !streamableTransports.has(transport.sessionId)
+          ) {
             streamableTransports.set(transport.sessionId, transport);
             logger.info(`Streamable MCP session stored: ${transport.sessionId}`);
           }
@@ -481,7 +539,8 @@ const httpServer = http.createServer(async (reqOrig, res) => {
         await transport.handleRequest(req, res);
         streamableTransports.delete(sessionId!);
       } else {
-        res.writeHead(404); res.end();
+        res.writeHead(404);
+        res.end();
       }
       return;
     }
@@ -492,7 +551,10 @@ const httpServer = http.createServer(async (reqOrig, res) => {
     const transport = new SSEServerTransport("/message", res);
     const mcpServer = createMcpServer();
     sseTransports.set(transport.sessionId, transport);
-    transport.onclose = () => { sseTransports.delete(transport.sessionId); logger.info(`MCP session closed: ${transport.sessionId}`); };
+    transport.onclose = () => {
+      sseTransports.delete(transport.sessionId);
+      logger.info(`MCP session closed: ${transport.sessionId}`);
+    };
     await mcpServer.connect(transport);
     logger.info(`MCP session started: ${transport.sessionId}`);
     return;
@@ -535,11 +597,17 @@ wss.on("connection", (ws, req) => {
   stats.messagesSent++;
 
   ws.on("message", (raw) => {
-    try { handleWebSocketMessage(ws, raw.toString()); }
-    catch (err) {
+    try {
+      handleWebSocketMessage(ws, raw.toString());
+    } catch (err) {
       stats.errors++;
       logger.error("Error handling message:", err);
-      ws.send(JSON.stringify({ type: "error", message: `Error processing message: ${err instanceof Error ? err.message : String(err)}` }));
+      ws.send(
+        JSON.stringify({
+          type: "error",
+          message: `Error processing message: ${err instanceof Error ? err.message : String(err)}`,
+        }),
+      );
     }
   });
 
@@ -552,11 +620,22 @@ wss.on("connection", (ws, req) => {
         clients.delete(ws);
         clients.forEach((c) => {
           if (c.readyState === WebSocket.OPEN) {
-            c.send(JSON.stringify({ type: "system", event: "client_disconnected", message: "A client has left the channel", channel: channelName, clients: clients.size }));
+            c.send(
+              JSON.stringify({
+                type: "system",
+                event: "client_disconnected",
+                message: "A client has left the channel",
+                channel: channelName,
+                clients: clients.size,
+              }),
+            );
             stats.messagesSent++;
           }
         });
-        if (clients.size === 0) { channels.delete(channelName); channelMetadata.delete(channelName); }
+        if (clients.size === 0) {
+          channels.delete(channelName);
+          channelMetadata.delete(channelName);
+        }
       }
     }
     stats.activeConnections = Math.max(0, stats.activeConnections - 1);

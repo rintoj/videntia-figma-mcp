@@ -1,14 +1,16 @@
 {
   "compilerOptions": {
     "target": "ES2017",
-    "lib": ["ES2017"],
+    "lib": ["ES2017", "DOM"],
     "module": "ESNext",
     "moduleResolution": "bundler",
     "strict": true,
     "isolatedModules": true,
     "skipLibCheck": true,
     "noEmit": true,
+    "jsx": "preserve",
+    "jsxImportSource": "preact",
     "types": ["@figma/plugin-typings"]
   },
-  "include": ["src/videntia_figma_plugin/**/*.ts"]
+  "include": ["src/videntia_figma_plugin/**/*.ts", "src/videntia_figma_plugin/**/*.tsx"]
 }

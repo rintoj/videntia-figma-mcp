@@ -8,16 +8,13 @@ export interface SandpackServerResult {
 }
 
 const COMMON_CDN_PACKAGES: Record<string, string> = {
-  "react": "https://esm.sh/react@18",
+  react: "https://esm.sh/react@18",
   "react-dom": "https://esm.sh/react-dom@18",
   "react-dom/client": "https://esm.sh/react-dom@18/client",
   "react/jsx-runtime": "https://esm.sh/react@18/jsx-runtime",
 };
 
-export async function startSandpackServer(
-  files: FileMap,
-  entry: string
-): Promise<SandpackServerResult> {
+export async function startSandpackServer(files: FileMap, entry: string): Promise<SandpackServerResult> {
   const transpiler = new Bun.Transpiler({
     loader: "tsx",
     target: "browser",

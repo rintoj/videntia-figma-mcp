@@ -1,4 +1,4 @@
-import { serializeNodes } from './node-serializer';
+import { serializeNodes } from "./node-serializer";
 
 export async function getFileKey(): Promise<Record<string, unknown>> {
   const fileKey = figma.fileKey;
@@ -76,13 +76,15 @@ export async function searchNodes(options: SearchNodesOptions): Promise<unknown>
   }
 
   const queries = Array.isArray(query) ? query : [query];
-  const lowerQueries = queries.map(function(q) { return q.toLowerCase(); });
+  const lowerQueries = queries.map(function (q) {
+    return q.toLowerCase();
+  });
 
   let root: BaseNode;
   if (nodeId) {
     const found = await figma.getNodeByIdAsync(nodeId);
     if (!found) {
-      throw new Error('Node not found with ID: ' + nodeId);
+      throw new Error("Node not found with ID: " + nodeId);
     }
     root = found;
   } else {
@@ -95,13 +97,15 @@ export async function searchNodes(options: SearchNodesOptions): Promise<unknown>
   const walk = (node: BaseNode): void => {
     if (matchedIds.length >= limit) return;
     const lowerName = node.name.toLowerCase();
-    const nameMatch = lowerQueries.some(function(q) { return lowerName.indexOf(q) !== -1; });
+    const nameMatch = lowerQueries.some(function (q) {
+      return lowerName.indexOf(q) !== -1;
+    });
     const idMatch = queries.indexOf(node.id) !== -1;
     const typeMatch = !types || types.length === 0 || types.includes(node.type);
     if ((nameMatch || idMatch) && typeMatch) {
       matchedIds.push(node.id);
     }
-    if ('children' in node) {
+    if ("children" in node) {
       for (const child of (node as ChildrenMixin).children) {
         if (matchedIds.length >= limit) break;
         walk(child);
@@ -124,7 +128,7 @@ export async function searchNodes(options: SearchNodesOptions): Promise<unknown>
 export async function saveVersionHistory(params: Record<string, unknown>): Promise<Record<string, unknown>> {
   const title = params.title as string;
   if (!title) {
-    throw new Error('title is required');
+    throw new Error("title is required");
   }
   const description = params.description as string | undefined;
   const result = description

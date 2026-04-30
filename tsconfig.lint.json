@@ -2,5 +2,6 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "rootDir": "."
-  }
+  },
+  "exclude": ["node_modules", "dist", "src/videntia_figma_plugin", "src/portal"]
 }

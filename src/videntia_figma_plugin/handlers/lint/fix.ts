@@ -1,5 +1,5 @@
-import type { Violation, LintCategories, LookupMaps } from './types';
-import { colorDist, isSemanticMatch } from './helpers';
+import type { Violation, LintCategories, LookupMaps } from "./types";
+import { colorDist, isSemanticMatch } from "./helpers";
 import {
   COLOR_EXACT_THRESHOLD,
   COLOR_NEAR_THRESHOLD,
@@ -7,8 +7,8 @@ import {
   FLOAT_SEMANTIC_KEYWORDS,
   DEVICE_SIZES,
   DIM_TOLERANCE,
-} from './constants';
-import type { ColorVarEntry, FloatVarEntry } from './types';
+} from "./constants";
+import type { ColorVarEntry, FloatVarEntry } from "./types";
 
 // ── Color variable matching ───────────────────────────────────────────────────
 
@@ -62,7 +62,10 @@ export function findBestFloatVar(
     let hasSemantic = false;
     if (kws) {
       for (let fki = 0; fki < kws.length; fki++) {
-        if (entry.nameLower.indexOf(kws[fki]) !== -1) { hasSemantic = true; break; }
+        if (entry.nameLower.indexOf(kws[fki]) !== -1) {
+          hasSemantic = true;
+          break;
+        }
       }
     }
 
@@ -89,11 +92,7 @@ export function findBestFloatVar(
 
 // ── Fix pass ──────────────────────────────────────────────────────────────────
 
-export async function applyFixes(
-  violations: Violation[],
-  categories: LintCategories,
-  maps: LookupMaps,
-): Promise<void> {
+export async function applyFixes(violations: Violation[], categories: LintCategories, maps: LookupMaps): Promise<void> {
   let DEVICE_FIX_SPECS = DEVICE_SIZES;
   let DIM_TOL = DIM_TOLERANCE;
 
@@ -106,11 +105,11 @@ export async function applyFixes(
     fv.fixed = false;
 
     let fvCat = fv.category;
-    let isRootFrameViol  = fvCat === 'rootFrame';
-    let isColorViol      = fvCat === 'backgroundFills' || fvCat === 'iconColors' || fvCat === 'strokesBorders';
-    let isSpacingViol    = fvCat === 'spacing';
-    let isRadiusViol     = fvCat === 'borderRadius';
-    let isTypographyViol = fvCat === 'typography';
+    let isRootFrameViol = fvCat === "rootFrame";
+    let isColorViol = fvCat === "backgroundFills" || fvCat === "iconColors" || fvCat === "strokesBorders";
+    let isSpacingViol = fvCat === "spacing";
+    let isRadiusViol = fvCat === "borderRadius";
+    let isTypographyViol = fvCat === "typography";
     if (!isRootFrameViol && !isColorViol && !isSpacingViol && !isRadiusViol && !isTypographyViol) continue;
 
     // Resolve node (cached per nodeId)
@@ -118,7 +117,9 @@ export async function applyFixes(
     if (fv.nodeId === lastFixNodeId) {
       fixNode = lastFixNode;
     } else {
-      try { fixNode = await figma.getNodeByIdAsync(fv.nodeId); } catch (_e) {}
+      try {
+        fixNode = await figma.getNodeByIdAsync(fv.nodeId);
+      } catch (_e) {}
       lastFixNodeId = fv.nodeId;
       lastFixNode = fixNode;
     }
@@ -126,25 +127,23 @@ export async function applyFixes(
 
     // ── Root frame sizing fixes ──
     if (isRootFrameViol) {
-      if (fv.property === 'layoutSizingHorizontal') {
+      if (fv.property === "layoutSizingHorizontal") {
         try {
-          (fixNode as FrameNode).layoutSizingHorizontal = 'FIXED';
+          (fixNode as FrameNode).layoutSizingHorizontal = "FIXED";
           fv.fixed = true;
-          fv.fixedWith = 'layoutSizingHorizontal = FIXED';
+          fv.fixedWith = "layoutSizingHorizontal = FIXED";
           categories.rootFrame.unbound = Math.max(0, categories.rootFrame.unbound - 1);
           categories.rootFrame.bound++;
         } catch (_e) {}
-
-      } else if (fv.property === 'layoutSizingVertical') {
+      } else if (fv.property === "layoutSizingVertical") {
         try {
-          (fixNode as FrameNode).layoutSizingVertical = 'HUG';
+          (fixNode as FrameNode).layoutSizingVertical = "HUG";
           fv.fixed = true;
-          fv.fixedWith = 'layoutSizingVertical = HUG';
+          fv.fixedWith = "layoutSizingVertical = HUG";
           categories.rootFrame.unbound = Math.max(0, categories.rootFrame.unbound - 1);
           categories.rootFrame.bound++;
         } catch (_e) {}
-
-      } else if (fv.property === 'minHeight') {
+      } else if (fv.property === "minHeight") {
         try {
           let fwWidth = (fixNode as FrameNode).width !== undefined ? (fixNode as FrameNode).width : 0;
           let fwExpected = 0;
@@ -157,19 +156,19 @@ export async function applyFixes(
           if (fwExpected > 0) {
             (fixNode as FrameNode).minHeight = fwExpected;
             fv.fixed = true;
-            fv.fixedWith = 'minHeight = ' + fwExpected + 'px';
+            fv.fixedWith = "minHeight = " + fwExpected + "px";
             categories.rootFrame.unbound = Math.max(0, categories.rootFrame.unbound - 1);
             categories.rootFrame.bound++;
           }
         } catch (_e) {}
       }
 
-    // ── Color / fill / stroke fixes ──
+      // ── Color / fill / stroke fixes ──
     } else if (isColorViol) {
       let propPartsMatch = fv.property.match(/^(fills|strokes)\[(\d+)\]$/);
       if (propPartsMatch) {
-        let propName = propPartsMatch[1] as 'fills' | 'strokes';
-        let propIdx  = parseInt(propPartsMatch[2], 10);
+        let propName = propPartsMatch[1] as "fills" | "strokes";
+        let propIdx = parseInt(propPartsMatch[2], 10);
         try {
           let paints = (fixNode as GeometryMixin)[propName] as ReadonlyArray<Paint>;
           if (paints && Array.isArray(paints) && paints.length > propIdx) {
@@ -181,8 +180,8 @@ export async function applyFixes(
               paintsCopy.splice(propIdx, 1);
               (fixNode as GeometryMixin)[propName] = paintsCopy as any;
               fv.fixed = true;
-              fv.fixedWith = 'removed 0% opacity ' + (propName === 'fills' ? 'fill' : 'stroke');
-              let colorCats = categories as unknown as Record<string, import('./types').CategoryStats>;
+              fv.fixedWith = "removed 0% opacity " + (propName === "fills" ? "fill" : "stroke");
+              let colorCats = categories as unknown as Record<string, import("./types").CategoryStats>;
               colorCats[fvCat].unbound = Math.max(0, colorCats[fvCat].unbound - 1);
               colorCats[fvCat].total = Math.max(0, colorCats[fvCat].total - 1);
               // Adjust indices for subsequent violations on the same node/property
@@ -193,7 +192,7 @@ export async function applyFixes(
                   if (adjMatch && adjMatch[1] === propName) {
                     let adjPropIdx = parseInt(adjMatch[2], 10);
                     if (adjPropIdx > propIdx) {
-                      adjV.property = propName + '[' + (adjPropIdx - 1) + ']';
+                      adjV.property = propName + "[" + (adjPropIdx - 1) + "]";
                     }
                   }
                 }
@@ -201,17 +200,21 @@ export async function applyFixes(
               continue;
             }
 
-            if (paint && paint.type === 'SOLID' && (paint as SolidPaint).color) {
+            if (paint && paint.type === "SOLID" && (paint as SolidPaint).color) {
               let bestEntry = findBestColorVar((paint as SolidPaint).color, fvCat, maps.colorVarEntries);
               if (bestEntry) {
                 let varObj = maps.variableMap[bestEntry.id];
                 if (varObj) {
                   let paintsCopy = (paints as Paint[]).slice();
-                  paintsCopy[propIdx] = figma.variables.setBoundVariableForPaint(paintsCopy[propIdx] as SolidPaint, 'color', varObj);
+                  paintsCopy[propIdx] = figma.variables.setBoundVariableForPaint(
+                    paintsCopy[propIdx] as SolidPaint,
+                    "color",
+                    varObj,
+                  );
                   (fixNode as GeometryMixin)[propName] = paintsCopy as any;
                   fv.fixed = true;
                   fv.fixedWith = varObj.name;
-                  let colorCats = categories as unknown as Record<string, import('./types').CategoryStats>;
+                  let colorCats = categories as unknown as Record<string, import("./types").CategoryStats>;
                   colorCats[fvCat].unbound = Math.max(0, colorCats[fvCat].unbound - 1);
                   colorCats[fvCat].bound++;
                 }
@@ -221,17 +224,20 @@ export async function applyFixes(
         } catch (_e) {}
       }
 
-    // ── Spacing fixes ──
+      // ── Spacing fixes ──
     } else if (isSpacingViol) {
       let spacingProp = fv.property;
       try {
         let rawSpacing = (fixNode as FrameNode)[spacingProp as keyof FrameNode] as number;
-        if (typeof rawSpacing === 'number') {
-          let bestSpacingVar = findBestFloatVar(rawSpacing, 'spacing', maps.floatVarEntries);
+        if (typeof rawSpacing === "number") {
+          let bestSpacingVar = findBestFloatVar(rawSpacing, "spacing", maps.floatVarEntries);
           if (bestSpacingVar) {
             let spacingVarObj = maps.variableMap[bestSpacingVar.id];
             if (spacingVarObj) {
-              (fixNode as SceneNode & { setBoundVariable(field: string, variable: Variable): void }).setBoundVariable(spacingProp, spacingVarObj);
+              (fixNode as SceneNode & { setBoundVariable(field: string, variable: Variable): void }).setBoundVariable(
+                spacingProp,
+                spacingVarObj,
+              );
               fv.fixed = true;
               fv.fixedWith = spacingVarObj.name;
               categories.spacing.unbound = Math.max(0, categories.spacing.unbound - 1);
@@ -241,17 +247,20 @@ export async function applyFixes(
         }
       } catch (_e) {}
 
-    // ── Border radius fixes ──
+      // ── Border radius fixes ──
     } else if (isRadiusViol) {
       let radiusProp = fv.property;
       try {
         let rawRadius = (fixNode as RectangleNode)[radiusProp as keyof RectangleNode] as number;
-        if (typeof rawRadius === 'number') {
-          let bestRadiusVar = findBestFloatVar(rawRadius, 'borderRadius', maps.floatVarEntries);
+        if (typeof rawRadius === "number") {
+          let bestRadiusVar = findBestFloatVar(rawRadius, "borderRadius", maps.floatVarEntries);
           if (bestRadiusVar) {
             let radiusVarObj = maps.variableMap[bestRadiusVar.id];
             if (radiusVarObj) {
-              (fixNode as SceneNode & { setBoundVariable(field: string, variable: Variable): void }).setBoundVariable(radiusProp, radiusVarObj);
+              (fixNode as SceneNode & { setBoundVariable(field: string, variable: Variable): void }).setBoundVariable(
+                radiusProp,
+                radiusVarObj,
+              );
               fv.fixed = true;
               fv.fixedWith = radiusVarObj.name;
               categories.borderRadius.unbound = Math.max(0, categories.borderRadius.unbound - 1);
@@ -261,15 +270,15 @@ export async function applyFixes(
         }
       } catch (_e) {}
 
-    // ── Typography fixes ──
-    } else if (isTypographyViol && fv.property === 'textStyleId') {
+      // ── Typography fixes ──
+    } else if (isTypographyViol && fv.property === "textStyleId") {
       try {
         let tnFontName = (fixNode as TextNode).fontName;
         let tnFontSize = (fixNode as TextNode).fontSize;
         if (tnFontName && tnFontName !== figma.mixed && tnFontSize && tnFontSize !== figma.mixed) {
           let fn = tnFontName as FontName;
           let fs = tnFontSize as number;
-          let tsKey = fn.family.toLowerCase() + '|' + fn.style.toLowerCase() + '|' + Math.round(fs);
+          let tsKey = fn.family.toLowerCase() + "|" + fn.style.toLowerCase() + "|" + Math.round(fs);
           let matchingStyle = maps.textStyleExactMap[tsKey];
           if (matchingStyle) {
             (fixNode as TextNode).textStyleId = matchingStyle.id;
@@ -278,12 +287,15 @@ export async function applyFixes(
             categories.typography.unbound = Math.max(0, categories.typography.unbound - 1);
             categories.typography.bound++;
           } else {
-            let bestFontSizeVar = findBestFloatVar(fs, 'typography', maps.floatVarEntries);
+            let bestFontSizeVar = findBestFloatVar(fs, "typography", maps.floatVarEntries);
             if (bestFontSizeVar) {
               let fontSizeVarObj = maps.variableMap[bestFontSizeVar.id];
               if (fontSizeVarObj) {
-                (fixNode as SceneNode & { setBoundVariable(field: string, variable: Variable): void }).setBoundVariable('fontSize', fontSizeVarObj);
-                fv.message = fv.message + ' (fontSize bound to ' + fontSizeVarObj.name + ')';
+                (fixNode as SceneNode & { setBoundVariable(field: string, variable: Variable): void }).setBoundVariable(
+                  "fontSize",
+                  fontSizeVarObj,
+                );
+                fv.message = fv.message + " (fontSize bound to " + fontSizeVarObj.name + ")";
                 // Do NOT set fv.fixed = true — text style violation still pending
               }
             }

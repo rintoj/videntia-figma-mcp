@@ -145,7 +145,6 @@ describe("Selection and Focus Commands", () => {
       })),
       success: true,
     });
-
   });
 
   it("should focus on a specific node", async () => {
@@ -167,7 +166,6 @@ describe("Selection and Focus Commands", () => {
     expect(result.selectedCount).toBe(2);
     expect(result.selectedNodes).toHaveLength(2);
   });
-
 });
 
 describe("Scan Commands", () => {
