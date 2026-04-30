@@ -45,7 +45,11 @@ export function toPascalCase(name: string): string {
  * "Show Icon" → "showIcon", "Size" → "size", "show-icon" → "showIcon"
  */
 export function toCamelCase(name: string): string {
-  const parts = name.split(/[\s\-_]+/).filter((s) => s.length > 0);
+  const parts = name
+    .split(/[\s\-_]+/)
+    .filter((s) => s.length > 0)
+    .map((s) => s.replace(/[^a-zA-Z0-9]/g, ""))
+    .filter((s) => s.length > 0);
   if (parts.length === 0) return name;
   return parts
     .map((s, i) => (i === 0 ? s.charAt(0).toLowerCase() + s.slice(1) : s.charAt(0).toUpperCase() + s.slice(1)))
@@ -142,8 +146,8 @@ function buildTailwindClasses(node: FigmaNodeData, parentLayoutMode?: string): s
   // Clip content
   if (node.clipsContent) classes.push("overflow-hidden");
 
-  // Absolute positioning
-  if (node.layoutPositioning === "ABSOLUTE") {
+  // Absolute positioning: explicit ABSOLUTE override within auto-layout, OR all children of NONE-layout parents
+  if (node.layoutPositioning === "ABSOLUTE" || parentLayoutMode === "NONE") {
     classes.push("absolute");
     if (node.x !== undefined) classes.push(`left-[${node.x}px]`);
     if (node.y !== undefined) classes.push(`top-[${node.y}px]`);
@@ -152,14 +156,19 @@ function buildTailwindClasses(node: FigmaNodeData, parentLayoutMode?: string): s
   // --- Sizing ---
   // Cross-axis FILL is the CSS flexbox default (align-items: stretch) — omit it.
   // Primary-axis FILL = flex-1. w-full/h-full only when explicitly needed.
+  // NONE-layout parent = absolute positioning context; FILL means fill the parent frame.
   const isCrossAxisH = parentLayoutMode === "VERTICAL";   // horizontal is cross-axis of vertical parent
   const isCrossAxisV = parentLayoutMode === "HORIZONTAL"; // vertical is cross-axis of horizontal parent
+  const isNoneLayout = parentLayoutMode === "NONE";
 
   if (node.layoutSizingHorizontal === "FIXED" && node.width !== undefined) {
     classes.push(`w-[${node.width}px]`);
   } else if (node.layoutSizingHorizontal === "FILL") {
-    if (isCrossAxisH) {
-      // Cross-axis stretch is CSS default — omit (don't emit flex-1 or w-full)
+    if (isNoneLayout) {
+      classes.push("w-full");
+    } else if (isCrossAxisH) {
+      // Cross-axis FILL in a vertical parent: w-full needed because parent may use items-start
+      classes.push("w-full");
     } else {
       classes.push("flex-1");
     }
@@ -169,8 +178,11 @@ function buildTailwindClasses(node: FigmaNodeData, parentLayoutMode?: string): s
   if (node.layoutSizingVertical === "FIXED" && node.height !== undefined) {
     classes.push(`h-[${node.height}px]`);
   } else if (node.layoutSizingVertical === "FILL") {
-    if (isCrossAxisV) {
-      // Cross-axis stretch is CSS default — omit
+    if (isNoneLayout) {
+      classes.push("h-full");
+    } else if (isCrossAxisV) {
+      // Cross-axis FILL in a horizontal parent: h-full needed because parent may use items-start
+      classes.push("h-full");
     } else if (node.layoutSizingHorizontal === "FILL" && !isCrossAxisH) {
       // Both axes FILL: horizontal already emitted flex-1, use h-full for vertical
       classes.push("h-full");
@@ -184,34 +196,32 @@ function buildTailwindClasses(node: FigmaNodeData, parentLayoutMode?: string): s
   const pr = node.paddingRight ?? 0;
   const pb = node.paddingBottom ?? 0;
   const pl = node.paddingLeft ?? 0;
-  const hasPadding = pt > 0 || pr > 0 || pb > 0 || pl > 0;
+  // A side is "active" if it has a non-zero value OR a token binding (binding overrides zero raw value)
+  const ptActive = pt > 0 || !!bindings["paddingTop"];
+  const prActive = pr > 0 || !!bindings["paddingRight"];
+  const pbActive = pb > 0 || !!bindings["paddingBottom"];
+  const plActive = pl > 0 || !!bindings["paddingLeft"];
+  const hasPadding = ptActive || prActive || pbActive || plActive;
 
   if (hasPadding) {
     if (pt === pr && pr === pb && pb === pl) {
-      if (bindings["paddingTop"]) {
-        classes.push(`p-${normalizeName(bindings["paddingTop"])}`);
-      } else {
-        classes.push(`p-[${pt}px]`);
-      }
+      // Uniform: prefer paddingTop binding (or any available binding) as shorthand
+      const uniBinding = bindings["paddingTop"] || bindings["paddingRight"] || bindings["paddingBottom"] || bindings["paddingLeft"];
+      classes.push(uniBinding ? `p-${normalizeName(uniBinding)}` : `p-[${pt}px]`);
     } else if (pt === pb && pl === pr) {
-      if (bindings["paddingLeft"]) {
-        classes.push(`px-${normalizeName(bindings["paddingLeft"])}`);
-      } else {
-        classes.push(`px-[${pl}px]`);
+      // Symmetric: px + py
+      if (plActive) {
+        classes.push(bindings["paddingLeft"] ? `px-${normalizeName(bindings["paddingLeft"])}` : `px-[${pl}px]`);
       }
-      if (bindings["paddingTop"]) {
-        classes.push(`py-${normalizeName(bindings["paddingTop"])}`);
-      } else {
-        classes.push(`py-[${pt}px]`);
+      if (ptActive) {
+        classes.push(bindings["paddingTop"] ? `py-${normalizeName(bindings["paddingTop"])}` : `py-[${pt}px]`);
       }
     } else {
-      if (pt > 0) classes.push(bindings["paddingTop"] ? `pt-${normalizeName(bindings["paddingTop"])}` : `pt-[${pt}px]`);
-      if (pr > 0)
-        classes.push(bindings["paddingRight"] ? `pr-${normalizeName(bindings["paddingRight"])}` : `pr-[${pr}px]`);
-      if (pb > 0)
-        classes.push(bindings["paddingBottom"] ? `pb-${normalizeName(bindings["paddingBottom"])}` : `pb-[${pb}px]`);
-      if (pl > 0)
-        classes.push(bindings["paddingLeft"] ? `pl-${normalizeName(bindings["paddingLeft"])}` : `pl-[${pl}px]`);
+      // Individual sides — emit a class for each active side
+      if (ptActive) classes.push(bindings["paddingTop"] ? `pt-${normalizeName(bindings["paddingTop"])}` : `pt-[${pt}px]`);
+      if (prActive) classes.push(bindings["paddingRight"] ? `pr-${normalizeName(bindings["paddingRight"])}` : `pr-[${pr}px]`);
+      if (pbActive) classes.push(bindings["paddingBottom"] ? `pb-${normalizeName(bindings["paddingBottom"])}` : `pb-[${pb}px]`);
+      if (plActive) classes.push(bindings["paddingLeft"] ? `pl-${normalizeName(bindings["paddingLeft"])}` : `pl-[${pl}px]`);
     }
   }
 
@@ -247,10 +257,11 @@ function buildTailwindClasses(node: FigmaNodeData, parentLayoutMode?: string): s
           }
           // Other gradients (no direction, radial, angular, diamond) → handled by buildStyleAttribute
         } else {
+          const isVector = node.type === "VECTOR";
           if (fillBinding) {
-            classes.push(`bg-${normalizeName(fillBinding)}`);
+            classes.push(`${isVector ? "fill" : "bg"}-${normalizeName(fillBinding)}`);
           } else if (fill.color) {
-            classes.push(`bg-[${fill.color}]${fillOpacitySuffix}`);
+            classes.push(`${isVector ? "fill" : "bg"}-[${fill.color}]${fillOpacitySuffix}`);
           }
         }
       }
@@ -260,7 +271,10 @@ function buildTailwindClasses(node: FigmaNodeData, parentLayoutMode?: string): s
   // Strokes (all strokes)
   if (node.strokes && node.strokes.length > 0) {
     if (node.strokeWeight) {
-      classes.push(`border-[${node.strokeWeight}px]`);
+      const sw = Math.round(node.strokeWeight * 100) / 100;
+      classes.push(`border-[${sw}px]`);
+    } else {
+      classes.push("border");
     }
     for (let i = 0; i < node.strokes.length; i++) {
       const stroke = node.strokes[i];
@@ -279,27 +293,49 @@ function buildTailwindClasses(node: FigmaNodeData, parentLayoutMode?: string): s
       // Text style covers font size, weight, line height, letter spacing, font family
       classes.push(`text-${normalizeName(node.textStyleName)}`);
     } else {
-      // Individual typography properties
-      if (node.fontSize) classes.push(`text-[${node.fontSize}px]`);
-      if (node.fontWeight !== undefined && node.fontWeight !== 400) {
+      // Individual typography properties — prefer token bindings over raw values
+      if (node.fontSize) {
+        if (bindings["fontSize/0"]) {
+          classes.push(`text-${normalizeName(bindings["fontSize/0"])}`);
+        } else {
+          classes.push(`text-[${node.fontSize}px]`);
+        }
+      }
+      if (bindings["fontWeight/0"]) {
+        classes.push(`font-${normalizeName(bindings["fontWeight/0"])}`);
+      } else if (node.fontWeight !== undefined && node.fontWeight !== 400) {
         classes.push(fontWeightClass(node.fontWeight));
       }
-      if (node.lineHeight !== undefined) {
+      if (bindings["lineHeight/0"]) {
+        const normalized = normalizeName(bindings["lineHeight/0"]);
+        // Avoid double-prefix: if token is "leading/7" → "leading-7", don't emit "leading-leading-7"
+        classes.push(normalized.startsWith("leading-") ? normalized : `leading-${normalized}`);
+      } else if (node.lineHeight !== undefined) {
         if (node.lineHeightUnit === "percent") {
           classes.push(`leading-[${node.lineHeight}%]`);
         } else {
           classes.push(`leading-[${node.lineHeight}px]`);
         }
       }
-      if (node.letterSpacing !== undefined && node.letterSpacing !== 0) {
+      if (bindings["letterSpacing/0"]) {
+        const normalized = normalizeName(bindings["letterSpacing/0"]);
+        // Avoid double-prefix: if token is "tracking/-2" → "tracking--2", don't emit "tracking-tracking--2"
+        classes.push(normalized.startsWith("tracking-") ? normalized : `tracking-${normalized}`);
+      } else if (node.letterSpacing !== undefined && node.letterSpacing !== 0) {
         if (node.letterSpacingUnit === "percent") {
           classes.push(`tracking-[${node.letterSpacing / 100}em]`);
         } else {
-          classes.push(`tracking-[${node.letterSpacing}px]`);
+          // Round to avoid floating-point noise (e.g. -0.6000000238418579)
+          const rounded = Math.round(node.letterSpacing * 100) / 100;
+          classes.push(`tracking-[${rounded}px]`);
         }
       }
       if (node.fontFamily && node.fontFamily !== "Inter") {
-        classes.push(`font-['${node.fontFamily.replace(/ /g, "_")}']`);
+        if (bindings["fontFamily/0"]) {
+          classes.push(`font-${normalizeName(bindings["fontFamily/0"])}`);
+        } else {
+          classes.push(`font-['${node.fontFamily.replace(/ /g, "_")}']`);
+        }
       }
     }
 
@@ -319,8 +355,13 @@ function buildTailwindClasses(node: FigmaNodeData, parentLayoutMode?: string): s
   }
 
   // --- Corners ---
+  if (node.type === "ELLIPSE") {
+    classes.push("rounded-full");
+  }
   const crBinding = bindings["cornerRadius"];
-  if (node.cornerRadius !== undefined && node.cornerRadius > 0) {
+  if (node.type === "ELLIPSE") {
+    classes.push("rounded-full");
+  } else if (node.cornerRadius !== undefined && node.cornerRadius > 0) {
     if (crBinding) {
       classes.push(`rounded-${normalizeName(crBinding)}`);
     } else {
@@ -333,10 +374,19 @@ function buildTailwindClasses(node: FigmaNodeData, parentLayoutMode?: string): s
     node.bottomRightRadius !== undefined ||
     node.bottomLeftRadius !== undefined
   ) {
-    if (node.topLeftRadius) classes.push(`rounded-tl-[${node.topLeftRadius}px]`);
-    if (node.topRightRadius) classes.push(`rounded-tr-[${node.topRightRadius}px]`);
-    if (node.bottomRightRadius) classes.push(`rounded-br-[${node.bottomRightRadius}px]`);
-    if (node.bottomLeftRadius) classes.push(`rounded-bl-[${node.bottomLeftRadius}px]`);
+    const tlBinding = bindings["topLeftRadius"];
+    const trBinding = bindings["topRightRadius"];
+    const brBinding = bindings["bottomRightRadius"];
+    const blBinding = bindings["bottomLeftRadius"];
+    // If all four corners have the same binding, collapse to a single rounded- class
+    if (tlBinding && tlBinding === trBinding && trBinding === brBinding && brBinding === blBinding) {
+      classes.push(`rounded-${normalizeName(tlBinding)}`);
+    } else {
+      if (node.topLeftRadius) classes.push(tlBinding ? `rounded-tl-${normalizeName(tlBinding)}` : `rounded-tl-[${node.topLeftRadius}px]`);
+      if (node.topRightRadius) classes.push(trBinding ? `rounded-tr-${normalizeName(trBinding)}` : `rounded-tr-[${node.topRightRadius}px]`);
+      if (node.bottomRightRadius) classes.push(brBinding ? `rounded-br-${normalizeName(brBinding)}` : `rounded-br-[${node.bottomRightRadius}px]`);
+      if (node.bottomLeftRadius) classes.push(blBinding ? `rounded-bl-${normalizeName(blBinding)}` : `rounded-bl-[${node.bottomLeftRadius}px]`);
+    }
   }
 
   // --- Effect style as class ---
@@ -357,7 +407,8 @@ function buildTailwindClasses(node: FigmaNodeData, parentLayoutMode?: string): s
 
   // --- Opacity ---
   if (node.opacity !== undefined && node.opacity !== 1) {
-    classes.push(`opacity-[${node.opacity}]`);
+    const opacityVal = parseFloat(node.opacity.toPrecision(4));
+    classes.push(`opacity-[${opacityVal}]`);
   }
 
   return classes;
@@ -409,6 +460,14 @@ function buildStyleAttribute(node: FigmaNodeData): Record<string, string> | null
   const firstImageFill = node.fills?.find((f) => f.isImage);
   if (firstImageFill?.imageRef) {
     style.backgroundImage = `url(${firstImageFill.imageRef})`;
+  }
+
+  // SVG fill → fill CSS property (not bg-)
+  if (node.type === "VECTOR" || node.type === "LINE") {
+    const solidFill = node.fills?.find((f) => !f.isImage && !f.gradient && f.color);
+    if (solidFill?.color) {
+      style.fill = solidFill.color;
+    }
   }
 
   // Rotation
@@ -573,7 +632,13 @@ function buildComponentAstAttrs(node: FigmaNodeData): t.JSXAttribute[] {
   if (node.type === "INSTANCE" && node.componentProperties) {
     const nameMap: Record<string, string> = {};
     for (const [key, prop] of Object.entries(node.componentProperties) as Array<[string, any]>) {
-      const camelKey = toCamelCase(key);
+      const rawCamelKey = toCamelCase(key);
+      // Emoji-prefixed visibility props (e.g. "👁  caption") collide with real props (e.g. "caption").
+      // Detect by checking if the original key starts with a non-ASCII character and prefix with "show".
+      const startsWithEmoji = /^[^\x00-\x7F]/.test(key.trim());
+      const camelKey = startsWithEmoji && rawCamelKey
+        ? "show" + rawCamelKey.charAt(0).toUpperCase() + rawCamelKey.slice(1)
+        : rawCamelKey;
       if (prop.type === "BOOLEAN") {
         attrs.push(t.jsxAttribute(t.jsxIdentifier(camelKey), t.jsxExpressionContainer(t.booleanLiteral(prop.value))));
       } else if (prop.type === "TEXT") {
