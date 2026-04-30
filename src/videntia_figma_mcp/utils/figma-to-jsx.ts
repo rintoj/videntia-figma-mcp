@@ -45,7 +45,11 @@ export function toPascalCase(name: string): string {
  * "Show Icon" → "showIcon", "Size" → "size", "show-icon" → "showIcon"
  */
 export function toCamelCase(name: string): string {
-  const parts = name.split(/[\s\-_]+/).filter((s) => s.length > 0);
+  const parts = name
+    .split(/[\s\-_]+/)
+    .filter((s) => s.length > 0)
+    .map((s) => s.replace(/[^a-zA-Z0-9]/g, ""))
+    .filter((s) => s.length > 0);
   if (parts.length === 0) return name;
   return parts
     .map((s, i) => (i === 0 ? s.charAt(0).toLowerCase() + s.slice(1) : s.charAt(0).toUpperCase() + s.slice(1)))
@@ -246,12 +250,12 @@ function buildTailwindClasses(node: FigmaNodeData, parentLayoutMode?: string): s
             if (stops.length >= 2) classes.push(`to-[${stops[stops.length - 1].color}]`);
           }
           // Other gradients (no direction, radial, angular, diamond) → handled by buildStyleAttribute
-        } else if (node.type !== "VECTOR" && node.type !== "LINE") {
-          // SVG fills are handled via style.fill, not bg- classes
+        } else {
+          const isVector = node.type === "VECTOR";
           if (fillBinding) {
-            classes.push(`bg-${normalizeName(fillBinding)}`);
+            classes.push(`${isVector ? "fill" : "bg"}-${normalizeName(fillBinding)}`);
           } else if (fill.color) {
-            classes.push(`bg-[${fill.color}]${fillOpacitySuffix}`);
+            classes.push(`${isVector ? "fill" : "bg"}-[${fill.color}]${fillOpacitySuffix}`);
           }
         }
       }
@@ -281,47 +285,44 @@ function buildTailwindClasses(node: FigmaNodeData, parentLayoutMode?: string): s
       classes.push(`text-${normalizeName(node.textStyleName)}`);
     } else {
       // Individual typography properties — prefer token bindings over raw values
-      const fontSizeBinding = bindings["fontSize/0"];
-      if (fontSizeBinding) {
-        classes.push(`text-${normalizeName(fontSizeBinding)}`);
-      } else if (node.fontSize) {
-        classes.push(`text-[${node.fontSize}px]`);
+      if (node.fontSize) {
+        if (bindings["fontSize/0"]) {
+          classes.push(`text-${normalizeName(bindings["fontSize/0"])}`);
+        } else {
+          classes.push(`text-[${node.fontSize}px]`);
+        }
       }
-
-      const fontWeightBinding = bindings["fontWeight/0"];
-      if (fontWeightBinding) {
-        classes.push(`font-${normalizeName(fontWeightBinding)}`);
-      } else if (node.fontWeight !== undefined && node.fontWeight !== 400) {
-        classes.push(fontWeightClass(node.fontWeight));
+      if (node.fontWeight !== undefined && node.fontWeight !== 400) {
+        if (bindings["fontWeight/0"]) {
+          classes.push(`font-${normalizeName(bindings["fontWeight/0"])}`);
+        } else {
+          classes.push(fontWeightClass(node.fontWeight));
+        }
       }
-
-      const lineHeightBinding = bindings["lineHeight/0"];
-      if (lineHeightBinding) {
-        classes.push(`leading-${normalizeName(lineHeightBinding)}`);
-      } else if (node.lineHeight !== undefined) {
-        if (node.lineHeightUnit === "percent") {
+      if (node.lineHeight !== undefined) {
+        if (bindings["lineHeight/0"]) {
+          classes.push(`leading-${normalizeName(bindings["lineHeight/0"])}`);
+        } else if (node.lineHeightUnit === "percent") {
           classes.push(`leading-[${node.lineHeight}%]`);
         } else {
           classes.push(`leading-[${node.lineHeight}px]`);
         }
       }
-
-      const letterSpacingBinding = bindings["letterSpacing/0"];
-      if (letterSpacingBinding) {
-        classes.push(`tracking-${normalizeName(letterSpacingBinding)}`);
-      } else if (node.letterSpacing !== undefined && node.letterSpacing !== 0) {
-        if (node.letterSpacingUnit === "percent") {
+      if (node.letterSpacing !== undefined && node.letterSpacing !== 0) {
+        if (bindings["letterSpacing/0"]) {
+          classes.push(`tracking-${normalizeName(bindings["letterSpacing/0"])}`);
+        } else if (node.letterSpacingUnit === "percent") {
           classes.push(`tracking-[${node.letterSpacing / 100}em]`);
         } else {
           classes.push(`tracking-[${node.letterSpacing}px]`);
         }
       }
-
-      const fontFamilyBinding = bindings["fontFamily/0"];
-      if (fontFamilyBinding) {
-        classes.push(`font-${normalizeName(fontFamilyBinding)}`);
-      } else if (node.fontFamily && node.fontFamily !== "Inter") {
-        classes.push(`font-['${node.fontFamily.replace(/ /g, "_")}']`);
+      if (node.fontFamily && node.fontFamily !== "Inter") {
+        if (bindings["fontFamily/0"]) {
+          classes.push(`font-${normalizeName(bindings["fontFamily/0"])}`);
+        } else {
+          classes.push(`font-['${node.fontFamily.replace(/ /g, "_")}']`);
+        }
       }
     }
 
@@ -341,6 +342,9 @@ function buildTailwindClasses(node: FigmaNodeData, parentLayoutMode?: string): s
   }
 
   // --- Corners ---
+  if (node.type === "ELLIPSE") {
+    classes.push("rounded-full");
+  }
   const crBinding = bindings["cornerRadius"];
   if (node.type === "ELLIPSE") {
     classes.push("rounded-full");
