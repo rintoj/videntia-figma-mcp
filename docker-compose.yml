@@ -3,6 +3,13 @@ services:
     build: .
     container_name: videntia-figma-mcp
     restart: unless-stopped
+    environment:
+      - SESSION_SECRET=${SESSION_SECRET}
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - FROM_EMAIL=${FROM_EMAIL:-noreply@videntia.dev}
+      - BASE_URL=${BASE_URL:-https://figma-mcp.videntia.dev}
+    volumes:
+      - videntia-data:/app/data
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.videntia-figma-mcp.entrypoints=web"
@@ -10,6 +17,9 @@ services:
       - "traefik.http.services.videntia-figma-mcp.loadbalancer.server.port=3055"
     networks:
       - dokploy-network
+
+volumes:
+  videntia-data:
 
 networks:
   dokploy-network:

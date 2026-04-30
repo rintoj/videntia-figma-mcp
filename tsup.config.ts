@@ -13,6 +13,7 @@ export default defineConfig([
     minify: false,
     splitting: false,
     bundle: true,
+    external: ['bun:sqlite'],
   },
   // Figma plugin build (IIFE, single bundled file)
   {
