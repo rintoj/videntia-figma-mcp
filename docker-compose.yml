@@ -3,6 +3,7 @@ services:
     build: .
     container_name: videntia-figma-mcp
     restart: unless-stopped
+    shm_size: "1gb"
     environment:
       - SESSION_SECRET=${SESSION_SECRET}
       - RESEND_API_KEY=${RESEND_API_KEY}

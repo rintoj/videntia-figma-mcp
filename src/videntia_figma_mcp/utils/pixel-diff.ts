@@ -1,8 +1,5 @@
 import { PNG } from "pngjs";
 import pixelmatch from "pixelmatch";
-import * as os from "os";
-import * as path from "path";
-import * as fs from "fs";
 
 export interface DiffOptions {
   tolerance: number;
@@ -13,7 +10,6 @@ export interface DiffResult {
   totalPixels: number;
   deviationPercent: number;
   diffPng: Buffer;
-  diffImagePath: string;
 }
 
 export async function diffImages(
@@ -42,15 +38,12 @@ export async function diffImages(
 
   const totalPixels = width * height;
   const diffBuffer = PNG.sync.write(diffPng);
-  const diffImagePath = path.join(os.tmpdir(), `figma-diff-${Date.now()}.png`);
-  fs.writeFileSync(diffImagePath, diffBuffer);
 
   return {
     mismatchedPixels,
     totalPixels,
     deviationPercent: parseFloat(((mismatchedPixels / totalPixels) * 100).toFixed(2)),
     diffPng: diffBuffer,
-    diffImagePath,
   };
 }
 
