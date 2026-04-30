@@ -25,8 +25,12 @@ const logger = {
 
 // ─── API key auth ─────────────────────────────────────────────────────────────
 
+// Set REQUIRE_API_KEY=true to enforce token auth; any other value disables it
+const REQUIRE_API_KEY = process.env.REQUIRE_API_KEY === "true"
+
 // API_KEY env var is now optional — used only as a local-dev fallback
 function isAuthorized(req: http.IncomingMessage): boolean {
+  if (!REQUIRE_API_KEY) return true
   const envKey = process.env.API_KEY
   const authHeader = req.headers["authorization"];
   const url = new URL(req.url ?? "/", "http://localhost");
