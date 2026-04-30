@@ -26,13 +26,19 @@ export function registerComparisonTools(server: McpServer): void {
       }) as { imageData: string };
 
       const referenceBuffer = Buffer.from(figmaExport.imageData, "base64");
-      const capture = await captureUrl({ url, selector, figmaId: nodeId });
+      const capture = await captureUrl({ url, selector, figmaId: nodeId, referenceBuffer });
 
       const result: Record<string, unknown> = {
         nodeId,
         url,
         selector: capture.selector ?? null,
         matchRegion: capture.region ?? null,
+        matchConfidence: capture.matchConfidence ?? null,
+        locateStrategy: capture.selector
+          ? "selector"
+          : capture.matchConfidence !== undefined
+          ? "template-match"
+          : "full-viewport",
       };
 
       if (mode === "screenshot" || mode === "both") {

@@ -146,8 +146,8 @@ function buildTailwindClasses(node: FigmaNodeData, parentLayoutMode?: string): s
   // Clip content
   if (node.clipsContent) classes.push("overflow-hidden");
 
-  // Absolute positioning
-  if (node.layoutPositioning === "ABSOLUTE") {
+  // Absolute positioning: explicit ABSOLUTE override within auto-layout, OR all children of NONE-layout parents
+  if (node.layoutPositioning === "ABSOLUTE" || parentLayoutMode === "NONE") {
     classes.push("absolute");
     if (node.x !== undefined) classes.push(`left-[${node.x}px]`);
     if (node.y !== undefined) classes.push(`top-[${node.y}px]`);
@@ -156,13 +156,17 @@ function buildTailwindClasses(node: FigmaNodeData, parentLayoutMode?: string): s
   // --- Sizing ---
   // Cross-axis FILL is the CSS flexbox default (align-items: stretch) — omit it.
   // Primary-axis FILL = flex-1. w-full/h-full only when explicitly needed.
+  // NONE-layout parent = absolute positioning context; FILL means fill the parent frame.
   const isCrossAxisH = parentLayoutMode === "VERTICAL";   // horizontal is cross-axis of vertical parent
   const isCrossAxisV = parentLayoutMode === "HORIZONTAL"; // vertical is cross-axis of horizontal parent
+  const isNoneLayout = parentLayoutMode === "NONE";
 
   if (node.layoutSizingHorizontal === "FIXED" && node.width !== undefined) {
     classes.push(`w-[${node.width}px]`);
   } else if (node.layoutSizingHorizontal === "FILL") {
-    if (isCrossAxisH) {
+    if (isNoneLayout) {
+      classes.push("w-full");
+    } else if (isCrossAxisH) {
       // Cross-axis stretch is CSS default — omit (don't emit flex-1 or w-full)
     } else {
       classes.push("flex-1");
@@ -173,7 +177,9 @@ function buildTailwindClasses(node: FigmaNodeData, parentLayoutMode?: string): s
   if (node.layoutSizingVertical === "FIXED" && node.height !== undefined) {
     classes.push(`h-[${node.height}px]`);
   } else if (node.layoutSizingVertical === "FILL") {
-    if (isCrossAxisV) {
+    if (isNoneLayout) {
+      classes.push("h-full");
+    } else if (isCrossAxisV) {
       // Cross-axis stretch is CSS default — omit
     } else if (node.layoutSizingHorizontal === "FILL" && !isCrossAxisH) {
       // Both axes FILL: horizontal already emitted flex-1, use h-full for vertical
@@ -265,7 +271,8 @@ function buildTailwindClasses(node: FigmaNodeData, parentLayoutMode?: string): s
   // Strokes (all strokes)
   if (node.strokes && node.strokes.length > 0) {
     if (node.strokeWeight) {
-      classes.push(`border-[${node.strokeWeight}px]`);
+      const sw = Math.round(node.strokeWeight * 100) / 100;
+      classes.push(`border-[${sw}px]`);
     } else {
       classes.push("border");
     }
@@ -287,36 +294,38 @@ function buildTailwindClasses(node: FigmaNodeData, parentLayoutMode?: string): s
       classes.push(`text-${normalizeName(node.textStyleName)}`);
     } else {
       // Individual typography properties
-      if (node.fontSize) {
-        if (bindings["fontSize/0"]) {
-          classes.push(`text-${normalizeName(bindings["fontSize/0"])}`);
-        } else {
-          classes.push(`text-[${node.fontSize}px]`);
-        }
+      if (bindings["fontSize/0"]) {
+        classes.push(`text-${normalizeName(bindings["fontSize/0"])}`);
+      } else if (node.fontSize) {
+        classes.push(`text-[${node.fontSize}px]`);
       }
-      if (node.fontWeight !== undefined && node.fontWeight !== 400) {
-        if (bindings["fontWeight/0"]) {
-          classes.push(`font-${normalizeName(bindings["fontWeight/0"])}`);
-        } else {
-          classes.push(fontWeightClass(node.fontWeight));
-        }
+      if (bindings["fontWeight/0"]) {
+        classes.push(`font-${normalizeName(bindings["fontWeight/0"])}`);
+      } else if (node.fontWeight !== undefined && node.fontWeight !== 400) {
+        classes.push(fontWeightClass(node.fontWeight));
       }
-      if (node.lineHeight !== undefined) {
-        if (bindings["lineHeight/0"]) {
-          classes.push(`leading-${normalizeName(bindings["lineHeight/0"])}`);
-        } else if (node.lineHeightUnit === "percent") {
+      if (bindings["lineHeight/0"]) {
+        const normalized = normalizeName(bindings["lineHeight/0"]);
+        // Avoid double-prefix: if token is "leading/7" → "leading-7", don't emit "leading-leading-7"
+        classes.push(normalized.startsWith("leading-") ? normalized : `leading-${normalized}`);
+      } else if (node.lineHeight !== undefined) {
+        if (node.lineHeightUnit === "percent") {
           classes.push(`leading-[${node.lineHeight}%]`);
         } else {
           classes.push(`leading-[${node.lineHeight}px]`);
         }
       }
-      if (node.letterSpacing !== undefined && node.letterSpacing !== 0) {
-        if (bindings["letterSpacing/0"]) {
-          classes.push(`tracking-${normalizeName(bindings["letterSpacing/0"])}`);
-        } else if (node.letterSpacingUnit === "percent") {
+      if (bindings["letterSpacing/0"]) {
+        const normalized = normalizeName(bindings["letterSpacing/0"]);
+        // Avoid double-prefix: if token is "tracking/-2" → "tracking--2", don't emit "tracking-tracking--2"
+        classes.push(normalized.startsWith("tracking-") ? normalized : `tracking-${normalized}`);
+      } else if (node.letterSpacing !== undefined && node.letterSpacing !== 0) {
+        if (node.letterSpacingUnit === "percent") {
           classes.push(`tracking-[${node.letterSpacing / 100}em]`);
         } else {
-          classes.push(`tracking-[${node.letterSpacing}px]`);
+          // Round to avoid floating-point noise (e.g. -0.6000000238418579)
+          const rounded = Math.round(node.letterSpacing * 100) / 100;
+          classes.push(`tracking-[${rounded}px]`);
         }
       }
       if (node.fontFamily && node.fontFamily !== "Inter") {

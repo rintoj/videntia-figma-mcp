@@ -47,6 +47,7 @@
     "@types/jest": "^29.5.12",
     "@types/pixelmatch": "^5.2.6",
     "@types/pngjs": "^6.0.5",
+    "@types/sharp": "^0.32.0",
     "@types/uuid": "10",
     "@types/ws": "^8.18.1",
     "bun-types": "^1.2.9",
@@ -68,6 +69,7 @@
     "pixelmatch": "^7.2.0",
     "playwright": "^1.59.1",
     "pngjs": "^7.0.0",
+    "sharp": "^0.34.5",
     "uuid": "^9.0.1",
     "ws": "^8.16.0",
     "zod": "^3.25.0"
