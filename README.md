@@ -31,10 +31,12 @@ AI Tool  ↔  MCP Server  ↔  WebSocket Server  ↔  Figma Plugin
 
 ### Step 2 — Configure MCP
 
+The MCP server is hosted at `https://figma-mcp.videntia.dev/sse`.
+
 #### Claude Code
 
 ```bash
-claude mcp add videntia-figma-mcp -- npx -y @videntia/figma-mcp
+claude mcp add --transport sse videntia-figma-mcp https://figma-mcp.videntia.dev/sse
 ```
 
 #### Claude Desktop
@@ -45,8 +47,8 @@ Edit `~/Library/Application Support/Claude/claude_desktop_config.json`:
 {
   "mcpServers": {
     "videntia-figma-mcp": {
-      "command": "npx",
-      "args": ["-y", "@videntia/figma-mcp"]
+      "type": "sse",
+      "url": "https://figma-mcp.videntia.dev/sse"
     }
   }
 }
@@ -60,8 +62,8 @@ Go to **Settings → Tools & Integrations → New MCP Server** and add:
 {
   "mcpServers": {
     "videntia-figma-mcp": {
-      "command": "npx",
-      "args": ["-y", "@videntia/figma-mcp"]
+      "type": "sse",
+      "url": "https://figma-mcp.videntia.dev/sse"
     }
   }
 }
@@ -69,11 +71,9 @@ Go to **Settings → Tools & Integrations → New MCP Server** and add:
 
 #### Replit
 
-Replit Agent connects to MCP servers via a **remote URL** (SSE), not a local command.
-
 1. Go to **Replit → Tools → Integrations → MCP Servers**
 2. Click **Add MCP server**
-3. Enter name `videntia-figma-mcp` and URL: `http://figma-mcp.videntia.dev/sse`
+3. Enter name `videntia-figma-mcp` and URL: `https://figma-mcp.videntia.dev/sse`
 4. Click **Test & Save**
 
 ---
@@ -97,12 +97,7 @@ docker compose up -d
 bun run socket
 ```
 
-When self-hosting, point the plugin to `localhost` instead:
-
-```bash
-# Claude Code
-claude mcp add videntia-figma-mcp -- npx -y @videntia/figma-mcp --server=localhost
-```
+When self-hosting, point Claude at your local build instead (see **Local Development** below).
 
 ---
 
