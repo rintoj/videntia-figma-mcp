@@ -266,6 +266,8 @@ function buildTailwindClasses(node: FigmaNodeData, parentLayoutMode?: string): s
   if (node.strokes && node.strokes.length > 0) {
     if (node.strokeWeight) {
       classes.push(`border-[${node.strokeWeight}px]`);
+    } else {
+      classes.push("border");
     }
     for (let i = 0; i < node.strokes.length; i++) {
       const stroke = node.strokes[i];
@@ -359,10 +361,22 @@ function buildTailwindClasses(node: FigmaNodeData, parentLayoutMode?: string): s
     node.bottomRightRadius !== undefined ||
     node.bottomLeftRadius !== undefined
   ) {
-    if (node.topLeftRadius) classes.push(`rounded-tl-[${node.topLeftRadius}px]`);
-    if (node.topRightRadius) classes.push(`rounded-tr-[${node.topRightRadius}px]`);
-    if (node.bottomRightRadius) classes.push(`rounded-br-[${node.bottomRightRadius}px]`);
-    if (node.bottomLeftRadius) classes.push(`rounded-bl-[${node.bottomLeftRadius}px]`);
+    if (node.topLeftRadius !== undefined) {
+      const tlBinding = bindings["topLeftRadius"];
+      classes.push(tlBinding ? `rounded-tl-${normalizeName(tlBinding)}` : `rounded-tl-[${node.topLeftRadius}px]`);
+    }
+    if (node.topRightRadius !== undefined) {
+      const trBinding = bindings["topRightRadius"];
+      classes.push(trBinding ? `rounded-tr-${normalizeName(trBinding)}` : `rounded-tr-[${node.topRightRadius}px]`);
+    }
+    if (node.bottomRightRadius !== undefined) {
+      const brBinding = bindings["bottomRightRadius"];
+      classes.push(brBinding ? `rounded-br-${normalizeName(brBinding)}` : `rounded-br-[${node.bottomRightRadius}px]`);
+    }
+    if (node.bottomLeftRadius !== undefined) {
+      const blBinding = bindings["bottomLeftRadius"];
+      classes.push(blBinding ? `rounded-bl-${normalizeName(blBinding)}` : `rounded-bl-[${node.bottomLeftRadius}px]`);
+    }
   }
 
   // --- Effect style as class ---
@@ -599,7 +613,13 @@ function buildComponentAstAttrs(node: FigmaNodeData): t.JSXAttribute[] {
   if (node.type === "INSTANCE" && node.componentProperties) {
     const nameMap: Record<string, string> = {};
     for (const [key, prop] of Object.entries(node.componentProperties) as Array<[string, any]>) {
-      const camelKey = toCamelCase(key);
+      const rawCamelKey = toCamelCase(key);
+      // Emoji-prefixed visibility props (e.g. "👁  caption") collide with real props (e.g. "caption").
+      // Detect by checking if the original key starts with a non-ASCII character and prefix with "show".
+      const startsWithEmoji = /^[^\x00-\x7F]/.test(key.trim());
+      const camelKey = startsWithEmoji && rawCamelKey
+        ? "show" + rawCamelKey.charAt(0).toUpperCase() + rawCamelKey.slice(1)
+        : rawCamelKey;
       if (prop.type === "BOOLEAN") {
         attrs.push(t.jsxAttribute(t.jsxIdentifier(camelKey), t.jsxExpressionContainer(t.booleanLiteral(prop.value))));
       } else if (prop.type === "TEXT") {
