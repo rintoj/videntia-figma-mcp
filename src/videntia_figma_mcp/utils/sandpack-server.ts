@@ -1,8 +1,3 @@
-import * as http from "http";
-import * as path from "path";
-import * as fs from "fs";
-import * as os from "os";
-
 export interface FileMap {
   [filePath: string]: string;
 }
@@ -12,79 +7,85 @@ export interface SandpackServerResult {
   stop: () => void;
 }
 
+const COMMON_CDN_PACKAGES: Record<string, string> = {
+  "react": "https://esm.sh/react@18",
+  "react-dom": "https://esm.sh/react-dom@18",
+  "react-dom/client": "https://esm.sh/react-dom@18/client",
+  "react/jsx-runtime": "https://esm.sh/react@18/jsx-runtime",
+};
+
 export async function startSandpackServer(
   files: FileMap,
   entry: string
 ): Promise<SandpackServerResult> {
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "figma-compare-"));
-
-  for (const [filePath, content] of Object.entries(files)) {
-    const fullPath = path.join(tmpDir, filePath);
-    fs.mkdirSync(path.dirname(fullPath), { recursive: true });
-    fs.writeFileSync(fullPath, content);
-  }
-
-  const entryContent = files[entry] ?? "";
-  const indexHtml = buildIndexHtml(entryContent, entry, files);
-  fs.writeFileSync(path.join(tmpDir, "index.html"), indexHtml);
-
-  const server = http.createServer((req, res) => {
-    const filePath = path.join(tmpDir, req.url === "/" ? "/index.html" : req.url!);
-    if (fs.existsSync(filePath)) {
-      const ext = path.extname(filePath);
-      const mimeTypes: Record<string, string> = {
-        ".html": "text/html",
-        ".js": "application/javascript",
-        ".ts": "application/javascript",
-        ".tsx": "application/javascript",
-        ".css": "text/css",
-      };
-      res.writeHead(200, { "Content-Type": mimeTypes[ext] ?? "text/plain" });
-      res.end(fs.readFileSync(filePath));
-    } else {
-      res.writeHead(404);
-      res.end("Not found");
-    }
+  const transpiler = new Bun.Transpiler({
+    loader: "tsx",
+    target: "browser",
+    tsconfig: {
+      compilerOptions: {
+        jsx: "react",
+        jsxFactory: "React.createElement",
+        jsxFragmentFactory: "React.Fragment",
+      },
+    },
   });
 
-  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
-  const port = (server.address() as { port: number }).port;
-
-  return {
-    url: `http://127.0.0.1:${port}`,
-    stop: () => {
-      server.close();
-      fs.rmSync(tmpDir, { recursive: true, force: true });
-    },
-  };
-}
-
-function buildIndexHtml(entryContent: string, entry: string, files: FileMap): string {
-  const imports: Record<string, string> = {
-    react: "https://esm.sh/react@18",
-    "react-dom": "https://esm.sh/react-dom@18",
-    "react-dom/client": "https://esm.sh/react-dom@18/client",
-  };
-
-  for (const filePath of Object.keys(files)) {
-    imports[filePath.replace(/^\//, "./")] = filePath;
+  // Detect npm packages imported across all files
+  const npmImports = { ...COMMON_CDN_PACKAGES };
+  for (const content of Object.values(files)) {
+    for (const match of content.matchAll(/from\s+["']([^./][^"']*)['"]/g)) {
+      const pkg = match[1];
+      if (!npmImports[pkg]) {
+        npmImports[pkg] = `https://esm.sh/${pkg}`;
+      }
+    }
   }
 
-  return `<!DOCTYPE html>
+  const indexHtml = `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8" />
-  <script type="importmap">${JSON.stringify({ imports })}</script>
-  <script src="https://esm.sh/tsx@4/dist/esm/browser.js" type="module"></script>
+  <script type="importmap">${JSON.stringify({ imports: npmImports })}</script>
 </head>
 <body>
   <div id="root"></div>
-  <script type="text/tsx">
+  <script type="module">
     import React from "react";
     import { createRoot } from "react-dom/client";
-    ${entryContent}
+    import App from "${entry}";
     createRoot(document.getElementById("root")).render(React.createElement(App));
   </script>
 </body>
 </html>`;
+
+  const server = Bun.serve({
+    port: 0,
+    fetch(req) {
+      const url = new URL(req.url);
+      if (url.pathname === "/") {
+        return new Response(indexHtml, { headers: { "Content-Type": "text/html" } });
+      }
+
+      // Try exact path, then with tsx/ts extension
+      const candidates = [
+        url.pathname,
+        url.pathname + ".tsx",
+        url.pathname + ".ts",
+        url.pathname + ".jsx",
+        url.pathname + ".js",
+      ];
+      const filePath = candidates.find((p) => files[p]);
+      if (filePath) {
+        const js = transpiler.transformSync(files[filePath]);
+        return new Response(js, { headers: { "Content-Type": "application/javascript" } });
+      }
+
+      return new Response("Not found", { status: 404 });
+    },
+  });
+
+  return {
+    url: `http://127.0.0.1:${server.port}`,
+    stop: () => server.stop(),
+  };
 }

@@ -17,8 +17,14 @@ export function registerComparisonTools(server: McpServer): void {
       selector: z.string().optional().describe("CSS selector to crop the page to the matching element"),
       tolerance: z.number().min(0).max(1).default(0.1).describe("Pixel diff tolerance 0–1 (default 0.1)"),
       mode: z.enum(["screenshot", "styles", "both"]).default("both").describe("Comparison mode"),
+      actions: z.array(z.discriminatedUnion("type", [
+        z.object({ type: z.literal("hover"), selector: z.string() }),
+        z.object({ type: z.literal("click"), selector: z.string() }),
+        z.object({ type: z.literal("wait"), ms: z.number() }),
+        z.object({ type: z.literal("scroll"), selector: z.string() }),
+      ])).optional().describe("Interactions to perform before screenshot (e.g. hover a nav item to reveal a dropdown)"),
     },
-    async ({ nodeId, url, selector, tolerance, mode }) => {
+    async ({ nodeId, url, selector, tolerance, mode, actions }) => {
       const figmaExport = await sendCommandToFigma("export_node_as_image", {
         nodeId,
         format: "PNG",
@@ -26,7 +32,7 @@ export function registerComparisonTools(server: McpServer): void {
       }) as { imageData: string };
 
       const referenceBuffer = Buffer.from(figmaExport.imageData, "base64");
-      const capture = await captureUrl({ url, selector, figmaId: nodeId, referenceBuffer });
+      const capture = await captureUrl({ url, selector, figmaId: nodeId, referenceBuffer, actions });
 
       const result: Record<string, unknown> = {
         nodeId,

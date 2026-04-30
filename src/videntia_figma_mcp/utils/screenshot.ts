@@ -1,12 +1,19 @@
-import { chromium } from "playwright";
+import { chromium, type Page } from "playwright";
 import sharp from "sharp";
 import { findNodeInPage } from "./find-node-in-page.js";
+
+export type PageAction =
+  | { type: "hover"; selector: string }
+  | { type: "click"; selector: string }
+  | { type: "wait"; ms: number }
+  | { type: "scroll"; selector: string };
 
 export interface CaptureOptions {
   url: string;
   selector?: string;
   figmaId?: string;
-  referenceBuffer?: Buffer; // Figma export PNG — enables auto template matching
+  referenceBuffer?: Buffer;
+  actions?: PageAction[]; // interactions to perform before screenshot
   viewportWidth?: number;
   viewportHeight?: number;
 }
@@ -15,7 +22,7 @@ export interface CaptureResult {
   screenshot: Buffer;
   selector?: string;
   region?: { x: number; y: number; width: number; height: number };
-  matchConfidence?: number; // present when template matching was used
+  matchConfidence?: number;
 }
 
 export async function captureUrl(options: CaptureOptions): Promise<CaptureResult> {
@@ -27,24 +34,26 @@ export async function captureUrl(options: CaptureOptions): Promise<CaptureResult
       height: options.viewportHeight ?? 900,
     });
     await page.goto(options.url, { waitUntil: "networkidle" });
+    // Allow JS frameworks (React, Vue, etc.) time to render after network idle
+    await page.waitForTimeout(1500);
+
+    // Run pre-screenshot interactions (hover, click, wait, scroll)
+    if (options.actions?.length) {
+      await runActions(page, options.actions);
+    }
 
     // Strategy 1: explicit CSS selector
     if (options.selector) {
       const element = page.locator(options.selector).first();
       const screenshot = await element.screenshot();
       const box = await element.boundingBox();
-      return {
-        screenshot,
-        selector: options.selector,
-        region: box ?? undefined,
-      };
+      return { screenshot, selector: options.selector, region: box ?? undefined };
     }
 
-    // Strategy 2: data-figma-id attribute on DOM element
+    // Strategy 2: data-figma-id attribute
     if (options.figmaId) {
       const element = page.locator(`[data-figma-id="${options.figmaId}"]`).first();
-      const count = await element.count();
-      if (count > 0) {
+      if (await element.count() > 0) {
         const screenshot = await element.screenshot();
         const box = await element.boundingBox();
         return {
@@ -55,12 +64,11 @@ export async function captureUrl(options: CaptureOptions): Promise<CaptureResult
       }
     }
 
-    // Strategy 3: template matching — slide Figma reference over full page screenshot
+    // Strategy 3: template matching across full page
     if (options.referenceBuffer) {
       const fullPage = await page.screenshot({ fullPage: true });
       const match = await findNodeInPage(options.referenceBuffer, fullPage);
       if (match && match.confidence > 0.2) {
-        // Crop the matched region from the full page screenshot
         const cropped = await sharp(fullPage)
           .extract({ left: match.x, top: match.y, width: match.width, height: match.height })
           .png()
@@ -78,5 +86,27 @@ export async function captureUrl(options: CaptureOptions): Promise<CaptureResult
     return { screenshot };
   } finally {
     await browser.close();
+  }
+}
+
+async function runActions(page: Page, actions: PageAction[]): Promise<void> {
+  for (const action of actions) {
+    switch (action.type) {
+      case "hover":
+        await page.locator(action.selector).first().hover();
+        await page.waitForTimeout(500); // allow animations to settle
+        break;
+      case "click":
+        await page.locator(action.selector).first().click();
+        await page.waitForTimeout(300);
+        break;
+      case "wait":
+        await page.waitForTimeout(action.ms);
+        break;
+      case "scroll":
+        await page.locator(action.selector).first().scrollIntoViewIfNeeded();
+        await page.waitForTimeout(300);
+        break;
+    }
   }
 }
