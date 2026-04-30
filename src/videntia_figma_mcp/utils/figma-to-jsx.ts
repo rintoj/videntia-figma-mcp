@@ -186,34 +186,32 @@ function buildTailwindClasses(node: FigmaNodeData, parentLayoutMode?: string): s
   const pr = node.paddingRight ?? 0;
   const pb = node.paddingBottom ?? 0;
   const pl = node.paddingLeft ?? 0;
-  const hasPadding = pt > 0 || pr > 0 || pb > 0 || pl > 0;
+  // A side is "active" if it has a non-zero value OR a token binding (binding overrides zero raw value)
+  const ptActive = pt > 0 || !!bindings["paddingTop"];
+  const prActive = pr > 0 || !!bindings["paddingRight"];
+  const pbActive = pb > 0 || !!bindings["paddingBottom"];
+  const plActive = pl > 0 || !!bindings["paddingLeft"];
+  const hasPadding = ptActive || prActive || pbActive || plActive;
 
   if (hasPadding) {
     if (pt === pr && pr === pb && pb === pl) {
-      if (bindings["paddingTop"]) {
-        classes.push(`p-${normalizeName(bindings["paddingTop"])}`);
-      } else {
-        classes.push(`p-[${pt}px]`);
-      }
+      // Uniform: prefer paddingTop binding (or any available binding) as shorthand
+      const uniBinding = bindings["paddingTop"] || bindings["paddingRight"] || bindings["paddingBottom"] || bindings["paddingLeft"];
+      classes.push(uniBinding ? `p-${normalizeName(uniBinding)}` : `p-[${pt}px]`);
     } else if (pt === pb && pl === pr) {
-      if (bindings["paddingLeft"]) {
-        classes.push(`px-${normalizeName(bindings["paddingLeft"])}`);
-      } else {
-        classes.push(`px-[${pl}px]`);
+      // Symmetric: px + py
+      if (plActive) {
+        classes.push(bindings["paddingLeft"] ? `px-${normalizeName(bindings["paddingLeft"])}` : `px-[${pl}px]`);
       }
-      if (bindings["paddingTop"]) {
-        classes.push(`py-${normalizeName(bindings["paddingTop"])}`);
-      } else {
-        classes.push(`py-[${pt}px]`);
+      if (ptActive) {
+        classes.push(bindings["paddingTop"] ? `py-${normalizeName(bindings["paddingTop"])}` : `py-[${pt}px]`);
       }
     } else {
-      if (pt > 0) classes.push(bindings["paddingTop"] ? `pt-${normalizeName(bindings["paddingTop"])}` : `pt-[${pt}px]`);
-      if (pr > 0)
-        classes.push(bindings["paddingRight"] ? `pr-${normalizeName(bindings["paddingRight"])}` : `pr-[${pr}px]`);
-      if (pb > 0)
-        classes.push(bindings["paddingBottom"] ? `pb-${normalizeName(bindings["paddingBottom"])}` : `pb-[${pb}px]`);
-      if (pl > 0)
-        classes.push(bindings["paddingLeft"] ? `pl-${normalizeName(bindings["paddingLeft"])}` : `pl-[${pl}px]`);
+      // Individual sides — emit a class for each active side
+      if (ptActive) classes.push(bindings["paddingTop"] ? `pt-${normalizeName(bindings["paddingTop"])}` : `pt-[${pt}px]`);
+      if (prActive) classes.push(bindings["paddingRight"] ? `pr-${normalizeName(bindings["paddingRight"])}` : `pr-[${pr}px]`);
+      if (pbActive) classes.push(bindings["paddingBottom"] ? `pb-${normalizeName(bindings["paddingBottom"])}` : `pb-[${pb}px]`);
+      if (plActive) classes.push(bindings["paddingLeft"] ? `pl-${normalizeName(bindings["paddingLeft"])}` : `pl-[${pl}px]`);
     }
   }
 
@@ -282,26 +280,47 @@ function buildTailwindClasses(node: FigmaNodeData, parentLayoutMode?: string): s
       // Text style covers font size, weight, line height, letter spacing, font family
       classes.push(`text-${normalizeName(node.textStyleName)}`);
     } else {
-      // Individual typography properties
-      if (node.fontSize) classes.push(`text-[${node.fontSize}px]`);
-      if (node.fontWeight !== undefined && node.fontWeight !== 400) {
+      // Individual typography properties — prefer token bindings over raw values
+      const fontSizeBinding = bindings["fontSize/0"];
+      if (fontSizeBinding) {
+        classes.push(`text-${normalizeName(fontSizeBinding)}`);
+      } else if (node.fontSize) {
+        classes.push(`text-[${node.fontSize}px]`);
+      }
+
+      const fontWeightBinding = bindings["fontWeight/0"];
+      if (fontWeightBinding) {
+        classes.push(`font-${normalizeName(fontWeightBinding)}`);
+      } else if (node.fontWeight !== undefined && node.fontWeight !== 400) {
         classes.push(fontWeightClass(node.fontWeight));
       }
-      if (node.lineHeight !== undefined) {
+
+      const lineHeightBinding = bindings["lineHeight/0"];
+      if (lineHeightBinding) {
+        classes.push(`leading-${normalizeName(lineHeightBinding)}`);
+      } else if (node.lineHeight !== undefined) {
         if (node.lineHeightUnit === "percent") {
           classes.push(`leading-[${node.lineHeight}%]`);
         } else {
           classes.push(`leading-[${node.lineHeight}px]`);
         }
       }
-      if (node.letterSpacing !== undefined && node.letterSpacing !== 0) {
+
+      const letterSpacingBinding = bindings["letterSpacing/0"];
+      if (letterSpacingBinding) {
+        classes.push(`tracking-${normalizeName(letterSpacingBinding)}`);
+      } else if (node.letterSpacing !== undefined && node.letterSpacing !== 0) {
         if (node.letterSpacingUnit === "percent") {
           classes.push(`tracking-[${node.letterSpacing / 100}em]`);
         } else {
           classes.push(`tracking-[${node.letterSpacing}px]`);
         }
       }
-      if (node.fontFamily && node.fontFamily !== "Inter") {
+
+      const fontFamilyBinding = bindings["fontFamily/0"];
+      if (fontFamilyBinding) {
+        classes.push(`font-${normalizeName(fontFamilyBinding)}`);
+      } else if (node.fontFamily && node.fontFamily !== "Inter") {
         classes.push(`font-['${node.fontFamily.replace(/ /g, "_")}']`);
       }
     }
@@ -338,10 +357,19 @@ function buildTailwindClasses(node: FigmaNodeData, parentLayoutMode?: string): s
     node.bottomRightRadius !== undefined ||
     node.bottomLeftRadius !== undefined
   ) {
-    if (node.topLeftRadius) classes.push(`rounded-tl-[${node.topLeftRadius}px]`);
-    if (node.topRightRadius) classes.push(`rounded-tr-[${node.topRightRadius}px]`);
-    if (node.bottomRightRadius) classes.push(`rounded-br-[${node.bottomRightRadius}px]`);
-    if (node.bottomLeftRadius) classes.push(`rounded-bl-[${node.bottomLeftRadius}px]`);
+    const tlBinding = bindings["topLeftRadius"];
+    const trBinding = bindings["topRightRadius"];
+    const brBinding = bindings["bottomRightRadius"];
+    const blBinding = bindings["bottomLeftRadius"];
+    // If all four corners have the same binding, collapse to a single rounded- class
+    if (tlBinding && tlBinding === trBinding && trBinding === brBinding && brBinding === blBinding) {
+      classes.push(`rounded-${normalizeName(tlBinding)}`);
+    } else {
+      if (node.topLeftRadius) classes.push(tlBinding ? `rounded-tl-${normalizeName(tlBinding)}` : `rounded-tl-[${node.topLeftRadius}px]`);
+      if (node.topRightRadius) classes.push(trBinding ? `rounded-tr-${normalizeName(trBinding)}` : `rounded-tr-[${node.topRightRadius}px]`);
+      if (node.bottomRightRadius) classes.push(brBinding ? `rounded-br-${normalizeName(brBinding)}` : `rounded-br-[${node.bottomRightRadius}px]`);
+      if (node.bottomLeftRadius) classes.push(blBinding ? `rounded-bl-${normalizeName(blBinding)}` : `rounded-bl-[${node.bottomLeftRadius}px]`);
+    }
   }
 
   // --- Effect style as class ---
@@ -362,7 +390,8 @@ function buildTailwindClasses(node: FigmaNodeData, parentLayoutMode?: string): s
 
   // --- Opacity ---
   if (node.opacity !== undefined && node.opacity !== 1) {
-    classes.push(`opacity-[${node.opacity}]`);
+    const opacityVal = parseFloat(node.opacity.toPrecision(4));
+    classes.push(`opacity-[${opacityVal}]`);
   }
 
   return classes;
