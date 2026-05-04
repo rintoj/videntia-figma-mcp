@@ -80,7 +80,11 @@ describe("lint_frame tool", () => {
 
     await callTool("lint_frame", { node_id: "1:100" });
 
-    expect(mockSendCommand).toHaveBeenCalledWith("lint_frame", { nodeId: "1:100", fix: false, checks: undefined }, 60000);
+    expect(mockSendCommand).toHaveBeenCalledWith(
+      "lint_frame",
+      { nodeId: "1:100", fix: false, checks: undefined },
+      60000,
+    );
   });
 
   it("passes checks parameter through to plugin", async () => {
@@ -135,7 +139,9 @@ describe("lint_frame tool", () => {
   });
 
   it("shows 'No violations found' when there are none", async () => {
-    mockSendCommand.mockResolvedValue(makeResult({ violations: [], summary: { total: 0, critical: 0, high: 0, medium: 0, low: 0, compliance: 100 } }));
+    mockSendCommand.mockResolvedValue(
+      makeResult({ violations: [], summary: { total: 0, critical: 0, high: 0, medium: 0, low: 0, compliance: 100 } }),
+    );
 
     const response = await callTool("lint_frame", { node_id: "1:100" });
     const text = response.content[0].text;
@@ -147,10 +153,46 @@ describe("lint_frame tool", () => {
   it("groups violations by severity", async () => {
     const result = makeResult({
       violations: [
-        { nodeId: "1:200", nodeName: "Button", nodeType: "FRAME", depth: 1, severity: "CRITICAL", category: "effectStyles", property: "effectStyleId", message: "Raw DROP_SHADOW effect" },
-        { nodeId: "1:201", nodeName: "Label", nodeType: "TEXT", depth: 2, severity: "HIGH", category: "typography", property: "textStyleId", message: "Text node without textStyleId" },
-        { nodeId: "1:202", nodeName: "Card", nodeType: "FRAME", depth: 1, severity: "MEDIUM", category: "spacing", property: "itemSpacing", message: "Item spacing using raw number (12)" },
-        { nodeId: "1:203", nodeName: "Heading", nodeType: "TEXT", depth: 2, severity: "LOW", category: "typography", property: "textStyleId", message: "Text style override present" },
+        {
+          nodeId: "1:200",
+          nodeName: "Button",
+          nodeType: "FRAME",
+          depth: 1,
+          severity: "CRITICAL",
+          category: "effectStyles",
+          property: "effectStyleId",
+          message: "Raw DROP_SHADOW effect",
+        },
+        {
+          nodeId: "1:201",
+          nodeName: "Label",
+          nodeType: "TEXT",
+          depth: 2,
+          severity: "HIGH",
+          category: "typography",
+          property: "textStyleId",
+          message: "Text node without textStyleId",
+        },
+        {
+          nodeId: "1:202",
+          nodeName: "Card",
+          nodeType: "FRAME",
+          depth: 1,
+          severity: "MEDIUM",
+          category: "spacing",
+          property: "itemSpacing",
+          message: "Item spacing using raw number (12)",
+        },
+        {
+          nodeId: "1:203",
+          nodeName: "Heading",
+          nodeType: "TEXT",
+          depth: 2,
+          severity: "LOW",
+          category: "typography",
+          property: "textStyleId",
+          message: "Text style override present",
+        },
       ],
       summary: { total: 4, critical: 1, high: 1, medium: 1, low: 1, compliance: 60 },
     });
@@ -171,7 +213,16 @@ describe("lint_frame tool", () => {
   it("shows FAIL verdict when critical violations exist", async () => {
     const result = makeResult({
       violations: [
-        { nodeId: "1:200", nodeName: "Text", nodeType: "TEXT", depth: 1, severity: "CRITICAL", category: "typography", property: "fontVariables", message: "Font variable bound directly" },
+        {
+          nodeId: "1:200",
+          nodeName: "Text",
+          nodeType: "TEXT",
+          depth: 1,
+          severity: "CRITICAL",
+          category: "typography",
+          property: "fontVariables",
+          message: "Font variable bound directly",
+        },
       ],
       summary: { total: 1, critical: 1, high: 0, medium: 0, low: 0, compliance: 90 },
     });
@@ -186,7 +237,16 @@ describe("lint_frame tool", () => {
   it("shows WARN verdict when compliance >= 80% with no critical violations", async () => {
     const result = makeResult({
       violations: [
-        { nodeId: "1:200", nodeName: "Rect", nodeType: "RECTANGLE", depth: 1, severity: "MEDIUM", category: "borderRadius", property: "cornerRadius", message: "Border radius using raw number" },
+        {
+          nodeId: "1:200",
+          nodeName: "Rect",
+          nodeType: "RECTANGLE",
+          depth: 1,
+          severity: "MEDIUM",
+          category: "borderRadius",
+          property: "cornerRadius",
+          message: "Border radius using raw number",
+        },
       ],
       summary: { total: 1, critical: 0, high: 0, medium: 1, low: 0, compliance: 85 },
     });
@@ -201,8 +261,26 @@ describe("lint_frame tool", () => {
   it("shows FAIL verdict when compliance < 80%", async () => {
     const result = makeResult({
       violations: [
-        { nodeId: "1:200", nodeName: "Box", nodeType: "FRAME", depth: 1, severity: "HIGH", category: "backgroundFills", property: "fills[0]", message: "Color using raw hex" },
-        { nodeId: "1:201", nodeName: "Box2", nodeType: "FRAME", depth: 1, severity: "HIGH", category: "backgroundFills", property: "fills[0]", message: "Color using raw hex" },
+        {
+          nodeId: "1:200",
+          nodeName: "Box",
+          nodeType: "FRAME",
+          depth: 1,
+          severity: "HIGH",
+          category: "backgroundFills",
+          property: "fills[0]",
+          message: "Color using raw hex",
+        },
+        {
+          nodeId: "1:201",
+          nodeName: "Box2",
+          nodeType: "FRAME",
+          depth: 1,
+          severity: "HIGH",
+          category: "backgroundFills",
+          property: "fills[0]",
+          message: "Color using raw hex",
+        },
       ],
       summary: { total: 2, critical: 0, high: 2, medium: 0, low: 0, compliance: 50 },
     });
@@ -217,9 +295,36 @@ describe("lint_frame tool", () => {
   it("shows violation counts in summary", async () => {
     const result = makeResult({
       violations: [
-        { nodeId: "1:200", nodeName: "A", nodeType: "TEXT", depth: 1, severity: "CRITICAL", category: "effectStyles", property: "effectStyleId", message: "msg" },
-        { nodeId: "1:201", nodeName: "B", nodeType: "TEXT", depth: 1, severity: "HIGH", category: "typography", property: "textStyleId", message: "msg" },
-        { nodeId: "1:202", nodeName: "C", nodeType: "FRAME", depth: 1, severity: "HIGH", category: "backgroundFills", property: "fills[0]", message: "msg" },
+        {
+          nodeId: "1:200",
+          nodeName: "A",
+          nodeType: "TEXT",
+          depth: 1,
+          severity: "CRITICAL",
+          category: "effectStyles",
+          property: "effectStyleId",
+          message: "msg",
+        },
+        {
+          nodeId: "1:201",
+          nodeName: "B",
+          nodeType: "TEXT",
+          depth: 1,
+          severity: "HIGH",
+          category: "typography",
+          property: "textStyleId",
+          message: "msg",
+        },
+        {
+          nodeId: "1:202",
+          nodeName: "C",
+          nodeType: "FRAME",
+          depth: 1,
+          severity: "HIGH",
+          category: "backgroundFills",
+          property: "fills[0]",
+          message: "msg",
+        },
       ],
       summary: { total: 3, critical: 1, high: 2, medium: 0, low: 0, compliance: 70 },
     });
@@ -249,7 +354,16 @@ describe("lint_frame tool", () => {
   it("escapes pipe characters in node names", async () => {
     const result = makeResult({
       violations: [
-        { nodeId: "1:200", nodeName: "Left|Right", nodeType: "FRAME", depth: 1, severity: "HIGH", category: "backgroundFills", property: "fills[0]", message: "Raw hex" },
+        {
+          nodeId: "1:200",
+          nodeName: "Left|Right",
+          nodeType: "FRAME",
+          depth: 1,
+          severity: "HIGH",
+          category: "backgroundFills",
+          property: "fills[0]",
+          message: "Raw hex",
+        },
       ],
       summary: { total: 1, critical: 0, high: 1, medium: 0, low: 0, compliance: 80 },
     });
@@ -394,7 +508,8 @@ describe("lint_frame tool", () => {
           severity: "HIGH",
           category: "screenNaming",
           property: "name",
-          message: 'Screen name "Screen/login" does not follow convention — expected: Screen/{Feature}@{Breakpoint}/{View}[/{State}]',
+          message:
+            'Screen name "Screen/login" does not follow convention — expected: Screen/{Feature}@{Breakpoint}/{View}[/{State}]',
         },
       ],
       summary: { total: 1, critical: 0, high: 1, medium: 0, low: 0, compliance: 90 },
@@ -420,7 +535,16 @@ describe("lint_frame tool", () => {
   it("skips severity sections with zero violations", async () => {
     const result = makeResult({
       violations: [
-        { nodeId: "1:200", nodeName: "X", nodeType: "FRAME", depth: 1, severity: "MEDIUM", category: "spacing", property: "itemSpacing", message: "raw" },
+        {
+          nodeId: "1:200",
+          nodeName: "X",
+          nodeType: "FRAME",
+          depth: 1,
+          severity: "MEDIUM",
+          category: "spacing",
+          property: "itemSpacing",
+          message: "raw",
+        },
       ],
       summary: { total: 1, critical: 0, high: 0, medium: 1, low: 0, compliance: 90 },
     });

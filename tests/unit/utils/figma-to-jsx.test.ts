@@ -672,9 +672,7 @@ describe("convertToJsx", () => {
     const jsx = convertToJsx([
       makeNode({
         effectStyleName: "shadow/subtle",
-        effects: [
-          { type: "DROP_SHADOW", offset: { x: 0, y: 1 }, radius: 2, spread: 0, color: "#000000" },
-        ],
+        effects: [{ type: "DROP_SHADOW", offset: { x: 0, y: 1 }, radius: 2, spread: 0, color: "#000000" }],
       }),
     ]);
     expect(jsx).toContain("shadow-shadow-subtle");

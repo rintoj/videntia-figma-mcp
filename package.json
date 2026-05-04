@@ -36,7 +36,7 @@
     "test:coverage": "jest --coverage",
     "test:integration": "node scripts/test-integration.js",
     "generate-icons": "bun scripts/generate-icon-data.ts",
-    "lint": "tsc --noEmit -p tsconfig.lint.json && prettier --check \"src/**/*.ts\" \"tests/**/*.ts\"",
+    "lint": "tsc --noEmit -p tsconfig.lint.json && tsc --noEmit -p tsconfig.plugin.json && prettier --check \"src/**/*.ts\" \"tests/**/*.ts\"",
     "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\""
   },
   "devDependencies": {

@@ -1,21 +1,21 @@
-import type { LintOptions, LintResult, LintCategories, ActiveChecks } from './types';
-import { scanNode } from './checks';
-import { applyFixes } from './fix';
-import { buildLookupMaps } from './helpers';
+import type { LintOptions, LintResult, LintCategories, ActiveChecks } from "./types";
+import { scanNode } from "./checks";
+import { applyFixes } from "./fix";
+import { buildLookupMaps } from "./helpers";
 
 export async function lintFrame(params: Record<string, unknown>): Promise<LintResult> {
   const lintParams = params as unknown as LintOptions;
   const nodeId = lintParams ? lintParams.nodeId : undefined;
   const checks = lintParams ? lintParams.checks : undefined;
-  const fix = lintParams ? (lintParams.fix === true) : false;
+  const fix = lintParams ? lintParams.fix === true : false;
 
-  if (!nodeId) throw new Error('nodeId is required');
+  if (!nodeId) throw new Error("nodeId is required");
 
   const rootNode = await figma.getNodeByIdAsync(nodeId);
-  if (!rootNode) throw new Error('Node not found: ' + String(nodeId).substring(0, 50));
+  if (!rootNode) throw new Error("Node not found: " + String(nodeId).substring(0, 50));
 
   // rootFrame check only applies when the node is a direct child of a PAGE
-  const isPageChild = rootNode.parent !== null && rootNode.parent !== undefined && rootNode.parent.type === 'PAGE';
+  const isPageChild = rootNode.parent !== null && rootNode.parent !== undefined && rootNode.parent.type === "PAGE";
 
   // Default checks — all on
   let chk: ActiveChecks = {
@@ -47,28 +47,39 @@ export async function lintFrame(params: Record<string, unknown>): Promise<LintRe
 
   // Category tallies
   const categories: LintCategories = {
-    rootFrame:       { total: 0, bound: 0, unbound: 0, compliance: 100 },
-    typography:      { total: 0, bound: 0, unbound: 0, compliance: 100 },
-    spacing:         { total: 0, bound: 0, unbound: 0, compliance: 100 },
-    borderRadius:    { total: 0, bound: 0, unbound: 0, compliance: 100 },
-    iconColors:      { total: 0, bound: 0, unbound: 0, compliance: 100 },
-    strokesBorders:  { total: 0, bound: 0, unbound: 0, compliance: 100 },
+    rootFrame: { total: 0, bound: 0, unbound: 0, compliance: 100 },
+    typography: { total: 0, bound: 0, unbound: 0, compliance: 100 },
+    spacing: { total: 0, bound: 0, unbound: 0, compliance: 100 },
+    borderRadius: { total: 0, bound: 0, unbound: 0, compliance: 100 },
+    iconColors: { total: 0, bound: 0, unbound: 0, compliance: 100 },
+    strokesBorders: { total: 0, bound: 0, unbound: 0, compliance: 100 },
     backgroundFills: { total: 0, bound: 0, unbound: 0, compliance: 100 },
-    effectStyles:    { total: 0, bound: 0, unbound: 0, compliance: 100 },
-    overflow:        { total: 0, bound: 0, unbound: 0, compliance: 100 },
-    autoLayout:      { total: 0, bound: 0, unbound: 0, compliance: 100 },
-    screenNaming:    { total: 0, bound: 0, unbound: 0, compliance: 100 },
+    effectStyles: { total: 0, bound: 0, unbound: 0, compliance: 100 },
+    overflow: { total: 0, bound: 0, unbound: 0, compliance: 100 },
+    autoLayout: { total: 0, bound: 0, unbound: 0, compliance: 100 },
+    screenNaming: { total: 0, bound: 0, unbound: 0, compliance: 100 },
   };
 
-  const violations: import('./types').Violation[] = [];
+  const violations: import("./types").Violation[] = [];
   const violationsCappedRef = { value: false };
   const totalNodesRef = { value: 0 };
 
   // Run the traversal
   // If the root node itself is a Screen/ frame, start inside screen; otherwise traverse to find screens
-  let rootName = rootNode.name || '';
-  let rootIsScreen = (rootNode.type === 'FRAME' || rootNode.type === 'COMPONENT') && rootName.indexOf('Screen/') === 0;
-  scanNode(rootNode as SceneNode, 0, null, null, chk, categories, violations, violationsCappedRef, totalNodesRef, rootIsScreen);
+  let rootName = rootNode.name || "";
+  let rootIsScreen = (rootNode.type === "FRAME" || rootNode.type === "COMPONENT") && rootName.indexOf("Screen/") === 0;
+  scanNode(
+    rootNode as SceneNode,
+    0,
+    null,
+    null,
+    chk,
+    categories,
+    violations,
+    violationsCappedRef,
+    totalNodesRef,
+    rootIsScreen,
+  );
 
   // Auto-fix pass (only when fix=true)
   if (fix) {
@@ -76,7 +87,19 @@ export async function lintFrame(params: Record<string, unknown>): Promise<LintRe
   }
 
   // Compute compliance percentages
-  const catKeys: Array<keyof LintCategories> = ['rootFrame', 'typography', 'spacing', 'borderRadius', 'iconColors', 'strokesBorders', 'backgroundFills', 'effectStyles', 'overflow', 'autoLayout', 'screenNaming'];
+  const catKeys: Array<keyof LintCategories> = [
+    "rootFrame",
+    "typography",
+    "spacing",
+    "borderRadius",
+    "iconColors",
+    "strokesBorders",
+    "backgroundFills",
+    "effectStyles",
+    "overflow",
+    "autoLayout",
+    "screenNaming",
+  ];
   for (let ck = 0; ck < catKeys.length; ck++) {
     let cat = categories[catKeys[ck]];
     if (cat.total > 0) {
@@ -98,10 +121,18 @@ export async function lintFrame(params: Record<string, unknown>): Promise<LintRe
       continue;
     }
     switch (violations[sv].severity) {
-      case 'CRITICAL': summaryCritical++; break;
-      case 'HIGH': summaryHigh++; break;
-      case 'MEDIUM': summaryMedium++; break;
-      case 'LOW': summaryLow++; break;
+      case "CRITICAL":
+        summaryCritical++;
+        break;
+      case "HIGH":
+        summaryHigh++;
+        break;
+      case "MEDIUM":
+        summaryMedium++;
+        break;
+      case "LOW":
+        summaryLow++;
+        break;
     }
   }
   let summaryTotal = violations.length - summaryFixed;

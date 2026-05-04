@@ -3,7 +3,13 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { sendCommandToFigma } from "../utils/websocket";
 import { coerceArray } from "../utils/coerce-array.js";
 import { normalizeNodeId } from "../utils/figma-helpers.js";
-import { outputFormatSchema, depthSchema, resolveDepth, fetchNodesAsJsx, fieldsSchema } from "../utils/output-format.js";
+import {
+  outputFormatSchema,
+  depthSchema,
+  resolveDepth,
+  fetchNodesAsJsx,
+  fieldsSchema,
+} from "../utils/output-format.js";
 import { mcpBooleanSchema } from "../utils/mcp-boolean.js";
 import { CreateComponentInstanceResult, GetReactionsResult, GetComponentPropertiesResult } from "../types";
 
@@ -23,23 +29,72 @@ export function registerComponentTools(server: McpServer): void {
         .describe("Component node ID (for local, e.g., '123:456') or component key (for library components)"),
       x: z.coerce.number().describe("X position"),
       y: z.coerce.number().describe("Y position"),
-      parentId: z.string().optional().describe("ID of the parent node to insert the instance into (default: current page)"),
-      index: z.coerce.number().optional().describe("Zero-based position within the parent's children (0 = first; omit to append). Only valid when parentId is provided."),
-      replaceNodeId: z.string().optional().describe("ID of an existing node to replace with this instance. The instance inherits the replaced node's position and the replaced node is deleted. Mutually exclusive with parentId."),
-      contentOverrides: z.object({
-        preserveContent: z.boolean().optional().describe("Auto-copy text and icon content from the replaced node to the new instance (matched by child name path)"),
-        textOverrides: z.record(z.string(), z.string()).optional().describe("Explicit text overrides by child name path (e.g. {\"Title\": \"New Title\", \"Card/Subtitle\": \"New Subtitle\"})"),
-        iconOverrides: z.record(z.string(), z.string()).optional().describe("Icon swaps by child name path → component key/ID (e.g. {\"Icon\": \"123:456\"})"),
-        force: z.boolean().optional().describe("Proceed even when captured content can't be matched to the new instance"),
-      }).optional().describe("Content overrides to apply after instance creation. preserveContent only works with replaceNodeId."),
-      instanceProperties: z.record(z.string(), z.union([z.string(), z.boolean()])).optional().describe("Component properties to set on the instance after creation (e.g. {\"HasIcon\": true, \"Label\": \"Click me\"}). Use property names from get_component_properties."),
-      fields: coerceArray(fieldsSchema).optional().describe(
-        "Optional array of fields to include. Controls which properties appear in both JSX and JSON output.",
-      ),
+      parentId: z
+        .string()
+        .optional()
+        .describe("ID of the parent node to insert the instance into (default: current page)"),
+      index: z.coerce
+        .number()
+        .optional()
+        .describe(
+          "Zero-based position within the parent's children (0 = first; omit to append). Only valid when parentId is provided.",
+        ),
+      replaceNodeId: z
+        .string()
+        .optional()
+        .describe(
+          "ID of an existing node to replace with this instance. The instance inherits the replaced node's position and the replaced node is deleted. Mutually exclusive with parentId.",
+        ),
+      contentOverrides: z
+        .object({
+          preserveContent: z
+            .boolean()
+            .optional()
+            .describe(
+              "Auto-copy text and icon content from the replaced node to the new instance (matched by child name path)",
+            ),
+          textOverrides: z
+            .record(z.string(), z.string())
+            .optional()
+            .describe(
+              'Explicit text overrides by child name path (e.g. {"Title": "New Title", "Card/Subtitle": "New Subtitle"})',
+            ),
+          iconOverrides: z
+            .record(z.string(), z.string())
+            .optional()
+            .describe('Icon swaps by child name path → component key/ID (e.g. {"Icon": "123:456"})'),
+          force: z
+            .boolean()
+            .optional()
+            .describe("Proceed even when captured content can't be matched to the new instance"),
+        })
+        .optional()
+        .describe("Content overrides to apply after instance creation. preserveContent only works with replaceNodeId."),
+      instanceProperties: z
+        .record(z.string(), z.union([z.string(), z.boolean()]))
+        .optional()
+        .describe(
+          'Component properties to set on the instance after creation (e.g. {"HasIcon": true, "Label": "Click me"}). Use property names from get_component_properties.',
+        ),
+      fields: coerceArray(fieldsSchema)
+        .optional()
+        .describe("Optional array of fields to include. Controls which properties appear in both JSX and JSON output."),
       depth: depthSchema,
       output_format: outputFormatSchema,
     },
-    async ({ componentKey, x, y, parentId, index, replaceNodeId, contentOverrides, instanceProperties, fields, depth, output_format }) => {
+    async ({
+      componentKey,
+      x,
+      y,
+      parentId,
+      index,
+      replaceNodeId,
+      contentOverrides,
+      instanceProperties,
+      fields,
+      depth,
+      output_format,
+    }) => {
       if (parentId) parentId = normalizeNodeId(parentId);
       if (replaceNodeId) replaceNodeId = normalizeNodeId(replaceNodeId);
       try {
@@ -268,30 +323,74 @@ export function registerComponentTools(server: McpServer): void {
     "add_prototype_link",
     "Add a prototype navigation link (reaction) from one node to another",
     {
-      nodeId: z.string().describe("ID of the source node (must support reactions: frames, components, instances, etc.)"),
+      nodeId: z
+        .string()
+        .describe("ID of the source node (must support reactions: frames, components, instances, etc.)"),
       destinationId: z.string().describe("ID of the destination frame to navigate to"),
-      trigger: z.enum(["ON_CLICK", "ON_HOVER", "ON_PRESS", "ON_DRAG", "AFTER_TIMEOUT", "MOUSE_ENTER", "MOUSE_LEAVE"]).optional().describe("Trigger type (default: ON_CLICK)"),
-      navigation: z.enum(["NAVIGATE", "OVERLAY", "SWAP", "SCROLL_TO", "CHANGE_TO"]).optional().describe("Navigation type (default: NAVIGATE)"),
-      transitionType: z.string().optional().describe("Transition animation type e.g. MOVE_IN, MOVE_OUT, PUSH, SLIDE_IN, SLIDE_OUT, DISSOLVE, SMART_ANIMATE (omit for no animation)"),
+      trigger: z
+        .enum(["ON_CLICK", "ON_HOVER", "ON_PRESS", "ON_DRAG", "AFTER_TIMEOUT", "MOUSE_ENTER", "MOUSE_LEAVE"])
+        .optional()
+        .describe("Trigger type (default: ON_CLICK)"),
+      navigation: z
+        .enum(["NAVIGATE", "OVERLAY", "SWAP", "SCROLL_TO", "CHANGE_TO"])
+        .optional()
+        .describe("Navigation type (default: NAVIGATE)"),
+      transitionType: z
+        .string()
+        .optional()
+        .describe(
+          "Transition animation type e.g. MOVE_IN, MOVE_OUT, PUSH, SLIDE_IN, SLIDE_OUT, DISSOLVE, SMART_ANIMATE (omit for no animation)",
+        ),
       transitionDuration: z.number().optional().describe("Transition duration in ms (default: 300)"),
-      transitionEasing: z.string().optional().describe("Easing type e.g. EASE_IN, EASE_OUT, EASE_IN_AND_OUT, LINEAR (default: EASE_OUT)"),
+      transitionEasing: z
+        .string()
+        .optional()
+        .describe("Easing type e.g. EASE_IN, EASE_OUT, EASE_IN_AND_OUT, LINEAR (default: EASE_OUT)"),
       preserveScrollPosition: z.boolean().optional().describe("Preserve scroll position on navigate (default: false)"),
       triggerTimeout: z.number().optional().describe("Timeout in ms for AFTER_TIMEOUT trigger (default: 800)"),
     },
-    async ({ nodeId, destinationId, trigger, navigation, transitionType, transitionDuration, transitionEasing, preserveScrollPosition, triggerTimeout }) => {
+    async ({
+      nodeId,
+      destinationId,
+      trigger,
+      navigation,
+      transitionType,
+      transitionDuration,
+      transitionEasing,
+      preserveScrollPosition,
+      triggerTimeout,
+    }) => {
       nodeId = normalizeNodeId(nodeId);
       destinationId = normalizeNodeId(destinationId);
       try {
         const result = await sendCommandToFigma("add_prototype_link", {
-          nodeId, destinationId, trigger, navigation, transitionType, transitionDuration, transitionEasing, preserveScrollPosition, triggerTimeout,
+          nodeId,
+          destinationId,
+          trigger,
+          navigation,
+          transitionType,
+          transitionDuration,
+          transitionEasing,
+          preserveScrollPosition,
+          triggerTimeout,
         });
         const r = result as { nodeName: string; destinationName: string; trigger: string; navigation: string };
         return {
-          content: [{ type: "text", text: `Added prototype link: "${r.nodeName}" → "${r.destinationName}" (${r.trigger} / ${r.navigation})` }],
+          content: [
+            {
+              type: "text",
+              text: `Added prototype link: "${r.nodeName}" → "${r.destinationName}" (${r.trigger} / ${r.navigation})`,
+            },
+          ],
         };
       } catch (error) {
         return {
-          content: [{ type: "text", text: `Error adding prototype link: ${error instanceof Error ? error.message : String(error)}` }],
+          content: [
+            {
+              type: "text",
+              text: `Error adding prototype link: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
         };
       }
     },
@@ -303,7 +402,10 @@ export function registerComponentTools(server: McpServer): void {
     "Remove prototype navigation link(s) from a node. Optionally filter by destination to remove a specific link.",
     {
       nodeId: z.string().describe("ID of the source node"),
-      destinationId: z.string().optional().describe("ID of the destination to remove (omit to remove ALL reactions from the node)"),
+      destinationId: z
+        .string()
+        .optional()
+        .describe("ID of the destination to remove (omit to remove ALL reactions from the node)"),
     },
     async ({ nodeId, destinationId }) => {
       nodeId = normalizeNodeId(nodeId);
@@ -313,11 +415,21 @@ export function registerComponentTools(server: McpServer): void {
         const result = await sendCommandToFigma("remove_prototype_link", { nodeId, destinationId });
         const r = result as { nodeName: string; removedCount: number; remainingCount: number };
         return {
-          content: [{ type: "text", text: `Removed ${r.removedCount} reaction(s) from "${r.nodeName}". ${r.remainingCount} remaining.` }],
+          content: [
+            {
+              type: "text",
+              text: `Removed ${r.removedCount} reaction(s) from "${r.nodeName}". ${r.remainingCount} remaining.`,
+            },
+          ],
         };
       } catch (error) {
         return {
-          content: [{ type: "text", text: `Error removing prototype link: ${error instanceof Error ? error.message : String(error)}` }],
+          content: [
+            {
+              type: "text",
+              text: `Error removing prototype link: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
         };
       }
     },
@@ -679,8 +791,12 @@ export function registerComponentTools(server: McpServer): void {
     "Set a component property value on an instance. Use get_component_properties on the main component to discover available property names.",
     {
       nodeId: z.string().describe("The ID of the instance node"),
-      propertyName: z.string().describe("Property name with #ID suffix (e.g., 'Show Icon#123:456') from get_component_properties"),
-      value: z.union([z.string(), z.boolean()]).describe("Value to set (string for TEXT/INSTANCE_SWAP, boolean for BOOLEAN)"),
+      propertyName: z
+        .string()
+        .describe("Property name with #ID suffix (e.g., 'Show Icon#123:456') from get_component_properties"),
+      value: z
+        .union([z.string(), z.boolean()])
+        .describe("Value to set (string for TEXT/INSTANCE_SWAP, boolean for BOOLEAN)"),
     },
     async ({ nodeId, propertyName, value }) => {
       nodeId = normalizeNodeId(nodeId);
@@ -725,16 +841,42 @@ export function registerComponentTools(server: McpServer): void {
     {
       nodeId: z.string().describe("The ID of the instance node to swap"),
       componentKeyOrId: z.string().describe("Target component node ID (e.g., '123:456') or component key"),
-      contentOverrides: z.object({
-        preserveContent: z.boolean().optional().describe("Auto-copy text and icon content from the old instance to the swapped instance (matched by child name path)"),
-        textOverrides: z.record(z.string(), z.string()).optional().describe("Explicit text overrides by child name path (e.g. {\"Title\": \"New Title\", \"Card/Subtitle\": \"New Subtitle\"})"),
-        iconOverrides: z.record(z.string(), z.string()).optional().describe("Icon swaps by child name path → component key/ID (e.g. {\"Icon\": \"123:456\"})"),
-        force: z.boolean().optional().describe("Proceed even when captured content can't be matched to the new instance"),
-      }).optional().describe("Content overrides to apply after swapping. preserveContent captures content from the instance before the swap."),
-      instanceProperties: z.record(z.string(), z.union([z.string(), z.boolean()])).optional().describe("Component properties to set on the instance after swapping (e.g. {\"HasIcon\": true, \"Label\": \"Click me\"})"),
-      fields: coerceArray(fieldsSchema).optional().describe(
-        "Optional array of fields to include. Controls which properties appear in both JSX and JSON output.",
-      ),
+      contentOverrides: z
+        .object({
+          preserveContent: z
+            .boolean()
+            .optional()
+            .describe(
+              "Auto-copy text and icon content from the old instance to the swapped instance (matched by child name path)",
+            ),
+          textOverrides: z
+            .record(z.string(), z.string())
+            .optional()
+            .describe(
+              'Explicit text overrides by child name path (e.g. {"Title": "New Title", "Card/Subtitle": "New Subtitle"})',
+            ),
+          iconOverrides: z
+            .record(z.string(), z.string())
+            .optional()
+            .describe('Icon swaps by child name path → component key/ID (e.g. {"Icon": "123:456"})'),
+          force: z
+            .boolean()
+            .optional()
+            .describe("Proceed even when captured content can't be matched to the new instance"),
+        })
+        .optional()
+        .describe(
+          "Content overrides to apply after swapping. preserveContent captures content from the instance before the swap.",
+        ),
+      instanceProperties: z
+        .record(z.string(), z.union([z.string(), z.boolean()]))
+        .optional()
+        .describe(
+          'Component properties to set on the instance after swapping (e.g. {"HasIcon": true, "Label": "Click me"})',
+        ),
+      fields: coerceArray(fieldsSchema)
+        .optional()
+        .describe("Optional array of fields to include. Controls which properties appear in both JSX and JSON output."),
       depth: depthSchema,
       output_format: outputFormatSchema,
     },

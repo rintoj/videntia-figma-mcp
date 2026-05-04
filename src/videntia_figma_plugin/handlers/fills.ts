@@ -1,6 +1,6 @@
 // Figma MCP plugin.
 
-import { debugLog } from '../utils/helpers';
+import { debugLog } from "../utils/helpers";
 
 // ---------------------------------------------------------------------------
 // Hex color parsing
@@ -11,11 +11,11 @@ import { debugLog } from '../utils/helpers';
  * with values normalized to 0–1. Returns null if the string is not a valid hex color.
  */
 export function parseHexColor(hex: string): { r: number; g: number; b: number; a: number } | null {
-  if (typeof hex !== 'string') return null;
-  var h = hex.charAt(0) === '#' ? hex.substring(1) : hex;
+  if (typeof hex !== "string") return null;
+  var h = hex.charAt(0) === "#" ? hex.substring(1) : hex;
   // Expand 3-char or 4-char shorthand
   if (h.length === 3 || h.length === 4) {
-    var expanded = '';
+    var expanded = "";
     for (var i = 0; i < h.length; i++) {
       expanded += h.charAt(i) + h.charAt(i);
     }
@@ -38,32 +38,30 @@ export function parseHexColor(hex: string): { r: number; g: number; b: number; a
  * Returns { r, g, b, a } with values 0–1, or throws.
  */
 export function resolveColor(params: Record<string, unknown>): { r: number; g: number; b: number; a: number } {
-  var colorParam = params['color'];
+  var colorParam = params["color"];
 
   // Hex string
-  if (typeof colorParam === 'string') {
+  if (typeof colorParam === "string") {
     var parsed = parseHexColor(colorParam);
     if (!parsed) {
-      throw new Error('Invalid hex color: ' + colorParam);
+      throw new Error("Invalid hex color: " + colorParam);
     }
     return parsed;
   }
 
   // Wrapped object { color: { r, g, b, a } } or flat { r, g, b, a }
   var source: Record<string, unknown> =
-    colorParam !== null && colorParam !== undefined && typeof colorParam === 'object'
-      ? colorParam as Record<string, unknown>
+    colorParam !== null && colorParam !== undefined && typeof colorParam === "object"
+      ? (colorParam as Record<string, unknown>)
       : params;
 
-  var r = source['r'];
-  var g = source['g'];
-  var b = source['b'];
-  var a = source['a'];
+  var r = source["r"];
+  var g = source["g"];
+  var b = source["b"];
+  var a = source["a"];
 
   if (r === undefined || g === undefined || b === undefined) {
-    throw new Error(
-      'Color must be a hex string (e.g. "#ff0000") or provide r, g, b components.',
-    );
+    throw new Error('Color must be a hex string (e.g. "#ff0000") or provide r, g, b components.');
   }
 
   var result = {
@@ -74,7 +72,7 @@ export function resolveColor(params: Record<string, unknown>): { r: number; g: n
   };
 
   if (isNaN(result.r) || isNaN(result.g) || isNaN(result.b) || isNaN(result.a)) {
-    throw new Error('Invalid color values - all components must be valid numbers');
+    throw new Error("Invalid color values - all components must be valid numbers");
   }
 
   return result;
@@ -90,29 +88,29 @@ export function resolveColor(params: Record<string, unknown>): { r: number; g: n
  * and flat `{ r, g, b, a }` colour formats.
  */
 export async function setFillColor(params: Record<string, unknown>): Promise<unknown> {
-  debugLog('setFillColor', params);
+  debugLog("setFillColor", params);
 
   var paramsObj = params !== null && params !== undefined ? params : {};
-  var nodeId = paramsObj['nodeId'] as string | undefined;
+  var nodeId = paramsObj["nodeId"] as string | undefined;
 
   if (!nodeId) {
-    throw new Error('Missing nodeId parameter');
+    throw new Error("Missing nodeId parameter");
   }
 
   var rgbColor = resolveColor(paramsObj);
 
   var node = await figma.getNodeByIdAsync(nodeId);
   if (!node) {
-    throw new Error('Node not found with ID: ' + nodeId);
+    throw new Error("Node not found with ID: " + nodeId);
   }
 
-  if (!('fills' in node)) {
-    throw new Error('Node does not support fills: ' + nodeId);
+  if (!("fills" in node)) {
+    throw new Error("Node does not support fills: " + nodeId);
   }
 
   // Set fill - pure translation to Figma API format
   var paintStyle: SolidPaint = {
-    type: 'SOLID',
+    type: "SOLID",
     color: {
       r: rgbColor.r,
       g: rgbColor.g,
@@ -121,7 +119,7 @@ export async function setFillColor(params: Record<string, unknown>): Promise<unk
     opacity: rgbColor.a,
   };
 
-  debugLog('paintStyle', paintStyle);
+  debugLog("paintStyle", paintStyle);
 
   (node as GeometryMixin).fills = [paintStyle];
 
@@ -141,19 +139,19 @@ export async function setFillColor(params: Record<string, unknown>): Promise<unk
  */
 export async function removeFill(params: Record<string, unknown>): Promise<unknown> {
   var paramsObj = params !== null && params !== undefined ? params : {};
-  var nodeId = paramsObj['nodeId'] as string | undefined;
+  var nodeId = paramsObj["nodeId"] as string | undefined;
 
   if (!nodeId) {
-    throw new Error('Missing nodeId parameter');
+    throw new Error("Missing nodeId parameter");
   }
 
   var node = await figma.getNodeByIdAsync(nodeId);
   if (!node) {
-    throw new Error('Node not found with ID: ' + nodeId);
+    throw new Error("Node not found with ID: " + nodeId);
   }
 
-  if (!('fills' in node)) {
-    throw new Error('Node does not support fills: ' + nodeId);
+  if (!("fills" in node)) {
+    throw new Error("Node does not support fills: " + nodeId);
   }
 
   (node as GeometryMixin).fills = [];
@@ -174,19 +172,19 @@ export async function removeFill(params: Record<string, unknown>): Promise<unkno
  */
 export async function removeStroke(params: Record<string, unknown>): Promise<unknown> {
   var paramsObj = params !== null && params !== undefined ? params : {};
-  var nodeId = paramsObj['nodeId'] as string | undefined;
+  var nodeId = paramsObj["nodeId"] as string | undefined;
 
   if (!nodeId) {
-    throw new Error('Missing nodeId parameter');
+    throw new Error("Missing nodeId parameter");
   }
 
   var node = await figma.getNodeByIdAsync(nodeId);
   if (!node) {
-    throw new Error('Node not found with ID: ' + nodeId);
+    throw new Error("Node not found with ID: " + nodeId);
   }
 
-  if (!('strokes' in node)) {
-    throw new Error('Node does not support strokes: ' + nodeId);
+  if (!("strokes" in node)) {
+    throw new Error("Node does not support strokes: " + nodeId);
   }
 
   (node as GeometryMixin).strokes = [];
@@ -209,33 +207,33 @@ export async function removeStroke(params: Record<string, unknown>): Promise<unk
  */
 export async function setStrokeColor(params: Record<string, unknown>): Promise<unknown> {
   var paramsObj = params !== null && params !== undefined ? params : {};
-  var nodeId = paramsObj['nodeId'] as string | undefined;
-  var strokeWeight = paramsObj['strokeWeight'];
+  var nodeId = paramsObj["nodeId"] as string | undefined;
+  var strokeWeight = paramsObj["strokeWeight"];
 
   if (!nodeId) {
-    throw new Error('Missing nodeId parameter');
+    throw new Error("Missing nodeId parameter");
   }
 
   var rgbColor = resolveColor(paramsObj);
 
   var node = await figma.getNodeByIdAsync(nodeId);
   if (!node) {
-    throw new Error('Node not found with ID: ' + nodeId);
+    throw new Error("Node not found with ID: " + nodeId);
   }
 
-  if (!('strokes' in node)) {
-    throw new Error('Node does not support strokes: ' + nodeId);
+  if (!("strokes" in node)) {
+    throw new Error("Node does not support strokes: " + nodeId);
   }
 
   // Default stroke weight to 1 if not provided
   var strokeWeightParsed = strokeWeight !== undefined ? parseFloat(strokeWeight as string) : 1;
 
   if (isNaN(strokeWeightParsed)) {
-    throw new Error('Invalid stroke weight - must be a valid number');
+    throw new Error("Invalid stroke weight - must be a valid number");
   }
 
   var paintStyle: SolidPaint = {
-    type: 'SOLID',
+    type: "SOLID",
     color: {
       r: rgbColor.r,
       g: rgbColor.g,
@@ -247,7 +245,7 @@ export async function setStrokeColor(params: Record<string, unknown>): Promise<u
   (node as GeometryMixin).strokes = [paintStyle];
 
   // Set stroke weight if the node supports it
-  if ('strokeWeight' in node) {
+  if ("strokeWeight" in node) {
     (node as unknown as { strokeWeight: number }).strokeWeight = strokeWeightParsed;
   }
 
@@ -255,7 +253,7 @@ export async function setStrokeColor(params: Record<string, unknown>): Promise<u
     id: node.id,
     name: node.name,
     strokes: (node as GeometryMixin).strokes,
-    strokeWeight: 'strokeWeight' in node ? (node as unknown as { strokeWeight: number }).strokeWeight : undefined,
+    strokeWeight: "strokeWeight" in node ? (node as unknown as { strokeWeight: number }).strokeWeight : undefined,
   };
 }
 
@@ -270,61 +268,53 @@ export async function setStrokeColor(params: Record<string, unknown>): Promise<u
 export async function setImageFill(params: Record<string, unknown>): Promise<unknown> {
   const paramsObj = params !== null && params !== undefined ? params : {};
 
-  const nodeId = paramsObj['nodeId'] as string | undefined;
-  const imageUrl = paramsObj['imageUrl'] as string | undefined;
-  const scaleMode =
-    paramsObj['scaleMode'] !== undefined ? (paramsObj['scaleMode'] as string) : 'FILL';
-  const rotation = paramsObj['rotation'] as number | undefined;
-  const exposure = paramsObj['exposure'] as number | undefined;
-  const contrast = paramsObj['contrast'] as number | undefined;
-  const saturation = paramsObj['saturation'] as number | undefined;
-  const temperature = paramsObj['temperature'] as number | undefined;
-  const tint = paramsObj['tint'] as number | undefined;
-  const highlights = paramsObj['highlights'] as number | undefined;
-  const shadows = paramsObj['shadows'] as number | undefined;
+  const nodeId = paramsObj["nodeId"] as string | undefined;
+  const imageUrl = paramsObj["imageUrl"] as string | undefined;
+  const scaleMode = paramsObj["scaleMode"] !== undefined ? (paramsObj["scaleMode"] as string) : "FILL";
+  const rotation = paramsObj["rotation"] as number | undefined;
+  const exposure = paramsObj["exposure"] as number | undefined;
+  const contrast = paramsObj["contrast"] as number | undefined;
+  const saturation = paramsObj["saturation"] as number | undefined;
+  const temperature = paramsObj["temperature"] as number | undefined;
+  const tint = paramsObj["tint"] as number | undefined;
+  const highlights = paramsObj["highlights"] as number | undefined;
+  const shadows = paramsObj["shadows"] as number | undefined;
 
   if (!nodeId) {
-    throw new Error('Missing nodeId parameter');
+    throw new Error("Missing nodeId parameter");
   }
 
   if (!imageUrl) {
-    throw new Error('Missing imageUrl parameter');
+    throw new Error("Missing imageUrl parameter");
   }
 
   // Only allow http/https URLs — reject file://, data:, and internal network addresses.
   if (!/^https?:\/\//i.test(imageUrl)) {
-    throw new Error('imageUrl must use http:// or https:// scheme');
+    throw new Error("imageUrl must use http:// or https:// scheme");
   }
   // Block loopback, private IPv4 ranges (RFC-1918), and link-local addresses.
   const hostMatch = imageUrl.match(/^https?:\/\/([^/:?#]+)/i);
   if (hostMatch) {
     const host = hostMatch[1].toLowerCase();
-    if (host === 'localhost' || host === '127.0.0.1' || host === '::1') {
-      throw new Error('imageUrl must not reference a loopback address');
+    if (host === "localhost" || host === "127.0.0.1" || host === "::1") {
+      throw new Error("imageUrl must not reference a loopback address");
     }
-    if (host.endsWith('.local')) {
-      throw new Error('imageUrl must not reference a .local domain');
+    if (host.endsWith(".local")) {
+      throw new Error("imageUrl must not reference a .local domain");
     }
     const ipv4 = host.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
     if (ipv4) {
       const a = parseInt(ipv4[1], 10);
       const b = parseInt(ipv4[2], 10);
-      if (
-        a === 10 ||
-        (a === 172 && b >= 16 && b <= 31) ||
-        (a === 192 && b === 168) ||
-        (a === 169 && b === 254)
-      ) {
-        throw new Error('imageUrl must not reference a private network address');
+      if (a === 10 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || (a === 169 && b === 254)) {
+        throw new Error("imageUrl must not reference a private network address");
       }
     }
   }
 
-  const validScaleModes = ['FILL', 'FIT', 'CROP', 'TILE'];
+  const validScaleModes = ["FILL", "FIT", "CROP", "TILE"];
   if (!validScaleModes.includes(scaleMode)) {
-    throw new Error(
-      `Invalid scaleMode: ${scaleMode}. Must be one of: ${validScaleModes.join(', ')}`,
-    );
+    throw new Error(`Invalid scaleMode: ${scaleMode}. Must be one of: ${validScaleModes.join(", ")}`);
   }
 
   debugLog(`setImageFill: Starting with nodeId=${nodeId}, imageUrl=<redacted>`);
@@ -334,7 +324,7 @@ export async function setImageFill(params: Record<string, unknown>): Promise<unk
     throw new Error(`Node not found with ID: ${nodeId}`);
   }
 
-  if (!('fills' in node)) {
+  if (!("fills" in node)) {
     throw new Error(`Node does not support fills: ${nodeId}`);
   }
 
@@ -370,26 +360,33 @@ export async function setImageFill(params: Record<string, unknown>): Promise<unk
   debugLog(`setImageFill: Image size ${width}x${height}`);
 
   // Build image filters if any were provided (values range from -1.0 to 1.0, default 0)
-  const hasFilters = exposure !== undefined || contrast !== undefined ||
-    saturation !== undefined || temperature !== undefined ||
-    tint !== undefined || highlights !== undefined || shadows !== undefined;
-  const imageFilters: ImageFilters | undefined = hasFilters ? {
-    ...(exposure !== undefined ? { exposure } : {}),
-    ...(contrast !== undefined ? { contrast } : {}),
-    ...(saturation !== undefined ? { saturation } : {}),
-    ...(temperature !== undefined ? { temperature } : {}),
-    ...(tint !== undefined ? { tint } : {}),
-    ...(highlights !== undefined ? { highlights } : {}),
-    ...(shadows !== undefined ? { shadows } : {}),
-  } : undefined;
+  const hasFilters =
+    exposure !== undefined ||
+    contrast !== undefined ||
+    saturation !== undefined ||
+    temperature !== undefined ||
+    tint !== undefined ||
+    highlights !== undefined ||
+    shadows !== undefined;
+  const imageFilters: ImageFilters | undefined = hasFilters
+    ? {
+        ...(exposure !== undefined ? { exposure } : {}),
+        ...(contrast !== undefined ? { contrast } : {}),
+        ...(saturation !== undefined ? { saturation } : {}),
+        ...(temperature !== undefined ? { temperature } : {}),
+        ...(tint !== undefined ? { tint } : {}),
+        ...(highlights !== undefined ? { highlights } : {}),
+        ...(shadows !== undefined ? { shadows } : {}),
+      }
+    : undefined;
 
   // Build the image paint object using the typed ImagePaint interface
   const imagePaint: ImagePaint = {
-    type: 'IMAGE',
+    type: "IMAGE",
     imageHash: image.hash,
-    scaleMode: scaleMode as ImagePaint['scaleMode'],
+    scaleMode: scaleMode as ImagePaint["scaleMode"],
     // rotation is only valid for TILE, FILL, FIT scale modes
-    ...(rotation !== undefined && ['TILE', 'FILL', 'FIT'].includes(scaleMode) ? { rotation } : {}),
+    ...(rotation !== undefined && ["TILE", "FILL", "FIT"].includes(scaleMode) ? { rotation } : {}),
     ...(imageFilters !== undefined ? { filters: imageFilters } : {}),
   };
 
@@ -402,7 +399,7 @@ export async function setImageFill(params: Record<string, unknown>): Promise<unk
     throw new Error(`Failed to apply image fill to node: ${errorMsg}`);
   }
 
-  debugLog('setImageFill: Successfully applied image fill');
+  debugLog("setImageFill: Successfully applied image fill");
 
   return {
     id: node.id,
@@ -424,33 +421,27 @@ export async function setImageFill(params: Record<string, unknown>): Promise<unk
 export async function setGradientFill(params: Record<string, unknown>): Promise<unknown> {
   const paramsObj = params !== null && params !== undefined ? params : {};
 
-  const nodeId = paramsObj['nodeId'] as string | undefined;
-  const gradientType = paramsObj['gradientType'] as string | undefined;
-  const stops = paramsObj['stops'] as Array<Record<string, unknown>> | undefined;
-  const angle = paramsObj['angle'] !== undefined ? (paramsObj['angle'] as number) : 0;
-  const opacity = paramsObj['opacity'] !== undefined ? (paramsObj['opacity'] as number) : 1;
+  const nodeId = paramsObj["nodeId"] as string | undefined;
+  const gradientType = paramsObj["gradientType"] as string | undefined;
+  const stops = paramsObj["stops"] as Array<Record<string, unknown>> | undefined;
+  const angle = paramsObj["angle"] !== undefined ? (paramsObj["angle"] as number) : 0;
+  const opacity = paramsObj["opacity"] !== undefined ? (paramsObj["opacity"] as number) : 1;
 
   if (!nodeId) {
-    throw new Error('Missing nodeId parameter');
+    throw new Error("Missing nodeId parameter");
   }
 
   if (!gradientType) {
-    throw new Error('Missing gradientType parameter');
+    throw new Error("Missing gradientType parameter");
   }
 
-  const validTypes = ['LINEAR', 'RADIAL', 'ANGULAR', 'DIAMOND'];
+  const validTypes = ["LINEAR", "RADIAL", "ANGULAR", "DIAMOND"];
   if (!validTypes.includes(gradientType)) {
-    throw new Error(
-      `Invalid gradientType: ${gradientType}. Must be one of: ${validTypes.join(', ')}`,
-    );
+    throw new Error(`Invalid gradientType: ${gradientType}. Must be one of: ${validTypes.join(", ")}`);
   }
 
-  if (
-    !stops ||
-    !Array.isArray(stops) ||
-    stops.length < 2
-  ) {
-    throw new Error('stops must be an array with at least 2 stops');
+  if (!stops || !Array.isArray(stops) || stops.length < 2) {
+    throw new Error("stops must be an array with at least 2 stops");
   }
 
   const node = await figma.getNodeByIdAsync(nodeId);
@@ -458,20 +449,20 @@ export async function setGradientFill(params: Record<string, unknown>): Promise<
     throw new Error(`Node not found with ID: ${nodeId}`);
   }
 
-  if (!('fills' in node)) {
+  if (!("fills" in node)) {
     throw new Error(`Node does not support fills: ${nodeId}`);
   }
 
-  const figmaStops: ColorStop[] = stops.map(stop => {
-    const stopColor = stop['color'] as Record<string, unknown>;
+  const figmaStops: ColorStop[] = stops.map((stop) => {
+    const stopColor = stop["color"] as Record<string, unknown>;
     return {
       color: {
-        r: stopColor['r'] as number,
-        g: stopColor['g'] as number,
-        b: stopColor['b'] as number,
-        a: stopColor['a'] !== undefined ? (stopColor['a'] as number) : 1,
+        r: stopColor["r"] as number,
+        g: stopColor["g"] as number,
+        b: stopColor["b"] as number,
+        a: stopColor["a"] !== undefined ? (stopColor["a"] as number) : 1,
       },
-      position: stop['position'] as number,
+      position: stop["position"] as number,
     };
   });
 
@@ -487,7 +478,7 @@ export async function setGradientFill(params: Record<string, unknown>): Promise<
   const startY = cy - sin * 0.5;
 
   let gradientTransform: Transform;
-  if (gradientType === 'LINEAR') {
+  if (gradientType === "LINEAR") {
     gradientTransform = [
       [cos, sin, startX],
       [-sin, cos, startY],
@@ -500,7 +491,7 @@ export async function setGradientFill(params: Record<string, unknown>): Promise<
   }
 
   const gradientPaint: GradientPaint = {
-    type: `GRADIENT_${gradientType}` as GradientPaint['type'],
+    type: `GRADIENT_${gradientType}` as GradientPaint["type"],
     gradientStops: figmaStops,
     gradientTransform,
     opacity,

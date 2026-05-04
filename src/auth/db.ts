@@ -1,15 +1,15 @@
-import { Database } from 'bun:sqlite'
-import { mkdirSync } from 'node:fs'
-import { join, dirname } from 'node:path'
+import { Database } from "bun:sqlite";
+import { mkdirSync } from "node:fs";
+import { join, dirname } from "node:path";
 
-const DB_PATH = process.env.DB_PATH ?? join(process.cwd(), 'data', 'auth.db')
+const DB_PATH = process.env.DB_PATH ?? join(process.cwd(), "data", "auth.db");
 
 // Ensure the directory exists
-mkdirSync(dirname(DB_PATH), { recursive: true })
+mkdirSync(dirname(DB_PATH), { recursive: true });
 
-export const db = new Database(DB_PATH, { create: true })
-db.exec('PRAGMA journal_mode = WAL')
-db.exec('PRAGMA foreign_keys = ON')
+export const db = new Database(DB_PATH, { create: true });
+db.exec("PRAGMA journal_mode = WAL");
+db.exec("PRAGMA foreign_keys = ON");
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS users (
@@ -37,4 +37,4 @@ db.exec(`
     last_used_at INTEGER,
     revoked      INTEGER NOT NULL DEFAULT 0
   );
-`)
+`);

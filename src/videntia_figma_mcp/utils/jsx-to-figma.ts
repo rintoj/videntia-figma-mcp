@@ -105,16 +105,14 @@ function fixDefaultSizing(nodes: FigmaNodeData[], parent?: FigmaNodeData): void 
   const isHorizontalParent = parent !== undefined && parent.layoutMode === "HORIZONTAL";
 
   // Cross-axis alignment override suppresses stretch (like CSS align-items != stretch)
-  const parentOverridesCrossAxis = parent !== undefined &&
-    parent.counterAxisAlignItems !== undefined;
+  const parentOverridesCrossAxis = parent !== undefined && parent.counterAxisAlignItems !== undefined;
 
   for (const node of nodes) {
     const tag = (node as FigmaNodeWithFlexMeta)._htmlTag || "";
     const isInlineText = INLINE_TEXT_TAGS.has(tag);
     const isBlock = BLOCK_LEVEL_TAGS.has(tag);
     const isInlineBlock = INLINE_BLOCK_TAGS.has(tag);
-    const childOverridesCrossAxis = node.layoutAlign !== undefined &&
-      node.layoutAlign !== "STRETCH";
+    const childOverridesCrossAxis = node.layoutAlign !== undefined && node.layoutAlign !== "STRETCH";
 
     // --- Block-level elements default to vertical stacking (display: block) ---
     if (!node.layoutMode && isBlock && node.type === "FRAME") {
@@ -447,27 +445,10 @@ const BLOCK_LEVEL_TAGS = new Set([
 ]);
 
 // Inline text tags — these HUG their content width (never auto-FILL)
-const INLINE_TEXT_TAGS = new Set([
-  "span",
-  "a",
-  "label",
-  "small",
-  "strong",
-  "em",
-  "b",
-  "i",
-  "u",
-  "s",
-]);
+const INLINE_TEXT_TAGS = new Set(["span", "a", "label", "small", "strong", "em", "b", "i", "u", "s"]);
 
 // Inline-block HTML tags — these HUG content by default (not block-level, not text)
-const INLINE_BLOCK_TAGS = new Set([
-  "button",
-  "input",
-  "select",
-  "textarea",
-  "img",
-]);
+const INLINE_BLOCK_TAGS = new Set(["button", "input", "select", "textarea", "img"]);
 
 // HTML tags that map to TEXT nodes
 const HTML_TEXT_TAGS = new Set([
@@ -874,12 +855,7 @@ const FONT_WEIGHT_MAP: Record<string, number> = {
  * Clears any previous fills and their associated variable bindings so that
  * every node ends up with at most one fill — accumulation is never intentional.
  */
-function setFill(
-  node: FigmaNodeData,
-  fill: FigmaNodeFill,
-  bindings: Record<string, string>,
-  varName?: string,
-): void {
+function setFill(node: FigmaNodeData, fill: FigmaNodeFill, bindings: Record<string, string>, varName?: string): void {
   for (const key of Object.keys(bindings)) {
     if (key.startsWith("fills/")) delete bindings[key];
   }
@@ -904,7 +880,7 @@ function applyClassName(node: FigmaNodeData, className: string): void {
   if (!className) return;
   const classes = className.split(/\s+/).filter(Boolean);
   const isText = node.type === "TEXT";
-  const bindings: Record<string, string> = node.bindings || {};
+  const bindings: Record<string, string> = (node.bindings as Record<string, string>) || {};
 
   // Collect deferred text- classes for disambiguation
   const deferredTextClasses: string[] = [];

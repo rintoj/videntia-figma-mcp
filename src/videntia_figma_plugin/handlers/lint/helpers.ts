@@ -1,5 +1,13 @@
-import type { Violation, ViolationSeverity, ViolationCategory, ViolationDetails, ColorVarEntry, FloatVarEntry, LookupMaps } from './types';
-import { COLOR_SEMANTIC_KEYWORDS, FLOAT_SEMANTIC_KEYWORDS } from './constants';
+import type {
+  Violation,
+  ViolationSeverity,
+  ViolationCategory,
+  ViolationDetails,
+  ColorVarEntry,
+  FloatVarEntry,
+  LookupMaps,
+} from "./types";
+import { COLOR_SEMANTIC_KEYWORDS, FLOAT_SEMANTIC_KEYWORDS } from "./constants";
 
 // ── Fill / scalar binding helpers ────────────────────────────────────────────
 
@@ -24,7 +32,13 @@ export function isScalarBound(node: SceneNode, propKey: string): boolean {
   if (bv && bv[propKey]) {
     let binding = bv[propKey];
     if ((binding as { id?: string }).id) return true;
-    if (Array.isArray(binding) && binding.length > 0 && (binding as Array<{ id?: string }>)[0] && (binding as Array<{ id?: string }>)[0].id) return true;
+    if (
+      Array.isArray(binding) &&
+      binding.length > 0 &&
+      (binding as Array<{ id?: string }>)[0] &&
+      (binding as Array<{ id?: string }>)[0].id
+    )
+      return true;
   }
   return false;
 }
@@ -34,7 +48,7 @@ export function isScalarBound(node: SceneNode, propKey: string): boolean {
 export function hasFillPaintStyle(node: SceneNode): boolean {
   try {
     let styleId = (node as unknown as { fillStyleId?: string | typeof figma.mixed }).fillStyleId;
-    if (styleId && styleId !== '' && styleId !== figma.mixed) return true;
+    if (styleId && styleId !== "" && styleId !== figma.mixed) return true;
   } catch (_e) {}
   return false;
 }
@@ -42,7 +56,7 @@ export function hasFillPaintStyle(node: SceneNode): boolean {
 export function hasStrokePaintStyle(node: SceneNode): boolean {
   try {
     let styleId = (node as unknown as { strokeStyleId?: string | typeof figma.mixed }).strokeStyleId;
-    if (styleId && styleId !== '' && styleId !== figma.mixed) return true;
+    if (styleId && styleId !== "" && styleId !== figma.mixed) return true;
   } catch (_e) {}
   return false;
 }
@@ -50,7 +64,7 @@ export function hasStrokePaintStyle(node: SceneNode): boolean {
 export function hasTextStyle(node: SceneNode): boolean {
   try {
     let styleId = (node as unknown as { textStyleId?: string | typeof figma.mixed }).textStyleId;
-    if (styleId && styleId !== '' && styleId !== figma.mixed) return true;
+    if (styleId && styleId !== "" && styleId !== figma.mixed) return true;
   } catch (_e) {}
   return false;
 }
@@ -58,7 +72,7 @@ export function hasTextStyle(node: SceneNode): boolean {
 export function hasEffectStyle(node: SceneNode): boolean {
   try {
     let styleId = (node as unknown as { effectStyleId?: string | typeof figma.mixed }).effectStyleId;
-    if (styleId && styleId !== '' && styleId !== figma.mixed) return true;
+    if (styleId && styleId !== "" && styleId !== figma.mixed) return true;
   } catch (_e) {}
   return false;
 }
@@ -68,7 +82,15 @@ export function hasEffectStyle(node: SceneNode): boolean {
 export function hasFontVariableBindings(node: SceneNode): boolean {
   let bv = (node as { boundVariables?: Record<string, { id?: string }> }).boundVariables;
   if (!bv) return false;
-  let fontProps = ['fontFamily', 'fontSize', 'fontStyle', 'fontWeight', 'lineHeight', 'letterSpacing', 'paragraphSpacing'];
+  let fontProps = [
+    "fontFamily",
+    "fontSize",
+    "fontStyle",
+    "fontWeight",
+    "lineHeight",
+    "letterSpacing",
+    "paragraphSpacing",
+  ];
   for (let fi = 0; fi < fontProps.length; fi++) {
     let prop = bv[fontProps[fi]];
     if (prop && prop.id) return true;
@@ -79,15 +101,15 @@ export function hasFontVariableBindings(node: SceneNode): boolean {
 // ── Node classification helpers ───────────────────────────────────────────────
 
 export function isIconLike(node: SceneNode): boolean {
-  if (node.type === 'VECTOR' || node.type === 'LINE' || node.type === 'BOOLEAN_OPERATION') return true;
-  if (node.type === 'INSTANCE' || node.type === 'COMPONENT') {
+  if (node.type === "VECTOR" || node.type === "LINE" || node.type === "BOOLEAN_OPERATION") return true;
+  if (node.type === "INSTANCE" || node.type === "COMPONENT") {
     try {
       let sized = node as InstanceNode | ComponentNode;
       if (sized.width <= 48 && sized.height <= 48) return true;
     } catch (_e) {}
   }
   // Frame-like nodes containing only vector primitives are SVG/icon containers
-  if ('children' in node) {
+  if ("children" in node) {
     try {
       let children = (node as FrameNode).children;
       if (children && children.length > 0 && hasOnlyVectorChildren(children)) return true;
@@ -99,12 +121,19 @@ export function isIconLike(node: SceneNode): boolean {
 function hasOnlyVectorChildren(children: ReadonlyArray<SceneNode>): boolean {
   for (let i = 0; i < children.length; i++) {
     let ct = children[i].type;
-    if (ct === 'VECTOR' || ct === 'LINE' || ct === 'BOOLEAN_OPERATION' ||
-        ct === 'ELLIPSE' || ct === 'RECTANGLE' || ct === 'POLYGON' || ct === 'STAR') {
+    if (
+      ct === "VECTOR" ||
+      ct === "LINE" ||
+      ct === "BOOLEAN_OPERATION" ||
+      ct === "ELLIPSE" ||
+      ct === "RECTANGLE" ||
+      ct === "POLYGON" ||
+      ct === "STAR"
+    ) {
       continue;
     }
     // Nested groups/frames containing only vectors (SVG <g> elements)
-    if ((ct === 'GROUP' || ct === 'FRAME') && 'children' in children[i]) {
+    if ((ct === "GROUP" || ct === "FRAME") && "children" in children[i]) {
       let nested = (children[i] as FrameNode).children;
       if (nested && nested.length > 0 && hasOnlyVectorChildren(nested)) continue;
     }
@@ -116,12 +145,13 @@ function hasOnlyVectorChildren(children: ReadonlyArray<SceneNode>): boolean {
 export function isColorFill(fill: Paint): boolean {
   if (!fill || fill.visible === false) return false;
   if (
-    fill.type === 'SOLID' ||
-    fill.type === 'GRADIENT_LINEAR' ||
-    fill.type === 'GRADIENT_RADIAL' ||
-    fill.type === 'GRADIENT_ANGULAR' ||
-    fill.type === 'GRADIENT_DIAMOND'
-  ) return true;
+    fill.type === "SOLID" ||
+    fill.type === "GRADIENT_LINEAR" ||
+    fill.type === "GRADIENT_RADIAL" ||
+    fill.type === "GRADIENT_ANGULAR" ||
+    fill.type === "GRADIENT_DIAMOND"
+  )
+    return true;
   return false;
 }
 
@@ -216,11 +246,11 @@ export async function buildLookupMaps(): Promise<LookupMaps> {
   let colorVarEntries: ColorVarEntry[] = [];
   for (let cvi = 0; cvi < localVars.length; cvi++) {
     let cv = localVars[cvi];
-    if (cv.resolvedType !== 'COLOR') continue;
+    if (cv.resolvedType !== "COLOR") continue;
     let cvModeIds = Object.keys(cv.valuesByMode);
     if (cvModeIds.length === 0) continue;
     let cvVal = cv.valuesByMode[cvModeIds[0]] as { r?: number; g?: number; b?: number };
-    if (!cvVal || typeof cvVal.r !== 'number') continue;
+    if (!cvVal || typeof cvVal.r !== "number") continue;
     colorVarEntries.push({
       id: cv.id,
       nameLower: cv.name.toLowerCase(),
@@ -232,11 +262,11 @@ export async function buildLookupMaps(): Promise<LookupMaps> {
   let floatVarEntries: FloatVarEntry[] = [];
   for (let flvi = 0; flvi < localVars.length; flvi++) {
     let flv = localVars[flvi];
-    if (flv.resolvedType !== 'FLOAT') continue;
+    if (flv.resolvedType !== "FLOAT") continue;
     let flvModeIds = Object.keys(flv.valuesByMode);
     if (flvModeIds.length === 0) continue;
     let flvVal = flv.valuesByMode[flvModeIds[0]];
-    if (typeof flvVal !== 'number') continue;
+    if (typeof flvVal !== "number") continue;
     floatVarEntries.push({
       id: flv.id,
       nameLower: flv.name.toLowerCase(),
@@ -249,8 +279,9 @@ export async function buildLookupMaps(): Promise<LookupMaps> {
   for (let tsi = 0; tsi < localTextStyles.length; tsi++) {
     let ts = localTextStyles[tsi];
     try {
-      if (ts.fontName && typeof ts.fontSize === 'number') {
-        let tsKey = ts.fontName.family.toLowerCase() + '|' + ts.fontName.style.toLowerCase() + '|' + Math.round(ts.fontSize);
+      if (ts.fontName && typeof ts.fontSize === "number") {
+        let tsKey =
+          ts.fontName.family.toLowerCase() + "|" + ts.fontName.style.toLowerCase() + "|" + Math.round(ts.fontSize);
         if (!textStyleExactMap[tsKey]) {
           textStyleExactMap[tsKey] = ts;
         }

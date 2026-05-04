@@ -82,7 +82,10 @@ const RGBAColorSchema = z.object({
 const VariableTypeSchema = z.enum(["COLOR", "FLOAT", "STRING", "BOOLEAN"]);
 const VariableInputValueSchema = z.union([RGBAColorSchema, z.string(), z.number(), z.boolean()]);
 
-function normalizeVariableValueByType(type: z.infer<typeof VariableTypeSchema>, value: unknown): RGBAColor | number | string | boolean {
+function normalizeVariableValueByType(
+  type: z.infer<typeof VariableTypeSchema>,
+  value: unknown,
+): RGBAColor | number | string | boolean {
   if (type === "COLOR") {
     return RGBAColorSchema.parse(value);
   }
@@ -209,7 +212,11 @@ export function registerVariableTools(server: McpServer): void {
     "get_collection_info",
     "Get detailed metadata about a variable collection",
     {
-      id: z.string().describe("Collection ID (e.g. 'VariableCollectionId:1:2') or collection name (e.g. 'Theme') — use get_variable_collections to list available IDs"),
+      id: z
+        .string()
+        .describe(
+          "Collection ID (e.g. 'VariableCollectionId:1:2') or collection name (e.g. 'Theme') — use get_variable_collections to list available IDs",
+        ),
     },
     async ({ id: collection_id }) => {
       try {
@@ -326,9 +333,18 @@ export function registerVariableTools(server: McpServer): void {
     {
       collection_id: z.string().describe("Collection ID or name"),
       name: z.string().describe("Variable name (e.g., 'primary', 'spacing.4', 'font.family')"),
-      type: VariableTypeSchema.describe("Variable type: COLOR = RGBA color object {r,g,b,a} with normalized 0–1 values, FLOAT = numeric value (spacing, sizing, etc.), STRING = text value, BOOLEAN = true/false"),
-      value: VariableInputValueSchema.describe("Variable value matching the type: COLOR → {r:0–1, g:0–1, b:0–1, a:0–1}, FLOAT → number, STRING → string, BOOLEAN → true/false"),
-      mode: z.string().optional().describe("Mode name to set the value for (e.g. 'dark', 'light'); omit to set for the collection's default mode"),
+      type: VariableTypeSchema.describe(
+        "Variable type: COLOR = RGBA color object {r,g,b,a} with normalized 0–1 values, FLOAT = numeric value (spacing, sizing, etc.), STRING = text value, BOOLEAN = true/false",
+      ),
+      value: VariableInputValueSchema.describe(
+        "Variable value matching the type: COLOR → {r:0–1, g:0–1, b:0–1, a:0–1}, FLOAT → number, STRING → string, BOOLEAN → true/false",
+      ),
+      mode: z
+        .string()
+        .optional()
+        .describe(
+          "Mode name to set the value for (e.g. 'dark', 'light'); omit to set for the collection's default mode",
+        ),
     },
     async ({ collection_id, name, type, value, mode }) => {
       try {
@@ -374,11 +390,16 @@ export function registerVariableTools(server: McpServer): void {
           z.object({
             name: z.string().describe("Variable name"),
             type: VariableTypeSchema.describe("Variable type — value must match this type"),
-            value: VariableInputValueSchema.describe("Value matching the type: COLOR → {r,g,b,a} normalized, FLOAT → number, STRING → string, BOOLEAN → true/false"),
+            value: VariableInputValueSchema.describe(
+              "Value matching the type: COLOR → {r,g,b,a} normalized, FLOAT → number, STRING → string, BOOLEAN → true/false",
+            ),
           }),
         ),
       ).describe("Array of variable definitions to create in one batch"),
-      mode: z.string().optional().describe("Mode name to set values for (e.g. 'dark'); omit to use collection's default mode"),
+      mode: z
+        .string()
+        .optional()
+        .describe("Mode name to set values for (e.g. 'dark'); omit to use collection's default mode"),
     },
     async ({ collection_id, variables, mode }) => {
       try {
@@ -580,9 +601,16 @@ export function registerVariableTools(server: McpServer): void {
     "calculate_color_scale",
     "Calculate all 10 scale variants (-50 to -900) for a base color",
     {
-      base: RGBAColorSchema.describe("The primary/brand color to build a scale from — provided as normalized RGB {r,g,b} where each channel is 0–1"),
-      background: RGBAColorSchema.describe("The dark background color to blend against (e.g. page background) — provided as normalized RGB {r,g,b} 0–1. Scale level 900 is closest to this base color, level 50 is closest to background."),
-      input_format: z.enum(["normalized", "rgb255"]).optional().describe("Color input format: 'normalized' = channels 0–1 (default), 'rgb255' = channels 0–255"),
+      base: RGBAColorSchema.describe(
+        "The primary/brand color to build a scale from — provided as normalized RGB {r,g,b} where each channel is 0–1",
+      ),
+      background: RGBAColorSchema.describe(
+        "The dark background color to blend against (e.g. page background) — provided as normalized RGB {r,g,b} 0–1. Scale level 900 is closest to this base color, level 50 is closest to background.",
+      ),
+      input_format: z
+        .enum(["normalized", "rgb255"])
+        .optional()
+        .describe("Color input format: 'normalized' = channels 0–1 (default), 'rgb255' = channels 0–255"),
     },
     async ({ base, background, input_format }) => {
       try {
@@ -631,10 +659,21 @@ export function registerVariableTools(server: McpServer): void {
     "calculate_composite_color",
     "Calculate a single composited color at a specific mix percentage",
     {
-      base: RGBAColorSchema.describe("Primary color as normalized RGB {r,g,b} 0–1 — at mix_percentage=1.0, result equals this color"),
-      background: RGBAColorSchema.describe("Background color as normalized RGB {r,g,b} 0–1 — at mix_percentage=0.0, result equals this color"),
-      mix_percentage: z.coerce.number().min(0).max(1).describe("Blend ratio 0.0–1.0: 0.0 = pure background, 1.0 = pure base, 0.5 = 50/50 blend"),
-      input_format: z.enum(["normalized", "rgb255"]).optional().describe("Color input format: 'normalized' = 0–1 (default), 'rgb255' = 0–255"),
+      base: RGBAColorSchema.describe(
+        "Primary color as normalized RGB {r,g,b} 0–1 — at mix_percentage=1.0, result equals this color",
+      ),
+      background: RGBAColorSchema.describe(
+        "Background color as normalized RGB {r,g,b} 0–1 — at mix_percentage=0.0, result equals this color",
+      ),
+      mix_percentage: z.coerce
+        .number()
+        .min(0)
+        .max(1)
+        .describe("Blend ratio 0.0–1.0: 0.0 = pure background, 1.0 = pure base, 0.5 = 50/50 blend"),
+      input_format: z
+        .enum(["normalized", "rgb255"])
+        .optional()
+        .describe("Color input format: 'normalized' = 0–1 (default), 'rgb255' = 0–255"),
     },
     async ({ base, background, mix_percentage, input_format }) => {
       try {
@@ -669,9 +708,19 @@ export function registerVariableTools(server: McpServer): void {
     "convert_color_format",
     "Convert color between different formats",
     {
-      color: z.union([RGBAColorSchema, z.string()]).describe("Color value to convert — object {r,g,b,a} for normalized/rgb255 formats, or string '#RRGGBB' / '#RRGGBBAA' for hex format"),
-      from_format: z.enum(["normalized", "rgb255", "hex"]).describe("Source format: 'normalized' = {r,g,b,a} channels 0–1, 'rgb255' = {r,g,b,a} channels 0–255, 'hex' = '#RRGGBB' or '#RRGGBBAA' string"),
-      to_format: z.enum(["normalized", "rgb255", "hex"]).describe("Target format: 'normalized' = {r,g,b,a} 0–1, 'rgb255' = {r,g,b,a} 0–255, 'hex' = '#RRGGBB' string"),
+      color: z
+        .union([RGBAColorSchema, z.string()])
+        .describe(
+          "Color value to convert — object {r,g,b,a} for normalized/rgb255 formats, or string '#RRGGBB' / '#RRGGBBAA' for hex format",
+        ),
+      from_format: z
+        .enum(["normalized", "rgb255", "hex"])
+        .describe(
+          "Source format: 'normalized' = {r,g,b,a} channels 0–1, 'rgb255' = {r,g,b,a} channels 0–255, 'hex' = '#RRGGBB' or '#RRGGBBAA' string",
+        ),
+      to_format: z
+        .enum(["normalized", "rgb255", "hex"])
+        .describe("Target format: 'normalized' = {r,g,b,a} 0–1, 'rgb255' = {r,g,b,a} 0–255, 'hex' = '#RRGGBB' string"),
     },
     async ({ color, from_format, to_format }) => {
       try {
@@ -753,8 +802,17 @@ export function registerVariableTools(server: McpServer): void {
     "Compare collection against the 102-variable standard schema",
     {
       collection_id: z.string().describe("Collection ID or name to audit against the standard schema"),
-      chartColors: mcpBooleanSchema.optional().describe("true = expect the 8 optional chart color variables in addition to the 102 base variables (default: false)"),
-      custom_schema: z.any().optional().describe("Custom schema object to validate against instead of the built-in standard — must match the schema format returned by get_schema_definition; omit to use the built-in standard schema"),
+      chartColors: mcpBooleanSchema
+        .optional()
+        .describe(
+          "true = expect the 8 optional chart color variables in addition to the 102 base variables (default: false)",
+        ),
+      custom_schema: z
+        .any()
+        .optional()
+        .describe(
+          "Custom schema object to validate against instead of the built-in standard — must match the schema format returned by get_schema_definition; omit to use the built-in standard schema",
+        ),
     },
     async ({ collection_id, chartColors, custom_schema }) => {
       try {
@@ -773,7 +831,9 @@ export function registerVariableTools(server: McpServer): void {
         const missingRaw = result.missing as any;
         const missing: string[] = Array.isArray(missingRaw)
           ? missingRaw
-          : (missingRaw && Array.isArray(missingRaw.variables) ? missingRaw.variables : []);
+          : missingRaw && Array.isArray(missingRaw.variables)
+            ? missingRaw.variables
+            : [];
         if (missing.length > 0) {
           lines.push(`### Missing (${missing.length})`);
           lines.push("| Name |");
@@ -784,7 +844,9 @@ export function registerVariableTools(server: McpServer): void {
         const extraRaw = (result as any).nonStandard || result.extra;
         const extra: string[] = Array.isArray(extraRaw)
           ? extraRaw
-          : (extraRaw && Array.isArray(extraRaw.variables) ? extraRaw.variables.map((v: any) => typeof v === "string" ? v : v.name) : []);
+          : extraRaw && Array.isArray(extraRaw.variables)
+            ? extraRaw.variables.map((v: any) => (typeof v === "string" ? v : v.name))
+            : [];
         if (extra.length > 0) {
           lines.push(`### Extra (${extra.length})`);
           lines.push("| Name |");
@@ -830,8 +892,16 @@ export function registerVariableTools(server: McpServer): void {
     "Validate all foreground/background pairs meet WCAG AA standards",
     {
       collection_id: z.string().describe("Collection ID or name containing the color variables to validate"),
-      mode: z.string().optional().describe("Mode name to validate (e.g. 'dark', 'light'); omit to use the collection's default mode"),
-      standard: z.enum(["AA", "AAA"]).optional().describe("WCAG contrast standard: AA = minimum (4.5:1 normal text, 3:1 large text), AAA = enhanced (7:1 normal text, 4.5:1 large text; default: AA)"),
+      mode: z
+        .string()
+        .optional()
+        .describe("Mode name to validate (e.g. 'dark', 'light'); omit to use the collection's default mode"),
+      standard: z
+        .enum(["AA", "AAA"])
+        .optional()
+        .describe(
+          "WCAG contrast standard: AA = minimum (4.5:1 normal text, 3:1 large text), AAA = enhanced (7:1 normal text, 4.5:1 large text; default: AA)",
+        ),
     },
     async ({ collection_id, mode, standard }) => {
       try {
@@ -885,8 +955,17 @@ export function registerVariableTools(server: McpServer): void {
     "get_schema_definition",
     "Return the complete standard schema definition",
     {
-      chartColors: mcpBooleanSchema.optional().describe("true = include the 8 optional chart color variable definitions in the schema output (default: false)"),
-      format: z.enum(["structured", "flat"]).optional().describe("Output format: 'structured' = full schema with categories and metadata (default), 'flat' = simple list of variable names only"),
+      chartColors: mcpBooleanSchema
+        .optional()
+        .describe(
+          "true = include the 8 optional chart color variable definitions in the schema output (default: false)",
+        ),
+      format: z
+        .enum(["structured", "flat"])
+        .optional()
+        .describe(
+          "Output format: 'structured' = full schema with categories and metadata (default), 'flat' = simple list of variable names only",
+        ),
     },
     async ({ chartColors, format }) => {
       try {
@@ -937,7 +1016,11 @@ export function registerVariableTools(server: McpServer): void {
     "Get list of missing variables with suggested default values",
     {
       collection_id: z.string().describe("Collection ID or name to check for missing variables"),
-      defaults: mcpBooleanSchema.optional().describe("true = include suggested default values from the reference dark theme alongside each missing variable name (default: true)"),
+      defaults: mcpBooleanSchema
+        .optional()
+        .describe(
+          "true = include suggested default values from the reference dark theme alongside each missing variable name (default: true)",
+        ),
     },
     async ({ collection_id, defaults }) => {
       try {
@@ -995,8 +1078,16 @@ export function registerVariableTools(server: McpServer): void {
     "Apply the default dark theme values from documentation",
     {
       collection_id: z.string().describe("Collection ID or name to apply the default dark theme values to"),
-      overwrite: mcpBooleanSchema.optional().describe("true = update variables that already exist with default values; false = skip existing variables and only create missing ones (default: false)"),
-      chartColors: mcpBooleanSchema.optional().describe("true = also apply the 8 optional chart color variables in addition to the 102 base variables (default: false)"),
+      overwrite: mcpBooleanSchema
+        .optional()
+        .describe(
+          "true = update variables that already exist with default values; false = skip existing variables and only create missing ones (default: false)",
+        ),
+      chartColors: mcpBooleanSchema
+        .optional()
+        .describe(
+          "true = also apply the 8 optional chart color variables in addition to the 102 base variables (default: false)",
+        ),
     },
     async ({ collection_id, overwrite, chartColors }) => {
       try {
@@ -1037,11 +1128,24 @@ export function registerVariableTools(server: McpServer): void {
     "Create complete scale for one color (base + foreground + 10 scale variants)",
     {
       collection_id: z.string().describe("Collection ID or name"),
-      color_name: z.string().describe("Semantic color name used as a prefix for all generated variables (e.g. 'primary' → creates 'primary', 'primary-foreground', 'primary-50', 'primary-100', ..., 'primary-900')"),
-      base: RGBAColorSchema.describe("The main brand/accent color as normalized RGB {r,g,b} 0–1 — used as the '500' level of the scale and the base variable"),
-      foreground: RGBAColorSchema.describe("Text/icon color that sits on top of this color as normalized RGB {r,g,b} 0–1 — stored as the '<name>-foreground' variable"),
-      background: RGBAColorSchema.describe("Page/canvas background color as normalized RGB {r,g,b} 0–1 — used as the blend target for generating scale levels 50–900"),
-      mode: z.string().optional().describe("Mode name to create variables in (e.g. 'dark'); omit to use the collection's default mode"),
+      color_name: z
+        .string()
+        .describe(
+          "Semantic color name used as a prefix for all generated variables (e.g. 'primary' → creates 'primary', 'primary-foreground', 'primary-50', 'primary-100', ..., 'primary-900')",
+        ),
+      base: RGBAColorSchema.describe(
+        "The main brand/accent color as normalized RGB {r,g,b} 0–1 — used as the '500' level of the scale and the base variable",
+      ),
+      foreground: RGBAColorSchema.describe(
+        "Text/icon color that sits on top of this color as normalized RGB {r,g,b} 0–1 — stored as the '<name>-foreground' variable",
+      ),
+      background: RGBAColorSchema.describe(
+        "Page/canvas background color as normalized RGB {r,g,b} 0–1 — used as the blend target for generating scale levels 50–900",
+      ),
+      mode: z
+        .string()
+        .optional()
+        .describe("Mode name to create variables in (e.g. 'dark'); omit to use the collection's default mode"),
     },
     async ({ collection_id, color_name, base, foreground, background, mode }) => {
       try {
@@ -1090,9 +1194,17 @@ export function registerVariableTools(server: McpServer): void {
             foreground: RGBAColorSchema.describe("On-color text/icon color as normalized RGB {r,g,b} 0–1"),
           }),
         )
-        .describe("Map of color names to base+foreground pairs — keys should be semantic names matching existing variable prefixes in the collection (e.g. {'primary': {base:{r,g,b}, foreground:{r,g,b}}, 'success': {...}})"),
-      background: RGBAColorSchema.describe("Page background color as normalized RGB {r,g,b} 0–1 — used as the blend target for regenerating scale levels 50–900"),
-      regenerate_scales: mcpBooleanSchema.optional().describe("true = automatically recalculate and update all scale variables (50–900) using the new base colors and background; false = only update the base and foreground variables (default: true)"),
+        .describe(
+          "Map of color names to base+foreground pairs — keys should be semantic names matching existing variable prefixes in the collection (e.g. {'primary': {base:{r,g,b}, foreground:{r,g,b}}, 'success': {...}})",
+        ),
+      background: RGBAColorSchema.describe(
+        "Page background color as normalized RGB {r,g,b} 0–1 — used as the blend target for regenerating scale levels 50–900",
+      ),
+      regenerate_scales: mcpBooleanSchema
+        .optional()
+        .describe(
+          "true = automatically recalculate and update all scale variables (50–900) using the new base colors and background; false = only update the base and foreground variables (default: true)",
+        ),
     },
     async ({ collection_id, palette, background, regenerate_scales }) => {
       try {
@@ -1342,11 +1454,27 @@ export function registerVariableTools(server: McpServer): void {
     "fix_collection_to_standard",
     "One-click fix to bring collection to 102-variable standard",
     {
-      collection_id: z.string().describe("Collection ID or name to bring into compliance with the 102-variable standard"),
-      preserve_custom: mcpBooleanSchema.optional().describe("true = keep non-standard variables that don't appear in the schema (they stay alongside standard ones); false = remove non-standard variables (default: false)"),
-      add_chart_colors: mcpBooleanSchema.optional().describe("true = also add the 8 optional chart color variables to reach 110 total (default: false)"),
-      defaults: mcpBooleanSchema.optional().describe("true = populate newly created variables with default dark-theme values; false = create variables without values (default: true)"),
-      dry_run: mcpBooleanSchema.optional().describe("true = analyze and report what would change without modifying anything — use this to preview the impact before committing (default: false)"),
+      collection_id: z
+        .string()
+        .describe("Collection ID or name to bring into compliance with the 102-variable standard"),
+      preserve_custom: mcpBooleanSchema
+        .optional()
+        .describe(
+          "true = keep non-standard variables that don't appear in the schema (they stay alongside standard ones); false = remove non-standard variables (default: false)",
+        ),
+      add_chart_colors: mcpBooleanSchema
+        .optional()
+        .describe("true = also add the 8 optional chart color variables to reach 110 total (default: false)"),
+      defaults: mcpBooleanSchema
+        .optional()
+        .describe(
+          "true = populate newly created variables with default dark-theme values; false = create variables without values (default: true)",
+        ),
+      dry_run: mcpBooleanSchema
+        .optional()
+        .describe(
+          "true = analyze and report what would change without modifying anything — use this to preview the impact before committing (default: false)",
+        ),
     },
     async ({ collection_id, preserve_custom, add_chart_colors, defaults, dry_run }) => {
       try {
@@ -1392,7 +1520,9 @@ export function registerVariableTools(server: McpServer): void {
       id: z.string().describe("Collection ID or name to add chart colors to"),
       chart_colors: coerceArray(z.array(RGBAColorSchema))
         .optional()
-        .describe("Array of exactly 8 custom chart colors as normalized RGB objects {r,g,b,a} 0–1 — omit to use the built-in standard chart color palette"),
+        .describe(
+          "Array of exactly 8 custom chart colors as normalized RGB objects {r,g,b,a} 0–1 — omit to use the built-in standard chart color palette",
+        ),
     },
     async ({ id: collection_id, chart_colors }) => {
       try {
@@ -1434,7 +1564,11 @@ export function registerVariableTools(server: McpServer): void {
     "Add a new mode to a variable collection (e.g., Light mode, Dark mode, High Contrast)",
     {
       id: z.string().describe("Collection ID or name — use get_variable_collections to list available IDs"),
-      name: z.string().describe("Name for the new mode (e.g. 'Light', 'Dark', 'High Contrast') — must be unique within the collection; free-plan Figma accounts are limited to 1 mode per collection"),
+      name: z
+        .string()
+        .describe(
+          "Name for the new mode (e.g. 'Light', 'Dark', 'High Contrast') — must be unique within the collection; free-plan Figma accounts are limited to 1 mode per collection",
+        ),
     },
     async ({ id: collection_id, name: mode_name }) => {
       try {
@@ -1510,7 +1644,11 @@ export function registerVariableTools(server: McpServer): void {
     "Delete a mode from a collection (cannot delete last mode)",
     {
       id: z.string().describe("Collection ID or name containing the mode to delete"),
-      name: z.string().describe("Exact name of the mode to delete (case-sensitive) — cannot delete the last remaining mode in a collection"),
+      name: z
+        .string()
+        .describe(
+          "Exact name of the mode to delete (case-sensitive) — cannot delete the last remaining mode in a collection",
+        ),
     },
     async ({ id: collection_id, name: mode_name }) => {
       try {
@@ -1548,7 +1686,11 @@ export function registerVariableTools(server: McpServer): void {
     {
       id: z.string().describe("Collection ID or name containing both modes"),
       from: z.string().describe("Name of the source mode to copy values from (must already exist)"),
-      to: z.string().describe("Name of the target mode to copy values into (must already exist — create it first with add_mode_to_collection if needed)"),
+      to: z
+        .string()
+        .describe(
+          "Name of the target mode to copy values into (must already exist — create it first with add_mode_to_collection if needed)",
+        ),
       transform_colors: z
         .object({
           brightness_adjustment: z

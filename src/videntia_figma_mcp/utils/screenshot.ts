@@ -26,15 +26,20 @@ export interface CaptureResult {
 }
 
 export async function captureUrl(options: CaptureOptions): Promise<CaptureResult> {
-  const browser = await chromium.launch({ headless: true });
+  const browser = await chromium.launch({
+    headless: true,
+    args: ["--no-sandbox", "--disable-dev-shm-usage"],
+  });
   try {
     const page = await browser.newPage();
     await page.setViewportSize({
       width: options.viewportWidth ?? 1440,
       height: options.viewportHeight ?? 900,
     });
-    await page.goto(options.url, { waitUntil: "networkidle" });
-    // Allow JS frameworks (React, Vue, etc.) time to render after network idle
+    await page.goto(options.url, { waitUntil: "domcontentloaded", timeout: 60000 });
+    try {
+      await page.waitForLoadState("load", { timeout: 5000 });
+    } catch {}
     await page.waitForTimeout(1500);
 
     // Run pre-screenshot interactions (hover, click, wait, scroll)
@@ -53,7 +58,7 @@ export async function captureUrl(options: CaptureOptions): Promise<CaptureResult
     // Strategy 2: data-figma-id attribute
     if (options.figmaId) {
       const element = page.locator(`[data-figma-id="${options.figmaId}"]`).first();
-      if (await element.count() > 0) {
+      if ((await element.count()) > 0) {
         const screenshot = await element.screenshot();
         const box = await element.boundingBox();
         return {

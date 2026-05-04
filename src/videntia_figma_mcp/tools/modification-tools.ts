@@ -20,11 +20,26 @@ export function registerModificationTools(server: McpServer): void {
     "Set the fill color of a node in Figma. Accepts either a hex color string (e.g. '#ff0000', '#ff000080' with alpha) or individual r,g,b,a channels (0–1). Alpha defaults to 1 (fully opaque) if not specified.",
     {
       nodeId: z.string().describe("Node ID (e.g. '123:456') — get from get_selection or get_node_info"),
-      color: z.string().optional().describe("Hex color string (e.g. '#ff0000', '#f00', '#ff000080' for alpha). Use this OR r,g,b,a — not both."),
-      r: z.preprocess((v) => (typeof v === "boolean" || v === null ? undefined : v), z.coerce.number().min(0).max(1)).optional().describe("Red channel, normalized 0–1 (e.g. 1 = full red)"),
-      g: z.preprocess((v) => (typeof v === "boolean" || v === null ? undefined : v), z.coerce.number().min(0).max(1)).optional().describe("Green channel, normalized 0–1"),
-      b: z.preprocess((v) => (typeof v === "boolean" || v === null ? undefined : v), z.coerce.number().min(0).max(1)).optional().describe("Blue channel, normalized 0–1"),
-      a: z.preprocess((v) => (typeof v === "boolean" || v === null ? undefined : v), z.coerce.number().min(0).max(1)).optional().describe("Alpha/opacity, normalized 0–1 (default: 1 = fully opaque; 0 = fully transparent)"),
+      color: z
+        .string()
+        .optional()
+        .describe("Hex color string (e.g. '#ff0000', '#f00', '#ff000080' for alpha). Use this OR r,g,b,a — not both."),
+      r: z
+        .preprocess((v) => (typeof v === "boolean" || v === null ? undefined : v), z.coerce.number().min(0).max(1))
+        .optional()
+        .describe("Red channel, normalized 0–1 (e.g. 1 = full red)"),
+      g: z
+        .preprocess((v) => (typeof v === "boolean" || v === null ? undefined : v), z.coerce.number().min(0).max(1))
+        .optional()
+        .describe("Green channel, normalized 0–1"),
+      b: z
+        .preprocess((v) => (typeof v === "boolean" || v === null ? undefined : v), z.coerce.number().min(0).max(1))
+        .optional()
+        .describe("Blue channel, normalized 0–1"),
+      a: z
+        .preprocess((v) => (typeof v === "boolean" || v === null ? undefined : v), z.coerce.number().min(0).max(1))
+        .optional()
+        .describe("Alpha/opacity, normalized 0–1 (default: 1 = fully opaque; 0 = fully transparent)"),
     },
     async ({ nodeId, color, r, g, b, a }) => {
       nodeId = normalizeNodeId(nodeId);
@@ -71,12 +86,24 @@ export function registerModificationTools(server: McpServer): void {
     "Set the stroke color of a node in Figma. Accepts either a hex color string (e.g. '#ff0000', '#ff000080' with alpha) or individual r,g,b,a channels (0–1). Defaults: opacity 1, weight 1.",
     {
       nodeId: z.string().describe("Node ID (e.g. '123:456') — get from get_selection or get_node_info"),
-      color: z.string().optional().describe("Hex color string (e.g. '#ff0000', '#f00', '#ff000080' for alpha). Use this OR r,g,b,a — not both."),
+      color: z
+        .string()
+        .optional()
+        .describe("Hex color string (e.g. '#ff0000', '#f00', '#ff000080' for alpha). Use this OR r,g,b,a — not both."),
       r: z.coerce.number().min(0).max(1).optional().describe("Red channel, normalized 0–1"),
       g: z.coerce.number().min(0).max(1).optional().describe("Green channel, normalized 0–1"),
       b: z.coerce.number().min(0).max(1).optional().describe("Blue channel, normalized 0–1"),
-      a: z.coerce.number().min(0).max(1).optional().describe("Alpha/opacity, normalized 0–1 (default: 1 = fully opaque; 0 = fully transparent)"),
-      weight: z.coerce.number().min(0).optional().describe("Stroke thickness in pixels ≥ 0 (default: 1; use 0 for invisible stroke)"),
+      a: z.coerce
+        .number()
+        .min(0)
+        .max(1)
+        .optional()
+        .describe("Alpha/opacity, normalized 0–1 (default: 1 = fully opaque; 0 = fully transparent)"),
+      weight: z.coerce
+        .number()
+        .min(0)
+        .optional()
+        .describe("Stroke thickness in pixels ≥ 0 (default: 1; use 0 for invisible stroke)"),
     },
     async ({ nodeId, color, r, g, b, a, weight }) => {
       nodeId = normalizeNodeId(nodeId);
@@ -191,8 +218,14 @@ export function registerModificationTools(server: McpServer): void {
     "Move a node to a new position in Figma",
     {
       nodeId: z.string().describe("Node ID to move — get from get_selection or get_node_info"),
-      x: z.coerce.number().optional().describe("New X position in pixels, relative to the canvas (or parent frame if nested)"),
-      y: z.coerce.number().optional().describe("New Y position in pixels, relative to the canvas (or parent frame if nested)"),
+      x: z.coerce
+        .number()
+        .optional()
+        .describe("New X position in pixels, relative to the canvas (or parent frame if nested)"),
+      y: z.coerce
+        .number()
+        .optional()
+        .describe("New Y position in pixels, relative to the canvas (or parent frame if nested)"),
       parentId: z.string().optional().describe("ID of the new parent node to move the node into"),
       index: z.coerce.number().optional().describe("Index position within the new parent's children"),
     },
@@ -342,8 +375,17 @@ export function registerModificationTools(server: McpServer): void {
     "Set the layout mode and wrap behavior of a frame in Figma",
     {
       nodeId: z.string().describe("Frame node ID — must be a FRAME type, not a group"),
-      mode: z.enum(["NONE", "HORIZONTAL", "VERTICAL"]).describe("Layout direction: NONE = no auto-layout, HORIZONTAL = children flow left-to-right, VERTICAL = children flow top-to-bottom"),
-      wrap: z.enum(["NO_WRAP", "WRAP"]).optional().describe("WRAP = children wrap to next row/column when they overflow (only applies in HORIZONTAL or VERTICAL mode; default: NO_WRAP)"),
+      mode: z
+        .enum(["NONE", "HORIZONTAL", "VERTICAL"])
+        .describe(
+          "Layout direction: NONE = no auto-layout, HORIZONTAL = children flow left-to-right, VERTICAL = children flow top-to-bottom",
+        ),
+      wrap: z
+        .enum(["NO_WRAP", "WRAP"])
+        .optional()
+        .describe(
+          "WRAP = children wrap to next row/column when they overflow (only applies in HORIZONTAL or VERTICAL mode; default: NO_WRAP)",
+        ),
     },
     async ({ nodeId, mode, wrap }) => {
       nodeId = normalizeNodeId(nodeId);
@@ -436,8 +478,15 @@ export function registerModificationTools(server: McpServer): void {
       primaryAxisAlignItems: z
         .enum(["MIN", "MAX", "CENTER", "SPACE_BETWEEN"])
         .optional()
-        .describe("Alignment along the primary axis (the layout direction): MIN = start/left/top, CENTER = center, MAX = end/right/bottom, SPACE_BETWEEN = distribute children evenly"),
-      counterAxisAlignItems: z.enum(["MIN", "MAX", "CENTER", "BASELINE"]).optional().describe("Alignment along the cross axis (perpendicular to layout direction): MIN = top/left, CENTER = center, MAX = bottom/right, BASELINE = align text baselines (text nodes only)"),
+        .describe(
+          "Alignment along the primary axis (the layout direction): MIN = start/left/top, CENTER = center, MAX = end/right/bottom, SPACE_BETWEEN = distribute children evenly",
+        ),
+      counterAxisAlignItems: z
+        .enum(["MIN", "MAX", "CENTER", "BASELINE"])
+        .optional()
+        .describe(
+          "Alignment along the cross axis (perpendicular to layout direction): MIN = top/left, CENTER = center, MAX = bottom/right, BASELINE = align text baselines (text nodes only)",
+        ),
     },
     async ({ nodeId, primaryAxisAlignItems, counterAxisAlignItems }) => {
       nodeId = normalizeNodeId(nodeId);
@@ -482,8 +531,18 @@ export function registerModificationTools(server: McpServer): void {
     "Set horizontal and vertical sizing modes for an auto-layout frame",
     {
       nodeId: z.string().describe("Frame or text node ID — also works on TEXT nodes for width sizing"),
-      horizontal: z.enum(["FIXED", "HUG", "FILL"]).optional().describe("Horizontal sizing: FIXED = explicit width, HUG = shrink-wrap children, FILL = expand to fill parent (requires node to be inside an auto-layout frame)"),
-      vertical: z.enum(["FIXED", "HUG", "FILL"]).optional().describe("Vertical sizing: FIXED = explicit height, HUG = shrink-wrap children, FILL = expand to fill parent (requires node to be inside an auto-layout frame)"),
+      horizontal: z
+        .enum(["FIXED", "HUG", "FILL"])
+        .optional()
+        .describe(
+          "Horizontal sizing: FIXED = explicit width, HUG = shrink-wrap children, FILL = expand to fill parent (requires node to be inside an auto-layout frame)",
+        ),
+      vertical: z
+        .enum(["FIXED", "HUG", "FILL"])
+        .optional()
+        .describe(
+          "Vertical sizing: FIXED = explicit height, HUG = shrink-wrap children, FILL = expand to fill parent (requires node to be inside an auto-layout frame)",
+        ),
     },
     async ({ nodeId, horizontal, vertical }) => {
       nodeId = normalizeNodeId(nodeId);
@@ -528,8 +587,14 @@ export function registerModificationTools(server: McpServer): void {
     "Set distance between children in an auto-layout frame",
     {
       nodeId: z.string().describe("Auto-layout frame node ID — frame must have HORIZONTAL or VERTICAL layout mode"),
-      gap: z.coerce.number().optional().describe("Gap between children in pixels along the primary axis (≥ 0; equivalent to CSS gap)"),
-      counterAxisSpacing: z.coerce.number().optional().describe("Gap between wrapped rows/columns in pixels (≥ 0; only applies when wrap=WRAP)"),
+      gap: z.coerce
+        .number()
+        .optional()
+        .describe("Gap between children in pixels along the primary axis (≥ 0; equivalent to CSS gap)"),
+      counterAxisSpacing: z.coerce
+        .number()
+        .optional()
+        .describe("Gap between wrapped rows/columns in pixels (≥ 0; only applies when wrap=WRAP)"),
     },
     async ({ nodeId, gap, counterAxisSpacing }) => {
       nodeId = normalizeNodeId(nodeId);
@@ -576,10 +641,15 @@ export function registerModificationTools(server: McpServer): void {
     "Set the corner radius of a node in Figma",
     {
       nodeId: z.string().describe("Node ID of a rectangle, frame, or component — must support corner radius"),
-      radius: z.coerce.number().min(0).describe("Corner radius in pixels (≥ 0; applies to all corners unless 'corners' overrides specific ones)"),
+      radius: z.coerce
+        .number()
+        .min(0)
+        .describe("Corner radius in pixels (≥ 0; applies to all corners unless 'corners' overrides specific ones)"),
       corners: coerceArray(z.array(mcpBooleanSchema).length(4))
         .optional()
-        .describe("Array of exactly 4 booleans controlling which corners are rounded: [topLeft, topRight, bottomRight, bottomLeft]. E.g. [true, true, false, false] rounds top corners only. Omit to round all corners."),
+        .describe(
+          "Array of exactly 4 booleans controlling which corners are rounded: [topLeft, topRight, bottomRight, bottomLeft]. E.g. [true, true, false, false] rounds top corners only. Omit to round all corners.",
+        ),
     },
     async ({ nodeId, radius, corners }) => {
       nodeId = normalizeNodeId(nodeId);
@@ -617,24 +687,49 @@ export function registerModificationTools(server: McpServer): void {
     "Configure auto layout properties for a node in Figma. Note: FILL sizing is only valid when the node is a child of another auto-layout frame. For top-level or standalone frames, use FIXED or HUG.",
     {
       nodeId: z.string().describe("Frame node ID to enable/configure auto-layout on"),
-      mode: z.enum(["HORIZONTAL", "VERTICAL", "NONE"]).describe("Layout direction: HORIZONTAL = children flow left-to-right, VERTICAL = children flow top-to-bottom, NONE = disable auto-layout"),
+      mode: z
+        .enum(["HORIZONTAL", "VERTICAL", "NONE"])
+        .describe(
+          "Layout direction: HORIZONTAL = children flow left-to-right, VERTICAL = children flow top-to-bottom, NONE = disable auto-layout",
+        ),
       top: z.coerce.number().optional().describe("Top padding in pixels (≥ 0)"),
       bottom: z.coerce.number().optional().describe("Bottom padding in pixels (≥ 0)"),
       left: z.coerce.number().optional().describe("Left padding in pixels (≥ 0)"),
       right: z.coerce.number().optional().describe("Right padding in pixels (≥ 0)"),
-      gap: z.coerce.number().optional().describe("Gap between children in pixels along the primary axis (≥ 0; CSS gap equivalent)"),
+      gap: z.coerce
+        .number()
+        .optional()
+        .describe("Gap between children in pixels along the primary axis (≥ 0; CSS gap equivalent)"),
       primaryAxisAlignItems: z
         .enum(["MIN", "CENTER", "MAX", "SPACE_BETWEEN"])
         .optional()
-        .describe("Alignment along the layout direction: MIN = start, CENTER = center, MAX = end, SPACE_BETWEEN = distribute evenly"),
-      counterAxisAlignItems: z.enum(["MIN", "CENTER", "MAX"]).optional().describe("Alignment perpendicular to layout direction: MIN = top/left, CENTER = center, MAX = bottom/right"),
-      wrap: z.enum(["WRAP", "NO_WRAP"]).optional().describe("WRAP = children wrap to next line when overflow (default: NO_WRAP)"),
-      strokesIncludedInLayout: mcpBooleanSchema.optional().describe("true = strokes count toward layout dimensions; false = strokes are outside layout bounds (default: false)"),
-      clipsContent: mcpBooleanSchema.optional().describe("true = content outside the frame boundary is hidden (like CSS overflow:hidden); false = content is visible (default: false)"),
+        .describe(
+          "Alignment along the layout direction: MIN = start, CENTER = center, MAX = end, SPACE_BETWEEN = distribute evenly",
+        ),
+      counterAxisAlignItems: z
+        .enum(["MIN", "CENTER", "MAX"])
+        .optional()
+        .describe("Alignment perpendicular to layout direction: MIN = top/left, CENTER = center, MAX = bottom/right"),
+      wrap: z
+        .enum(["WRAP", "NO_WRAP"])
+        .optional()
+        .describe("WRAP = children wrap to next line when overflow (default: NO_WRAP)"),
+      strokesIncludedInLayout: mcpBooleanSchema
+        .optional()
+        .describe(
+          "true = strokes count toward layout dimensions; false = strokes are outside layout bounds (default: false)",
+        ),
+      clipsContent: mcpBooleanSchema
+        .optional()
+        .describe(
+          "true = content outside the frame boundary is hidden (like CSS overflow:hidden); false = content is visible (default: false)",
+        ),
       horizontal: z
         .enum(["FIXED", "HUG", "FILL"])
         .optional()
-        .describe("Horizontal sizing mode. FILL only works inside an auto-layout parent; defaults to FIXED for top-level frames, FILL for nested frames."),
+        .describe(
+          "Horizontal sizing mode. FILL only works inside an auto-layout parent; defaults to FIXED for top-level frames, FILL for nested frames.",
+        ),
       vertical: z
         .enum(["FIXED", "HUG", "FILL"])
         .optional()
@@ -708,7 +803,9 @@ export function registerModificationTools(server: McpServer): void {
           z.object({
             type: z
               .enum(["DROP_SHADOW", "INNER_SHADOW", "LAYER_BLUR", "BACKGROUND_BLUR", "NOISE", "TEXTURE", "GLASS"])
-              .describe("Effect type: DROP_SHADOW = shadow cast outward, INNER_SHADOW = shadow inside the shape, LAYER_BLUR = blurs the node itself, BACKGROUND_BLUR = blurs content behind the node, NOISE = grain/film grain overlay, TEXTURE = frosted texture surface, GLASS = frosted glass with refraction (frames only)"),
+              .describe(
+                "Effect type: DROP_SHADOW = shadow cast outward, INNER_SHADOW = shadow inside the shape, LAYER_BLUR = blurs the node itself, BACKGROUND_BLUR = blurs content behind the node, NOISE = grain/film grain overlay, TEXTURE = frosted texture surface, GLASS = frosted glass with refraction (frames only)",
+              ),
             color: z
               .object({
                 r: z.coerce.number().min(0).max(1).describe("Red (0-1)"),
@@ -725,16 +822,41 @@ export function registerModificationTools(server: McpServer): void {
               })
               .optional()
               .describe("Shadow offset in pixels (DROP_SHADOW and INNER_SHADOW only)"),
-            radius: z.coerce.number().optional().describe("Blur radius in pixels ≥ 0 (used for all blur types, TEXTURE, and GLASS; higher = more blur)"),
-            spread: z.coerce.number().optional().describe("Shadow expansion in pixels — positive spreads outward, negative contracts (DROP_SHADOW and INNER_SHADOW only)"),
+            radius: z.coerce
+              .number()
+              .optional()
+              .describe("Blur radius in pixels ≥ 0 (used for all blur types, TEXTURE, and GLASS; higher = more blur)"),
+            spread: z.coerce
+              .number()
+              .optional()
+              .describe(
+                "Shadow expansion in pixels — positive spreads outward, negative contracts (DROP_SHADOW and INNER_SHADOW only)",
+              ),
             visible: mcpBooleanSchema.optional().describe("Whether this effect layer is visible (default: true)"),
-            blendMode: z.string().optional().describe("CSS-compatible blend mode string, e.g. 'NORMAL', 'MULTIPLY', 'SCREEN', 'OVERLAY' (default: NORMAL)"),
+            blendMode: z
+              .string()
+              .optional()
+              .describe(
+                "CSS-compatible blend mode string, e.g. 'NORMAL', 'MULTIPLY', 'SCREEN', 'OVERLAY' (default: NORMAL)",
+              ),
             noiseType: z
               .enum(["MONOTONE", "DUOTONE", "MULTITONE"])
               .optional()
-              .describe("Grain color style (NOISE only): MONOTONE = single color grain, DUOTONE = two-color grain (requires secondaryColor), MULTITONE = full color grain (default: MONOTONE)"),
-            noiseSize: z.coerce.number().optional().describe("Grain particle size in pixels — larger = coarser grain (NOISE and TEXTURE; typical range 1–100)"),
-            density: z.coerce.number().optional().describe("Grain density 0–1 — higher = more grain particles visible (NOISE only; typical range 0.1–0.9)"),
+              .describe(
+                "Grain color style (NOISE only): MONOTONE = single color grain, DUOTONE = two-color grain (requires secondaryColor), MULTITONE = full color grain (default: MONOTONE)",
+              ),
+            noiseSize: z.coerce
+              .number()
+              .optional()
+              .describe(
+                "Grain particle size in pixels — larger = coarser grain (NOISE and TEXTURE; typical range 1–100)",
+              ),
+            density: z.coerce
+              .number()
+              .optional()
+              .describe(
+                "Grain density 0–1 — higher = more grain particles visible (NOISE only; typical range 0.1–0.9)",
+              ),
             secondaryColor: z
               .object({
                 r: z.coerce.number().min(0).max(1).describe("Red (0-1)"),
@@ -744,13 +866,39 @@ export function registerModificationTools(server: McpServer): void {
               })
               .optional()
               .describe("Second grain color (NOISE DUOTONE only — ignored for MONOTONE/MULTITONE)"),
-            opacity: z.coerce.number().min(0).max(1).optional().describe("Effect opacity 0–1 (NOISE MULTITONE only — ignored for MONOTONE/DUOTONE)"),
-            clipToShape: mcpBooleanSchema.optional().describe("true = texture is masked to the node's shape; false = texture fills bounding box (TEXTURE only; default: true)"),
-            lightIntensity: z.coerce.number().optional().describe("Simulated light brightness 0–1 (GLASS only; typical range 0–1)"),
-            lightAngle: z.coerce.number().optional().describe("Light source direction in degrees 0–360, where 0 = top (GLASS only)"),
-            refraction: z.coerce.number().optional().describe("Background distortion amount ≥ 0 — higher = more bending of background (GLASS only; typical range 0–50)"),
-            depth: z.coerce.number().optional().describe("Perceived 3D depth of the glass surface ≥ 0 (GLASS only; typical range 0–100)"),
-            dispersion: z.coerce.number().optional().describe("Chromatic aberration/rainbow fringing amount ≥ 0 (GLASS only; typical range 0–20)"),
+            opacity: z.coerce
+              .number()
+              .min(0)
+              .max(1)
+              .optional()
+              .describe("Effect opacity 0–1 (NOISE MULTITONE only — ignored for MONOTONE/DUOTONE)"),
+            clipToShape: mcpBooleanSchema
+              .optional()
+              .describe(
+                "true = texture is masked to the node's shape; false = texture fills bounding box (TEXTURE only; default: true)",
+              ),
+            lightIntensity: z.coerce
+              .number()
+              .optional()
+              .describe("Simulated light brightness 0–1 (GLASS only; typical range 0–1)"),
+            lightAngle: z.coerce
+              .number()
+              .optional()
+              .describe("Light source direction in degrees 0–360, where 0 = top (GLASS only)"),
+            refraction: z.coerce
+              .number()
+              .optional()
+              .describe(
+                "Background distortion amount ≥ 0 — higher = more bending of background (GLASS only; typical range 0–50)",
+              ),
+            depth: z.coerce
+              .number()
+              .optional()
+              .describe("Perceived 3D depth of the glass surface ≥ 0 (GLASS only; typical range 0–100)"),
+            dispersion: z.coerce
+              .number()
+              .optional()
+              .describe("Chromatic aberration/rainbow fringing amount ≥ 0 (GLASS only; typical range 0–20)"),
           }),
         ),
       ).describe("Array of effects to apply"),
@@ -793,7 +941,10 @@ export function registerModificationTools(server: McpServer): void {
     {
       nodeId: z.string().describe("The ID of the node to modify"),
       effectStyleId: z.string().optional().describe("The ID of the effect style to apply (e.g. 'S:abc123,')"),
-      styleName: z.string().optional().describe("The name of the effect style to apply (e.g. 'shadow/md' or 'shadow-md')"),
+      styleName: z
+        .string()
+        .optional()
+        .describe("The name of the effect style to apply (e.g. 'shadow/md' or 'shadow-md')"),
     },
     async ({ nodeId, effectStyleId, styleName }) => {
       nodeId = normalizeNodeId(nodeId);
@@ -899,7 +1050,9 @@ export function registerModificationTools(server: McpServer): void {
     "update_effect_style",
     "Update an existing effect style's properties (name, effects, description)",
     {
-      styleId: z.string().describe("The ID or name of the effect style to update (e.g. 'S:abc123,' or 'shadow/md' or 'shadow-md')"),
+      styleId: z
+        .string()
+        .describe("The ID or name of the effect style to update (e.g. 'S:abc123,' or 'shadow/md' or 'shadow-md')"),
       name: z.string().optional().describe("New name for the effect style"),
       effects: coerceArray(z.array(effectStyleEntrySchema)).optional().describe("New array of effects for the style"),
       description: z.string().optional().describe("New description for the effect style"),
@@ -938,7 +1091,9 @@ export function registerModificationTools(server: McpServer): void {
     "delete_effect_style",
     "Delete an effect style from the document",
     {
-      styleId: z.string().describe("The ID or name of the effect style to delete (e.g. 'S:abc123,' or 'shadow/md' or 'shadow-md')"),
+      styleId: z
+        .string()
+        .describe("The ID or name of the effect style to delete (e.g. 'S:abc123,' or 'shadow/md' or 'shadow-md')"),
     },
     async ({ styleId }) => {
       try {
@@ -987,7 +1142,10 @@ export function registerModificationTools(server: McpServer): void {
     "Create a new paint (color) style in Figma — solid color or gradient. The style can then be applied to nodes using set_color_style_id. Provide either 'color' for a solid fill OR 'gradient' for a gradient fill.",
     {
       name: z.string().describe("Name of the color style (e.g., 'color/primary', 'brand/blue')"),
-      color: z.string().optional().describe("Hex color string for solid fill (e.g. '#ff0000'). Use this OR gradient, not both."),
+      color: z
+        .string()
+        .optional()
+        .describe("Hex color string for solid fill (e.g. '#ff0000'). Use this OR gradient, not both."),
       gradient: gradientSchema.optional().describe("Gradient definition. Use this OR color, not both."),
       description: z.string().optional().describe("Description of the color style"),
     },
@@ -1055,7 +1213,9 @@ export function registerModificationTools(server: McpServer): void {
     "get_color_style",
     "Get details of a single paint (color) style by ID or name",
     {
-      styleId: z.string().describe("The ID or name of the color style (e.g. 'S:abc123,' or 'color/primary' or 'color-primary')"),
+      styleId: z
+        .string()
+        .describe("The ID or name of the color style (e.g. 'S:abc123,' or 'color/primary' or 'color-primary')"),
     },
     async ({ styleId }) => {
       try {
@@ -1086,9 +1246,16 @@ export function registerModificationTools(server: McpServer): void {
     "update_color_style",
     "Update an existing paint (color) style's properties (name, color/gradient, description). Provide 'color' for solid fill or 'gradient' for gradient fill.",
     {
-      styleId: z.string().describe("The ID or name of the color style to update (e.g. 'S:abc123,' or 'color/primary' or 'color-primary')"),
+      styleId: z
+        .string()
+        .describe(
+          "The ID or name of the color style to update (e.g. 'S:abc123,' or 'color/primary' or 'color-primary')",
+        ),
       name: z.string().optional().describe("New name for the color style"),
-      color: z.string().optional().describe("New hex color string for solid fill (e.g. '#ff0000'). Use this OR gradient, not both."),
+      color: z
+        .string()
+        .optional()
+        .describe("New hex color string for solid fill (e.g. '#ff0000'). Use this OR gradient, not both."),
       gradient: gradientSchema.optional().describe("New gradient definition. Use this OR color, not both."),
       description: z.string().optional().describe("New description for the color style"),
     },
@@ -1128,7 +1295,11 @@ export function registerModificationTools(server: McpServer): void {
     "delete_color_style",
     "Delete a paint (color) style from the document",
     {
-      styleId: z.string().describe("The ID or name of the color style to delete (e.g. 'S:abc123,' or 'color/primary' or 'color-primary')"),
+      styleId: z
+        .string()
+        .describe(
+          "The ID or name of the color style to delete (e.g. 'S:abc123,' or 'color/primary' or 'color-primary')",
+        ),
     },
     async ({ styleId }) => {
       try {
@@ -1161,7 +1332,10 @@ export function registerModificationTools(server: McpServer): void {
     {
       nodeId: z.string().describe("The ID of the node to modify"),
       styleId: z.string().optional().describe("The ID of the color style to apply (e.g. 'S:abc123,')"),
-      styleName: z.string().optional().describe("The name of the color style to apply (e.g. 'color/primary' or 'color-primary')"),
+      styleName: z
+        .string()
+        .optional()
+        .describe("The name of the color style to apply (e.g. 'color/primary' or 'color-primary')"),
     },
     async ({ nodeId, styleId, styleName }) => {
       nodeId = normalizeNodeId(nodeId);
@@ -1204,7 +1378,11 @@ export function registerModificationTools(server: McpServer): void {
     "Bind a variable to a node property in Figma (e.g., fill color, stroke weight, opacity)",
     {
       nodeId: z.string().describe("The ID of the node to modify"),
-      variableId: z.string().describe("The ID or name of the variable to bind (e.g. 'VariableID:1:2' or 'background/primary' or 'background-primary')"),
+      variableId: z
+        .string()
+        .describe(
+          "The ID or name of the variable to bind (e.g. 'VariableID:1:2' or 'background/primary' or 'background-primary')",
+        ),
       field: z
         .string()
         .describe(
@@ -1350,8 +1528,15 @@ export function registerModificationTools(server: McpServer): void {
       scaleMode: z
         .enum(["FILL", "FIT", "CROP", "TILE"])
         .optional()
-        .describe("How the image scales within the node (default: FILL): FILL = cover the entire area (may crop), FIT = fit entirely inside (may letterbox), CROP = manual crop with transform handles, TILE = repeat/tile the image"),
-      rotation: z.coerce.number().optional().describe("Image rotation in degrees — must be a multiple of 90 (0, 90, 180, 270). Only applies to FILL, FIT, and TILE modes; ignored for CROP."),
+        .describe(
+          "How the image scales within the node (default: FILL): FILL = cover the entire area (may crop), FIT = fit entirely inside (may letterbox), CROP = manual crop with transform handles, TILE = repeat/tile the image",
+        ),
+      rotation: z.coerce
+        .number()
+        .optional()
+        .describe(
+          "Image rotation in degrees — must be a multiple of 90 (0, 90, 180, 270). Only applies to FILL, FIT, and TILE modes; ignored for CROP.",
+        ),
       exposure: z.coerce.number().min(-1).max(1).optional().describe("Exposure adjustment (-1 to 1, default: 0)"),
       contrast: z.coerce.number().min(-1).max(1).optional().describe("Contrast adjustment (-1 to 1, default: 0)"),
       saturation: z.coerce.number().min(-1).max(1).optional().describe("Saturation adjustment (-1 to 1, default: 0)"),
@@ -1422,7 +1607,11 @@ export function registerModificationTools(server: McpServer): void {
     "Set a gradient fill on a node. Supports LINEAR, RADIAL, ANGULAR, and DIAMOND gradient types.",
     {
       nodeId: z.string().describe("Node ID to apply the gradient fill to"),
-      type: z.enum(["LINEAR", "RADIAL", "ANGULAR", "DIAMOND"]).describe("Gradient shape: LINEAR = straight line between two points, RADIAL = circular/elliptical from center outward, ANGULAR = conic/sweep around a center point, DIAMOND = diamond-shaped four-directional"),
+      type: z
+        .enum(["LINEAR", "RADIAL", "ANGULAR", "DIAMOND"])
+        .describe(
+          "Gradient shape: LINEAR = straight line between two points, RADIAL = circular/elliptical from center outward, ANGULAR = conic/sweep around a center point, DIAMOND = diamond-shaped four-directional",
+        ),
       stops: coerceArray(
         z
           .array(
@@ -1438,8 +1627,18 @@ export function registerModificationTools(server: McpServer): void {
           )
           .min(2),
       ).describe("Array of gradient color stops (minimum 2)"),
-      angle: z.coerce.number().optional().describe("Gradient direction in degrees 0–360, where 0 = top-to-bottom, 90 = left-to-right (LINEAR only; default: 0)"),
-      opacity: z.coerce.number().min(0).max(1).optional().describe("Overall fill opacity 0–1 applied on top of individual stop alphas (default: 1)"),
+      angle: z.coerce
+        .number()
+        .optional()
+        .describe(
+          "Gradient direction in degrees 0–360, where 0 = top-to-bottom, 90 = left-to-right (LINEAR only; default: 0)",
+        ),
+      opacity: z.coerce
+        .number()
+        .min(0)
+        .max(1)
+        .optional()
+        .describe("Overall fill opacity 0–1 applied on top of individual stop alphas (default: 1)"),
     },
     async ({ nodeId, type, stops, angle, opacity }) => {
       nodeId = normalizeNodeId(nodeId);

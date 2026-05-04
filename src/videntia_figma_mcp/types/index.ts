@@ -182,7 +182,9 @@ export type FigmaCommand =
   | "delete_color_style"
   | "set_color_style_id"
   | "set_component_property"
-  | "swap_instance";
+  | "swap_instance"
+  | "add_prototype_link"
+  | "remove_prototype_link";
 
 // Batch actions types
 export interface BatchActionResult {
@@ -445,6 +447,7 @@ export interface DeleteVariableCollectionResult {
 
 export interface CreateVariableResult {
   id?: string;
+  variableId?: string;
   name?: string;
   type?: string;
   collectionId?: string;
@@ -760,6 +763,7 @@ export interface LintFrameResult {
     backgroundFills: LintCategoryResult;
     effectStyles: LintCategoryResult;
     overflow: LintCategoryResult;
+    screenNaming: LintCategoryResult;
   };
   violations: LintViolation[];
   violationsCapped?: boolean;

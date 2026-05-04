@@ -33,9 +33,10 @@ export function Collapsible({ expanded, children }: CollapsibleProps) {
       void el.offsetHeight
       el.style.transition = 'max-height 0.2s ease'
       el.style.maxHeight = el.scrollHeight + 'px'
+      var elOpen = el
       var openTimer = setTimeout(function () {
-        el.style.maxHeight = 'none'
-        el.style.overflow = 'visible'
+        elOpen.style.maxHeight = 'none'
+        elOpen.style.overflow = 'visible'
       }, 210)
       return function () { clearTimeout(openTimer) }
     } else {

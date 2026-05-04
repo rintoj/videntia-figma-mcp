@@ -1,6 +1,6 @@
 // Figma MCP plugin.
 
-import type { RgbColor, RgbaColor, VariableResolvedType, VariableValue } from '../types';
+import type { RgbColor, RgbaColor, VariableResolvedType, VariableValue } from "../types";
 
 // ---------------------------------------------------------------------------
 // SVG color string → Figma RGB object
@@ -14,7 +14,7 @@ export function svgColorToFigmaRgb(colorStr: string): RgbColor {
   if (!colorStr) return { r: 0, g: 0, b: 0 };
   const s = colorStr.trim().toLowerCase();
 
-  if (s.charAt(0) === '#') {
+  if (s.charAt(0) === "#") {
     let hex = s.slice(1);
     if (hex.length === 3) {
       hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
@@ -71,16 +71,13 @@ export function colorDist(c1: RgbColor, c2: RgbColor): number {
  * Normalise a raw Figma variable value for transport / display.
  * For COLOR variables the alpha channel defaults to 1 when absent.
  */
-export function formatVariableValue(
-  value: VariableValue,
-  type: VariableResolvedType,
-): VariableValue {
+export function formatVariableValue(value: VariableValue, type: VariableResolvedType): VariableValue {
   if (
-    type === 'COLOR' &&
+    type === "COLOR" &&
     value !== null &&
     value !== undefined &&
-    typeof value === 'object' &&
-    'r' in (value as object)
+    typeof value === "object" &&
+    "r" in (value as object)
   ) {
     const colorValue = value as RgbaColor;
     return {

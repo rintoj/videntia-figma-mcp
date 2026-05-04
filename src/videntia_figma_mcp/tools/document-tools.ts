@@ -3,7 +3,14 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { sendCommandToFigma, joinChannel, getOpenChannels } from "../utils/websocket.js";
 import { coerceArray } from "../utils/coerce-array.js";
 import { mcpBooleanSchema } from "../utils/mcp-boolean.js";
-import { outputFormatSchema, depthSchema, resolveDepth, fetchNodesAsJsx, fieldsSchema, ID_FIELDS } from "../utils/output-format.js";
+import {
+  outputFormatSchema,
+  depthSchema,
+  resolveDepth,
+  fetchNodesAsJsx,
+  fieldsSchema,
+  ID_FIELDS,
+} from "../utils/output-format.js";
 import { convertToJsx } from "../utils/figma-to-jsx.js";
 import { filterNodeData, normalizeNodeId } from "../utils/figma-helpers.js";
 import type {
@@ -239,24 +246,31 @@ function formatLineHeight(lh: unknown): string {
  */
 function formatEffectValue(effects: DesignSystemEffect[]): string {
   if (!effects || effects.length === 0) return "-";
-  return effects.map((e) => {
-    const type = e.type === "DROP_SHADOW" ? "drop-shadow"
-      : e.type === "INNER_SHADOW" ? "inner-shadow"
-      : e.type === "LAYER_BLUR" ? "blur"
-      : e.type === "BACKGROUND_BLUR" ? "bg-blur"
-      : e.type;
-    if (e.type === "LAYER_BLUR" || e.type === "BACKGROUND_BLUR") {
-      return `${type}(${e.radius !== undefined ? e.radius : 0})`;
-    }
-    const ox = e.offset ? e.offset.x : 0;
-    const oy = e.offset ? e.offset.y : 0;
-    const r = e.radius !== undefined ? e.radius : 0;
-    const s = e.spread !== undefined ? e.spread : 0;
-    const c = e.color
-      ? `rgba(${Math.round(e.color.r * 255)},${Math.round(e.color.g * 255)},${Math.round(e.color.b * 255)},${(e.color.a !== undefined ? e.color.a : 1).toFixed(2)})`
-      : "rgba(0,0,0,1)";
-    return `${type}(${ox} ${oy} ${r} ${s} ${c})`;
-  }).join(", ");
+  return effects
+    .map((e) => {
+      const type =
+        e.type === "DROP_SHADOW"
+          ? "drop-shadow"
+          : e.type === "INNER_SHADOW"
+            ? "inner-shadow"
+            : e.type === "LAYER_BLUR"
+              ? "blur"
+              : e.type === "BACKGROUND_BLUR"
+                ? "bg-blur"
+                : e.type;
+      if (e.type === "LAYER_BLUR" || e.type === "BACKGROUND_BLUR") {
+        return `${type}(${e.radius !== undefined ? e.radius : 0})`;
+      }
+      const ox = e.offset ? e.offset.x : 0;
+      const oy = e.offset ? e.offset.y : 0;
+      const r = e.radius !== undefined ? e.radius : 0;
+      const s = e.spread !== undefined ? e.spread : 0;
+      const c = e.color
+        ? `rgba(${Math.round(e.color.r * 255)},${Math.round(e.color.g * 255)},${Math.round(e.color.b * 255)},${(e.color.a !== undefined ? e.color.a : 1).toFixed(2)})`
+        : "rgba(0,0,0,1)";
+      return `${type}(${ox} ${oy} ${r} ${s} ${c})`;
+    })
+    .join(", ");
 }
 
 /**
@@ -696,15 +710,10 @@ export function registerDocumentTools(server: McpServer): void {
     {
       nodeId: z.string().describe("ID of the node to scan"),
       types: coerceArray(z.array(z.string())).describe("Array of node types (e.g. ['COMPONENT', 'FRAME'])"),
-      limit: z
-        .coerce.number()
-        .int()
-        .min(1)
+      limit: z.coerce.number().int().min(1).optional().describe("Max number of results to return. Default: 50."),
+      fields: coerceArray(fieldsSchema)
         .optional()
-        .describe("Max number of results to return. Default: 50."),
-      fields: coerceArray(fieldsSchema).optional().describe(
-        "Optional array of fields to include. Controls which properties appear in both JSX and JSON output.",
-      ),
+        .describe("Optional array of fields to include. Controls which properties appear in both JSX and JSON output."),
       depth: depthSchema,
       output_format: outputFormatSchema,
     },
@@ -719,7 +728,14 @@ export function registerDocumentTools(server: McpServer): void {
         });
         return formatNodeResult(result, output_format, fields);
       } catch (error) {
-        return { content: [{ type: "text", text: `Error scanning nodes by types [${types.join(", ")}] in node "${nodeId}": ${error instanceof Error ? error.message : String(error)}` }] };
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error scanning nodes by types [${types.join(", ")}] in node "${nodeId}": ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
       }
     },
   );
@@ -789,9 +805,9 @@ export function registerDocumentTools(server: McpServer): void {
     "get_selection",
     "Get info on the currently selected node(s) in Figma. Use when you need to inspect or act on whatever the user has selected. Requires at least one non-page node to be selected. Returns JSX+Tailwind markup (default) or JSON.",
     {
-      fields: coerceArray(fieldsSchema).optional().describe(
-        "Optional array of fields to include. Controls which properties appear in both JSX and JSON output.",
-      ),
+      fields: coerceArray(fieldsSchema)
+        .optional()
+        .describe("Optional array of fields to include. Controls which properties appear in both JSX and JSON output."),
       depth: depthSchema,
       output_format: outputFormatSchema,
     },
@@ -800,7 +816,14 @@ export function registerDocumentTools(server: McpServer): void {
         const result = await sendCommandToFigma("get_selection", { depth: resolveDepth(depth) });
         return formatNodeResult(result, output_format, fields);
       } catch (error) {
-        return { content: [{ type: "text", text: `Error getting selection: ${error instanceof Error ? error.message : String(error)}` }] };
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error getting selection: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
       }
     },
   );
@@ -811,9 +834,9 @@ export function registerDocumentTools(server: McpServer): void {
     "Get detailed info for a single node by its ID. Use when you already have a specific node ID and need its properties, layout, styles, or children. Returns JSX+Tailwind markup (default) or JSON.",
     {
       nodeId: z.string().describe("The ID of the node to get information about"),
-      fields: coerceArray(fieldsSchema).optional().describe(
-        "Optional array of fields to include. Controls which properties appear in both JSX and JSON output.",
-      ),
+      fields: coerceArray(fieldsSchema)
+        .optional()
+        .describe("Optional array of fields to include. Controls which properties appear in both JSX and JSON output."),
       depth: depthSchema,
       output_format: outputFormatSchema,
     },
@@ -823,7 +846,14 @@ export function registerDocumentTools(server: McpServer): void {
         const result = await sendCommandToFigma("get_node_info", { nodeIds: [nodeId], depth: resolveDepth(depth) });
         return formatNodeResult(result, output_format, fields);
       } catch (error) {
-        return { content: [{ type: "text", text: `Error getting node info for "${nodeId}": ${error instanceof Error ? error.message : String(error)}` }] };
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error getting node info for "${nodeId}": ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
       }
     },
   );
@@ -834,9 +864,9 @@ export function registerDocumentTools(server: McpServer): void {
     "Get detailed info for multiple nodes at once. Same as get_node_info but accepts an array of IDs — use this instead of calling get_node_info repeatedly. Returns JSX+Tailwind markup (default) or JSON.",
     {
       nodeIds: coerceArray(z.array(z.string())).describe("Array of node IDs to get information about"),
-      fields: coerceArray(fieldsSchema).optional().describe(
-        "Optional array of fields to include. Controls which properties appear in both JSX and JSON output.",
-      ),
+      fields: coerceArray(fieldsSchema)
+        .optional()
+        .describe("Optional array of fields to include. Controls which properties appear in both JSX and JSON output."),
       depth: depthSchema,
       output_format: outputFormatSchema,
     },
@@ -846,7 +876,14 @@ export function registerDocumentTools(server: McpServer): void {
         const result = await sendCommandToFigma("get_node_info", { nodeIds, depth: resolveDepth(depth) });
         return formatNodeResult(result, output_format, fields);
       } catch (error) {
-        return { content: [{ type: "text", text: `Error getting nodes info for ${nodeIds.length} node(s): ${error instanceof Error ? error.message : String(error)}` }] };
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error getting nodes info for ${nodeIds.length} node(s): ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
       }
     },
   );
@@ -872,16 +909,11 @@ export function registerDocumentTools(server: McpServer): void {
         .describe(
           "Optional node ID (or array of IDs) to scope the search to. When an array is passed, each ID is searched independently and results are grouped by ID. Defaults to the entire current page.",
         ),
-      limit: z
-        .coerce.number()
-        .int()
-        .min(1)
-        .optional()
-        .describe("Max number of results to return. Default: 50."),
+      limit: z.coerce.number().int().min(1).optional().describe("Max number of results to return. Default: 50."),
       depth: depthSchema,
-      fields: coerceArray(fieldsSchema).optional().describe(
-        "Optional array of fields to include. Controls which properties appear in both JSX and JSON output.",
-      ),
+      fields: coerceArray(fieldsSchema)
+        .optional()
+        .describe("Optional array of fields to include. Controls which properties appear in both JSX and JSON output."),
       output_format: outputFormatSchema,
     },
     async ({ query, types, nodeId, limit, depth, fields, output_format }) => {
@@ -896,7 +928,14 @@ export function registerDocumentTools(server: McpServer): void {
         });
         return formatNodeResult(result, output_format, fields);
       } catch (error) {
-        return { content: [{ type: "text", text: `Error searching nodes for "${query}": ${error instanceof Error ? error.message : String(error)}` }] };
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error searching nodes for "${query}": ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
       }
     },
   );
@@ -1058,7 +1097,11 @@ export function registerDocumentTools(server: McpServer): void {
           effectStyles: mcpBooleanSchema.optional().describe("Check effect style application (default: true)"),
           autoLayout: mcpBooleanSchema.optional().describe("Check auto-layout on frames (default: true)"),
           overflow: mcpBooleanSchema.optional().describe("Check child overflow beyond parent bounds (default: true)"),
-          screenNaming: mcpBooleanSchema.optional().describe("Check screen naming convention: Screen/{Feature}@{Breakpoint}/{View}[/{State}] on any frame starting with 'Screen/' (default: true)"),
+          screenNaming: mcpBooleanSchema
+            .optional()
+            .describe(
+              "Check screen naming convention: Screen/{Feature}@{Breakpoint}/{View}[/{State}] on any frame starting with 'Screen/' (default: true)",
+            ),
         })
         .optional()
         .describe("Toggle individual check categories (all enabled by default)"),
@@ -1231,14 +1274,9 @@ export function registerDocumentTools(server: McpServer): void {
 
     for (const v of result.variables) {
       const name = v.name.toLowerCase();
-      if (
-        name.startsWith("space/") ||
-        name.startsWith("spacing/")
-      ) {
+      if (name.startsWith("space/") || name.startsWith("spacing/")) {
         spacingVars.push(v);
-      } else if (
-        name.startsWith("radius/")
-      ) {
+      } else if (name.startsWith("radius/")) {
         radiusVars.push(v);
       } else if (v.resolvedType === "COLOR") {
         colorVars.push(v);
@@ -1329,7 +1367,9 @@ export function registerDocumentTools(server: McpServer): void {
         const font = ts.fontName ? `${ts.fontName.family} ${ts.fontName.style}` : "-";
         const lh = formatLineHeight(ts.lineHeight);
         const purpose = getTokenPurpose(ts.name);
-        lines.push(`| ${sanitizeCell(ts.name)} | ${tw} | ${font} | ${ts.fontSize} | ${lh} | ${sanitizeCell(purpose)} | ${ts.id} |`);
+        lines.push(
+          `| ${sanitizeCell(ts.name)} | ${tw} | ${font} | ${ts.fontSize} | ${lh} | ${sanitizeCell(purpose)} | ${ts.id} |`,
+        );
       }
     }
     lines.push("");
@@ -1346,7 +1386,9 @@ export function registerDocumentTools(server: McpServer): void {
         const tw = deriveTailwindClass(es.name, "effect");
         const purpose = getTokenPurpose(es.name, es.description);
         const value = formatEffectValue(es.effects);
-        lines.push(`| ${sanitizeCell(es.name)} | ${tw} | ${sanitizeCell(value)} | ${sanitizeCell(purpose)} | ${es.id} |`);
+        lines.push(
+          `| ${sanitizeCell(es.name)} | ${tw} | ${sanitizeCell(value)} | ${sanitizeCell(purpose)} | ${es.id} |`,
+        );
       }
     }
     lines.push("");
@@ -1360,7 +1402,9 @@ export function registerDocumentTools(server: McpServer): void {
       for (const v of otherVars) {
         const purpose = getTokenPurpose(v.name, v.description);
         const val = formatVariableDisplayValue(v.values);
-        lines.push(`| ${sanitizeCell(v.name)} | ${v.resolvedType} | ${sanitizeCell(val)} | ${sanitizeCell(purpose)} | ${v.id} |`);
+        lines.push(
+          `| ${sanitizeCell(v.name)} | ${v.resolvedType} | ${sanitizeCell(val)} | ${sanitizeCell(purpose)} | ${v.id} |`,
+        );
       }
       lines.push("");
     }
@@ -1459,9 +1503,7 @@ export function registerDocumentTools(server: McpServer): void {
             ],
           };
         }
-        const channelList = channels
-          .map((ch) => `  - ${ch.channel} (${ch.fileName || "unknown file"})`)
-          .join("\n");
+        const channelList = channels.map((ch) => `  - ${ch.channel} (${ch.fileName || "unknown file"})`).join("\n");
         return {
           content: [
             {
@@ -1489,7 +1531,11 @@ export function registerDocumentTools(server: McpServer): void {
     "Export a node as a base64 image from Figma.",
     {
       nodeId: z.string().describe("The ID of the node to export"),
-      format: z.enum(["PNG", "JPG", "SVG", "PDF", "png", "jpg", "svg", "pdf"]).transform(v => v.toUpperCase() as "PNG" | "JPG" | "SVG" | "PDF").optional().describe("Export format (e.g. 'png' or 'PNG')"),
+      format: z
+        .enum(["PNG", "JPG", "SVG", "PDF", "png", "jpg", "svg", "pdf"])
+        .transform((v) => v.toUpperCase() as "PNG" | "JPG" | "SVG" | "PDF")
+        .optional()
+        .describe("Export format (e.g. 'png' or 'PNG')"),
       scale: z.coerce.number().positive().optional().describe("Export scale"),
     },
     async ({ nodeId, format, scale }) => {
@@ -1556,7 +1602,12 @@ export function registerDocumentTools(server: McpServer): void {
     {
       nodeId: z.string().describe("The ID of the node that has an image fill"),
       exportPath: z.string().describe("Absolute file path to save the image to. Parent directory must exist."),
-      fillIndex: z.coerce.number().int().min(0).optional().describe("Index of the image fill to export (0-based, defaults to 0). Only counts IMAGE-type fills."),
+      fillIndex: z.coerce
+        .number()
+        .int()
+        .min(0)
+        .optional()
+        .describe("Index of the image fill to export (0-based, defaults to 0). Only counts IMAGE-type fills."),
     },
     async ({ nodeId, exportPath, fillIndex }) => {
       nodeId = normalizeNodeId(nodeId);
@@ -1567,7 +1618,9 @@ export function registerDocumentTools(server: McpServer): void {
         // Validate absolute path
         if (!path.isAbsolute(exportPath)) {
           return {
-            content: [{ type: "text" as const, text: `Error: exportPath must be an absolute path, got: ${exportPath}` }],
+            content: [
+              { type: "text" as const, text: `Error: exportPath must be an absolute path, got: ${exportPath}` },
+            ],
           };
         }
 
@@ -1722,7 +1775,10 @@ export function registerDocumentTools(server: McpServer): void {
     "scan_bound_variables",
     "Scan a node (or the current selection) and all its children recursively to find every variable binding. Returns a flat list of all bindings with node info, field, variable name, and type.",
     {
-      nodeId: z.string().optional().describe("ID of the root node to scan. If omitted, scans the current Figma selection."),
+      nodeId: z
+        .string()
+        .optional()
+        .describe("ID of the root node to scan. If omitted, scans the current Figma selection."),
     },
     async ({ nodeId }) => {
       try {
@@ -1730,7 +1786,18 @@ export function registerDocumentTools(server: McpServer): void {
         if (nodeId) {
           params.nodeId = normalizeNodeId(nodeId);
         }
-        const result = await sendCommandToFigma<{ totalBindings: number; bindings: Array<{ nodeId: string; nodeName: string; nodeType: string; field: string; variableId: string; variableName: string; variableType: string }> }>("scan_bound_variables", params);
+        const result = await sendCommandToFigma<{
+          totalBindings: number;
+          bindings: Array<{
+            nodeId: string;
+            nodeName: string;
+            nodeType: string;
+            field: string;
+            variableId: string;
+            variableName: string;
+            variableType: string;
+          }>;
+        }>("scan_bound_variables", params);
 
         if (!result.bindings || result.bindings.length === 0) {
           return { content: [{ type: "text", text: "No variable bindings found." }] };
@@ -1750,7 +1817,12 @@ export function registerDocumentTools(server: McpServer): void {
         return { content: [{ type: "text", text: lines.join("\n") }] };
       } catch (error) {
         return {
-          content: [{ type: "text", text: `Error scanning bound variables: ${error instanceof Error ? error.message : String(error)}` }],
+          content: [
+            {
+              type: "text",
+              text: `Error scanning bound variables: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
         };
       }
     },
@@ -1865,42 +1937,83 @@ export function registerDocumentTools(server: McpServer): void {
     "setup_design_system",
     "Create or update an entire design system in a single call. Accepts multiple variable collections, text styles, and effect styles. Idempotent — existing items with the same name are updated, not duplicated.",
     {
-      pages: coerceArray(z.array(z.string())).optional().describe("Page names to ensure exist (default: ['Screens', 'Components', 'Draft']). If only 'Page 1' exists and is empty, it is renamed to the first page."),
-      collections: coerceArray(z.array(z.object({
-        name: z.string().describe("Collection name, e.g. 'Colors', 'Spacing', 'Radius'"),
-        variables: z.array(z.object({
-          name: z.string().describe("Variable name, e.g. 'background/primary' or 'space/md'"),
-          type: z.enum(["COLOR", "FLOAT"]).describe("COLOR for colors, FLOAT for spacing/radius numbers"),
-          value: z.union([rgbaColorSchema, z.coerce.number()]).describe("RGBA object for COLOR type, number for FLOAT type"),
-          description: z.string().optional().describe("Token description/purpose"),
-        })),
-      }))).optional().describe("Variable collections to create/update, each with its own name and variables"),
-      text_styles: coerceArray(z.array(z.object({
-        name: z.string().describe("Style name, e.g. 'text/display/lg'"),
-        font_family: z.string().describe("Font family, e.g. 'Manrope'"),
-        font_style: z.string().describe("Font style, e.g. 'Bold', 'SemiBold', 'Regular'"),
-        font_size: z.coerce.number().describe("Font size in pixels"),
-        line_height: z.object({
-          value: z.coerce.number(),
-          unit: z.enum(["PIXELS", "PERCENT", "AUTO"]),
-        }).optional().describe("Line height specification"),
-        letter_spacing: z.object({
-          value: z.coerce.number(),
-          unit: z.enum(["PIXELS", "PERCENT"]),
-        }).optional().describe("Letter spacing specification"),
-        description: z.string().optional().describe("Style description/purpose"),
-      }))).optional().describe("Text styles to create/update"),
-      effect_styles: coerceArray(z.array(z.object({
-        name: z.string().describe("Effect style name, e.g. 'shadow/subtle'"),
-        effects: z.array(z.object({
-          type: z.enum(["DROP_SHADOW", "INNER_SHADOW", "LAYER_BLUR", "BACKGROUND_BLUR"]).describe("Effect type"),
-          color: rgbaColorSchema.optional().describe("Effect color (for shadows)"),
-          offset: z.object({ x: z.coerce.number(), y: z.coerce.number() }).optional().describe("Shadow offset (for shadows)"),
-          radius: z.coerce.number().optional().describe("Blur radius"),
-          spread: z.coerce.number().optional().describe("Spread (for shadows)"),
-        })).describe("Array of effects for this style"),
-        description: z.string().optional().describe("Effect style description/purpose"),
-      }))).optional().describe("Effect styles to create/update"),
+      pages: coerceArray(z.array(z.string()))
+        .optional()
+        .describe(
+          "Page names to ensure exist (default: ['Screens', 'Components', 'Draft']). If only 'Page 1' exists and is empty, it is renamed to the first page.",
+        ),
+      collections: coerceArray(
+        z.array(
+          z.object({
+            name: z.string().describe("Collection name, e.g. 'Colors', 'Spacing', 'Radius'"),
+            variables: z.array(
+              z.object({
+                name: z.string().describe("Variable name, e.g. 'background/primary' or 'space/md'"),
+                type: z.enum(["COLOR", "FLOAT"]).describe("COLOR for colors, FLOAT for spacing/radius numbers"),
+                value: z
+                  .union([rgbaColorSchema, z.coerce.number()])
+                  .describe("RGBA object for COLOR type, number for FLOAT type"),
+                description: z.string().optional().describe("Token description/purpose"),
+              }),
+            ),
+          }),
+        ),
+      )
+        .optional()
+        .describe("Variable collections to create/update, each with its own name and variables"),
+      text_styles: coerceArray(
+        z.array(
+          z.object({
+            name: z.string().describe("Style name, e.g. 'text/display/lg'"),
+            font_family: z.string().describe("Font family, e.g. 'Manrope'"),
+            font_style: z.string().describe("Font style, e.g. 'Bold', 'SemiBold', 'Regular'"),
+            font_size: z.coerce.number().describe("Font size in pixels"),
+            line_height: z
+              .object({
+                value: z.coerce.number(),
+                unit: z.enum(["PIXELS", "PERCENT", "AUTO"]),
+              })
+              .optional()
+              .describe("Line height specification"),
+            letter_spacing: z
+              .object({
+                value: z.coerce.number(),
+                unit: z.enum(["PIXELS", "PERCENT"]),
+              })
+              .optional()
+              .describe("Letter spacing specification"),
+            description: z.string().optional().describe("Style description/purpose"),
+          }),
+        ),
+      )
+        .optional()
+        .describe("Text styles to create/update"),
+      effect_styles: coerceArray(
+        z.array(
+          z.object({
+            name: z.string().describe("Effect style name, e.g. 'shadow/subtle'"),
+            effects: z
+              .array(
+                z.object({
+                  type: z
+                    .enum(["DROP_SHADOW", "INNER_SHADOW", "LAYER_BLUR", "BACKGROUND_BLUR"])
+                    .describe("Effect type"),
+                  color: rgbaColorSchema.optional().describe("Effect color (for shadows)"),
+                  offset: z
+                    .object({ x: z.coerce.number(), y: z.coerce.number() })
+                    .optional()
+                    .describe("Shadow offset (for shadows)"),
+                  radius: z.coerce.number().optional().describe("Blur radius"),
+                  spread: z.coerce.number().optional().describe("Spread (for shadows)"),
+                }),
+              )
+              .describe("Array of effects for this style"),
+            description: z.string().optional().describe("Effect style description/purpose"),
+          }),
+        ),
+      )
+        .optional()
+        .describe("Effect styles to create/update"),
     },
     async ({ pages, collections, text_styles, effect_styles }) => {
       try {
@@ -1922,11 +2035,7 @@ export function registerDocumentTools(server: McpServer): void {
           params.effectStyles = effect_styles;
         }
 
-        const setupResult = await sendCommandToFigma<SetupDesignSystemResult>(
-          "setup_design_system",
-          params,
-          120000,
-        );
+        const setupResult = await sendCommandToFigma<SetupDesignSystemResult>("setup_design_system", params, 120000);
 
         // Collect setup errors
         const errorLines: string[] = [];
@@ -1976,23 +2085,20 @@ export function registerDocumentTools(server: McpServer): void {
   );
 
   // Undo Tool
-  server.tool(
-    "undo",
-    "Undo the last action in Figma",
-    {},
-    async () => {
-      try {
-        await sendCommandToFigma("undo");
-        return {
-          content: [{ type: "text", text: "Undo triggered successfully" }],
-        };
-      } catch (error) {
-        return {
-          content: [{ type: "text", text: `Error triggering undo: ${error instanceof Error ? error.message : String(error)}` }],
-        };
-      }
-    },
-  );
+  server.tool("undo", "Undo the last action in Figma", {}, async () => {
+    try {
+      await sendCommandToFigma("undo");
+      return {
+        content: [{ type: "text", text: "Undo triggered successfully" }],
+      };
+    } catch (error) {
+      return {
+        content: [
+          { type: "text", text: `Error triggering undo: ${error instanceof Error ? error.message : String(error)}` },
+        ],
+      };
+    }
+  });
 
   // Commit Undo Tool
   server.tool(
@@ -2007,7 +2113,9 @@ export function registerDocumentTools(server: McpServer): void {
         };
       } catch (error) {
         return {
-          content: [{ type: "text", text: `Error committing undo: ${error instanceof Error ? error.message : String(error)}` }],
+          content: [
+            { type: "text", text: `Error committing undo: ${error instanceof Error ? error.message : String(error)}` },
+          ],
         };
       }
     },

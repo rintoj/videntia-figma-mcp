@@ -7,6 +7,7 @@ COPY src/ ./src/
 COPY scripts/ ./scripts/
 
 RUN bun install --frozen-lockfile
+RUN bunx playwright install --with-deps chromium
 RUN bun run prebuild && bunx tsup && chmod +x dist/videntia_figma_mcp/server.js dist/socket.js
 
 EXPOSE 3055

@@ -1,26 +1,26 @@
-import { customBase64Encode } from '../utils/base64';
-import { debugLog, parseNum } from '../utils/helpers';
-import { selectAndFocusNode } from '../utils/plugin-state';
+import { customBase64Encode } from "../utils/base64";
+import { debugLog, parseNum } from "../utils/helpers";
+import { selectAndFocusNode } from "../utils/plugin-state";
 
 function getParam<T>(params: Record<string, unknown>, key: string, defaultVal: T): T {
   const p = params !== null && params !== undefined ? params[key] : undefined;
-  return (p !== null && p !== undefined) ? p as T : defaultVal;
+  return p !== null && p !== undefined ? (p as T) : defaultVal;
 }
 
 function getOptParam<T>(params: Record<string, unknown>, key: string): T | undefined {
   if (params === null || params === undefined) return undefined;
   const p = params[key];
-  return (p !== null && p !== undefined) ? p as T : undefined;
+  return p !== null && p !== undefined ? (p as T) : undefined;
 }
 
 export async function createRectangle(params: Record<string, unknown>): Promise<Record<string, unknown>> {
-  const x: number = getParam<number>(params, 'x', 0);
-  const y: number = getParam<number>(params, 'y', 0);
-  const width: number = getParam<number>(params, 'width', 100);
-  const height: number = getParam<number>(params, 'height', 100);
-  const name: string = getParam<string>(params, 'name', 'Rectangle');
-  const parentId: string | undefined = getOptParam<string>(params, 'parentId');
-  const layoutPositioning: string | undefined = getOptParam<string>(params, 'layoutPositioning');
+  const x: number = getParam<number>(params, "x", 0);
+  const y: number = getParam<number>(params, "y", 0);
+  const width: number = getParam<number>(params, "width", 100);
+  const height: number = getParam<number>(params, "height", 100);
+  const name: string = getParam<string>(params, "name", "Rectangle");
+  const parentId: string | undefined = getOptParam<string>(params, "parentId");
+  const layoutPositioning: string | undefined = getOptParam<string>(params, "layoutPositioning");
 
   const rect = figma.createRectangle();
   rect.x = x;
@@ -34,7 +34,7 @@ export async function createRectangle(params: Record<string, unknown>): Promise<
     if (!parentNode) {
       throw new Error(`Parent node not found with ID: ${parentId}`);
     }
-    if (!('appendChild' in parentNode)) {
+    if (!("appendChild" in parentNode)) {
       throw new Error(`Parent node does not support children: ${parentId}`);
     }
     (parentNode as FrameNode).appendChild(rect);
@@ -62,17 +62,17 @@ export async function createRectangle(params: Record<string, unknown>): Promise<
 }
 
 export async function createFrame(params: Record<string, unknown>): Promise<Record<string, unknown>> {
-  const x: number = getParam<number>(params, 'x', 0);
-  const y: number = getParam<number>(params, 'y', 0);
-  const width: number = getParam<number>(params, 'width', 100);
-  const height: number = getParam<number>(params, 'height', 100);
-  const name: string = getParam<string>(params, 'name', 'Frame');
-  const parentId: string | undefined = getOptParam<string>(params, 'parentId');
-  const fillColor: Record<string, unknown> | undefined = getOptParam<Record<string, unknown>>(params, 'fillColor');
-  const strokeColor: Record<string, unknown> | undefined = getOptParam<Record<string, unknown>>(params, 'strokeColor');
-  const strokeWeight: number | undefined = getOptParam<number>(params, 'strokeWeight');
-  const clipsContent: boolean | undefined = getOptParam<boolean>(params, 'clipsContent');
-  const layoutPositioning: string | undefined = getOptParam<string>(params, 'layoutPositioning');
+  const x: number = getParam<number>(params, "x", 0);
+  const y: number = getParam<number>(params, "y", 0);
+  const width: number = getParam<number>(params, "width", 100);
+  const height: number = getParam<number>(params, "height", 100);
+  const name: string = getParam<string>(params, "name", "Frame");
+  const parentId: string | undefined = getOptParam<string>(params, "parentId");
+  const fillColor: Record<string, unknown> | undefined = getOptParam<Record<string, unknown>>(params, "fillColor");
+  const strokeColor: Record<string, unknown> | undefined = getOptParam<Record<string, unknown>>(params, "strokeColor");
+  const strokeWeight: number | undefined = getOptParam<number>(params, "strokeWeight");
+  const clipsContent: boolean | undefined = getOptParam<boolean>(params, "clipsContent");
+  const layoutPositioning: string | undefined = getOptParam<string>(params, "layoutPositioning");
 
   const frame = figma.createFrame();
   frame.x = x;
@@ -83,13 +83,13 @@ export async function createFrame(params: Record<string, unknown>): Promise<Reco
   // Set fill color if provided, otherwise clear the default white fill
   if (fillColor) {
     const paintStyle: SolidPaint = {
-      type: 'SOLID',
+      type: "SOLID",
       color: {
-        r: parseNum(fillColor['r'], 0),
-        g: parseNum(fillColor['g'], 0),
-        b: parseNum(fillColor['b'], 0),
+        r: parseNum(fillColor["r"], 0),
+        g: parseNum(fillColor["g"], 0),
+        b: parseNum(fillColor["b"], 0),
       },
-      opacity: parseNum(fillColor['a'], 1),
+      opacity: parseNum(fillColor["a"], 1),
     };
     frame.fills = [paintStyle];
   } else {
@@ -99,13 +99,13 @@ export async function createFrame(params: Record<string, unknown>): Promise<Reco
   // Set stroke color and weight if provided
   if (strokeColor) {
     const strokeStyle: SolidPaint = {
-      type: 'SOLID',
+      type: "SOLID",
       color: {
-        r: parseNum(strokeColor['r'], 0),
-        g: parseNum(strokeColor['g'], 0),
-        b: parseNum(strokeColor['b'], 0),
+        r: parseNum(strokeColor["r"], 0),
+        g: parseNum(strokeColor["g"], 0),
+        b: parseNum(strokeColor["b"], 0),
       },
-      opacity: parseNum(strokeColor['a'], 1),
+      opacity: parseNum(strokeColor["a"], 1),
     };
     frame.strokes = [strokeStyle];
   }
@@ -126,7 +126,7 @@ export async function createFrame(params: Record<string, unknown>): Promise<Reco
     if (!parentNode) {
       throw new Error(`Parent node not found with ID: ${parentId}`);
     }
-    if (!('appendChild' in parentNode)) {
+    if (!("appendChild" in parentNode)) {
       throw new Error(`Parent node does not support children: ${parentId}`);
     }
     (parentNode as FrameNode).appendChild(frame);
@@ -158,14 +158,14 @@ export async function createFrame(params: Record<string, unknown>): Promise<Reco
 }
 
 export async function moveNode(params: Record<string, unknown>): Promise<Record<string, unknown>> {
-  const nodeId = getOptParam<string>(params, 'nodeId');
-  const x = getOptParam<number>(params, 'x');
-  const y = getOptParam<number>(params, 'y');
-  const parentId = getOptParam<string>(params, 'parentId');
-  const index = getOptParam<number>(params, 'index');
+  const nodeId = getOptParam<string>(params, "nodeId");
+  const x = getOptParam<number>(params, "x");
+  const y = getOptParam<number>(params, "y");
+  const parentId = getOptParam<string>(params, "parentId");
+  const index = getOptParam<number>(params, "index");
 
   if (!nodeId) {
-    throw new Error('Missing nodeId parameter');
+    throw new Error("Missing nodeId parameter");
   }
 
   const node = await figma.getNodeByIdAsync(nodeId);
@@ -179,7 +179,7 @@ export async function moveNode(params: Record<string, unknown>): Promise<Record<
     if (!parentNode) {
       throw new Error(`Parent node not found with ID: ${parentId}`);
     }
-    if (!('appendChild' in parentNode)) {
+    if (!("appendChild" in parentNode)) {
       throw new Error(`Parent node does not support children: ${parentId}`);
     }
     const parent = parentNode as FrameNode | GroupNode | ComponentNode | PageNode;
@@ -192,7 +192,7 @@ export async function moveNode(params: Record<string, unknown>): Promise<Record<
 
   // Reposition if x/y provided
   if (x !== undefined && y !== undefined) {
-    if (!('x' in node) || !('y' in node)) {
+    if (!("x" in node) || !("y" in node)) {
       throw new Error(`Node does not support position: ${nodeId}`);
     }
     (node as SceneNode & { x: number; y: number }).x = x;
@@ -206,22 +206,22 @@ export async function moveNode(params: Record<string, unknown>): Promise<Record<
   return {
     id: node.id,
     name: node.name,
-    x: 'x' in node ? (node as SceneNode & { x: number }).x : undefined,
-    y: 'y' in node ? (node as SceneNode & { y: number }).y : undefined,
+    x: "x" in node ? (node as SceneNode & { x: number }).x : undefined,
+    y: "y" in node ? (node as SceneNode & { y: number }).y : undefined,
   };
 }
 
 export async function resizeNode(params: Record<string, unknown>): Promise<Record<string, unknown>> {
-  const nodeId = getOptParam<string>(params, 'nodeId');
-  const width = getOptParam<number>(params, 'width');
-  const height = getOptParam<number>(params, 'height');
+  const nodeId = getOptParam<string>(params, "nodeId");
+  const width = getOptParam<number>(params, "width");
+  const height = getOptParam<number>(params, "height");
 
   if (!nodeId) {
-    throw new Error('Missing nodeId parameter');
+    throw new Error("Missing nodeId parameter");
   }
 
   if (width === undefined || height === undefined) {
-    throw new Error('Missing width or height parameters');
+    throw new Error("Missing width or height parameters");
   }
 
   const node = await figma.getNodeByIdAsync(nodeId);
@@ -229,7 +229,7 @@ export async function resizeNode(params: Record<string, unknown>): Promise<Recor
     throw new Error(`Node not found with ID: ${nodeId}`);
   }
 
-  if (!('resize' in node)) {
+  if (!("resize" in node)) {
     throw new Error(`Node does not support resizing: ${nodeId}`);
   }
 
@@ -244,10 +244,10 @@ export async function resizeNode(params: Record<string, unknown>): Promise<Recor
 }
 
 export async function deleteNode(params: Record<string, unknown>): Promise<Record<string, unknown>> {
-  const nodeId = getOptParam<string>(params, 'nodeId');
+  const nodeId = getOptParam<string>(params, "nodeId");
 
   if (!nodeId) {
-    throw new Error('Missing nodeId parameter');
+    throw new Error("Missing nodeId parameter");
   }
 
   const node = await figma.getNodeByIdAsync(nodeId);
@@ -268,14 +268,14 @@ export async function deleteNode(params: Record<string, unknown>): Promise<Recor
 }
 
 export async function deleteMultipleNodes(params: Record<string, unknown>): Promise<Record<string, unknown>> {
-  const nodeIds = getOptParam<string[]>(params, 'nodeIds');
+  const nodeIds = getOptParam<string[]>(params, "nodeIds");
 
   if (!nodeIds || !Array.isArray(nodeIds)) {
-    throw new Error('Missing or invalid nodeIds parameter - must be an array');
+    throw new Error("Missing or invalid nodeIds parameter - must be an array");
   }
 
   if (nodeIds.length === 0) {
-    throw new Error('nodeIds array is empty');
+    throw new Error("nodeIds array is empty");
   }
 
   const deletedNodes: Array<{ id: string; name: string; type: string }> = [];
@@ -312,14 +312,14 @@ export async function deleteMultipleNodes(params: Record<string, unknown>): Prom
 }
 
 export async function exportNodeAsImage(params: Record<string, unknown>): Promise<Record<string, unknown>> {
-  const nodeId = getOptParam<string>(params, 'nodeId');
-  const scale: number = getParam<number>(params, 'scale', 1);
+  const nodeId = getOptParam<string>(params, "nodeId");
+  const scale: number = getParam<number>(params, "scale", 1);
 
-  const format = 'PNG';
+  const format = "PNG";
   const MAX_DIMENSION = 7680; // Stay under Claude's 8000px limit with some margin
 
   if (!nodeId) {
-    throw new Error('Missing nodeId parameter');
+    throw new Error("Missing nodeId parameter");
   }
 
   const node = await figma.getNodeByIdAsync(nodeId);
@@ -327,14 +327,14 @@ export async function exportNodeAsImage(params: Record<string, unknown>): Promis
     throw new Error(`Node not found with ID: ${nodeId}`);
   }
 
-  if (!('exportAsync' in node)) {
+  if (!("exportAsync" in node)) {
     throw new Error(`Node does not support exporting: ${nodeId}`);
   }
 
   try {
     // Get node dimensions
-    const nodeWidth = ('width' in node ? (node as FrameNode).width : 0) || 0;
-    const nodeHeight = ('height' in node ? (node as FrameNode).height : 0) || 0;
+    const nodeWidth = ("width" in node ? (node as FrameNode).width : 0) || 0;
+    const nodeHeight = ("height" in node ? (node as FrameNode).height : 0) || 0;
 
     // Calculate scaled dimensions
     let finalScale = scale;
@@ -345,12 +345,14 @@ export async function exportNodeAsImage(params: Record<string, unknown>): Promis
     if (scaledWidth > MAX_DIMENSION || scaledHeight > MAX_DIMENSION) {
       const maxDimension = Math.max(scaledWidth, scaledHeight);
       finalScale = (MAX_DIMENSION / maxDimension) * scale;
-      debugLog(`exportNodeAsImage: Auto-reducing scale from ${scale} to ${finalScale.toFixed(3)} to fit within ${MAX_DIMENSION}px limit`);
+      debugLog(
+        `exportNodeAsImage: Auto-reducing scale from ${scale} to ${finalScale.toFixed(3)} to fit within ${MAX_DIMENSION}px limit`,
+      );
     }
 
     const settings: ExportSettingsImage = {
       format: format,
-      constraint: { type: 'SCALE', value: finalScale },
+      constraint: { type: "SCALE", value: finalScale },
     };
 
     const bytes = await (node as FrameNode).exportAsync(settings);
@@ -358,16 +360,16 @@ export async function exportNodeAsImage(params: Record<string, unknown>): Promis
     // Use a local string variable so the switch is not narrowed to the literal type 'PNG'
     const formatStr: string = format;
     let mimeType: string;
-    if (formatStr === 'PNG') {
-      mimeType = 'image/png';
-    } else if (formatStr === 'JPG') {
-      mimeType = 'image/jpeg';
-    } else if (formatStr === 'SVG') {
-      mimeType = 'image/svg+xml';
-    } else if (formatStr === 'PDF') {
-      mimeType = 'application/pdf';
+    if (formatStr === "PNG") {
+      mimeType = "image/png";
+    } else if (formatStr === "JPG") {
+      mimeType = "image/jpeg";
+    } else if (formatStr === "SVG") {
+      mimeType = "image/svg+xml";
+    } else if (formatStr === "PDF") {
+      mimeType = "application/pdf";
     } else {
-      mimeType = 'application/octet-stream';
+      mimeType = "application/octet-stream";
     }
 
     // Proper way to convert Uint8Array to base64
@@ -391,11 +393,11 @@ export async function exportNodeAsImage(params: Record<string, unknown>): Promis
 }
 
 export async function exportImageFill(params: Record<string, unknown>): Promise<Record<string, unknown>> {
-  const nodeId = getOptParam<string>(params, 'nodeId');
-  const fillIndex = getParam<number>(params, 'fillIndex', 0);
+  const nodeId = getOptParam<string>(params, "nodeId");
+  const fillIndex = getParam<number>(params, "fillIndex", 0);
 
   if (!nodeId) {
-    throw new Error('Missing nodeId parameter');
+    throw new Error("Missing nodeId parameter");
   }
 
   const node = await figma.getNodeByIdAsync(nodeId);
@@ -403,26 +405,24 @@ export async function exportImageFill(params: Record<string, unknown>): Promise<
     throw new Error(`Node not found with ID: ${nodeId}`);
   }
 
-  if (!('fills' in node)) {
+  if (!("fills" in node)) {
     throw new Error(`Node does not have fills: ${nodeId}`);
   }
 
   const fills = (node as GeometryMixin).fills;
   if (fills === figma.mixed) {
-    throw new Error('Node has mixed fills — specify a text range or use a different node');
+    throw new Error("Node has mixed fills — specify a text range or use a different node");
   }
 
   if (!Array.isArray(fills) || fills.length === 0) {
-    throw new Error('Node has no fills');
+    throw new Error("Node has no fills");
   }
 
   // Find image fills
-  const imageFills = fills
-    .map((f, i) => ({ fill: f, index: i }))
-    .filter(({ fill }) => fill.type === 'IMAGE');
+  const imageFills = fills.map((f, i) => ({ fill: f, index: i })).filter(({ fill }) => fill.type === "IMAGE");
 
   if (imageFills.length === 0) {
-    throw new Error('Node has no image fills. Fill types present: ' + fills.map(f => f.type).join(', '));
+    throw new Error("Node has no image fills. Fill types present: " + fills.map((f) => f.type).join(", "));
   }
 
   if (fillIndex >= imageFills.length) {
@@ -433,7 +433,7 @@ export async function exportImageFill(params: Record<string, unknown>): Promise<
   const imageHash = imagePaint.imageHash;
 
   if (!imageHash) {
-    throw new Error('Image fill has no imageHash — the image may not be loaded');
+    throw new Error("Image fill has no imageHash — the image may not be loaded");
   }
 
   const image = figma.getImageByHash(imageHash);
@@ -447,16 +447,24 @@ export async function exportImageFill(params: Record<string, unknown>): Promise<
     const base64 = customBase64Encode(bytes);
 
     // Detect MIME type from byte header
-    let mimeType = 'application/octet-stream';
-    if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47) {
-      mimeType = 'image/png';
-    } else if (bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF) {
-      mimeType = 'image/jpeg';
-    } else if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46 &&
-               bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50) {
-      mimeType = 'image/webp';
+    let mimeType = "application/octet-stream";
+    if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) {
+      mimeType = "image/png";
+    } else if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
+      mimeType = "image/jpeg";
+    } else if (
+      bytes[0] === 0x52 &&
+      bytes[1] === 0x49 &&
+      bytes[2] === 0x46 &&
+      bytes[3] === 0x46 &&
+      bytes[8] === 0x57 &&
+      bytes[9] === 0x45 &&
+      bytes[10] === 0x42 &&
+      bytes[11] === 0x50
+    ) {
+      mimeType = "image/webp";
     } else if (bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46) {
-      mimeType = 'image/gif';
+      mimeType = "image/gif";
     }
 
     return {
@@ -465,7 +473,7 @@ export async function exportImageFill(params: Record<string, unknown>): Promise<
       imageHash,
       width: size.width,
       height: size.height,
-      scaleMode: imagePaint.scaleMode || 'FILL',
+      scaleMode: imagePaint.scaleMode || "FILL",
       mimeType,
       imageData: base64,
     };
@@ -475,16 +483,16 @@ export async function exportImageFill(params: Record<string, unknown>): Promise<
 }
 
 export async function setCornerRadius(params: Record<string, unknown>): Promise<Record<string, unknown>> {
-  const nodeId = getOptParam<string>(params, 'nodeId');
-  const radius = getOptParam<number>(params, 'radius');
-  const corners = getOptParam<unknown[]>(params, 'corners');
+  const nodeId = getOptParam<string>(params, "nodeId");
+  const radius = getOptParam<number>(params, "radius");
+  const corners = getOptParam<unknown[]>(params, "corners");
 
   if (!nodeId) {
-    throw new Error('Missing nodeId parameter');
+    throw new Error("Missing nodeId parameter");
   }
 
   if (radius === undefined) {
-    throw new Error('Missing radius parameter');
+    throw new Error("Missing radius parameter");
   }
 
   const node = await figma.getNodeByIdAsync(nodeId);
@@ -493,7 +501,7 @@ export async function setCornerRadius(params: Record<string, unknown>): Promise<
   }
 
   // Check if node supports corner radius
-  if (!('cornerRadius' in node)) {
+  if (!("cornerRadius" in node)) {
     throw new Error(`Node does not support corner radius: ${nodeId}`);
   }
 
@@ -501,7 +509,7 @@ export async function setCornerRadius(params: Record<string, unknown>): Promise<
 
   // If corners array is provided, set individual corner radii
   if (corners && Array.isArray(corners) && corners.length === 4) {
-    if ('topLeftRadius' in node) {
+    if ("topLeftRadius" in node) {
       // Node supports individual corner radii
       if (corners[0] === true) cornerNode.topLeftRadius = radius;
       if (corners[1] === true) cornerNode.topRightRadius = radius;
@@ -519,23 +527,23 @@ export async function setCornerRadius(params: Record<string, unknown>): Promise<
   return {
     id: node.id,
     name: node.name,
-    cornerRadius: 'cornerRadius' in node ? cornerNode.cornerRadius : undefined,
-    topLeftRadius: 'topLeftRadius' in node ? cornerNode.topLeftRadius : undefined,
-    topRightRadius: 'topRightRadius' in node ? cornerNode.topRightRadius : undefined,
-    bottomRightRadius: 'bottomRightRadius' in node ? cornerNode.bottomRightRadius : undefined,
-    bottomLeftRadius: 'bottomLeftRadius' in node ? cornerNode.bottomLeftRadius : undefined,
+    cornerRadius: "cornerRadius" in node ? cornerNode.cornerRadius : undefined,
+    topLeftRadius: "topLeftRadius" in node ? cornerNode.topLeftRadius : undefined,
+    topRightRadius: "topRightRadius" in node ? cornerNode.topRightRadius : undefined,
+    bottomRightRadius: "bottomRightRadius" in node ? cornerNode.bottomRightRadius : undefined,
+    bottomLeftRadius: "bottomLeftRadius" in node ? cornerNode.bottomLeftRadius : undefined,
   };
 }
 
 export async function cloneNode(params: Record<string, unknown>): Promise<Record<string, unknown>> {
-  const nodeId = getOptParam<string>(params, 'nodeId');
-  const x = getOptParam<number>(params, 'x');
-  const y = getOptParam<number>(params, 'y');
-  const parentId = getOptParam<string>(params, 'parentId');
-  const index = getOptParam<number>(params, 'index');
+  const nodeId = getOptParam<string>(params, "nodeId");
+  const x = getOptParam<number>(params, "x");
+  const y = getOptParam<number>(params, "y");
+  const parentId = getOptParam<string>(params, "parentId");
+  const index = getOptParam<number>(params, "index");
 
   if (!nodeId) {
-    throw new Error('Missing nodeId parameter');
+    throw new Error("Missing nodeId parameter");
   }
 
   const node = await figma.getNodeByIdAsync(nodeId);
@@ -548,7 +556,7 @@ export async function cloneNode(params: Record<string, unknown>): Promise<Record
 
   // If x and y are provided, move the clone to that position
   if (x !== undefined && y !== undefined) {
-    if (!('x' in clone) || !('y' in clone)) {
+    if (!("x" in clone) || !("y" in clone)) {
       throw new Error(`Cloned node does not support position: ${nodeId}`);
     }
     (clone as FrameNode).x = x;
@@ -559,10 +567,10 @@ export async function cloneNode(params: Record<string, unknown>): Promise<Record
   if (parentId) {
     const parentNode = await figma.getNodeByIdAsync(parentId);
     if (!parentNode) {
-      throw new Error('Parent node not found with ID: ' + parentId);
+      throw new Error("Parent node not found with ID: " + parentId);
     }
-    if (!('children' in parentNode)) {
-      throw new Error('Parent node does not support children: ' + parentId);
+    if (!("children" in parentNode)) {
+      throw new Error("Parent node does not support children: " + parentId);
     }
     const container = parentNode as FrameNode;
     if (index !== undefined && index !== null) {
@@ -582,19 +590,19 @@ export async function cloneNode(params: Record<string, unknown>): Promise<Record
   return {
     id: clone.id,
     name: clone.name,
-    x: 'x' in clone ? (clone as FrameNode).x : undefined,
-    y: 'y' in clone ? (clone as FrameNode).y : undefined,
-    width: 'width' in clone ? (clone as FrameNode).width : undefined,
-    height: 'height' in clone ? (clone as FrameNode).height : undefined,
+    x: "x" in clone ? (clone as FrameNode).x : undefined,
+    y: "y" in clone ? (clone as FrameNode).y : undefined,
+    width: "width" in clone ? (clone as FrameNode).width : undefined,
+    height: "height" in clone ? (clone as FrameNode).height : undefined,
   };
 }
 
 export async function groupNodes(params: Record<string, unknown>): Promise<Record<string, unknown>> {
-  const nodeIds = getOptParam<string[]>(params, 'nodeIds');
-  const name = getOptParam<string>(params, 'name');
+  const nodeIds = getOptParam<string[]>(params, "nodeIds");
+  const name = getOptParam<string>(params, "name");
 
   if (!nodeIds || !Array.isArray(nodeIds) || nodeIds.length < 2) {
-    throw new Error('Must provide at least two nodeIds to group');
+    throw new Error("Must provide at least two nodeIds to group");
   }
 
   try {
@@ -612,7 +620,7 @@ export async function groupNodes(params: Record<string, unknown>): Promise<Recor
     const parent = nodesToGroup[0].parent;
     for (const node of nodesToGroup) {
       if (node.parent !== parent) {
-        throw new Error('All nodes must have the same parent to be grouped');
+        throw new Error("All nodes must have the same parent to be grouped");
       }
     }
 
@@ -628,7 +636,7 @@ export async function groupNodes(params: Record<string, unknown>): Promise<Recor
       id: group.id,
       name: group.name,
       type: group.type,
-      children: group.children.map(child => ({ id: child.id, name: child.name, type: child.type })),
+      children: group.children.map((child) => ({ id: child.id, name: child.name, type: child.type })),
     };
   } catch (error) {
     throw new Error(`Error grouping nodes: ${(error as Error).message}`);
@@ -636,10 +644,10 @@ export async function groupNodes(params: Record<string, unknown>): Promise<Recor
 }
 
 export async function ungroupNodes(params: Record<string, unknown>): Promise<Record<string, unknown>> {
-  const nodeId = getOptParam<string>(params, 'nodeId');
+  const nodeId = getOptParam<string>(params, "nodeId");
 
   if (!nodeId) {
-    throw new Error('Missing nodeId parameter');
+    throw new Error("Missing nodeId parameter");
   }
 
   try {
@@ -649,7 +657,7 @@ export async function ungroupNodes(params: Record<string, unknown>): Promise<Rec
     }
 
     // Verify that the node is a group or a frame
-    if (node.type !== 'GROUP' && node.type !== 'FRAME') {
+    if (node.type !== "GROUP" && node.type !== "FRAME") {
       throw new Error(`Node with ID ${nodeId} is not a GROUP or FRAME`);
     }
 
@@ -659,7 +667,7 @@ export async function ungroupNodes(params: Record<string, unknown>): Promise<Rec
     return {
       success: true,
       ungroupedCount: ungroupedItems.length,
-      items: ungroupedItems.map(item => ({ id: item.id, name: item.name, type: item.type })),
+      items: ungroupedItems.map((item) => ({ id: item.id, name: item.name, type: item.type })),
     };
   } catch (error) {
     throw new Error(`Error ungrouping node: ${(error as Error).message}`);
@@ -667,10 +675,10 @@ export async function ungroupNodes(params: Record<string, unknown>): Promise<Rec
 }
 
 export async function flattenNode(params: Record<string, unknown>): Promise<Record<string, unknown>> {
-  const nodeId = getOptParam<string>(params, 'nodeId');
+  const nodeId = getOptParam<string>(params, "nodeId");
 
   if (!nodeId) {
-    throw new Error('Missing nodeId parameter');
+    throw new Error("Missing nodeId parameter");
   }
 
   try {
@@ -680,10 +688,21 @@ export async function flattenNode(params: Record<string, unknown>): Promise<Reco
     }
 
     // Check for specific node types that can be flattened
-    const flattenableTypes = ['VECTOR', 'BOOLEAN_OPERATION', 'STAR', 'POLYGON', 'ELLIPSE', 'RECTANGLE', 'FRAME', 'GROUP'];
+    const flattenableTypes = [
+      "VECTOR",
+      "BOOLEAN_OPERATION",
+      "STAR",
+      "POLYGON",
+      "ELLIPSE",
+      "RECTANGLE",
+      "FRAME",
+      "GROUP",
+    ];
 
     if (!flattenableTypes.includes(node.type)) {
-      throw new Error(`Node with ID ${nodeId} and type ${node.type} cannot be flattened. Supported types: VECTOR, BOOLEAN_OPERATION, STAR, POLYGON, ELLIPSE, RECTANGLE, FRAME, GROUP.`);
+      throw new Error(
+        `Node with ID ${nodeId} and type ${node.type} cannot be flattened. Supported types: VECTOR, BOOLEAN_OPERATION, STAR, POLYGON, ELLIPSE, RECTANGLE, FRAME, GROUP.`,
+      );
     }
 
     // Use figma.flatten([node]) — the correct Plugin API (not a node instance method)
@@ -696,9 +715,11 @@ export async function flattenNode(params: Record<string, unknown>): Promise<Reco
     };
   } catch (error) {
     console.error(`Error in flattenNode: ${(error as Error).message}`);
-    if ((error as Error).message.includes('timed out')) {
+    if ((error as Error).message.includes("timed out")) {
       // Provide a more helpful message for timeout errors
-      throw new Error('The flatten operation timed out. This usually happens with complex nodes. Try simplifying the node first or breaking it into smaller parts.');
+      throw new Error(
+        "The flatten operation timed out. This usually happens with complex nodes. Try simplifying the node first or breaking it into smaller parts.",
+      );
     } else {
       throw new Error(`Error flattening node: ${(error as Error).message}`);
     }
@@ -706,15 +727,15 @@ export async function flattenNode(params: Record<string, unknown>): Promise<Reco
 }
 
 export async function renameNode(params: Record<string, unknown>): Promise<Record<string, unknown>> {
-  const nodeId = getOptParam<string>(params, 'nodeId');
-  const name = getOptParam<string>(params, 'name');
+  const nodeId = getOptParam<string>(params, "nodeId");
+  const name = getOptParam<string>(params, "name");
 
   if (!nodeId) {
-    throw new Error('Missing nodeId parameter');
+    throw new Error("Missing nodeId parameter");
   }
 
   if (!name) {
-    throw new Error('Missing name parameter');
+    throw new Error("Missing name parameter");
   }
 
   try {
@@ -737,16 +758,16 @@ export async function renameNode(params: Record<string, unknown>): Promise<Recor
 }
 
 export async function insertChild(params: Record<string, unknown>): Promise<Record<string, unknown>> {
-  const parentId = getOptParam<string>(params, 'parentId');
-  const childId = getOptParam<string>(params, 'childId');
-  const index = getOptParam<number>(params, 'index');
+  const parentId = getOptParam<string>(params, "parentId");
+  const childId = getOptParam<string>(params, "childId");
+  const index = getOptParam<number>(params, "index");
 
   if (!parentId) {
-    throw new Error('Missing parentId parameter');
+    throw new Error("Missing parentId parameter");
   }
 
   if (!childId) {
-    throw new Error('Missing childId parameter');
+    throw new Error("Missing childId parameter");
   }
 
   try {
@@ -762,7 +783,7 @@ export async function insertChild(params: Record<string, unknown>): Promise<Reco
     }
 
     // Check if the parent can have children
-    if (!('appendChild' in parent)) {
+    if (!("appendChild" in parent)) {
       throw new Error(`Parent node with ID ${parentId} cannot have children`);
     }
 

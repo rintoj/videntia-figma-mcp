@@ -1,7 +1,7 @@
 // Figma MCP plugin.
 
-import type { SvgRootStroke } from '../types';
-import { svgColorToFigmaRgb } from './color';
+import type { SvgRootStroke } from "../types";
+import { svgColorToFigmaRgb } from "./color";
 
 // ---------------------------------------------------------------------------
 // Parse stroke attributes from the root <svg> element
@@ -18,7 +18,7 @@ export function parseSvgRootStroke(svgString: string): SvgRootStroke | null {
   const svgAttrs = tagMatch[1];
 
   const strokeMatch = svgAttrs.match(/\bstroke\s*=\s*"([^"]*)"/);
-  if (!strokeMatch || strokeMatch[1] === 'none' || strokeMatch[1] === '') {
+  if (!strokeMatch || strokeMatch[1] === "none" || strokeMatch[1] === "") {
     return null;
   }
 
@@ -43,13 +43,10 @@ export function parseSvgRootStroke(svgString: string): SvgRootStroke | null {
  *
  * `strokeInfo` is the parsed result from `parseSvgRootStroke`.
  */
-export function propagateStrokeToShapes(
-  node: SceneNode,
-  strokeInfo: SvgRootStroke,
-): void {
+export function propagateStrokeToShapes(node: SceneNode, strokeInfo: SvgRootStroke): void {
   const rgbColor = svgColorToFigmaRgb(strokeInfo.color);
   const strokePaint: SolidPaint = {
-    type: 'SOLID',
+    type: "SOLID",
     color: rgbColor,
     opacity: strokeInfo.opacity,
   };
@@ -59,32 +56,20 @@ export function propagateStrokeToShapes(
 
 // Internal recursive implementation that operates on already-resolved paint
 // and weight values to avoid re-parsing on every recursive call.
-function _propagate(
-  node: SceneNode,
-  strokePaint: SolidPaint,
-  strokeWeight: number,
-): void {
-  const shapeTypes: NodeType[] = [
-    'VECTOR',
-    'BOOLEAN_OPERATION',
-    'ELLIPSE',
-    'STAR',
-    'POLYGON',
-    'LINE',
-    'RECTANGLE',
-  ];
+function _propagate(node: SceneNode, strokePaint: SolidPaint, strokeWeight: number): void {
+  const shapeTypes: NodeType[] = ["VECTOR", "BOOLEAN_OPERATION", "ELLIPSE", "STAR", "POLYGON", "LINE", "RECTANGLE"];
 
   if (shapeTypes.indexOf(node.type) !== -1) {
     const strokeable = node as GeometryMixin;
     if (!strokeable.strokes || strokeable.strokes.length === 0) {
       strokeable.strokes = [strokePaint];
-      if ('strokeWeight' in node) {
+      if ("strokeWeight" in node) {
         (node as unknown as { strokeWeight: number }).strokeWeight = strokeWeight;
       }
     }
   }
 
-  if ('children' in node) {
+  if ("children" in node) {
     const parent = node as ChildrenMixin;
     for (let i = 0; i < parent.children.length; i++) {
       _propagate(parent.children[i] as SceneNode, strokePaint, strokeWeight);

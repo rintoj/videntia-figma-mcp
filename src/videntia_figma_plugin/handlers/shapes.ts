@@ -1,8 +1,8 @@
 // Figma MCP plugin.
 
-import { parseSvgRootStroke, propagateStrokeToShapes } from '../utils/svg';
-import { debugLog, parseNum } from '../utils/helpers';
-import { resolveColorVariable, bindVariableToStrokes } from './icons';
+import { parseSvgRootStroke, propagateStrokeToShapes } from "../utils/svg";
+import { debugLog, parseNum } from "../utils/helpers";
+import { resolveColorVariable, bindVariableToStrokes } from "./icons";
 
 // Individual stroke weight properties exposed by FrameNode / ComponentNode
 // but not typed in the public Figma plugin typings.
@@ -24,19 +24,19 @@ interface StrokeWeightMixin {
 export async function createEllipse(params: Record<string, unknown>): Promise<unknown> {
   const paramsObj = params !== null && params !== undefined ? params : {};
 
-  const x = paramsObj['x'] !== undefined ? (paramsObj['x'] as number) : 0;
-  const y = paramsObj['y'] !== undefined ? (paramsObj['y'] as number) : 0;
-  const width = paramsObj['width'] !== undefined ? (paramsObj['width'] as number) : 100;
-  const height = paramsObj['height'] !== undefined ? (paramsObj['height'] as number) : 100;
-  const name = paramsObj['name'] !== undefined ? (paramsObj['name'] as string) : 'Ellipse';
-  const parentId = paramsObj['parentId'] as string | undefined;
+  const x = paramsObj["x"] !== undefined ? (paramsObj["x"] as number) : 0;
+  const y = paramsObj["y"] !== undefined ? (paramsObj["y"] as number) : 0;
+  const width = paramsObj["width"] !== undefined ? (paramsObj["width"] as number) : 100;
+  const height = paramsObj["height"] !== undefined ? (paramsObj["height"] as number) : 100;
+  const name = paramsObj["name"] !== undefined ? (paramsObj["name"] as string) : "Ellipse";
+  const parentId = paramsObj["parentId"] as string | undefined;
   const fillColor =
-    paramsObj['fillColor'] !== undefined
-      ? (paramsObj['fillColor'] as Record<string, unknown>)
+    paramsObj["fillColor"] !== undefined
+      ? (paramsObj["fillColor"] as Record<string, unknown>)
       : ({ r: 0.8, g: 0.8, b: 0.8, a: 1 } as Record<string, unknown>);
-  const strokeColor = paramsObj['strokeColor'] as Record<string, unknown> | undefined;
-  const strokeWeight = paramsObj['strokeWeight'] as number | undefined;
-  const layoutPositioning = paramsObj['layoutPositioning'] as string | undefined;
+  const strokeColor = paramsObj["strokeColor"] as Record<string, unknown> | undefined;
+  const strokeWeight = paramsObj["strokeWeight"] as number | undefined;
+  const layoutPositioning = paramsObj["layoutPositioning"] as string | undefined;
 
   // Create a new ellipse node
   const ellipse = figma.createEllipse();
@@ -50,13 +50,13 @@ export async function createEllipse(params: Record<string, unknown>): Promise<un
   // Set fill color if provided
   if (fillColor) {
     const fillStyle: SolidPaint = {
-      type: 'SOLID',
+      type: "SOLID",
       color: {
-        r: parseNum(fillColor['r'], 0),
-        g: parseNum(fillColor['g'], 0),
-        b: parseNum(fillColor['b'], 0),
+        r: parseNum(fillColor["r"], 0),
+        g: parseNum(fillColor["g"], 0),
+        b: parseNum(fillColor["b"], 0),
       },
-      opacity: parseNum(fillColor['a'], 1),
+      opacity: parseNum(fillColor["a"], 1),
     };
     ellipse.fills = [fillStyle];
   }
@@ -64,13 +64,13 @@ export async function createEllipse(params: Record<string, unknown>): Promise<un
   // Set stroke color and weight if provided
   if (strokeColor) {
     const strokeStyle: SolidPaint = {
-      type: 'SOLID',
+      type: "SOLID",
       color: {
-        r: parseNum(strokeColor['r'], 0),
-        g: parseNum(strokeColor['g'], 0),
-        b: parseNum(strokeColor['b'], 0),
+        r: parseNum(strokeColor["r"], 0),
+        g: parseNum(strokeColor["g"], 0),
+        b: parseNum(strokeColor["b"], 0),
       },
-      opacity: parseNum(strokeColor['a'], 1),
+      opacity: parseNum(strokeColor["a"], 1),
     };
     ellipse.strokes = [strokeStyle];
 
@@ -85,7 +85,7 @@ export async function createEllipse(params: Record<string, unknown>): Promise<un
     if (!parentNode) {
       throw new Error(`Parent node not found with ID: ${parentId}`);
     }
-    if (!('appendChild' in parentNode)) {
+    if (!("appendChild" in parentNode)) {
       throw new Error(`Parent node does not support children: ${parentId}`);
     }
     (parentNode as ChildrenMixin).appendChild(ellipse);
@@ -122,16 +122,16 @@ export async function createEllipse(params: Record<string, unknown>): Promise<un
 export async function createPolygon(params: Record<string, unknown>): Promise<unknown> {
   const paramsObj = params !== null && params !== undefined ? params : {};
 
-  const x = paramsObj['x'] !== undefined ? (paramsObj['x'] as number) : 0;
-  const y = paramsObj['y'] !== undefined ? (paramsObj['y'] as number) : 0;
-  const width = paramsObj['width'] !== undefined ? (paramsObj['width'] as number) : 100;
-  const height = paramsObj['height'] !== undefined ? (paramsObj['height'] as number) : 100;
-  const sides = paramsObj['sides'] !== undefined ? (paramsObj['sides'] as number) : 6;
-  const name = paramsObj['name'] !== undefined ? (paramsObj['name'] as string) : 'Polygon';
-  const parentId = paramsObj['parentId'] as string | undefined;
-  const fillColor = paramsObj['fillColor'] as Record<string, unknown> | undefined;
-  const strokeColor = paramsObj['strokeColor'] as Record<string, unknown> | undefined;
-  const strokeWeight = paramsObj['strokeWeight'] as number | undefined;
+  const x = paramsObj["x"] !== undefined ? (paramsObj["x"] as number) : 0;
+  const y = paramsObj["y"] !== undefined ? (paramsObj["y"] as number) : 0;
+  const width = paramsObj["width"] !== undefined ? (paramsObj["width"] as number) : 100;
+  const height = paramsObj["height"] !== undefined ? (paramsObj["height"] as number) : 100;
+  const sides = paramsObj["sides"] !== undefined ? (paramsObj["sides"] as number) : 6;
+  const name = paramsObj["name"] !== undefined ? (paramsObj["name"] as string) : "Polygon";
+  const parentId = paramsObj["parentId"] as string | undefined;
+  const fillColor = paramsObj["fillColor"] as Record<string, unknown> | undefined;
+  const strokeColor = paramsObj["strokeColor"] as Record<string, unknown> | undefined;
+  const strokeWeight = paramsObj["strokeWeight"] as number | undefined;
 
   // Create the polygon
   const polygon = figma.createPolygon();
@@ -148,13 +148,13 @@ export async function createPolygon(params: Record<string, unknown>): Promise<un
   // Set fill color if provided
   if (fillColor) {
     const paintStyle: SolidPaint = {
-      type: 'SOLID',
+      type: "SOLID",
       color: {
-        r: parseNum(fillColor['r'], 0),
-        g: parseNum(fillColor['g'], 0),
-        b: parseNum(fillColor['b'], 0),
+        r: parseNum(fillColor["r"], 0),
+        g: parseNum(fillColor["g"], 0),
+        b: parseNum(fillColor["b"], 0),
       },
-      opacity: parseNum(fillColor['a'], 1),
+      opacity: parseNum(fillColor["a"], 1),
     };
     polygon.fills = [paintStyle];
   }
@@ -162,13 +162,13 @@ export async function createPolygon(params: Record<string, unknown>): Promise<un
   // Set stroke color and weight if provided
   if (strokeColor) {
     const strokeStyle: SolidPaint = {
-      type: 'SOLID',
+      type: "SOLID",
       color: {
-        r: parseNum(strokeColor['r'], 0),
-        g: parseNum(strokeColor['g'], 0),
-        b: parseNum(strokeColor['b'], 0),
+        r: parseNum(strokeColor["r"], 0),
+        g: parseNum(strokeColor["g"], 0),
+        b: parseNum(strokeColor["b"], 0),
       },
-      opacity: parseNum(strokeColor['a'], 1),
+      opacity: parseNum(strokeColor["a"], 1),
     };
     polygon.strokes = [strokeStyle];
   }
@@ -184,7 +184,7 @@ export async function createPolygon(params: Record<string, unknown>): Promise<un
     if (!parentNode) {
       throw new Error(`Parent node not found with ID: ${parentId}`);
     }
-    if (!('appendChild' in parentNode)) {
+    if (!("appendChild" in parentNode)) {
       throw new Error(`Parent node does not support children: ${parentId}`);
     }
     (parentNode as ChildrenMixin).appendChild(polygon);
@@ -218,19 +218,18 @@ export async function createPolygon(params: Record<string, unknown>): Promise<un
 export async function createStar(params: Record<string, unknown>): Promise<unknown> {
   const paramsObj = params !== null && params !== undefined ? params : {};
 
-  const x = paramsObj['x'] !== undefined ? (paramsObj['x'] as number) : 0;
-  const y = paramsObj['y'] !== undefined ? (paramsObj['y'] as number) : 0;
-  const width = paramsObj['width'] !== undefined ? (paramsObj['width'] as number) : 100;
-  const height = paramsObj['height'] !== undefined ? (paramsObj['height'] as number) : 100;
-  const points = paramsObj['points'] !== undefined ? (paramsObj['points'] as number) : 5;
+  const x = paramsObj["x"] !== undefined ? (paramsObj["x"] as number) : 0;
+  const y = paramsObj["y"] !== undefined ? (paramsObj["y"] as number) : 0;
+  const width = paramsObj["width"] !== undefined ? (paramsObj["width"] as number) : 100;
+  const height = paramsObj["height"] !== undefined ? (paramsObj["height"] as number) : 100;
+  const points = paramsObj["points"] !== undefined ? (paramsObj["points"] as number) : 5;
   // innerRadius: proportion of the outer radius (default 0.5)
-  const innerRadius =
-    paramsObj['innerRadius'] !== undefined ? (paramsObj['innerRadius'] as number) : 0.5;
-  const name = paramsObj['name'] !== undefined ? (paramsObj['name'] as string) : 'Star';
-  const parentId = paramsObj['parentId'] as string | undefined;
-  const fillColor = paramsObj['fillColor'] as Record<string, unknown> | undefined;
-  const strokeColor = paramsObj['strokeColor'] as Record<string, unknown> | undefined;
-  const strokeWeight = paramsObj['strokeWeight'] as number | undefined;
+  const innerRadius = paramsObj["innerRadius"] !== undefined ? (paramsObj["innerRadius"] as number) : 0.5;
+  const name = paramsObj["name"] !== undefined ? (paramsObj["name"] as string) : "Star";
+  const parentId = paramsObj["parentId"] as string | undefined;
+  const fillColor = paramsObj["fillColor"] as Record<string, unknown> | undefined;
+  const strokeColor = paramsObj["strokeColor"] as Record<string, unknown> | undefined;
+  const strokeWeight = paramsObj["strokeWeight"] as number | undefined;
 
   // Create the star
   const star = figma.createStar();
@@ -252,13 +251,13 @@ export async function createStar(params: Record<string, unknown>): Promise<unkno
   // Set fill color if provided
   if (fillColor) {
     const paintStyle: SolidPaint = {
-      type: 'SOLID',
+      type: "SOLID",
       color: {
-        r: parseNum(fillColor['r'], 0),
-        g: parseNum(fillColor['g'], 0),
-        b: parseNum(fillColor['b'], 0),
+        r: parseNum(fillColor["r"], 0),
+        g: parseNum(fillColor["g"], 0),
+        b: parseNum(fillColor["b"], 0),
       },
-      opacity: parseNum(fillColor['a'], 1),
+      opacity: parseNum(fillColor["a"], 1),
     };
     star.fills = [paintStyle];
   }
@@ -266,13 +265,13 @@ export async function createStar(params: Record<string, unknown>): Promise<unkno
   // Set stroke color and weight if provided
   if (strokeColor) {
     const strokeStyle: SolidPaint = {
-      type: 'SOLID',
+      type: "SOLID",
       color: {
-        r: parseNum(strokeColor['r'], 0),
-        g: parseNum(strokeColor['g'], 0),
-        b: parseNum(strokeColor['b'], 0),
+        r: parseNum(strokeColor["r"], 0),
+        g: parseNum(strokeColor["g"], 0),
+        b: parseNum(strokeColor["b"], 0),
       },
-      opacity: parseNum(strokeColor['a'], 1),
+      opacity: parseNum(strokeColor["a"], 1),
     };
     star.strokes = [strokeStyle];
   }
@@ -288,7 +287,7 @@ export async function createStar(params: Record<string, unknown>): Promise<unkno
     if (!parentNode) {
       throw new Error(`Parent node not found with ID: ${parentId}`);
     }
-    if (!('appendChild' in parentNode)) {
+    if (!("appendChild" in parentNode)) {
       throw new Error(`Parent node does not support children: ${parentId}`);
     }
     (parentNode as ChildrenMixin).appendChild(star);
@@ -325,23 +324,22 @@ export async function createStar(params: Record<string, unknown>): Promise<unkno
 export async function createSvg(params: Record<string, unknown>): Promise<unknown> {
   const paramsObj = params !== null && params !== undefined ? params : {};
 
-  const svgString = paramsObj['svgString'] as string | undefined;
-  const x = paramsObj['x'] !== undefined ? (paramsObj['x'] as number) : 0;
-  const y = paramsObj['y'] !== undefined ? (paramsObj['y'] as number) : 0;
-  const name = paramsObj['name'] as string | undefined;
-  const parentId = paramsObj['parentId'] as string | undefined;
-  const flatten =
-    paramsObj['flatten'] !== undefined ? (paramsObj['flatten'] as boolean) : false;
-  const colorVariable = paramsObj['colorVariable'] as string | undefined;
+  const svgString = paramsObj["svgString"] as string | undefined;
+  const x = paramsObj["x"] !== undefined ? (paramsObj["x"] as number) : 0;
+  const y = paramsObj["y"] !== undefined ? (paramsObj["y"] as number) : 0;
+  const name = paramsObj["name"] as string | undefined;
+  const parentId = paramsObj["parentId"] as string | undefined;
+  const flatten = paramsObj["flatten"] !== undefined ? (paramsObj["flatten"] as boolean) : false;
+  const colorVariable = paramsObj["colorVariable"] as string | undefined;
 
   if (!svgString) {
-    throw new Error('Missing svgString parameter');
+    throw new Error("Missing svgString parameter");
   }
 
   // Strip any leading HTML comments (e.g. Lucide license headers) before validating
-  const cleanSvg = svgString.replace(/^<!--[\s\S]*?-->\s*/m, '').trim();
-  if (!cleanSvg.startsWith('<svg') && !cleanSvg.startsWith('<?xml')) {
-    throw new Error('Invalid SVG: must start with <svg or <?xml declaration');
+  const cleanSvg = svgString.replace(/^<!--[\s\S]*?-->\s*/m, "").trim();
+  if (!cleanSvg.startsWith("<svg") && !cleanSvg.startsWith("<?xml")) {
+    throw new Error("Invalid SVG: must start with <svg or <?xml declaration");
   }
 
   debugLog(`createSvg: Creating SVG node, flatten=${flatten}`);
@@ -372,21 +370,21 @@ export async function createSvg(params: Record<string, unknown>): Promise<unknow
   if (rootStroke) {
     propagateStrokeToShapes(svgNode as SceneNode, rootStroke);
     // Clear any stroke that was incorrectly placed on the root frame
-    if ('strokes' in svgNode) {
+    if ("strokes" in svgNode) {
       (svgNode as GeometryMixin).strokes = [];
     }
   }
 
   // Flatten to single vector if requested (must happen before variable binding,
   // because flatten discards bound variables on child strokes)
-  if (flatten && 'children' in svgNode && (svgNode as FrameNode).children.length > 0) {
+  if (flatten && "children" in svgNode && (svgNode as FrameNode).children.length > 0) {
     try {
       const flattened = figma.flatten([svgNode as FrameNode]);
       svgNode = flattened as unknown as VectorNode;
       if (name) {
         svgNode.name = name;
       }
-      debugLog('createSvg: Flattened SVG to single vector');
+      debugLog("createSvg: Flattened SVG to single vector");
     } catch (flattenError) {
       console.warn(`createSvg: Could not flatten SVG: ${flattenError}`);
       // Continue with unflattened node
@@ -396,14 +394,15 @@ export async function createSvg(params: Record<string, unknown>): Promise<unknow
   // Bind color variable to all child strokes if requested (after flatten so bindings persist)
   var colorVariableBound: boolean | undefined = undefined;
   var colorVariableWarning: string | undefined = undefined;
-  if (colorVariable !== undefined && colorVariable !== null && colorVariable !== '') {
+  if (colorVariable !== undefined && colorVariable !== null && colorVariable !== "") {
     const variable = await resolveColorVariable(colorVariable);
     if (variable !== null) {
       bindVariableToStrokes(svgNode as SceneNode, variable);
       colorVariableBound = true;
     } else {
       colorVariableBound = false;
-      colorVariableWarning = 'Variable "' + colorVariable + '" not found. Check that the variable exists in your Figma file.';
+      colorVariableWarning =
+        'Variable "' + colorVariable + '" not found. Check that the variable exists in your Figma file.';
     }
   }
 
@@ -413,7 +412,7 @@ export async function createSvg(params: Record<string, unknown>): Promise<unknow
     if (!parentNode) {
       throw new Error(`Parent node not found with ID: ${parentId}`);
     }
-    if (!('appendChild' in parentNode)) {
+    if (!("appendChild" in parentNode)) {
       throw new Error(`Parent node does not support children: ${parentId}`);
     }
     (parentNode as ChildrenMixin).appendChild(svgNode as SceneNode);
@@ -422,7 +421,7 @@ export async function createSvg(params: Record<string, unknown>): Promise<unknow
     // After inserting the SVG, clear any stroke that bled through from the JSX
     // border classes, and resize the SVG node to fill the parent frame exactly.
     const parentFrame = parentNode as FrameNode;
-    if (parentFrame.name && parentFrame.name.indexOf('Icon/') === 0) {
+    if (parentFrame.name && parentFrame.name.indexOf("Icon/") === 0) {
       parentFrame.strokes = [];
       const frameWithStrokes = parentFrame as unknown as StrokeWeightMixin;
       frameWithStrokes.strokeWeight = 0;
@@ -453,14 +452,14 @@ export async function createSvg(params: Record<string, unknown>): Promise<unknow
     y: svgNode.y,
     width: svgNode.width,
     height: svgNode.height,
-    childCount: 'children' in svgNode ? (svgNode as FrameNode).children.length : 0,
+    childCount: "children" in svgNode ? (svgNode as FrameNode).children.length : 0,
     parentId: svgNode.parent ? svgNode.parent.id : undefined,
   };
   if (colorVariableBound !== undefined) {
-    result['colorVariableBound'] = colorVariableBound;
+    result["colorVariableBound"] = colorVariableBound;
   }
   if (colorVariableWarning !== undefined) {
-    result['colorVariableWarning'] = colorVariableWarning;
+    result["colorVariableWarning"] = colorVariableWarning;
   }
   return result;
 }
@@ -475,19 +474,17 @@ export async function createSvg(params: Record<string, unknown>): Promise<unknow
 export async function createVector(params: Record<string, unknown>): Promise<unknown> {
   const paramsObj = params !== null && params !== undefined ? params : {};
 
-  const x = paramsObj['x'] !== undefined ? (paramsObj['x'] as number) : 0;
-  const y = paramsObj['y'] !== undefined ? (paramsObj['y'] as number) : 0;
-  const width = paramsObj['width'] !== undefined ? (paramsObj['width'] as number) : 100;
-  const height = paramsObj['height'] !== undefined ? (paramsObj['height'] as number) : 100;
-  const name = paramsObj['name'] !== undefined ? (paramsObj['name'] as string) : 'Vector';
-  const parentId = paramsObj['parentId'] as string | undefined;
+  const x = paramsObj["x"] !== undefined ? (paramsObj["x"] as number) : 0;
+  const y = paramsObj["y"] !== undefined ? (paramsObj["y"] as number) : 0;
+  const width = paramsObj["width"] !== undefined ? (paramsObj["width"] as number) : 100;
+  const height = paramsObj["height"] !== undefined ? (paramsObj["height"] as number) : 100;
+  const name = paramsObj["name"] !== undefined ? (paramsObj["name"] as string) : "Vector";
+  const parentId = paramsObj["parentId"] as string | undefined;
   const vectorPaths =
-    paramsObj['vectorPaths'] !== undefined
-      ? (paramsObj['vectorPaths'] as Array<Record<string, unknown>>)
-      : [];
-  const fillColor = paramsObj['fillColor'] as Record<string, unknown> | undefined;
-  const strokeColor = paramsObj['strokeColor'] as Record<string, unknown> | undefined;
-  const strokeWeight = paramsObj['strokeWeight'] as number | undefined;
+    paramsObj["vectorPaths"] !== undefined ? (paramsObj["vectorPaths"] as Array<Record<string, unknown>>) : [];
+  const fillColor = paramsObj["fillColor"] as Record<string, unknown> | undefined;
+  const strokeColor = paramsObj["strokeColor"] as Record<string, unknown> | undefined;
+  const strokeWeight = paramsObj["strokeWeight"] as number | undefined;
 
   // Create the vector
   const vector = figma.createVector();
@@ -498,13 +495,10 @@ export async function createVector(params: Record<string, unknown>): Promise<unk
 
   // Set vector paths if provided
   if (vectorPaths && vectorPaths.length > 0) {
-    vector.vectorPaths = vectorPaths.map(path => {
+    vector.vectorPaths = vectorPaths.map((path) => {
       return {
-        windingRule:
-          path['windingRule'] !== undefined
-            ? (path['windingRule'] as VectorPath['windingRule'])
-            : 'EVENODD',
-        data: path['data'] !== undefined ? (path['data'] as string) : '',
+        windingRule: path["windingRule"] !== undefined ? (path["windingRule"] as VectorPath["windingRule"]) : "EVENODD",
+        data: path["data"] !== undefined ? (path["data"] as string) : "",
       };
     });
   }
@@ -512,13 +506,13 @@ export async function createVector(params: Record<string, unknown>): Promise<unk
   // Set fill color if provided
   if (fillColor) {
     const paintStyle: SolidPaint = {
-      type: 'SOLID',
+      type: "SOLID",
       color: {
-        r: parseNum(fillColor['r'], 0),
-        g: parseNum(fillColor['g'], 0),
-        b: parseNum(fillColor['b'], 0),
+        r: parseNum(fillColor["r"], 0),
+        g: parseNum(fillColor["g"], 0),
+        b: parseNum(fillColor["b"], 0),
       },
-      opacity: parseNum(fillColor['a'], 1),
+      opacity: parseNum(fillColor["a"], 1),
     };
     vector.fills = [paintStyle];
   }
@@ -526,13 +520,13 @@ export async function createVector(params: Record<string, unknown>): Promise<unk
   // Set stroke color and weight if provided
   if (strokeColor) {
     const strokeStyle: SolidPaint = {
-      type: 'SOLID',
+      type: "SOLID",
       color: {
-        r: parseNum(strokeColor['r'], 0),
-        g: parseNum(strokeColor['g'], 0),
-        b: parseNum(strokeColor['b'], 0),
+        r: parseNum(strokeColor["r"], 0),
+        g: parseNum(strokeColor["g"], 0),
+        b: parseNum(strokeColor["b"], 0),
       },
-      opacity: parseNum(strokeColor['a'], 1),
+      opacity: parseNum(strokeColor["a"], 1),
     };
     vector.strokes = [strokeStyle];
   }
@@ -548,7 +542,7 @@ export async function createVector(params: Record<string, unknown>): Promise<unk
     if (!parentNode) {
       throw new Error(`Parent node not found with ID: ${parentId}`);
     }
-    if (!('appendChild' in parentNode)) {
+    if (!("appendChild" in parentNode)) {
       throw new Error(`Parent node does not support children: ${parentId}`);
     }
     (parentNode as ChildrenMixin).appendChild(vector);
@@ -583,21 +577,19 @@ export async function createVector(params: Record<string, unknown>): Promise<unk
 export async function createLine(params: Record<string, unknown>): Promise<unknown> {
   const paramsObj = params !== null && params !== undefined ? params : {};
 
-  const x1 = paramsObj['x1'] !== undefined ? (paramsObj['x1'] as number) : 0;
-  const y1 = paramsObj['y1'] !== undefined ? (paramsObj['y1'] as number) : 0;
-  const x2 = paramsObj['x2'] !== undefined ? (paramsObj['x2'] as number) : 100;
-  const y2 = paramsObj['y2'] !== undefined ? (paramsObj['y2'] as number) : 0;
-  const name = paramsObj['name'] !== undefined ? (paramsObj['name'] as string) : 'Line';
-  const parentId = paramsObj['parentId'] as string | undefined;
+  const x1 = paramsObj["x1"] !== undefined ? (paramsObj["x1"] as number) : 0;
+  const y1 = paramsObj["y1"] !== undefined ? (paramsObj["y1"] as number) : 0;
+  const x2 = paramsObj["x2"] !== undefined ? (paramsObj["x2"] as number) : 100;
+  const y2 = paramsObj["y2"] !== undefined ? (paramsObj["y2"] as number) : 0;
+  const name = paramsObj["name"] !== undefined ? (paramsObj["name"] as string) : "Line";
+  const parentId = paramsObj["parentId"] as string | undefined;
   const strokeColor =
-    paramsObj['strokeColor'] !== undefined
-      ? (paramsObj['strokeColor'] as Record<string, unknown>)
+    paramsObj["strokeColor"] !== undefined
+      ? (paramsObj["strokeColor"] as Record<string, unknown>)
       : ({ r: 0, g: 0, b: 0, a: 1 } as Record<string, unknown>);
-  const strokeWeight =
-    paramsObj['strokeWeight'] !== undefined ? (paramsObj['strokeWeight'] as number) : 1;
+  const strokeWeight = paramsObj["strokeWeight"] !== undefined ? (paramsObj["strokeWeight"] as number) : 1;
   // strokeCap: can be "NONE", "ROUND", "SQUARE", "ARROW_LINES", or "ARROW_EQUILATERAL"
-  const strokeCap =
-    paramsObj['strokeCap'] !== undefined ? (paramsObj['strokeCap'] as string) : 'NONE';
+  const strokeCap = paramsObj["strokeCap"] !== undefined ? (paramsObj["strokeCap"] as string) : "NONE";
 
   // Create a vector node to represent the line
   const line = figma.createVector();
@@ -629,20 +621,20 @@ export async function createLine(params: Record<string, unknown>): Promise<unkno
   // Set vector paths
   line.vectorPaths = [
     {
-      windingRule: 'NONZERO',
+      windingRule: "NONZERO",
       data: pathData,
     },
   ];
 
   // Set stroke color
   const strokeStyle: SolidPaint = {
-    type: 'SOLID',
+    type: "SOLID",
     color: {
-      r: parseNum(strokeColor['r'], 0),
-      g: parseNum(strokeColor['g'], 0),
-      b: parseNum(strokeColor['b'], 0),
+      r: parseNum(strokeColor["r"], 0),
+      g: parseNum(strokeColor["g"], 0),
+      b: parseNum(strokeColor["b"], 0),
     },
-    opacity: parseNum(strokeColor['a'], 1),
+    opacity: parseNum(strokeColor["a"], 1),
   };
   line.strokes = [strokeStyle];
 
@@ -650,7 +642,7 @@ export async function createLine(params: Record<string, unknown>): Promise<unkno
   line.strokeWeight = strokeWeight;
 
   // Set stroke cap style if supported
-  const validStrokeCaps = ['NONE', 'ROUND', 'SQUARE', 'ARROW_LINES', 'ARROW_EQUILATERAL'];
+  const validStrokeCaps = ["NONE", "ROUND", "SQUARE", "ARROW_LINES", "ARROW_EQUILATERAL"];
   if (validStrokeCaps.includes(strokeCap)) {
     (line as unknown as { strokeCap: string }).strokeCap = strokeCap;
   }
@@ -664,7 +656,7 @@ export async function createLine(params: Record<string, unknown>): Promise<unkno
     if (!parentNode) {
       throw new Error(`Parent node not found with ID: ${parentId}`);
     }
-    if (!('appendChild' in parentNode)) {
+    if (!("appendChild" in parentNode)) {
       throw new Error(`Parent node does not support children: ${parentId}`);
     }
     (parentNode as ChildrenMixin).appendChild(line);

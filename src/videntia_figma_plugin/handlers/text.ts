@@ -1,4 +1,12 @@
-import { debugLog, sendProgressUpdate, uniqBy, delay, generateCommandId, getFontStyle, parseNum } from '../utils/helpers';
+import {
+  debugLog,
+  sendProgressUpdate,
+  uniqBy,
+  delay,
+  generateCommandId,
+  getFontStyle,
+  parseNum,
+} from "../utils/helpers";
 
 // ---------------------------------------------------------------------------
 // setCharacters helpers
@@ -13,11 +21,7 @@ const getDelimiterPos = (
   const indices: Array<[number, number]> = [];
   let temp = startIdx;
   for (let i = startIdx; i < endIdx; i++) {
-    if (
-      str[i] === delimiter &&
-      i + startIdx !== endIdx &&
-      temp !== i + startIdx
-    ) {
+    if (str[i] === delimiter && i + startIdx !== endIdx && temp !== i + startIdx) {
       indices.push([temp, i + startIdx]);
       temp = i + startIdx + 1;
     }
@@ -28,48 +32,32 @@ const getDelimiterPos = (
   return indices.filter(Boolean) as Array<[number, number]>;
 };
 
-const buildLinearOrder = (
-  node: TextNode,
-): Array<{ family: string; style: string; delimiter: string }> => {
+const buildLinearOrder = (node: TextNode): Array<{ family: string; style: string; delimiter: string }> => {
   const fontTree: Array<{
     start: number;
     delimiter: string;
     family: string;
     style: string;
   }> = [];
-  const newLinesPos = getDelimiterPos(node.characters, '\n');
+  const newLinesPos = getDelimiterPos(node.characters, "\n");
   newLinesPos.forEach(([newLinesRangeStart, newLinesRangeEnd]) => {
-    const newLinesRangeFont = node.getRangeFontName(
-      newLinesRangeStart,
-      newLinesRangeEnd,
-    );
+    const newLinesRangeFont = node.getRangeFontName(newLinesRangeStart, newLinesRangeEnd);
     if (newLinesRangeFont === figma.mixed) {
-      const spacesPos = getDelimiterPos(
-        node.characters,
-        ' ',
-        newLinesRangeStart,
-        newLinesRangeEnd,
-      );
+      const spacesPos = getDelimiterPos(node.characters, " ", newLinesRangeStart, newLinesRangeEnd);
       spacesPos.forEach(([spacesRangeStart, spacesRangeEnd]) => {
-        const spacesRangeFont = node.getRangeFontName(
-          spacesRangeStart,
-          spacesRangeEnd,
-        );
+        const spacesRangeFont = node.getRangeFontName(spacesRangeStart, spacesRangeEnd);
         if (spacesRangeFont === figma.mixed) {
-          const firstCharFont = node.getRangeFontName(
-            spacesRangeStart,
-            spacesRangeStart + 1,
-          );
+          const firstCharFont = node.getRangeFontName(spacesRangeStart, spacesRangeStart + 1);
           fontTree.push({
             start: spacesRangeStart,
-            delimiter: ' ',
+            delimiter: " ",
             family: (firstCharFont as FontName).family,
             style: (firstCharFont as FontName).style,
           });
         } else {
           fontTree.push({
             start: spacesRangeStart,
-            delimiter: ' ',
+            delimiter: " ",
             family: (spacesRangeFont as FontName).family,
             style: (spacesRangeFont as FontName).style,
           });
@@ -78,7 +66,7 @@ const buildLinearOrder = (
     } else {
       fontTree.push({
         start: newLinesRangeStart,
-        delimiter: '\n',
+        delimiter: "\n",
         family: (newLinesRangeFont as FontName).family,
         style: (newLinesRangeFont as FontName).style,
       });
@@ -115,8 +103,8 @@ const setCharactersWithStrictMatchFont = async (
   await Promise.all(
     Object.keys(fontHashTree).map(async (range) => {
       debugLog(range, fontHashTree[range]);
-      const [start, end] = range.split('_');
-      const [family, style] = fontHashTree[range].split('::');
+      const [start, end] = range.split("_");
+      const [family, style] = fontHashTree[range].split("::");
       const matchedFont: FontName = { family, style };
       await figma.loadFontAsync(matchedFont);
       return node.setRangeFontName(Number(start), Number(end), matchedFont);
@@ -133,39 +121,33 @@ const setCharactersWithSmartMatchFont = async (
   const rangeTree = buildLinearOrder(node);
   const fontsToLoad = uniqBy(
     rangeTree,
-    ({ family, style }: { family: string; style: string }) =>
-      `${family}::${style}`,
+    ({ family, style }: { family: string; style: string }) => `${family}::${style}`,
   ).map(({ family, style }: { family: string; style: string }) => ({
     family,
     style,
   }));
 
-  await Promise.all(
-    [...fontsToLoad, fallbackFont].map((f) => figma.loadFontAsync(f)),
-  );
+  await Promise.all([...fontsToLoad, fallbackFont].map((f) => figma.loadFontAsync(f)));
 
   node.fontName = fallbackFont;
   node.characters = characters;
 
   let prevPos = 0;
-  rangeTree.forEach(
-    ({ family, style, delimiter }: { family: string; style: string; delimiter: string }) => {
-      if (prevPos < node.characters.length) {
-        const delimeterPos = node.characters.indexOf(delimiter, prevPos);
-        const endPos =
-          delimeterPos > prevPos ? delimeterPos : node.characters.length;
-        const matchedFont: FontName = { family, style };
-        node.setRangeFontName(prevPos, endPos, matchedFont);
-        prevPos = endPos + 1;
-      }
-    },
-  );
+  rangeTree.forEach(({ family, style, delimiter }: { family: string; style: string; delimiter: string }) => {
+    if (prevPos < node.characters.length) {
+      const delimeterPos = node.characters.indexOf(delimiter, prevPos);
+      const endPos = delimeterPos > prevPos ? delimeterPos : node.characters.length;
+      const matchedFont: FontName = { family, style };
+      node.setRangeFontName(prevPos, endPos, matchedFont);
+      prevPos = endPos + 1;
+    }
+  });
   return true;
 };
 
 interface SetCharactersOptions {
   fallbackFont?: FontName;
-  smartStrategy?: 'prevail' | 'strict' | 'experimental';
+  smartStrategy?: "prevail" | "strict" | "experimental";
 }
 
 export const setCharacters = async (
@@ -174,30 +156,27 @@ export const setCharacters = async (
   options?: SetCharactersOptions,
 ): Promise<boolean> => {
   const fallbackFont: FontName =
-    (options !== null && options !== undefined && options.fallbackFont !== null && options.fallbackFont !== undefined)
+    options !== null && options !== undefined && options.fallbackFont !== null && options.fallbackFont !== undefined
       ? options.fallbackFont
-      : { family: 'Inter', style: 'Regular' };
+      : { family: "Inter", style: "Regular" };
   try {
     if (node.fontName === figma.mixed) {
-      const smartStrategy =
-        options !== null && options !== undefined ? options.smartStrategy : undefined;
-      if (smartStrategy === 'prevail') {
+      const smartStrategy = options !== null && options !== undefined ? options.smartStrategy : undefined;
+      if (smartStrategy === "prevail") {
         const fontHashTree: Record<string, number> = {};
         for (let i = 1; i < node.characters.length; i++) {
           const charFont = node.getRangeFontName(i - 1, i) as FontName;
           const key = `${charFont.family}::${charFont.style}`;
           fontHashTree[key] = fontHashTree[key] ? fontHashTree[key] + 1 : 1;
         }
-        const prevailedTreeItem = Object.entries(fontHashTree).sort(
-          (a, b) => b[1] - a[1],
-        )[0];
-        const [family, style] = prevailedTreeItem[0].split('::');
+        const prevailedTreeItem = Object.entries(fontHashTree).sort((a, b) => b[1] - a[1])[0];
+        const [family, style] = prevailedTreeItem[0].split("::");
         const prevailedFont: FontName = { family, style };
         await figma.loadFontAsync(prevailedFont);
         node.fontName = prevailedFont;
-      } else if (smartStrategy === 'strict') {
+      } else if (smartStrategy === "strict") {
         return setCharactersWithStrictMatchFont(node, characters, fallbackFont);
-      } else if (smartStrategy === 'experimental') {
+      } else if (smartStrategy === "experimental") {
         return setCharactersWithSmartMatchFont(node, characters, fallbackFont);
       } else {
         const firstCharFont = node.getRangeFontName(0, 1) as FontName;
@@ -212,13 +191,9 @@ export const setCharacters = async (
     }
   } catch (err) {
     const fontFamily =
-      typeof node.fontName === 'object' && 'family' in node.fontName
-        ? (node.fontName as FontName).family
-        : '';
+      typeof node.fontName === "object" && "family" in node.fontName ? (node.fontName as FontName).family : "";
     const fontStyle =
-      typeof node.fontName === 'object' && 'style' in node.fontName
-        ? (node.fontName as FontName).style
-        : '';
+      typeof node.fontName === "object" && "style" in node.fontName ? (node.fontName as FontName).style : "";
     console.warn(
       `Failed to load "${fontFamily} ${fontStyle}" font and replaced with fallback "${fallbackFont.family} ${fallbackFont.style}"`,
       err,
@@ -230,7 +205,7 @@ export const setCharacters = async (
     node.characters = characters;
     return true;
   } catch (err) {
-    console.warn('Failed to set characters. Skipped.', err);
+    console.warn("Failed to set characters. Skipped.", err);
     return false;
   }
 };
@@ -243,15 +218,15 @@ export async function createText(params: Record<string, unknown>): Promise<Recor
   const safeParams = params !== null && params !== undefined ? params : {};
   const x = safeParams.x !== undefined ? (safeParams.x as number) : 0;
   const y = safeParams.y !== undefined ? (safeParams.y as number) : 0;
-  const text = safeParams.text !== undefined ? (safeParams.text as string) : 'Text';
+  const text = safeParams.text !== undefined ? (safeParams.text as string) : "Text";
   const fontSize = safeParams.fontSize !== undefined ? (safeParams.fontSize as number) : 14;
-  const fontFamily = safeParams.fontFamily !== undefined ? (safeParams.fontFamily as string) : 'Inter';
+  const fontFamily = safeParams.fontFamily !== undefined ? (safeParams.fontFamily as string) : "Inter";
   const fontWeight = safeParams.fontWeight !== undefined ? (safeParams.fontWeight as number) : 400;
   const fontColor =
     safeParams.fontColor !== null && safeParams.fontColor !== undefined
       ? (safeParams.fontColor as { r: number; g: number; b: number; a: number })
       : { r: 0, g: 0, b: 0, a: 1 };
-  const name = safeParams.name !== undefined ? (safeParams.name as string) : 'Text';
+  const name = safeParams.name !== undefined ? (safeParams.name as string) : "Text";
   const parentId = safeParams.parentId !== undefined ? (safeParams.parentId as string) : undefined;
 
   const textNode = figma.createText();
@@ -266,12 +241,12 @@ export async function createText(params: Record<string, unknown>): Promise<Recor
     textNode.fontName = { family: fontFamily, style: getFontStyle(fontWeight) };
     textNode.fontSize = parseInt(String(fontSize));
   } catch (error) {
-    console.error('Error setting font name/size', error);
+    console.error("Error setting font name/size", error);
   }
   await setCharacters(textNode, text);
 
   const paintStyle: SolidPaint = {
-    type: 'SOLID',
+    type: "SOLID",
     color: {
       r: parseNum(fontColor.r, 0),
       g: parseNum(fontColor.g, 0),
@@ -286,7 +261,7 @@ export async function createText(params: Record<string, unknown>): Promise<Recor
     if (!parentNode) {
       throw new Error(`Parent node not found with ID: ${parentId}`);
     }
-    if (!('appendChild' in parentNode)) {
+    if (!("appendChild" in parentNode)) {
       throw new Error(`Parent node does not support children: ${parentId}`);
     }
     (parentNode as ChildrenMixin).appendChild(textNode);
@@ -321,11 +296,11 @@ export async function setTextContent(params: Record<string, unknown>): Promise<R
   const text = safeParams.text;
 
   if (!nodeId) {
-    throw new Error('Missing nodeId parameter');
+    throw new Error("Missing nodeId parameter");
   }
 
   if (text === undefined) {
-    throw new Error('Missing text parameter');
+    throw new Error("Missing text parameter");
   }
 
   const node = await figma.getNodeByIdAsync(nodeId);
@@ -333,7 +308,7 @@ export async function setTextContent(params: Record<string, unknown>): Promise<R
     throw new Error(`Node not found with ID: ${nodeId}`);
   }
 
-  if (node.type !== 'TEXT') {
+  if (node.type !== "TEXT") {
     throw new Error(`Node is not a text node: ${nodeId}`);
   }
 
@@ -373,7 +348,7 @@ async function collectNodesToProcess(
 
   nodesToProcess.push({ node, parentPath: nodePath, depth });
 
-  if ('children' in node) {
+  if ("children" in node) {
     for (const child of (node as ChildrenMixin).children) {
       await collectNodesToProcess(child as SceneNode, nodePath, depth + 1, nodesToProcess);
     }
@@ -400,45 +375,41 @@ interface SafeTextNode {
   depth: number;
 }
 
-async function processTextNode(
-  node: SceneNode,
-  parentPath: string[],
-  depth: number,
-): Promise<SafeTextNode | null> {
-  if (node.type !== 'TEXT') return null;
+async function processTextNode(node: SceneNode, parentPath: string[], depth: number): Promise<SafeTextNode | null> {
+  if (node.type !== "TEXT") return null;
 
   const textNode = node as TextNode;
 
   try {
-    let fontFamily = '';
-    let fontStyle = '';
+    let fontFamily = "";
+    let fontStyle = "";
 
     if (textNode.fontName) {
-      if (typeof textNode.fontName === 'object') {
-        if ('family' in textNode.fontName) fontFamily = (textNode.fontName as FontName).family;
-        if ('style' in textNode.fontName) fontStyle = (textNode.fontName as FontName).style;
+      if (typeof textNode.fontName === "object") {
+        if ("family" in textNode.fontName) fontFamily = (textNode.fontName as FontName).family;
+        if ("style" in textNode.fontName) fontStyle = (textNode.fontName as FontName).style;
       }
     }
 
     const safeTextNode: SafeTextNode = {
       id: textNode.id,
-      name: textNode.name || 'Text',
+      name: textNode.name || "Text",
       type: textNode.type,
       characters: textNode.characters,
-      fontSize: typeof textNode.fontSize === 'number' ? textNode.fontSize : 0,
+      fontSize: typeof textNode.fontSize === "number" ? textNode.fontSize : 0,
       fontFamily,
       fontStyle,
-      x: typeof textNode.x === 'number' ? textNode.x : 0,
-      y: typeof textNode.y === 'number' ? textNode.y : 0,
-      width: typeof textNode.width === 'number' ? textNode.width : 0,
-      height: typeof textNode.height === 'number' ? textNode.height : 0,
-      path: parentPath.join(' > '),
+      x: typeof textNode.x === "number" ? textNode.x : 0,
+      y: typeof textNode.y === "number" ? textNode.y : 0,
+      width: typeof textNode.width === "number" ? textNode.width : 0,
+      height: typeof textNode.height === "number" ? textNode.height : 0,
+      path: parentPath.join(" > "),
       depth,
     };
 
     return safeTextNode;
   } catch (nodeErr) {
-    console.error('Error processing text node:', nodeErr);
+    console.error("Error processing text node:", nodeErr);
     return null;
   }
 }
@@ -457,42 +428,42 @@ async function findTextNodes(
 
   const nodePath = [...parentPath, node.name || `Unnamed ${node.type}`];
 
-  if (node.type === 'TEXT') {
+  if (node.type === "TEXT") {
     const textNode = node as TextNode;
     try {
-      let fontFamily = '';
-      let fontStyle = '';
+      let fontFamily = "";
+      let fontStyle = "";
 
       if (textNode.fontName) {
-        if (typeof textNode.fontName === 'object') {
-          if ('family' in textNode.fontName) fontFamily = (textNode.fontName as FontName).family;
-          if ('style' in textNode.fontName) fontStyle = (textNode.fontName as FontName).style;
+        if (typeof textNode.fontName === "object") {
+          if ("family" in textNode.fontName) fontFamily = (textNode.fontName as FontName).family;
+          if ("style" in textNode.fontName) fontStyle = (textNode.fontName as FontName).style;
         }
       }
 
       const safeTextNode: SafeTextNode = {
         id: textNode.id,
-        name: textNode.name || 'Text',
+        name: textNode.name || "Text",
         type: textNode.type,
         characters: textNode.characters,
-        fontSize: typeof textNode.fontSize === 'number' ? textNode.fontSize : 0,
+        fontSize: typeof textNode.fontSize === "number" ? textNode.fontSize : 0,
         fontFamily,
         fontStyle,
-        x: typeof textNode.x === 'number' ? textNode.x : 0,
-        y: typeof textNode.y === 'number' ? textNode.y : 0,
-        width: typeof textNode.width === 'number' ? textNode.width : 0,
-        height: typeof textNode.height === 'number' ? textNode.height : 0,
-        path: nodePath.join(' > '),
+        x: typeof textNode.x === "number" ? textNode.x : 0,
+        y: typeof textNode.y === "number" ? textNode.y : 0,
+        width: typeof textNode.width === "number" ? textNode.width : 0,
+        height: typeof textNode.height === "number" ? textNode.height : 0,
+        path: nodePath.join(" > "),
         depth,
       };
 
       textNodes.push(safeTextNode);
     } catch (nodeErr) {
-      console.error('Error processing text node:', nodeErr);
+      console.error("Error processing text node:", nodeErr);
     }
   }
 
-  if ('children' in node) {
+  if ("children" in node) {
     for (const child of (node as ChildrenMixin).children) {
       await findTextNodes(child as SceneNode, nodePath, depth + 1, textNodes);
     }
@@ -519,16 +490,9 @@ export async function scanTextNodes(params: Record<string, unknown>): Promise<Re
 
   if (!node) {
     console.error(`Node with ID ${nodeId} not found`);
-    sendProgressUpdate(
-      commandId,
-      'scan_text_nodes',
-      'error',
-      0,
-      0,
-      0,
-      `Node with ID ${nodeId} not found`,
-      { error: `Node not found: ${nodeId}` },
-    );
+    sendProgressUpdate(commandId, "scan_text_nodes", "error", 0, 0, 0, `Node with ID ${nodeId} not found`, {
+      error: `Node not found: ${nodeId}`,
+    });
     throw new Error(`Node with ID ${nodeId} not found`);
   }
 
@@ -537,8 +501,8 @@ export async function scanTextNodes(params: Record<string, unknown>): Promise<Re
     try {
       sendProgressUpdate(
         commandId,
-        'scan_text_nodes',
-        'started',
+        "scan_text_nodes",
+        "started",
         0,
         1,
         0,
@@ -550,8 +514,8 @@ export async function scanTextNodes(params: Record<string, unknown>): Promise<Re
 
       sendProgressUpdate(
         commandId,
-        'scan_text_nodes',
-        'completed',
+        "scan_text_nodes",
+        "completed",
         100,
         textNodes.length,
         textNodes.length,
@@ -567,12 +531,12 @@ export async function scanTextNodes(params: Record<string, unknown>): Promise<Re
         commandId,
       };
     } catch (error) {
-      console.error('Error scanning text nodes:', error);
+      console.error("Error scanning text nodes:", error);
 
       sendProgressUpdate(
         commandId,
-        'scan_text_nodes',
-        'error',
+        "scan_text_nodes",
+        "error",
         0,
         0,
         0,
@@ -590,8 +554,8 @@ export async function scanTextNodes(params: Record<string, unknown>): Promise<Re
 
   sendProgressUpdate(
     commandId,
-    'scan_text_nodes',
-    'started',
+    "scan_text_nodes",
+    "started",
     0,
     0,
     0,
@@ -609,8 +573,8 @@ export async function scanTextNodes(params: Record<string, unknown>): Promise<Re
 
   sendProgressUpdate(
     commandId,
-    'scan_text_nodes',
-    'in_progress',
+    "scan_text_nodes",
+    "in_progress",
     5,
     totalNodes,
     0,
@@ -624,14 +588,12 @@ export async function scanTextNodes(params: Record<string, unknown>): Promise<Re
 
   for (let i = 0; i < totalNodes; i += chunkSize) {
     const chunkEnd = Math.min(i + chunkSize, totalNodes);
-    debugLog(
-      `Processing chunk ${chunksProcessed + 1}/${totalChunks} (nodes ${i} to ${chunkEnd - 1})`,
-    );
+    debugLog(`Processing chunk ${chunksProcessed + 1}/${totalChunks} (nodes ${i} to ${chunkEnd - 1})`);
 
     sendProgressUpdate(
       commandId,
-      'scan_text_nodes',
-      'in_progress',
+      "scan_text_nodes",
+      "in_progress",
       Math.round(5 + (chunksProcessed / totalChunks) * 90),
       totalNodes,
       processedNodes,
@@ -647,13 +609,9 @@ export async function scanTextNodes(params: Record<string, unknown>): Promise<Re
     const chunkTextNodes: SafeTextNode[] = [];
 
     for (const nodeInfo of chunkNodes) {
-      if (nodeInfo.node.type === 'TEXT') {
+      if (nodeInfo.node.type === "TEXT") {
         try {
-          const textNodeInfo = await processTextNode(
-            nodeInfo.node,
-            nodeInfo.parentPath,
-            nodeInfo.depth,
-          );
+          const textNodeInfo = await processTextNode(nodeInfo.node, nodeInfo.parentPath, nodeInfo.depth);
           if (textNodeInfo) {
             chunkTextNodes.push(textNodeInfo);
           }
@@ -671,8 +629,8 @@ export async function scanTextNodes(params: Record<string, unknown>): Promise<Re
 
     sendProgressUpdate(
       commandId,
-      'scan_text_nodes',
-      'in_progress',
+      "scan_text_nodes",
+      "in_progress",
       Math.round(5 + (chunksProcessed / totalChunks) * 90),
       totalNodes,
       processedNodes,
@@ -693,8 +651,8 @@ export async function scanTextNodes(params: Record<string, unknown>): Promise<Re
 
   sendProgressUpdate(
     commandId,
-    'scan_text_nodes',
-    'completed',
+    "scan_text_nodes",
+    "completed",
     100,
     totalNodes,
     processedNodes,
@@ -732,30 +690,19 @@ export async function setMultipleTextContents(params: Record<string, unknown>): 
       : generateCommandId();
 
   if (!nodeId || !text || !Array.isArray(text)) {
-    const errorMsg = 'Missing required parameters: nodeId and text array';
+    const errorMsg = "Missing required parameters: nodeId and text array";
 
-    sendProgressUpdate(
-      commandId,
-      'set_multiple_text_contents',
-      'error',
-      0,
-      0,
-      0,
-      errorMsg,
-      { error: errorMsg },
-    );
+    sendProgressUpdate(commandId, "set_multiple_text_contents", "error", 0, 0, 0, errorMsg, { error: errorMsg });
 
     throw new Error(errorMsg);
   }
 
-  debugLog(
-    `Starting text replacement for node: ${nodeId} with ${text.length} text replacements`,
-  );
+  debugLog(`Starting text replacement for node: ${nodeId} with ${text.length} text replacements`);
 
   sendProgressUpdate(
     commandId,
-    'set_multiple_text_contents',
-    'started',
+    "set_multiple_text_contents",
+    "started",
     0,
     text.length,
     0,
@@ -784,8 +731,8 @@ export async function setMultipleTextContents(params: Record<string, unknown>): 
 
   sendProgressUpdate(
     commandId,
-    'set_multiple_text_contents',
-    'in_progress',
+    "set_multiple_text_contents",
+    "in_progress",
     5,
     text.length,
     0,
@@ -799,14 +746,12 @@ export async function setMultipleTextContents(params: Record<string, unknown>): 
 
   for (let chunkIndex = 0; chunkIndex < chunks.length; chunkIndex++) {
     const chunk = chunks[chunkIndex];
-    debugLog(
-      `Processing chunk ${chunkIndex + 1}/${chunks.length} with ${chunk.length} replacements`,
-    );
+    debugLog(`Processing chunk ${chunkIndex + 1}/${chunks.length} with ${chunk.length} replacements`);
 
     sendProgressUpdate(
       commandId,
-      'set_multiple_text_contents',
-      'in_progress',
+      "set_multiple_text_contents",
+      "in_progress",
       Math.round(5 + (chunkIndex / chunks.length) * 90),
       text.length,
       successCount + failureCount,
@@ -821,14 +766,11 @@ export async function setMultipleTextContents(params: Record<string, unknown>): 
 
     const chunkPromises = chunk.map(async (replacement) => {
       if (!replacement.nodeId || replacement.text === undefined) {
-        console.error('Missing nodeId or text for replacement');
+        console.error("Missing nodeId or text for replacement");
         return {
           success: false,
-          nodeId:
-            replacement.nodeId !== null && replacement.nodeId !== undefined
-              ? replacement.nodeId
-              : 'unknown',
-          error: 'Missing nodeId or text in replacement entry',
+          nodeId: replacement.nodeId !== null && replacement.nodeId !== undefined ? replacement.nodeId : "unknown",
+          error: "Missing nodeId or text in replacement entry",
         };
       }
 
@@ -846,10 +788,8 @@ export async function setMultipleTextContents(params: Record<string, unknown>): 
           };
         }
 
-        if (textNode.type !== 'TEXT') {
-          console.error(
-            `Node is not a text node: ${replacement.nodeId} (type: ${textNode.type})`,
-          );
+        if (textNode.type !== "TEXT") {
+          console.error(`Node is not a text node: ${replacement.nodeId} (type: ${textNode.type})`);
           return {
             success: false,
             nodeId: replacement.nodeId,
@@ -863,20 +803,16 @@ export async function setMultipleTextContents(params: Record<string, unknown>): 
 
         let originalFills: readonly Paint[] | undefined;
         try {
-          originalFills = JSON.parse(
-            JSON.stringify((textNode as TextNode).fills),
-          );
+          originalFills = JSON.parse(JSON.stringify((textNode as TextNode).fills));
           (textNode as TextNode).fills = [
             {
-              type: 'SOLID',
+              type: "SOLID",
               color: { r: 1, g: 0.5, b: 0 },
               opacity: 0.3,
             },
           ];
         } catch (highlightErr) {
-          console.error(
-            `Error highlighting text node: ${(highlightErr as Error).message}`,
-          );
+          console.error(`Error highlighting text node: ${(highlightErr as Error).message}`);
         }
 
         await setTextContent({
@@ -889,15 +825,11 @@ export async function setMultipleTextContents(params: Record<string, unknown>): 
             await delay(500);
             (textNode as TextNode).fills = originalFills as Paint[];
           } catch (restoreErr) {
-            console.error(
-              `Error restoring fills: ${(restoreErr as Error).message}`,
-            );
+            console.error(`Error restoring fills: ${(restoreErr as Error).message}`);
           }
         }
 
-        debugLog(
-          `Successfully replaced text in node: ${replacement.nodeId}`,
-        );
+        debugLog(`Successfully replaced text in node: ${replacement.nodeId}`);
         return {
           success: true,
           nodeId: replacement.nodeId,
@@ -905,9 +837,7 @@ export async function setMultipleTextContents(params: Record<string, unknown>): 
           translatedText: replacement.text,
         };
       } catch (error) {
-        console.error(
-          `Error replacing text in node ${replacement.nodeId}: ${(error as Error).message}`,
-        );
+        console.error(`Error replacing text in node ${replacement.nodeId}: ${(error as Error).message}`);
         return {
           success: false,
           nodeId: replacement.nodeId,
@@ -929,8 +859,8 @@ export async function setMultipleTextContents(params: Record<string, unknown>): 
 
     sendProgressUpdate(
       commandId,
-      'set_multiple_text_contents',
-      'in_progress',
+      "set_multiple_text_contents",
+      "in_progress",
       Math.round(5 + ((chunkIndex + 1) / chunks.length) * 90),
       text.length,
       successCount + failureCount,
@@ -945,19 +875,17 @@ export async function setMultipleTextContents(params: Record<string, unknown>): 
     );
 
     if (chunkIndex < chunks.length - 1) {
-      debugLog('Pausing between chunks to avoid overloading Figma...');
+      debugLog("Pausing between chunks to avoid overloading Figma...");
       await delay(1000);
     }
   }
 
-  debugLog(
-    `Replacement complete: ${successCount} successful, ${failureCount} failed`,
-  );
+  debugLog(`Replacement complete: ${successCount} successful, ${failureCount} failed`);
 
   sendProgressUpdate(
     commandId,
-    'set_multiple_text_contents',
-    'completed',
+    "set_multiple_text_contents",
+    "completed",
     100,
     text.length,
     successCount + failureCount,
@@ -991,27 +919,45 @@ export async function setAutoLayout(params: Record<string, unknown>): Promise<Re
   const safeParams = params !== null && params !== undefined ? params : {};
   const nodeId = safeParams.nodeId as string | undefined;
   // Accept both 'layoutMode' (internal) and 'mode' (MCP tool alias)
-  const layoutMode = (safeParams.layoutMode !== undefined ? safeParams.layoutMode : safeParams.mode) as string | undefined;
+  const layoutMode = (safeParams.layoutMode !== undefined ? safeParams.layoutMode : safeParams.mode) as
+    | string
+    | undefined;
   // Accept both full names and shorthand aliases from MCP tool
-  const paddingTop = (safeParams.paddingTop !== undefined ? safeParams.paddingTop : safeParams.top) as number | undefined;
-  const paddingBottom = (safeParams.paddingBottom !== undefined ? safeParams.paddingBottom : safeParams.bottom) as number | undefined;
-  const paddingLeft = (safeParams.paddingLeft !== undefined ? safeParams.paddingLeft : safeParams.left) as number | undefined;
-  const paddingRight = (safeParams.paddingRight !== undefined ? safeParams.paddingRight : safeParams.right) as number | undefined;
-  const itemSpacing = (safeParams.itemSpacing !== undefined ? safeParams.itemSpacing : safeParams.gap) as number | undefined;
+  const paddingTop = (safeParams.paddingTop !== undefined ? safeParams.paddingTop : safeParams.top) as
+    | number
+    | undefined;
+  const paddingBottom = (safeParams.paddingBottom !== undefined ? safeParams.paddingBottom : safeParams.bottom) as
+    | number
+    | undefined;
+  const paddingLeft = (safeParams.paddingLeft !== undefined ? safeParams.paddingLeft : safeParams.left) as
+    | number
+    | undefined;
+  const paddingRight = (safeParams.paddingRight !== undefined ? safeParams.paddingRight : safeParams.right) as
+    | number
+    | undefined;
+  const itemSpacing = (safeParams.itemSpacing !== undefined ? safeParams.itemSpacing : safeParams.gap) as
+    | number
+    | undefined;
   const primaryAxisAlignItems = safeParams.primaryAxisAlignItems as string | undefined;
   const counterAxisAlignItems = safeParams.counterAxisAlignItems as string | undefined;
-  const layoutWrap = (safeParams.layoutWrap !== undefined ? safeParams.layoutWrap : safeParams.wrap) as string | undefined;
+  const layoutWrap = (safeParams.layoutWrap !== undefined ? safeParams.layoutWrap : safeParams.wrap) as
+    | string
+    | undefined;
   const strokesIncludedInLayout = safeParams.strokesIncludedInLayout as boolean | undefined;
   const clipsContent = safeParams.clipsContent as boolean | undefined;
-  const layoutSizingHorizontal = (safeParams.layoutSizingHorizontal !== undefined ? safeParams.layoutSizingHorizontal : safeParams.horizontal) as string | undefined;
-  const layoutSizingVertical = (safeParams.layoutSizingVertical !== undefined ? safeParams.layoutSizingVertical : safeParams.vertical) as string | undefined;
+  const layoutSizingHorizontal = (
+    safeParams.layoutSizingHorizontal !== undefined ? safeParams.layoutSizingHorizontal : safeParams.horizontal
+  ) as string | undefined;
+  const layoutSizingVertical = (
+    safeParams.layoutSizingVertical !== undefined ? safeParams.layoutSizingVertical : safeParams.vertical
+  ) as string | undefined;
 
   if (!nodeId) {
-    throw new Error('Missing nodeId parameter');
+    throw new Error("Missing nodeId parameter");
   }
 
   if (!layoutMode) {
-    throw new Error('Missing layoutMode parameter');
+    throw new Error("Missing layoutMode parameter");
   }
 
   const node = await figma.getNodeByIdAsync(nodeId);
@@ -1019,16 +965,16 @@ export async function setAutoLayout(params: Record<string, unknown>): Promise<Re
     throw new Error(`Node not found with ID: ${nodeId}`);
   }
 
-  if (!('layoutMode' in node)) {
+  if (!("layoutMode" in node)) {
     throw new Error(`Node does not support auto layout: ${nodeId}`);
   }
 
   const frameNode = node as FrameNode;
 
-  if (layoutMode === 'NONE') {
-    frameNode.layoutMode = 'NONE';
+  if (layoutMode === "NONE") {
+    frameNode.layoutMode = "NONE";
   } else {
-    frameNode.layoutMode = layoutMode as 'HORIZONTAL' | 'VERTICAL';
+    frameNode.layoutMode = layoutMode as "HORIZONTAL" | "VERTICAL";
 
     if (paddingTop !== undefined) frameNode.paddingTop = paddingTop;
     if (paddingBottom !== undefined) frameNode.paddingBottom = paddingBottom;
@@ -1038,15 +984,15 @@ export async function setAutoLayout(params: Record<string, unknown>): Promise<Re
     if (itemSpacing !== undefined) frameNode.itemSpacing = itemSpacing;
 
     if (primaryAxisAlignItems !== undefined) {
-      frameNode.primaryAxisAlignItems = primaryAxisAlignItems as 'MIN' | 'CENTER' | 'MAX' | 'SPACE_BETWEEN';
+      frameNode.primaryAxisAlignItems = primaryAxisAlignItems as "MIN" | "CENTER" | "MAX" | "SPACE_BETWEEN";
     }
 
     if (counterAxisAlignItems !== undefined) {
-      frameNode.counterAxisAlignItems = counterAxisAlignItems as 'MIN' | 'CENTER' | 'MAX' | 'BASELINE';
+      frameNode.counterAxisAlignItems = counterAxisAlignItems as "MIN" | "CENTER" | "MAX" | "BASELINE";
     }
 
     if (layoutWrap !== undefined) {
-      frameNode.layoutWrap = layoutWrap as 'NO_WRAP' | 'WRAP';
+      frameNode.layoutWrap = layoutWrap as "NO_WRAP" | "WRAP";
     }
 
     if (strokesIncludedInLayout !== undefined) {
@@ -1062,13 +1008,14 @@ export async function setAutoLayout(params: Record<string, unknown>): Promise<Re
     const parentIsAutoLayout =
       frameNode.parent !== null &&
       frameNode.parent !== undefined &&
-      'layoutMode' in frameNode.parent &&
-      (frameNode.parent as FrameNode).layoutMode !== 'NONE';
-    const defaultHSizing = parentIsAutoLayout ? 'FILL' : 'FIXED';
-    const hSizing = (layoutSizingHorizontal !== null && layoutSizingHorizontal !== undefined) ? layoutSizingHorizontal : defaultHSizing;
-    const vSizing = (layoutSizingVertical !== null && layoutSizingVertical !== undefined) ? layoutSizingVertical : 'HUG';
-    frameNode.layoutSizingHorizontal = hSizing as 'FIXED' | 'HUG' | 'FILL';
-    frameNode.layoutSizingVertical = vSizing as 'FIXED' | 'HUG' | 'FILL';
+      "layoutMode" in frameNode.parent &&
+      (frameNode.parent as FrameNode).layoutMode !== "NONE";
+    const defaultHSizing = parentIsAutoLayout ? "FILL" : "FIXED";
+    const hSizing =
+      layoutSizingHorizontal !== null && layoutSizingHorizontal !== undefined ? layoutSizingHorizontal : defaultHSizing;
+    const vSizing = layoutSizingVertical !== null && layoutSizingVertical !== undefined ? layoutSizingVertical : "HUG";
+    frameNode.layoutSizingHorizontal = hSizing as "FIXED" | "HUG" | "FILL";
+    frameNode.layoutSizingVertical = vSizing as "FIXED" | "HUG" | "FILL";
   }
 
   return {
@@ -1098,42 +1045,44 @@ export async function setFontName(params: Record<string, unknown>): Promise<Reco
   const safeParams = params !== null && params !== undefined ? params : {};
   const nodeId = safeParams.nodeId as string | undefined;
   const family = safeParams.family as string | undefined;
-  const rawStyle = safeParams.style !== null && safeParams.style !== undefined ? (safeParams.style as string) : 'Regular';
+  const rawStyle =
+    safeParams.style !== null && safeParams.style !== undefined ? (safeParams.style as string) : "Regular";
   // Normalize camelCase/compound weight names to Figma's space-separated format.
   // The lookup table covers all standard Figma weight names exactly; the regex fallback
   // handles edge cases (e.g. custom styles) but may not always produce a valid Figma name.
   const FIGMA_STYLE_MAP: Record<string, string> = {
-    'thin': 'Thin',
-    'extralight': 'Extra Light',
-    'ultralight': 'Extra Light',
-    'light': 'Light',
-    'regular': 'Regular',
-    'normal': 'Regular',
-    'medium': 'Medium',
-    'semibold': 'Semi Bold',
-    'demibold': 'Semi Bold',
-    'bold': 'Bold',
-    'extrabold': 'Extra Bold',
-    'ultrabold': 'Extra Bold',
-    'black': 'Black',
-    'heavy': 'Black',
-    'thinitalic': 'Thin Italic',
-    'extralightitalic': 'Extra Light Italic',
-    'lightitalic': 'Light Italic',
-    'italic': 'Italic',
-    'mediumitalic': 'Medium Italic',
-    'semibolditalic': 'Semi Bold Italic',
-    'bolditalic': 'Bold Italic',
-    'extrabolditalic': 'Extra Bold Italic',
-    'blackitalic': 'Black Italic',
+    thin: "Thin",
+    extralight: "Extra Light",
+    ultralight: "Extra Light",
+    light: "Light",
+    regular: "Regular",
+    normal: "Regular",
+    medium: "Medium",
+    semibold: "Semi Bold",
+    demibold: "Semi Bold",
+    bold: "Bold",
+    extrabold: "Extra Bold",
+    ultrabold: "Extra Bold",
+    black: "Black",
+    heavy: "Black",
+    thinitalic: "Thin Italic",
+    extralightitalic: "Extra Light Italic",
+    lightitalic: "Light Italic",
+    italic: "Italic",
+    mediumitalic: "Medium Italic",
+    semibolditalic: "Semi Bold Italic",
+    bolditalic: "Bold Italic",
+    extrabolditalic: "Extra Bold Italic",
+    blackitalic: "Black Italic",
   };
-  const normalized = rawStyle.trim().toLowerCase().replace(/\s+/g, '');
-  const style = FIGMA_STYLE_MAP[normalized] !== undefined
-    ? FIGMA_STYLE_MAP[normalized]
-    : rawStyle.replace(/([a-z])([A-Z])/g, '$1 $2');
+  const normalized = rawStyle.trim().toLowerCase().replace(/\s+/g, "");
+  const style =
+    FIGMA_STYLE_MAP[normalized] !== undefined
+      ? FIGMA_STYLE_MAP[normalized]
+      : rawStyle.replace(/([a-z])([A-Z])/g, "$1 $2");
 
   if (!nodeId || !family) {
-    throw new Error('Missing nodeId or font family');
+    throw new Error("Missing nodeId or font family");
   }
 
   const node = await figma.getNodeByIdAsync(nodeId);
@@ -1141,7 +1090,7 @@ export async function setFontName(params: Record<string, unknown>): Promise<Reco
     throw new Error(`Node not found with ID: ${nodeId}`);
   }
 
-  if (node.type !== 'TEXT') {
+  if (node.type !== "TEXT") {
     throw new Error(`Node is not a text node: ${nodeId}`);
   }
 
@@ -1168,7 +1117,7 @@ export async function setFontSize(params: Record<string, unknown>): Promise<Reco
   const fontSize = safeParams.fontSize;
 
   if (!nodeId || fontSize === undefined) {
-    throw new Error('Missing nodeId or fontSize');
+    throw new Error("Missing nodeId or fontSize");
   }
 
   const node = await figma.getNodeByIdAsync(nodeId);
@@ -1176,7 +1125,7 @@ export async function setFontSize(params: Record<string, unknown>): Promise<Reco
     throw new Error(`Node not found with ID: ${nodeId}`);
   }
 
-  if (node.type !== 'TEXT') {
+  if (node.type !== "TEXT") {
     throw new Error(`Node is not a text node: ${nodeId}`);
   }
 
@@ -1203,7 +1152,7 @@ export async function setFontWeight(params: Record<string, unknown>): Promise<Re
   const weight = safeParams.weight;
 
   if (!nodeId || weight === undefined) {
-    throw new Error('Missing nodeId or weight');
+    throw new Error("Missing nodeId or weight");
   }
 
   const node = await figma.getNodeByIdAsync(nodeId);
@@ -1211,7 +1160,7 @@ export async function setFontWeight(params: Record<string, unknown>): Promise<Re
     throw new Error(`Node not found with ID: ${nodeId}`);
   }
 
-  if (node.type !== 'TEXT') {
+  if (node.type !== "TEXT") {
     throw new Error(`Node is not a text node: ${nodeId}`);
   }
 
@@ -1219,9 +1168,8 @@ export async function setFontWeight(params: Record<string, unknown>): Promise<Re
     // When the node has mixed fonts across segments, fontName returns figma.mixed.
     // Fall back to the font of the first character range.
     const rawFontName = (node as TextNode).fontName;
-    const family = rawFontName === figma.mixed
-      ? (node as TextNode).getRangeFontName(0, 1) as FontName
-      : (rawFontName as FontName);
+    const family =
+      rawFontName === figma.mixed ? ((node as TextNode).getRangeFontName(0, 1) as FontName) : (rawFontName as FontName);
     const resolvedFamily = (family as FontName).family;
     const style = getFontStyle(weight as number);
     await figma.loadFontAsync({ family: resolvedFamily, style });
@@ -1245,10 +1193,10 @@ export async function setLetterSpacing(params: Record<string, unknown>): Promise
   const safeParams = params !== null && params !== undefined ? params : {};
   const nodeId = safeParams.nodeId as string | undefined;
   const letterSpacing = safeParams.letterSpacing;
-  const unit = safeParams.unit !== null && safeParams.unit !== undefined ? (safeParams.unit as string) : 'PIXELS';
+  const unit = safeParams.unit !== null && safeParams.unit !== undefined ? (safeParams.unit as string) : "PIXELS";
 
   if (!nodeId || letterSpacing === undefined) {
-    throw new Error('Missing nodeId or letterSpacing');
+    throw new Error("Missing nodeId or letterSpacing");
   }
 
   const node = await figma.getNodeByIdAsync(nodeId);
@@ -1256,19 +1204,18 @@ export async function setLetterSpacing(params: Record<string, unknown>): Promise
     throw new Error(`Node not found with ID: ${nodeId}`);
   }
 
-  if (node.type !== 'TEXT') {
+  if (node.type !== "TEXT") {
     throw new Error(`Node is not a text node: ${nodeId}`);
   }
 
   try {
     const lsFontName = (node as TextNode).fontName;
-    const lsFont = lsFontName === figma.mixed
-      ? (node as TextNode).getRangeFontName(0, 1) as FontName
-      : lsFontName as FontName;
+    const lsFont =
+      lsFontName === figma.mixed ? ((node as TextNode).getRangeFontName(0, 1) as FontName) : (lsFontName as FontName);
     await figma.loadFontAsync(lsFont);
     (node as TextNode).letterSpacing = {
       value: letterSpacing as number,
-      unit: unit as LetterSpacing['unit'],
+      unit: unit as LetterSpacing["unit"],
     };
     return {
       id: node.id,
@@ -1288,10 +1235,10 @@ export async function setLineHeight(params: Record<string, unknown>): Promise<Re
   const safeParams = params !== null && params !== undefined ? params : {};
   const nodeId = safeParams.nodeId as string | undefined;
   const lineHeight = safeParams.lineHeight;
-  const unit = safeParams.unit !== null && safeParams.unit !== undefined ? (safeParams.unit as string) : 'PIXELS';
+  const unit = safeParams.unit !== null && safeParams.unit !== undefined ? (safeParams.unit as string) : "PIXELS";
 
   if (!nodeId || lineHeight === undefined) {
-    throw new Error('Missing nodeId or lineHeight');
+    throw new Error("Missing nodeId or lineHeight");
   }
 
   const node = await figma.getNodeByIdAsync(nodeId);
@@ -1299,19 +1246,18 @@ export async function setLineHeight(params: Record<string, unknown>): Promise<Re
     throw new Error(`Node not found with ID: ${nodeId}`);
   }
 
-  if (node.type !== 'TEXT') {
+  if (node.type !== "TEXT") {
     throw new Error(`Node is not a text node: ${nodeId}`);
   }
 
   try {
     const lhFontName = (node as TextNode).fontName;
-    const lhFont = lhFontName === figma.mixed
-      ? (node as TextNode).getRangeFontName(0, 1) as FontName
-      : lhFontName as FontName;
+    const lhFont =
+      lhFontName === figma.mixed ? ((node as TextNode).getRangeFontName(0, 1) as FontName) : (lhFontName as FontName);
     await figma.loadFontAsync(lhFont);
     (node as TextNode).lineHeight = {
       value: lineHeight as number,
-      unit: unit as LineHeight['unit'],
+      unit: unit as LineHeight["unit"],
     };
     return {
       id: node.id,
@@ -1333,7 +1279,7 @@ export async function setParagraphSpacing(params: Record<string, unknown>): Prom
   const paragraphSpacing = safeParams.paragraphSpacing;
 
   if (!nodeId || paragraphSpacing === undefined) {
-    throw new Error('Missing nodeId or paragraphSpacing');
+    throw new Error("Missing nodeId or paragraphSpacing");
   }
 
   const node = await figma.getNodeByIdAsync(nodeId);
@@ -1341,15 +1287,14 @@ export async function setParagraphSpacing(params: Record<string, unknown>): Prom
     throw new Error(`Node not found with ID: ${nodeId}`);
   }
 
-  if (node.type !== 'TEXT') {
+  if (node.type !== "TEXT") {
     throw new Error(`Node is not a text node: ${nodeId}`);
   }
 
   try {
     const psFontName = (node as TextNode).fontName;
-    const psFont = psFontName === figma.mixed
-      ? (node as TextNode).getRangeFontName(0, 1) as FontName
-      : psFontName as FontName;
+    const psFont =
+      psFontName === figma.mixed ? ((node as TextNode).getRangeFontName(0, 1) as FontName) : (psFontName as FontName);
     await figma.loadFontAsync(psFont);
     (node as TextNode).paragraphSpacing = paragraphSpacing as number;
     return {
@@ -1372,13 +1317,11 @@ export async function setTextCase(params: Record<string, unknown>): Promise<Reco
   const textCase = safeParams.textCase;
 
   if (!nodeId || textCase === undefined) {
-    throw new Error('Missing nodeId or textCase');
+    throw new Error("Missing nodeId or textCase");
   }
 
-  if (!['ORIGINAL', 'UPPER', 'LOWER', 'TITLE'].includes(textCase as string)) {
-    throw new Error(
-      'Invalid textCase value. Must be one of: ORIGINAL, UPPER, LOWER, TITLE',
-    );
+  if (!["ORIGINAL", "UPPER", "LOWER", "TITLE"].includes(textCase as string)) {
+    throw new Error("Invalid textCase value. Must be one of: ORIGINAL, UPPER, LOWER, TITLE");
   }
 
   const node = await figma.getNodeByIdAsync(nodeId);
@@ -1386,15 +1329,14 @@ export async function setTextCase(params: Record<string, unknown>): Promise<Reco
     throw new Error(`Node not found with ID: ${nodeId}`);
   }
 
-  if (node.type !== 'TEXT') {
+  if (node.type !== "TEXT") {
     throw new Error(`Node is not a text node: ${nodeId}`);
   }
 
   try {
     const tcFontName = (node as TextNode).fontName;
-    const tcFont = tcFontName === figma.mixed
-      ? (node as TextNode).getRangeFontName(0, 1) as FontName
-      : tcFontName as FontName;
+    const tcFont =
+      tcFontName === figma.mixed ? ((node as TextNode).getRangeFontName(0, 1) as FontName) : (tcFontName as FontName);
     await figma.loadFontAsync(tcFont);
     (node as TextNode).textCase = textCase as TextCase;
     return {
@@ -1417,13 +1359,11 @@ export async function setTextDecoration(params: Record<string, unknown>): Promis
   const textDecoration = safeParams.textDecoration;
 
   if (!nodeId || textDecoration === undefined) {
-    throw new Error('Missing nodeId or textDecoration');
+    throw new Error("Missing nodeId or textDecoration");
   }
 
-  if (!['NONE', 'UNDERLINE', 'STRIKETHROUGH'].includes(textDecoration as string)) {
-    throw new Error(
-      'Invalid textDecoration value. Must be one of: NONE, UNDERLINE, STRIKETHROUGH',
-    );
+  if (!["NONE", "UNDERLINE", "STRIKETHROUGH"].includes(textDecoration as string)) {
+    throw new Error("Invalid textDecoration value. Must be one of: NONE, UNDERLINE, STRIKETHROUGH");
   }
 
   const node = await figma.getNodeByIdAsync(nodeId);
@@ -1431,15 +1371,14 @@ export async function setTextDecoration(params: Record<string, unknown>): Promis
     throw new Error(`Node not found with ID: ${nodeId}`);
   }
 
-  if (node.type !== 'TEXT') {
+  if (node.type !== "TEXT") {
     throw new Error(`Node is not a text node: ${nodeId}`);
   }
 
   try {
     const tdFontName = (node as TextNode).fontName;
-    const tdFont = tdFontName === figma.mixed
-      ? (node as TextNode).getRangeFontName(0, 1) as FontName
-      : tdFontName as FontName;
+    const tdFont =
+      tdFontName === figma.mixed ? ((node as TextNode).getRangeFontName(0, 1) as FontName) : (tdFontName as FontName);
     await figma.loadFontAsync(tdFont);
     (node as TextNode).textDecoration = textDecoration as TextDecoration;
     return {
@@ -1448,9 +1387,7 @@ export async function setTextDecoration(params: Record<string, unknown>): Promis
       textDecoration: (node as TextNode).textDecoration,
     };
   } catch (error) {
-    throw new Error(
-      `Error setting text decoration: ${(error as Error).message}`,
-    );
+    throw new Error(`Error setting text decoration: ${(error as Error).message}`);
   }
 }
 
@@ -1464,26 +1401,24 @@ export async function getStyledTextSegments(params: Record<string, unknown>): Pr
   const property = safeParams.property as string | undefined;
 
   if (!nodeId || !property) {
-    throw new Error('Missing nodeId or property');
+    throw new Error("Missing nodeId or property");
   }
 
   const validProperties = [
-    'fillStyleId',
-    'fontName',
-    'fontSize',
-    'textCase',
-    'textDecoration',
-    'textStyleId',
-    'fills',
-    'letterSpacing',
-    'lineHeight',
-    'fontWeight',
+    "fillStyleId",
+    "fontName",
+    "fontSize",
+    "textCase",
+    "textDecoration",
+    "textStyleId",
+    "fills",
+    "letterSpacing",
+    "lineHeight",
+    "fontWeight",
   ];
 
   if (!validProperties.includes(property)) {
-    throw new Error(
-      `Invalid property. Must be one of: ${validProperties.join(', ')}`,
-    );
+    throw new Error(`Invalid property. Must be one of: ${validProperties.join(", ")}`);
   }
 
   const node = await figma.getNodeByIdAsync(nodeId);
@@ -1491,15 +1426,13 @@ export async function getStyledTextSegments(params: Record<string, unknown>): Pr
     throw new Error(`Node not found with ID: ${nodeId}`);
   }
 
-  if (node.type !== 'TEXT') {
+  if (node.type !== "TEXT") {
     throw new Error(`Node is not a text node: ${nodeId}`);
   }
 
   try {
-    type StyleField = keyof Omit<StyledTextSegment, 'characters' | 'start' | 'end'>;
-    const segments = (node as TextNode).getStyledTextSegments([
-      property as StyleField,
-    ]);
+    type StyleField = keyof Omit<StyledTextSegment, "characters" | "start" | "end">;
+    const segments = (node as TextNode).getStyledTextSegments([property as StyleField]);
 
     const safeSegments = segments.map((segment) => {
       const safeSegment: Record<string, unknown> = {
@@ -1508,33 +1441,31 @@ export async function getStyledTextSegments(params: Record<string, unknown>): Pr
         end: segment.end,
       };
 
-      if (property === 'fontName') {
+      if (property === "fontName") {
         const val = (segment as Record<string, unknown>)[property];
-        if (val !== null && val !== undefined && typeof val === 'object') {
+        if (val !== null && val !== undefined && typeof val === "object") {
           safeSegment[property] = {
-            family: (val as FontName).family || '',
-            style: (val as FontName).style || '',
+            family: (val as FontName).family || "",
+            style: (val as FontName).style || "",
           };
         } else {
-          safeSegment[property] = { family: '', style: '' };
+          safeSegment[property] = { family: "", style: "" };
         }
-      } else if (property === 'letterSpacing' || property === 'lineHeight') {
+      } else if (property === "letterSpacing" || property === "lineHeight") {
         const val = (segment as Record<string, unknown>)[property];
-        if (val !== null && val !== undefined && typeof val === 'object') {
+        if (val !== null && val !== undefined && typeof val === "object") {
           const typedVal = val as { value: number; unit: string };
           safeSegment[property] = {
             value: typedVal.value !== null && typedVal.value !== undefined ? typedVal.value : 0,
-            unit: typedVal.unit !== null && typedVal.unit !== undefined && typedVal.unit !== '' ? typedVal.unit : 'PIXELS',
+            unit:
+              typedVal.unit !== null && typedVal.unit !== undefined && typedVal.unit !== "" ? typedVal.unit : "PIXELS",
           };
         } else {
-          safeSegment[property] = { value: 0, unit: 'PIXELS' };
+          safeSegment[property] = { value: 0, unit: "PIXELS" };
         }
-      } else if (property === 'fills') {
+      } else if (property === "fills") {
         const val = (segment as Record<string, unknown>)[property];
-        safeSegment[property] =
-          val !== null && val !== undefined
-            ? JSON.parse(JSON.stringify(val))
-            : [];
+        safeSegment[property] = val !== null && val !== undefined ? JSON.parse(JSON.stringify(val)) : [];
       } else {
         safeSegment[property] = (segment as Record<string, unknown>)[property];
       }
@@ -1549,9 +1480,7 @@ export async function getStyledTextSegments(params: Record<string, unknown>): Pr
       segments: safeSegments,
     };
   } catch (error) {
-    throw new Error(
-      `Error getting styled text segments: ${(error as Error).message}`,
-    );
+    throw new Error(`Error getting styled text segments: ${(error as Error).message}`);
   }
 }
 
@@ -1562,10 +1491,10 @@ export async function getStyledTextSegments(params: Record<string, unknown>): Pr
 export async function loadFontAsyncWrapper(params: Record<string, unknown>): Promise<Record<string, unknown>> {
   const safeParams = params !== null && params !== undefined ? params : {};
   const family = safeParams.family as string | undefined;
-  const style = safeParams.style !== null && safeParams.style !== undefined ? (safeParams.style as string) : 'Regular';
+  const style = safeParams.style !== null && safeParams.style !== undefined ? (safeParams.style as string) : "Regular";
 
   if (!family) {
-    throw new Error('Missing font family');
+    throw new Error("Missing font family");
   }
 
   try {
@@ -1592,42 +1521,42 @@ export async function createTextStyle(params: Record<string, unknown>): Promise<
   const description = safeParams.description as string | undefined;
 
   if (!nodeId || !name) {
-    throw new Error('Missing nodeId or name parameter');
+    throw new Error("Missing nodeId or name parameter");
   }
 
   const node = await figma.getNodeByIdAsync(nodeId);
-  if (!node || node.type !== 'TEXT') {
-    throw new Error('Node is not a text node');
+  if (!node || node.type !== "TEXT") {
+    throw new Error("Node is not a text node");
   }
 
   const textNode = node as TextNode;
 
   // Resolve mixed values by falling back to first character range
-  const resolvedFontName: FontName = textNode.fontName === figma.mixed
-    ? textNode.getRangeFontName(0, 1) as FontName
-    : textNode.fontName as FontName;
-  const resolvedFontSize: number = textNode.fontSize === figma.mixed
-    ? textNode.getRangeFontSize(0, 1) as number
-    : textNode.fontSize as number;
-  const resolvedLetterSpacing: LetterSpacing = textNode.letterSpacing === figma.mixed
-    ? textNode.getRangeLetterSpacing(0, 1) as LetterSpacing
-    : textNode.letterSpacing as LetterSpacing;
-  const resolvedLineHeight: LineHeight = textNode.lineHeight === figma.mixed
-    ? textNode.getRangeLineHeight(0, 1) as LineHeight
-    : textNode.lineHeight as LineHeight;
-  const resolvedTextCase: TextCase = textNode.textCase === figma.mixed
-    ? textNode.getRangeTextCase(0, 1) as TextCase
-    : textNode.textCase as TextCase;
-  const resolvedTextDecoration: TextDecoration = textNode.textDecoration === figma.mixed
-    ? textNode.getRangeTextDecoration(0, 1) as TextDecoration
-    : textNode.textDecoration as TextDecoration;
+  const resolvedFontName: FontName =
+    textNode.fontName === figma.mixed ? (textNode.getRangeFontName(0, 1) as FontName) : (textNode.fontName as FontName);
+  const resolvedFontSize: number =
+    textNode.fontSize === figma.mixed ? (textNode.getRangeFontSize(0, 1) as number) : (textNode.fontSize as number);
+  const resolvedLetterSpacing: LetterSpacing =
+    textNode.letterSpacing === figma.mixed
+      ? (textNode.getRangeLetterSpacing(0, 1) as LetterSpacing)
+      : (textNode.letterSpacing as LetterSpacing);
+  const resolvedLineHeight: LineHeight =
+    textNode.lineHeight === figma.mixed
+      ? (textNode.getRangeLineHeight(0, 1) as LineHeight)
+      : (textNode.lineHeight as LineHeight);
+  const resolvedTextCase: TextCase =
+    textNode.textCase === figma.mixed ? (textNode.getRangeTextCase(0, 1) as TextCase) : (textNode.textCase as TextCase);
+  const resolvedTextDecoration: TextDecoration =
+    textNode.textDecoration === figma.mixed
+      ? (textNode.getRangeTextDecoration(0, 1) as TextDecoration)
+      : (textNode.textDecoration as TextDecoration);
 
   try {
     // Load both the default new-style font (Inter Regular) and the resolved target font.
     // figma.createTextStyle() initialises with Inter Regular, so it must be loaded before
     // any property write on the new style object succeeds.
     await Promise.all([
-      figma.loadFontAsync({ family: 'Inter', style: 'Regular' }),
+      figma.loadFontAsync({ family: "Inter", style: "Regular" }),
       figma.loadFontAsync(resolvedFontName),
     ]);
   } catch (error) {
@@ -1683,25 +1612,25 @@ export async function createTextStyleFromProperties(params: Record<string, unkno
   const description = safeParams.description as string | undefined;
 
   if (!name || !fontSize || !fontFamily) {
-    throw new Error('Missing required parameters: name, fontSize, or fontFamily');
+    throw new Error("Missing required parameters: name, fontSize, or fontFamily");
   }
 
   let actualFontStyle: string;
   if (fontStyle !== null && fontStyle !== undefined) {
     actualFontStyle = fontStyle;
   } else if (fontWeight !== null && fontWeight !== undefined) {
-    if (fontWeight >= 900) actualFontStyle = 'Black';
-    else if (fontWeight >= 800) actualFontStyle = 'Extra Bold';
-    else if (fontWeight >= 700) actualFontStyle = 'Bold';
-    else if (fontWeight >= 600) actualFontStyle = 'Semi Bold';
-    else if (fontWeight >= 500) actualFontStyle = 'Medium';
-    else if (fontWeight >= 400) actualFontStyle = 'Regular';
-    else if (fontWeight >= 300) actualFontStyle = 'Light';
-    else if (fontWeight >= 200) actualFontStyle = 'Extra Light';
-    else if (fontWeight >= 100) actualFontStyle = 'Thin';
-    else actualFontStyle = 'Regular';
+    if (fontWeight >= 900) actualFontStyle = "Black";
+    else if (fontWeight >= 800) actualFontStyle = "Extra Bold";
+    else if (fontWeight >= 700) actualFontStyle = "Bold";
+    else if (fontWeight >= 600) actualFontStyle = "Semi Bold";
+    else if (fontWeight >= 500) actualFontStyle = "Medium";
+    else if (fontWeight >= 400) actualFontStyle = "Regular";
+    else if (fontWeight >= 300) actualFontStyle = "Light";
+    else if (fontWeight >= 200) actualFontStyle = "Extra Light";
+    else if (fontWeight >= 100) actualFontStyle = "Thin";
+    else actualFontStyle = "Regular";
   } else {
-    actualFontStyle = 'Regular';
+    actualFontStyle = "Regular";
   }
 
   try {
@@ -1746,9 +1675,7 @@ export async function createTextStyleFromProperties(params: Record<string, unkno
       fontSize: textStyle.fontSize,
     };
   } catch (error) {
-    throw new Error(
-      `Error creating text style from properties: ${(error as Error).message}`,
-    );
+    throw new Error(`Error creating text style from properties: ${(error as Error).message}`);
   }
 }
 
@@ -1762,29 +1689,37 @@ export async function applyTextStyle(params: Record<string, unknown>): Promise<R
   const styleId = safeParams.styleId as string | undefined;
 
   if (!nodeId || !styleId) {
-    throw new Error('Missing nodeId or styleId parameter');
+    throw new Error("Missing nodeId or styleId parameter");
   }
 
   try {
     const node = await figma.getNodeByIdAsync(nodeId);
-    if (!node || node.type !== 'TEXT') {
-      throw new Error('Node is not a text node');
+    if (!node || node.type !== "TEXT") {
+      throw new Error("Node is not a text node");
     }
 
     let resolvedStyle: BaseStyle | null = await figma.getStyleByIdAsync(styleId);
-    if (!resolvedStyle || resolvedStyle.type !== 'TEXT') {
+    if (!resolvedStyle || resolvedStyle.type !== "TEXT") {
       // Fallback: exact name lookup, then dash-to-slash normalization
       const allStyles = await figma.getLocalTextStylesAsync();
-      resolvedStyle = allStyles.find(function(s) { return s.name === styleId; }) || null;
+      resolvedStyle =
+        allStyles.find(function (s) {
+          return s.name === styleId;
+        }) || null;
       if (!resolvedStyle) {
-        const normalizedInput = styleId.replace(/-/g, '/');
+        const normalizedInput = styleId.replace(/-/g, "/");
         if (normalizedInput !== styleId) {
-          resolvedStyle = allStyles.find(function(s) { return s.name === normalizedInput; }) || null;
+          resolvedStyle =
+            allStyles.find(function (s) {
+              return s.name === normalizedInput;
+            }) || null;
         }
       }
     }
-    if (!resolvedStyle || resolvedStyle.type !== 'TEXT') {
-      throw new Error('Style not found. Pass either the style id (e.g. "S:abc123,") or the style name (e.g. "body/md") from get_text_styles. Do not use the key field.');
+    if (!resolvedStyle || resolvedStyle.type !== "TEXT") {
+      throw new Error(
+        'Style not found. Pass either the style id (e.g. "S:abc123,") or the style name (e.g. "body/md") from get_text_styles. Do not use the key field.',
+      );
     }
 
     await figma.loadFontAsync((resolvedStyle as TextStyle).fontName);
@@ -1814,7 +1749,7 @@ export async function getTextStyles(): Promise<Record<string, unknown>> {
         id: style.id,
         name: style.name,
         key: style.key,
-        description: style.description || '',
+        description: style.description || "",
         fontSize: style.fontSize,
         fontName: style.fontName,
         letterSpacing: style.letterSpacing,
@@ -1839,22 +1774,28 @@ export async function deleteTextStyle(params: Record<string, unknown>): Promise<
   const styleId = safeParams.styleId as string | undefined;
 
   if (!styleId) {
-    throw new Error('Missing styleId parameter');
+    throw new Error("Missing styleId parameter");
   }
 
   try {
     let style = await figma.getStyleByIdAsync(styleId);
-    if (!style || style.type !== 'TEXT') {
+    if (!style || style.type !== "TEXT") {
       const allStyles = await figma.getLocalTextStylesAsync();
-      style = allStyles.find(function(s) { return s.name === styleId; }) || null;
+      style =
+        allStyles.find(function (s) {
+          return s.name === styleId;
+        }) || null;
       if (!style) {
-        const normalizedInput = styleId.replace(/-/g, '/');
+        const normalizedInput = styleId.replace(/-/g, "/");
         if (normalizedInput !== styleId) {
-          style = allStyles.find(function(s) { return s.name === normalizedInput; }) || null;
+          style =
+            allStyles.find(function (s) {
+              return s.name === normalizedInput;
+            }) || null;
         }
       }
     }
-    if (!style || style.type !== 'TEXT') {
+    if (!style || style.type !== "TEXT") {
       throw new Error(`Text style not found: "${styleId}". Pass a style ID or name (e.g. "body/md").`);
     }
 
@@ -1893,22 +1834,28 @@ export async function updateTextStyle(params: Record<string, unknown>): Promise<
   const paragraphIndent = safeParams.paragraphIndent as number | undefined;
 
   if (!styleId) {
-    throw new Error('Missing styleId parameter');
+    throw new Error("Missing styleId parameter");
   }
 
   try {
     let style = await figma.getStyleByIdAsync(styleId);
-    if (!style || style.type !== 'TEXT') {
+    if (!style || style.type !== "TEXT") {
       const allStyles = await figma.getLocalTextStylesAsync();
-      style = allStyles.find(function(s) { return s.name === styleId; }) || null;
+      style =
+        allStyles.find(function (s) {
+          return s.name === styleId;
+        }) || null;
       if (!style) {
-        const normalizedInput = styleId.replace(/-/g, '/');
+        const normalizedInput = styleId.replace(/-/g, "/");
         if (normalizedInput !== styleId) {
-          style = allStyles.find(function(s) { return s.name === normalizedInput; }) || null;
+          style =
+            allStyles.find(function (s) {
+              return s.name === normalizedInput;
+            }) || null;
         }
       }
     }
-    if (!style || style.type !== 'TEXT') {
+    if (!style || style.type !== "TEXT") {
       throw new Error(`Text style not found: "${styleId}". Pass a style ID or name (e.g. "body/md").`);
     }
 
@@ -1917,38 +1864,31 @@ export async function updateTextStyle(params: Record<string, unknown>): Promise<
 
     if (name !== undefined) {
       textStyle.name = name;
-      updatedProperties.push('name');
+      updatedProperties.push("name");
     }
 
     if (description !== undefined) {
       textStyle.description = description;
-      updatedProperties.push('description');
+      updatedProperties.push("description");
     }
 
-    if (
-      fontFamily !== undefined ||
-      fontStyle !== undefined ||
-      fontWeight !== undefined
-    ) {
-      const newFontFamily =
-        fontFamily !== null && fontFamily !== undefined
-          ? fontFamily
-          : textStyle.fontName.family;
+    if (fontFamily !== undefined || fontStyle !== undefined || fontWeight !== undefined) {
+      const newFontFamily = fontFamily !== null && fontFamily !== undefined ? fontFamily : textStyle.fontName.family;
 
       let newFontStyle: string;
       if (fontStyle !== null && fontStyle !== undefined) {
         newFontStyle = fontStyle;
       } else if (fontWeight !== null && fontWeight !== undefined) {
-        if (fontWeight >= 900) newFontStyle = 'Black';
-        else if (fontWeight >= 800) newFontStyle = 'Extra Bold';
-        else if (fontWeight >= 700) newFontStyle = 'Bold';
-        else if (fontWeight >= 600) newFontStyle = 'Semi Bold';
-        else if (fontWeight >= 500) newFontStyle = 'Medium';
-        else if (fontWeight >= 400) newFontStyle = 'Regular';
-        else if (fontWeight >= 300) newFontStyle = 'Light';
-        else if (fontWeight >= 200) newFontStyle = 'Extra Light';
-        else if (fontWeight >= 100) newFontStyle = 'Thin';
-        else newFontStyle = 'Regular';
+        if (fontWeight >= 900) newFontStyle = "Black";
+        else if (fontWeight >= 800) newFontStyle = "Extra Bold";
+        else if (fontWeight >= 700) newFontStyle = "Bold";
+        else if (fontWeight >= 600) newFontStyle = "Semi Bold";
+        else if (fontWeight >= 500) newFontStyle = "Medium";
+        else if (fontWeight >= 400) newFontStyle = "Regular";
+        else if (fontWeight >= 300) newFontStyle = "Light";
+        else if (fontWeight >= 200) newFontStyle = "Extra Light";
+        else if (fontWeight >= 100) newFontStyle = "Thin";
+        else newFontStyle = "Regular";
       } else {
         newFontStyle = textStyle.fontName.style;
       }
@@ -1964,42 +1904,42 @@ export async function updateTextStyle(params: Record<string, unknown>): Promise<
         );
       }
       textStyle.fontName = { family: newFontFamily, style: newFontStyle };
-      updatedProperties.push('fontName');
+      updatedProperties.push("fontName");
     }
 
     if (fontSize !== undefined) {
       textStyle.fontSize = fontSize;
-      updatedProperties.push('fontSize');
+      updatedProperties.push("fontSize");
     }
 
     if (lineHeight !== undefined) {
       textStyle.lineHeight = lineHeight;
-      updatedProperties.push('lineHeight');
+      updatedProperties.push("lineHeight");
     }
 
     if (letterSpacing !== undefined) {
       textStyle.letterSpacing = letterSpacing;
-      updatedProperties.push('letterSpacing');
+      updatedProperties.push("letterSpacing");
     }
 
     if (textCase !== undefined) {
       textStyle.textCase = textCase;
-      updatedProperties.push('textCase');
+      updatedProperties.push("textCase");
     }
 
     if (textDecoration !== undefined) {
       textStyle.textDecoration = textDecoration;
-      updatedProperties.push('textDecoration');
+      updatedProperties.push("textDecoration");
     }
 
     if (paragraphSpacing !== undefined) {
       textStyle.paragraphSpacing = paragraphSpacing;
-      updatedProperties.push('paragraphSpacing');
+      updatedProperties.push("paragraphSpacing");
     }
 
     if (paragraphIndent !== undefined) {
       textStyle.paragraphIndent = paragraphIndent;
-      updatedProperties.push('paragraphIndent');
+      updatedProperties.push("paragraphIndent");
     }
 
     return {

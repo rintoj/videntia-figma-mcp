@@ -1,23 +1,20 @@
-import { debugLog } from '../utils/helpers';
-import { selectAndFocusNode } from '../utils/plugin-state';
-import { setCharacters } from './text';
+import { debugLog } from "../utils/helpers";
+import { selectAndFocusNode } from "../utils/plugin-state";
+import { setCharacters } from "./text";
 
 // ---------------------------------------------------------------------------
 // Content override helpers
 // ---------------------------------------------------------------------------
 
-function buildNamePathMap(
-  node: BaseNode,
-  rootNode: BaseNode,
-): Map<string, SceneNode> {
+function buildNamePathMap(node: BaseNode, rootNode: BaseNode): Map<string, SceneNode> {
   const map = new Map<string, SceneNode>();
 
   function walk(current: BaseNode, pathParts: string[]): void {
-    if (current !== rootNode && 'type' in current) {
-      const namePath = pathParts.join('/');
+    if (current !== rootNode && "type" in current) {
+      const namePath = pathParts.join("/");
       map.set(namePath, current as SceneNode);
     }
-    if ('children' in current) {
+    if ("children" in current) {
       const parent = current as ChildrenMixin;
       for (let i = 0; i < parent.children.length; i++) {
         const child = parent.children[i];
@@ -44,9 +41,9 @@ async function captureContent(node: BaseNode): Promise<CapturedContent> {
   const namePathMap = buildNamePathMap(node, node);
 
   for (const [namePath, sceneNode] of namePathMap) {
-    if (sceneNode.type === 'TEXT') {
+    if (sceneNode.type === "TEXT") {
       texts.set(namePath, (sceneNode as TextNode).characters);
-    } else if (sceneNode.type === 'INSTANCE') {
+    } else if (sceneNode.type === "INSTANCE") {
       try {
         const mainComp = await (sceneNode as InstanceNode).getMainComponentAsync();
         if (mainComp) {
@@ -57,19 +54,19 @@ async function captureContent(node: BaseNode): Promise<CapturedContent> {
       }
       // Always capture SVG as fallback in case component key can't be resolved later
       try {
-        const svgBytes = await (sceneNode as SceneNode).exportAsync({ format: 'SVG' });
+        const svgBytes = await (sceneNode as SceneNode).exportAsync({ format: "SVG" });
         iconSvgs.set(namePath, svgBytes);
       } catch (_e) {
         // skip if export fails
       }
-    } else if (sceneNode.type === 'FRAME' && !namePath.includes('/')) {
+    } else if (sceneNode.type === "FRAME" && !namePath.includes("/")) {
       // Capture top-level FRAME children as SVG — these may be icon-like frames
       // (e.g. a frame containing vectors) that need to swap into INSTANCE slots
       try {
-        const svgBytes = await (sceneNode as SceneNode).exportAsync({ format: 'SVG' });
+        const svgBytes = await (sceneNode as SceneNode).exportAsync({ format: "SVG" });
         iconSvgs.set(namePath, svgBytes);
         // Mark as icon so it participates in icon matching/fallback
-        icons.set(namePath, '__svg_only__');
+        icons.set(namePath, "__svg_only__");
       } catch (_e) {
         // skip if export fails
       }
@@ -80,7 +77,7 @@ async function captureContent(node: BaseNode): Promise<CapturedContent> {
 }
 
 async function createComponentFromSvgBytes(svgBytes: Uint8Array): Promise<ComponentNode> {
-  var svgString = '';
+  var svgString = "";
   for (var i = 0; i < svgBytes.length; i++) {
     svgString += String.fromCharCode(svgBytes[i]);
   }
@@ -140,7 +137,7 @@ async function applyContentToInstance(
   // Apply text overrides
   for (const [namePath, text] of mergedTexts) {
     const target = namePathMap.get(namePath);
-    if (target && target.type === 'TEXT') {
+    if (target && target.type === "TEXT") {
       try {
         await setCharacters(target as TextNode, text);
         result.text.push({ namePath, value: text });
@@ -155,15 +152,15 @@ async function applyContentToInstance(
   // Apply icon overrides
   for (const [namePath, componentKeyOrId] of mergedIcons) {
     const target = namePathMap.get(namePath);
-    if (target && target.type === 'INSTANCE') {
+    if (target && target.type === "INSTANCE") {
       try {
         let comp: ComponentNode | null = null;
         // Skip key/ID lookup for SVG-only captures (e.g. plain FRAME icons)
-        if (componentKeyOrId !== '__svg_only__') {
+        if (componentKeyOrId !== "__svg_only__") {
           // Try local ID first
-          if (componentKeyOrId.includes(':')) {
+          if (componentKeyOrId.includes(":")) {
             const localNode = await figma.getNodeByIdAsync(componentKeyOrId);
-            if (localNode !== null && localNode.type === 'COMPONENT') {
+            if (localNode !== null && localNode.type === "COMPONENT") {
               comp = localNode as ComponentNode;
             }
           }
@@ -209,8 +206,14 @@ async function applyContentToInstance(
     for (var ui = 0; ui < result.unmatched.length; ui++) {
       var uPath = result.unmatched[ui];
       var classified = false;
-      if (mergedTexts.has(uPath)) { unmatchedTexts.push([uPath, mergedTexts.get(uPath)!]); classified = true; }
-      if (mergedIcons.has(uPath)) { unmatchedIcons.push([uPath, mergedIcons.get(uPath)!]); classified = true; }
+      if (mergedTexts.has(uPath)) {
+        unmatchedTexts.push([uPath, mergedTexts.get(uPath)!]);
+        classified = true;
+      }
+      if (mergedIcons.has(uPath)) {
+        unmatchedIcons.push([uPath, mergedIcons.get(uPath)!]);
+        classified = true;
+      }
       if (!classified) unmatchedOther.push(uPath);
     }
 
@@ -222,8 +225,8 @@ async function applyContentToInstance(
       var ePath = npKeys[npi];
       var eNode = namePathMap.get(ePath)!;
       if (matchedPaths.has(ePath)) continue;
-      if (eNode.type === 'TEXT') availableTextNodes.push([ePath, eNode]);
-      else if (eNode.type === 'INSTANCE') availableInstanceNodes.push([ePath, eNode]);
+      if (eNode.type === "TEXT") availableTextNodes.push([ePath, eNode]);
+      else if (eNode.type === "INSTANCE") availableInstanceNodes.push([ePath, eNode]);
     }
 
     var newUnmatched: string[] = unmatchedOther.slice();
@@ -261,10 +264,10 @@ async function applyContentToInstance(
         var iTargetNode = availableInstanceNodes[iconIdx][1];
         try {
           var comp: ComponentNode | null = null;
-          if (componentKeyOrId !== '__svg_only__') {
-            if (componentKeyOrId.includes(':')) {
+          if (componentKeyOrId !== "__svg_only__") {
+            if (componentKeyOrId.includes(":")) {
               var localNode = await figma.getNodeByIdAsync(componentKeyOrId);
-              if (localNode !== null && localNode.type === 'COMPONENT') {
+              if (localNode !== null && localNode.type === "COMPONENT") {
                 comp = localNode as ComponentNode;
               }
             }
@@ -307,9 +310,9 @@ async function applyContentToInstance(
   // Error if still unmatched and not forced
   if (result.unmatched.length > 0 && !contentOverrides.force) {
     throw new Error(
-      'preserveContent: could not match the following content to the new instance: '
-      + result.unmatched.join(', ')
-      + '. Use force: true in contentOverrides to proceed anyway.'
+      "preserveContent: could not match the following content to the new instance: " +
+        result.unmatched.join(", ") +
+        ". Use force: true in contentOverrides to proceed anyway.",
     );
   }
 
@@ -355,7 +358,7 @@ export async function getLocalComponents(): Promise<Record<string, unknown>> {
   await figma.loadAllPagesAsync();
 
   const components = figma.root.findAllWithCriteria({
-    types: ['COMPONENT'],
+    types: ["COMPONENT"],
   });
 
   return {
@@ -363,35 +366,33 @@ export async function getLocalComponents(): Promise<Record<string, unknown>> {
     components: components.map((component) => ({
       id: component.id,
       name: component.name,
-      key: 'key' in component ? component.key : null,
+      key: "key" in component ? component.key : null,
     })),
   };
 }
 
-export async function createComponentInstance(
-  params: Record<string, unknown>,
-): Promise<Record<string, unknown>> {
-  const componentKey = params['componentKey'] as string | undefined;
-  const x = params['x'] !== undefined ? (params['x'] as number) : 0;
-  const y = params['y'] !== undefined ? (params['y'] as number) : 0;
-  const parentId = params['parentId'] as string | undefined;
-  const index = params['index'] as number | undefined;
-  const replaceNodeId = params['replaceNodeId'] as string | undefined;
-  const contentOverrides = params['contentOverrides'] as ContentOverridesParam | undefined;
-  const instanceProperties = params['instanceProperties'] as Record<string, string | boolean> | undefined;
+export async function createComponentInstance(params: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const componentKey = params["componentKey"] as string | undefined;
+  const x = params["x"] !== undefined ? (params["x"] as number) : 0;
+  const y = params["y"] !== undefined ? (params["y"] as number) : 0;
+  const parentId = params["parentId"] as string | undefined;
+  const index = params["index"] as number | undefined;
+  const replaceNodeId = params["replaceNodeId"] as string | undefined;
+  const contentOverrides = params["contentOverrides"] as ContentOverridesParam | undefined;
+  const instanceProperties = params["instanceProperties"] as Record<string, string | boolean> | undefined;
 
   if (!componentKey) {
-    throw new Error('Missing componentKey parameter');
+    throw new Error("Missing componentKey parameter");
   }
 
   try {
     let component: ComponentNode | null = null;
 
     // First, try to find as a local component by ID (format like "123:456")
-    if (componentKey.includes(':')) {
+    if (componentKey.includes(":")) {
       debugLog(`Trying to find local component with ID: ${componentKey}...`);
       const localNode = await figma.getNodeByIdAsync(componentKey);
-      if (localNode !== null && localNode.type === 'COMPONENT') {
+      if (localNode !== null && localNode.type === "COMPONENT") {
         component = localNode as ComponentNode;
         debugLog(`Found local component "${component.name}"`);
       }
@@ -399,19 +400,14 @@ export async function createComponentInstance(
 
     // If not found locally, try to import as remote component by key
     if (!component) {
-      debugLog(
-        `Trying to import remote component with key: ${componentKey}...`,
-      );
+      debugLog(`Trying to import remote component with key: ${componentKey}...`);
       try {
         component = await figma.importComponentByKeyAsync(componentKey);
         if (component) {
           debugLog(`Imported remote component "${component.name}"`);
         }
       } catch (importError) {
-        const errMsg =
-          importError instanceof Error
-            ? importError.message
-            : String(importError);
+        const errMsg = importError instanceof Error ? importError.message : String(importError);
         console.error(`Failed to import remote component: ${errMsg}`);
         // Don't throw yet - provide helpful error message below
       }
@@ -436,20 +432,17 @@ export async function createComponentInstance(
       if (!targetNode.parent) {
         throw new Error(`Replace target node "${targetNode.name}" has no parent`);
       }
-      if (!('appendChild' in targetNode.parent)) {
-        throw new Error(
-          `Replace target's parent "${targetNode.parent.name}" cannot contain children (type: ${targetNode.parent.type})`,
-        );
+      if (!("appendChild" in targetNode.parent)) {
+        const p = targetNode.parent as BaseNode;
+        throw new Error(`Replace target's parent "${p.name}" cannot contain children (type: ${p.type})`);
       }
     } else if (parentId !== undefined) {
       parentNode = await figma.getNodeByIdAsync(parentId);
       if (!parentNode) {
         throw new Error(`Parent node with ID ${parentId} not found`);
       }
-      if (!('appendChild' in parentNode)) {
-        throw new Error(
-          `Parent node "${parentNode.name}" cannot contain children (type: ${parentNode.type})`,
-        );
+      if (!("appendChild" in parentNode)) {
+        throw new Error(`Parent node "${parentNode.name}" cannot contain children (type: ${parentNode.type})`);
       }
     }
 
@@ -481,10 +474,10 @@ export async function createComponentInstance(
           break;
         }
       }
-      const tx = 'x' in targetNode ? (targetNode as SceneNode).x : 0;
-      const ty = 'y' in targetNode ? (targetNode as SceneNode).y : 0;
-      const tw = 'width' in targetNode ? (targetNode as SceneNode).width : 100;
-      const th = 'height' in targetNode ? (targetNode as SceneNode).height : 100;
+      const tx = "x" in targetNode ? (targetNode as SceneNode).x : 0;
+      const ty = "y" in targetNode ? (targetNode as SceneNode).y : 0;
+      const tw = "width" in targetNode ? (targetNode as SceneNode).width : 100;
+      const th = "height" in targetNode ? (targetNode as SceneNode).height : 100;
       if (targetIdx >= 0) {
         targetParent.insertChild(targetIdx, instance);
       } else {
@@ -509,24 +502,18 @@ export async function createComponentInstance(
     // Apply instance properties if provided
     if (instanceProperties) {
       instance.setProperties(instanceProperties);
-      debugLog(`Set instance properties: ${Object.keys(instanceProperties).join(', ')}`);
+      debugLog(`Set instance properties: ${Object.keys(instanceProperties).join(", ")}`);
     }
 
     // Auto-focus on the created instance (only when auto-focus is enabled)
     selectAndFocusNode(instance);
 
-    debugLog(
-      `Component instance "${instance.name}" created successfully at (${instance.x}, ${instance.y})`,
-    );
+    debugLog(`Component instance "${instance.name}" created successfully at (${instance.x}, ${instance.y})`);
 
     // Apply content overrides if provided
     let contentOverridesApplied: ContentOverridesResult | undefined;
     if (contentOverrides) {
-      contentOverridesApplied = await applyContentToInstance(
-        instance,
-        capturedContent,
-        contentOverrides,
-      );
+      contentOverridesApplied = await applyContentToInstance(instance, capturedContent, contentOverrides);
       debugLog(
         `Content overrides applied: ${contentOverridesApplied.text.length} texts, ${contentOverridesApplied.icons.length} icons, ${contentOverridesApplied.unmatched.length} unmatched`,
       );
@@ -548,13 +535,9 @@ export async function createComponentInstance(
     }
     return resultObj;
   } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : String(error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
     console.error(`Error in createComponentInstance: ${errorMessage}`);
-    throw new Error(
-      errorMessage ||
-        `Failed to create component instance for "${componentKey}"`,
-    );
+    throw new Error(errorMessage || `Failed to create component instance for "${componentKey}"`);
   }
 }
 
@@ -562,34 +545,24 @@ export async function getRemoteComponents(): Promise<Record<string, unknown>> {
   try {
     // Check if figma.teamLibrary is available
     if (!figma.teamLibrary) {
-      console.error('Error: figma.teamLibrary API is not available');
-      throw new Error(
-        'The figma.teamLibrary API is not available in this context',
-      );
+      console.error("Error: figma.teamLibrary API is not available");
+      throw new Error("The figma.teamLibrary API is not available in this context");
     }
 
     // Check if figma.teamLibrary.getAvailableComponentsAsync exists
     const teamLibraryAny = figma.teamLibrary as unknown as { getAvailableComponentsAsync?: () => Promise<unknown[]> };
     if (!teamLibraryAny.getAvailableComponentsAsync) {
-      console.error(
-        'Error: figma.teamLibrary.getAvailableComponentsAsync is not available',
-      );
-      throw new Error(
-        'The getAvailableComponentsAsync method is not available',
-      );
+      console.error("Error: figma.teamLibrary.getAvailableComponentsAsync is not available");
+      throw new Error("The getAvailableComponentsAsync method is not available");
     }
 
-    debugLog('Starting remote components retrieval...');
+    debugLog("Starting remote components retrieval...");
 
     // Set up a manual timeout to detect deadlocks
     let timeoutId: ReturnType<typeof setTimeout> | undefined;
     const timeoutPromise = new Promise<never>((_, reject) => {
       timeoutId = setTimeout(() => {
-        reject(
-          new Error(
-            'Internal timeout while retrieving remote components (15s)',
-          ),
-        );
+        reject(new Error("Internal timeout while retrieving remote components (15s)"));
       }, 15000);
     });
 
@@ -617,33 +590,26 @@ export async function getRemoteComponents(): Promise<Record<string, unknown>> {
       components: teamComponents.map((component: any) => ({
         key: component.key,
         name: component.name,
-        description:
-          component.description !== undefined ? component.description : '',
+        description: component.description !== undefined ? component.description : "",
         libraryName: component.libraryName,
       })),
     };
   } catch (error) {
     const err = error as Error;
     console.error(
-      `Detailed error retrieving remote components: ${err.message !== undefined ? err.message : 'Unknown error'}`,
+      `Detailed error retrieving remote components: ${err.message !== undefined ? err.message : "Unknown error"}`,
     );
-    console.error(
-      `Stack trace: ${err.stack !== undefined ? err.stack : 'Not available'}`,
-    );
+    console.error(`Stack trace: ${err.stack !== undefined ? err.stack : "Not available"}`);
 
-    throw new Error(
-      `Error retrieving remote components: ${err.message}`,
-    );
+    throw new Error(`Error retrieving remote components: ${err.message}`);
   }
 }
 
-export async function detachInstance(
-  params: Record<string, unknown>,
-): Promise<Record<string, unknown>> {
-  const nodeId = params['nodeId'] as string | undefined;
+export async function detachInstance(params: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const nodeId = params["nodeId"] as string | undefined;
 
   if (!nodeId) {
-    throw new Error('Missing nodeId parameter');
+    throw new Error("Missing nodeId parameter");
   }
 
   try {
@@ -652,10 +618,8 @@ export async function detachInstance(
       throw new Error(`Node not found with ID: ${nodeId}`);
     }
 
-    if (node.type !== 'INSTANCE') {
-      throw new Error(
-        `Node with ID ${nodeId} is not an INSTANCE. Only component instances can be detached.`,
-      );
+    if (node.type !== "INSTANCE") {
+      throw new Error(`Node with ID ${nodeId} is not an INSTANCE. Only component instances can be detached.`);
     }
 
     const detached = (node as InstanceNode).detachInstance();
@@ -666,19 +630,15 @@ export async function detachInstance(
       type: detached.type,
     };
   } catch (error) {
-    throw new Error(
-      `Error detaching instance: ${(error as Error).message}`,
-    );
+    throw new Error(`Error detaching instance: ${(error as Error).message}`);
   }
 }
 
-export async function createComponent(
-  params: Record<string, unknown>,
-): Promise<Record<string, unknown>> {
-  const nodeId = params['nodeId'] as string | undefined;
+export async function createComponent(params: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const nodeId = params["nodeId"] as string | undefined;
 
   if (!nodeId) {
-    throw new Error('Missing nodeId parameter');
+    throw new Error("Missing nodeId parameter");
   }
 
   try {
@@ -687,17 +647,7 @@ export async function createComponent(
       throw new Error(`Node not found with ID: ${nodeId}`);
     }
 
-    const convertibleTypes = [
-      'FRAME',
-      'GROUP',
-      'RECTANGLE',
-      'ELLIPSE',
-      'POLYGON',
-      'STAR',
-      'VECTOR',
-      'TEXT',
-      'LINE',
-    ];
+    const convertibleTypes = ["FRAME", "GROUP", "RECTANGLE", "ELLIPSE", "POLYGON", "STAR", "VECTOR", "TEXT", "LINE"];
     if (!convertibleTypes.includes(node.type)) {
       throw new Error(
         `Node with ID ${nodeId} is of type ${node.type} and cannot be converted to a component. Only FRAME, GROUP, and shape nodes can be converted.`,
@@ -705,7 +655,16 @@ export async function createComponent(
     }
 
     const component = figma.createComponentFromNode(
-      node as FrameNode | GroupNode | RectangleNode | EllipseNode | PolygonNode | StarNode | VectorNode | TextNode | LineNode,
+      node as
+        | FrameNode
+        | GroupNode
+        | RectangleNode
+        | EllipseNode
+        | PolygonNode
+        | StarNode
+        | VectorNode
+        | TextNode
+        | LineNode,
     );
 
     return {
@@ -714,22 +673,16 @@ export async function createComponent(
       key: component.key,
     };
   } catch (error) {
-    throw new Error(
-      `Error creating component: ${(error as Error).message}`,
-    );
+    throw new Error(`Error creating component: ${(error as Error).message}`);
   }
 }
 
-export async function createComponentSet(
-  params: Record<string, unknown>,
-): Promise<Record<string, unknown>> {
-  const nodeIds = params['nodeIds'] as string[] | undefined;
-  const name = params['name'] as string | undefined;
+export async function createComponentSet(params: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const nodeIds = params["nodeIds"] as string[] | undefined;
+  const name = params["name"] as string | undefined;
 
   if (!nodeIds || !Array.isArray(nodeIds) || nodeIds.length < 1) {
-    throw new Error(
-      'Must provide at least one nodeId to create a component set',
-    );
+    throw new Error("Must provide at least one nodeId to create a component set");
   }
 
   try {
@@ -740,12 +693,10 @@ export async function createComponentSet(
         throw new Error(`Node not found with ID: ${nodeId}`);
       }
 
-      if (node.type === 'COMPONENT') {
+      if (node.type === "COMPONENT") {
         components.push(node as ComponentNode);
-      } else if (node.type === 'FRAME' || node.type === 'GROUP') {
-        const component = figma.createComponentFromNode(
-          node as FrameNode | GroupNode,
-        );
+      } else if (node.type === "FRAME" || node.type === "GROUP") {
+        const component = figma.createComponentFromNode(node as FrameNode | GroupNode);
         components.push(component);
       } else {
         throw new Error(
@@ -767,35 +718,29 @@ export async function createComponentSet(
       variantCount: components.length,
     };
   } catch (error) {
-    throw new Error(
-      `Error creating component set: ${(error as Error).message}`,
-    );
+    throw new Error(`Error creating component set: ${(error as Error).message}`);
   }
 }
 
-export async function addComponentProperty(
-  params: Record<string, unknown>,
-): Promise<Record<string, unknown>> {
-  const nodeId = params['nodeId'] as string | undefined;
-  const propertyName = params['propertyName'] as string | undefined;
-  const type = params['type'] as string | undefined;
-  const defaultValue = params['defaultValue'];
+export async function addComponentProperty(params: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const nodeId = params["nodeId"] as string | undefined;
+  const propertyName = params["propertyName"] as string | undefined;
+  const type = params["type"] as string | undefined;
+  const defaultValue = params["defaultValue"];
 
   if (!nodeId) {
-    throw new Error('Missing nodeId parameter');
+    throw new Error("Missing nodeId parameter");
   }
   if (!propertyName) {
-    throw new Error('Missing propertyName parameter');
+    throw new Error("Missing propertyName parameter");
   }
   if (!type) {
-    throw new Error('Missing type parameter');
+    throw new Error("Missing type parameter");
   }
 
-  const validTypes = ['BOOLEAN', 'TEXT', 'INSTANCE_SWAP', 'VARIANT'];
+  const validTypes = ["BOOLEAN", "TEXT", "INSTANCE_SWAP", "VARIANT"];
   if (!validTypes.includes(type)) {
-    throw new Error(
-      `Invalid type: ${type}. Must be one of: ${validTypes.join(', ')}`,
-    );
+    throw new Error(`Invalid type: ${type}. Must be one of: ${validTypes.join(", ")}`);
   }
 
   try {
@@ -804,24 +749,20 @@ export async function addComponentProperty(
       throw new Error(`Node not found with ID: ${nodeId}`);
     }
 
-    if (node.type !== 'COMPONENT' && node.type !== 'COMPONENT_SET') {
-      throw new Error(
-        `Node must be a COMPONENT or COMPONENT_SET, got: ${node.type}`,
-      );
+    if (node.type !== "COMPONENT" && node.type !== "COMPONENT_SET") {
+      throw new Error(`Node must be a COMPONENT or COMPONENT_SET, got: ${node.type}`);
     }
 
     // Determine default value based on type
     let actualDefaultValue: unknown = defaultValue;
-    if (type === 'BOOLEAN' && actualDefaultValue === undefined) {
+    if (type === "BOOLEAN" && actualDefaultValue === undefined) {
       actualDefaultValue = true;
-    } else if (type === 'TEXT' && actualDefaultValue === undefined) {
-      actualDefaultValue = '';
-    } else if (type === 'VARIANT' && actualDefaultValue === undefined) {
-      actualDefaultValue = 'Default';
-    } else if (type === 'INSTANCE_SWAP' && actualDefaultValue === undefined) {
-      throw new Error(
-        'INSTANCE_SWAP type requires a defaultValue (component key)',
-      );
+    } else if (type === "TEXT" && actualDefaultValue === undefined) {
+      actualDefaultValue = "";
+    } else if (type === "VARIANT" && actualDefaultValue === undefined) {
+      actualDefaultValue = "Default";
+    } else if (type === "INSTANCE_SWAP" && actualDefaultValue === undefined) {
+      throw new Error("INSTANCE_SWAP type requires a defaultValue (component key)");
     }
 
     const componentNode = node as ComponentNode | ComponentSetNode;
@@ -839,26 +780,22 @@ export async function addComponentProperty(
       defaultValue: actualDefaultValue,
     };
   } catch (error) {
-    throw new Error(
-      `Error adding component property: ${(error as Error).message}`,
-    );
+    throw new Error(`Error adding component property: ${(error as Error).message}`);
   }
 }
 
-export async function editComponentProperty(
-  params: Record<string, unknown>,
-): Promise<Record<string, unknown>> {
-  const nodeId = params['nodeId'] as string | undefined;
-  const propertyName = params['propertyName'] as string | undefined;
-  const newName = params['newName'] as string | undefined;
-  const newDefaultValue = params['newDefaultValue'];
-  const preferredValues = params['preferredValues'];
+export async function editComponentProperty(params: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const nodeId = params["nodeId"] as string | undefined;
+  const propertyName = params["propertyName"] as string | undefined;
+  const newName = params["newName"] as string | undefined;
+  const newDefaultValue = params["newDefaultValue"];
+  const preferredValues = params["preferredValues"];
 
   if (!nodeId) {
-    throw new Error('Missing nodeId parameter');
+    throw new Error("Missing nodeId parameter");
   }
   if (!propertyName) {
-    throw new Error('Missing propertyName parameter');
+    throw new Error("Missing propertyName parameter");
   }
 
   try {
@@ -867,28 +804,24 @@ export async function editComponentProperty(
       throw new Error(`Node not found with ID: ${nodeId}`);
     }
 
-    if (node.type !== 'COMPONENT' && node.type !== 'COMPONENT_SET') {
-      throw new Error(
-        `Node must be a COMPONENT or COMPONENT_SET, got: ${node.type}`,
-      );
+    if (node.type !== "COMPONENT" && node.type !== "COMPONENT_SET") {
+      throw new Error(`Node must be a COMPONENT or COMPONENT_SET, got: ${node.type}`);
     }
 
     // Build the update object with only provided fields
     const updateObj: Record<string, unknown> = {};
     if (newName !== undefined) {
-      updateObj['name'] = newName;
+      updateObj["name"] = newName;
     }
     if (newDefaultValue !== undefined) {
-      updateObj['defaultValue'] = newDefaultValue;
+      updateObj["defaultValue"] = newDefaultValue;
     }
     if (preferredValues !== undefined) {
-      updateObj['preferredValues'] = preferredValues;
+      updateObj["preferredValues"] = preferredValues;
     }
 
     if (Object.keys(updateObj).length === 0) {
-      throw new Error(
-        'Must provide at least one of: newName, newDefaultValue, or preferredValues',
-      );
+      throw new Error("Must provide at least one of: newName, newDefaultValue, or preferredValues");
     }
 
     const componentNode = node as ComponentNode | ComponentSetNode;
@@ -905,23 +838,19 @@ export async function editComponentProperty(
       updates: updateObj,
     };
   } catch (error) {
-    throw new Error(
-      `Error editing component property: ${(error as Error).message}`,
-    );
+    throw new Error(`Error editing component property: ${(error as Error).message}`);
   }
 }
 
-export async function deleteComponentProperty(
-  params: Record<string, unknown>,
-): Promise<Record<string, unknown>> {
-  const nodeId = params['nodeId'] as string | undefined;
-  const propertyName = params['propertyName'] as string | undefined;
+export async function deleteComponentProperty(params: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const nodeId = params["nodeId"] as string | undefined;
+  const propertyName = params["propertyName"] as string | undefined;
 
   if (!nodeId) {
-    throw new Error('Missing nodeId parameter');
+    throw new Error("Missing nodeId parameter");
   }
   if (!propertyName) {
-    throw new Error('Missing propertyName parameter');
+    throw new Error("Missing propertyName parameter");
   }
 
   try {
@@ -930,10 +859,8 @@ export async function deleteComponentProperty(
       throw new Error(`Node not found with ID: ${nodeId}`);
     }
 
-    if (node.type !== 'COMPONENT' && node.type !== 'COMPONENT_SET') {
-      throw new Error(
-        `Node must be a COMPONENT or COMPONENT_SET, got: ${node.type}`,
-      );
+    if (node.type !== "COMPONENT" && node.type !== "COMPONENT_SET") {
+      throw new Error(`Node must be a COMPONENT or COMPONENT_SET, got: ${node.type}`);
     }
 
     const componentNode = node as ComponentNode | ComponentSetNode;
@@ -945,25 +872,21 @@ export async function deleteComponentProperty(
       deletedPropertyName: propertyName,
     };
   } catch (error) {
-    throw new Error(
-      `Error deleting component property: ${(error as Error).message}`,
-    );
+    throw new Error(`Error deleting component property: ${(error as Error).message}`);
   }
 }
 
 export async function setComponentPropertyReferences(
   params: Record<string, unknown>,
 ): Promise<Record<string, unknown>> {
-  const nodeId = params['nodeId'] as string | undefined;
-  const references = params['references'];
+  const nodeId = params["nodeId"] as string | undefined;
+  const references = params["references"];
 
   if (!nodeId) {
-    throw new Error('Missing nodeId parameter');
+    throw new Error("Missing nodeId parameter");
   }
-  if (!references || typeof references !== 'object') {
-    throw new Error(
-      'Missing or invalid references parameter (must be an object)',
-    );
+  if (!references || typeof references !== "object") {
+    throw new Error("Missing or invalid references parameter (must be an object)");
   }
 
   try {
@@ -972,19 +895,16 @@ export async function setComponentPropertyReferences(
       throw new Error(`Node not found with ID: ${nodeId}`);
     }
 
-    if (!('componentPropertyReferences' in node)) {
-      throw new Error(
-        `Node does not support componentPropertyReferences. It must be a sublayer of a component.`,
-      );
+    if (!("componentPropertyReferences" in node)) {
+      throw new Error(`Node does not support componentPropertyReferences. It must be a sublayer of a component.`);
     }
 
     // Set the references
     // For boolean visibility: { visible: "PropertyName#123:456" }
     // For text content: { characters: "TextProperty#123:456" }
     // For instance swap: { mainComponent: "SwapProperty#123:456" }
-    type ComponentPropertyRefs = { [nodeProperty in 'visible' | 'characters' | 'mainComponent']?: string } | null;
-    (node as SceneNodeMixin).componentPropertyReferences =
-      references as ComponentPropertyRefs;
+    type ComponentPropertyRefs = { [nodeProperty in "visible" | "characters" | "mainComponent"]?: string } | null;
+    (node as SceneNodeMixin).componentPropertyReferences = references as ComponentPropertyRefs;
 
     const refNode = node as SceneNodeMixin;
     return {
@@ -993,16 +913,12 @@ export async function setComponentPropertyReferences(
       references: refNode.componentPropertyReferences,
     };
   } catch (error) {
-    throw new Error(
-      `Error setting component property references: ${(error as Error).message}`,
-    );
+    throw new Error(`Error setting component property references: ${(error as Error).message}`);
   }
 }
 
-export async function getInstanceOverrides(
-  params: Record<string, unknown>,
-): Promise<Record<string, unknown>> {
-  const instanceNodeId = params['instanceNodeId'] as string | undefined;
+export async function getInstanceOverrides(params: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const instanceNodeId = params["instanceNodeId"] as string | undefined;
 
   let node: BaseNode | null = null;
 
@@ -1014,30 +930,27 @@ export async function getInstanceOverrides(
   } else {
     const sel = figma.currentPage.selection;
     if (sel.length === 0) {
-      throw new Error('No node selected and no instanceNodeId provided');
+      throw new Error("No node selected and no instanceNodeId provided");
     }
     node = sel[0];
   }
 
-  if (node.type !== 'INSTANCE') {
-    throw new Error(
-      `Node "${node.name}" (${node.id}) is not a component instance (type: ${node.type})`,
-    );
+  if (node.type !== "INSTANCE") {
+    throw new Error(`Node "${node.name}" (${node.id}) is not a component instance (type: ${node.type})`);
   }
 
   const instance = node as InstanceNode;
   const mainComponent = await instance.getMainComponentAsync();
 
-  const componentProperties = instance.componentProperties !== undefined
-    ? instance.componentProperties
-    : {};
+  const componentProperties = instance.componentProperties !== undefined ? instance.componentProperties : {};
 
-  const overrides = instance.overrides !== undefined
-    ? instance.overrides.map((o) => ({
-        id: o.id,
-        overriddenFields: o.overriddenFields,
-      }))
-    : [];
+  const overrides =
+    instance.overrides !== undefined
+      ? instance.overrides.map((o) => ({
+          id: o.id,
+          overriddenFields: o.overriddenFields,
+        }))
+      : [];
 
   return {
     success: true,
@@ -1050,36 +963,30 @@ export async function getInstanceOverrides(
   };
 }
 
-export async function setInstanceOverrides(
-  params: Record<string, unknown>,
-): Promise<Record<string, unknown>> {
-  const sourceInstanceId = params['sourceInstanceId'] as string | undefined;
-  const targetNodeIds = params['targetNodeIds'] as string[] | undefined;
+export async function setInstanceOverrides(params: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const sourceInstanceId = params["sourceInstanceId"] as string | undefined;
+  const targetNodeIds = params["targetNodeIds"] as string[] | undefined;
 
   if (sourceInstanceId === null || sourceInstanceId === undefined) {
-    throw new Error('Missing sourceInstanceId parameter');
+    throw new Error("Missing sourceInstanceId parameter");
   }
   if (!targetNodeIds || !Array.isArray(targetNodeIds) || targetNodeIds.length === 0) {
-    throw new Error('Missing or empty targetNodeIds parameter');
+    throw new Error("Missing or empty targetNodeIds parameter");
   }
 
   const sourceNode = await figma.getNodeByIdAsync(sourceInstanceId);
   if (!sourceNode) {
     throw new Error(`Source node not found with ID: ${sourceInstanceId}`);
   }
-  if (sourceNode.type !== 'INSTANCE') {
-    throw new Error(
-      `Source node "${sourceNode.name}" is not a component instance (type: ${sourceNode.type})`,
-    );
+  if (sourceNode.type !== "INSTANCE") {
+    throw new Error(`Source node "${sourceNode.name}" is not a component instance (type: ${sourceNode.type})`);
   }
 
   const source = sourceNode as InstanceNode;
   const sourceMainComponent = await source.getMainComponentAsync();
   const sourceMainComponentId = sourceMainComponent !== null ? sourceMainComponent.id : null;
 
-  const sourceProperties = source.componentProperties !== undefined
-    ? source.componentProperties
-    : {};
+  const sourceProperties = source.componentProperties !== undefined ? source.componentProperties : {};
 
   // Build a properties object with current values, limited to TEXT, BOOLEAN, and STRING types.
   // INSTANCE_SWAP properties are deliberately excluded: their values are component IDs that are
@@ -1089,7 +996,7 @@ export async function setInstanceOverrides(
   for (let i = 0; i < propKeys.length; i++) {
     const key = propKeys[i];
     const prop = sourceProperties[key];
-    if (prop.type === 'TEXT' || prop.type === 'BOOLEAN') {
+    if (prop.type === "TEXT" || prop.type === "BOOLEAN") {
       valuesToApply[key] = prop.value as string | boolean;
     }
     // INSTANCE_SWAP skipped intentionally — component IDs are context-specific
@@ -1106,7 +1013,7 @@ export async function setInstanceOverrides(
         results.push({ nodeId: targetId, success: false, error: `Node not found` });
         continue;
       }
-      if (targetNode.type !== 'INSTANCE') {
+      if (targetNode.type !== "INSTANCE") {
         results.push({
           nodeId: targetId,
           success: false,
@@ -1146,21 +1053,19 @@ export async function setInstanceOverrides(
   };
 }
 
-export async function setComponentProperty(
-  params: Record<string, unknown>,
-): Promise<Record<string, unknown>> {
-  const nodeId = params['nodeId'] as string | undefined;
-  const propertyName = params['propertyName'] as string | undefined;
-  const value = params['value'];
+export async function setComponentProperty(params: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const nodeId = params["nodeId"] as string | undefined;
+  const propertyName = params["propertyName"] as string | undefined;
+  const value = params["value"];
 
   if (!nodeId) {
-    throw new Error('Missing nodeId parameter');
+    throw new Error("Missing nodeId parameter");
   }
   if (!propertyName) {
-    throw new Error('Missing propertyName parameter');
+    throw new Error("Missing propertyName parameter");
   }
   if (value === undefined) {
-    throw new Error('Missing value parameter');
+    throw new Error("Missing value parameter");
   }
 
   try {
@@ -1169,7 +1074,7 @@ export async function setComponentProperty(
       throw new Error(`Node not found with ID: ${nodeId}`);
     }
 
-    if (node.type !== 'INSTANCE') {
+    if (node.type !== "INSTANCE") {
       throw new Error(
         `Node with ID ${nodeId} is not an INSTANCE (type: ${node.type}). Only component instances support setProperties.`,
       );
@@ -1186,25 +1091,21 @@ export async function setComponentProperty(
       value,
     };
   } catch (error) {
-    throw new Error(
-      `Error setting component property: ${(error as Error).message}`,
-    );
+    throw new Error(`Error setting component property: ${(error as Error).message}`);
   }
 }
 
-export async function swapInstance(
-  params: Record<string, unknown>,
-): Promise<Record<string, unknown>> {
-  const nodeId = params['nodeId'] as string | undefined;
-  const componentKeyOrId = params['componentKeyOrId'] as string | undefined;
-  const contentOverrides = params['contentOverrides'] as ContentOverridesParam | undefined;
-  const instanceProperties = params['instanceProperties'] as Record<string, string | boolean> | undefined;
+export async function swapInstance(params: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const nodeId = params["nodeId"] as string | undefined;
+  const componentKeyOrId = params["componentKeyOrId"] as string | undefined;
+  const contentOverrides = params["contentOverrides"] as ContentOverridesParam | undefined;
+  const instanceProperties = params["instanceProperties"] as Record<string, string | boolean> | undefined;
 
   if (!nodeId) {
-    throw new Error('Missing nodeId parameter');
+    throw new Error("Missing nodeId parameter");
   }
   if (!componentKeyOrId) {
-    throw new Error('Missing componentKeyOrId parameter');
+    throw new Error("Missing componentKeyOrId parameter");
   }
 
   try {
@@ -1213,7 +1114,7 @@ export async function swapInstance(
       throw new Error(`Node not found with ID: ${nodeId}`);
     }
 
-    if (node.type !== 'INSTANCE') {
+    if (node.type !== "INSTANCE") {
       throw new Error(
         `Node with ID ${nodeId} is not an INSTANCE (type: ${node.type}). Only component instances can be swapped.`,
       );
@@ -1228,16 +1129,18 @@ export async function swapInstance(
     let capturedContent: CapturedContent | null = null;
     if (contentOverrides && contentOverrides.preserveContent) {
       capturedContent = await captureContent(instance);
-      debugLog(`Captured content before swap: ${capturedContent.texts.size} texts, ${capturedContent.icons.size} icons`);
+      debugLog(
+        `Captured content before swap: ${capturedContent.texts.size} texts, ${capturedContent.icons.size} icons`,
+      );
     }
 
     // Resolve target component
     let targetComponent: ComponentNode | null = null;
 
     // Try local ID first (format like "123:456")
-    if (componentKeyOrId.includes(':')) {
+    if (componentKeyOrId.includes(":")) {
       const localNode = await figma.getNodeByIdAsync(componentKeyOrId);
-      if (localNode !== null && localNode.type === 'COMPONENT') {
+      if (localNode !== null && localNode.type === "COMPONENT") {
         targetComponent = localNode as ComponentNode;
       }
     }
@@ -1262,17 +1165,13 @@ export async function swapInstance(
     // Apply instance properties if provided
     if (instanceProperties) {
       instance.setProperties(instanceProperties);
-      debugLog(`Set instance properties: ${Object.keys(instanceProperties).join(', ')}`);
+      debugLog(`Set instance properties: ${Object.keys(instanceProperties).join(", ")}`);
     }
 
     // Apply content overrides if provided
     let contentOverridesApplied: ContentOverridesResult | undefined;
     if (contentOverrides) {
-      contentOverridesApplied = await applyContentToInstance(
-        instance,
-        capturedContent,
-        contentOverrides,
-      );
+      contentOverridesApplied = await applyContentToInstance(instance, capturedContent, contentOverrides);
       debugLog(
         `Content overrides applied: ${contentOverridesApplied.text.length} texts, ${contentOverridesApplied.icons.length} icons, ${contentOverridesApplied.unmatched.length} unmatched`,
       );
@@ -1290,19 +1189,15 @@ export async function swapInstance(
     }
     return resultObj;
   } catch (error) {
-    throw new Error(
-      `Error swapping instance: ${(error as Error).message}`,
-    );
+    throw new Error(`Error swapping instance: ${(error as Error).message}`);
   }
 }
 
-export async function getComponentProperties(
-  params: Record<string, unknown>,
-): Promise<Record<string, unknown>> {
-  const nodeId = params['nodeId'] as string | undefined;
+export async function getComponentProperties(params: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const nodeId = params["nodeId"] as string | undefined;
 
   if (!nodeId) {
-    throw new Error('Missing nodeId parameter');
+    throw new Error("Missing nodeId parameter");
   }
 
   try {
@@ -1311,17 +1206,13 @@ export async function getComponentProperties(
       throw new Error(`Node not found with ID: ${nodeId}`);
     }
 
-    if (node.type !== 'COMPONENT' && node.type !== 'COMPONENT_SET') {
-      throw new Error(
-        `Node must be a COMPONENT or COMPONENT_SET, got: ${node.type}`,
-      );
+    if (node.type !== "COMPONENT" && node.type !== "COMPONENT_SET") {
+      throw new Error(`Node must be a COMPONENT or COMPONENT_SET, got: ${node.type}`);
     }
 
     const componentNode = node as ComponentNode | ComponentSetNode;
     const definitions =
-      componentNode.componentPropertyDefinitions !== undefined
-        ? componentNode.componentPropertyDefinitions
-        : {};
+      componentNode.componentPropertyDefinitions !== undefined ? componentNode.componentPropertyDefinitions : {};
 
     return {
       nodeId: node.id,
@@ -1330,8 +1221,6 @@ export async function getComponentProperties(
       properties: definitions,
     };
   } catch (error) {
-    throw new Error(
-      `Error getting component properties: ${(error as Error).message}`,
-    );
+    throw new Error(`Error getting component properties: ${(error as Error).message}`);
   }
 }
