@@ -911,12 +911,17 @@ export function registerDocumentTools(server: McpServer): void {
         ),
       limit: z.coerce.number().int().min(1).optional().describe("Max number of results to return. Default: 50."),
       depth: depthSchema,
+      leadingTrim: coerceArray(z.array(z.string()))
+        .optional()
+        .describe(
+          "Optional filter for TEXT nodes by leadingTrim value(s) e.g. ['CAP_HEIGHT'] or ['NONE']. Pass empty query \"\" to match all text nodes with the given leadingTrim.",
+        ),
       fields: coerceArray(fieldsSchema)
         .optional()
         .describe("Optional array of fields to include. Controls which properties appear in both JSX and JSON output."),
       output_format: outputFormatSchema,
     },
-    async ({ query, types, nodeId, limit, depth, fields, output_format }) => {
+    async ({ query, types, nodeId, limit, depth, leadingTrim, fields, output_format }) => {
       if (nodeId) nodeId = Array.isArray(nodeId) ? nodeId.map(normalizeNodeId) : normalizeNodeId(nodeId);
       try {
         const result = await sendCommandToFigma("search_nodes", {
@@ -925,6 +930,7 @@ export function registerDocumentTools(server: McpServer): void {
           nodeId,
           limit,
           depth: resolveDepth(depth),
+          leadingTrim,
         });
         return formatNodeResult(result, output_format, fields);
       } catch (error) {
