@@ -598,14 +598,21 @@ export function registerTextTools(server: McpServer): void {
       nodeId: z.string().describe("The ID of the text node to create a style from"),
       name: z.string().describe("Name for the text style (e.g., 'Heading/H1', 'Body/Large')"),
       description: z.string().optional().describe("Optional description for the text style"),
+      bindings: z
+        .record(z.string())
+        .optional()
+        .describe(
+          "Optional variable bindings keyed by TextStyle field. Values are variable IDs or names (e.g. 'typography/body-md/size'). Supported fields: fontFamily, fontStyle, fontSize, fontWeight, lineHeight, letterSpacing, paragraphSpacing, paragraphIndent.",
+        ),
     },
-    async ({ nodeId, name, description }) => {
+    async ({ nodeId, name, description, bindings }) => {
       nodeId = normalizeNodeId(nodeId);
       try {
         const result = await sendCommandToFigma("create_text_style", {
           nodeId,
           name,
           description,
+          bindings,
         });
         const typedResult = result as { id: string; name: string; key: string };
         return {
@@ -680,6 +687,12 @@ export function registerTextTools(server: McpServer): void {
         .optional()
         .describe("Text decoration: NONE = no decoration, UNDERLINE = underline, STRIKETHROUGH = strikethrough"),
       description: z.string().optional().describe("Optional description"),
+      bindings: z
+        .record(z.string())
+        .optional()
+        .describe(
+          "Optional variable bindings keyed by TextStyle field. Values are variable IDs or names (e.g. 'typography/body-md/size'). Supported fields: fontFamily, fontStyle, fontSize, fontWeight, lineHeight, letterSpacing, paragraphSpacing, paragraphIndent.",
+        ),
     },
     async ({
       name,
@@ -692,6 +705,7 @@ export function registerTextTools(server: McpServer): void {
       textCase,
       textDecoration,
       description,
+      bindings,
     }) => {
       try {
         const result = await sendCommandToFigma("create_text_style_from_properties", {
@@ -705,6 +719,7 @@ export function registerTextTools(server: McpServer): void {
           textCase,
           textDecoration,
           description,
+          bindings,
         });
         const typedResult = result as { id: string; name: string; key: string };
         return {
@@ -933,6 +948,12 @@ export function registerTextTools(server: McpServer): void {
         .describe("Text decoration: NONE, UNDERLINE, or STRIKETHROUGH"),
       paragraphSpacing: z.coerce.number().optional().describe("Space between paragraphs in pixels (≥ 0)"),
       paragraphIndent: z.coerce.number().optional().describe("First-line indent within each paragraph in pixels (≥ 0)"),
+      bindings: z
+        .record(z.string())
+        .optional()
+        .describe(
+          "Optional variable bindings keyed by TextStyle field. Values are variable IDs or names (e.g. 'typography/body-md/size'). Supported fields: fontFamily, fontStyle, fontSize, fontWeight, lineHeight, letterSpacing, paragraphSpacing, paragraphIndent.",
+        ),
     },
     async ({
       styleId,
@@ -948,6 +969,7 @@ export function registerTextTools(server: McpServer): void {
       textDecoration,
       paragraphSpacing,
       paragraphIndent,
+      bindings,
     }) => {
       try {
         const result = await sendCommandToFigma("update_text_style", {
@@ -964,6 +986,7 @@ export function registerTextTools(server: McpServer): void {
           textDecoration,
           paragraphSpacing,
           paragraphIndent,
+          bindings,
         });
         const typedResult = result as { id: string; name: string; updatedProperties: string[] };
         return {
