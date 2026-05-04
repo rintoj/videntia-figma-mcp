@@ -1375,9 +1375,9 @@ export function registerModificationTools(server: McpServer): void {
   // Bind Variable Tool
   server.tool(
     "bind_variable",
-    "Bind a variable to a node property in Figma (e.g., fill color, stroke weight, opacity)",
+    "Bind a variable to a node property OR a text style field in Figma. For nodes: fills/strokes/opacity/strokeWeight/cornerRadius/etc. For text styles: pass the text style id (e.g. 'S:abc123,') or name (e.g. 'body/md') as nodeId, and a field of fontFamily, fontStyle, fontSize, fontWeight, lineHeight, letterSpacing, paragraphSpacing, or paragraphIndent.",
     {
-      nodeId: z.string().describe("The ID of the node to modify"),
+      nodeId: z.string().describe("The ID of the node, or the ID/name of a text style (e.g. 'body/md')"),
       variableId: z
         .string()
         .describe(
@@ -1431,9 +1431,9 @@ export function registerModificationTools(server: McpServer): void {
   // Unbind Variable Tool
   server.tool(
     "unbind_variable",
-    "Remove a variable binding from a node property in Figma",
+    "Remove a variable binding from a node property or a text style field in Figma. Pass a node id, or a text style id/name as nodeId.",
     {
-      nodeId: z.string().describe("The ID of the node to modify"),
+      nodeId: z.string().describe("The ID of the node, or the ID/name of a text style (e.g. 'body/md')"),
       field: z
         .string()
         .describe(

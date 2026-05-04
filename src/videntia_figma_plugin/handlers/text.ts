@@ -1511,6 +1511,64 @@ export async function loadFontAsyncWrapper(params: Record<string, unknown>): Pro
 }
 
 // ---------------------------------------------------------------------------
+// Internal: applyTextStyleBindings
+// Resolves a `bindings` map (field → variable id|name) and binds each entry on
+// a TextStyle via setBoundVariable. Skips silently on per-field errors so a
+// single bad binding doesn't fail the whole style creation; collects warnings.
+// ---------------------------------------------------------------------------
+
+async function applyTextStyleBindings(
+  textStyle: TextStyle,
+  bindings: Record<string, string> | undefined,
+): Promise<{ applied: string[]; warnings: string[] }> {
+  const applied: string[] = [];
+  const warnings: string[] = [];
+  if (!bindings) return { applied, warnings };
+
+  let allVariables: Variable[] | null = null;
+
+  for (const field of Object.keys(bindings)) {
+    const ref = bindings[field];
+    if (!ref) continue;
+    let variable = await figma.variables.getVariableByIdAsync(ref);
+    if (!variable) {
+      if (!allVariables) {
+        allVariables = await figma.variables.getLocalVariablesAsync();
+      }
+      variable =
+        allVariables.find(function (v) {
+          return v.name === ref;
+        }) || null;
+      if (!variable) {
+        const normalized = ref.replace(/-/g, "/");
+        if (normalized !== ref) {
+          variable =
+            allVariables.find(function (v) {
+              return v.name === normalized;
+            }) || null;
+        }
+      }
+    }
+    if (!variable) {
+      warnings.push(`Variable not found for field "${field}": "${ref}"`);
+      continue;
+    }
+    try {
+      (
+        textStyle as TextStyle & {
+          setBoundVariable: (f: VariableBindableTextField, v: Variable | null) => void;
+        }
+      ).setBoundVariable(field as VariableBindableTextField, variable);
+      applied.push(field);
+    } catch (e) {
+      warnings.push(`Failed to bind "${ref}" to "${field}": ${(e as Error).message}`);
+    }
+  }
+
+  return { applied, warnings };
+}
+
+// ---------------------------------------------------------------------------
 // Public: createTextStyle
 // ---------------------------------------------------------------------------
 
@@ -1519,6 +1577,7 @@ export async function createTextStyle(params: Record<string, unknown>): Promise<
   const nodeId = safeParams.nodeId as string | undefined;
   const name = safeParams.name as string | undefined;
   const description = safeParams.description as string | undefined;
+  const bindings = safeParams.bindings as Record<string, string> | undefined;
 
   if (!nodeId || !name) {
     throw new Error("Missing nodeId or name parameter");
@@ -1582,12 +1641,16 @@ export async function createTextStyle(params: Record<string, unknown>): Promise<
     textStyle.textCase = resolvedTextCase;
     textStyle.textDecoration = resolvedTextDecoration;
 
+    const { applied, warnings } = await applyTextStyleBindings(textStyle, bindings);
+
     return {
       id: textStyle.id,
       name: textStyle.name,
       key: textStyle.key,
       fontName: textStyle.fontName,
       fontSize: textStyle.fontSize,
+      boundFields: applied,
+      bindingWarnings: warnings,
     };
   } catch (error) {
     throw new Error(`Error creating text style: ${(error as Error).message}`);
@@ -1610,6 +1673,7 @@ export async function createTextStyleFromProperties(params: Record<string, unkno
   const textCase = safeParams.textCase as TextCase | undefined;
   const textDecoration = safeParams.textDecoration as TextDecoration | undefined;
   const description = safeParams.description as string | undefined;
+  const bindings = safeParams.bindings as Record<string, string> | undefined;
 
   if (!name || !fontSize || !fontFamily) {
     throw new Error("Missing required parameters: name, fontSize, or fontFamily");
@@ -1667,12 +1731,16 @@ export async function createTextStyleFromProperties(params: Record<string, unkno
       textStyle.textDecoration = textDecoration;
     }
 
+    const { applied, warnings } = await applyTextStyleBindings(textStyle, bindings);
+
     return {
       id: textStyle.id,
       name: textStyle.name,
       key: textStyle.key,
       fontName: textStyle.fontName,
       fontSize: textStyle.fontSize,
+      boundFields: applied,
+      bindingWarnings: warnings,
     };
   } catch (error) {
     throw new Error(`Error creating text style from properties: ${(error as Error).message}`);
@@ -1832,6 +1900,7 @@ export async function updateTextStyle(params: Record<string, unknown>): Promise<
   const textDecoration = safeParams.textDecoration as TextDecoration | undefined;
   const paragraphSpacing = safeParams.paragraphSpacing as number | undefined;
   const paragraphIndent = safeParams.paragraphIndent as number | undefined;
+  const bindings = safeParams.bindings as Record<string, string> | undefined;
 
   if (!styleId) {
     throw new Error("Missing styleId parameter");
@@ -1942,10 +2011,17 @@ export async function updateTextStyle(params: Record<string, unknown>): Promise<
       updatedProperties.push("paragraphIndent");
     }
 
+    const { applied, warnings } = await applyTextStyleBindings(textStyle, bindings);
+    if (applied.length > 0) {
+      updatedProperties.push("bindings");
+    }
+
     return {
       id: textStyle.id,
       name: textStyle.name,
       updatedProperties,
+      boundFields: applied,
+      bindingWarnings: warnings,
     };
   } catch (error) {
     throw new Error(`Error updating text style: ${(error as Error).message}`);

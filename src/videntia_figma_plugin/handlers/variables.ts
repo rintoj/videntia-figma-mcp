@@ -504,8 +504,32 @@ export async function bindVariable(params: Record<string, unknown>): Promise<Rec
   }
 
   const node = await figma.getNodeByIdAsync(nodeId);
+
+  // If no node was found, try resolving as a TextStyle (by id or name).
+  let textStyle: TextStyle | null = null;
   if (!node) {
-    throw new Error(`Node not found: ${nodeId}`);
+    const maybeStyle = await figma.getStyleByIdAsync(nodeId);
+    if (maybeStyle && maybeStyle.type === "TEXT") {
+      textStyle = maybeStyle as TextStyle;
+    } else {
+      const allTextStyles = await figma.getLocalTextStylesAsync();
+      textStyle =
+        allTextStyles.find(function (s) {
+          return s.name === nodeId;
+        }) || null;
+      if (!textStyle) {
+        const normalizedInput = nodeId.replace(/-/g, "/");
+        if (normalizedInput !== nodeId) {
+          textStyle =
+            allTextStyles.find(function (s) {
+              return s.name === normalizedInput;
+            }) || null;
+        }
+      }
+    }
+    if (!textStyle) {
+      throw new Error(`Node or text style not found: ${nodeId}`);
+    }
   }
 
   let variable = await figma.variables.getVariableByIdAsync(variableId);
@@ -528,6 +552,35 @@ export async function bindVariable(params: Record<string, unknown>): Promise<Rec
     if (!variable) {
       throw new Error(`Variable not found: "${variableId}". Pass a variable ID or name (e.g. "background/primary").`);
     }
+  }
+
+  // Text style binding: TextStyle.setBoundVariable supports fontFamily, fontStyle,
+  // fontSize, fontWeight, lineHeight, letterSpacing, paragraphSpacing, paragraphIndent.
+  if (textStyle) {
+    try {
+      (
+        textStyle as TextStyle & {
+          setBoundVariable: (field: VariableBindableTextField, variable: Variable | null) => void;
+        }
+      ).setBoundVariable(field as VariableBindableTextField, variable);
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      throw new Error(
+        `Failed to bind variable to text style: ${errMsg}. Make sure the variable type (${variable.resolvedType}) is compatible with the field "${field}"`,
+      );
+    }
+    return {
+      styleId: textStyle.id,
+      styleName: textStyle.name,
+      field,
+      variableId: variable.id,
+      variableName: variable.name,
+      variableType: variable.resolvedType,
+    };
+  }
+
+  if (!node) {
+    throw new Error(`Node not found: ${nodeId}`);
   }
 
   const fieldParts = field.split("/");
@@ -612,8 +665,48 @@ export async function unbindVariable(params: Record<string, unknown>): Promise<R
   }
 
   const node = await figma.getNodeByIdAsync(nodeId);
+
+  // If no node, try TextStyle (by id or name) and unbind directly.
   if (!node) {
-    throw new Error(`Node not found: ${nodeId}`);
+    let textStyle: TextStyle | null = null;
+    const maybeStyle = await figma.getStyleByIdAsync(nodeId);
+    if (maybeStyle && maybeStyle.type === "TEXT") {
+      textStyle = maybeStyle as TextStyle;
+    } else {
+      const allTextStyles = await figma.getLocalTextStylesAsync();
+      textStyle =
+        allTextStyles.find(function (s) {
+          return s.name === nodeId;
+        }) || null;
+      if (!textStyle) {
+        const normalizedInput = nodeId.replace(/-/g, "/");
+        if (normalizedInput !== nodeId) {
+          textStyle =
+            allTextStyles.find(function (s) {
+              return s.name === normalizedInput;
+            }) || null;
+        }
+      }
+    }
+    if (!textStyle) {
+      throw new Error(`Node or text style not found: ${nodeId}`);
+    }
+    try {
+      (
+        textStyle as TextStyle & {
+          setBoundVariable: (field: VariableBindableTextField, variable: Variable | null) => void;
+        }
+      ).setBoundVariable(field as VariableBindableTextField, null);
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      throw new Error(`Failed to unbind variable from text style: ${errMsg}`);
+    }
+    return {
+      styleId: textStyle.id,
+      styleName: textStyle.name,
+      field,
+      success: true,
+    };
   }
 
   const fieldParts = field.split("/");
