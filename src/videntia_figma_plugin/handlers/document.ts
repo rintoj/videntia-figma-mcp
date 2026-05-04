@@ -49,6 +49,8 @@ export interface SearchNodesOptions {
   limit?: number;
   /** Max depth of children to include. */
   depth?: number;
+  /** Filter TEXT nodes by leadingTrim value(s) (e.g. "CAP_HEIGHT", "NONE"). Use empty query "" to match all. */
+  leadingTrim?: string | string[];
 }
 
 /**
@@ -56,8 +58,9 @@ export interface SearchNodesOptions {
  * Delegates to serializeNodes for consistent output format.
  */
 export async function searchNodes(options: SearchNodesOptions): Promise<unknown> {
-  const { query, types, nodeId, limit: limitOpt, depth } = options;
+  const { query, types, nodeId, limit: limitOpt, depth, leadingTrim } = options;
   const limit = limitOpt !== undefined ? limitOpt : 50;
+  const leadingTrimFilter = leadingTrim === undefined ? null : (Array.isArray(leadingTrim) ? leadingTrim : [leadingTrim]);
 
   // When nodeId is an array, search each root independently and group results
   if (Array.isArray(nodeId)) {
@@ -69,6 +72,7 @@ export async function searchNodes(options: SearchNodesOptions): Promise<unknown>
         nodeId: nodeId[i],
         limit: limit,
         depth: depth,
+        leadingTrim: leadingTrim,
       });
       grouped[nodeId[i]] = singleResult;
     }
@@ -102,7 +106,17 @@ export async function searchNodes(options: SearchNodesOptions): Promise<unknown>
     });
     const idMatch = queries.indexOf(node.id) !== -1;
     const typeMatch = !types || types.length === 0 || types.includes(node.type);
-    if ((nameMatch || idMatch) && typeMatch) {
+    let leadingTrimMatch = true;
+    if (leadingTrimFilter) {
+      if (node.type !== "TEXT") {
+        leadingTrimMatch = false;
+      } else {
+        const lt = (node as unknown as { leadingTrim?: string | symbol }).leadingTrim;
+        const ltStr = lt === figma.mixed ? "MIXED" : (typeof lt === "string" ? lt : "NONE");
+        leadingTrimMatch = leadingTrimFilter.indexOf(ltStr) !== -1;
+      }
+    }
+    if ((nameMatch || idMatch) && typeMatch && leadingTrimMatch) {
       matchedIds.push(node.id);
     }
     if ("children" in node) {
