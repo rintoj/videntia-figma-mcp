@@ -2,9 +2,7 @@
 // 1917 Lucide icons (from lucide-static npm package)
 
 export const LUCIDE_ICONS: Map<string, string> = new Map([
-  [
-    "a-arrow-down",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+  ["a-arrow-down", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-a-arrow-down"
   xmlns="http://www.w3.org/2000/svg"
@@ -21,11 +19,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M18 16V7" />
   <path d="m2 16 4.039-9.69a.5.5 0 0 1 .923 0L11 16" />
   <path d="M3.304 13h6.392" />
-</svg>`,
-  ],
-  [
-    "a-arrow-up",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["a-arrow-up", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-a-arrow-up"
   xmlns="http://www.w3.org/2000/svg"
@@ -42,11 +37,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M18 16V7" />
   <path d="m2 16 4.039-9.69a.5.5 0 0 1 .923 0L11 16" />
   <path d="M3.304 13h6.392" />
-</svg>`,
-  ],
-  [
-    "a-large-small",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["a-large-small", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-a-large-small"
   xmlns="http://www.w3.org/2000/svg"
@@ -63,11 +55,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M15.697 14h5.606" />
   <path d="m2 16 4.039-9.69a.5.5 0 0 1 .923 0L11 16" />
   <path d="M3.304 13h6.392" />
-</svg>`,
-  ],
-  [
-    "accessibility",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["accessibility", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-accessibility"
   xmlns="http://www.w3.org/2000/svg"
@@ -85,11 +74,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m5 8 3-3 5.5 3-2.36 3.5" />
   <path d="M4.24 14.5a5 5 0 0 0 6.88 6" />
   <path d="M13.76 17.5a5 5 0 0 0-6.88-6" />
-</svg>`,
-  ],
-  [
-    "activity-square",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["activity-square", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-activity-square"
   xmlns="http://www.w3.org/2000/svg"
@@ -104,11 +90,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="M17 12h-2l-2 5-2-10-2 5H7" />
-</svg>`,
-  ],
-  [
-    "activity",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["activity", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-activity"
   xmlns="http://www.w3.org/2000/svg"
@@ -122,11 +105,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2" />
-</svg>`,
-  ],
-  [
-    "air-vent",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["air-vent", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-air-vent"
   xmlns="http://www.w3.org/2000/svg"
@@ -143,11 +123,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M6 12H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
   <path d="M6 8h12" />
   <path d="M6.6 15.572A2 2 0 1 0 10 17v-5" />
-</svg>`,
-  ],
-  [
-    "airplay",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["airplay", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-airplay"
   xmlns="http://www.w3.org/2000/svg"
@@ -162,11 +139,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M5 17H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-1" />
   <path d="m12 15 5 6H7Z" />
-</svg>`,
-  ],
-  [
-    "alarm-check",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["alarm-check", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-alarm-check"
   xmlns="http://www.w3.org/2000/svg"
@@ -185,11 +159,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M6.38 18.7 4 21" />
   <path d="M17.64 18.67 20 21" />
   <path d="m9 13 2 2 4-4" />
-</svg>`,
-  ],
-  [
-    "alarm-clock-check",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["alarm-clock-check", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-alarm-clock-check"
   xmlns="http://www.w3.org/2000/svg"
@@ -208,11 +179,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M6.38 18.7 4 21" />
   <path d="M17.64 18.67 20 21" />
   <path d="m9 13 2 2 4-4" />
-</svg>`,
-  ],
-  [
-    "alarm-clock-minus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["alarm-clock-minus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-alarm-clock-minus"
   xmlns="http://www.w3.org/2000/svg"
@@ -231,11 +199,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M6.38 18.7 4 21" />
   <path d="M17.64 18.67 20 21" />
   <path d="M9 13h6" />
-</svg>`,
-  ],
-  [
-    "alarm-clock-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["alarm-clock-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-alarm-clock-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -254,11 +219,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M6.26 18.67 4 21" />
   <path d="m2 2 20 20" />
   <path d="M4 4 2 6" />
-</svg>`,
-  ],
-  [
-    "alarm-clock-plus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["alarm-clock-plus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-alarm-clock-plus"
   xmlns="http://www.w3.org/2000/svg"
@@ -278,11 +240,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M17.64 18.67 20 21" />
   <path d="M12 10v6" />
   <path d="M9 13h6" />
-</svg>`,
-  ],
-  [
-    "alarm-clock",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["alarm-clock", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-alarm-clock"
   xmlns="http://www.w3.org/2000/svg"
@@ -301,11 +260,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m22 6-3-3" />
   <path d="M6.38 18.7 4 21" />
   <path d="M17.64 18.67 20 21" />
-</svg>`,
-  ],
-  [
-    "alarm-minus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["alarm-minus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-alarm-minus"
   xmlns="http://www.w3.org/2000/svg"
@@ -324,11 +280,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M6.38 18.7 4 21" />
   <path d="M17.64 18.67 20 21" />
   <path d="M9 13h6" />
-</svg>`,
-  ],
-  [
-    "alarm-plus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["alarm-plus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-alarm-plus"
   xmlns="http://www.w3.org/2000/svg"
@@ -348,11 +301,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M17.64 18.67 20 21" />
   <path d="M12 10v6" />
   <path d="M9 13h6" />
-</svg>`,
-  ],
-  [
-    "alarm-smoke",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["alarm-smoke", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-alarm-smoke"
   xmlns="http://www.w3.org/2000/svg"
@@ -370,11 +320,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m19 8-.8 3a1.25 1.25 0 0 1-1.2 1H7a1.25 1.25 0 0 1-1.2-1L5 8" />
   <path d="M21 3a1 1 0 0 1 1 1v2a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V4a1 1 0 0 1 1-1z" />
   <path d="M6 21c0-2.5 2-2.5 2-5" />
-</svg>`,
-  ],
-  [
-    "album",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["album", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-album"
   xmlns="http://www.w3.org/2000/svg"
@@ -389,11 +336,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
   <polyline points="11 3 11 11 14 8 17 11 17 3" />
-</svg>`,
-  ],
-  [
-    "alert-circle",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["alert-circle", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-alert-circle"
   xmlns="http://www.w3.org/2000/svg"
@@ -409,11 +353,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="12" cy="12" r="10" />
   <line x1="12" x2="12" y1="8" y2="12" />
   <line x1="12" x2="12.01" y1="16" y2="16" />
-</svg>`,
-  ],
-  [
-    "alert-octagon",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["alert-octagon", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-alert-octagon"
   xmlns="http://www.w3.org/2000/svg"
@@ -429,11 +370,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 16h.01" />
   <path d="M12 8v4" />
   <path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z" />
-</svg>`,
-  ],
-  [
-    "alert-triangle",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["alert-triangle", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-alert-triangle"
   xmlns="http://www.w3.org/2000/svg"
@@ -449,11 +387,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
   <path d="M12 9v4" />
   <path d="M12 17h.01" />
-</svg>`,
-  ],
-  [
-    "align-center-horizontal",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["align-center-horizontal", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-align-center-horizontal"
   xmlns="http://www.w3.org/2000/svg"
@@ -471,11 +406,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M10 8V4a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v4" />
   <path d="M20 16v1a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2v-1" />
   <path d="M14 8V7c0-1.1.9-2 2-2h2a2 2 0 0 1 2 2v1" />
-</svg>`,
-  ],
-  [
-    "align-center-vertical",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["align-center-vertical", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-align-center-vertical"
   xmlns="http://www.w3.org/2000/svg"
@@ -493,11 +425,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M16 10h4a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-4" />
   <path d="M8 20H7a2 2 0 0 1-2-2v-2c0-1.1.9-2 2-2h1" />
   <path d="M16 14h1a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-1" />
-</svg>`,
-  ],
-  [
-    "align-center",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["align-center", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-align-center"
   xmlns="http://www.w3.org/2000/svg"
@@ -513,11 +442,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M21 5H3" />
   <path d="M17 12H7" />
   <path d="M19 19H5" />
-</svg>`,
-  ],
-  [
-    "align-end-horizontal",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["align-end-horizontal", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-align-end-horizontal"
   xmlns="http://www.w3.org/2000/svg"
@@ -533,11 +459,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="6" height="16" x="4" y="2" rx="2" />
   <rect width="6" height="9" x="14" y="9" rx="2" />
   <path d="M22 22H2" />
-</svg>`,
-  ],
-  [
-    "align-end-vertical",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["align-end-vertical", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-align-end-vertical"
   xmlns="http://www.w3.org/2000/svg"
@@ -553,11 +476,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="16" height="6" x="2" y="4" rx="2" />
   <rect width="9" height="6" x="9" y="14" rx="2" />
   <path d="M22 22V2" />
-</svg>`,
-  ],
-  [
-    "align-horizontal-distribute-center",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["align-horizontal-distribute-center", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-align-horizontal-distribute-center"
   xmlns="http://www.w3.org/2000/svg"
@@ -576,11 +496,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M17 7V2" />
   <path d="M7 22v-3" />
   <path d="M7 5V2" />
-</svg>`,
-  ],
-  [
-    "align-horizontal-distribute-end",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["align-horizontal-distribute-end", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-align-horizontal-distribute-end"
   xmlns="http://www.w3.org/2000/svg"
@@ -597,11 +514,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="6" height="10" x="14" y="7" rx="2" />
   <path d="M10 2v20" />
   <path d="M20 2v20" />
-</svg>`,
-  ],
-  [
-    "align-horizontal-distribute-start",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["align-horizontal-distribute-start", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-align-horizontal-distribute-start"
   xmlns="http://www.w3.org/2000/svg"
@@ -618,11 +532,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="6" height="10" x="14" y="7" rx="2" />
   <path d="M4 2v20" />
   <path d="M14 2v20" />
-</svg>`,
-  ],
-  [
-    "align-horizontal-justify-center",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["align-horizontal-justify-center", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-align-horizontal-justify-center"
   xmlns="http://www.w3.org/2000/svg"
@@ -638,11 +549,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="6" height="14" x="2" y="5" rx="2" />
   <rect width="6" height="10" x="16" y="7" rx="2" />
   <path d="M12 2v20" />
-</svg>`,
-  ],
-  [
-    "align-horizontal-justify-end",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["align-horizontal-justify-end", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-align-horizontal-justify-end"
   xmlns="http://www.w3.org/2000/svg"
@@ -658,11 +566,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="6" height="14" x="2" y="5" rx="2" />
   <rect width="6" height="10" x="12" y="7" rx="2" />
   <path d="M22 2v20" />
-</svg>`,
-  ],
-  [
-    "align-horizontal-justify-start",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["align-horizontal-justify-start", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-align-horizontal-justify-start"
   xmlns="http://www.w3.org/2000/svg"
@@ -678,11 +583,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="6" height="14" x="6" y="5" rx="2" />
   <rect width="6" height="10" x="16" y="7" rx="2" />
   <path d="M2 2v20" />
-</svg>`,
-  ],
-  [
-    "align-horizontal-space-around",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["align-horizontal-space-around", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-align-horizontal-space-around"
   xmlns="http://www.w3.org/2000/svg"
@@ -698,11 +600,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="6" height="10" x="9" y="7" rx="2" />
   <path d="M4 22V2" />
   <path d="M20 22V2" />
-</svg>`,
-  ],
-  [
-    "align-horizontal-space-between",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["align-horizontal-space-between", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-align-horizontal-space-between"
   xmlns="http://www.w3.org/2000/svg"
@@ -719,11 +618,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="6" height="10" x="15" y="7" rx="2" />
   <path d="M3 2v20" />
   <path d="M21 2v20" />
-</svg>`,
-  ],
-  [
-    "align-justify",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["align-justify", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-align-justify"
   xmlns="http://www.w3.org/2000/svg"
@@ -739,11 +635,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3 5h18" />
   <path d="M3 12h18" />
   <path d="M3 19h18" />
-</svg>`,
-  ],
-  [
-    "align-left",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["align-left", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-align-left"
   xmlns="http://www.w3.org/2000/svg"
@@ -759,11 +652,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M21 5H3" />
   <path d="M15 12H3" />
   <path d="M17 19H3" />
-</svg>`,
-  ],
-  [
-    "align-right",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["align-right", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-align-right"
   xmlns="http://www.w3.org/2000/svg"
@@ -779,11 +669,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M21 5H3" />
   <path d="M21 12H9" />
   <path d="M21 19H7" />
-</svg>`,
-  ],
-  [
-    "align-start-horizontal",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["align-start-horizontal", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-align-start-horizontal"
   xmlns="http://www.w3.org/2000/svg"
@@ -799,11 +686,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="6" height="16" x="4" y="6" rx="2" />
   <rect width="6" height="9" x="14" y="6" rx="2" />
   <path d="M22 2H2" />
-</svg>`,
-  ],
-  [
-    "align-start-vertical",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["align-start-vertical", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-align-start-vertical"
   xmlns="http://www.w3.org/2000/svg"
@@ -819,11 +703,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="9" height="6" x="6" y="14" rx="2" />
   <rect width="16" height="6" x="6" y="4" rx="2" />
   <path d="M2 2v20" />
-</svg>`,
-  ],
-  [
-    "align-vertical-distribute-center",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["align-vertical-distribute-center", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-align-vertical-distribute-center"
   xmlns="http://www.w3.org/2000/svg"
@@ -842,11 +723,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M7 7H2" />
   <rect x="5" y="14" width="14" height="6" rx="2" />
   <rect x="7" y="4" width="10" height="6" rx="2" />
-</svg>`,
-  ],
-  [
-    "align-vertical-distribute-end",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["align-vertical-distribute-end", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-align-vertical-distribute-end"
   xmlns="http://www.w3.org/2000/svg"
@@ -863,11 +741,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="10" height="6" x="7" y="4" rx="2" />
   <path d="M2 20h20" />
   <path d="M2 10h20" />
-</svg>`,
-  ],
-  [
-    "align-vertical-distribute-start",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["align-vertical-distribute-start", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-align-vertical-distribute-start"
   xmlns="http://www.w3.org/2000/svg"
@@ -884,11 +759,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="10" height="6" x="7" y="4" rx="2" />
   <path d="M2 14h20" />
   <path d="M2 4h20" />
-</svg>`,
-  ],
-  [
-    "align-vertical-justify-center",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["align-vertical-justify-center", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-align-vertical-justify-center"
   xmlns="http://www.w3.org/2000/svg"
@@ -904,11 +776,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="14" height="6" x="5" y="16" rx="2" />
   <rect width="10" height="6" x="7" y="2" rx="2" />
   <path d="M2 12h20" />
-</svg>`,
-  ],
-  [
-    "align-vertical-justify-end",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["align-vertical-justify-end", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-align-vertical-justify-end"
   xmlns="http://www.w3.org/2000/svg"
@@ -924,11 +793,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="14" height="6" x="5" y="12" rx="2" />
   <rect width="10" height="6" x="7" y="2" rx="2" />
   <path d="M2 22h20" />
-</svg>`,
-  ],
-  [
-    "align-vertical-justify-start",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["align-vertical-justify-start", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-align-vertical-justify-start"
   xmlns="http://www.w3.org/2000/svg"
@@ -944,11 +810,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="14" height="6" x="5" y="16" rx="2" />
   <rect width="10" height="6" x="7" y="6" rx="2" />
   <path d="M2 2h20" />
-</svg>`,
-  ],
-  [
-    "align-vertical-space-around",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["align-vertical-space-around", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-align-vertical-space-around"
   xmlns="http://www.w3.org/2000/svg"
@@ -964,11 +827,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="10" height="6" x="7" y="9" rx="2" />
   <path d="M22 20H2" />
   <path d="M22 4H2" />
-</svg>`,
-  ],
-  [
-    "align-vertical-space-between",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["align-vertical-space-between", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-align-vertical-space-between"
   xmlns="http://www.w3.org/2000/svg"
@@ -985,11 +845,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="10" height="6" x="7" y="3" rx="2" />
   <path d="M2 21h20" />
   <path d="M2 3h20" />
-</svg>`,
-  ],
-  [
-    "ambulance",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["ambulance", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-ambulance"
   xmlns="http://www.w3.org/2000/svg"
@@ -1010,11 +867,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M9 18h6" />
   <circle cx="17" cy="18" r="2" />
   <circle cx="7" cy="18" r="2" />
-</svg>`,
-  ],
-  [
-    "ampersand",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["ampersand", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-ampersand"
   xmlns="http://www.w3.org/2000/svg"
@@ -1029,11 +883,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M16 12h3" />
   <path d="M17.5 12a8 8 0 0 1-8 8A4.5 4.5 0 0 1 5 15.5c0-6 8-4 8-8.5a3 3 0 1 0-6 0c0 3 2.5 8.5 12 13" />
-</svg>`,
-  ],
-  [
-    "ampersands",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["ampersands", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-ampersands"
   xmlns="http://www.w3.org/2000/svg"
@@ -1048,11 +899,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M10 17c-5-3-7-7-7-9a2 2 0 0 1 4 0c0 2.5-5 2.5-5 6 0 1.7 1.3 3 3 3 2.8 0 5-2.2 5-5" />
   <path d="M22 17c-5-3-7-7-7-9a2 2 0 0 1 4 0c0 2.5-5 2.5-5 6 0 1.7 1.3 3 3 3 2.8 0 5-2.2 5-5" />
-</svg>`,
-  ],
-  [
-    "amphora",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["amphora", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-amphora"
   xmlns="http://www.w3.org/2000/svg"
@@ -1071,11 +919,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 5h2a2 2 0 0 1 0 4h-.68" />
   <path d="M18 22H6" />
   <path d="M9 2h6" />
-</svg>`,
-  ],
-  [
-    "anchor",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["anchor", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-anchor"
   xmlns="http://www.w3.org/2000/svg"
@@ -1092,11 +937,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m19 13 2-1a9 9 0 0 1-18 0l2 1" />
   <path d="M9 11h6" />
   <circle cx="12" cy="4" r="2" />
-</svg>`,
-  ],
-  [
-    "angry",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["angry", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-angry"
   xmlns="http://www.w3.org/2000/svg"
@@ -1115,11 +957,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m14 9 2.5-1" />
   <path d="M9 10h.01" />
   <path d="M15 10h.01" />
-</svg>`,
-  ],
-  [
-    "annoyed",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["annoyed", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-annoyed"
   xmlns="http://www.w3.org/2000/svg"
@@ -1136,11 +975,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M8 15h8" />
   <path d="M8 9h2" />
   <path d="M14 9h2" />
-</svg>`,
-  ],
-  [
-    "antenna",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["antenna", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-antenna"
   xmlns="http://www.w3.org/2000/svg"
@@ -1159,11 +995,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m17 12 5-10" />
   <path d="M4.5 7h15" />
   <path d="M12 16v6" />
-</svg>`,
-  ],
-  [
-    "anvil",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["anvil", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-anvil"
   xmlns="http://www.w3.org/2000/svg"
@@ -1181,11 +1014,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M9 12v5" />
   <path d="M15 12v5" />
   <path d="M5 20a3 3 0 0 1 3-3h8a3 3 0 0 1 3 3 1 1 0 0 1-1 1H6a1 1 0 0 1-1-1" />
-</svg>`,
-  ],
-  [
-    "aperture",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["aperture", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-aperture"
   xmlns="http://www.w3.org/2000/svg"
@@ -1205,11 +1035,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M9.69 16 3.95 6.06" />
   <path d="M14.31 16H2.83" />
   <path d="m16.62 12-5.74 9.94" />
-</svg>`,
-  ],
-  [
-    "app-window-mac",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["app-window-mac", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-app-window-mac"
   xmlns="http://www.w3.org/2000/svg"
@@ -1226,11 +1053,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M6 8h.01" />
   <path d="M10 8h.01" />
   <path d="M14 8h.01" />
-</svg>`,
-  ],
-  [
-    "app-window",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["app-window", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-app-window"
   xmlns="http://www.w3.org/2000/svg"
@@ -1247,11 +1071,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M10 4v4" />
   <path d="M2 8h20" />
   <path d="M6 4v4" />
-</svg>`,
-  ],
-  [
-    "apple",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["apple", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-apple"
   xmlns="http://www.w3.org/2000/svg"
@@ -1266,11 +1087,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M12 6.528V3a1 1 0 0 1 1-1h0" />
   <path d="M18.237 21A15 15 0 0 0 22 11a6 6 0 0 0-10-4.472A6 6 0 0 0 2 11a15.1 15.1 0 0 0 3.763 10 3 3 0 0 0 3.648.648 5.5 5.5 0 0 1 5.178 0A3 3 0 0 0 18.237 21" />
-</svg>`,
-  ],
-  [
-    "archive-restore",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["archive-restore", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-archive-restore"
   xmlns="http://www.w3.org/2000/svg"
@@ -1288,11 +1106,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M20 8v11a2 2 0 0 1-2 2h-2" />
   <path d="m9 15 3-3 3 3" />
   <path d="M12 12v9" />
-</svg>`,
-  ],
-  [
-    "archive-x",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["archive-x", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-archive-x"
   xmlns="http://www.w3.org/2000/svg"
@@ -1309,11 +1124,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8" />
   <path d="m9.5 17 5-5" />
   <path d="m9.5 12 5 5" />
-</svg>`,
-  ],
-  [
-    "archive",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["archive", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-archive"
   xmlns="http://www.w3.org/2000/svg"
@@ -1329,11 +1141,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="20" height="5" x="2" y="3" rx="1" />
   <path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8" />
   <path d="M10 12h4" />
-</svg>`,
-  ],
-  [
-    "area-chart",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["area-chart", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-area-chart"
   xmlns="http://www.w3.org/2000/svg"
@@ -1348,11 +1157,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M3 3v16a2 2 0 0 0 2 2h16" />
   <path d="M7 11.207a.5.5 0 0 1 .146-.353l2-2a.5.5 0 0 1 .708 0l3.292 3.292a.5.5 0 0 0 .708 0l4.292-4.292a.5.5 0 0 1 .854.353V16a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1z" />
-</svg>`,
-  ],
-  [
-    "armchair",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["armchair", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-armchair"
   xmlns="http://www.w3.org/2000/svg"
@@ -1369,11 +1175,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3 16a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5a2 2 0 0 0-4 0v1.5a.5.5 0 0 1-.5.5h-9a.5.5 0 0 1-.5-.5V11a2 2 0 0 0-4 0z" />
   <path d="M5 18v2" />
   <path d="M19 18v2" />
-</svg>`,
-  ],
-  [
-    "arrow-big-down-dash",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-big-down-dash", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-big-down-dash"
   xmlns="http://www.w3.org/2000/svg"
@@ -1388,11 +1191,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M15 11a1 1 0 0 0 1 1h2.939a1 1 0 0 1 .75 1.811l-6.835 6.836a1.207 1.207 0 0 1-1.707 0L4.31 13.81a1 1 0 0 1 .75-1.811H8a1 1 0 0 0 1-1V9a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1z" />
   <path d="M9 4h6" />
-</svg>`,
-  ],
-  [
-    "arrow-big-down",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-big-down", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-big-down"
   xmlns="http://www.w3.org/2000/svg"
@@ -1406,11 +1206,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M15 11a1 1 0 0 0 1 1h2.939a1 1 0 0 1 .75 1.811l-6.835 6.836a1.207 1.207 0 0 1-1.707 0L4.31 13.81a1 1 0 0 1 .75-1.811H8a1 1 0 0 0 1-1V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1z" />
-</svg>`,
-  ],
-  [
-    "arrow-big-left-dash",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-big-left-dash", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-big-left-dash"
   xmlns="http://www.w3.org/2000/svg"
@@ -1425,11 +1222,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M13 9a1 1 0 0 1-1-1V5.061a1 1 0 0 0-1.811-.75l-6.835 6.836a1.207 1.207 0 0 0 0 1.707l6.835 6.835a1 1 0 0 0 1.811-.75V16a1 1 0 0 1 1-1h2a1 1 0 0 0 1-1v-4a1 1 0 0 0-1-1z" />
   <path d="M20 9v6" />
-</svg>`,
-  ],
-  [
-    "arrow-big-left",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-big-left", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-big-left"
   xmlns="http://www.w3.org/2000/svg"
@@ -1443,11 +1237,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M13 9a1 1 0 0 1-1-1V5.061a1 1 0 0 0-1.811-.75l-6.835 6.836a1.207 1.207 0 0 0 0 1.707l6.835 6.835a1 1 0 0 0 1.811-.75V16a1 1 0 0 1 1-1h6a1 1 0 0 0 1-1v-4a1 1 0 0 0-1-1z" />
-</svg>`,
-  ],
-  [
-    "arrow-big-right-dash",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-big-right-dash", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-big-right-dash"
   xmlns="http://www.w3.org/2000/svg"
@@ -1462,11 +1253,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M11 9a1 1 0 0 0 1-1V5.061a1 1 0 0 1 1.811-.75l6.836 6.836a1.207 1.207 0 0 1 0 1.707l-6.836 6.835a1 1 0 0 1-1.811-.75V16a1 1 0 0 0-1-1H9a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1z" />
   <path d="M4 9v6" />
-</svg>`,
-  ],
-  [
-    "arrow-big-right",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-big-right", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-big-right"
   xmlns="http://www.w3.org/2000/svg"
@@ -1480,11 +1268,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M11 9a1 1 0 0 0 1-1V5.061a1 1 0 0 1 1.811-.75l6.836 6.836a1.207 1.207 0 0 1 0 1.707l-6.836 6.835a1 1 0 0 1-1.811-.75V16a1 1 0 0 0-1-1H5a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1z" />
-</svg>`,
-  ],
-  [
-    "arrow-big-up-dash",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-big-up-dash", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-big-up-dash"
   xmlns="http://www.w3.org/2000/svg"
@@ -1499,11 +1284,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M9 13a1 1 0 0 0-1-1H5.061a1 1 0 0 1-.75-1.811l6.836-6.835a1.207 1.207 0 0 1 1.707 0l6.835 6.835a1 1 0 0 1-.75 1.811H16a1 1 0 0 0-1 1v2a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1z" />
   <path d="M9 20h6" />
-</svg>`,
-  ],
-  [
-    "arrow-big-up",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-big-up", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-big-up"
   xmlns="http://www.w3.org/2000/svg"
@@ -1517,11 +1299,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M9 13a1 1 0 0 0-1-1H5.061a1 1 0 0 1-.75-1.811l6.836-6.835a1.207 1.207 0 0 1 1.707 0l6.835 6.835a1 1 0 0 1-.75 1.811H16a1 1 0 0 0-1 1v6a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1z" />
-</svg>`,
-  ],
-  [
-    "arrow-down-0-1",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-down-0-1", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-down-0-1"
   xmlns="http://www.w3.org/2000/svg"
@@ -1539,11 +1318,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect x="15" y="4" width="4" height="6" ry="2" />
   <path d="M17 20v-6h-2" />
   <path d="M15 20h4" />
-</svg>`,
-  ],
-  [
-    "arrow-down-01",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-down-01", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-down-01"
   xmlns="http://www.w3.org/2000/svg"
@@ -1561,11 +1337,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect x="15" y="4" width="4" height="6" ry="2" />
   <path d="M17 20v-6h-2" />
   <path d="M15 20h4" />
-</svg>`,
-  ],
-  [
-    "arrow-down-1-0",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-down-1-0", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-down-1-0"
   xmlns="http://www.w3.org/2000/svg"
@@ -1583,11 +1356,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M17 10V4h-2" />
   <path d="M15 10h4" />
   <rect x="15" y="14" width="4" height="6" ry="2" />
-</svg>`,
-  ],
-  [
-    "arrow-down-10",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-down-10", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-down-10"
   xmlns="http://www.w3.org/2000/svg"
@@ -1605,11 +1375,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M17 10V4h-2" />
   <path d="M15 10h4" />
   <rect x="15" y="14" width="4" height="6" ry="2" />
-</svg>`,
-  ],
-  [
-    "arrow-down-a-z",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-down-a-z", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-down-a-z"
   xmlns="http://www.w3.org/2000/svg"
@@ -1627,11 +1394,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M20 8h-5" />
   <path d="M15 10V6.5a2.5 2.5 0 0 1 5 0V10" />
   <path d="M15 14h5l-5 6h5" />
-</svg>`,
-  ],
-  [
-    "arrow-down-az",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-down-az", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-down-az"
   xmlns="http://www.w3.org/2000/svg"
@@ -1649,11 +1413,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M20 8h-5" />
   <path d="M15 10V6.5a2.5 2.5 0 0 1 5 0V10" />
   <path d="M15 14h5l-5 6h5" />
-</svg>`,
-  ],
-  [
-    "arrow-down-circle",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-down-circle", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-down-circle"
   xmlns="http://www.w3.org/2000/svg"
@@ -1669,11 +1430,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="12" cy="12" r="10" />
   <path d="M12 8v8" />
   <path d="m8 12 4 4 4-4" />
-</svg>`,
-  ],
-  [
-    "arrow-down-from-line",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-down-from-line", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-down-from-line"
   xmlns="http://www.w3.org/2000/svg"
@@ -1689,11 +1447,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M19 3H5" />
   <path d="M12 21V7" />
   <path d="m6 15 6 6 6-6" />
-</svg>`,
-  ],
-  [
-    "arrow-down-left-from-circle",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-down-left-from-circle", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-down-left-from-circle"
   xmlns="http://www.w3.org/2000/svg"
@@ -1709,11 +1464,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M2 12a10 10 0 1 1 10 10" />
   <path d="m2 22 10-10" />
   <path d="M8 22H2v-6" />
-</svg>`,
-  ],
-  [
-    "arrow-down-left-from-square",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-down-left-from-square", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-down-left-from-square"
   xmlns="http://www.w3.org/2000/svg"
@@ -1729,11 +1481,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M13 21h6a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v6" />
   <path d="m3 21 9-9" />
   <path d="M9 21H3v-6" />
-</svg>`,
-  ],
-  [
-    "arrow-down-left-square",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-down-left-square", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-down-left-square"
   xmlns="http://www.w3.org/2000/svg"
@@ -1749,11 +1498,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="m16 8-8 8" />
   <path d="M16 16H8V8" />
-</svg>`,
-  ],
-  [
-    "arrow-down-left",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-down-left", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-down-left"
   xmlns="http://www.w3.org/2000/svg"
@@ -1768,11 +1514,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M17 7 7 17" />
   <path d="M17 17H7V7" />
-</svg>`,
-  ],
-  [
-    "arrow-down-narrow-wide",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-down-narrow-wide", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-down-narrow-wide"
   xmlns="http://www.w3.org/2000/svg"
@@ -1790,11 +1533,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M11 4h4" />
   <path d="M11 8h7" />
   <path d="M11 12h10" />
-</svg>`,
-  ],
-  [
-    "arrow-down-right-from-circle",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-down-right-from-circle", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-down-right-from-circle"
   xmlns="http://www.w3.org/2000/svg"
@@ -1810,11 +1550,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 22a10 10 0 1 1 10-10" />
   <path d="M22 22 12 12" />
   <path d="M22 16v6h-6" />
-</svg>`,
-  ],
-  [
-    "arrow-down-right-from-square",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-down-right-from-square", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-down-right-from-square"
   xmlns="http://www.w3.org/2000/svg"
@@ -1830,11 +1567,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M21 11V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h6" />
   <path d="m21 21-9-9" />
   <path d="M21 15v6h-6" />
-</svg>`,
-  ],
-  [
-    "arrow-down-right-square",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-down-right-square", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-down-right-square"
   xmlns="http://www.w3.org/2000/svg"
@@ -1850,11 +1584,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="m8 8 8 8" />
   <path d="M16 8v8H8" />
-</svg>`,
-  ],
-  [
-    "arrow-down-right",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-down-right", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-down-right"
   xmlns="http://www.w3.org/2000/svg"
@@ -1869,11 +1600,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="m7 7 10 10" />
   <path d="M17 7v10H7" />
-</svg>`,
-  ],
-  [
-    "arrow-down-square",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-down-square", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-down-square"
   xmlns="http://www.w3.org/2000/svg"
@@ -1889,11 +1617,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="M12 8v8" />
   <path d="m8 12 4 4 4-4" />
-</svg>`,
-  ],
-  [
-    "arrow-down-to-dot",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-down-to-dot", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-down-to-dot"
   xmlns="http://www.w3.org/2000/svg"
@@ -1909,11 +1634,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 2v14" />
   <path d="m19 9-7 7-7-7" />
   <circle cx="12" cy="21" r="1" />
-</svg>`,
-  ],
-  [
-    "arrow-down-to-line",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-down-to-line", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-down-to-line"
   xmlns="http://www.w3.org/2000/svg"
@@ -1929,11 +1651,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 17V3" />
   <path d="m6 11 6 6 6-6" />
   <path d="M19 21H5" />
-</svg>`,
-  ],
-  [
-    "arrow-down-up",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-down-up", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-down-up"
   xmlns="http://www.w3.org/2000/svg"
@@ -1950,11 +1669,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M7 20V4" />
   <path d="m21 8-4-4-4 4" />
   <path d="M17 4v16" />
-</svg>`,
-  ],
-  [
-    "arrow-down-wide-narrow",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-down-wide-narrow", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-down-wide-narrow"
   xmlns="http://www.w3.org/2000/svg"
@@ -1972,11 +1688,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M11 4h10" />
   <path d="M11 8h7" />
   <path d="M11 12h4" />
-</svg>`,
-  ],
-  [
-    "arrow-down-z-a",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-down-z-a", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-down-z-a"
   xmlns="http://www.w3.org/2000/svg"
@@ -1994,11 +1707,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M15 4h5l-5 6h5" />
   <path d="M15 20v-3.5a2.5 2.5 0 0 1 5 0V20" />
   <path d="M20 18h-5" />
-</svg>`,
-  ],
-  [
-    "arrow-down-za",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-down-za", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-down-za"
   xmlns="http://www.w3.org/2000/svg"
@@ -2016,11 +1726,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M15 4h5l-5 6h5" />
   <path d="M15 20v-3.5a2.5 2.5 0 0 1 5 0V20" />
   <path d="M20 18h-5" />
-</svg>`,
-  ],
-  [
-    "arrow-down",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-down", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-down"
   xmlns="http://www.w3.org/2000/svg"
@@ -2035,11 +1742,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M12 5v14" />
   <path d="m19 12-7 7-7-7" />
-</svg>`,
-  ],
-  [
-    "arrow-left-circle",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-left-circle", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-left-circle"
   xmlns="http://www.w3.org/2000/svg"
@@ -2055,11 +1759,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="12" cy="12" r="10" />
   <path d="m12 8-4 4 4 4" />
   <path d="M16 12H8" />
-</svg>`,
-  ],
-  [
-    "arrow-left-from-line",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-left-from-line", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-left-from-line"
   xmlns="http://www.w3.org/2000/svg"
@@ -2075,11 +1776,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m9 6-6 6 6 6" />
   <path d="M3 12h14" />
   <path d="M21 19V5" />
-</svg>`,
-  ],
-  [
-    "arrow-left-right",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-left-right", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-left-right"
   xmlns="http://www.w3.org/2000/svg"
@@ -2096,11 +1794,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M4 7h16" />
   <path d="m16 21 4-4-4-4" />
   <path d="M20 17H4" />
-</svg>`,
-  ],
-  [
-    "arrow-left-square",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-left-square", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-left-square"
   xmlns="http://www.w3.org/2000/svg"
@@ -2116,11 +1811,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="m12 8-4 4 4 4" />
   <path d="M16 12H8" />
-</svg>`,
-  ],
-  [
-    "arrow-left-to-line",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-left-to-line", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-left-to-line"
   xmlns="http://www.w3.org/2000/svg"
@@ -2136,11 +1828,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3 19V5" />
   <path d="m13 6-6 6 6 6" />
   <path d="M7 12h14" />
-</svg>`,
-  ],
-  [
-    "arrow-left",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-left", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-left"
   xmlns="http://www.w3.org/2000/svg"
@@ -2155,11 +1844,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="m12 19-7-7 7-7" />
   <path d="M19 12H5" />
-</svg>`,
-  ],
-  [
-    "arrow-right-circle",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-right-circle", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-right-circle"
   xmlns="http://www.w3.org/2000/svg"
@@ -2175,11 +1861,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="12" cy="12" r="10" />
   <path d="m12 16 4-4-4-4" />
   <path d="M8 12h8" />
-</svg>`,
-  ],
-  [
-    "arrow-right-from-line",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-right-from-line", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-right-from-line"
   xmlns="http://www.w3.org/2000/svg"
@@ -2195,11 +1878,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3 5v14" />
   <path d="M21 12H7" />
   <path d="m15 18 6-6-6-6" />
-</svg>`,
-  ],
-  [
-    "arrow-right-left",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-right-left", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-right-left"
   xmlns="http://www.w3.org/2000/svg"
@@ -2216,11 +1896,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M20 7H4" />
   <path d="m8 21-4-4 4-4" />
   <path d="M4 17h16" />
-</svg>`,
-  ],
-  [
-    "arrow-right-square",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-right-square", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-right-square"
   xmlns="http://www.w3.org/2000/svg"
@@ -2236,11 +1913,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="M8 12h8" />
   <path d="m12 16 4-4-4-4" />
-</svg>`,
-  ],
-  [
-    "arrow-right-to-line",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-right-to-line", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-right-to-line"
   xmlns="http://www.w3.org/2000/svg"
@@ -2256,11 +1930,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M17 12H3" />
   <path d="m11 18 6-6-6-6" />
   <path d="M21 5v14" />
-</svg>`,
-  ],
-  [
-    "arrow-right",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-right", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-right"
   xmlns="http://www.w3.org/2000/svg"
@@ -2275,11 +1946,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M5 12h14" />
   <path d="m12 5 7 7-7 7" />
-</svg>`,
-  ],
-  [
-    "arrow-up-0-1",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-up-0-1", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-up-0-1"
   xmlns="http://www.w3.org/2000/svg"
@@ -2297,11 +1965,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect x="15" y="4" width="4" height="6" ry="2" />
   <path d="M17 20v-6h-2" />
   <path d="M15 20h4" />
-</svg>`,
-  ],
-  [
-    "arrow-up-01",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-up-01", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-up-01"
   xmlns="http://www.w3.org/2000/svg"
@@ -2319,11 +1984,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect x="15" y="4" width="4" height="6" ry="2" />
   <path d="M17 20v-6h-2" />
   <path d="M15 20h4" />
-</svg>`,
-  ],
-  [
-    "arrow-up-1-0",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-up-1-0", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-up-1-0"
   xmlns="http://www.w3.org/2000/svg"
@@ -2341,11 +2003,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M17 10V4h-2" />
   <path d="M15 10h4" />
   <rect x="15" y="14" width="4" height="6" ry="2" />
-</svg>`,
-  ],
-  [
-    "arrow-up-10",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-up-10", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-up-10"
   xmlns="http://www.w3.org/2000/svg"
@@ -2363,11 +2022,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M17 10V4h-2" />
   <path d="M15 10h4" />
   <rect x="15" y="14" width="4" height="6" ry="2" />
-</svg>`,
-  ],
-  [
-    "arrow-up-a-z",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-up-a-z", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-up-a-z"
   xmlns="http://www.w3.org/2000/svg"
@@ -2385,11 +2041,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M20 8h-5" />
   <path d="M15 10V6.5a2.5 2.5 0 0 1 5 0V10" />
   <path d="M15 14h5l-5 6h5" />
-</svg>`,
-  ],
-  [
-    "arrow-up-az",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-up-az", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-up-az"
   xmlns="http://www.w3.org/2000/svg"
@@ -2407,11 +2060,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M20 8h-5" />
   <path d="M15 10V6.5a2.5 2.5 0 0 1 5 0V10" />
   <path d="M15 14h5l-5 6h5" />
-</svg>`,
-  ],
-  [
-    "arrow-up-circle",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-up-circle", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-up-circle"
   xmlns="http://www.w3.org/2000/svg"
@@ -2427,11 +2077,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="12" cy="12" r="10" />
   <path d="m16 12-4-4-4 4" />
   <path d="M12 16V8" />
-</svg>`,
-  ],
-  [
-    "arrow-up-down",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-up-down", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-up-down"
   xmlns="http://www.w3.org/2000/svg"
@@ -2448,11 +2095,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M17 20V4" />
   <path d="m3 8 4-4 4 4" />
   <path d="M7 4v16" />
-</svg>`,
-  ],
-  [
-    "arrow-up-from-dot",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-up-from-dot", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-up-from-dot"
   xmlns="http://www.w3.org/2000/svg"
@@ -2468,11 +2112,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m5 9 7-7 7 7" />
   <path d="M12 16V2" />
   <circle cx="12" cy="21" r="1" />
-</svg>`,
-  ],
-  [
-    "arrow-up-from-line",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-up-from-line", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-up-from-line"
   xmlns="http://www.w3.org/2000/svg"
@@ -2488,11 +2129,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m18 9-6-6-6 6" />
   <path d="M12 3v14" />
   <path d="M5 21h14" />
-</svg>`,
-  ],
-  [
-    "arrow-up-left-from-circle",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-up-left-from-circle", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-up-left-from-circle"
   xmlns="http://www.w3.org/2000/svg"
@@ -2508,11 +2146,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M2 8V2h6" />
   <path d="m2 2 10 10" />
   <path d="M12 2A10 10 0 1 1 2 12" />
-</svg>`,
-  ],
-  [
-    "arrow-up-left-from-square",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-up-left-from-square", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-up-left-from-square"
   xmlns="http://www.w3.org/2000/svg"
@@ -2528,11 +2163,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M13 3h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-6" />
   <path d="m3 3 9 9" />
   <path d="M3 9V3h6" />
-</svg>`,
-  ],
-  [
-    "arrow-up-left-square",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-up-left-square", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-up-left-square"
   xmlns="http://www.w3.org/2000/svg"
@@ -2548,11 +2180,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="M8 16V8h8" />
   <path d="M16 16 8 8" />
-</svg>`,
-  ],
-  [
-    "arrow-up-left",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-up-left", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-up-left"
   xmlns="http://www.w3.org/2000/svg"
@@ -2567,11 +2196,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M7 17V7h10" />
   <path d="M17 17 7 7" />
-</svg>`,
-  ],
-  [
-    "arrow-up-narrow-wide",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-up-narrow-wide", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-up-narrow-wide"
   xmlns="http://www.w3.org/2000/svg"
@@ -2589,11 +2215,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M11 12h4" />
   <path d="M11 16h7" />
   <path d="M11 20h10" />
-</svg>`,
-  ],
-  [
-    "arrow-up-right-from-circle",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-up-right-from-circle", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-up-right-from-circle"
   xmlns="http://www.w3.org/2000/svg"
@@ -2609,11 +2232,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M22 12A10 10 0 1 1 12 2" />
   <path d="M22 2 12 12" />
   <path d="M16 2h6v6" />
-</svg>`,
-  ],
-  [
-    "arrow-up-right-from-square",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-up-right-from-square", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-up-right-from-square"
   xmlns="http://www.w3.org/2000/svg"
@@ -2629,11 +2249,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M21 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h6" />
   <path d="m21 3-9 9" />
   <path d="M15 3h6v6" />
-</svg>`,
-  ],
-  [
-    "arrow-up-right-square",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-up-right-square", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-up-right-square"
   xmlns="http://www.w3.org/2000/svg"
@@ -2649,11 +2266,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="M8 8h8v8" />
   <path d="m8 16 8-8" />
-</svg>`,
-  ],
-  [
-    "arrow-up-right",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-up-right", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-up-right"
   xmlns="http://www.w3.org/2000/svg"
@@ -2668,11 +2282,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M7 7h10v10" />
   <path d="M7 17 17 7" />
-</svg>`,
-  ],
-  [
-    "arrow-up-square",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-up-square", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-up-square"
   xmlns="http://www.w3.org/2000/svg"
@@ -2688,11 +2299,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="m16 12-4-4-4 4" />
   <path d="M12 16V8" />
-</svg>`,
-  ],
-  [
-    "arrow-up-to-line",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-up-to-line", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-up-to-line"
   xmlns="http://www.w3.org/2000/svg"
@@ -2708,11 +2316,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M5 3h14" />
   <path d="m18 13-6-6-6 6" />
   <path d="M12 7v14" />
-</svg>`,
-  ],
-  [
-    "arrow-up-wide-narrow",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-up-wide-narrow", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-up-wide-narrow"
   xmlns="http://www.w3.org/2000/svg"
@@ -2730,11 +2335,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M11 12h10" />
   <path d="M11 16h7" />
   <path d="M11 20h4" />
-</svg>`,
-  ],
-  [
-    "arrow-up-z-a",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-up-z-a", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-up-z-a"
   xmlns="http://www.w3.org/2000/svg"
@@ -2752,11 +2354,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M15 4h5l-5 6h5" />
   <path d="M15 20v-3.5a2.5 2.5 0 0 1 5 0V20" />
   <path d="M20 18h-5" />
-</svg>`,
-  ],
-  [
-    "arrow-up-za",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-up-za", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-up-za"
   xmlns="http://www.w3.org/2000/svg"
@@ -2774,11 +2373,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M15 4h5l-5 6h5" />
   <path d="M15 20v-3.5a2.5 2.5 0 0 1 5 0V20" />
   <path d="M20 18h-5" />
-</svg>`,
-  ],
-  [
-    "arrow-up",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrow-up", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrow-up"
   xmlns="http://www.w3.org/2000/svg"
@@ -2793,11 +2389,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="m5 12 7-7 7 7" />
   <path d="M12 19V5" />
-</svg>`,
-  ],
-  [
-    "arrows-up-from-line",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["arrows-up-from-line", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-arrows-up-from-line"
   xmlns="http://www.w3.org/2000/svg"
@@ -2815,11 +2408,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m14 6 3-3 3 3" />
   <path d="M17 17V3" />
   <path d="M4 21h16" />
-</svg>`,
-  ],
-  [
-    "asterisk-square",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["asterisk-square", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-asterisk-square"
   xmlns="http://www.w3.org/2000/svg"
@@ -2836,11 +2426,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 8v8" />
   <path d="m8.5 14 7-4" />
   <path d="m8.5 10 7 4" />
-</svg>`,
-  ],
-  [
-    "asterisk",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["asterisk", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-asterisk"
   xmlns="http://www.w3.org/2000/svg"
@@ -2856,11 +2443,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 6v12" />
   <path d="M17.196 9 6.804 15" />
   <path d="m6.804 9 10.392 6" />
-</svg>`,
-  ],
-  [
-    "at-sign",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["at-sign", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-at-sign"
   xmlns="http://www.w3.org/2000/svg"
@@ -2875,11 +2459,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <circle cx="12" cy="12" r="4" />
   <path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-4 8" />
-</svg>`,
-  ],
-  [
-    "atom",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["atom", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-atom"
   xmlns="http://www.w3.org/2000/svg"
@@ -2895,11 +2476,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="12" cy="12" r="1" />
   <path d="M20.2 20.2c2.04-2.03.02-7.36-4.5-11.9-4.54-4.52-9.87-6.54-11.9-4.5-2.04 2.03-.02 7.36 4.5 11.9 4.54 4.52 9.87 6.54 11.9 4.5Z" />
   <path d="M15.7 15.7c4.52-4.54 6.54-9.87 4.5-11.9-2.03-2.04-7.36-.02-11.9 4.5-4.52 4.54-6.54 9.87-4.5 11.9 2.03 2.04 7.36.02 11.9-4.5Z" />
-</svg>`,
-  ],
-  [
-    "audio-lines",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["audio-lines", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-audio-lines"
   xmlns="http://www.w3.org/2000/svg"
@@ -2918,11 +2496,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 8v7" />
   <path d="M18 5v13" />
   <path d="M22 10v3" />
-</svg>`,
-  ],
-  [
-    "audio-waveform",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["audio-waveform", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-audio-waveform"
   xmlns="http://www.w3.org/2000/svg"
@@ -2936,11 +2511,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M2 13a2 2 0 0 0 2-2V7a2 2 0 0 1 4 0v13a2 2 0 0 0 4 0V4a2 2 0 0 1 4 0v13a2 2 0 0 0 4 0v-4a2 2 0 0 1 2-2" />
-</svg>`,
-  ],
-  [
-    "award",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["award", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-award"
   xmlns="http://www.w3.org/2000/svg"
@@ -2955,11 +2527,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="m15.477 12.89 1.515 8.526a.5.5 0 0 1-.81.47l-3.58-2.687a1 1 0 0 0-1.197 0l-3.586 2.686a.5.5 0 0 1-.81-.469l1.514-8.526" />
   <circle cx="12" cy="8" r="6" />
-</svg>`,
-  ],
-  [
-    "axe",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["axe", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-axe"
   xmlns="http://www.w3.org/2000/svg"
@@ -2974,11 +2543,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="m14 12-8.381 8.38a1 1 0 0 1-3.001-3L11 9" />
   <path d="M15 15.5a.5.5 0 0 0 .5.5A6.5 6.5 0 0 0 22 9.5a.5.5 0 0 0-.5-.5h-1.672a2 2 0 0 1-1.414-.586l-5.062-5.062a1.205 1.205 0 0 0-1.704 0L9.352 5.648a1.205 1.205 0 0 0 0 1.704l5.062 5.062A2 2 0 0 1 15 13.828z" />
-</svg>`,
-  ],
-  [
-    "axis-3-d",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["axis-3-d", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-axis-3-d"
   xmlns="http://www.w3.org/2000/svg"
@@ -2995,11 +2561,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M4 4v15a1 1 0 0 0 1 1h15" />
   <path d="M4.293 19.707 6 18" />
   <path d="m9 15 1.5-1.5" />
-</svg>`,
-  ],
-  [
-    "axis-3d",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["axis-3d", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-axis-3d"
   xmlns="http://www.w3.org/2000/svg"
@@ -3016,11 +2579,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M4 4v15a1 1 0 0 0 1 1h15" />
   <path d="M4.293 19.707 6 18" />
   <path d="m9 15 1.5-1.5" />
-</svg>`,
-  ],
-  [
-    "baby",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["baby", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-baby"
   xmlns="http://www.w3.org/2000/svg"
@@ -3037,11 +2597,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M15 12h.01" />
   <path d="M19.38 6.813A9 9 0 0 1 20.8 10.2a2 2 0 0 1 0 3.6 9 9 0 0 1-17.6 0 2 2 0 0 1 0-3.6A9 9 0 0 1 12 3c2 0 3.5 1.1 3.5 2.5s-.9 2.5-2 2.5c-.8 0-1.5-.4-1.5-1" />
   <path d="M9 12h.01" />
-</svg>`,
-  ],
-  [
-    "backpack",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["backpack", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-backpack"
   xmlns="http://www.w3.org/2000/svg"
@@ -3059,11 +2616,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M8 18h8" />
   <path d="M8 22v-6a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v6" />
   <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
-</svg>`,
-  ],
-  [
-    "badge-alert",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["badge-alert", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-badge-alert"
   xmlns="http://www.w3.org/2000/svg"
@@ -3079,11 +2633,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z" />
   <line x1="12" x2="12" y1="8" y2="12" />
   <line x1="12" x2="12.01" y1="16" y2="16" />
-</svg>`,
-  ],
-  [
-    "badge-cent",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["badge-cent", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-badge-cent"
   xmlns="http://www.w3.org/2000/svg"
@@ -3099,11 +2650,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z" />
   <path d="M12 7v10" />
   <path d="M15.4 10a4 4 0 1 0 0 4" />
-</svg>`,
-  ],
-  [
-    "badge-check",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["badge-check", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-badge-check"
   xmlns="http://www.w3.org/2000/svg"
@@ -3118,11 +2666,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z" />
   <path d="m9 12 2 2 4-4" />
-</svg>`,
-  ],
-  [
-    "badge-dollar-sign",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["badge-dollar-sign", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-badge-dollar-sign"
   xmlns="http://www.w3.org/2000/svg"
@@ -3138,11 +2683,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z" />
   <path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8" />
   <path d="M12 18V6" />
-</svg>`,
-  ],
-  [
-    "badge-euro",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["badge-euro", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-badge-euro"
   xmlns="http://www.w3.org/2000/svg"
@@ -3158,11 +2700,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z" />
   <path d="M7 12h5" />
   <path d="M15 9.4a4 4 0 1 0 0 5.2" />
-</svg>`,
-  ],
-  [
-    "badge-help",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["badge-help", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-badge-help"
   xmlns="http://www.w3.org/2000/svg"
@@ -3178,11 +2717,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z" />
   <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
   <line x1="12" x2="12.01" y1="17" y2="17" />
-</svg>`,
-  ],
-  [
-    "badge-indian-rupee",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["badge-indian-rupee", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-badge-indian-rupee"
   xmlns="http://www.w3.org/2000/svg"
@@ -3199,11 +2735,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M8 8h8" />
   <path d="M8 12h8" />
   <path d="m13 17-5-1h1a4 4 0 0 0 0-8" />
-</svg>`,
-  ],
-  [
-    "badge-info",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["badge-info", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-badge-info"
   xmlns="http://www.w3.org/2000/svg"
@@ -3219,11 +2752,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z" />
   <line x1="12" x2="12" y1="16" y2="12" />
   <line x1="12" x2="12.01" y1="8" y2="8" />
-</svg>`,
-  ],
-  [
-    "badge-japanese-yen",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["badge-japanese-yen", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-badge-japanese-yen"
   xmlns="http://www.w3.org/2000/svg"
@@ -3241,11 +2771,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m12 11 3-3" />
   <path d="M9 12h6" />
   <path d="M9 16h6" />
-</svg>`,
-  ],
-  [
-    "badge-minus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["badge-minus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-badge-minus"
   xmlns="http://www.w3.org/2000/svg"
@@ -3260,11 +2787,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z" />
   <line x1="8" x2="16" y1="12" y2="12" />
-</svg>`,
-  ],
-  [
-    "badge-percent",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["badge-percent", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-badge-percent"
   xmlns="http://www.w3.org/2000/svg"
@@ -3281,11 +2805,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m15 9-6 6" />
   <path d="M9 9h.01" />
   <path d="M15 15h.01" />
-</svg>`,
-  ],
-  [
-    "badge-plus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["badge-plus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-badge-plus"
   xmlns="http://www.w3.org/2000/svg"
@@ -3301,11 +2822,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z" />
   <line x1="12" x2="12" y1="8" y2="16" />
   <line x1="8" x2="16" y1="12" y2="12" />
-</svg>`,
-  ],
-  [
-    "badge-pound-sterling",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["badge-pound-sterling", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-badge-pound-sterling"
   xmlns="http://www.w3.org/2000/svg"
@@ -3322,11 +2840,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M8 12h4" />
   <path d="M10 16V9.5a2.5 2.5 0 0 1 5 0" />
   <path d="M8 16h7" />
-</svg>`,
-  ],
-  [
-    "badge-question-mark",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["badge-question-mark", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-badge-question-mark"
   xmlns="http://www.w3.org/2000/svg"
@@ -3342,11 +2857,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z" />
   <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
   <line x1="12" x2="12.01" y1="17" y2="17" />
-</svg>`,
-  ],
-  [
-    "badge-russian-ruble",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["badge-russian-ruble", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-badge-russian-ruble"
   xmlns="http://www.w3.org/2000/svg"
@@ -3362,11 +2874,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z" />
   <path d="M9 16h5" />
   <path d="M9 12h5a2 2 0 1 0 0-4h-3v9" />
-</svg>`,
-  ],
-  [
-    "badge-swiss-franc",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["badge-swiss-franc", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-badge-swiss-franc"
   xmlns="http://www.w3.org/2000/svg"
@@ -3383,11 +2892,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M11 17V8h4" />
   <path d="M11 12h3" />
   <path d="M9 16h4" />
-</svg>`,
-  ],
-  [
-    "badge-turkish-lira",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["badge-turkish-lira", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-badge-turkish-lira"
   xmlns="http://www.w3.org/2000/svg"
@@ -3403,11 +2909,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M11 7v10a5 5 0 0 0 5-5" />
   <path d="m15 8-6 3" />
   <path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76" />
-</svg>`,
-  ],
-  [
-    "badge-x",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["badge-x", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-badge-x"
   xmlns="http://www.w3.org/2000/svg"
@@ -3423,11 +2926,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z" />
   <line x1="15" x2="9" y1="9" y2="15" />
   <line x1="9" x2="15" y1="9" y2="15" />
-</svg>`,
-  ],
-  [
-    "badge",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["badge", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-badge"
   xmlns="http://www.w3.org/2000/svg"
@@ -3441,11 +2941,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z" />
-</svg>`,
-  ],
-  [
-    "baggage-claim",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["baggage-claim", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-baggage-claim"
   xmlns="http://www.w3.org/2000/svg"
@@ -3463,11 +2960,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="13" height="8" x="8" y="6" rx="1" />
   <circle cx="18" cy="20" r="2" />
   <circle cx="9" cy="20" r="2" />
-</svg>`,
-  ],
-  [
-    "balloon",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["balloon", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-balloon"
   xmlns="http://www.w3.org/2000/svg"
@@ -3483,11 +2977,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 16v1a2 2 0 0 0 2 2h1a2 2 0 0 1 2 2v1" />
   <path d="M12 6a2 2 0 0 1 2 2" />
   <path d="M18 8c0 4-3.5 8-6 8s-6-4-6-8a6 6 0 0 1 12 0" />
-</svg>`,
-  ],
-  [
-    "ban",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["ban", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-ban"
   xmlns="http://www.w3.org/2000/svg"
@@ -3502,11 +2993,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M4.929 4.929 19.07 19.071" />
   <circle cx="12" cy="12" r="10" />
-</svg>`,
-  ],
-  [
-    "banana",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["banana", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-banana"
   xmlns="http://www.w3.org/2000/svg"
@@ -3521,11 +3009,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M4 13c3.5-2 8-2 10 2a5.5 5.5 0 0 1 8 5" />
   <path d="M5.15 17.89c5.52-1.52 8.65-6.89 7-12C11.55 4 11.5 2 13 2c3.22 0 5 5.5 5 8 0 6.5-4.2 12-10.49 12C5.11 22 2 22 2 20c0-1.5 1.14-1.55 3.15-2.11Z" />
-</svg>`,
-  ],
-  [
-    "bandage",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["bandage", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-bandage"
   xmlns="http://www.w3.org/2000/svg"
@@ -3545,11 +3030,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M18 6v12" />
   <path d="M6 6v12" />
   <rect x="2" y="6" width="20" height="12" rx="2" />
-</svg>`,
-  ],
-  [
-    "banknote-arrow-down",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["banknote-arrow-down", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-banknote-arrow-down"
   xmlns="http://www.w3.org/2000/svg"
@@ -3568,11 +3050,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M19 16v6" />
   <path d="M6 12h.01" />
   <circle cx="12" cy="12" r="2" />
-</svg>`,
-  ],
-  [
-    "banknote-arrow-up",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["banknote-arrow-up", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-banknote-arrow-up"
   xmlns="http://www.w3.org/2000/svg"
@@ -3591,11 +3070,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m22 19-3-3-3 3" />
   <path d="M6 12h.01" />
   <circle cx="12" cy="12" r="2" />
-</svg>`,
-  ],
-  [
-    "banknote-x",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["banknote-x", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-banknote-x"
   xmlns="http://www.w3.org/2000/svg"
@@ -3614,11 +3090,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m22 17-5 5" />
   <path d="M6 12h.01" />
   <circle cx="12" cy="12" r="2" />
-</svg>`,
-  ],
-  [
-    "banknote",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["banknote", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-banknote"
   xmlns="http://www.w3.org/2000/svg"
@@ -3634,11 +3107,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="20" height="12" x="2" y="6" rx="2" />
   <circle cx="12" cy="12" r="2" />
   <path d="M6 12h.01M18 12h.01" />
-</svg>`,
-  ],
-  [
-    "bar-chart-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["bar-chart-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-bar-chart-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -3654,11 +3124,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M5 21v-6" />
   <path d="M12 21V3" />
   <path d="M19 21V9" />
-</svg>`,
-  ],
-  [
-    "bar-chart-3",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["bar-chart-3", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-bar-chart-3"
   xmlns="http://www.w3.org/2000/svg"
@@ -3675,11 +3142,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M18 17V9" />
   <path d="M13 17V5" />
   <path d="M8 17v-3" />
-</svg>`,
-  ],
-  [
-    "bar-chart-4",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["bar-chart-4", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-bar-chart-4"
   xmlns="http://www.w3.org/2000/svg"
@@ -3696,11 +3160,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M18 17V5" />
   <path d="M3 3v16a2 2 0 0 0 2 2h16" />
   <path d="M8 17v-3" />
-</svg>`,
-  ],
-  [
-    "bar-chart-big",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["bar-chart-big", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-bar-chart-big"
   xmlns="http://www.w3.org/2000/svg"
@@ -3716,11 +3177,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3 3v16a2 2 0 0 0 2 2h16" />
   <rect x="15" y="5" width="4" height="12" rx="1" />
   <rect x="7" y="8" width="4" height="9" rx="1" />
-</svg>`,
-  ],
-  [
-    "bar-chart-horizontal-big",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["bar-chart-horizontal-big", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-bar-chart-horizontal-big"
   xmlns="http://www.w3.org/2000/svg"
@@ -3736,11 +3194,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3 3v16a2 2 0 0 0 2 2h16" />
   <rect x="7" y="13" width="9" height="4" rx="1" />
   <rect x="7" y="5" width="12" height="4" rx="1" />
-</svg>`,
-  ],
-  [
-    "bar-chart-horizontal",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["bar-chart-horizontal", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-bar-chart-horizontal"
   xmlns="http://www.w3.org/2000/svg"
@@ -3757,11 +3212,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M7 16h8" />
   <path d="M7 11h12" />
   <path d="M7 6h3" />
-</svg>`,
-  ],
-  [
-    "bar-chart",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["bar-chart", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-bar-chart"
   xmlns="http://www.w3.org/2000/svg"
@@ -3777,11 +3229,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M5 21v-6" />
   <path d="M12 21V9" />
   <path d="M19 21V3" />
-</svg>`,
-  ],
-  [
-    "barcode",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["barcode", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-barcode"
   xmlns="http://www.w3.org/2000/svg"
@@ -3799,11 +3248,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 5v14" />
   <path d="M17 5v14" />
   <path d="M21 5v14" />
-</svg>`,
-  ],
-  [
-    "barrel",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["barrel", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-barrel"
   xmlns="http://www.w3.org/2000/svg"
@@ -3821,11 +3267,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M17 3a2 2 0 0 1 1.68.92 15.25 15.25 0 0 1 0 16.16A2 2 0 0 1 17 21H7a2 2 0 0 1-1.68-.92 15.25 15.25 0 0 1 0-16.16A2 2 0 0 1 7 3z" />
   <path d="M3.84 17h16.32" />
   <path d="M3.84 7h16.32" />
-</svg>`,
-  ],
-  [
-    "baseline",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["baseline", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-baseline"
   xmlns="http://www.w3.org/2000/svg"
@@ -3841,11 +3284,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M4 20h16" />
   <path d="m6 16 6-12 6 12" />
   <path d="M8 12h8" />
-</svg>`,
-  ],
-  [
-    "bath",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["bath", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-bath"
   xmlns="http://www.w3.org/2000/svg"
@@ -3863,11 +3303,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M2 12h20" />
   <path d="M7 19v2" />
   <path d="M9 5 7.621 3.621A2.121 2.121 0 0 0 4 5v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5" />
-</svg>`,
-  ],
-  [
-    "battery-charging",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["battery-charging", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-battery-charging"
   xmlns="http://www.w3.org/2000/svg"
@@ -3884,11 +3321,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14.856 6H16a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.935" />
   <path d="M22 14v-4" />
   <path d="M5.14 18H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h2.936" />
-</svg>`,
-  ],
-  [
-    "battery-full",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["battery-full", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-battery-full"
   xmlns="http://www.w3.org/2000/svg"
@@ -3906,11 +3340,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M22 14v-4" />
   <path d="M6 10v4" />
   <rect x="2" y="6" width="16" height="12" rx="2" />
-</svg>`,
-  ],
-  [
-    "battery-low",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["battery-low", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-battery-low"
   xmlns="http://www.w3.org/2000/svg"
@@ -3926,11 +3357,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M22 14v-4" />
   <path d="M6 14v-4" />
   <rect x="2" y="6" width="16" height="12" rx="2" />
-</svg>`,
-  ],
-  [
-    "battery-medium",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["battery-medium", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-battery-medium"
   xmlns="http://www.w3.org/2000/svg"
@@ -3947,11 +3375,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M22 14v-4" />
   <path d="M6 14v-4" />
   <rect x="2" y="6" width="16" height="12" rx="2" />
-</svg>`,
-  ],
-  [
-    "battery-plus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["battery-plus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-battery-plus"
   xmlns="http://www.w3.org/2000/svg"
@@ -3969,11 +3394,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M22 14v-4" />
   <path d="M7 12h6" />
   <path d="M7.606 18H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3.606" />
-</svg>`,
-  ],
-  [
-    "battery-warning",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["battery-warning", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-battery-warning"
   xmlns="http://www.w3.org/2000/svg"
@@ -3991,11 +3413,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 6h2a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2" />
   <path d="M22 14v-4" />
   <path d="M6 18H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h2" />
-</svg>`,
-  ],
-  [
-    "battery",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["battery", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-battery"
   xmlns="http://www.w3.org/2000/svg"
@@ -4010,11 +3429,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M 22 14 L 22 10" />
   <rect x="2" y="6" width="16" height="12" rx="2" />
-</svg>`,
-  ],
-  [
-    "beaker",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["beaker", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-beaker"
   xmlns="http://www.w3.org/2000/svg"
@@ -4030,11 +3446,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M4.5 3h15" />
   <path d="M6 3v16a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V3" />
   <path d="M6 14h12" />
-</svg>`,
-  ],
-  [
-    "bean-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["bean-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-bean-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -4051,11 +3464,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M10.75 5.093A6 6 0 0 1 22 8c0 2.411-.61 4.68-1.683 6.66" />
   <path d="M5.341 10.62a4 4 0 0 0 6.487 1.208M10.62 5.341a4.015 4.015 0 0 1 2.039 2.04" />
   <line x1="2" x2="22" y1="2" y2="22" />
-</svg>`,
-  ],
-  [
-    "bean",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["bean", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-bean"
   xmlns="http://www.w3.org/2000/svg"
@@ -4070,11 +3480,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M10.165 6.598C9.954 7.478 9.64 8.36 9 9c-.64.64-1.521.954-2.402 1.165A6 6 0 0 0 8 22c7.732 0 14-6.268 14-14a6 6 0 0 0-11.835-1.402Z" />
   <path d="M5.341 10.62a4 4 0 1 0 5.279-5.28" />
-</svg>`,
-  ],
-  [
-    "bed-double",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["bed-double", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-bed-double"
   xmlns="http://www.w3.org/2000/svg"
@@ -4091,11 +3498,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M4 10V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v4" />
   <path d="M12 4v6" />
   <path d="M2 18h20" />
-</svg>`,
-  ],
-  [
-    "bed-single",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["bed-single", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-bed-single"
   xmlns="http://www.w3.org/2000/svg"
@@ -4111,11 +3515,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3 20v-8a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v8" />
   <path d="M5 10V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v4" />
   <path d="M3 18h18" />
-</svg>`,
-  ],
-  [
-    "bed",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["bed", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-bed"
   xmlns="http://www.w3.org/2000/svg"
@@ -4132,11 +3533,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M2 8h18a2 2 0 0 1 2 2v10" />
   <path d="M2 17h20" />
   <path d="M6 8v9" />
-</svg>`,
-  ],
-  [
-    "beef",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["beef", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-beef"
   xmlns="http://www.w3.org/2000/svg"
@@ -4152,11 +3550,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M16.4 13.7A6.5 6.5 0 1 0 6.28 6.6c-1.1 3.13-.78 3.9-3.18 6.08A3 3 0 0 0 5 18c4 0 8.4-1.8 11.4-4.3" />
   <path d="m18.5 6 2.19 4.5a6.48 6.48 0 0 1-2.29 7.2C15.4 20.2 11 22 7 22a3 3 0 0 1-2.68-1.66L2.4 16.5" />
   <circle cx="12.5" cy="8.5" r="2.5" />
-</svg>`,
-  ],
-  [
-    "beer-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["beer-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-beer-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -4177,11 +3572,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M7.536 7.535C6.766 7.649 6.154 8 5.5 8a2.5 2.5 0 0 1-1.768-4.268" />
   <path d="M8.727 3.204C9.306 2.767 9.885 2 11 2c1.56 0 2 1.5 3 1.5s1.72-.5 2.5-.5a1 1 0 1 1 0 5c-.78 0-1.5-.5-2.5-.5a3.149 3.149 0 0 0-.842.12" />
   <path d="M9 14.6V18" />
-</svg>`,
-  ],
-  [
-    "beer",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["beer", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-beer"
   xmlns="http://www.w3.org/2000/svg"
@@ -4199,11 +3591,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M13 12v6" />
   <path d="M14 7.5c-1 0-1.44.5-3 .5s-2-.5-3-.5-1.72.5-2.5.5a2.5 2.5 0 0 1 0-5c.78 0 1.57.5 2.5.5S9.44 2 11 2s2 1.5 3 1.5 1.72-.5 2.5-.5a2.5 2.5 0 0 1 0 5c-.78 0-1.5-.5-2.5-.5Z" />
   <path d="M5 8v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V8" />
-</svg>`,
-  ],
-  [
-    "bell-dot",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["bell-dot", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-bell-dot"
   xmlns="http://www.w3.org/2000/svg"
@@ -4219,11 +3608,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M10.268 21a2 2 0 0 0 3.464 0" />
   <path d="M11.68 2.009A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673c-.824-.85-1.678-1.731-2.21-3.348" />
   <circle cx="18" cy="5" r="3" />
-</svg>`,
-  ],
-  [
-    "bell-electric",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["bell-electric", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-bell-electric"
   xmlns="http://www.w3.org/2000/svg"
@@ -4242,11 +3628,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="20" cy="16" r="2" />
   <circle cx="9" cy="9" r="7" />
   <rect x="4" y="16" width="10" height="6" rx="2" />
-</svg>`,
-  ],
-  [
-    "bell-minus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["bell-minus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-bell-minus"
   xmlns="http://www.w3.org/2000/svg"
@@ -4262,11 +3645,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M10.268 21a2 2 0 0 0 3.464 0" />
   <path d="M15 8h6" />
   <path d="M16.243 3.757A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673A9.4 9.4 0 0 1 18.667 12" />
-</svg>`,
-  ],
-  [
-    "bell-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["bell-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-bell-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -4283,11 +3663,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M17 17H4a1 1 0 0 1-.74-1.673C4.59 13.956 6 12.499 6 8a6 6 0 0 1 .258-1.742" />
   <path d="m2 2 20 20" />
   <path d="M8.668 3.01A6 6 0 0 1 18 8c0 2.687.77 4.653 1.707 6.05" />
-</svg>`,
-  ],
-  [
-    "bell-plus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["bell-plus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-bell-plus"
   xmlns="http://www.w3.org/2000/svg"
@@ -4304,11 +3681,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M15 8h6" />
   <path d="M18 5v6" />
   <path d="M20.002 14.464a9 9 0 0 0 .738.863A1 1 0 0 1 20 17H4a1 1 0 0 1-.74-1.673C4.59 13.956 6 12.499 6 8a6 6 0 0 1 8.75-5.332" />
-</svg>`,
-  ],
-  [
-    "bell-ring",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["bell-ring", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-bell-ring"
   xmlns="http://www.w3.org/2000/svg"
@@ -4325,11 +3699,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M22 8c0-2.3-.8-4.3-2-6" />
   <path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326" />
   <path d="M4 2C2.8 3.7 2 5.7 2 8" />
-</svg>`,
-  ],
-  [
-    "bell",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["bell", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-bell"
   xmlns="http://www.w3.org/2000/svg"
@@ -4344,11 +3715,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M10.268 21a2 2 0 0 0 3.464 0" />
   <path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326" />
-</svg>`,
-  ],
-  [
-    "between-horizonal-end",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["between-horizonal-end", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-between-horizonal-end"
   xmlns="http://www.w3.org/2000/svg"
@@ -4364,11 +3732,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="13" height="7" x="3" y="3" rx="1" />
   <path d="m22 15-3-3 3-3" />
   <rect width="13" height="7" x="3" y="14" rx="1" />
-</svg>`,
-  ],
-  [
-    "between-horizonal-start",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["between-horizonal-start", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-between-horizonal-start"
   xmlns="http://www.w3.org/2000/svg"
@@ -4384,11 +3749,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="13" height="7" x="8" y="3" rx="1" />
   <path d="m2 9 3 3-3 3" />
   <rect width="13" height="7" x="8" y="14" rx="1" />
-</svg>`,
-  ],
-  [
-    "between-horizontal-end",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["between-horizontal-end", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-between-horizontal-end"
   xmlns="http://www.w3.org/2000/svg"
@@ -4404,11 +3766,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="13" height="7" x="3" y="3" rx="1" />
   <path d="m22 15-3-3 3-3" />
   <rect width="13" height="7" x="3" y="14" rx="1" />
-</svg>`,
-  ],
-  [
-    "between-horizontal-start",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["between-horizontal-start", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-between-horizontal-start"
   xmlns="http://www.w3.org/2000/svg"
@@ -4424,11 +3783,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="13" height="7" x="8" y="3" rx="1" />
   <path d="m2 9 3 3-3 3" />
   <rect width="13" height="7" x="8" y="14" rx="1" />
-</svg>`,
-  ],
-  [
-    "between-vertical-end",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["between-vertical-end", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-between-vertical-end"
   xmlns="http://www.w3.org/2000/svg"
@@ -4444,11 +3800,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="7" height="13" x="3" y="3" rx="1" />
   <path d="m9 22 3-3 3 3" />
   <rect width="7" height="13" x="14" y="3" rx="1" />
-</svg>`,
-  ],
-  [
-    "between-vertical-start",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["between-vertical-start", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-between-vertical-start"
   xmlns="http://www.w3.org/2000/svg"
@@ -4464,11 +3817,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="7" height="13" x="3" y="8" rx="1" />
   <path d="m15 2-3 3-3-3" />
   <rect width="7" height="13" x="14" y="8" rx="1" />
-</svg>`,
-  ],
-  [
-    "biceps-flexed",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["biceps-flexed", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-biceps-flexed"
   xmlns="http://www.w3.org/2000/svg"
@@ -4484,11 +3834,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12.409 13.017A5 5 0 0 1 22 15c0 3.866-4 7-9 7-4.077 0-8.153-.82-10.371-2.462-.426-.316-.631-.832-.62-1.362C2.118 12.723 2.627 2 10 2a3 3 0 0 1 3 3 2 2 0 0 1-2 2c-1.105 0-1.64-.444-2-1" />
   <path d="M15 14a5 5 0 0 0-7.584 2" />
   <path d="M9.964 6.825C8.019 7.977 9.5 13 8 15" />
-</svg>`,
-  ],
-  [
-    "bike",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["bike", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-bike"
   xmlns="http://www.w3.org/2000/svg"
@@ -4505,11 +3852,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="5.5" cy="17.5" r="3.5" />
   <circle cx="15" cy="5" r="1" />
   <path d="M12 17.5V14l-3-3 4-3 2 3h2" />
-</svg>`,
-  ],
-  [
-    "binary",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["binary", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-binary"
   xmlns="http://www.w3.org/2000/svg"
@@ -4528,11 +3872,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 10h4" />
   <path d="M6 14h2v6" />
   <path d="M14 4h2v6" />
-</svg>`,
-  ],
-  [
-    "binoculars",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["binoculars", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-binoculars"
   xmlns="http://www.w3.org/2000/svg"
@@ -4551,11 +3892,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M 22 16 L 2 16" />
   <path d="M4 21a2 2 0 0 1-2-2v-3.851c0-1.39 2-2.962 2-4.829V8a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v11a2 2 0 0 1-2 2z" />
   <path d="M9 7V4a1 1 0 0 0-1-1H6a1 1 0 0 0-1 1v3" />
-</svg>`,
-  ],
-  [
-    "biohazard",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["biohazard", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-biohazard"
   xmlns="http://www.w3.org/2000/svg"
@@ -4578,11 +3916,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M13.5 5.4c-1-.2-2-.2-3 0" />
   <path d="M17 16.4c.7-.7 1.2-1.6 1.5-2.5" />
   <path d="M5.5 13.9c.3.9.8 1.8 1.5 2.5" />
-</svg>`,
-  ],
-  [
-    "bird",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["bird", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-bird"
   xmlns="http://www.w3.org/2000/svg"
@@ -4601,11 +3936,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M10 18v3" />
   <path d="M14 17.75V21" />
   <path d="M7 18a6 6 0 0 0 3.84-10.61" />
-</svg>`,
-  ],
-  [
-    "birdhouse",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["birdhouse", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-birdhouse"
   xmlns="http://www.w3.org/2000/svg"
@@ -4624,11 +3956,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M4 18h16" />
   <path d="M7 18 5.044 6.532" />
   <circle cx="12" cy="10" r="2" />
-</svg>`,
-  ],
-  [
-    "bitcoin",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["bitcoin", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-bitcoin"
   xmlns="http://www.w3.org/2000/svg"
@@ -4642,11 +3971,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M11.767 19.089c4.924.868 6.14-6.025 1.216-6.894m-1.216 6.894L5.86 18.047m5.908 1.042-.347 1.97m1.563-8.864c4.924.869 6.14-6.025 1.215-6.893m-1.215 6.893-3.94-.694m5.155-6.2L8.29 4.26m5.908 1.042.348-1.97M7.48 20.364l3.126-17.727" />
-</svg>`,
-  ],
-  [
-    "blend",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["blend", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-blend"
   xmlns="http://www.w3.org/2000/svg"
@@ -4661,11 +3987,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <circle cx="9" cy="9" r="7" />
   <circle cx="15" cy="15" r="7" />
-</svg>`,
-  ],
-  [
-    "blinds",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["blinds", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-blinds"
   xmlns="http://www.w3.org/2000/svg"
@@ -4685,11 +4008,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M8 15h12" />
   <path d="M4 3v14" />
   <circle cx="4" cy="19" r="2" />
-</svg>`,
-  ],
-  [
-    "blocks",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["blocks", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-blocks"
   xmlns="http://www.w3.org/2000/svg"
@@ -4704,11 +4024,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M10 22V7a1 1 0 0 0-1-1H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5a1 1 0 0 0-1-1H2" />
   <rect x="14" y="2" width="8" height="8" rx="1" />
-</svg>`,
-  ],
-  [
-    "bluetooth-connected",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["bluetooth-connected", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-bluetooth-connected"
   xmlns="http://www.w3.org/2000/svg"
@@ -4724,11 +4041,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m7 7 10 10-5 5V2l5 5L7 17" />
   <line x1="18" x2="21" y1="12" y2="12" />
   <line x1="3" x2="6" y1="12" y2="12" />
-</svg>`,
-  ],
-  [
-    "bluetooth-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["bluetooth-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-bluetooth-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -4744,11 +4058,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m17 17-5 5V12l-5 5" />
   <path d="m2 2 20 20" />
   <path d="M14.5 9.5 17 7l-5-5v4.5" />
-</svg>`,
-  ],
-  [
-    "bluetooth-searching",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["bluetooth-searching", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-bluetooth-searching"
   xmlns="http://www.w3.org/2000/svg"
@@ -4764,11 +4075,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m7 7 10 10-5 5V2l5 5L7 17" />
   <path d="M20.83 14.83a4 4 0 0 0 0-5.66" />
   <path d="M18 12h.01" />
-</svg>`,
-  ],
-  [
-    "bluetooth",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["bluetooth", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-bluetooth"
   xmlns="http://www.w3.org/2000/svg"
@@ -4782,11 +4090,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="m7 7 10 10-5 5V2l5 5L7 17" />
-</svg>`,
-  ],
-  [
-    "bold",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["bold", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-bold"
   xmlns="http://www.w3.org/2000/svg"
@@ -4800,11 +4105,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M6 12h9a4 4 0 0 1 0 8H7a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h7a4 4 0 0 1 0 8" />
-</svg>`,
-  ],
-  [
-    "bolt",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["bolt", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-bolt"
   xmlns="http://www.w3.org/2000/svg"
@@ -4819,11 +4121,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
   <circle cx="12" cy="12" r="4" />
-</svg>`,
-  ],
-  [
-    "bomb",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["bomb", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-bomb"
   xmlns="http://www.w3.org/2000/svg"
@@ -4839,11 +4138,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="11" cy="13" r="9" />
   <path d="M14.35 4.65 16.3 2.7a2.41 2.41 0 0 1 3.4 0l1.6 1.6a2.4 2.4 0 0 1 0 3.4l-1.95 1.95" />
   <path d="m22 2-1.5 1.5" />
-</svg>`,
-  ],
-  [
-    "bone",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["bone", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-bone"
   xmlns="http://www.w3.org/2000/svg"
@@ -4857,11 +4153,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M17 10c.7-.7 1.69 0 2.5 0a2.5 2.5 0 1 0 0-5 .5.5 0 0 1-.5-.5 2.5 2.5 0 1 0-5 0c0 .81.7 1.8 0 2.5l-7 7c-.7.7-1.69 0-2.5 0a2.5 2.5 0 0 0 0 5c.28 0 .5.22.5.5a2.5 2.5 0 1 0 5 0c0-.81-.7-1.8 0-2.5Z" />
-</svg>`,
-  ],
-  [
-    "book-a",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["book-a", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-book-a"
   xmlns="http://www.w3.org/2000/svg"
@@ -4877,11 +4170,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20" />
   <path d="m8 13 4-7 4 7" />
   <path d="M9.1 11h5.7" />
-</svg>`,
-  ],
-  [
-    "book-alert",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["book-alert", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-book-alert"
   xmlns="http://www.w3.org/2000/svg"
@@ -4897,11 +4187,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 13h.01" />
   <path d="M12 6v3" />
   <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20" />
-</svg>`,
-  ],
-  [
-    "book-audio",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["book-audio", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-book-audio"
   xmlns="http://www.w3.org/2000/svg"
@@ -4918,11 +4205,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M16 8v3" />
   <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20" />
   <path d="M8 8v3" />
-</svg>`,
-  ],
-  [
-    "book-check",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["book-check", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-book-check"
   xmlns="http://www.w3.org/2000/svg"
@@ -4937,11 +4221,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20" />
   <path d="m9 9.5 2 2 4-4" />
-</svg>`,
-  ],
-  [
-    "book-copy",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["book-copy", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-book-copy"
   xmlns="http://www.w3.org/2000/svg"
@@ -4957,11 +4238,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M5 7a2 2 0 0 0-2 2v11" />
   <path d="M5.803 18H5a2 2 0 0 0 0 4h9.5a.5.5 0 0 0 .5-.5V21" />
   <path d="M9 15V4a2 2 0 0 1 2-2h9.5a.5.5 0 0 1 .5.5v14a.5.5 0 0 1-.5.5H11a2 2 0 0 1 0-4h10" />
-</svg>`,
-  ],
-  [
-    "book-dashed",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["book-dashed", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-book-dashed"
   xmlns="http://www.w3.org/2000/svg"
@@ -4985,11 +4263,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M4 19.5V14" />
   <path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H8" />
   <path d="M8 22H6.5a1 1 0 0 1 0-5H8" />
-</svg>`,
-  ],
-  [
-    "book-down",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["book-down", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-book-down"
   xmlns="http://www.w3.org/2000/svg"
@@ -5005,11 +4280,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 13V7" />
   <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20" />
   <path d="m9 10 3 3 3-3" />
-</svg>`,
-  ],
-  [
-    "book-headphones",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["book-headphones", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-book-headphones"
   xmlns="http://www.w3.org/2000/svg"
@@ -5026,11 +4298,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M8 12v-2a4 4 0 0 1 8 0v2" />
   <circle cx="15" cy="12" r="1" />
   <circle cx="9" cy="12" r="1" />
-</svg>`,
-  ],
-  [
-    "book-heart",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["book-heart", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-book-heart"
   xmlns="http://www.w3.org/2000/svg"
@@ -5045,11 +4314,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20" />
   <path d="M8.62 9.8A2.25 2.25 0 1 1 12 6.836a2.25 2.25 0 1 1 3.38 2.966l-2.626 2.856a.998.998 0 0 1-1.507 0z" />
-</svg>`,
-  ],
-  [
-    "book-image",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["book-image", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-book-image"
   xmlns="http://www.w3.org/2000/svg"
@@ -5065,11 +4331,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m20 13.7-2.1-2.1a2 2 0 0 0-2.8 0L9.7 17" />
   <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20" />
   <circle cx="10" cy="8" r="2" />
-</svg>`,
-  ],
-  [
-    "book-key",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["book-key", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-book-key"
   xmlns="http://www.w3.org/2000/svg"
@@ -5087,11 +4350,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M17 4h2" />
   <path d="M20 15.2V21a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20" />
   <circle cx="17" cy="10" r="2" />
-</svg>`,
-  ],
-  [
-    "book-lock",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["book-lock", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-book-lock"
   xmlns="http://www.w3.org/2000/svg"
@@ -5108,11 +4368,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M20 15v6a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20" />
   <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H10" />
   <rect x="12" y="6" width="8" height="5" rx="1" />
-</svg>`,
-  ],
-  [
-    "book-marked",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["book-marked", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-book-marked"
   xmlns="http://www.w3.org/2000/svg"
@@ -5127,11 +4384,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M10 2v8l3-3 3 3V2" />
   <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20" />
-</svg>`,
-  ],
-  [
-    "book-minus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["book-minus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-book-minus"
   xmlns="http://www.w3.org/2000/svg"
@@ -5146,11 +4400,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20" />
   <path d="M9 10h6" />
-</svg>`,
-  ],
-  [
-    "book-open-check",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["book-open-check", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-book-open-check"
   xmlns="http://www.w3.org/2000/svg"
@@ -5166,11 +4417,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 21V7" />
   <path d="m16 12 2 2 4-4" />
   <path d="M22 6V4a1 1 0 0 0-1-1h-5a4 4 0 0 0-4 4 4 4 0 0 0-4-4H3a1 1 0 0 0-1 1v13a1 1 0 0 0 1 1h6a3 3 0 0 1 3 3 3 3 0 0 1 3-3h6a1 1 0 0 0 1-1v-1.3" />
-</svg>`,
-  ],
-  [
-    "book-open-text",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["book-open-text", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-book-open-text"
   xmlns="http://www.w3.org/2000/svg"
@@ -5189,11 +4437,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z" />
   <path d="M6 12h2" />
   <path d="M6 8h2" />
-</svg>`,
-  ],
-  [
-    "book-open",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["book-open", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-book-open"
   xmlns="http://www.w3.org/2000/svg"
@@ -5208,11 +4453,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M12 7v14" />
   <path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z" />
-</svg>`,
-  ],
-  [
-    "book-plus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["book-plus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-book-plus"
   xmlns="http://www.w3.org/2000/svg"
@@ -5228,11 +4470,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 7v6" />
   <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20" />
   <path d="M9 10h6" />
-</svg>`,
-  ],
-  [
-    "book-search",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["book-search", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-book-search"
   xmlns="http://www.w3.org/2000/svg"
@@ -5249,11 +4488,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m21 22-1.879-1.878" />
   <path d="M3 19.5v-15A2.5 2.5 0 0 1 5.5 2H18a1 1 0 0 1 1 1v8" />
   <circle cx="17" cy="18" r="3" />
-</svg>`,
-  ],
-  [
-    "book-template",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["book-template", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-book-template"
   xmlns="http://www.w3.org/2000/svg"
@@ -5277,11 +4513,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M4 19.5V14" />
   <path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H8" />
   <path d="M8 22H6.5a1 1 0 0 1 0-5H8" />
-</svg>`,
-  ],
-  [
-    "book-text",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["book-text", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-book-text"
   xmlns="http://www.w3.org/2000/svg"
@@ -5297,11 +4530,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20" />
   <path d="M8 11h8" />
   <path d="M8 7h6" />
-</svg>`,
-  ],
-  [
-    "book-type",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["book-type", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-book-type"
   xmlns="http://www.w3.org/2000/svg"
@@ -5318,11 +4548,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 6v7" />
   <path d="M16 8V6H8v2" />
   <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20" />
-</svg>`,
-  ],
-  [
-    "book-up-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["book-up-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-book-up-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -5340,11 +4567,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2" />
   <path d="m9 10 3-3 3 3" />
   <path d="m9 5 3-3 3 3" />
-</svg>`,
-  ],
-  [
-    "book-up",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["book-up", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-book-up"
   xmlns="http://www.w3.org/2000/svg"
@@ -5360,11 +4584,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 13V7" />
   <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20" />
   <path d="m9 10 3-3 3 3" />
-</svg>`,
-  ],
-  [
-    "book-user",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["book-user", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-book-user"
   xmlns="http://www.w3.org/2000/svg"
@@ -5380,11 +4601,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M15 13a3 3 0 1 0-6 0" />
   <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20" />
   <circle cx="12" cy="8" r="2" />
-</svg>`,
-  ],
-  [
-    "book-x",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["book-x", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-book-x"
   xmlns="http://www.w3.org/2000/svg"
@@ -5400,11 +4618,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m14.5 7-5 5" />
   <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20" />
   <path d="m9.5 7 5 5" />
-</svg>`,
-  ],
-  [
-    "book",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["book", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-book"
   xmlns="http://www.w3.org/2000/svg"
@@ -5418,11 +4633,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20" />
-</svg>`,
-  ],
-  [
-    "bookmark-check",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["bookmark-check", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-bookmark-check"
   xmlns="http://www.w3.org/2000/svg"
@@ -5437,11 +4649,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M17 3a2 2 0 0 1 2 2v15a1 1 0 0 1-1.496.868l-4.512-2.578a2 2 0 0 0-1.984 0l-4.512 2.578A1 1 0 0 1 5 20V5a2 2 0 0 1 2-2z" />
   <path d="m9 10 2 2 4-4" />
-</svg>`,
-  ],
-  [
-    "bookmark-minus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["bookmark-minus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-bookmark-minus"
   xmlns="http://www.w3.org/2000/svg"
@@ -5456,11 +4665,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M15 10H9" />
   <path d="M17 3a2 2 0 0 1 2 2v15a1 1 0 0 1-1.496.868l-4.512-2.578a2 2 0 0 0-1.984 0l-4.512 2.578A1 1 0 0 1 5 20V5a2 2 0 0 1 2-2z" />
-</svg>`,
-  ],
-  [
-    "bookmark-plus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["bookmark-plus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-bookmark-plus"
   xmlns="http://www.w3.org/2000/svg"
@@ -5476,11 +4682,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 7v6" />
   <path d="M15 10H9" />
   <path d="M17 3a2 2 0 0 1 2 2v15a1 1 0 0 1-1.496.868l-4.512-2.578a2 2 0 0 0-1.984 0l-4.512 2.578A1 1 0 0 1 5 20V5a2 2 0 0 1 2-2z" />
-</svg>`,
-  ],
-  [
-    "bookmark-x",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["bookmark-x", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-bookmark-x"
   xmlns="http://www.w3.org/2000/svg"
@@ -5496,11 +4699,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m14.5 7.5-5 5" />
   <path d="M17 3a2 2 0 0 1 2 2v15a1 1 0 0 1-1.496.868l-4.512-2.578a2 2 0 0 0-1.984 0l-4.512 2.578A1 1 0 0 1 5 20V5a2 2 0 0 1 2-2z" />
   <path d="m9.5 7.5 5 5" />
-</svg>`,
-  ],
-  [
-    "bookmark",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["bookmark", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-bookmark"
   xmlns="http://www.w3.org/2000/svg"
@@ -5514,11 +4714,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M17 3a2 2 0 0 1 2 2v15a1 1 0 0 1-1.496.868l-4.512-2.578a2 2 0 0 0-1.984 0l-4.512 2.578A1 1 0 0 1 5 20V5a2 2 0 0 1 2-2z" />
-</svg>`,
-  ],
-  [
-    "boom-box",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["boom-box", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-boom-box"
   xmlns="http://www.w3.org/2000/svg"
@@ -5538,11 +4735,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="20" height="12" x="2" y="9" rx="2" />
   <circle cx="8" cy="15" r="2" />
   <circle cx="16" cy="15" r="2" />
-</svg>`,
-  ],
-  [
-    "bot-message-square",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["bot-message-square", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-bot-message-square"
   xmlns="http://www.w3.org/2000/svg"
@@ -5561,11 +4755,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M20 12h2" />
   <path d="M20 16a2 2 0 0 1-2 2H8.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 4 20.286V8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2z" />
   <path d="M9 11v2" />
-</svg>`,
-  ],
-  [
-    "bot-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["bot-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-bot-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -5585,11 +4776,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M8 8H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 1.414-.586" />
   <path d="M9 13v2" />
   <path d="M9.67 4H12v2.33" />
-</svg>`,
-  ],
-  [
-    "bot",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["bot", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-bot"
   xmlns="http://www.w3.org/2000/svg"
@@ -5608,11 +4796,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M20 14h2" />
   <path d="M15 13v2" />
   <path d="M9 13v2" />
-</svg>`,
-  ],
-  [
-    "bottle-wine",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["bottle-wine", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-bottle-wine"
   xmlns="http://www.w3.org/2000/svg"
@@ -5627,11 +4812,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M10 3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2a6 6 0 0 0 1.2 3.6l.6.8A6 6 0 0 1 17 13v8a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1v-8a6 6 0 0 1 1.2-3.6l.6-.8A6 6 0 0 0 10 5z" />
   <path d="M17 13h-4a1 1 0 0 0-1 1v3a1 1 0 0 0 1 1h4" />
-</svg>`,
-  ],
-  [
-    "bow-arrow",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["bow-arrow", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-bow-arrow"
   xmlns="http://www.w3.org/2000/svg"
@@ -5649,11 +4831,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M7 10 3.29 6.29a1.17 1.17 0 0 1 .6-1.91 13 13 0 0 1 9.03 1.05" />
   <path d="M7 14a1.7 1.7 0 0 0-1.207.5l-2.646 2.646A.5.5 0 0 0 3.5 18H5a1 1 0 0 1 1 1v1.5a.5.5 0 0 0 .854.354L9.5 18.207A1.7 1.7 0 0 0 10 17v-2a1 1 0 0 0-1-1z" />
   <path d="M9.707 14.293 21 3" />
-</svg>`,
-  ],
-  [
-    "box-select",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["box-select", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-box-select"
   xmlns="http://www.w3.org/2000/svg"
@@ -5678,11 +4857,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M21 9v1" />
   <path d="M3 14v1" />
   <path d="M21 14v1" />
-</svg>`,
-  ],
-  [
-    "box",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["box", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-box"
   xmlns="http://www.w3.org/2000/svg"
@@ -5698,11 +4874,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
   <path d="m3.3 7 8.7 5 8.7-5" />
   <path d="M12 22V12" />
-</svg>`,
-  ],
-  [
-    "boxes",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["boxes", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-boxes"
   xmlns="http://www.w3.org/2000/svg"
@@ -5727,11 +4900,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 8 7.26 5.15" />
   <path d="m12 8 4.74-2.85" />
   <path d="M12 13.5V8" />
-</svg>`,
-  ],
-  [
-    "braces",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["braces", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-braces"
   xmlns="http://www.w3.org/2000/svg"
@@ -5746,11 +4916,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5c0 1.1.9 2 2 2h1" />
   <path d="M16 21h1a2 2 0 0 0 2-2v-5c0-1.1.9-2 2-2a2 2 0 0 1-2-2V5a2 2 0 0 0-2-2h-1" />
-</svg>`,
-  ],
-  [
-    "brackets",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["brackets", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-brackets"
   xmlns="http://www.w3.org/2000/svg"
@@ -5765,11 +4932,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M16 3h3a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1h-3" />
   <path d="M8 21H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h3" />
-</svg>`,
-  ],
-  [
-    "brain-circuit",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["brain-circuit", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-brain-circuit"
   xmlns="http://www.w3.org/2000/svg"
@@ -5795,11 +4959,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="18" cy="3" r=".5" />
   <circle cx="20" cy="21" r=".5" />
   <circle cx="20" cy="8" r=".5" />
-</svg>`,
-  ],
-  [
-    "brain-cog",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["brain-cog", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-brain-cog"
   xmlns="http://www.w3.org/2000/svg"
@@ -5827,11 +4988,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m9.228 10.852-.923-.383" />
   <path d="m9.228 13.148-.923.383" />
   <circle cx="12" cy="12" r="3" />
-</svg>`,
-  ],
-  [
-    "brain",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["brain", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-brain"
   xmlns="http://www.w3.org/2000/svg"
@@ -5852,11 +5010,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M19.967 17.483A4 4 0 1 1 12 18a4 4 0 1 1-7.967-.517" />
   <path d="M6 18a4 4 0 0 1-2-7.464" />
   <path d="M6.003 5.125a4 4 0 0 0-2.526 5.77" />
-</svg>`,
-  ],
-  [
-    "brick-wall-fire",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["brick-wall-fire", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-brick-wall-fire"
   xmlns="http://www.w3.org/2000/svg"
@@ -5876,11 +5031,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3 9h8.228" />
   <path d="M8 15v6" />
   <path d="M8 3v6" />
-</svg>`,
-  ],
-  [
-    "brick-wall-shield",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["brick-wall-shield", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-brick-wall-shield"
   xmlns="http://www.w3.org/2000/svg"
@@ -5901,11 +5053,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3 9h12.142" />
   <path d="M8 15v6" />
   <path d="M8 3v6" />
-</svg>`,
-  ],
-  [
-    "brick-wall",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["brick-wall", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-brick-wall"
   xmlns="http://www.w3.org/2000/svg"
@@ -5926,11 +5075,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3 9h18" />
   <path d="M8 15v6" />
   <path d="M8 3v6" />
-</svg>`,
-  ],
-  [
-    "briefcase-business",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["briefcase-business", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-briefcase-business"
   xmlns="http://www.w3.org/2000/svg"
@@ -5947,11 +5093,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M16 6V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" />
   <path d="M22 13a18.15 18.15 0 0 1-20 0" />
   <rect width="20" height="14" x="2" y="6" rx="2" />
-</svg>`,
-  ],
-  [
-    "briefcase-conveyor-belt",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["briefcase-conveyor-belt", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-briefcase-conveyor-belt"
   xmlns="http://www.w3.org/2000/svg"
@@ -5971,11 +5114,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M6 20v2" />
   <path d="M8 16V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v12" />
   <rect x="4" y="6" width="16" height="10" rx="2" />
-</svg>`,
-  ],
-  [
-    "briefcase-medical",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["briefcase-medical", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-briefcase-medical"
   xmlns="http://www.w3.org/2000/svg"
@@ -5994,11 +5134,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M18 6v14" />
   <path d="M6 6v14" />
   <rect width="20" height="14" x="2" y="6" rx="2" />
-</svg>`,
-  ],
-  [
-    "briefcase",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["briefcase", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-briefcase"
   xmlns="http://www.w3.org/2000/svg"
@@ -6013,11 +5150,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
   <rect width="20" height="14" x="2" y="6" rx="2" />
-</svg>`,
-  ],
-  [
-    "bring-to-front",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["bring-to-front", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-bring-to-front"
   xmlns="http://www.w3.org/2000/svg"
@@ -6033,11 +5167,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect x="8" y="8" width="8" height="8" rx="2" />
   <path d="M4 10a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2" />
   <path d="M14 20a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2" />
-</svg>`,
-  ],
-  [
-    "brush-cleaning",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["brush-cleaning", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-brush-cleaning"
   xmlns="http://www.w3.org/2000/svg"
@@ -6054,11 +5185,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M19 14a1 1 0 0 0 1-1v-1a2 2 0 0 0-2-2h-3a1 1 0 0 1-1-1V4a2 2 0 0 0-4 0v5a1 1 0 0 1-1 1H6a2 2 0 0 0-2 2v1a1 1 0 0 0 1 1" />
   <path d="M19 14H5l-1.973 6.767A1 1 0 0 0 4 22h16a1 1 0 0 0 .973-1.233z" />
   <path d="m8 22 1-4" />
-</svg>`,
-  ],
-  [
-    "brush",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["brush", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-brush"
   xmlns="http://www.w3.org/2000/svg"
@@ -6074,11 +5202,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m11 10 3 3" />
   <path d="M6.5 21A3.5 3.5 0 1 0 3 17.5a2.62 2.62 0 0 1-.708 1.792A1 1 0 0 0 3 21z" />
   <path d="M9.969 17.031 21.378 5.624a1 1 0 0 0-3.002-3.002L6.967 14.031" />
-</svg>`,
-  ],
-  [
-    "bubbles",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["bubbles", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-bubbles"
   xmlns="http://www.w3.org/2000/svg"
@@ -6095,11 +5220,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="18.5" cy="8.5" r="3.5" />
   <circle cx="7.5" cy="16.5" r="5.5" />
   <circle cx="7.5" cy="4.5" r="2.5" />
-</svg>`,
-  ],
-  [
-    "bug-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["bug-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-bug-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -6124,11 +5246,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M6 13H2" />
   <path d="m8 2 1.88 1.88" />
   <path d="M9.712 4.06A3 3 0 0 1 15 6v1.13" />
-</svg>`,
-  ],
-  [
-    "bug-play",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["bug-play", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-bug-play"
   xmlns="http://www.w3.org/2000/svg"
@@ -6150,11 +5269,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M6 13H2" />
   <path d="m8 2 1.88 1.88" />
   <path d="M9 7.13V6a3 3 0 1 1 6 0v1.13" />
-</svg>`,
-  ],
-  [
-    "bug",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["bug", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-bug"
   xmlns="http://www.w3.org/2000/svg"
@@ -6178,11 +5294,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M6 13H2" />
   <path d="m8 2 1.88 1.88" />
   <path d="M9 7.13V6a3 3 0 1 1 6 0v1.13" />
-</svg>`,
-  ],
-  [
-    "building-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["building-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-building-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -6200,11 +5313,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 21v-3a2 2 0 0 0-4 0v3" />
   <path d="M6 10H4a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-2" />
   <path d="M6 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16" />
-</svg>`,
-  ],
-  [
-    "building",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["building", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-building"
   xmlns="http://www.w3.org/2000/svg"
@@ -6228,11 +5338,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M8 6h.01" />
   <path d="M9 22v-3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3" />
   <rect x="4" y="2" width="16" height="20" rx="2" />
-</svg>`,
-  ],
-  [
-    "bus-front",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["bus-front", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-bus-front"
   xmlns="http://www.w3.org/2000/svg"
@@ -6254,11 +5361,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M16 15h.01" />
   <path d="M6 19v2" />
   <path d="M18 21v-2" />
-</svg>`,
-  ],
-  [
-    "bus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["bus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-bus"
   xmlns="http://www.w3.org/2000/svg"
@@ -6278,11 +5382,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="7" cy="18" r="2" />
   <path d="M9 18h5" />
   <circle cx="16" cy="18" r="2" />
-</svg>`,
-  ],
-  [
-    "cable-car",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["cable-car", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-cable-car"
   xmlns="http://www.w3.org/2000/svg"
@@ -6303,11 +5404,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M9 12v5" />
   <path d="M15 12v5" />
   <path d="M4 17h16" />
-</svg>`,
-  ],
-  [
-    "cable",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["cable", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-cable"
   xmlns="http://www.w3.org/2000/svg"
@@ -6327,11 +5425,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3 5V3" />
   <path d="M4 10a2 2 0 0 1-2-2V6a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2a2 2 0 0 1-2 2z" />
   <path d="M7 5V3" />
-</svg>`,
-  ],
-  [
-    "cake-slice",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["cake-slice", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-cake-slice"
   xmlns="http://www.w3.org/2000/svg"
@@ -6348,11 +5443,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M16 17H3" />
   <path d="m7.2 7.9-3.388 2.5A2 2 0 0 0 3 12.01V20a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1v-8.654c0-2-2.44-6.026-6.44-8.026a1 1 0 0 0-1.082.057L10.4 5.6" />
   <circle cx="9" cy="7" r="2" />
-</svg>`,
-  ],
-  [
-    "cake",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["cake", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-cake"
   xmlns="http://www.w3.org/2000/svg"
@@ -6374,11 +5466,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M7 4h.01" />
   <path d="M12 4h.01" />
   <path d="M17 4h.01" />
-</svg>`,
-  ],
-  [
-    "calculator",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["calculator", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-calculator"
   xmlns="http://www.w3.org/2000/svg"
@@ -6401,11 +5490,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M8 14h.01" />
   <path d="M12 18h.01" />
   <path d="M8 18h.01" />
-</svg>`,
-  ],
-  [
-    "calendar-1",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["calendar-1", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-calendar-1"
   xmlns="http://www.w3.org/2000/svg"
@@ -6423,11 +5509,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3 10h18" />
   <path d="M8 2v4" />
   <rect x="3" y="4" width="18" height="18" rx="2" />
-</svg>`,
-  ],
-  [
-    "calendar-arrow-down",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["calendar-arrow-down", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-calendar-arrow-down"
   xmlns="http://www.w3.org/2000/svg"
@@ -6446,11 +5529,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M21 11.354V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7.343" />
   <path d="M3 10h18" />
   <path d="M8 2v4" />
-</svg>`,
-  ],
-  [
-    "calendar-arrow-up",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["calendar-arrow-up", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-calendar-arrow-up"
   xmlns="http://www.w3.org/2000/svg"
@@ -6469,11 +5549,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M21 11.343V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h9" />
   <path d="M3 10h18" />
   <path d="M8 2v4" />
-</svg>`,
-  ],
-  [
-    "calendar-check-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["calendar-check-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-calendar-check-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -6491,11 +5568,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M21 14V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h8" />
   <path d="M3 10h18" />
   <path d="m16 20 2 2 4-4" />
-</svg>`,
-  ],
-  [
-    "calendar-check",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["calendar-check", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-calendar-check"
   xmlns="http://www.w3.org/2000/svg"
@@ -6513,11 +5587,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="18" height="18" x="3" y="4" rx="2" />
   <path d="M3 10h18" />
   <path d="m9 16 2 2 4-4" />
-</svg>`,
-  ],
-  [
-    "calendar-clock",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["calendar-clock", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-calendar-clock"
   xmlns="http://www.w3.org/2000/svg"
@@ -6536,11 +5607,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3 10h5" />
   <path d="M8 2v4" />
   <circle cx="16" cy="16" r="6" />
-</svg>`,
-  ],
-  [
-    "calendar-cog",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["calendar-cog", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-calendar-cog"
   xmlns="http://www.w3.org/2000/svg"
@@ -6566,11 +5634,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3 10h18" />
   <path d="M8 2v4" />
   <circle cx="18" cy="18" r="3" />
-</svg>`,
-  ],
-  [
-    "calendar-days",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["calendar-days", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-calendar-days"
   xmlns="http://www.w3.org/2000/svg"
@@ -6593,11 +5658,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M8 18h.01" />
   <path d="M12 18h.01" />
   <path d="M16 18h.01" />
-</svg>`,
-  ],
-  [
-    "calendar-fold",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["calendar-fold", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-calendar-fold"
   xmlns="http://www.w3.org/2000/svg"
@@ -6615,11 +5677,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M8 2v4" />
   <path d="M16 2v4" />
   <path d="M3 10h18" />
-</svg>`,
-  ],
-  [
-    "calendar-heart",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["calendar-heart", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-calendar-heart"
   xmlns="http://www.w3.org/2000/svg"
@@ -6637,11 +5696,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M16 2v4" />
   <path d="M3 10h18" />
   <path d="M8 2v4" />
-</svg>`,
-  ],
-  [
-    "calendar-minus-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["calendar-minus-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-calendar-minus-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -6659,11 +5715,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="18" height="18" x="3" y="4" rx="2" />
   <path d="M3 10h18" />
   <path d="M10 16h4" />
-</svg>`,
-  ],
-  [
-    "calendar-minus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["calendar-minus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-calendar-minus"
   xmlns="http://www.w3.org/2000/svg"
@@ -6681,11 +5734,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M21 15V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h8.5" />
   <path d="M3 10h18" />
   <path d="M8 2v4" />
-</svg>`,
-  ],
-  [
-    "calendar-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["calendar-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-calendar-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -6704,11 +5754,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3 10h7" />
   <path d="M21 10h-5.5" />
   <path d="m2 2 20 20" />
-</svg>`,
-  ],
-  [
-    "calendar-plus-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["calendar-plus-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-calendar-plus-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -6727,11 +5774,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3 10h18" />
   <path d="M10 16h4" />
   <path d="M12 14v4" />
-</svg>`,
-  ],
-  [
-    "calendar-plus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["calendar-plus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-calendar-plus"
   xmlns="http://www.w3.org/2000/svg"
@@ -6750,11 +5794,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M21 12.598V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h8.5" />
   <path d="M3 10h18" />
   <path d="M8 2v4" />
-</svg>`,
-  ],
-  [
-    "calendar-range",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["calendar-range", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-calendar-range"
   xmlns="http://www.w3.org/2000/svg"
@@ -6775,11 +5816,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M13 18H7" />
   <path d="M7 14h.01" />
   <path d="M17 18h.01" />
-</svg>`,
-  ],
-  [
-    "calendar-search",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["calendar-search", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-calendar-search"
   xmlns="http://www.w3.org/2000/svg"
@@ -6798,11 +5836,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3 10h18" />
   <path d="M8 2v4" />
   <circle cx="18" cy="18" r="3" />
-</svg>`,
-  ],
-  [
-    "calendar-sync",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["calendar-sync", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-calendar-sync"
   xmlns="http://www.w3.org/2000/svg"
@@ -6823,11 +5858,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M21 8.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h4.3" />
   <path d="M3 10h4" />
   <path d="M8 2v4" />
-</svg>`,
-  ],
-  [
-    "calendar-x-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["calendar-x-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-calendar-x-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -6846,11 +5878,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3 10h18" />
   <path d="m17 22 5-5" />
   <path d="m17 17 5 5" />
-</svg>`,
-  ],
-  [
-    "calendar-x",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["calendar-x", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-calendar-x"
   xmlns="http://www.w3.org/2000/svg"
@@ -6869,11 +5898,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3 10h18" />
   <path d="m14 14-4 4" />
   <path d="m10 14 4 4" />
-</svg>`,
-  ],
-  [
-    "calendar",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["calendar", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-calendar"
   xmlns="http://www.w3.org/2000/svg"
@@ -6890,11 +5916,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M16 2v4" />
   <rect width="18" height="18" x="3" y="4" rx="2" />
   <path d="M3 10h18" />
-</svg>`,
-  ],
-  [
-    "calendars",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["calendars", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-calendars"
   xmlns="http://www.w3.org/2000/svg"
@@ -6913,11 +5936,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M2 13h2" />
   <path d="M8 8h14" />
   <rect x="8" y="3" width="14" height="14" rx="2" />
-</svg>`,
-  ],
-  [
-    "camera-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["camera-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-camera-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -6934,11 +5954,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m2 2 20 20" />
   <path d="M20 20H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h1.997a2 2 0 0 0 .819-.175" />
   <path d="M9.695 4.024A2 2 0 0 1 10.004 4h3.993a2 2 0 0 1 1.76 1.05l.486.9A2 2 0 0 0 18.003 7H20a2 2 0 0 1 2 2v7.344" />
-</svg>`,
-  ],
-  [
-    "camera",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["camera", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-camera"
   xmlns="http://www.w3.org/2000/svg"
@@ -6953,11 +5970,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M13.997 4a2 2 0 0 1 1.76 1.05l.486.9A2 2 0 0 0 18.003 7H20a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h1.997a2 2 0 0 0 1.759-1.048l.489-.904A2 2 0 0 1 10.004 4z" />
   <circle cx="12" cy="13" r="3" />
-</svg>`,
-  ],
-  [
-    "candlestick-chart",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["candlestick-chart", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-candlestick-chart"
   xmlns="http://www.w3.org/2000/svg"
@@ -6977,11 +5991,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="4" height="8" x="15" y="5" rx="1" />
   <path d="M17 13v3" />
   <path d="M3 3v16a2 2 0 0 0 2 2h16" />
-</svg>`,
-  ],
-  [
-    "candy-cane",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["candy-cane", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-candy-cane"
   xmlns="http://www.w3.org/2000/svg"
@@ -6999,11 +6010,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M10.9 4.8 13 9" />
   <path d="m7.9 9.7 2 4.4" />
   <path d="M4.9 14.7 7 18.9" />
-</svg>`,
-  ],
-  [
-    "candy-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["candy-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-candy-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -7023,11 +6031,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M16 7V3a1 1 0 0 1 1.707-.707 2.5 2.5 0 0 0 2.152.717 1 1 0 0 1 1.131 1.131 2.5 2.5 0 0 0 .717 2.152A1 1 0 0 1 21 8h-4" />
   <path d="m2 2 20 20" />
   <path d="M8 17v4a1 1 0 0 1-1.707.707 2.5 2.5 0 0 0-2.152-.717 1 1 0 0 1-1.131-1.131 2.5 2.5 0 0 0-.717-2.152A1 1 0 0 1 3 16h4" />
-</svg>`,
-  ],
-  [
-    "candy",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["candy", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-candy"
   xmlns="http://www.w3.org/2000/svg"
@@ -7045,11 +6050,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M16 7V3a1 1 0 0 1 1.707-.707 2.5 2.5 0 0 0 2.152.717 1 1 0 0 1 1.131 1.131 2.5 2.5 0 0 0 .717 2.152A1 1 0 0 1 21 8h-4" />
   <path d="M16.536 7.465a5 5 0 0 0-7.072 0l-2 2a5 5 0 0 0 0 7.07 5 5 0 0 0 7.072 0l2-2a5 5 0 0 0 0-7.07" />
   <path d="M8 17v4a1 1 0 0 1-1.707.707 2.5 2.5 0 0 0-2.152-.717 1 1 0 0 1-1.131-1.131 2.5 2.5 0 0 0-.717-2.152A1 1 0 0 1 3 16h4" />
-</svg>`,
-  ],
-  [
-    "cannabis-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["cannabis-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-cannabis-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -7068,11 +6070,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m2 2 20 20" />
   <path d="M21.024 15.378A15 15 0 0 0 22 15c-.426-1.279-2.67-2.557-4.25-2.907" />
   <path d="M6.995 6.992C5.714 6.4 4.29 6 3 6c0 2 2.5 5 4 6-1.5 0-4.5 1.5-5 3 3.5 1.5 6 1 6 1-1.5 1.5-2 3.5-2 5 2.5 0 4.5-1.5 6-3" />
-</svg>`,
-  ],
-  [
-    "cannabis",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["cannabis", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-cannabis"
   xmlns="http://www.w3.org/2000/svg"
@@ -7087,11 +6086,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M12 22v-4" />
   <path d="M7 12c-1.5 0-4.5 1.5-5 3 3.5 1.5 6 1 6 1-1.5 1.5-2 3.5-2 5 2.5 0 4.5-1.5 6-3 1.5 1.5 3.5 3 6 3 0-1.5-.5-3.5-2-5 0 0 2.5.5 6-1-.5-1.5-3.5-3-5-3 1.5-1 4-4 4-6-2.5 0-5.5 1.5-7 3 0-2.5-.5-5-2-7-1.5 2-2 4.5-2 7-1.5-1.5-4.5-3-7-3 0 2 2.5 5 4 6" />
-</svg>`,
-  ],
-  [
-    "captions-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["captions-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-captions-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -7110,11 +6106,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m2 2 20 20" />
   <path d="M7 11h4" />
   <path d="M7 15h2.5" />
-</svg>`,
-  ],
-  [
-    "captions",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["captions", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-captions"
   xmlns="http://www.w3.org/2000/svg"
@@ -7129,11 +6122,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <rect width="18" height="14" x="3" y="5" rx="2" ry="2" />
   <path d="M7 15h4M15 15h2M7 11h2M13 11h4" />
-</svg>`,
-  ],
-  [
-    "car-front",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["car-front", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-car-front"
   xmlns="http://www.w3.org/2000/svg"
@@ -7152,11 +6142,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="18" height="8" x="3" y="10" rx="2" />
   <path d="M5 18v2" />
   <path d="M19 18v2" />
-</svg>`,
-  ],
-  [
-    "car-taxi-front",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["car-taxi-front", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-car-taxi-front"
   xmlns="http://www.w3.org/2000/svg"
@@ -7176,11 +6163,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="18" height="8" x="3" y="10" rx="2" />
   <path d="M5 18v2" />
   <path d="M19 18v2" />
-</svg>`,
-  ],
-  [
-    "car",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["car", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-car"
   xmlns="http://www.w3.org/2000/svg"
@@ -7197,11 +6181,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="7" cy="17" r="2" />
   <path d="M9 17h6" />
   <circle cx="17" cy="17" r="2" />
-</svg>`,
-  ],
-  [
-    "caravan",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["caravan", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-caravan"
   xmlns="http://www.w3.org/2000/svg"
@@ -7218,11 +6199,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M2 9h3a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H2" />
   <path d="M22 17v1a1 1 0 0 1-1 1H10v-9a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v9" />
   <circle cx="8" cy="19" r="2" />
-</svg>`,
-  ],
-  [
-    "card-sim",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["card-sim", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-card-sim"
   xmlns="http://www.w3.org/2000/svg"
@@ -7239,11 +6217,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14.172 2a2 2 0 0 1 1.414.586l3.828 3.828A2 2 0 0 1 20 7.828V20a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z" />
   <path d="M8 14h8" />
   <rect x="8" y="10" width="8" height="8" rx="1" />
-</svg>`,
-  ],
-  [
-    "carrot",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["carrot", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-carrot"
   xmlns="http://www.w3.org/2000/svg"
@@ -7259,11 +6234,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M2.27 21.7s9.87-3.5 12.73-6.36a4.5 4.5 0 0 0-6.36-6.37C5.77 11.84 2.27 21.7 2.27 21.7zM8.64 14l-2.05-2.04M15.34 15l-2.46-2.46" />
   <path d="M22 9s-1.33-2-3.5-2C16.86 7 15 9 15 9s1.33 2 3.5 2S22 9 22 9z" />
   <path d="M15 2s-2 1.33-2 3.5S15 9 15 9s2-1.84 2-3.5C17 3.33 15 2 15 2z" />
-</svg>`,
-  ],
-  [
-    "case-lower",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["case-lower", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-case-lower"
   xmlns="http://www.w3.org/2000/svg"
@@ -7280,11 +6252,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 6v10" />
   <circle cx="17.5" cy="12.5" r="3.5" />
   <circle cx="6.5" cy="12.5" r="3.5" />
-</svg>`,
-  ],
-  [
-    "case-sensitive",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["case-sensitive", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-case-sensitive"
   xmlns="http://www.w3.org/2000/svg"
@@ -7301,11 +6270,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M22 9v7" />
   <path d="M3.304 13h6.392" />
   <circle cx="18.5" cy="12.5" r="3.5" />
-</svg>`,
-  ],
-  [
-    "case-upper",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["case-upper", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-case-upper"
   xmlns="http://www.w3.org/2000/svg"
@@ -7321,11 +6287,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M15 11h4.5a1 1 0 0 1 0 5h-4a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5h3a1 1 0 0 1 0 5" />
   <path d="m2 16 4.039-9.69a.5.5 0 0 1 .923 0L11 16" />
   <path d="M3.304 13h6.392" />
-</svg>`,
-  ],
-  [
-    "cassette-tape",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["cassette-tape", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-cassette-tape"
   xmlns="http://www.w3.org/2000/svg"
@@ -7343,11 +6306,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M8 12h8" />
   <circle cx="16" cy="10" r="2" />
   <path d="m6 20 .7-2.9A1.4 1.4 0 0 1 8.1 16h7.8a1.4 1.4 0 0 1 1.4 1l.7 3" />
-</svg>`,
-  ],
-  [
-    "cast",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["cast", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-cast"
   xmlns="http://www.w3.org/2000/svg"
@@ -7364,11 +6324,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M2 12a9 9 0 0 1 8 8" />
   <path d="M2 16a5 5 0 0 1 4 4" />
   <line x1="2" x2="2.01" y1="20" y2="20" />
-</svg>`,
-  ],
-  [
-    "castle",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["castle", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-castle"
   xmlns="http://www.w3.org/2000/svg"
@@ -7389,11 +6346,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M22 11H2" />
   <path d="M22 9v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9" />
   <path d="M6 3v8" />
-</svg>`,
-  ],
-  [
-    "cat",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["cat", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-cat"
   xmlns="http://www.w3.org/2000/svg"
@@ -7410,11 +6364,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M8 14v.5" />
   <path d="M16 14v.5" />
   <path d="M11.25 16.25h1.5L12 17l-.75-.75Z" />
-</svg>`,
-  ],
-  [
-    "cctv",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["cctv", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-cctv"
   xmlns="http://www.w3.org/2000/svg"
@@ -7432,11 +6383,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M2 19h3.76a2 2 0 0 0 1.8-1.1L9 15" />
   <path d="M2 21v-4" />
   <path d="M7 9h.01" />
-</svg>`,
-  ],
-  [
-    "chart-area",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["chart-area", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-chart-area"
   xmlns="http://www.w3.org/2000/svg"
@@ -7451,11 +6399,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M3 3v16a2 2 0 0 0 2 2h16" />
   <path d="M7 11.207a.5.5 0 0 1 .146-.353l2-2a.5.5 0 0 1 .708 0l3.292 3.292a.5.5 0 0 0 .708 0l4.292-4.292a.5.5 0 0 1 .854.353V16a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1z" />
-</svg>`,
-  ],
-  [
-    "chart-bar-big",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["chart-bar-big", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-chart-bar-big"
   xmlns="http://www.w3.org/2000/svg"
@@ -7471,11 +6416,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3 3v16a2 2 0 0 0 2 2h16" />
   <rect x="7" y="13" width="9" height="4" rx="1" />
   <rect x="7" y="5" width="12" height="4" rx="1" />
-</svg>`,
-  ],
-  [
-    "chart-bar-decreasing",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["chart-bar-decreasing", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-chart-bar-decreasing"
   xmlns="http://www.w3.org/2000/svg"
@@ -7492,11 +6434,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M7 11h8" />
   <path d="M7 16h3" />
   <path d="M7 6h12" />
-</svg>`,
-  ],
-  [
-    "chart-bar-increasing",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["chart-bar-increasing", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-chart-bar-increasing"
   xmlns="http://www.w3.org/2000/svg"
@@ -7513,11 +6452,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M7 11h8" />
   <path d="M7 16h12" />
   <path d="M7 6h3" />
-</svg>`,
-  ],
-  [
-    "chart-bar-stacked",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["chart-bar-stacked", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-chart-bar-stacked"
   xmlns="http://www.w3.org/2000/svg"
@@ -7535,11 +6471,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3 3v16a2 2 0 0 0 2 2h16" />
   <rect x="7" y="13" width="9" height="4" rx="1" />
   <rect x="7" y="5" width="12" height="4" rx="1" />
-</svg>`,
-  ],
-  [
-    "chart-bar",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["chart-bar", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-chart-bar"
   xmlns="http://www.w3.org/2000/svg"
@@ -7556,11 +6489,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M7 16h8" />
   <path d="M7 11h12" />
   <path d="M7 6h3" />
-</svg>`,
-  ],
-  [
-    "chart-candlestick",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["chart-candlestick", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-chart-candlestick"
   xmlns="http://www.w3.org/2000/svg"
@@ -7580,11 +6510,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="4" height="8" x="15" y="5" rx="1" />
   <path d="M17 13v3" />
   <path d="M3 3v16a2 2 0 0 0 2 2h16" />
-</svg>`,
-  ],
-  [
-    "chart-column-big",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["chart-column-big", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-chart-column-big"
   xmlns="http://www.w3.org/2000/svg"
@@ -7600,11 +6527,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3 3v16a2 2 0 0 0 2 2h16" />
   <rect x="15" y="5" width="4" height="12" rx="1" />
   <rect x="7" y="8" width="4" height="9" rx="1" />
-</svg>`,
-  ],
-  [
-    "chart-column-decreasing",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["chart-column-decreasing", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-chart-column-decreasing"
   xmlns="http://www.w3.org/2000/svg"
@@ -7621,11 +6545,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M18 17v-3" />
   <path d="M3 3v16a2 2 0 0 0 2 2h16" />
   <path d="M8 17V5" />
-</svg>`,
-  ],
-  [
-    "chart-column-increasing",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["chart-column-increasing", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-chart-column-increasing"
   xmlns="http://www.w3.org/2000/svg"
@@ -7642,11 +6563,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M18 17V5" />
   <path d="M3 3v16a2 2 0 0 0 2 2h16" />
   <path d="M8 17v-3" />
-</svg>`,
-  ],
-  [
-    "chart-column-stacked",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["chart-column-stacked", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-chart-column-stacked"
   xmlns="http://www.w3.org/2000/svg"
@@ -7664,11 +6582,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3 3v16a2 2 0 0 0 2 2h16" />
   <rect x="15" y="5" width="4" height="12" rx="1" />
   <rect x="7" y="8" width="4" height="9" rx="1" />
-</svg>`,
-  ],
-  [
-    "chart-column",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["chart-column", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-chart-column"
   xmlns="http://www.w3.org/2000/svg"
@@ -7685,11 +6600,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M18 17V9" />
   <path d="M13 17V5" />
   <path d="M8 17v-3" />
-</svg>`,
-  ],
-  [
-    "chart-gantt",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["chart-gantt", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-chart-gantt"
   xmlns="http://www.w3.org/2000/svg"
@@ -7706,11 +6618,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 16h6" />
   <path d="M3 3v16a2 2 0 0 0 2 2h16" />
   <path d="M8 11h7" />
-</svg>`,
-  ],
-  [
-    "chart-line",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["chart-line", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-chart-line"
   xmlns="http://www.w3.org/2000/svg"
@@ -7725,11 +6634,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M3 3v16a2 2 0 0 0 2 2h16" />
   <path d="m19 9-5 5-4-4-3 3" />
-</svg>`,
-  ],
-  [
-    "chart-network",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["chart-network", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-chart-network"
   xmlns="http://www.w3.org/2000/svg"
@@ -7749,11 +6655,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="12" cy="6" r="2" />
   <circle cx="16" cy="12" r="2" />
   <circle cx="9" cy="15" r="2" />
-</svg>`,
-  ],
-  [
-    "chart-no-axes-column-decreasing",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["chart-no-axes-column-decreasing", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-chart-no-axes-column-decreasing"
   xmlns="http://www.w3.org/2000/svg"
@@ -7769,11 +6672,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M5 21V3" />
   <path d="M12 21V9" />
   <path d="M19 21v-6" />
-</svg>`,
-  ],
-  [
-    "chart-no-axes-column-increasing",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["chart-no-axes-column-increasing", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-chart-no-axes-column-increasing"
   xmlns="http://www.w3.org/2000/svg"
@@ -7789,11 +6689,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M5 21v-6" />
   <path d="M12 21V9" />
   <path d="M19 21V3" />
-</svg>`,
-  ],
-  [
-    "chart-no-axes-column",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["chart-no-axes-column", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-chart-no-axes-column"
   xmlns="http://www.w3.org/2000/svg"
@@ -7809,11 +6706,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M5 21v-6" />
   <path d="M12 21V3" />
   <path d="M19 21V9" />
-</svg>`,
-  ],
-  [
-    "chart-no-axes-combined",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["chart-no-axes-combined", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-chart-no-axes-combined"
   xmlns="http://www.w3.org/2000/svg"
@@ -7832,11 +6726,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m22 3-8.646 8.646a.5.5 0 0 1-.708 0L9.354 8.354a.5.5 0 0 0-.707 0L2 15" />
   <path d="M4 18v3" />
   <path d="M8 14v7" />
-</svg>`,
-  ],
-  [
-    "chart-no-axes-gantt",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["chart-no-axes-gantt", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-chart-no-axes-gantt"
   xmlns="http://www.w3.org/2000/svg"
@@ -7852,11 +6743,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M6 5h12" />
   <path d="M4 12h10" />
   <path d="M12 19h8" />
-</svg>`,
-  ],
-  [
-    "chart-pie",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["chart-pie", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-chart-pie"
   xmlns="http://www.w3.org/2000/svg"
@@ -7871,11 +6759,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M21 12c.552 0 1.005-.449.95-.998a10 10 0 0 0-8.953-8.951c-.55-.055-.998.398-.998.95v8a1 1 0 0 0 1 1z" />
   <path d="M21.21 15.89A10 10 0 1 1 8 2.83" />
-</svg>`,
-  ],
-  [
-    "chart-scatter",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["chart-scatter", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-chart-scatter"
   xmlns="http://www.w3.org/2000/svg"
@@ -7894,11 +6779,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="7.5" cy="16.5" r=".5" fill="currentColor" />
   <circle cx="17.5" cy="14.5" r=".5" fill="currentColor" />
   <path d="M3 3v16a2 2 0 0 0 2 2h16" />
-</svg>`,
-  ],
-  [
-    "chart-spline",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["chart-spline", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-chart-spline"
   xmlns="http://www.w3.org/2000/svg"
@@ -7913,11 +6795,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M3 3v16a2 2 0 0 0 2 2h16" />
   <path d="M7 16c.5-2 1.5-7 4-7 2 0 2 3 4 3 2.5 0 4.5-5 5-7" />
-</svg>`,
-  ],
-  [
-    "check-check",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["check-check", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-check-check"
   xmlns="http://www.w3.org/2000/svg"
@@ -7932,11 +6811,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M18 6 7 17l-5-5" />
   <path d="m22 10-7.5 7.5L13 16" />
-</svg>`,
-  ],
-  [
-    "check-circle-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["check-circle-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-check-circle-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -7951,11 +6827,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <circle cx="12" cy="12" r="10" />
   <path d="m9 12 2 2 4-4" />
-</svg>`,
-  ],
-  [
-    "check-circle",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["check-circle", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-check-circle"
   xmlns="http://www.w3.org/2000/svg"
@@ -7970,11 +6843,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M21.801 10A10 10 0 1 1 17 3.335" />
   <path d="m9 11 3 3L22 4" />
-</svg>`,
-  ],
-  [
-    "check-line",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["check-line", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-check-line"
   xmlns="http://www.w3.org/2000/svg"
@@ -7990,11 +6860,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M20 4L9 15" />
   <path d="M21 19L3 19" />
   <path d="M9 15L4 10" />
-</svg>`,
-  ],
-  [
-    "check-square-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["check-square-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-check-square-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -8009,11 +6876,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="m9 12 2 2 4-4" />
-</svg>`,
-  ],
-  [
-    "check-square",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["check-square", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-check-square"
   xmlns="http://www.w3.org/2000/svg"
@@ -8028,11 +6892,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M21 10.656V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h12.344" />
   <path d="m9 11 3 3L22 4" />
-</svg>`,
-  ],
-  [
-    "check",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["check", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-check"
   xmlns="http://www.w3.org/2000/svg"
@@ -8046,11 +6907,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M20 6 9 17l-5-5" />
-</svg>`,
-  ],
-  [
-    "chef-hat",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["chef-hat", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-chef-hat"
   xmlns="http://www.w3.org/2000/svg"
@@ -8065,11 +6923,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M17 21a1 1 0 0 0 1-1v-5.35c0-.457.316-.844.727-1.041a4 4 0 0 0-2.134-7.589 5 5 0 0 0-9.186 0 4 4 0 0 0-2.134 7.588c.411.198.727.585.727 1.041V20a1 1 0 0 0 1 1Z" />
   <path d="M6 17h12" />
-</svg>`,
-  ],
-  [
-    "cherry",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["cherry", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-cherry"
   xmlns="http://www.w3.org/2000/svg"
@@ -8086,11 +6941,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 17a5 5 0 0 0 10 0c0-2.76-2.5-5-5-3-2.5-2-5 .24-5 3Z" />
   <path d="M7 14c3.22-2.91 4.29-8.75 5-12 1.66 2.38 4.94 9 5 12" />
   <path d="M22 9c-4.29 0-7.14-2.33-10-7 5.71 0 10 4.67 10 7Z" />
-</svg>`,
-  ],
-  [
-    "chess-bishop",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["chess-bishop", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-chess-bishop"
   xmlns="http://www.w3.org/2000/svg"
@@ -8107,11 +6959,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M15 18c1.5-.615 3-2.461 3-4.923C18 8.769 14.5 4.462 12 2 9.5 4.462 6 8.77 6 13.077 6 15.539 7.5 17.385 9 18" />
   <path d="m16 7-2.5 2.5" />
   <path d="M9 2h6" />
-</svg>`,
-  ],
-  [
-    "chess-king",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["chess-king", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-chess-king"
   xmlns="http://www.w3.org/2000/svg"
@@ -8128,11 +6977,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m6.7 18-1-1C4.35 15.682 3 14.09 3 12a5 5 0 0 1 4.95-5c1.584 0 2.7.455 4.05 1.818C13.35 7.455 14.466 7 16.05 7A5 5 0 0 1 21 12c0 2.082-1.359 3.673-2.7 5l-1 1" />
   <path d="M10 4h4" />
   <path d="M12 2v6.818" />
-</svg>`,
-  ],
-  [
-    "chess-knight",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["chess-knight", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-chess-knight"
   xmlns="http://www.w3.org/2000/svg"
@@ -8150,11 +6996,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m15 5 1.425-1.425" />
   <path d="m17 8 1.53-1.53" />
   <path d="M9.713 12.185 7 18" />
-</svg>`,
-  ],
-  [
-    "chess-pawn",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["chess-pawn", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-chess-pawn"
   xmlns="http://www.w3.org/2000/svg"
@@ -8172,11 +7015,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M7 10h10" />
   <path d="m8 18 1.5-8" />
   <circle cx="12" cy="6" r="4" />
-</svg>`,
-  ],
-  [
-    "chess-queen",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["chess-queen", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-chess-queen"
   xmlns="http://www.w3.org/2000/svg"
@@ -8197,11 +7037,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="12" cy="4" r="2" />
   <circle cx="20" cy="7" r="2" />
   <circle cx="4" cy="7" r="2" />
-</svg>`,
-  ],
-  [
-    "chess-rook",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["chess-rook", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-chess-rook"
   xmlns="http://www.w3.org/2000/svg"
@@ -8221,11 +7058,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M6 2v5a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V2" />
   <path d="M6 4h12" />
   <path d="m7 18 1-9" />
-</svg>`,
-  ],
-  [
-    "chevron-down-circle",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["chevron-down-circle", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-chevron-down-circle"
   xmlns="http://www.w3.org/2000/svg"
@@ -8240,11 +7074,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <circle cx="12" cy="12" r="10" />
   <path d="m16 10-4 4-4-4" />
-</svg>`,
-  ],
-  [
-    "chevron-down-square",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["chevron-down-square", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-chevron-down-square"
   xmlns="http://www.w3.org/2000/svg"
@@ -8259,11 +7090,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="m16 10-4 4-4-4" />
-</svg>`,
-  ],
-  [
-    "chevron-down",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["chevron-down", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-chevron-down"
   xmlns="http://www.w3.org/2000/svg"
@@ -8277,11 +7105,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="m6 9 6 6 6-6" />
-</svg>`,
-  ],
-  [
-    "chevron-first",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["chevron-first", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-chevron-first"
   xmlns="http://www.w3.org/2000/svg"
@@ -8296,11 +7121,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="m17 18-6-6 6-6" />
   <path d="M7 6v12" />
-</svg>`,
-  ],
-  [
-    "chevron-last",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["chevron-last", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-chevron-last"
   xmlns="http://www.w3.org/2000/svg"
@@ -8315,11 +7137,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="m7 18 6-6-6-6" />
   <path d="M17 6v12" />
-</svg>`,
-  ],
-  [
-    "chevron-left-circle",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["chevron-left-circle", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-chevron-left-circle"
   xmlns="http://www.w3.org/2000/svg"
@@ -8334,11 +7153,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <circle cx="12" cy="12" r="10" />
   <path d="m14 16-4-4 4-4" />
-</svg>`,
-  ],
-  [
-    "chevron-left-square",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["chevron-left-square", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-chevron-left-square"
   xmlns="http://www.w3.org/2000/svg"
@@ -8353,11 +7169,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="m14 16-4-4 4-4" />
-</svg>`,
-  ],
-  [
-    "chevron-left",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["chevron-left", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-chevron-left"
   xmlns="http://www.w3.org/2000/svg"
@@ -8371,11 +7184,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="m15 18-6-6 6-6" />
-</svg>`,
-  ],
-  [
-    "chevron-right-circle",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["chevron-right-circle", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-chevron-right-circle"
   xmlns="http://www.w3.org/2000/svg"
@@ -8390,11 +7200,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <circle cx="12" cy="12" r="10" />
   <path d="m10 8 4 4-4 4" />
-</svg>`,
-  ],
-  [
-    "chevron-right-square",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["chevron-right-square", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-chevron-right-square"
   xmlns="http://www.w3.org/2000/svg"
@@ -8409,11 +7216,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="m10 8 4 4-4 4" />
-</svg>`,
-  ],
-  [
-    "chevron-right",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["chevron-right", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-chevron-right"
   xmlns="http://www.w3.org/2000/svg"
@@ -8427,11 +7231,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="m9 18 6-6-6-6" />
-</svg>`,
-  ],
-  [
-    "chevron-up-circle",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["chevron-up-circle", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-chevron-up-circle"
   xmlns="http://www.w3.org/2000/svg"
@@ -8446,11 +7247,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <circle cx="12" cy="12" r="10" />
   <path d="m8 14 4-4 4 4" />
-</svg>`,
-  ],
-  [
-    "chevron-up-square",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["chevron-up-square", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-chevron-up-square"
   xmlns="http://www.w3.org/2000/svg"
@@ -8465,11 +7263,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="m8 14 4-4 4 4" />
-</svg>`,
-  ],
-  [
-    "chevron-up",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["chevron-up", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-chevron-up"
   xmlns="http://www.w3.org/2000/svg"
@@ -8483,11 +7278,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="m18 15-6-6-6 6" />
-</svg>`,
-  ],
-  [
-    "chevrons-down-up",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["chevrons-down-up", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-chevrons-down-up"
   xmlns="http://www.w3.org/2000/svg"
@@ -8502,11 +7294,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="m7 20 5-5 5 5" />
   <path d="m7 4 5 5 5-5" />
-</svg>`,
-  ],
-  [
-    "chevrons-down",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["chevrons-down", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-chevrons-down"
   xmlns="http://www.w3.org/2000/svg"
@@ -8521,11 +7310,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="m7 6 5 5 5-5" />
   <path d="m7 13 5 5 5-5" />
-</svg>`,
-  ],
-  [
-    "chevrons-left-right-ellipsis",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["chevrons-left-right-ellipsis", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-chevrons-left-right-ellipsis"
   xmlns="http://www.w3.org/2000/svg"
@@ -8543,11 +7329,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m17 7 5 5-5 5" />
   <path d="m7 7-5 5 5 5" />
   <path d="M8 12h.01" />
-</svg>`,
-  ],
-  [
-    "chevrons-left-right",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["chevrons-left-right", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-chevrons-left-right"
   xmlns="http://www.w3.org/2000/svg"
@@ -8562,11 +7345,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="m9 7-5 5 5 5" />
   <path d="m15 7 5 5-5 5" />
-</svg>`,
-  ],
-  [
-    "chevrons-left",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["chevrons-left", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-chevrons-left"
   xmlns="http://www.w3.org/2000/svg"
@@ -8581,11 +7361,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="m11 17-5-5 5-5" />
   <path d="m18 17-5-5 5-5" />
-</svg>`,
-  ],
-  [
-    "chevrons-right-left",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["chevrons-right-left", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-chevrons-right-left"
   xmlns="http://www.w3.org/2000/svg"
@@ -8600,11 +7377,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="m20 17-5-5 5-5" />
   <path d="m4 17 5-5-5-5" />
-</svg>`,
-  ],
-  [
-    "chevrons-right",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["chevrons-right", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-chevrons-right"
   xmlns="http://www.w3.org/2000/svg"
@@ -8619,11 +7393,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="m6 17 5-5-5-5" />
   <path d="m13 17 5-5-5-5" />
-</svg>`,
-  ],
-  [
-    "chevrons-up-down",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["chevrons-up-down", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-chevrons-up-down"
   xmlns="http://www.w3.org/2000/svg"
@@ -8638,11 +7409,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="m7 15 5 5 5-5" />
   <path d="m7 9 5-5 5 5" />
-</svg>`,
-  ],
-  [
-    "chevrons-up",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["chevrons-up", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-chevrons-up"
   xmlns="http://www.w3.org/2000/svg"
@@ -8657,11 +7425,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="m17 11-5-5-5 5" />
   <path d="m17 18-5-5-5 5" />
-</svg>`,
-  ],
-  [
-    "chrome",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["chrome", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-chrome"
   xmlns="http://www.w3.org/2000/svg"
@@ -8679,11 +7444,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3.95 6.06 8.54 14" />
   <circle cx="12" cy="12" r="10" />
   <circle cx="12" cy="12" r="4" />
-</svg>`,
-  ],
-  [
-    "chromium",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["chromium", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-chromium"
   xmlns="http://www.w3.org/2000/svg"
@@ -8701,11 +7463,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3.95 6.06 8.54 14" />
   <circle cx="12" cy="12" r="10" />
   <circle cx="12" cy="12" r="4" />
-</svg>`,
-  ],
-  [
-    "church",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["church", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-church"
   xmlns="http://www.w3.org/2000/svg"
@@ -8723,11 +7482,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 21v-3a2 2 0 0 0-4 0v3" />
   <path d="m18 9 3.52 2.147a1 1 0 0 1 .48.854V19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6.999a1 1 0 0 1 .48-.854L6 9" />
   <path d="M6 21V7a1 1 0 0 1 .376-.782l5-3.999a1 1 0 0 1 1.249.001l5 4A1 1 0 0 1 18 7v14" />
-</svg>`,
-  ],
-  [
-    "cigarette-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["cigarette-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-cigarette-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -8746,11 +7502,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M21 12a1 1 0 0 1 1 1v2a1 1 0 0 1-.5.866" />
   <path d="M22 8c0-2.5-2-2.5-2-5" />
   <path d="M7 12v4" />
-</svg>`,
-  ],
-  [
-    "cigarette",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["cigarette", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-cigarette"
   xmlns="http://www.w3.org/2000/svg"
@@ -8768,11 +7521,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M21 16a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1" />
   <path d="M22 8c0-2.5-2-2.5-2-5" />
   <path d="M7 12v4" />
-</svg>`,
-  ],
-  [
-    "circle-alert",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["circle-alert", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-circle-alert"
   xmlns="http://www.w3.org/2000/svg"
@@ -8788,11 +7538,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="12" cy="12" r="10" />
   <line x1="12" x2="12" y1="8" y2="12" />
   <line x1="12" x2="12.01" y1="16" y2="16" />
-</svg>`,
-  ],
-  [
-    "circle-arrow-down",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["circle-arrow-down", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-circle-arrow-down"
   xmlns="http://www.w3.org/2000/svg"
@@ -8808,11 +7555,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="12" cy="12" r="10" />
   <path d="M12 8v8" />
   <path d="m8 12 4 4 4-4" />
-</svg>`,
-  ],
-  [
-    "circle-arrow-left",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["circle-arrow-left", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-circle-arrow-left"
   xmlns="http://www.w3.org/2000/svg"
@@ -8828,11 +7572,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="12" cy="12" r="10" />
   <path d="m12 8-4 4 4 4" />
   <path d="M16 12H8" />
-</svg>`,
-  ],
-  [
-    "circle-arrow-out-down-left",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["circle-arrow-out-down-left", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-circle-arrow-out-down-left"
   xmlns="http://www.w3.org/2000/svg"
@@ -8848,11 +7589,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M2 12a10 10 0 1 1 10 10" />
   <path d="m2 22 10-10" />
   <path d="M8 22H2v-6" />
-</svg>`,
-  ],
-  [
-    "circle-arrow-out-down-right",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["circle-arrow-out-down-right", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-circle-arrow-out-down-right"
   xmlns="http://www.w3.org/2000/svg"
@@ -8868,11 +7606,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 22a10 10 0 1 1 10-10" />
   <path d="M22 22 12 12" />
   <path d="M22 16v6h-6" />
-</svg>`,
-  ],
-  [
-    "circle-arrow-out-up-left",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["circle-arrow-out-up-left", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-circle-arrow-out-up-left"
   xmlns="http://www.w3.org/2000/svg"
@@ -8888,11 +7623,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M2 8V2h6" />
   <path d="m2 2 10 10" />
   <path d="M12 2A10 10 0 1 1 2 12" />
-</svg>`,
-  ],
-  [
-    "circle-arrow-out-up-right",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["circle-arrow-out-up-right", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-circle-arrow-out-up-right"
   xmlns="http://www.w3.org/2000/svg"
@@ -8908,11 +7640,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M22 12A10 10 0 1 1 12 2" />
   <path d="M22 2 12 12" />
   <path d="M16 2h6v6" />
-</svg>`,
-  ],
-  [
-    "circle-arrow-right",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["circle-arrow-right", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-circle-arrow-right"
   xmlns="http://www.w3.org/2000/svg"
@@ -8928,11 +7657,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="12" cy="12" r="10" />
   <path d="m12 16 4-4-4-4" />
   <path d="M8 12h8" />
-</svg>`,
-  ],
-  [
-    "circle-arrow-up",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["circle-arrow-up", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-circle-arrow-up"
   xmlns="http://www.w3.org/2000/svg"
@@ -8948,11 +7674,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="12" cy="12" r="10" />
   <path d="m16 12-4-4-4 4" />
   <path d="M12 16V8" />
-</svg>`,
-  ],
-  [
-    "circle-check-big",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["circle-check-big", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-circle-check-big"
   xmlns="http://www.w3.org/2000/svg"
@@ -8967,11 +7690,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M21.801 10A10 10 0 1 1 17 3.335" />
   <path d="m9 11 3 3L22 4" />
-</svg>`,
-  ],
-  [
-    "circle-check",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["circle-check", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-circle-check"
   xmlns="http://www.w3.org/2000/svg"
@@ -8986,11 +7706,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <circle cx="12" cy="12" r="10" />
   <path d="m9 12 2 2 4-4" />
-</svg>`,
-  ],
-  [
-    "circle-chevron-down",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["circle-chevron-down", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-circle-chevron-down"
   xmlns="http://www.w3.org/2000/svg"
@@ -9005,11 +7722,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <circle cx="12" cy="12" r="10" />
   <path d="m16 10-4 4-4-4" />
-</svg>`,
-  ],
-  [
-    "circle-chevron-left",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["circle-chevron-left", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-circle-chevron-left"
   xmlns="http://www.w3.org/2000/svg"
@@ -9024,11 +7738,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <circle cx="12" cy="12" r="10" />
   <path d="m14 16-4-4 4-4" />
-</svg>`,
-  ],
-  [
-    "circle-chevron-right",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["circle-chevron-right", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-circle-chevron-right"
   xmlns="http://www.w3.org/2000/svg"
@@ -9043,11 +7754,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <circle cx="12" cy="12" r="10" />
   <path d="m10 8 4 4-4 4" />
-</svg>`,
-  ],
-  [
-    "circle-chevron-up",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["circle-chevron-up", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-circle-chevron-up"
   xmlns="http://www.w3.org/2000/svg"
@@ -9062,11 +7770,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <circle cx="12" cy="12" r="10" />
   <path d="m8 14 4-4 4 4" />
-</svg>`,
-  ],
-  [
-    "circle-dashed",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["circle-dashed", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-circle-dashed"
   xmlns="http://www.w3.org/2000/svg"
@@ -9087,11 +7792,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M21.818 10.1a10 10 0 0 1 0 3.8" />
   <path d="M3.721 6.391a10 10 0 0 1 2.7-2.69" />
   <path d="M6.391 20.279a10 10 0 0 1-2.69-2.7" />
-</svg>`,
-  ],
-  [
-    "circle-divide",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["circle-divide", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-circle-divide"
   xmlns="http://www.w3.org/2000/svg"
@@ -9108,11 +7810,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <line x1="12" x2="12" y1="16" y2="16" />
   <line x1="12" x2="12" y1="8" y2="8" />
   <circle cx="12" cy="12" r="10" />
-</svg>`,
-  ],
-  [
-    "circle-dollar-sign",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["circle-dollar-sign", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-circle-dollar-sign"
   xmlns="http://www.w3.org/2000/svg"
@@ -9128,11 +7827,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="12" cy="12" r="10" />
   <path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8" />
   <path d="M12 18V6" />
-</svg>`,
-  ],
-  [
-    "circle-dot-dashed",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["circle-dot-dashed", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-circle-dot-dashed"
   xmlns="http://www.w3.org/2000/svg"
@@ -9154,11 +7850,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M2.18 13.9a9.93 9.93 0 0 1 0-3.8" />
   <path d="M3.71 6.4a9.95 9.95 0 0 1 2.7-2.69" />
   <circle cx="12" cy="12" r="1" />
-</svg>`,
-  ],
-  [
-    "circle-dot",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["circle-dot", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-circle-dot"
   xmlns="http://www.w3.org/2000/svg"
@@ -9173,11 +7866,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <circle cx="12" cy="12" r="10" />
   <circle cx="12" cy="12" r="1" />
-</svg>`,
-  ],
-  [
-    "circle-ellipsis",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["circle-ellipsis", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-circle-ellipsis"
   xmlns="http://www.w3.org/2000/svg"
@@ -9194,11 +7884,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M17 12h.01" />
   <path d="M12 12h.01" />
   <path d="M7 12h.01" />
-</svg>`,
-  ],
-  [
-    "circle-equal",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["circle-equal", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-circle-equal"
   xmlns="http://www.w3.org/2000/svg"
@@ -9214,11 +7901,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M7 10h10" />
   <path d="M7 14h10" />
   <circle cx="12" cy="12" r="10" />
-</svg>`,
-  ],
-  [
-    "circle-fading-arrow-up",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["circle-fading-arrow-up", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-circle-fading-arrow-up"
   xmlns="http://www.w3.org/2000/svg"
@@ -9238,11 +7922,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M2.83 16a10 10 0 0 0 2.43 3.4" />
   <path d="M4.636 5.235a10 10 0 0 1 .891-.857" />
   <path d="M8.644 21.42a10 10 0 0 0 7.631-.38" />
-</svg>`,
-  ],
-  [
-    "circle-fading-plus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["circle-fading-plus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-circle-fading-plus"
   xmlns="http://www.w3.org/2000/svg"
@@ -9262,11 +7943,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M2.83 16a10 10 0 0 0 2.43 3.4" />
   <path d="M4.636 5.235a10 10 0 0 1 .891-.857" />
   <path d="M8.644 21.42a10 10 0 0 0 7.631-.38" />
-</svg>`,
-  ],
-  [
-    "circle-gauge",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["circle-gauge", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-circle-gauge"
   xmlns="http://www.w3.org/2000/svg"
@@ -9282,11 +7960,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M15.6 2.7a10 10 0 1 0 5.7 5.7" />
   <circle cx="12" cy="12" r="2" />
   <path d="M13.4 10.6 19 5" />
-</svg>`,
-  ],
-  [
-    "circle-help",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["circle-help", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-circle-help"
   xmlns="http://www.w3.org/2000/svg"
@@ -9302,11 +7977,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="12" cy="12" r="10" />
   <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
   <path d="M12 17h.01" />
-</svg>`,
-  ],
-  [
-    "circle-minus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["circle-minus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-circle-minus"
   xmlns="http://www.w3.org/2000/svg"
@@ -9321,11 +7993,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <circle cx="12" cy="12" r="10" />
   <path d="M8 12h8" />
-</svg>`,
-  ],
-  [
-    "circle-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["circle-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-circle-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -9341,11 +8010,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m2 2 20 20" />
   <path d="M8.35 2.69A10 10 0 0 1 21.3 15.65" />
   <path d="M19.08 19.08A10 10 0 1 1 4.92 4.92" />
-</svg>`,
-  ],
-  [
-    "circle-parking-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["circle-parking-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-circle-parking-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -9364,11 +8030,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m2 2 20 20" />
   <path d="M8.357 2.687a10 10 0 0 1 12.956 12.956" />
   <path d="M9 17V9" />
-</svg>`,
-  ],
-  [
-    "circle-parking",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["circle-parking", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-circle-parking"
   xmlns="http://www.w3.org/2000/svg"
@@ -9383,11 +8046,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <circle cx="12" cy="12" r="10" />
   <path d="M9 17V7h4a3 3 0 0 1 0 6H9" />
-</svg>`,
-  ],
-  [
-    "circle-pause",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["circle-pause", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-circle-pause"
   xmlns="http://www.w3.org/2000/svg"
@@ -9403,11 +8063,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="12" cy="12" r="10" />
   <line x1="10" x2="10" y1="15" y2="9" />
   <line x1="14" x2="14" y1="15" y2="9" />
-</svg>`,
-  ],
-  [
-    "circle-percent",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["circle-percent", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-circle-percent"
   xmlns="http://www.w3.org/2000/svg"
@@ -9424,11 +8081,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m15 9-6 6" />
   <path d="M9 9h.01" />
   <path d="M15 15h.01" />
-</svg>`,
-  ],
-  [
-    "circle-pile",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["circle-pile", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-circle-pile" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
   stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -9438,11 +8092,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="20" cy="19" r="2" />
   <circle cx="4" cy="19" r="2" />
   <circle cx="8" cy="12" r="2" />
-</svg>`,
-  ],
-  [
-    "circle-play",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["circle-play", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-circle-play"
   xmlns="http://www.w3.org/2000/svg"
@@ -9457,11 +8108,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M9 9.003a1 1 0 0 1 1.517-.859l4.997 2.997a1 1 0 0 1 0 1.718l-4.997 2.997A1 1 0 0 1 9 14.996z" />
   <circle cx="12" cy="12" r="10" />
-</svg>`,
-  ],
-  [
-    "circle-plus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["circle-plus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-circle-plus"
   xmlns="http://www.w3.org/2000/svg"
@@ -9477,11 +8125,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="12" cy="12" r="10" />
   <path d="M8 12h8" />
   <path d="M12 8v8" />
-</svg>`,
-  ],
-  [
-    "circle-pound-sterling",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["circle-pound-sterling", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-circle-pound-sterling"
   xmlns="http://www.w3.org/2000/svg"
@@ -9498,11 +8143,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M8 12h4" />
   <path d="M8 16h7" />
   <circle cx="12" cy="12" r="10" />
-</svg>`,
-  ],
-  [
-    "circle-power",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["circle-power", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-circle-power"
   xmlns="http://www.w3.org/2000/svg"
@@ -9518,11 +8160,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 7v4" />
   <path d="M7.998 9.003a5 5 0 1 0 8-.005" />
   <circle cx="12" cy="12" r="10" />
-</svg>`,
-  ],
-  [
-    "circle-question-mark",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["circle-question-mark", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-circle-question-mark"
   xmlns="http://www.w3.org/2000/svg"
@@ -9538,11 +8177,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="12" cy="12" r="10" />
   <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
   <path d="M12 17h.01" />
-</svg>`,
-  ],
-  [
-    "circle-slash-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["circle-slash-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-circle-slash-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -9557,11 +8193,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M22 2 2 22" />
   <circle cx="12" cy="12" r="10" />
-</svg>`,
-  ],
-  [
-    "circle-slash",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["circle-slash", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-circle-slash"
   xmlns="http://www.w3.org/2000/svg"
@@ -9576,11 +8209,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <circle cx="12" cy="12" r="10" />
   <line x1="9" x2="15" y1="15" y2="9" />
-</svg>`,
-  ],
-  [
-    "circle-slashed",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["circle-slashed", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-circle-slashed"
   xmlns="http://www.w3.org/2000/svg"
@@ -9595,11 +8225,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M22 2 2 22" />
   <circle cx="12" cy="12" r="10" />
-</svg>`,
-  ],
-  [
-    "circle-small",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["circle-small", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-circle-small"
   xmlns="http://www.w3.org/2000/svg"
@@ -9613,11 +8240,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <circle cx="12" cy="12" r="6" />
-</svg>`,
-  ],
-  [
-    "circle-star",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["circle-star", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-circle-star"
   xmlns="http://www.w3.org/2000/svg"
@@ -9632,11 +8256,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M11.051 7.616a1 1 0 0 1 1.909.024l.737 1.452a1 1 0 0 0 .737.535l1.634.256a1 1 0 0 1 .588 1.806l-1.172 1.168a1 1 0 0 0-.282.866l.259 1.613a1 1 0 0 1-1.541 1.134l-1.465-.75a1 1 0 0 0-.912 0l-1.465.75a1 1 0 0 1-1.539-1.133l.258-1.613a1 1 0 0 0-.282-.867l-1.156-1.152a1 1 0 0 1 .572-1.822l1.633-.256a1 1 0 0 0 .737-.535z" />
   <circle cx="12" cy="12" r="10" />
-</svg>`,
-  ],
-  [
-    "circle-stop",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["circle-stop", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-circle-stop"
   xmlns="http://www.w3.org/2000/svg"
@@ -9651,11 +8272,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <circle cx="12" cy="12" r="10" />
   <rect x="9" y="9" width="6" height="6" rx="1" />
-</svg>`,
-  ],
-  [
-    "circle-user-round",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["circle-user-round", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-circle-user-round"
   xmlns="http://www.w3.org/2000/svg"
@@ -9671,11 +8289,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M18 20a6 6 0 0 0-12 0" />
   <circle cx="12" cy="10" r="4" />
   <circle cx="12" cy="12" r="10" />
-</svg>`,
-  ],
-  [
-    "circle-user",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["circle-user", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-circle-user"
   xmlns="http://www.w3.org/2000/svg"
@@ -9691,11 +8306,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="12" cy="12" r="10" />
   <circle cx="12" cy="10" r="3" />
   <path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662" />
-</svg>`,
-  ],
-  [
-    "circle-x",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["circle-x", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-circle-x"
   xmlns="http://www.w3.org/2000/svg"
@@ -9711,11 +8323,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="12" cy="12" r="10" />
   <path d="m15 9-6 6" />
   <path d="m9 9 6 6" />
-</svg>`,
-  ],
-  [
-    "circle",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["circle", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-circle"
   xmlns="http://www.w3.org/2000/svg"
@@ -9729,11 +8338,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <circle cx="12" cy="12" r="10" />
-</svg>`,
-  ],
-  [
-    "circuit-board",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["circuit-board", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-circuit-board"
   xmlns="http://www.w3.org/2000/svg"
@@ -9751,11 +8357,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="9" cy="9" r="2" />
   <path d="M7 21v-4a2 2 0 0 1 2-2h4" />
   <circle cx="15" cy="15" r="2" />
-</svg>`,
-  ],
-  [
-    "citrus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["citrus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-citrus"
   xmlns="http://www.w3.org/2000/svg"
@@ -9772,11 +8375,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M19.65 15.66A8 8 0 0 1 8.35 4.34" />
   <path d="m14 10-5.5 5.5" />
   <path d="M14 17.85V10H6.15" />
-</svg>`,
-  ],
-  [
-    "clapperboard",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["clapperboard", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-clapperboard"
   xmlns="http://www.w3.org/2000/svg"
@@ -9793,11 +8393,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m6.2 5.3 3.1 3.9" />
   <path d="m12.4 3.4 3.1 4" />
   <path d="M3 11h18v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" />
-</svg>`,
-  ],
-  [
-    "clipboard-check",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["clipboard-check", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-clipboard-check"
   xmlns="http://www.w3.org/2000/svg"
@@ -9813,11 +8410,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="8" height="4" x="8" y="2" rx="1" ry="1" />
   <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
   <path d="m9 14 2 2 4-4" />
-</svg>`,
-  ],
-  [
-    "clipboard-clock",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["clipboard-clock", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-clipboard-clock"
   xmlns="http://www.w3.org/2000/svg"
@@ -9835,11 +8429,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h2" />
   <circle cx="16" cy="16" r="6" />
   <rect x="8" y="2" width="8" height="4" rx="1" />
-</svg>`,
-  ],
-  [
-    "clipboard-copy",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["clipboard-copy", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-clipboard-copy"
   xmlns="http://www.w3.org/2000/svg"
@@ -9857,11 +8448,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M16 4h2a2 2 0 0 1 2 2v4" />
   <path d="M21 14H11" />
   <path d="m15 10-4 4 4 4" />
-</svg>`,
-  ],
-  [
-    "clipboard-edit",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["clipboard-edit", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-clipboard-edit"
   xmlns="http://www.w3.org/2000/svg"
@@ -9878,11 +8466,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-5.5" />
   <path d="M4 13.5V6a2 2 0 0 1 2-2h2" />
   <path d="M13.378 15.626a1 1 0 1 0-3.004-3.004l-5.01 5.012a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506z" />
-</svg>`,
-  ],
-  [
-    "clipboard-list",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["clipboard-list", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-clipboard-list"
   xmlns="http://www.w3.org/2000/svg"
@@ -9901,11 +8486,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 16h4" />
   <path d="M8 11h.01" />
   <path d="M8 16h.01" />
-</svg>`,
-  ],
-  [
-    "clipboard-minus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["clipboard-minus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-clipboard-minus"
   xmlns="http://www.w3.org/2000/svg"
@@ -9921,11 +8503,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="8" height="4" x="8" y="2" rx="1" ry="1" />
   <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
   <path d="M9 14h6" />
-</svg>`,
-  ],
-  [
-    "clipboard-paste",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["clipboard-paste", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-clipboard-paste"
   xmlns="http://www.w3.org/2000/svg"
@@ -9943,11 +8522,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m17 18 4-4-4-4" />
   <path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 1.793-1.113" />
   <rect x="8" y="2" width="8" height="4" rx="1" />
-</svg>`,
-  ],
-  [
-    "clipboard-pen-line",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["clipboard-pen-line", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-clipboard-pen-line"
   xmlns="http://www.w3.org/2000/svg"
@@ -9965,11 +8541,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M16 4h2a2 2 0 0 1 1.73 1" />
   <path d="M8 18h1" />
   <path d="M21.378 12.626a1 1 0 0 0-3.004-3.004l-4.01 4.012a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506z" />
-</svg>`,
-  ],
-  [
-    "clipboard-pen",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["clipboard-pen", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-clipboard-pen"
   xmlns="http://www.w3.org/2000/svg"
@@ -9986,11 +8559,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-5.5" />
   <path d="M4 13.5V6a2 2 0 0 1 2-2h2" />
   <path d="M13.378 15.626a1 1 0 1 0-3.004-3.004l-5.01 5.012a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506z" />
-</svg>`,
-  ],
-  [
-    "clipboard-plus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["clipboard-plus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-clipboard-plus"
   xmlns="http://www.w3.org/2000/svg"
@@ -10007,11 +8577,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
   <path d="M9 14h6" />
   <path d="M12 17v-6" />
-</svg>`,
-  ],
-  [
-    "clipboard-signature",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["clipboard-signature", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-clipboard-signature"
   xmlns="http://www.w3.org/2000/svg"
@@ -10029,11 +8596,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M16 4h2a2 2 0 0 1 1.73 1" />
   <path d="M8 18h1" />
   <path d="M21.378 12.626a1 1 0 0 0-3.004-3.004l-4.01 4.012a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506z" />
-</svg>`,
-  ],
-  [
-    "clipboard-type",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["clipboard-type", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-clipboard-type"
   xmlns="http://www.w3.org/2000/svg"
@@ -10051,11 +8615,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M9 12v-1h6v1" />
   <path d="M11 17h2" />
   <path d="M12 11v6" />
-</svg>`,
-  ],
-  [
-    "clipboard-x",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["clipboard-x", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-clipboard-x"
   xmlns="http://www.w3.org/2000/svg"
@@ -10072,11 +8633,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
   <path d="m15 11-6 6" />
   <path d="m9 11 6 6" />
-</svg>`,
-  ],
-  [
-    "clipboard",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["clipboard", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-clipboard"
   xmlns="http://www.w3.org/2000/svg"
@@ -10091,11 +8649,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <rect width="8" height="4" x="8" y="2" rx="1" ry="1" />
   <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
-</svg>`,
-  ],
-  [
-    "clock-1",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["clock-1", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-clock-1"
   xmlns="http://www.w3.org/2000/svg"
@@ -10110,11 +8665,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M12 6v6l2-4" />
   <circle cx="12" cy="12" r="10" />
-</svg>`,
-  ],
-  [
-    "clock-10",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["clock-10", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-clock-10"
   xmlns="http://www.w3.org/2000/svg"
@@ -10129,11 +8681,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M12 6v6l-4-2" />
   <circle cx="12" cy="12" r="10" />
-</svg>`,
-  ],
-  [
-    "clock-11",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["clock-11", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-clock-11"
   xmlns="http://www.w3.org/2000/svg"
@@ -10148,11 +8697,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M12 6v6l-2-4" />
   <circle cx="12" cy="12" r="10" />
-</svg>`,
-  ],
-  [
-    "clock-12",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["clock-12", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-clock-12"
   xmlns="http://www.w3.org/2000/svg"
@@ -10167,11 +8713,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M12 6v6" />
   <circle cx="12" cy="12" r="10" />
-</svg>`,
-  ],
-  [
-    "clock-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["clock-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-clock-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -10186,11 +8729,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M12 6v6l4-2" />
   <circle cx="12" cy="12" r="10" />
-</svg>`,
-  ],
-  [
-    "clock-3",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["clock-3", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-clock-3"
   xmlns="http://www.w3.org/2000/svg"
@@ -10205,11 +8745,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M12 6v6h4" />
   <circle cx="12" cy="12" r="10" />
-</svg>`,
-  ],
-  [
-    "clock-4",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["clock-4", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-clock-4"
   xmlns="http://www.w3.org/2000/svg"
@@ -10224,11 +8761,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M12 6v6l4 2" />
   <circle cx="12" cy="12" r="10" />
-</svg>`,
-  ],
-  [
-    "clock-5",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["clock-5", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-clock-5"
   xmlns="http://www.w3.org/2000/svg"
@@ -10243,11 +8777,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M12 6v6l2 4" />
   <circle cx="12" cy="12" r="10" />
-</svg>`,
-  ],
-  [
-    "clock-6",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["clock-6", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-clock-6"
   xmlns="http://www.w3.org/2000/svg"
@@ -10262,11 +8793,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M12 6v10" />
   <circle cx="12" cy="12" r="10" />
-</svg>`,
-  ],
-  [
-    "clock-7",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["clock-7", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-clock-7"
   xmlns="http://www.w3.org/2000/svg"
@@ -10281,11 +8809,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M12 6v6l-2 4" />
   <circle cx="12" cy="12" r="10" />
-</svg>`,
-  ],
-  [
-    "clock-8",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["clock-8", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-clock-8"
   xmlns="http://www.w3.org/2000/svg"
@@ -10300,11 +8825,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M12 6v6l-4 2" />
   <circle cx="12" cy="12" r="10" />
-</svg>`,
-  ],
-  [
-    "clock-9",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["clock-9", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-clock-9"
   xmlns="http://www.w3.org/2000/svg"
@@ -10319,11 +8841,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M12 6v6H8" />
   <circle cx="12" cy="12" r="10" />
-</svg>`,
-  ],
-  [
-    "clock-alert",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["clock-alert", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-clock-alert"
   xmlns="http://www.w3.org/2000/svg"
@@ -10340,11 +8859,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M20 12v5" />
   <path d="M20 21h.01" />
   <path d="M21.25 8.2A10 10 0 1 0 16 21.16" />
-</svg>`,
-  ],
-  [
-    "clock-arrow-down",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["clock-arrow-down", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-clock-arrow-down"
   xmlns="http://www.w3.org/2000/svg"
@@ -10361,11 +8877,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12.337 21.994a10 10 0 1 1 9.588-8.767" />
   <path d="m14 18 4 4 4-4" />
   <path d="M18 14v8" />
-</svg>`,
-  ],
-  [
-    "clock-arrow-up",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["clock-arrow-up", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-clock-arrow-up"
   xmlns="http://www.w3.org/2000/svg"
@@ -10382,11 +8895,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M13.227 21.925a10 10 0 1 1 8.767-9.588" />
   <path d="m14 18 4-4 4 4" />
   <path d="M18 22v-8" />
-</svg>`,
-  ],
-  [
-    "clock-check",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["clock-check", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-clock-check"
   xmlns="http://www.w3.org/2000/svg"
@@ -10402,11 +8912,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 6v6l4 2" />
   <path d="M22 12a10 10 0 1 0-11 9.95" />
   <path d="m22 16-5.5 5.5L14 19" />
-</svg>`,
-  ],
-  [
-    "clock-fading",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["clock-fading", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-clock-fading"
   xmlns="http://www.w3.org/2000/svg"
@@ -10425,11 +8932,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M2.83 16a10 10 0 0 0 2.43 3.4" />
   <path d="M4.636 5.235a10 10 0 0 1 .891-.857" />
   <path d="M8.644 21.42a10 10 0 0 0 7.631-.38" />
-</svg>`,
-  ],
-  [
-    "clock-plus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["clock-plus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-clock-plus"
   xmlns="http://www.w3.org/2000/svg"
@@ -10446,11 +8950,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M16 19h6" />
   <path d="M19 16v6" />
   <path d="M21.92 13.267a10 10 0 1 0-8.653 8.653" />
-</svg>`,
-  ],
-  [
-    "clock",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["clock", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-clock"
   xmlns="http://www.w3.org/2000/svg"
@@ -10465,11 +8966,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M12 6v6l4 2" />
   <circle cx="12" cy="12" r="10" />
-</svg>`,
-  ],
-  [
-    "closed-caption",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["closed-caption", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-closed-caption"
   xmlns="http://www.w3.org/2000/svg"
@@ -10485,11 +8983,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M10 9.17a3 3 0 1 0 0 5.66" />
   <path d="M17 9.17a3 3 0 1 0 0 5.66" />
   <rect x="2" y="5" width="20" height="14" rx="2" />
-</svg>`,
-  ],
-  [
-    "cloud-alert",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["cloud-alert", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-cloud-alert"
   xmlns="http://www.w3.org/2000/svg"
@@ -10505,11 +9000,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 12v4" />
   <path d="M12 20h.01" />
   <path d="M8.128 16.949A7 7 0 1 1 15.71 8h1.79a1 1 0 0 1 0 9h-1.642" />
-</svg>`,
-  ],
-  [
-    "cloud-backup",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["cloud-backup", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-cloud-backup"
   xmlns="http://www.w3.org/2000/svg"
@@ -10525,11 +9017,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M21 15.251A4.5 4.5 0 0 0 17.5 8h-1.79A7 7 0 1 0 3 13.607" />
   <path d="M7 11v4h4" />
   <path d="M8 19a5 5 0 0 0 9-3 4.5 4.5 0 0 0-4.5-4.5 4.82 4.82 0 0 0-3.41 1.41L7 15" />
-</svg>`,
-  ],
-  [
-    "cloud-check",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["cloud-check", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-cloud-check"
   xmlns="http://www.w3.org/2000/svg"
@@ -10544,11 +9033,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="m17 15-5.5 5.5L9 18" />
   <path d="M5.516 16.07A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 3.501 7.327" />
-</svg>`,
-  ],
-  [
-    "cloud-cog",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["cloud-cog", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-cloud-cog"
   xmlns="http://www.w3.org/2000/svg"
@@ -10570,11 +9056,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M4.2 15.1a7 7 0 1 1 9.93-9.858A7 7 0 0 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.2" />
   <path d="m9.228 15.852-.923-.383" />
   <path d="m9.228 18.148-.923.383" />
-</svg>`,
-  ],
-  [
-    "cloud-download",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["cloud-download", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-cloud-download"
   xmlns="http://www.w3.org/2000/svg"
@@ -10590,11 +9073,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 13v8l-4-4" />
   <path d="m12 21 4-4" />
   <path d="M4.393 15.269A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.436 8.284" />
-</svg>`,
-  ],
-  [
-    "cloud-drizzle",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["cloud-drizzle", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-cloud-drizzle"
   xmlns="http://www.w3.org/2000/svg"
@@ -10614,11 +9094,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M16 14v1" />
   <path d="M12 21v1" />
   <path d="M12 16v1" />
-</svg>`,
-  ],
-  [
-    "cloud-fog",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["cloud-fog", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-cloud-fog"
   xmlns="http://www.w3.org/2000/svg"
@@ -10634,11 +9111,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242" />
   <path d="M16 17H7" />
   <path d="M17 21H9" />
-</svg>`,
-  ],
-  [
-    "cloud-hail",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["cloud-hail", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-cloud-hail"
   xmlns="http://www.w3.org/2000/svg"
@@ -10658,11 +9132,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M8 20h.01" />
   <path d="M12 16v2" />
   <path d="M12 22h.01" />
-</svg>`,
-  ],
-  [
-    "cloud-lightning",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["cloud-lightning", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-cloud-lightning"
   xmlns="http://www.w3.org/2000/svg"
@@ -10677,11 +9148,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M6 16.326A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 .5 8.973" />
   <path d="m13 12-3 5h4l-3 5" />
-</svg>`,
-  ],
-  [
-    "cloud-moon-rain",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["cloud-moon-rain", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-cloud-moon-rain"
   xmlns="http://www.w3.org/2000/svg"
@@ -10698,11 +9166,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M18.376 14.512a6 6 0 0 0 3.461-4.127c.148-.625-.659-.97-1.248-.714a4 4 0 0 1-5.259-5.26c.255-.589-.09-1.395-.716-1.248a6 6 0 0 0-4.594 5.36" />
   <path d="M3 20a5 5 0 1 1 8.9-4H13a3 3 0 0 1 2 5.24" />
   <path d="M7 19v2" />
-</svg>`,
-  ],
-  [
-    "cloud-moon",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["cloud-moon", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-cloud-moon"
   xmlns="http://www.w3.org/2000/svg"
@@ -10717,11 +9182,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M13 16a3 3 0 0 1 0 6H7a5 5 0 1 1 4.9-6z" />
   <path d="M18.376 14.512a6 6 0 0 0 3.461-4.127c.148-.625-.659-.97-1.248-.714a4 4 0 0 1-5.259-5.26c.255-.589-.09-1.395-.716-1.248a6 6 0 0 0-4.594 5.36" />
-</svg>`,
-  ],
-  [
-    "cloud-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["cloud-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-cloud-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -10737,11 +9199,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M10.94 5.274A7 7 0 0 1 15.71 10h1.79a4.5 4.5 0 0 1 4.222 6.057" />
   <path d="M18.796 18.81A4.5 4.5 0 0 1 17.5 19H9A7 7 0 0 1 5.79 5.78" />
   <path d="m2 2 20 20" />
-</svg>`,
-  ],
-  [
-    "cloud-rain-wind",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["cloud-rain-wind", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-cloud-rain-wind"
   xmlns="http://www.w3.org/2000/svg"
@@ -10758,11 +9217,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m9.2 22 3-7" />
   <path d="m9 13-3 7" />
   <path d="m17 13-3 7" />
-</svg>`,
-  ],
-  [
-    "cloud-rain",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["cloud-rain", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-cloud-rain"
   xmlns="http://www.w3.org/2000/svg"
@@ -10779,11 +9235,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M16 14v6" />
   <path d="M8 14v6" />
   <path d="M12 16v6" />
-</svg>`,
-  ],
-  [
-    "cloud-snow",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["cloud-snow", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-cloud-snow"
   xmlns="http://www.w3.org/2000/svg"
@@ -10803,11 +9256,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 21h.01" />
   <path d="M16 15h.01" />
   <path d="M16 19h.01" />
-</svg>`,
-  ],
-  [
-    "cloud-sun-rain",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["cloud-sun-rain", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-cloud-sun-rain"
   xmlns="http://www.w3.org/2000/svg"
@@ -10828,11 +9278,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3 20a5 5 0 1 1 8.9-4H13a3 3 0 0 1 2 5.24" />
   <path d="M11 20v2" />
   <path d="M7 19v2" />
-</svg>`,
-  ],
-  [
-    "cloud-sun",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["cloud-sun", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-cloud-sun"
   xmlns="http://www.w3.org/2000/svg"
@@ -10851,11 +9298,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m19.07 4.93-1.41 1.41" />
   <path d="M15.947 12.65a4 4 0 0 0-5.925-4.128" />
   <path d="M13 22H7a5 5 0 1 1 4.9-6H13a3 3 0 0 1 0 6Z" />
-</svg>`,
-  ],
-  [
-    "cloud-sync",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["cloud-sync", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-cloud-sync"
   xmlns="http://www.w3.org/2000/svg"
@@ -10873,11 +9317,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M20.996 15.251A4.5 4.5 0 0 0 17.495 8h-1.79a7 7 0 1 0-12.709 5.607" />
   <path d="M7 10v4h4" />
   <path d="m7 14 1.535-1.605a5 5 0 0 1 8 1.5" />
-</svg>`,
-  ],
-  [
-    "cloud-upload",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["cloud-upload", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-cloud-upload"
   xmlns="http://www.w3.org/2000/svg"
@@ -10893,11 +9334,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 13v8" />
   <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242" />
   <path d="m8 17 4-4 4 4" />
-</svg>`,
-  ],
-  [
-    "cloud",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["cloud", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-cloud"
   xmlns="http://www.w3.org/2000/svg"
@@ -10911,11 +9349,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z" />
-</svg>`,
-  ],
-  [
-    "cloudy",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["cloudy", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-cloudy"
   xmlns="http://www.w3.org/2000/svg"
@@ -10930,11 +9365,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M17.5 12a1 1 0 1 1 0 9H9.006a7 7 0 1 1 6.702-9z" />
   <path d="M21.832 9A3 3 0 0 0 19 7h-2.207a5.5 5.5 0 0 0-10.72.61" />
-</svg>`,
-  ],
-  [
-    "clover",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["clover", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-clover"
   xmlns="http://www.w3.org/2000/svg"
@@ -10950,11 +9382,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M16.17 7.83 2 22" />
   <path d="M4.02 12a2.827 2.827 0 1 1 3.81-4.17A2.827 2.827 0 1 1 12 4.02a2.827 2.827 0 1 1 4.17 3.81A2.827 2.827 0 1 1 19.98 12a2.827 2.827 0 1 1-3.81 4.17A2.827 2.827 0 1 1 12 19.98a2.827 2.827 0 1 1-4.17-3.81A1 1 0 1 1 4 12" />
   <path d="m7.83 7.83 8.34 8.34" />
-</svg>`,
-  ],
-  [
-    "club",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["club", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-club"
   xmlns="http://www.w3.org/2000/svg"
@@ -10969,11 +9398,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M17.28 9.05a5.5 5.5 0 1 0-10.56 0A5.5 5.5 0 1 0 12 17.66a5.5 5.5 0 1 0 5.28-8.6Z" />
   <path d="M12 17.66L12 22" />
-</svg>`,
-  ],
-  [
-    "code-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["code-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-code-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -10989,11 +9415,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m18 16 4-4-4-4" />
   <path d="m6 8-4 4 4 4" />
   <path d="m14.5 4-5 16" />
-</svg>`,
-  ],
-  [
-    "code-square",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["code-square", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-code-square"
   xmlns="http://www.w3.org/2000/svg"
@@ -11009,11 +9432,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m10 9-3 3 3 3" />
   <path d="m14 15 3-3-3-3" />
   <rect x="3" y="3" width="18" height="18" rx="2" />
-</svg>`,
-  ],
-  [
-    "code-xml",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["code-xml", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-code-xml"
   xmlns="http://www.w3.org/2000/svg"
@@ -11029,11 +9449,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m18 16 4-4-4-4" />
   <path d="m6 8-4 4 4 4" />
   <path d="m14.5 4-5 16" />
-</svg>`,
-  ],
-  [
-    "code",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["code", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-code"
   xmlns="http://www.w3.org/2000/svg"
@@ -11048,11 +9465,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="m16 18 6-6-6-6" />
   <path d="m8 6-6 6 6 6" />
-</svg>`,
-  ],
-  [
-    "codepen",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["codepen", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-codepen"
   xmlns="http://www.w3.org/2000/svg"
@@ -11070,11 +9484,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <polyline points="22 8.5 12 15.5 2 8.5" />
   <polyline points="2 15.5 12 8.5 22 15.5" />
   <line x1="12" x2="12" y1="2" y2="8.5" />
-</svg>`,
-  ],
-  [
-    "codesandbox",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["codesandbox", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-codesandbox"
   xmlns="http://www.w3.org/2000/svg"
@@ -11093,11 +9504,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <polyline points="21 12 16.5 14.6 16.5 19.79" />
   <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
   <line x1="12" x2="12" y1="22.08" y2="12" />
-</svg>`,
-  ],
-  [
-    "coffee",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["coffee", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-coffee"
   xmlns="http://www.w3.org/2000/svg"
@@ -11114,11 +9522,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 2v2" />
   <path d="M16 8a1 1 0 0 1 1 1v8a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1h14a4 4 0 1 1 0 8h-1" />
   <path d="M6 2v2" />
-</svg>`,
-  ],
-  [
-    "cog",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["cog", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-cog"
   xmlns="http://www.w3.org/2000/svg"
@@ -11145,11 +9550,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m3.34 7 1.73 1" />
   <circle cx="12" cy="12" r="2" />
   <circle cx="12" cy="12" r="8" />
-</svg>`,
-  ],
-  [
-    "coins",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["coins", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-coins"
   xmlns="http://www.w3.org/2000/svg"
@@ -11166,11 +9568,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M18.09 10.37A6 6 0 1 1 10.34 18" />
   <path d="M7 6h1v4" />
   <path d="m16.71 13.88.7.71-2.82 2.82" />
-</svg>`,
-  ],
-  [
-    "columns-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["columns-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-columns-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -11185,11 +9584,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="M12 3v18" />
-</svg>`,
-  ],
-  [
-    "columns-3-cog",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["columns-3-cog", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-columns-3-cog"
   xmlns="http://www.w3.org/2000/svg"
@@ -11214,11 +9610,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m21.7 19.4-.9-.3" />
   <path d="M9 3v18" />
   <circle cx="18" cy="18" r="3" />
-</svg>`,
-  ],
-  [
-    "columns-3",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["columns-3", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-columns-3"
   xmlns="http://www.w3.org/2000/svg"
@@ -11234,11 +9627,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="M9 3v18" />
   <path d="M15 3v18" />
-</svg>`,
-  ],
-  [
-    "columns-4",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["columns-4", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-columns-4"
   xmlns="http://www.w3.org/2000/svg"
@@ -11255,11 +9645,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M7.5 3v18" />
   <path d="M12 3v18" />
   <path d="M16.5 3v18" />
-</svg>`,
-  ],
-  [
-    "columns-settings",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["columns-settings", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-columns-settings"
   xmlns="http://www.w3.org/2000/svg"
@@ -11284,11 +9671,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m21.7 19.4-.9-.3" />
   <path d="M9 3v18" />
   <circle cx="18" cy="18" r="3" />
-</svg>`,
-  ],
-  [
-    "columns",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["columns", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-columns"
   xmlns="http://www.w3.org/2000/svg"
@@ -11303,11 +9687,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="M12 3v18" />
-</svg>`,
-  ],
-  [
-    "combine",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["combine", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-combine"
   xmlns="http://www.w3.org/2000/svg"
@@ -11326,11 +9707,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m7 21 3-3H5a2 2 0 0 1-2-2v-2" />
   <rect x="14" y="14" width="7" height="7" rx="1" />
   <rect x="3" y="3" width="7" height="7" rx="1" />
-</svg>`,
-  ],
-  [
-    "command",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["command", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-command"
   xmlns="http://www.w3.org/2000/svg"
@@ -11344,11 +9722,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M15 6v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3" />
-</svg>`,
-  ],
-  [
-    "compass",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["compass", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-compass"
   xmlns="http://www.w3.org/2000/svg"
@@ -11363,11 +9738,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="m16.24 7.76-1.804 5.411a2 2 0 0 1-1.265 1.265L7.76 16.24l1.804-5.411a2 2 0 0 1 1.265-1.265z" />
   <circle cx="12" cy="12" r="10" />
-</svg>`,
-  ],
-  [
-    "component",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["component", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-component"
   xmlns="http://www.w3.org/2000/svg"
@@ -11384,11 +9756,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M2.297 11.293a1 1 0 0 0 0 1.414l2.377 2.377a1 1 0 0 0 1.414 0l2.377-2.377a1 1 0 0 0 0-1.414L6.088 8.916a1 1 0 0 0-1.414 0z" />
   <path d="M8.916 17.912a1 1 0 0 0 0 1.415l2.377 2.376a1 1 0 0 0 1.414 0l2.377-2.376a1 1 0 0 0 0-1.415l-2.377-2.376a1 1 0 0 0-1.414 0z" />
   <path d="M8.916 4.674a1 1 0 0 0 0 1.414l2.377 2.376a1 1 0 0 0 1.414 0l2.377-2.376a1 1 0 0 0 0-1.414l-2.377-2.377a1 1 0 0 0-1.414 0z" />
-</svg>`,
-  ],
-  [
-    "computer",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["computer", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-computer"
   xmlns="http://www.w3.org/2000/svg"
@@ -11405,11 +9774,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="20" height="8" x="2" y="14" rx="2" />
   <path d="M6 18h2" />
   <path d="M12 18h6" />
-</svg>`,
-  ],
-  [
-    "concierge-bell",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["concierge-bell", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-concierge-bell"
   xmlns="http://www.w3.org/2000/svg"
@@ -11426,11 +9792,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M20 16a8 8 0 1 0-16 0" />
   <path d="M12 4v4" />
   <path d="M10 4h4" />
-</svg>`,
-  ],
-  [
-    "cone",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["cone", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-cone"
   xmlns="http://www.w3.org/2000/svg"
@@ -11445,11 +9808,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="m20.9 18.55-8-15.98a1 1 0 0 0-1.8 0l-8 15.98" />
   <ellipse cx="12" cy="19" rx="9" ry="3" />
-</svg>`,
-  ],
-  [
-    "construction",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["construction", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-construction"
   xmlns="http://www.w3.org/2000/svg"
@@ -11470,11 +9830,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M10 14 2.3 6.3" />
   <path d="m14 6 7.7 7.7" />
   <path d="m8 6 8 8" />
-</svg>`,
-  ],
-  [
-    "contact-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["contact-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-contact-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -11492,11 +9849,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M8 2v2" />
   <circle cx="12" cy="12" r="4" />
   <rect x="3" y="4" width="18" height="18" rx="2" />
-</svg>`,
-  ],
-  [
-    "contact-round",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["contact-round", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-contact-round"
   xmlns="http://www.w3.org/2000/svg"
@@ -11514,11 +9868,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M8 2v2" />
   <circle cx="12" cy="12" r="4" />
   <rect x="3" y="4" width="18" height="18" rx="2" />
-</svg>`,
-  ],
-  [
-    "contact",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["contact", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-contact"
   xmlns="http://www.w3.org/2000/svg"
@@ -11536,11 +9887,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M8 2v2" />
   <circle cx="12" cy="11" r="3" />
   <rect x="3" y="4" width="18" height="18" rx="2" />
-</svg>`,
-  ],
-  [
-    "container",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["container", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-container"
   xmlns="http://www.w3.org/2000/svg"
@@ -11558,11 +9906,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m10 14 11.9-6.9" />
   <path d="M14 19.8v-8.1" />
   <path d="M18 17.5V9.4" />
-</svg>`,
-  ],
-  [
-    "contrast",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["contrast", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-contrast"
   xmlns="http://www.w3.org/2000/svg"
@@ -11577,11 +9922,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <circle cx="12" cy="12" r="10" />
   <path d="M12 18a6 6 0 0 0 0-12v12z" />
-</svg>`,
-  ],
-  [
-    "cookie",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["cookie", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-cookie"
   xmlns="http://www.w3.org/2000/svg"
@@ -11600,11 +9942,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 12v.01" />
   <path d="M11 17v.01" />
   <path d="M7 14v.01" />
-</svg>`,
-  ],
-  [
-    "cooking-pot",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["cooking-pot", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-cooking-pot"
   xmlns="http://www.w3.org/2000/svg"
@@ -11621,11 +9960,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M20 12v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8" />
   <path d="m4 8 16-4" />
   <path d="m8.86 6.78-.45-1.81a2 2 0 0 1 1.45-2.43l1.94-.48a2 2 0 0 1 2.43 1.46l.45 1.8" />
-</svg>`,
-  ],
-  [
-    "copy-check",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["copy-check", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-copy-check"
   xmlns="http://www.w3.org/2000/svg"
@@ -11641,11 +9977,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m12 15 2 2 4-4" />
   <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
   <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
-</svg>`,
-  ],
-  [
-    "copy-minus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["copy-minus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-copy-minus"
   xmlns="http://www.w3.org/2000/svg"
@@ -11661,11 +9994,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <line x1="12" x2="18" y1="15" y2="15" />
   <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
   <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
-</svg>`,
-  ],
-  [
-    "copy-plus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["copy-plus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-copy-plus"
   xmlns="http://www.w3.org/2000/svg"
@@ -11682,11 +10012,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <line x1="12" x2="18" y1="15" y2="15" />
   <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
   <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
-</svg>`,
-  ],
-  [
-    "copy-slash",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["copy-slash", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-copy-slash"
   xmlns="http://www.w3.org/2000/svg"
@@ -11702,11 +10029,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <line x1="12" x2="18" y1="18" y2="12" />
   <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
   <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
-</svg>`,
-  ],
-  [
-    "copy-x",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["copy-x", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-copy-x"
   xmlns="http://www.w3.org/2000/svg"
@@ -11723,11 +10047,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <line x1="12" x2="18" y1="18" y2="12" />
   <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
   <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
-</svg>`,
-  ],
-  [
-    "copy",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["copy", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-copy"
   xmlns="http://www.w3.org/2000/svg"
@@ -11742,11 +10063,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
   <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
-</svg>`,
-  ],
-  [
-    "copyleft",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["copyleft", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-copyleft"
   xmlns="http://www.w3.org/2000/svg"
@@ -11761,11 +10079,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <circle cx="12" cy="12" r="10" />
   <path d="M9.17 14.83a4 4 0 1 0 0-5.66" />
-</svg>`,
-  ],
-  [
-    "copyright",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["copyright", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-copyright"
   xmlns="http://www.w3.org/2000/svg"
@@ -11780,11 +10095,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <circle cx="12" cy="12" r="10" />
   <path d="M14.83 14.83a4 4 0 1 1 0-5.66" />
-</svg>`,
-  ],
-  [
-    "corner-down-left",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["corner-down-left", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-corner-down-left"
   xmlns="http://www.w3.org/2000/svg"
@@ -11799,11 +10111,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M20 4v7a4 4 0 0 1-4 4H4" />
   <path d="m9 10-5 5 5 5" />
-</svg>`,
-  ],
-  [
-    "corner-down-right",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["corner-down-right", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-corner-down-right"
   xmlns="http://www.w3.org/2000/svg"
@@ -11818,11 +10127,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="m15 10 5 5-5 5" />
   <path d="M4 4v7a4 4 0 0 0 4 4h12" />
-</svg>`,
-  ],
-  [
-    "corner-left-down",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["corner-left-down", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-corner-left-down"
   xmlns="http://www.w3.org/2000/svg"
@@ -11837,11 +10143,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="m14 15-5 5-5-5" />
   <path d="M20 4h-7a4 4 0 0 0-4 4v12" />
-</svg>`,
-  ],
-  [
-    "corner-left-up",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["corner-left-up", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-corner-left-up"
   xmlns="http://www.w3.org/2000/svg"
@@ -11856,11 +10159,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M14 9 9 4 4 9" />
   <path d="M20 20h-7a4 4 0 0 1-4-4V4" />
-</svg>`,
-  ],
-  [
-    "corner-right-down",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["corner-right-down", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-corner-right-down"
   xmlns="http://www.w3.org/2000/svg"
@@ -11875,11 +10175,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="m10 15 5 5 5-5" />
   <path d="M4 4h7a4 4 0 0 1 4 4v12" />
-</svg>`,
-  ],
-  [
-    "corner-right-up",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["corner-right-up", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-corner-right-up"
   xmlns="http://www.w3.org/2000/svg"
@@ -11894,11 +10191,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="m10 9 5-5 5 5" />
   <path d="M4 20h7a4 4 0 0 0 4-4V4" />
-</svg>`,
-  ],
-  [
-    "corner-up-left",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["corner-up-left", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-corner-up-left"
   xmlns="http://www.w3.org/2000/svg"
@@ -11913,11 +10207,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M20 20v-7a4 4 0 0 0-4-4H4" />
   <path d="M9 14 4 9l5-5" />
-</svg>`,
-  ],
-  [
-    "corner-up-right",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["corner-up-right", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-corner-up-right"
   xmlns="http://www.w3.org/2000/svg"
@@ -11932,11 +10223,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="m15 14 5-5-5-5" />
   <path d="M4 20v-7a4 4 0 0 1 4-4h12" />
-</svg>`,
-  ],
-  [
-    "cpu",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["cpu", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-cpu"
   xmlns="http://www.w3.org/2000/svg"
@@ -11963,11 +10251,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M7 2v2" />
   <rect x="4" y="4" width="16" height="16" rx="2" />
   <rect x="8" y="8" width="8" height="8" rx="1" />
-</svg>`,
-  ],
-  [
-    "creative-commons",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["creative-commons", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-creative-commons"
   xmlns="http://www.w3.org/2000/svg"
@@ -11983,11 +10268,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="12" cy="12" r="10" />
   <path d="M10 9.3a2.8 2.8 0 0 0-3.5 1 3.1 3.1 0 0 0 0 3.4 2.7 2.7 0 0 0 3.5 1" />
   <path d="M17 9.3a2.8 2.8 0 0 0-3.5 1 3.1 3.1 0 0 0 0 3.4 2.7 2.7 0 0 0 3.5 1" />
-</svg>`,
-  ],
-  [
-    "credit-card",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["credit-card", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-credit-card"
   xmlns="http://www.w3.org/2000/svg"
@@ -12002,11 +10284,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <rect width="20" height="14" x="2" y="5" rx="2" />
   <line x1="2" x2="22" y1="10" y2="10" />
-</svg>`,
-  ],
-  [
-    "croissant",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["croissant", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-croissant"
   xmlns="http://www.w3.org/2000/svg"
@@ -12024,11 +10303,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M18 5a4 3 0 0 1 4 3 2 2 0 0 1-2 2 10 10 0 0 0-5.139 1.42" />
   <path d="M5 18a3 4 0 0 0 3 4 2 2 0 0 0 2-2 10 10 0 0 1 1.42-5.14" />
   <path d="M8.709 2.554a10 10 0 0 0-6.155 6.155 1.5 1.5 0 0 0 .676 1.626l9.807 5.42a2 2 0 0 0 2.718-2.718l-5.42-9.807a1.5 1.5 0 0 0-1.626-.676" />
-</svg>`,
-  ],
-  [
-    "crop",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["crop", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-crop"
   xmlns="http://www.w3.org/2000/svg"
@@ -12043,11 +10319,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M6 2v14a2 2 0 0 0 2 2h14" />
   <path d="M18 22V8a2 2 0 0 0-2-2H2" />
-</svg>`,
-  ],
-  [
-    "cross",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["cross", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-cross"
   xmlns="http://www.w3.org/2000/svg"
@@ -12061,11 +10334,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M4 9a2 2 0 0 0-2 2v2a2 2 0 0 0 2 2h4a1 1 0 0 1 1 1v4a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2v-4a1 1 0 0 1 1-1h4a2 2 0 0 0 2-2v-2a2 2 0 0 0-2-2h-4a1 1 0 0 1-1-1V4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4a1 1 0 0 1-1 1z" />
-</svg>`,
-  ],
-  [
-    "crosshair",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["crosshair", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-crosshair"
   xmlns="http://www.w3.org/2000/svg"
@@ -12083,11 +10353,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <line x1="6" x2="2" y1="12" y2="12" />
   <line x1="12" x2="12" y1="6" y2="2" />
   <line x1="12" x2="12" y1="22" y2="18" />
-</svg>`,
-  ],
-  [
-    "crown",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["crown", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-crown"
   xmlns="http://www.w3.org/2000/svg"
@@ -12102,11 +10369,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M11.562 3.266a.5.5 0 0 1 .876 0L15.39 8.87a1 1 0 0 0 1.516.294L21.183 5.5a.5.5 0 0 1 .798.519l-2.834 10.246a1 1 0 0 1-.956.734H5.81a1 1 0 0 1-.957-.734L2.02 6.02a.5.5 0 0 1 .798-.519l4.276 3.664a1 1 0 0 0 1.516-.294z" />
   <path d="M5 21h14" />
-</svg>`,
-  ],
-  [
-    "cuboid",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["cuboid", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-cuboid"
   xmlns="http://www.w3.org/2000/svg"
@@ -12122,11 +10386,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m21.12 6.4-6.05-4.06a2 2 0 0 0-2.17-.05L2.95 8.41a2 2 0 0 0-.95 1.7v5.82a2 2 0 0 0 .88 1.66l6.05 4.07a2 2 0 0 0 2.17.05l9.95-6.12a2 2 0 0 0 .95-1.7V8.06a2 2 0 0 0-.88-1.66Z" />
   <path d="M10 22v-8L2.25 9.15" />
   <path d="m10 14 11.77-6.87" />
-</svg>`,
-  ],
-  [
-    "cup-soda",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["cup-soda", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-cup-soda"
   xmlns="http://www.w3.org/2000/svg"
@@ -12143,11 +10404,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M5 8h14" />
   <path d="M7 15a6.47 6.47 0 0 1 5 0 6.47 6.47 0 0 0 5 0" />
   <path d="m12 8 1-6h2" />
-</svg>`,
-  ],
-  [
-    "curly-braces",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["curly-braces", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-curly-braces"
   xmlns="http://www.w3.org/2000/svg"
@@ -12162,11 +10420,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5c0 1.1.9 2 2 2h1" />
   <path d="M16 21h1a2 2 0 0 0 2-2v-5c0-1.1.9-2 2-2a2 2 0 0 1-2-2V5a2 2 0 0 0-2-2h-1" />
-</svg>`,
-  ],
-  [
-    "currency",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["currency", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-currency"
   xmlns="http://www.w3.org/2000/svg"
@@ -12184,11 +10439,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <line x1="21" x2="18" y1="3" y2="6" />
   <line x1="3" x2="6" y1="21" y2="18" />
   <line x1="21" x2="18" y1="21" y2="18" />
-</svg>`,
-  ],
-  [
-    "cylinder",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["cylinder", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-cylinder"
   xmlns="http://www.w3.org/2000/svg"
@@ -12203,11 +10455,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <ellipse cx="12" cy="5" rx="9" ry="3" />
   <path d="M3 5v14a9 3 0 0 0 18 0V5" />
-</svg>`,
-  ],
-  [
-    "dam",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["dam", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-dam"
   xmlns="http://www.w3.org/2000/svg"
@@ -12227,11 +10476,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M2 18h4" />
   <path d="M2 6h4" />
   <path d="M7 3a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1L10 4a1 1 0 0 0-1-1z" />
-</svg>`,
-  ],
-  [
-    "database-backup",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["database-backup", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-database-backup"
   xmlns="http://www.w3.org/2000/svg"
@@ -12250,11 +10496,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3 5v14a9 3 0 0 0 6.47 2.88" />
   <path d="M12 12v4h4" />
   <path d="M13 20a5 5 0 0 0 9-3 4.5 4.5 0 0 0-4.5-4.5c-1.33 0-2.54.54-3.41 1.41L12 16" />
-</svg>`,
-  ],
-  [
-    "database-search",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["database-search", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-database-search"
   xmlns="http://www.w3.org/2000/svg"
@@ -12273,11 +10516,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3 5v14a9 3 0 0 0 9.28 2.999" />
   <circle cx="18" cy="18" r="3" />
   <ellipse cx="12" cy="5" rx="9" ry="3" />
-</svg>`,
-  ],
-  [
-    "database-zap",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["database-zap", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-database-zap"
   xmlns="http://www.w3.org/2000/svg"
@@ -12295,11 +10535,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M21 5V8" />
   <path d="M21 12L18 17H22L19 22" />
   <path d="M3 12A9 3 0 0 0 14.59 14.87" />
-</svg>`,
-  ],
-  [
-    "database",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["database", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-database"
   xmlns="http://www.w3.org/2000/svg"
@@ -12315,11 +10552,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <ellipse cx="12" cy="5" rx="9" ry="3" />
   <path d="M3 5V19A9 3 0 0 0 21 19V5" />
   <path d="M3 12A9 3 0 0 0 21 12" />
-</svg>`,
-  ],
-  [
-    "decimals-arrow-left",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["decimals-arrow-left", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-decimals-arrow-left"
   xmlns="http://www.w3.org/2000/svg"
@@ -12336,11 +10570,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M20 18H10" />
   <path d="M3 11h.01" />
   <rect x="6" y="3" width="5" height="8" rx="2.5" />
-</svg>`,
-  ],
-  [
-    "decimals-arrow-right",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["decimals-arrow-right", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-decimals-arrow-right"
   xmlns="http://www.w3.org/2000/svg"
@@ -12358,11 +10589,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3 11h.01" />
   <rect x="15" y="3" width="5" height="8" rx="2.5" />
   <rect x="6" y="3" width="5" height="8" rx="2.5" />
-</svg>`,
-  ],
-  [
-    "delete",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["delete", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-delete"
   xmlns="http://www.w3.org/2000/svg"
@@ -12378,11 +10606,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M10 5a2 2 0 0 0-1.344.519l-6.328 5.74a1 1 0 0 0 0 1.481l6.328 5.741A2 2 0 0 0 10 19h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2z" />
   <path d="m12 9 6 6" />
   <path d="m18 9-6 6" />
-</svg>`,
-  ],
-  [
-    "dessert",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["dessert", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-dessert"
   xmlns="http://www.w3.org/2000/svg"
@@ -12398,11 +10623,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M10.162 3.167A10 10 0 0 0 2 13a2 2 0 0 0 4 0v-1a2 2 0 0 1 4 0v4a2 2 0 0 0 4 0v-4a2 2 0 0 1 4 0v1a2 2 0 0 0 4-.006 10 10 0 0 0-8.161-9.826" />
   <path d="M20.804 14.869a9 9 0 0 1-17.608 0" />
   <circle cx="12" cy="4" r="2" />
-</svg>`,
-  ],
-  [
-    "diameter",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["diameter", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-diameter"
   xmlns="http://www.w3.org/2000/svg"
@@ -12420,11 +10642,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M6.48 3.66a10 10 0 0 1 13.86 13.86" />
   <path d="m6.41 6.41 11.18 11.18" />
   <path d="M3.66 6.48a10 10 0 0 0 13.86 13.86" />
-</svg>`,
-  ],
-  [
-    "diamond-minus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["diamond-minus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-diamond-minus"
   xmlns="http://www.w3.org/2000/svg"
@@ -12439,11 +10658,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M2.7 10.3a2.41 2.41 0 0 0 0 3.41l7.59 7.59a2.41 2.41 0 0 0 3.41 0l7.59-7.59a2.41 2.41 0 0 0 0-3.41L13.7 2.71a2.41 2.41 0 0 0-3.41 0z" />
   <path d="M8 12h8" />
-</svg>`,
-  ],
-  [
-    "diamond-percent",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["diamond-percent", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-diamond-percent"
   xmlns="http://www.w3.org/2000/svg"
@@ -12460,11 +10676,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M9.2 9.2h.01" />
   <path d="m14.5 9.5-5 5" />
   <path d="M14.7 14.8h.01" />
-</svg>`,
-  ],
-  [
-    "diamond-plus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["diamond-plus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-diamond-plus"
   xmlns="http://www.w3.org/2000/svg"
@@ -12480,11 +10693,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 8v8" />
   <path d="M2.7 10.3a2.41 2.41 0 0 0 0 3.41l7.59 7.59a2.41 2.41 0 0 0 3.41 0l7.59-7.59a2.41 2.41 0 0 0 0-3.41L13.7 2.71a2.41 2.41 0 0 0-3.41 0z" />
   <path d="M8 12h8" />
-</svg>`,
-  ],
-  [
-    "diamond",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["diamond", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-diamond"
   xmlns="http://www.w3.org/2000/svg"
@@ -12498,11 +10708,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M2.7 10.3a2.41 2.41 0 0 0 0 3.41l7.59 7.59a2.41 2.41 0 0 0 3.41 0l7.59-7.59a2.41 2.41 0 0 0 0-3.41l-7.59-7.59a2.41 2.41 0 0 0-3.41 0Z" />
-</svg>`,
-  ],
-  [
-    "dice-1",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["dice-1", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-dice-1"
   xmlns="http://www.w3.org/2000/svg"
@@ -12517,11 +10724,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
   <path d="M12 12h.01" />
-</svg>`,
-  ],
-  [
-    "dice-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["dice-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-dice-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -12537,11 +10741,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
   <path d="M15 9h.01" />
   <path d="M9 15h.01" />
-</svg>`,
-  ],
-  [
-    "dice-3",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["dice-3", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-dice-3"
   xmlns="http://www.w3.org/2000/svg"
@@ -12558,11 +10759,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M16 8h.01" />
   <path d="M12 12h.01" />
   <path d="M8 16h.01" />
-</svg>`,
-  ],
-  [
-    "dice-4",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["dice-4", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-dice-4"
   xmlns="http://www.w3.org/2000/svg"
@@ -12580,11 +10778,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M8 8h.01" />
   <path d="M8 16h.01" />
   <path d="M16 16h.01" />
-</svg>`,
-  ],
-  [
-    "dice-5",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["dice-5", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-dice-5"
   xmlns="http://www.w3.org/2000/svg"
@@ -12603,11 +10798,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M8 16h.01" />
   <path d="M16 16h.01" />
   <path d="M12 12h.01" />
-</svg>`,
-  ],
-  [
-    "dice-6",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["dice-6", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-dice-6"
   xmlns="http://www.w3.org/2000/svg"
@@ -12627,11 +10819,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M8 8h.01" />
   <path d="M8 12h.01" />
   <path d="M8 16h.01" />
-</svg>`,
-  ],
-  [
-    "dices",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["dices", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-dices"
   xmlns="http://www.w3.org/2000/svg"
@@ -12650,11 +10839,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M10 14h.01" />
   <path d="M15 6h.01" />
   <path d="M18 9h.01" />
-</svg>`,
-  ],
-  [
-    "diff",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["diff", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-diff"
   xmlns="http://www.w3.org/2000/svg"
@@ -12670,11 +10856,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 3v14" />
   <path d="M5 10h14" />
   <path d="M5 21h14" />
-</svg>`,
-  ],
-  [
-    "disc-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["disc-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-disc-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -12690,11 +10873,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="12" cy="12" r="10" />
   <circle cx="12" cy="12" r="4" />
   <path d="M12 12h.01" />
-</svg>`,
-  ],
-  [
-    "disc-3",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["disc-3", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-disc-3"
   xmlns="http://www.w3.org/2000/svg"
@@ -12711,11 +10891,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M6 12c0-1.7.7-3.2 1.8-4.2" />
   <circle cx="12" cy="12" r="2" />
   <path d="M18 12c0 1.7-.7 3.2-1.8 4.2" />
-</svg>`,
-  ],
-  [
-    "disc-album",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["disc-album", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-disc-album"
   xmlns="http://www.w3.org/2000/svg"
@@ -12731,11 +10908,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <circle cx="12" cy="12" r="5" />
   <path d="M12 12h.01" />
-</svg>`,
-  ],
-  [
-    "disc",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["disc", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-disc"
   xmlns="http://www.w3.org/2000/svg"
@@ -12750,11 +10924,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <circle cx="12" cy="12" r="10" />
   <circle cx="12" cy="12" r="2" />
-</svg>`,
-  ],
-  [
-    "divide-circle",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["divide-circle", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-divide-circle"
   xmlns="http://www.w3.org/2000/svg"
@@ -12771,11 +10942,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <line x1="12" x2="12" y1="16" y2="16" />
   <line x1="12" x2="12" y1="8" y2="8" />
   <circle cx="12" cy="12" r="10" />
-</svg>`,
-  ],
-  [
-    "divide-square",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["divide-square", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-divide-square"
   xmlns="http://www.w3.org/2000/svg"
@@ -12792,11 +10960,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <line x1="8" x2="16" y1="12" y2="12" />
   <line x1="12" x2="12" y1="16" y2="16" />
   <line x1="12" x2="12" y1="8" y2="8" />
-</svg>`,
-  ],
-  [
-    "divide",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["divide", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-divide"
   xmlns="http://www.w3.org/2000/svg"
@@ -12812,11 +10977,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="12" cy="6" r="1" />
   <line x1="5" x2="19" y1="12" y2="12" />
   <circle cx="12" cy="18" r="1" />
-</svg>`,
-  ],
-  [
-    "dna-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["dna-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-dna-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -12839,11 +11001,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m6.5 12.5 1 1" />
   <path d="m7 18 2.891 2.891" />
   <path d="M9 22c1.35-1.5 2.092-3 2.5-4.5L10 16" />
-</svg>`,
-  ],
-  [
-    "dna",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["dna", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-dna"
   xmlns="http://www.w3.org/2000/svg"
@@ -12867,11 +11026,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m6.5 12.5 1 1" />
   <path d="m7 18 2.891 2.891" />
   <path d="M9 22c1.798-1.998 2.518-3.995 2.807-5.993" />
-</svg>`,
-  ],
-  [
-    "dock",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["dock", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-dock"
   xmlns="http://www.w3.org/2000/svg"
@@ -12887,11 +11043,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M2 8h20" />
   <rect width="20" height="16" x="2" y="4" rx="2" />
   <path d="M6 16h12" />
-</svg>`,
-  ],
-  [
-    "dog",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["dog", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-dog"
   xmlns="http://www.w3.org/2000/svg"
@@ -12909,11 +11062,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M4.42 11.247A13.152 13.152 0 0 0 4 14.556C4 18.728 7.582 21 12 21s8-2.272 8-6.444a11.702 11.702 0 0 0-.493-3.309" />
   <path d="M8 14v.5" />
   <path d="M8.5 8.5c-.384 1.05-1.083 2.028-2.344 2.5-1.931.722-3.576-.297-3.656-1-.113-.994 1.177-6.53 4-7 1.923-.321 3.651.845 3.651 2.235A7.497 7.497 0 0 1 14 5.277c0-1.39 1.844-2.598 3.767-2.277 2.823.47 4.113 6.006 4 7-.08.703-1.725 1.722-3.656 1-1.261-.472-1.855-1.45-2.239-2.5" />
-</svg>`,
-  ],
-  [
-    "dollar-sign",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["dollar-sign", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-dollar-sign"
   xmlns="http://www.w3.org/2000/svg"
@@ -12928,11 +11078,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <line x1="12" x2="12" y1="2" y2="22" />
   <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-</svg>`,
-  ],
-  [
-    "donut",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["donut", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-donut"
   xmlns="http://www.w3.org/2000/svg"
@@ -12947,11 +11094,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M20.5 10a2.5 2.5 0 0 1-2.4-3H18a2.95 2.95 0 0 1-2.6-4.4 10 10 0 1 0 6.3 7.1c-.3.2-.8.3-1.2.3" />
   <circle cx="12" cy="12" r="3" />
-</svg>`,
-  ],
-  [
-    "door-closed-locked",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["door-closed-locked", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-door-closed-locked"
   xmlns="http://www.w3.org/2000/svg"
@@ -12969,11 +11113,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M2 20h8" />
   <path d="M20 17v-2a2 2 0 1 0-4 0v2" />
   <rect x="14" y="17" width="8" height="5" rx="1" />
-</svg>`,
-  ],
-  [
-    "door-closed",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["door-closed", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-door-closed"
   xmlns="http://www.w3.org/2000/svg"
@@ -12989,11 +11130,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M10 12h.01" />
   <path d="M18 20V6a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v14" />
   <path d="M2 20h20" />
-</svg>`,
-  ],
-  [
-    "door-open",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["door-open", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-door-open"
   xmlns="http://www.w3.org/2000/svg"
@@ -13011,11 +11149,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M11 4H8a2 2 0 0 0-2 2v14" />
   <path d="M14 12h.01" />
   <path d="M22 20h-3" />
-</svg>`,
-  ],
-  [
-    "dot-square",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["dot-square", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-dot-square"
   xmlns="http://www.w3.org/2000/svg"
@@ -13030,11 +11165,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <circle cx="12" cy="12" r="1" />
-</svg>`,
-  ],
-  [
-    "dot",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["dot", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-dot"
   xmlns="http://www.w3.org/2000/svg"
@@ -13048,11 +11180,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <circle cx="12.1" cy="12.1" r="1" />
-</svg>`,
-  ],
-  [
-    "download-cloud",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["download-cloud", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-download-cloud"
   xmlns="http://www.w3.org/2000/svg"
@@ -13068,11 +11197,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 13v8l-4-4" />
   <path d="m12 21 4-4" />
   <path d="M4.393 15.269A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.436 8.284" />
-</svg>`,
-  ],
-  [
-    "download",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["download", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-download"
   xmlns="http://www.w3.org/2000/svg"
@@ -13088,11 +11214,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 15V3" />
   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
   <path d="m7 10 5 5 5-5" />
-</svg>`,
-  ],
-  [
-    "drafting-compass",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["drafting-compass", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-drafting-compass"
   xmlns="http://www.w3.org/2000/svg"
@@ -13110,11 +11233,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m21 21-2.16-3.84" />
   <path d="m3 21 8.02-14.26" />
   <circle cx="12" cy="5" r="2" />
-</svg>`,
-  ],
-  [
-    "drama",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["drama", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-drama"
   xmlns="http://www.w3.org/2000/svg"
@@ -13135,11 +11255,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M17.4 9.9c-.8.8-2 .8-2.8 0" />
   <path d="M10.1 7.1C9 7.2 7.7 7.7 6 8.6c-3.5 2-4.7 3.9-3.7 5.6 4.5 7.8 9.5 8.4 11.2 7.4.9-.5 1.9-2.1 1.9-4.7" />
   <path d="M9.1 16.5c.3-1.1 1.4-1.7 2.4-1.4" />
-</svg>`,
-  ],
-  [
-    "dribbble",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["dribbble", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-dribbble"
   xmlns="http://www.w3.org/2000/svg"
@@ -13156,11 +11273,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M19.13 5.09C15.22 9.14 10 10.44 2.25 10.94" />
   <path d="M21.75 12.84c-6.62-1.41-12.14 1-16.38 6.32" />
   <path d="M8.56 2.75c4.37 6 6 9.42 8 17.72" />
-</svg>`,
-  ],
-  [
-    "drill",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["drill", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-drill"
   xmlns="http://www.w3.org/2000/svg"
@@ -13179,11 +11293,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M18 6h4" />
   <path d="m5 10-2 8" />
   <path d="m7 18 2-8" />
-</svg>`,
-  ],
-  [
-    "drone",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["drone", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-drone"
   xmlns="http://www.w3.org/2000/svg"
@@ -13205,11 +11316,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M4.367 10a4 4 0 1 1 5.438-5.862" />
   <path d="M9.795 19.862a4 4 0 1 1-5.429-5.873" />
   <rect x="10" y="8" width="4" height="8" rx="1" />
-</svg>`,
-  ],
-  [
-    "droplet-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["droplet-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-droplet-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -13225,11 +11333,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M18.715 13.186C18.29 11.858 17.384 10.607 16 9.5c-2-1.6-3.5-4-4-6.5a10.7 10.7 0 0 1-.884 2.586" />
   <path d="m2 2 20 20" />
   <path d="M8.795 8.797A11 11 0 0 1 8 9.5C6 11.1 5 13 5 15a7 7 0 0 0 13.222 3.208" />
-</svg>`,
-  ],
-  [
-    "droplet",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["droplet", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-droplet"
   xmlns="http://www.w3.org/2000/svg"
@@ -13243,11 +11348,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z" />
-</svg>`,
-  ],
-  [
-    "droplets",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["droplets", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-droplets"
   xmlns="http://www.w3.org/2000/svg"
@@ -13262,11 +11364,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M7 16.3c2.2 0 4-1.83 4-4.05 0-1.16-.57-2.26-1.71-3.19S7.29 6.75 7 5.3c-.29 1.45-1.14 2.84-2.29 3.76S3 11.1 3 12.25c0 2.22 1.8 4.05 4 4.05z" />
   <path d="M12.56 6.6A10.97 10.97 0 0 0 14 3.02c.5 2.5 2 4.9 4 6.5s3 3.5 3 5.5a6.98 6.98 0 0 1-11.91 4.97" />
-</svg>`,
-  ],
-  [
-    "drum",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["drum", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-drum"
   xmlns="http://www.w3.org/2000/svg"
@@ -13286,11 +11385,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 14v8" />
   <path d="M17 13.4v7.9" />
   <path d="M2 9v8a10 5 0 0 0 20 0V9" />
-</svg>`,
-  ],
-  [
-    "drumstick",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["drumstick", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-drumstick"
   xmlns="http://www.w3.org/2000/svg"
@@ -13305,11 +11401,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M15.4 15.63a7.875 6 135 1 1 6.23-6.23 4.5 3.43 135 0 0-6.23 6.23" />
   <path d="m8.29 12.71-2.6 2.6a2.5 2.5 0 1 0-1.65 4.65A2.5 2.5 0 1 0 8.7 18.3l2.59-2.59" />
-</svg>`,
-  ],
-  [
-    "dumbbell",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["dumbbell", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-dumbbell"
   xmlns="http://www.w3.org/2000/svg"
@@ -13327,11 +11420,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m20.1 3.9 1.4-1.4" />
   <path d="M5.343 21.485a2 2 0 1 0 2.829-2.828l1.767 1.768a2 2 0 1 0 2.829-2.829l-6.364-6.364a2 2 0 1 0-2.829 2.829l1.768 1.767a2 2 0 0 0-2.828 2.829z" />
   <path d="m9.6 14.4 4.8-4.8" />
-</svg>`,
-  ],
-  [
-    "ear-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["ear-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-ear-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -13349,11 +11439,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M8.8 3.15A6.5 6.5 0 0 1 19 8.5c0 1.63-.44 2.81-1.09 3.76" />
   <path d="M12.5 6A2.5 2.5 0 0 1 15 8.5M10 13a2 2 0 0 0 1.82-1.18" />
   <line x1="2" x2="22" y1="2" y2="22" />
-</svg>`,
-  ],
-  [
-    "ear",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["ear", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-ear"
   xmlns="http://www.w3.org/2000/svg"
@@ -13368,11 +11455,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M6 8.5a6.5 6.5 0 1 1 13 0c0 6-6 6-6 10a3.5 3.5 0 1 1-7 0" />
   <path d="M15 8.5a2.5 2.5 0 0 0-5 0v1a2 2 0 1 1 0 4" />
-</svg>`,
-  ],
-  [
-    "earth-lock",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["earth-lock", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-earth-lock"
   xmlns="http://www.w3.org/2000/svg"
@@ -13391,11 +11475,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 2a10 10 0 1 0 9.54 13" />
   <path d="M20 6V4a2 2 0 1 0-4 0v2" />
   <rect width="8" height="5" x="14" y="6" rx="1" />
-</svg>`,
-  ],
-  [
-    "earth",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["earth", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-earth"
   xmlns="http://www.w3.org/2000/svg"
@@ -13412,11 +11493,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M7 3.34V5a3 3 0 0 0 3 3a2 2 0 0 1 2 2c0 1.1.9 2 2 2a2 2 0 0 0 2-2c0-1.1.9-2 2-2h3.17" />
   <path d="M11 21.95V18a2 2 0 0 0-2-2a2 2 0 0 1-2-2v-1a2 2 0 0 0-2-2H2.05" />
   <circle cx="12" cy="12" r="10" />
-</svg>`,
-  ],
-  [
-    "eclipse",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["eclipse", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-eclipse"
   xmlns="http://www.w3.org/2000/svg"
@@ -13431,11 +11509,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <circle cx="12" cy="12" r="10" />
   <path d="M12 2a7 7 0 1 0 10 10" />
-</svg>`,
-  ],
-  [
-    "edit-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["edit-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-edit-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -13449,11 +11524,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z" />
-</svg>`,
-  ],
-  [
-    "edit-3",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["edit-3", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-edit-3"
   xmlns="http://www.w3.org/2000/svg"
@@ -13468,11 +11540,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M13 21h8" />
   <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z" />
-</svg>`,
-  ],
-  [
-    "edit",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["edit", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-edit"
   xmlns="http://www.w3.org/2000/svg"
@@ -13487,11 +11556,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
   <path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z" />
-</svg>`,
-  ],
-  [
-    "egg-fried",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["egg-fried", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-egg-fried"
   xmlns="http://www.w3.org/2000/svg"
@@ -13506,11 +11572,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <circle cx="11.5" cy="12.5" r="3.5" />
   <path d="M3 8c0-3.5 2.5-6 6.5-6 5 0 4.83 3 7.5 5s5 2 5 6c0 4.5-2.5 6.5-7 6.5-2.5 0-2.5 2.5-6 2.5s-7-2-7-5.5c0-3 1.5-3 1.5-5C3.5 10 3 9 3 8Z" />
-</svg>`,
-  ],
-  [
-    "egg-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["egg-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-egg-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -13526,11 +11589,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m2 2 20 20" />
   <path d="M20 14.347V14c0-6-4-12-8-12-1.078 0-2.157.436-3.157 1.19" />
   <path d="M6.206 6.21C4.871 8.4 4 11.2 4 14a8 8 0 0 0 14.568 4.568" />
-</svg>`,
-  ],
-  [
-    "egg",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["egg", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-egg"
   xmlns="http://www.w3.org/2000/svg"
@@ -13544,11 +11604,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M12 2C8 2 4 8 4 14a8 8 0 0 0 16 0c0-6-4-12-8-12" />
-</svg>`,
-  ],
-  [
-    "ellipsis-vertical",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["ellipsis-vertical", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-ellipsis-vertical"
   xmlns="http://www.w3.org/2000/svg"
@@ -13564,11 +11621,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="12" cy="12" r="1" />
   <circle cx="12" cy="5" r="1" />
   <circle cx="12" cy="19" r="1" />
-</svg>`,
-  ],
-  [
-    "ellipsis",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["ellipsis", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-ellipsis"
   xmlns="http://www.w3.org/2000/svg"
@@ -13584,11 +11638,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="12" cy="12" r="1" />
   <circle cx="19" cy="12" r="1" />
   <circle cx="5" cy="12" r="1" />
-</svg>`,
-  ],
-  [
-    "equal-approximately",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["equal-approximately", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-equal-approximately"
   xmlns="http://www.w3.org/2000/svg"
@@ -13603,11 +11654,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M5 15a6.5 6.5 0 0 1 7 0 6.5 6.5 0 0 0 7 0" />
   <path d="M5 9a6.5 6.5 0 0 1 7 0 6.5 6.5 0 0 0 7 0" />
-</svg>`,
-  ],
-  [
-    "equal-not",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["equal-not", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-equal-not"
   xmlns="http://www.w3.org/2000/svg"
@@ -13623,11 +11671,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <line x1="5" x2="19" y1="9" y2="9" />
   <line x1="5" x2="19" y1="15" y2="15" />
   <line x1="19" x2="5" y1="5" y2="19" />
-</svg>`,
-  ],
-  [
-    "equal-square",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["equal-square", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-equal-square"
   xmlns="http://www.w3.org/2000/svg"
@@ -13643,11 +11688,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="M7 10h10" />
   <path d="M7 14h10" />
-</svg>`,
-  ],
-  [
-    "equal",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["equal", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-equal"
   xmlns="http://www.w3.org/2000/svg"
@@ -13662,11 +11704,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <line x1="5" x2="19" y1="9" y2="9" />
   <line x1="5" x2="19" y1="15" y2="15" />
-</svg>`,
-  ],
-  [
-    "eraser",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["eraser", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-eraser"
   xmlns="http://www.w3.org/2000/svg"
@@ -13681,11 +11720,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M21 21H8a2 2 0 0 1-1.42-.587l-3.994-3.999a2 2 0 0 1 0-2.828l10-10a2 2 0 0 1 2.829 0l5.999 6a2 2 0 0 1 0 2.828L12.834 21" />
   <path d="m5.082 11.09 8.828 8.828" />
-</svg>`,
-  ],
-  [
-    "ethernet-port",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["ethernet-port", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-ethernet-port"
   xmlns="http://www.w3.org/2000/svg"
@@ -13703,11 +11739,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M10 8v1" />
   <path d="M14 8v1" />
   <path d="M18 8v1" />
-</svg>`,
-  ],
-  [
-    "euro",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["euro", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-euro"
   xmlns="http://www.w3.org/2000/svg"
@@ -13723,11 +11756,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M4 10h12" />
   <path d="M4 14h9" />
   <path d="M19 6a7.7 7.7 0 0 0-5.2-2A7.9 7.9 0 0 0 6 12c0 4.4 3.5 8 7.8 8 2 0 3.8-.8 5.2-2" />
-</svg>`,
-  ],
-  [
-    "ev-charger",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["ev-charger", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-ev-charger"
   xmlns="http://www.w3.org/2000/svg"
@@ -13745,11 +11775,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M2 21h13" />
   <path d="M3 7h11" />
   <path d="m9 11-2 3h3l-2 3" />
-</svg>`,
-  ],
-  [
-    "expand",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["expand", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-expand"
   xmlns="http://www.w3.org/2000/svg"
@@ -13770,11 +11797,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m3 21 6-6" />
   <path d="M3 8V3h5" />
   <path d="M9 9 3 3" />
-</svg>`,
-  ],
-  [
-    "external-link",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["external-link", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-external-link"
   xmlns="http://www.w3.org/2000/svg"
@@ -13790,11 +11814,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M15 3h6v6" />
   <path d="M10 14 21 3" />
   <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-</svg>`,
-  ],
-  [
-    "eye-closed",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["eye-closed", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-eye-closed"
   xmlns="http://www.w3.org/2000/svg"
@@ -13812,11 +11833,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m20 15-1.726-2.05" />
   <path d="m4 15 1.726-2.05" />
   <path d="m9 18 .722-3.25" />
-</svg>`,
-  ],
-  [
-    "eye-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["eye-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-eye-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -13833,11 +11851,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14.084 14.158a3 3 0 0 1-4.242-4.242" />
   <path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143" />
   <path d="m2 2 20 20" />
-</svg>`,
-  ],
-  [
-    "eye",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["eye", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-eye"
   xmlns="http://www.w3.org/2000/svg"
@@ -13852,11 +11867,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" />
   <circle cx="12" cy="12" r="3" />
-</svg>`,
-  ],
-  [
-    "facebook",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["facebook", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-facebook"
   xmlns="http://www.w3.org/2000/svg"
@@ -13870,11 +11882,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
-</svg>`,
-  ],
-  [
-    "factory",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["factory", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-factory"
   xmlns="http://www.w3.org/2000/svg"
@@ -13891,11 +11900,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M16 16h.01" />
   <path d="M3 19a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8.5a.5.5 0 0 0-.769-.422l-4.462 2.844A.5.5 0 0 1 15 10.5v-2a.5.5 0 0 0-.769-.422L9.77 10.922A.5.5 0 0 1 9 10.5V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2z" />
   <path d="M8 16h.01" />
-</svg>`,
-  ],
-  [
-    "fan",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["fan", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-fan"
   xmlns="http://www.w3.org/2000/svg"
@@ -13910,11 +11916,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M10.827 16.379a6.082 6.082 0 0 1-8.618-7.002l5.412 1.45a6.082 6.082 0 0 1 7.002-8.618l-1.45 5.412a6.082 6.082 0 0 1 8.618 7.002l-5.412-1.45a6.082 6.082 0 0 1-7.002 8.618l1.45-5.412Z" />
   <path d="M12 12v.01" />
-</svg>`,
-  ],
-  [
-    "fast-forward",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["fast-forward", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-fast-forward"
   xmlns="http://www.w3.org/2000/svg"
@@ -13929,11 +11932,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M12 6a2 2 0 0 1 3.414-1.414l6 6a2 2 0 0 1 0 2.828l-6 6A2 2 0 0 1 12 18z" />
   <path d="M2 6a2 2 0 0 1 3.414-1.414l6 6a2 2 0 0 1 0 2.828l-6 6A2 2 0 0 1 2 18z" />
-</svg>`,
-  ],
-  [
-    "feather",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["feather", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-feather"
   xmlns="http://www.w3.org/2000/svg"
@@ -13949,11 +11949,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12.67 19a2 2 0 0 0 1.416-.588l6.154-6.172a6 6 0 0 0-8.49-8.49L5.586 9.914A2 2 0 0 0 5 11.328V18a1 1 0 0 0 1 1z" />
   <path d="M16 8 2 22" />
   <path d="M17.5 15H9" />
-</svg>`,
-  ],
-  [
-    "fence",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["fence", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-fence"
   xmlns="http://www.w3.org/2000/svg"
@@ -13973,11 +11970,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 8h4" />
   <path d="M14 18h4" />
   <path d="m20 3-2 2v15c0 .6.4 1 1 1h2c.6 0 1-.4 1-1V5Z" />
-</svg>`,
-  ],
-  [
-    "ferris-wheel",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["ferris-wheel", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-ferris-wheel"
   xmlns="http://www.w3.org/2000/svg"
@@ -13999,11 +11993,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m9 22 3-8 3 8" />
   <path d="M8 22h8" />
   <path d="M18 18.7a9 9 0 1 0-12 0" />
-</svg>`,
-  ],
-  [
-    "figma",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["figma", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-figma"
   xmlns="http://www.w3.org/2000/svg"
@@ -14021,11 +12012,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 12.5a3.5 3.5 0 1 1 7 0 3.5 3.5 0 1 1-7 0z" />
   <path d="M5 19.5A3.5 3.5 0 0 1 8.5 16H12v3.5a3.5 3.5 0 1 1-7 0z" />
   <path d="M5 12.5A3.5 3.5 0 0 1 8.5 9H12v7H8.5A3.5 3.5 0 0 1 5 12.5z" />
-</svg>`,
-  ],
-  [
-    "file-archive",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-archive", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-archive"
   xmlns="http://www.w3.org/2000/svg"
@@ -14044,11 +12032,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M8 18v-2" />
   <path d="M8 7V6" />
   <circle cx="8" cy="20" r="2" />
-</svg>`,
-  ],
-  [
-    "file-audio-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-audio-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-audio-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -14064,11 +12049,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M4 6.835V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.706.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2h-.343" />
   <path d="M14 2v5a1 1 0 0 0 1 1h5" />
   <path d="M2 19a2 2 0 0 1 4 0v1a2 2 0 0 1-4 0v-4a6 6 0 0 1 12 0v4a2 2 0 0 1-4 0v-1a2 2 0 0 1 4 0" />
-</svg>`,
-  ],
-  [
-    "file-audio",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-audio", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-audio"
   xmlns="http://www.w3.org/2000/svg"
@@ -14084,11 +12066,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M4 6.835V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.706.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2h-.343" />
   <path d="M14 2v5a1 1 0 0 0 1 1h5" />
   <path d="M2 19a2 2 0 0 1 4 0v1a2 2 0 0 1-4 0v-4a6 6 0 0 1 12 0v4a2 2 0 0 1-4 0v-1a2 2 0 0 1 4 0" />
-</svg>`,
-  ],
-  [
-    "file-axis-3-d",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-axis-3-d", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-axis-3-d"
   xmlns="http://www.w3.org/2000/svg"
@@ -14105,11 +12084,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 2v5a1 1 0 0 0 1 1h5" />
   <path d="m8 18 4-4" />
   <path d="M8 10v8h8" />
-</svg>`,
-  ],
-  [
-    "file-axis-3d",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-axis-3d", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-axis-3d"
   xmlns="http://www.w3.org/2000/svg"
@@ -14126,11 +12102,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 2v5a1 1 0 0 0 1 1h5" />
   <path d="m8 18 4-4" />
   <path d="M8 10v8h8" />
-</svg>`,
-  ],
-  [
-    "file-badge-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-badge-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-badge-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -14147,11 +12120,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 2v5a1 1 0 0 0 1 1h5" />
   <path d="m7.69 16.479 1.29 4.88a.5.5 0 0 1-.698.591l-1.843-.849a1 1 0 0 0-.879.001l-1.846.85a.5.5 0 0 1-.692-.593l1.29-4.88" />
   <circle cx="6" cy="14" r="3" />
-</svg>`,
-  ],
-  [
-    "file-badge",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-badge", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-badge"
   xmlns="http://www.w3.org/2000/svg"
@@ -14168,11 +12138,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 2v5a1 1 0 0 0 1 1h5" />
   <path d="m7.69 16.479 1.29 4.88a.5.5 0 0 1-.698.591l-1.843-.849a1 1 0 0 0-.879.001l-1.846.85a.5.5 0 0 1-.692-.593l1.29-4.88" />
   <circle cx="6" cy="14" r="3" />
-</svg>`,
-  ],
-  [
-    "file-bar-chart-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-bar-chart-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-bar-chart-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -14190,11 +12157,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M8 18v-1" />
   <path d="M12 18v-6" />
   <path d="M16 18v-3" />
-</svg>`,
-  ],
-  [
-    "file-bar-chart",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-bar-chart", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-bar-chart"
   xmlns="http://www.w3.org/2000/svg"
@@ -14212,11 +12176,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M8 18v-2" />
   <path d="M12 18v-4" />
   <path d="M16 18v-6" />
-</svg>`,
-  ],
-  [
-    "file-box",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-box", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-box"
   xmlns="http://www.w3.org/2000/svg"
@@ -14234,11 +12195,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M11.7 14.2 7 17l-4.7-2.8" />
   <path d="M3 13.1a2 2 0 0 0-.999 1.76v3.24a2 2 0 0 0 .969 1.78L6 21.7a2 2 0 0 0 2.03.01L11 19.9a2 2 0 0 0 1-1.76V14.9a2 2 0 0 0-.97-1.78L8 11.3a2 2 0 0 0-2.03-.01z" />
   <path d="M7 17v5" />
-</svg>`,
-  ],
-  [
-    "file-braces-corner",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-braces-corner", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-braces-corner"
   xmlns="http://www.w3.org/2000/svg"
@@ -14255,11 +12213,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 2v5a1 1 0 0 0 1 1h5" />
   <path d="M5 14a1 1 0 0 0-1 1v2a1 1 0 0 1-1 1 1 1 0 0 1 1 1v2a1 1 0 0 0 1 1" />
   <path d="M9 22a1 1 0 0 0 1-1v-2a1 1 0 0 1 1-1 1 1 0 0 1-1-1v-2a1 1 0 0 0-1-1" />
-</svg>`,
-  ],
-  [
-    "file-braces",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-braces", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-braces"
   xmlns="http://www.w3.org/2000/svg"
@@ -14276,11 +12231,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 2v5a1 1 0 0 0 1 1h5" />
   <path d="M10 12a1 1 0 0 0-1 1v1a1 1 0 0 1-1 1 1 1 0 0 1 1 1v1a1 1 0 0 0 1 1" />
   <path d="M14 18a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1 1 1 0 0 1-1-1v-1a1 1 0 0 0-1-1" />
-</svg>`,
-  ],
-  [
-    "file-chart-column-increasing",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-chart-column-increasing", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-chart-column-increasing"
   xmlns="http://www.w3.org/2000/svg"
@@ -14298,11 +12250,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M8 18v-2" />
   <path d="M12 18v-4" />
   <path d="M16 18v-6" />
-</svg>`,
-  ],
-  [
-    "file-chart-column",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-chart-column", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-chart-column"
   xmlns="http://www.w3.org/2000/svg"
@@ -14320,11 +12269,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M8 18v-1" />
   <path d="M12 18v-6" />
   <path d="M16 18v-3" />
-</svg>`,
-  ],
-  [
-    "file-chart-line",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-chart-line", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-chart-line"
   xmlns="http://www.w3.org/2000/svg"
@@ -14340,11 +12286,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z" />
   <path d="M14 2v5a1 1 0 0 0 1 1h5" />
   <path d="m16 13-3.5 3.5-2-2L8 17" />
-</svg>`,
-  ],
-  [
-    "file-chart-pie",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-chart-pie", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-chart-pie"
   xmlns="http://www.w3.org/2000/svg"
@@ -14361,11 +12304,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 2v5a1 1 0 0 0 1 1h5" />
   <path d="M4.017 11.512a6 6 0 1 0 8.466 8.475" />
   <path d="M9 16a1 1 0 0 1-1-1v-4c0-.552.45-1.008.995-.917a6 6 0 0 1 4.922 4.922c.091.544-.365.995-.917.995z" />
-</svg>`,
-  ],
-  [
-    "file-check-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-check-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-check-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -14381,11 +12321,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M10.5 22H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.706.706l3.588 3.588A2.4 2.4 0 0 1 20 8v6" />
   <path d="M14 2v5a1 1 0 0 0 1 1h5" />
   <path d="m14 20 2 2 4-4" />
-</svg>`,
-  ],
-  [
-    "file-check-corner",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-check-corner", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-check-corner"
   xmlns="http://www.w3.org/2000/svg"
@@ -14401,11 +12338,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M10.5 22H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.706.706l3.588 3.588A2.4 2.4 0 0 1 20 8v6" />
   <path d="M14 2v5a1 1 0 0 0 1 1h5" />
   <path d="m14 20 2 2 4-4" />
-</svg>`,
-  ],
-  [
-    "file-check",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-check", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-check"
   xmlns="http://www.w3.org/2000/svg"
@@ -14421,11 +12355,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z" />
   <path d="M14 2v5a1 1 0 0 0 1 1h5" />
   <path d="m9 15 2 2 4-4" />
-</svg>`,
-  ],
-  [
-    "file-clock",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-clock", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-clock"
   xmlns="http://www.w3.org/2000/svg"
@@ -14442,11 +12373,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 2v5a1 1 0 0 0 1 1h5" />
   <path d="M8 14v2.2l1.6 1" />
   <circle cx="8" cy="16" r="6" />
-</svg>`,
-  ],
-  [
-    "file-code-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-code-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-code-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -14463,11 +12391,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 2v5a1 1 0 0 0 1 1h5" />
   <path d="m5 16-3 3 3 3" />
   <path d="m9 22 3-3-3-3" />
-</svg>`,
-  ],
-  [
-    "file-code-corner",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-code-corner", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-code-corner"
   xmlns="http://www.w3.org/2000/svg"
@@ -14484,11 +12409,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 2v5a1 1 0 0 0 1 1h5" />
   <path d="m5 16-3 3 3 3" />
   <path d="m9 22 3-3-3-3" />
-</svg>`,
-  ],
-  [
-    "file-code",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-code", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-code"
   xmlns="http://www.w3.org/2000/svg"
@@ -14505,11 +12427,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 2v5a1 1 0 0 0 1 1h5" />
   <path d="M10 12.5 8 15l2 2.5" />
   <path d="m14 12.5 2 2.5-2 2.5" />
-</svg>`,
-  ],
-  [
-    "file-cog-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-cog-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-cog-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -14534,11 +12453,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m9.773 16.852.922-.383" />
   <path d="m9.773 19.148.922.383" />
   <circle cx="7" cy="18" r="3" />
-</svg>`,
-  ],
-  [
-    "file-cog",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-cog", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-cog"
   xmlns="http://www.w3.org/2000/svg"
@@ -14563,11 +12479,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m9.773 16.852.922-.383" />
   <path d="m9.773 19.148.922.383" />
   <circle cx="7" cy="18" r="3" />
-</svg>`,
-  ],
-  [
-    "file-diff",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-diff", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-diff"
   xmlns="http://www.w3.org/2000/svg"
@@ -14584,11 +12497,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M9 10h6" />
   <path d="M12 13V7" />
   <path d="M9 17h6" />
-</svg>`,
-  ],
-  [
-    "file-digit",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-digit", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-digit"
   xmlns="http://www.w3.org/2000/svg"
@@ -14606,11 +12516,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M10 16h2v6" />
   <path d="M10 22h4" />
   <rect x="2" y="16" width="4" height="6" rx="2" />
-</svg>`,
-  ],
-  [
-    "file-down",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-down", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-down"
   xmlns="http://www.w3.org/2000/svg"
@@ -14627,11 +12534,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 2v5a1 1 0 0 0 1 1h5" />
   <path d="M12 18v-6" />
   <path d="m9 15 3 3 3-3" />
-</svg>`,
-  ],
-  [
-    "file-edit",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-edit", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-edit"
   xmlns="http://www.w3.org/2000/svg"
@@ -14647,11 +12551,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12.659 22H18a2 2 0 0 0 2-2V8a2.4 2.4 0 0 0-.706-1.706l-3.588-3.588A2.4 2.4 0 0 0 14 2H6a2 2 0 0 0-2 2v9.34" />
   <path d="M14 2v5a1 1 0 0 0 1 1h5" />
   <path d="M10.378 12.622a1 1 0 0 1 3 3.003L8.36 20.637a2 2 0 0 1-.854.506l-2.867.837a.5.5 0 0 1-.62-.62l.836-2.869a2 2 0 0 1 .506-.853z" />
-</svg>`,
-  ],
-  [
-    "file-exclamation-point",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-exclamation-point", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-exclamation-point"
   xmlns="http://www.w3.org/2000/svg"
@@ -14667,11 +12568,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z" />
   <path d="M12 9v4" />
   <path d="M12 17h.01" />
-</svg>`,
-  ],
-  [
-    "file-headphone",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-headphone", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-headphone"
   xmlns="http://www.w3.org/2000/svg"
@@ -14687,11 +12585,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M4 6.835V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.706.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2h-.343" />
   <path d="M14 2v5a1 1 0 0 0 1 1h5" />
   <path d="M2 19a2 2 0 0 1 4 0v1a2 2 0 0 1-4 0v-4a6 6 0 0 1 12 0v4a2 2 0 0 1-4 0v-1a2 2 0 0 1 4 0" />
-</svg>`,
-  ],
-  [
-    "file-heart",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-heart", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-heart"
   xmlns="http://www.w3.org/2000/svg"
@@ -14707,11 +12602,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M13 22h5a2 2 0 0 0 2-2V8a2.4 2.4 0 0 0-.706-1.706l-3.588-3.588A2.4 2.4 0 0 0 14 2H6a2 2 0 0 0-2 2v7" />
   <path d="M14 2v5a1 1 0 0 0 1 1h5" />
   <path d="M3.62 18.8A2.25 2.25 0 1 1 7 15.836a2.25 2.25 0 1 1 3.38 2.966l-2.626 2.856a1 1 0 0 1-1.507 0z" />
-</svg>`,
-  ],
-  [
-    "file-image",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-image", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-image"
   xmlns="http://www.w3.org/2000/svg"
@@ -14728,11 +12620,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 2v5a1 1 0 0 0 1 1h5" />
   <circle cx="10" cy="12" r="2" />
   <path d="m20 17-1.296-1.296a2.41 2.41 0 0 0-3.408 0L9 22" />
-</svg>`,
-  ],
-  [
-    "file-input",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-input", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-input"
   xmlns="http://www.w3.org/2000/svg"
@@ -14749,11 +12638,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 2v5a1 1 0 0 0 1 1h5" />
   <path d="M2 15h10" />
   <path d="m9 18 3-3-3-3" />
-</svg>`,
-  ],
-  [
-    "file-json-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-json-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-json-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -14770,11 +12656,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 2v5a1 1 0 0 0 1 1h5" />
   <path d="M5 14a1 1 0 0 0-1 1v2a1 1 0 0 1-1 1 1 1 0 0 1 1 1v2a1 1 0 0 0 1 1" />
   <path d="M9 22a1 1 0 0 0 1-1v-2a1 1 0 0 1 1-1 1 1 0 0 1-1-1v-2a1 1 0 0 0-1-1" />
-</svg>`,
-  ],
-  [
-    "file-json",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-json", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-json"
   xmlns="http://www.w3.org/2000/svg"
@@ -14791,11 +12674,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 2v5a1 1 0 0 0 1 1h5" />
   <path d="M10 12a1 1 0 0 0-1 1v1a1 1 0 0 1-1 1 1 1 0 0 1 1 1v1a1 1 0 0 0 1 1" />
   <path d="M14 18a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1 1 1 0 0 1-1-1v-1a1 1 0 0 0-1-1" />
-</svg>`,
-  ],
-  [
-    "file-key-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-key-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-key-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -14813,11 +12693,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M4 14h2" />
   <path d="M9.65 22H18a2 2 0 0 0 2-2V8a2.4 2.4 0 0 0-.706-1.706l-3.588-3.588A2.4 2.4 0 0 0 14 2H6a2 2 0 0 0-2 2v4" />
   <circle cx="4" cy="20" r="2" />
-</svg>`,
-  ],
-  [
-    "file-key",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-key", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-key"
   xmlns="http://www.w3.org/2000/svg"
@@ -14835,11 +12712,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M4 14h2" />
   <path d="M9.65 22H18a2 2 0 0 0 2-2V8a2.4 2.4 0 0 0-.706-1.706l-3.588-3.588A2.4 2.4 0 0 0 14 2H6a2 2 0 0 0-2 2v4" />
   <circle cx="4" cy="20" r="2" />
-</svg>`,
-  ],
-  [
-    "file-line-chart",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-line-chart", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-line-chart"
   xmlns="http://www.w3.org/2000/svg"
@@ -14855,11 +12729,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z" />
   <path d="M14 2v5a1 1 0 0 0 1 1h5" />
   <path d="m16 13-3.5 3.5-2-2L8 17" />
-</svg>`,
-  ],
-  [
-    "file-lock-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-lock-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-lock-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -14876,11 +12747,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 2v5a1 1 0 0 0 1 1h5" />
   <path d="M9 17v-2a2 2 0 0 0-4 0v2" />
   <rect width="8" height="5" x="3" y="17" rx="1" />
-</svg>`,
-  ],
-  [
-    "file-lock",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-lock", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-lock"
   xmlns="http://www.w3.org/2000/svg"
@@ -14897,11 +12765,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 2v5a1 1 0 0 0 1 1h5" />
   <path d="M9 17v-2a2 2 0 0 0-4 0v2" />
   <rect width="8" height="5" x="3" y="17" rx="1" />
-</svg>`,
-  ],
-  [
-    "file-minus-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-minus-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-minus-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -14917,11 +12782,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M20 14V8a2.4 2.4 0 0 0-.706-1.706l-3.588-3.588A2.4 2.4 0 0 0 14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12" />
   <path d="M14 2v5a1 1 0 0 0 1 1h5" />
   <path d="M14 18h6" />
-</svg>`,
-  ],
-  [
-    "file-minus-corner",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-minus-corner", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-minus-corner"
   xmlns="http://www.w3.org/2000/svg"
@@ -14937,11 +12799,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M20 14V8a2.4 2.4 0 0 0-.706-1.706l-3.588-3.588A2.4 2.4 0 0 0 14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12" />
   <path d="M14 2v5a1 1 0 0 0 1 1h5" />
   <path d="M14 18h6" />
-</svg>`,
-  ],
-  [
-    "file-minus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-minus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-minus"
   xmlns="http://www.w3.org/2000/svg"
@@ -14957,11 +12816,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z" />
   <path d="M14 2v5a1 1 0 0 0 1 1h5" />
   <path d="M9 15h6" />
-</svg>`,
-  ],
-  [
-    "file-music",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-music", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-music"
   xmlns="http://www.w3.org/2000/svg"
@@ -14978,11 +12834,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 2v5a1 1 0 0 0 1 1h5" />
   <path d="M8 20v-7l3 1.474" />
   <circle cx="6" cy="20" r="2" />
-</svg>`,
-  ],
-  [
-    "file-output",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-output", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-output"
   xmlns="http://www.w3.org/2000/svg"
@@ -14999,11 +12852,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 2v5a1 1 0 0 0 1 1h5" />
   <path d="m5 11-3 3" />
   <path d="m5 17-3-3h10" />
-</svg>`,
-  ],
-  [
-    "file-pen-line",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-pen-line", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-pen-line"
   xmlns="http://www.w3.org/2000/svg"
@@ -15019,11 +12869,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m18.226 5.226-2.52-2.52A2.4 2.4 0 0 0 14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-.351" />
   <path d="M21.378 12.626a1 1 0 0 0-3.004-3.004l-4.01 4.012a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506z" />
   <path d="M8 18h1" />
-</svg>`,
-  ],
-  [
-    "file-pen",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-pen", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-pen"
   xmlns="http://www.w3.org/2000/svg"
@@ -15039,11 +12886,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12.659 22H18a2 2 0 0 0 2-2V8a2.4 2.4 0 0 0-.706-1.706l-3.588-3.588A2.4 2.4 0 0 0 14 2H6a2 2 0 0 0-2 2v9.34" />
   <path d="M14 2v5a1 1 0 0 0 1 1h5" />
   <path d="M10.378 12.622a1 1 0 0 1 3 3.003L8.36 20.637a2 2 0 0 1-.854.506l-2.867.837a.5.5 0 0 1-.62-.62l.836-2.869a2 2 0 0 1 .506-.853z" />
-</svg>`,
-  ],
-  [
-    "file-pie-chart",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-pie-chart", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-pie-chart"
   xmlns="http://www.w3.org/2000/svg"
@@ -15060,11 +12904,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 2v5a1 1 0 0 0 1 1h5" />
   <path d="M4.017 11.512a6 6 0 1 0 8.466 8.475" />
   <path d="M9 16a1 1 0 0 1-1-1v-4c0-.552.45-1.008.995-.917a6 6 0 0 1 4.922 4.922c.091.544-.365.995-.917.995z" />
-</svg>`,
-  ],
-  [
-    "file-play",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-play", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-play"
   xmlns="http://www.w3.org/2000/svg"
@@ -15080,11 +12921,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z" />
   <path d="M14 2v5a1 1 0 0 0 1 1h5" />
   <path d="M15.033 13.44a.647.647 0 0 1 0 1.12l-4.065 2.352a.645.645 0 0 1-.968-.56v-4.704a.645.645 0 0 1 .967-.56z" />
-</svg>`,
-  ],
-  [
-    "file-plus-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-plus-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-plus-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -15101,11 +12939,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 2v5a1 1 0 0 0 1 1h5" />
   <path d="M14 19h6" />
   <path d="M17 16v6" />
-</svg>`,
-  ],
-  [
-    "file-plus-corner",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-plus-corner", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-plus-corner"
   xmlns="http://www.w3.org/2000/svg"
@@ -15122,11 +12957,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 2v5a1 1 0 0 0 1 1h5" />
   <path d="M14 19h6" />
   <path d="M17 16v6" />
-</svg>`,
-  ],
-  [
-    "file-plus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-plus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-plus"
   xmlns="http://www.w3.org/2000/svg"
@@ -15143,11 +12975,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 2v5a1 1 0 0 0 1 1h5" />
   <path d="M9 15h6" />
   <path d="M12 18v-6" />
-</svg>`,
-  ],
-  [
-    "file-question-mark",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-question-mark", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-question-mark"
   xmlns="http://www.w3.org/2000/svg"
@@ -15163,11 +12992,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z" />
   <path d="M12 17h.01" />
   <path d="M9.1 9a3 3 0 0 1 5.82 1c0 2-3 3-3 3" />
-</svg>`,
-  ],
-  [
-    "file-question",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-question", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-question"
   xmlns="http://www.w3.org/2000/svg"
@@ -15183,11 +13009,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z" />
   <path d="M12 17h.01" />
   <path d="M9.1 9a3 3 0 0 1 5.82 1c0 2-3 3-3 3" />
-</svg>`,
-  ],
-  [
-    "file-scan",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-scan", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-scan"
   xmlns="http://www.w3.org/2000/svg"
@@ -15206,11 +13029,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M16 22a2 2 0 0 1-2-2" />
   <path d="M20 14a2 2 0 0 1 2 2" />
   <path d="M20 22a2 2 0 0 0 2-2" />
-</svg>`,
-  ],
-  [
-    "file-search-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-search-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-search-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -15227,11 +13047,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 2v5a1 1 0 0 0 1 1h5" />
   <path d="m21 22-2.88-2.88" />
   <circle cx="16" cy="17" r="3" />
-</svg>`,
-  ],
-  [
-    "file-search-corner",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-search-corner", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-search-corner"
   xmlns="http://www.w3.org/2000/svg"
@@ -15248,11 +13065,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 2v5a1 1 0 0 0 1 1h5" />
   <path d="m21 22-2.88-2.88" />
   <circle cx="16" cy="17" r="3" />
-</svg>`,
-  ],
-  [
-    "file-search",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-search", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-search"
   xmlns="http://www.w3.org/2000/svg"
@@ -15269,11 +13083,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 2v5a1 1 0 0 0 1 1h5" />
   <circle cx="11.5" cy="14.5" r="2.5" />
   <path d="M13.3 16.3 15 18" />
-</svg>`,
-  ],
-  [
-    "file-signal",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-signal", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-signal"
   xmlns="http://www.w3.org/2000/svg"
@@ -15291,11 +13102,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M8 15h.01" />
   <path d="M11.5 13.5a2.5 2.5 0 0 1 0 3" />
   <path d="M15 12a5 5 0 0 1 0 6" />
-</svg>`,
-  ],
-  [
-    "file-signature",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-signature", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-signature"
   xmlns="http://www.w3.org/2000/svg"
@@ -15311,11 +13119,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m18.226 5.226-2.52-2.52A2.4 2.4 0 0 0 14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-.351" />
   <path d="M21.378 12.626a1 1 0 0 0-3.004-3.004l-4.01 4.012a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506z" />
   <path d="M8 18h1" />
-</svg>`,
-  ],
-  [
-    "file-sliders",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-sliders", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-sliders"
   xmlns="http://www.w3.org/2000/svg"
@@ -15334,11 +13139,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M10 11v2" />
   <path d="M8 17h8" />
   <path d="M14 16v2" />
-</svg>`,
-  ],
-  [
-    "file-spreadsheet",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-spreadsheet", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-spreadsheet"
   xmlns="http://www.w3.org/2000/svg"
@@ -15357,11 +13159,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 13h2" />
   <path d="M8 17h2" />
   <path d="M14 17h2" />
-</svg>`,
-  ],
-  [
-    "file-stack",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-stack", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-stack"
   xmlns="http://www.w3.org/2000/svg"
@@ -15377,11 +13176,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M11 21a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-8a1 1 0 0 1 1-1" />
   <path d="M16 16a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1" />
   <path d="M21 6a2 2 0 0 0-.586-1.414l-2-2A2 2 0 0 0 17 2h-3a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1z" />
-</svg>`,
-  ],
-  [
-    "file-symlink",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-symlink", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-symlink"
   xmlns="http://www.w3.org/2000/svg"
@@ -15397,11 +13193,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M4 11V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.706.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h7" />
   <path d="M14 2v5a1 1 0 0 0 1 1h5" />
   <path d="m10 18 3-3-3-3" />
-</svg>`,
-  ],
-  [
-    "file-terminal",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-terminal", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-terminal"
   xmlns="http://www.w3.org/2000/svg"
@@ -15418,11 +13211,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 2v5a1 1 0 0 0 1 1h5" />
   <path d="m8 16 2-2-2-2" />
   <path d="M12 18h4" />
-</svg>`,
-  ],
-  [
-    "file-text",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-text", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-text"
   xmlns="http://www.w3.org/2000/svg"
@@ -15440,11 +13230,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M10 9H8" />
   <path d="M16 13H8" />
   <path d="M16 17H8" />
-</svg>`,
-  ],
-  [
-    "file-type-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-type-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-type-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -15462,11 +13249,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3 16v-1.5a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 .5.5V16" />
   <path d="M6 22h2" />
   <path d="M7 14v8" />
-</svg>`,
-  ],
-  [
-    "file-type-corner",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-type-corner", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-type-corner"
   xmlns="http://www.w3.org/2000/svg"
@@ -15484,11 +13268,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3 16v-1.5a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 .5.5V16" />
   <path d="M6 22h2" />
   <path d="M7 14v8" />
-</svg>`,
-  ],
-  [
-    "file-type",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-type", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-type"
   xmlns="http://www.w3.org/2000/svg"
@@ -15506,11 +13287,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M11 18h2" />
   <path d="M12 12v6" />
   <path d="M9 13v-.5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 .5.5v.5" />
-</svg>`,
-  ],
-  [
-    "file-up",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-up", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-up"
   xmlns="http://www.w3.org/2000/svg"
@@ -15527,11 +13305,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 2v5a1 1 0 0 0 1 1h5" />
   <path d="M12 12v6" />
   <path d="m15 15-3-3-3 3" />
-</svg>`,
-  ],
-  [
-    "file-user",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-user", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-user"
   xmlns="http://www.w3.org/2000/svg"
@@ -15548,11 +13323,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 2v5a1 1 0 0 0 1 1h5" />
   <path d="M16 22a4 4 0 0 0-8 0" />
   <circle cx="12" cy="15" r="3" />
-</svg>`,
-  ],
-  [
-    "file-video-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-video-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-video-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -15569,11 +13341,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 2v5a1 1 0 0 0 1 1h5" />
   <path d="m10 17.843 3.033-1.755a.64.64 0 0 1 .967.56v4.704a.65.65 0 0 1-.967.56L10 20.157" />
   <rect width="7" height="6" x="3" y="16" rx="1" />
-</svg>`,
-  ],
-  [
-    "file-video-camera",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-video-camera", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-video-camera"
   xmlns="http://www.w3.org/2000/svg"
@@ -15590,11 +13359,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 2v5a1 1 0 0 0 1 1h5" />
   <path d="m10 17.843 3.033-1.755a.64.64 0 0 1 .967.56v4.704a.65.65 0 0 1-.967.56L10 20.157" />
   <rect width="7" height="6" x="3" y="16" rx="1" />
-</svg>`,
-  ],
-  [
-    "file-video",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-video", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-video"
   xmlns="http://www.w3.org/2000/svg"
@@ -15610,11 +13376,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z" />
   <path d="M14 2v5a1 1 0 0 0 1 1h5" />
   <path d="M15.033 13.44a.647.647 0 0 1 0 1.12l-4.065 2.352a.645.645 0 0 1-.968-.56v-4.704a.645.645 0 0 1 .967-.56z" />
-</svg>`,
-  ],
-  [
-    "file-volume-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-volume-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-volume-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -15632,11 +13395,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M8 15h.01" />
   <path d="M11.5 13.5a2.5 2.5 0 0 1 0 3" />
   <path d="M15 12a5 5 0 0 1 0 6" />
-</svg>`,
-  ],
-  [
-    "file-volume",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-volume", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-volume"
   xmlns="http://www.w3.org/2000/svg"
@@ -15653,11 +13413,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 2v5a1 1 0 0 0 1 1h5" />
   <path d="M12 15a5 5 0 0 1 0 6" />
   <path d="M8 14.502a.5.5 0 0 0-.826-.381l-1.893 1.631a1 1 0 0 1-.651.243H3.5a.5.5 0 0 0-.5.501v3.006a.5.5 0 0 0 .5.501h1.129a1 1 0 0 1 .652.243l1.893 1.633a.5.5 0 0 0 .826-.38z" />
-</svg>`,
-  ],
-  [
-    "file-warning",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-warning", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-warning"
   xmlns="http://www.w3.org/2000/svg"
@@ -15673,11 +13430,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z" />
   <path d="M12 9v4" />
   <path d="M12 17h.01" />
-</svg>`,
-  ],
-  [
-    "file-x-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-x-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-x-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -15694,11 +13448,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 2v5a1 1 0 0 0 1 1h5" />
   <path d="m15 17 5 5" />
   <path d="m20 17-5 5" />
-</svg>`,
-  ],
-  [
-    "file-x-corner",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-x-corner", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-x-corner"
   xmlns="http://www.w3.org/2000/svg"
@@ -15715,11 +13466,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 2v5a1 1 0 0 0 1 1h5" />
   <path d="m15 17 5 5" />
   <path d="m20 17-5 5" />
-</svg>`,
-  ],
-  [
-    "file-x",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file-x", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file-x"
   xmlns="http://www.w3.org/2000/svg"
@@ -15736,11 +13484,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 2v5a1 1 0 0 0 1 1h5" />
   <path d="m14.5 12.5-5 5" />
   <path d="m9.5 12.5 5 5" />
-</svg>`,
-  ],
-  [
-    "file",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["file", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-file"
   xmlns="http://www.w3.org/2000/svg"
@@ -15755,11 +13500,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z" />
   <path d="M14 2v5a1 1 0 0 0 1 1h5" />
-</svg>`,
-  ],
-  [
-    "files",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["files", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-files"
   xmlns="http://www.w3.org/2000/svg"
@@ -15775,11 +13517,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M15 2h-4a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V8" />
   <path d="M16.706 2.706A2.4 2.4 0 0 0 15 2v5a1 1 0 0 0 1 1h5a2.4 2.4 0 0 0-.706-1.706z" />
   <path d="M5 7a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h8a2 2 0 0 0 1.732-1" />
-</svg>`,
-  ],
-  [
-    "film",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["film", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-film"
   xmlns="http://www.w3.org/2000/svg"
@@ -15800,11 +13539,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M17 3v18" />
   <path d="M17 7.5h4" />
   <path d="M17 16.5h4" />
-</svg>`,
-  ],
-  [
-    "filter-x",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["filter-x", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-filter-x"
   xmlns="http://www.w3.org/2000/svg"
@@ -15820,11 +13556,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12.531 3H3a1 1 0 0 0-.742 1.67l7.225 7.989A2 2 0 0 1 10 14v6a1 1 0 0 0 .553.895l2 1A1 1 0 0 0 14 21v-7a2 2 0 0 1 .517-1.341l.427-.473" />
   <path d="m16.5 3.5 5 5" />
   <path d="m21.5 3.5-5 5" />
-</svg>`,
-  ],
-  [
-    "filter",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["filter", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-filter"
   xmlns="http://www.w3.org/2000/svg"
@@ -15838,11 +13571,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M10 20a1 1 0 0 0 .553.895l2 1A1 1 0 0 0 14 21v-7a2 2 0 0 1 .517-1.341L21.74 4.67A1 1 0 0 0 21 3H3a1 1 0 0 0-.742 1.67l7.225 7.989A2 2 0 0 1 10 14z" />
-</svg>`,
-  ],
-  [
-    "fingerprint-pattern",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["fingerprint-pattern", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-fingerprint-pattern"
   xmlns="http://www.w3.org/2000/svg"
@@ -15864,11 +13594,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M5 19.5C5.5 18 6 15 6 12a6 6 0 0 1 .34-2" />
   <path d="M8.65 22c.21-.66.45-1.32.57-2" />
   <path d="M9 6.8a6 6 0 0 1 9 5.2v2" />
-</svg>`,
-  ],
-  [
-    "fingerprint",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["fingerprint", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-fingerprint"
   xmlns="http://www.w3.org/2000/svg"
@@ -15890,11 +13617,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M5 19.5C5.5 18 6 15 6 12a6 6 0 0 1 .34-2" />
   <path d="M8.65 22c.21-.66.45-1.32.57-2" />
   <path d="M9 6.8a6 6 0 0 1 9 5.2v2" />
-</svg>`,
-  ],
-  [
-    "fire-extinguisher",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["fire-extinguisher", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-fire-extinguisher"
   xmlns="http://www.w3.org/2000/svg"
@@ -15913,11 +13637,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M11 3a6 6 0 0 0-6 6v11" />
   <path d="M5 13h4" />
   <path d="M17 10a4 4 0 0 0-8 0v10a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2Z" />
-</svg>`,
-  ],
-  [
-    "fish-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["fish-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-fish-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -15933,11 +13654,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M18 12.47v.03m0-.5v.47m-.475 5.056A6.744 6.744 0 0 1 15 18c-3.56 0-7.56-2.53-8.5-6 .348-1.28 1.114-2.433 2.121-3.38m3.444-2.088A8.802 8.802 0 0 1 15 6c3.56 0 6.06 2.54 7 6-.309 1.14-.786 2.177-1.413 3.058" />
   <path d="M7 10.67C7 8 5.58 5.97 2.73 5.5c-1 1.5-1 5 .23 6.5-1.24 1.5-1.24 5-.23 6.5C5.58 18.03 7 16 7 13.33m7.48-4.372A9.77 9.77 0 0 1 16 6.07m0 11.86a9.77 9.77 0 0 1-1.728-3.618" />
   <path d="m16.01 17.93-.23 1.4A2 2 0 0 1 13.8 21H9.5a5.96 5.96 0 0 0 1.49-3.98M8.53 3h5.27a2 2 0 0 1 1.98 1.67l.23 1.4M2 2l20 20" />
-</svg>`,
-  ],
-  [
-    "fish-symbol",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["fish-symbol", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-fish-symbol"
   xmlns="http://www.w3.org/2000/svg"
@@ -15951,11 +13669,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M2 16s9-15 20-4C11 23 2 8 2 8" />
-</svg>`,
-  ],
-  [
-    "fish",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["fish", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-fish"
   xmlns="http://www.w3.org/2000/svg"
@@ -15974,11 +13689,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M7 10.67C7 8 5.58 5.97 2.73 5.5c-1 1.5-1 5 .23 6.5-1.24 1.5-1.24 5-.23 6.5C5.58 18.03 7 16 7 13.33" />
   <path d="M10.46 7.26C10.2 5.88 9.17 4.24 8 3h5.8a2 2 0 0 1 1.98 1.67l.23 1.4" />
   <path d="m16.01 17.93-.23 1.4A2 2 0 0 1 13.8 21H9.5a5.96 5.96 0 0 0 1.49-3.98" />
-</svg>`,
-  ],
-  [
-    "fishing-hook",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["fishing-hook", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-fishing-hook"
   xmlns="http://www.w3.org/2000/svg"
@@ -15994,11 +13706,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m17.586 11.414-5.93 5.93a1 1 0 0 1-8-8l3.137-3.137a.707.707 0 0 1 1.207.5V10" />
   <path d="M20.414 8.586 22 7" />
   <circle cx="19" cy="10" r="2" />
-</svg>`,
-  ],
-  [
-    "flag-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["flag-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-flag-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -16015,11 +13724,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m2 2 20 20" />
   <path d="M4 22V4" />
   <path d="M7.656 2H8c3 0 5 2 7.333 2q2 0 3.067-.8A1 1 0 0 1 20 4v10.347" />
-</svg>`,
-  ],
-  [
-    "flag-triangle-left",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["flag-triangle-left", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-flag-triangle-left"
   xmlns="http://www.w3.org/2000/svg"
@@ -16033,11 +13739,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M18 22V2.8a.8.8 0 0 0-1.17-.71L5.45 7.78a.8.8 0 0 0 0 1.44L18 15.5" />
-</svg>`,
-  ],
-  [
-    "flag-triangle-right",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["flag-triangle-right", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-flag-triangle-right"
   xmlns="http://www.w3.org/2000/svg"
@@ -16051,11 +13754,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M6 22V2.8a.8.8 0 0 1 1.17-.71l11.38 5.69a.8.8 0 0 1 0 1.44L6 15.5" />
-</svg>`,
-  ],
-  [
-    "flag",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["flag", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-flag"
   xmlns="http://www.w3.org/2000/svg"
@@ -16069,11 +13769,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M4 22V4a1 1 0 0 1 .4-.8A6 6 0 0 1 8 2c3 0 5 2 7.333 2q2 0 3.067-.8A1 1 0 0 1 20 4v10a1 1 0 0 1-.4.8A6 6 0 0 1 16 16c-3 0-5-2-8-2a6 6 0 0 0-4 1.528" />
-</svg>`,
-  ],
-  [
-    "flame-kindling",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["flame-kindling", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-flame-kindling"
   xmlns="http://www.w3.org/2000/svg"
@@ -16089,11 +13786,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 2c1 3 2.5 3.5 3.5 4.5A5 5 0 0 1 17 10a5 5 0 1 1-10 0c0-.3 0-.6.1-.9a2 2 0 1 0 3.3-2C8 4.5 11 2 12 2Z" />
   <path d="m5 22 14-4" />
   <path d="m5 18 14 4" />
-</svg>`,
-  ],
-  [
-    "flame",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["flame", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-flame"
   xmlns="http://www.w3.org/2000/svg"
@@ -16107,11 +13801,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M12 3q1 4 4 6.5t3 5.5a1 1 0 0 1-14 0 5 5 0 0 1 1-3 1 1 0 0 0 5 0c0-2-1.5-3-1.5-5q0-2 2.5-4" />
-</svg>`,
-  ],
-  [
-    "flashlight-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["flashlight-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-flashlight-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -16129,11 +13820,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M16 16v4a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-8a4 4 0 0 0-.8-2.4l-.6-.8A3 3 0 0 1 6 7V6" />
   <path d="m2 2 20 20" />
   <path d="M7.649 2H17a1 1 0 0 1 1 1v4a3 3 0 0 1-.6 1.8l-.6.8a4 4 0 0 0-.55 1.007" />
-</svg>`,
-  ],
-  [
-    "flashlight",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["flashlight", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-flashlight"
   xmlns="http://www.w3.org/2000/svg"
@@ -16149,11 +13837,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 13v1" />
   <path d="M17 2a1 1 0 0 1 1 1v4a3 3 0 0 1-.6 1.8l-.6.8A4 4 0 0 0 16 12v8a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2v-8a4 4 0 0 0-.8-2.4l-.6-.8A3 3 0 0 1 6 7V3a1 1 0 0 1 1-1z" />
   <path d="M6 6h12" />
-</svg>`,
-  ],
-  [
-    "flask-conical-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["flask-conical-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-flask-conical-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -16172,11 +13857,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M20 20a2 2 0 0 1-2 2H6a2 2 0 0 1-1.755-2.96l5.227-9.563" />
   <path d="M6.453 15H15" />
   <path d="M8.5 2h7" />
-</svg>`,
-  ],
-  [
-    "flask-conical",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["flask-conical", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-flask-conical"
   xmlns="http://www.w3.org/2000/svg"
@@ -16192,11 +13874,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 2v6a2 2 0 0 0 .245.96l5.51 10.08A2 2 0 0 1 18 22H6a2 2 0 0 1-1.755-2.96l5.51-10.08A2 2 0 0 0 10 8V2" />
   <path d="M6.453 15h11.094" />
   <path d="M8.5 2h7" />
-</svg>`,
-  ],
-  [
-    "flask-round",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["flask-round", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-flask-round"
   xmlns="http://www.w3.org/2000/svg"
@@ -16212,11 +13891,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M10 2v6.292a7 7 0 1 0 4 0V2" />
   <path d="M5 15h14" />
   <path d="M8.5 2h7" />
-</svg>`,
-  ],
-  [
-    "flip-horizontal-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["flip-horizontal-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-flip-horizontal-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -16235,11 +13911,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 14v2" />
   <path d="M12 8v2" />
   <path d="M12 2v2" />
-</svg>`,
-  ],
-  [
-    "flip-horizontal",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["flip-horizontal", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-flip-horizontal"
   xmlns="http://www.w3.org/2000/svg"
@@ -16258,11 +13931,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 14v2" />
   <path d="M12 8v2" />
   <path d="M12 2v2" />
-</svg>`,
-  ],
-  [
-    "flip-vertical-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["flip-vertical-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-flip-vertical-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -16281,11 +13951,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M10 12H8" />
   <path d="M16 12h-2" />
   <path d="M22 12h-2" />
-</svg>`,
-  ],
-  [
-    "flip-vertical",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["flip-vertical", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-flip-vertical"
   xmlns="http://www.w3.org/2000/svg"
@@ -16304,11 +13971,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M10 12H8" />
   <path d="M16 12h-2" />
   <path d="M22 12h-2" />
-</svg>`,
-  ],
-  [
-    "flower-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["flower-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-flower-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -16326,11 +13990,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 10v12" />
   <path d="M12 22c4.2 0 7-1.667 7-5-4.2 0-7 1.667-7 5Z" />
   <path d="M12 22c-4.2 0-7-1.667-7-5 4.2 0 7 1.667 7 5Z" />
-</svg>`,
-  ],
-  [
-    "flower",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["flower", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-flower"
   xmlns="http://www.w3.org/2000/svg"
@@ -16353,11 +14014,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14.12 9.88 16 8" />
   <path d="m8 16 1.88-1.88" />
   <path d="M14.12 14.12 16 16" />
-</svg>`,
-  ],
-  [
-    "focus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["focus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-focus"
   xmlns="http://www.w3.org/2000/svg"
@@ -16375,11 +14033,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M17 3h2a2 2 0 0 1 2 2v2" />
   <path d="M21 17v2a2 2 0 0 1-2 2h-2" />
   <path d="M7 21H5a2 2 0 0 1-2-2v-2" />
-</svg>`,
-  ],
-  [
-    "fold-horizontal",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["fold-horizontal", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-fold-horizontal"
   xmlns="http://www.w3.org/2000/svg"
@@ -16400,11 +14055,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 20v2" />
   <path d="m19 9-3 3 3 3" />
   <path d="m5 15 3-3-3-3" />
-</svg>`,
-  ],
-  [
-    "fold-vertical",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["fold-vertical", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-fold-vertical"
   xmlns="http://www.w3.org/2000/svg"
@@ -16425,11 +14077,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M22 12h-2" />
   <path d="m15 19-3-3-3 3" />
   <path d="m15 5-3 3-3-3" />
-</svg>`,
-  ],
-  [
-    "folder-archive",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["folder-archive", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-folder-archive"
   xmlns="http://www.w3.org/2000/svg"
@@ -16446,11 +14095,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M20.9 19.8A2 2 0 0 0 22 18V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h5.1" />
   <path d="M15 11v-1" />
   <path d="M15 17v-2" />
-</svg>`,
-  ],
-  [
-    "folder-check",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["folder-check", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-folder-check"
   xmlns="http://www.w3.org/2000/svg"
@@ -16465,11 +14111,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" />
   <path d="m9 13 2 2 4-4" />
-</svg>`,
-  ],
-  [
-    "folder-clock",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["folder-clock", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-folder-clock"
   xmlns="http://www.w3.org/2000/svg"
@@ -16485,11 +14128,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M16 14v2.2l1.6 1" />
   <path d="M7 20H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H20a2 2 0 0 1 2 2" />
   <circle cx="16" cy="16" r="6" />
-</svg>`,
-  ],
-  [
-    "folder-closed",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["folder-closed", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-folder-closed"
   xmlns="http://www.w3.org/2000/svg"
@@ -16504,11 +14144,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" />
   <path d="M2 10h20" />
-</svg>`,
-  ],
-  [
-    "folder-code",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["folder-code", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-folder-code"
   xmlns="http://www.w3.org/2000/svg"
@@ -16524,11 +14161,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M10 10.5 8 13l2 2.5" />
   <path d="m14 10.5 2 2.5-2 2.5" />
   <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2z" />
-</svg>`,
-  ],
-  [
-    "folder-cog-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["folder-cog-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-folder-cog-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -16551,11 +14185,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m20.772 16.852.924-.383" />
   <path d="m20.772 19.148.924.383" />
   <circle cx="18" cy="18" r="3" />
-</svg>`,
-  ],
-  [
-    "folder-cog",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["folder-cog", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-folder-cog"
   xmlns="http://www.w3.org/2000/svg"
@@ -16578,11 +14209,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m20.772 16.852.924-.383" />
   <path d="m20.772 19.148.924.383" />
   <circle cx="18" cy="18" r="3" />
-</svg>`,
-  ],
-  [
-    "folder-dot",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["folder-dot", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-folder-dot"
   xmlns="http://www.w3.org/2000/svg"
@@ -16597,11 +14225,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z" />
   <circle cx="12" cy="13" r="1" />
-</svg>`,
-  ],
-  [
-    "folder-down",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["folder-down", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-folder-down"
   xmlns="http://www.w3.org/2000/svg"
@@ -16617,11 +14242,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" />
   <path d="M12 10v6" />
   <path d="m15 13-3 3-3-3" />
-</svg>`,
-  ],
-  [
-    "folder-edit",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["folder-edit", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-folder-edit"
   xmlns="http://www.w3.org/2000/svg"
@@ -16636,11 +14258,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M2 11.5V5a2 2 0 0 1 2-2h3.9c.7 0 1.3.3 1.7.9l.8 1.2c.4.6 1 .9 1.7.9H20a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-9.5" />
   <path d="M11.378 13.626a1 1 0 1 0-3.004-3.004l-5.01 5.012a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506z" />
-</svg>`,
-  ],
-  [
-    "folder-git-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["folder-git-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-folder-git-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -16657,11 +14276,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M9 20H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H20a2 2 0 0 1 2 2v5" />
   <circle cx="13" cy="12" r="2" />
   <circle cx="20" cy="19" r="2" />
-</svg>`,
-  ],
-  [
-    "folder-git",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["folder-git", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-folder-git"
   xmlns="http://www.w3.org/2000/svg"
@@ -16678,11 +14294,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" />
   <path d="M14 13h3" />
   <path d="M7 13h3" />
-</svg>`,
-  ],
-  [
-    "folder-heart",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["folder-heart", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-folder-heart"
   xmlns="http://www.w3.org/2000/svg"
@@ -16697,11 +14310,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M10.638 20H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H20a2 2 0 0 1 2 2v3.417" />
   <path d="M14.62 18.8A2.25 2.25 0 1 1 18 15.836a2.25 2.25 0 1 1 3.38 2.966l-2.626 2.856a.998.998 0 0 1-1.507 0z" />
-</svg>`,
-  ],
-  [
-    "folder-input",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["folder-input", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-folder-input"
   xmlns="http://www.w3.org/2000/svg"
@@ -16717,11 +14327,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M2 9V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H20a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-1" />
   <path d="M2 13h10" />
   <path d="m9 16 3-3-3-3" />
-</svg>`,
-  ],
-  [
-    "folder-kanban",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["folder-kanban", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-folder-kanban"
   xmlns="http://www.w3.org/2000/svg"
@@ -16738,11 +14345,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M8 10v4" />
   <path d="M12 10v2" />
   <path d="M16 10v6" />
-</svg>`,
-  ],
-  [
-    "folder-key",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["folder-key", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-folder-key"
   xmlns="http://www.w3.org/2000/svg"
@@ -16759,11 +14363,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M19 12v6" />
   <path d="M19 14h2" />
   <circle cx="19" cy="20" r="2" />
-</svg>`,
-  ],
-  [
-    "folder-lock",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["folder-lock", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-folder-lock"
   xmlns="http://www.w3.org/2000/svg"
@@ -16779,11 +14380,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="8" height="5" x="14" y="17" rx="1" />
   <path d="M10 20H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H20a2 2 0 0 1 2 2v2.5" />
   <path d="M20 17v-2a2 2 0 1 0-4 0v2" />
-</svg>`,
-  ],
-  [
-    "folder-minus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["folder-minus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-folder-minus"
   xmlns="http://www.w3.org/2000/svg"
@@ -16798,11 +14396,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M9 13h6" />
   <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" />
-</svg>`,
-  ],
-  [
-    "folder-open-dot",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["folder-open-dot", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-folder-open-dot"
   xmlns="http://www.w3.org/2000/svg"
@@ -16817,11 +14412,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="m6 14 1.45-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.55 6a2 2 0 0 1-1.94 1.5H4a2 2 0 0 1-2-2V5c0-1.1.9-2 2-2h3.93a2 2 0 0 1 1.66.9l.82 1.2a2 2 0 0 0 1.66.9H18a2 2 0 0 1 2 2v2" />
   <circle cx="14" cy="15" r="1" />
-</svg>`,
-  ],
-  [
-    "folder-open",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["folder-open", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-folder-open"
   xmlns="http://www.w3.org/2000/svg"
@@ -16835,11 +14427,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2" />
-</svg>`,
-  ],
-  [
-    "folder-output",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["folder-output", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-folder-output"
   xmlns="http://www.w3.org/2000/svg"
@@ -16855,11 +14444,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M2 7.5V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H20a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-1.5" />
   <path d="M2 13h10" />
   <path d="m5 10-3 3 3 3" />
-</svg>`,
-  ],
-  [
-    "folder-pen",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["folder-pen", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-folder-pen"
   xmlns="http://www.w3.org/2000/svg"
@@ -16874,11 +14460,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M2 11.5V5a2 2 0 0 1 2-2h3.9c.7 0 1.3.3 1.7.9l.8 1.2c.4.6 1 .9 1.7.9H20a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-9.5" />
   <path d="M11.378 13.626a1 1 0 1 0-3.004-3.004l-5.01 5.012a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506z" />
-</svg>`,
-  ],
-  [
-    "folder-plus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["folder-plus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-folder-plus"
   xmlns="http://www.w3.org/2000/svg"
@@ -16894,11 +14477,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 10v6" />
   <path d="M9 13h6" />
   <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" />
-</svg>`,
-  ],
-  [
-    "folder-root",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["folder-root", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-folder-root"
   xmlns="http://www.w3.org/2000/svg"
@@ -16914,11 +14494,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z" />
   <circle cx="12" cy="13" r="2" />
   <path d="M12 15v5" />
-</svg>`,
-  ],
-  [
-    "folder-search-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["folder-search-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-folder-search-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -16934,11 +14511,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="11.5" cy="12.5" r="2.5" />
   <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" />
   <path d="M13.3 14.3 15 16" />
-</svg>`,
-  ],
-  [
-    "folder-search",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["folder-search", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-folder-search"
   xmlns="http://www.w3.org/2000/svg"
@@ -16954,11 +14528,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M10.7 20H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H20a2 2 0 0 1 2 2v4.1" />
   <path d="m21 21-1.9-1.9" />
   <circle cx="17" cy="17" r="3" />
-</svg>`,
-  ],
-  [
-    "folder-symlink",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["folder-symlink", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-folder-symlink"
   xmlns="http://www.w3.org/2000/svg"
@@ -16973,11 +14544,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M2 9.35V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H20a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h7" />
   <path d="m8 16 3-3-3-3" />
-</svg>`,
-  ],
-  [
-    "folder-sync",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["folder-sync", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-folder-sync"
   xmlns="http://www.w3.org/2000/svg"
@@ -16995,11 +14563,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m12 14 1.535-1.605a5 5 0 0 1 8 1.5" />
   <path d="M22 22v-4h-4" />
   <path d="m22 18-1.535 1.605a5 5 0 0 1-8-1.5" />
-</svg>`,
-  ],
-  [
-    "folder-tree",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["folder-tree", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-folder-tree"
   xmlns="http://www.w3.org/2000/svg"
@@ -17016,11 +14581,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M20 21a1 1 0 0 0 1-1v-3a1 1 0 0 0-1-1h-2.9a1 1 0 0 1-.88-.55l-.42-.85a1 1 0 0 0-.92-.6H13a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1Z" />
   <path d="M3 5a2 2 0 0 0 2 2h3" />
   <path d="M3 3v13a2 2 0 0 0 2 2h3" />
-</svg>`,
-  ],
-  [
-    "folder-up",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["folder-up", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-folder-up"
   xmlns="http://www.w3.org/2000/svg"
@@ -17036,11 +14598,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" />
   <path d="M12 10v6" />
   <path d="m9 13 3-3 3 3" />
-</svg>`,
-  ],
-  [
-    "folder-x",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["folder-x", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-folder-x"
   xmlns="http://www.w3.org/2000/svg"
@@ -17056,11 +14615,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" />
   <path d="m9.5 10.5 5 5" />
   <path d="m14.5 10.5-5 5" />
-</svg>`,
-  ],
-  [
-    "folder",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["folder", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-folder"
   xmlns="http://www.w3.org/2000/svg"
@@ -17074,11 +14630,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" />
-</svg>`,
-  ],
-  [
-    "folders",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["folders", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-folders"
   xmlns="http://www.w3.org/2000/svg"
@@ -17093,11 +14646,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M20 5a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h2.5a1.5 1.5 0 0 1 1.2.6l.6.8a1.5 1.5 0 0 0 1.2.6z" />
   <path d="M3 8.268a2 2 0 0 0-1 1.738V19a2 2 0 0 0 2 2h11a2 2 0 0 0 1.732-1" />
-</svg>`,
-  ],
-  [
-    "footprints",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["footprints", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-footprints"
   xmlns="http://www.w3.org/2000/svg"
@@ -17114,11 +14664,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M20 20v-2.38c0-2.12 1.03-3.12 1-5.62-.03-2.72-1.49-6-4.5-6C14.63 6 14 7.8 14 9.5c0 3.11 2 5.66 2 8.68V20a2 2 0 1 0 4 0Z" />
   <path d="M16 17h4" />
   <path d="M4 13h4" />
-</svg>`,
-  ],
-  [
-    "fork-knife-crossed",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["fork-knife-crossed", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-fork-knife-crossed"
   xmlns="http://www.w3.org/2000/svg"
@@ -17135,11 +14682,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M15 15 3.3 3.3a4.2 4.2 0 0 0 0 6l7.3 7.3c.7.7 2 .7 2.8 0L15 15Zm0 0 7 7" />
   <path d="m2.1 21.8 6.4-6.3" />
   <path d="m19 5-7 7" />
-</svg>`,
-  ],
-  [
-    "fork-knife",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["fork-knife", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-fork-knife"
   xmlns="http://www.w3.org/2000/svg"
@@ -17155,11 +14699,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2" />
   <path d="M7 2v20" />
   <path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7" />
-</svg>`,
-  ],
-  [
-    "forklift",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["forklift", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-forklift"
   xmlns="http://www.w3.org/2000/svg"
@@ -17176,11 +14717,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="13" cy="19" r="2" />
   <circle cx="5" cy="19" r="2" />
   <path d="M8 19h3m5-17v17h6M6 12V7c0-1.1.9-2 2-2h3l5 5" />
-</svg>`,
-  ],
-  [
-    "form-input",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["form-input", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-form-input"
   xmlns="http://www.w3.org/2000/svg"
@@ -17197,11 +14735,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 12h.01" />
   <path d="M17 12h.01" />
   <path d="M7 12h.01" />
-</svg>`,
-  ],
-  [
-    "form",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["form", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-form"
   xmlns="http://www.w3.org/2000/svg"
@@ -17218,11 +14753,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M4 2h10" />
   <rect x="4" y="18" width="16" height="4" rx="1" />
   <rect x="4" y="6" width="16" height="4" rx="1" />
-</svg>`,
-  ],
-  [
-    "forward",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["forward", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-forward"
   xmlns="http://www.w3.org/2000/svg"
@@ -17237,11 +14769,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="m15 17 5-5-5-5" />
   <path d="M4 18v-2a4 4 0 0 1 4-4h12" />
-</svg>`,
-  ],
-  [
-    "frame",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["frame", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-frame"
   xmlns="http://www.w3.org/2000/svg"
@@ -17258,11 +14787,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <line x1="22" x2="2" y1="18" y2="18" />
   <line x1="6" x2="6" y1="2" y2="22" />
   <line x1="18" x2="18" y1="2" y2="22" />
-</svg>`,
-  ],
-  [
-    "framer",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["framer", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-framer"
   xmlns="http://www.w3.org/2000/svg"
@@ -17276,11 +14802,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M5 16V9h14V2H5l14 14h-7m-7 0 7 7v-7m-7 0h7" />
-</svg>`,
-  ],
-  [
-    "frown",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["frown", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-frown"
   xmlns="http://www.w3.org/2000/svg"
@@ -17297,11 +14820,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M16 16s-1.5-2-4-2-4 2-4 2" />
   <line x1="9" x2="9.01" y1="9" y2="9" />
   <line x1="15" x2="15.01" y1="9" y2="9" />
-</svg>`,
-  ],
-  [
-    "fuel",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["fuel", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-fuel"
   xmlns="http://www.w3.org/2000/svg"
@@ -17318,11 +14838,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 21V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v16" />
   <path d="M2 21h13" />
   <path d="M3 9h11" />
-</svg>`,
-  ],
-  [
-    "fullscreen",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["fullscreen", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-fullscreen"
   xmlns="http://www.w3.org/2000/svg"
@@ -17340,11 +14857,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M21 17v2a2 2 0 0 1-2 2h-2" />
   <path d="M7 21H5a2 2 0 0 1-2-2v-2" />
   <rect width="10" height="8" x="7" y="8" rx="1" />
-</svg>`,
-  ],
-  [
-    "function-square",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["function-square", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-function-square"
   xmlns="http://www.w3.org/2000/svg"
@@ -17360,11 +14874,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
   <path d="M9 17c2 0 2.8-1 2.8-2.8V10c0-2 1-3.3 3.2-3" />
   <path d="M9 11.2h5.7" />
-</svg>`,
-  ],
-  [
-    "funnel-plus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["funnel-plus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-funnel-plus"
   xmlns="http://www.w3.org/2000/svg"
@@ -17380,11 +14891,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M13.354 3H3a1 1 0 0 0-.742 1.67l7.225 7.989A2 2 0 0 1 10 14v6a1 1 0 0 0 .553.895l2 1A1 1 0 0 0 14 21v-7a2 2 0 0 1 .517-1.341l1.218-1.348" />
   <path d="M16 6h6" />
   <path d="M19 3v6" />
-</svg>`,
-  ],
-  [
-    "funnel-x",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["funnel-x", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-funnel-x"
   xmlns="http://www.w3.org/2000/svg"
@@ -17400,11 +14908,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12.531 3H3a1 1 0 0 0-.742 1.67l7.225 7.989A2 2 0 0 1 10 14v6a1 1 0 0 0 .553.895l2 1A1 1 0 0 0 14 21v-7a2 2 0 0 1 .517-1.341l.427-.473" />
   <path d="m16.5 3.5 5 5" />
   <path d="m21.5 3.5-5 5" />
-</svg>`,
-  ],
-  [
-    "funnel",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["funnel", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-funnel"
   xmlns="http://www.w3.org/2000/svg"
@@ -17418,11 +14923,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M10 20a1 1 0 0 0 .553.895l2 1A1 1 0 0 0 14 21v-7a2 2 0 0 1 .517-1.341L21.74 4.67A1 1 0 0 0 21 3H3a1 1 0 0 0-.742 1.67l7.225 7.989A2 2 0 0 1 10 14z" />
-</svg>`,
-  ],
-  [
-    "gallery-horizontal-end",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["gallery-horizontal-end", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-gallery-horizontal-end"
   xmlns="http://www.w3.org/2000/svg"
@@ -17438,11 +14940,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M2 7v10" />
   <path d="M6 5v14" />
   <rect width="12" height="18" x="10" y="3" rx="2" />
-</svg>`,
-  ],
-  [
-    "gallery-horizontal",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["gallery-horizontal", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-gallery-horizontal"
   xmlns="http://www.w3.org/2000/svg"
@@ -17458,11 +14957,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M2 3v18" />
   <rect width="12" height="18" x="6" y="3" rx="2" />
   <path d="M22 3v18" />
-</svg>`,
-  ],
-  [
-    "gallery-thumbnails",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["gallery-thumbnails", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-gallery-thumbnails"
   xmlns="http://www.w3.org/2000/svg"
@@ -17480,11 +14976,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M9 21h1" />
   <path d="M14 21h1" />
   <path d="M19 21h1" />
-</svg>`,
-  ],
-  [
-    "gallery-vertical-end",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["gallery-vertical-end", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-gallery-vertical-end"
   xmlns="http://www.w3.org/2000/svg"
@@ -17500,11 +14993,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M7 2h10" />
   <path d="M5 6h14" />
   <rect width="18" height="12" x="3" y="10" rx="2" />
-</svg>`,
-  ],
-  [
-    "gallery-vertical",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["gallery-vertical", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-gallery-vertical"
   xmlns="http://www.w3.org/2000/svg"
@@ -17520,11 +15010,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3 2h18" />
   <rect width="18" height="12" x="3" y="6" rx="2" />
   <path d="M3 22h18" />
-</svg>`,
-  ],
-  [
-    "gamepad-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["gamepad-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-gamepad-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -17542,11 +15029,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <line x1="15" x2="15.01" y1="12" y2="12" />
   <line x1="18" x2="18.01" y1="10" y2="10" />
   <path d="M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.414-1.414A2 2 0 0 1 9.828 16h4.344a2 2 0 0 1 1.414.586L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0 0 17.32 5z" />
-</svg>`,
-  ],
-  [
-    "gamepad-directional",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["gamepad-directional", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-gamepad-directional" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
   stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -17558,11 +15042,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
     d="M6.586 14.414A2 2 0 0 1 5.172 15H3a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h2.172a2 2 0 0 1 1.414.586l1.56 1.56a1.207 1.207 0 0 1 0 1.708z" />
   <path
     d="M9 3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2.172a2 2 0 0 1-.586 1.414l-1.56 1.56a1.207 1.207 0 0 1-1.708 0l-1.56-1.56A2 2 0 0 1 9 5.172z" />
-</svg>`,
-  ],
-  [
-    "gamepad",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["gamepad", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-gamepad"
   xmlns="http://www.w3.org/2000/svg"
@@ -17580,11 +15061,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <line x1="15" x2="15.01" y1="13" y2="13" />
   <line x1="18" x2="18.01" y1="11" y2="11" />
   <rect width="20" height="12" x="2" y="6" rx="2" />
-</svg>`,
-  ],
-  [
-    "gantt-chart-square",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["gantt-chart-square", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-gantt-chart-square"
   xmlns="http://www.w3.org/2000/svg"
@@ -17601,11 +15079,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M9 8h7" />
   <path d="M8 12h6" />
   <path d="M11 16h5" />
-</svg>`,
-  ],
-  [
-    "gantt-chart",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["gantt-chart", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-gantt-chart"
   xmlns="http://www.w3.org/2000/svg"
@@ -17621,11 +15096,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M6 5h12" />
   <path d="M4 12h10" />
   <path d="M12 19h8" />
-</svg>`,
-  ],
-  [
-    "gauge-circle",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["gauge-circle", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-gauge-circle"
   xmlns="http://www.w3.org/2000/svg"
@@ -17641,11 +15113,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M15.6 2.7a10 10 0 1 0 5.7 5.7" />
   <circle cx="12" cy="12" r="2" />
   <path d="M13.4 10.6 19 5" />
-</svg>`,
-  ],
-  [
-    "gauge",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["gauge", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-gauge"
   xmlns="http://www.w3.org/2000/svg"
@@ -17660,11 +15129,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="m12 14 4-4" />
   <path d="M3.34 19a10 10 0 1 1 17.32 0" />
-</svg>`,
-  ],
-  [
-    "gavel",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["gavel", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-gavel"
   xmlns="http://www.w3.org/2000/svg"
@@ -17682,11 +15148,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m21.5 10.5-8-8" />
   <path d="m8 8 6-6" />
   <path d="m8.5 7.5 8 8" />
-</svg>`,
-  ],
-  [
-    "gem",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["gem", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-gem"
   xmlns="http://www.w3.org/2000/svg"
@@ -17702,11 +15165,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M10.5 3 8 9l4 13 4-13-2.5-6" />
   <path d="M17 3a2 2 0 0 1 1.6.8l3 4a2 2 0 0 1 .013 2.382l-7.99 10.986a2 2 0 0 1-3.247 0l-7.99-10.986A2 2 0 0 1 2.4 7.8l2.998-3.997A2 2 0 0 1 7 3z" />
   <path d="M2 9h20" />
-</svg>`,
-  ],
-  [
-    "georgian-lari",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["georgian-lari", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-georgian-lari"
   xmlns="http://www.w3.org/2000/svg"
@@ -17723,11 +15183,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M13 12V3" />
   <path d="M4 21h16" />
   <path d="M9 12V3" />
-</svg>`,
-  ],
-  [
-    "ghost",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["ghost", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-ghost"
   xmlns="http://www.w3.org/2000/svg"
@@ -17743,11 +15200,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M9 10h.01" />
   <path d="M15 10h.01" />
   <path d="M12 2a8 8 0 0 0-8 8v12l3-3 2.5 2.5L12 19l2.5 2.5L17 19l3 3V10a8 8 0 0 0-8-8z" />
-</svg>`,
-  ],
-  [
-    "gift",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["gift", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-gift"
   xmlns="http://www.w3.org/2000/svg"
@@ -17764,11 +15218,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 8v13" />
   <path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7" />
   <path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5" />
-</svg>`,
-  ],
-  [
-    "git-branch-minus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["git-branch-minus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-git-branch-minus"
   xmlns="http://www.w3.org/2000/svg"
@@ -17785,11 +15236,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M21 18h-6" />
   <circle cx="18" cy="6" r="3" />
   <circle cx="6" cy="18" r="3" />
-</svg>`,
-  ],
-  [
-    "git-branch-plus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["git-branch-plus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-git-branch-plus"
   xmlns="http://www.w3.org/2000/svg"
@@ -17808,11 +15256,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M15 6a9 9 0 0 0-9 9" />
   <path d="M18 15v6" />
   <path d="M21 18h-6" />
-</svg>`,
-  ],
-  [
-    "git-branch",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["git-branch", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-git-branch"
   xmlns="http://www.w3.org/2000/svg"
@@ -17828,11 +15273,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M15 6a9 9 0 0 0-9 9V3" />
   <circle cx="18" cy="6" r="3" />
   <circle cx="6" cy="18" r="3" />
-</svg>`,
-  ],
-  [
-    "git-commit-horizontal",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["git-commit-horizontal", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-git-commit-horizontal"
   xmlns="http://www.w3.org/2000/svg"
@@ -17848,11 +15290,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="12" cy="12" r="3" />
   <line x1="3" x2="9" y1="12" y2="12" />
   <line x1="15" x2="21" y1="12" y2="12" />
-</svg>`,
-  ],
-  [
-    "git-commit-vertical",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["git-commit-vertical", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-git-commit-vertical"
   xmlns="http://www.w3.org/2000/svg"
@@ -17868,11 +15307,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 3v6" />
   <circle cx="12" cy="12" r="3" />
   <path d="M12 15v6" />
-</svg>`,
-  ],
-  [
-    "git-commit",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["git-commit", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-git-commit"
   xmlns="http://www.w3.org/2000/svg"
@@ -17888,11 +15324,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="12" cy="12" r="3" />
   <line x1="3" x2="9" y1="12" y2="12" />
   <line x1="15" x2="21" y1="12" y2="12" />
-</svg>`,
-  ],
-  [
-    "git-compare-arrows",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["git-compare-arrows", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-git-compare-arrows"
   xmlns="http://www.w3.org/2000/svg"
@@ -17911,11 +15344,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="19" cy="18" r="3" />
   <path d="M12 18H7a2 2 0 0 1-2-2V9" />
   <path d="m9 15 3 3-3 3" />
-</svg>`,
-  ],
-  [
-    "git-compare",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["git-compare", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-git-compare"
   xmlns="http://www.w3.org/2000/svg"
@@ -17932,11 +15362,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="6" cy="6" r="3" />
   <path d="M13 6h3a2 2 0 0 1 2 2v7" />
   <path d="M11 18H8a2 2 0 0 1-2-2V9" />
-</svg>`,
-  ],
-  [
-    "git-fork",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["git-fork", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-git-fork"
   xmlns="http://www.w3.org/2000/svg"
@@ -17954,11 +15381,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="18" cy="6" r="3" />
   <path d="M18 9v2c0 .6-.4 1-1 1H7c-.6 0-1-.4-1-1V9" />
   <path d="M12 12v3" />
-</svg>`,
-  ],
-  [
-    "git-graph",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["git-graph", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-git-graph"
   xmlns="http://www.w3.org/2000/svg"
@@ -17977,11 +15401,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 3v18" />
   <circle cx="19" cy="6" r="3" />
   <path d="M16 15.7A9 9 0 0 0 19 9" />
-</svg>`,
-  ],
-  [
-    "git-merge",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["git-merge", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-git-merge"
   xmlns="http://www.w3.org/2000/svg"
@@ -17997,11 +15418,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="18" cy="18" r="3" />
   <circle cx="6" cy="6" r="3" />
   <path d="M6 21V9a9 9 0 0 0 9 9" />
-</svg>`,
-  ],
-  [
-    "git-pull-request-arrow",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["git-pull-request-arrow", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-git-pull-request-arrow"
   xmlns="http://www.w3.org/2000/svg"
@@ -18019,11 +15437,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="19" cy="18" r="3" />
   <path d="m15 9-3-3 3-3" />
   <path d="M12 6h5a2 2 0 0 1 2 2v7" />
-</svg>`,
-  ],
-  [
-    "git-pull-request-closed",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["git-pull-request-closed", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-git-pull-request-closed"
   xmlns="http://www.w3.org/2000/svg"
@@ -18042,11 +15457,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m21 9-6-6" />
   <path d="M18 11.5V15" />
   <circle cx="18" cy="18" r="3" />
-</svg>`,
-  ],
-  [
-    "git-pull-request-create-arrow",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["git-pull-request-create-arrow", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-git-pull-request-create-arrow"
   xmlns="http://www.w3.org/2000/svg"
@@ -18065,11 +15477,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 6h5a2 2 0 0 1 2 2v3" />
   <path d="M19 15v6" />
   <path d="M22 18h-6" />
-</svg>`,
-  ],
-  [
-    "git-pull-request-create",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["git-pull-request-create", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-git-pull-request-create"
   xmlns="http://www.w3.org/2000/svg"
@@ -18087,11 +15496,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M13 6h3a2 2 0 0 1 2 2v3" />
   <path d="M18 15v6" />
   <path d="M21 18h-6" />
-</svg>`,
-  ],
-  [
-    "git-pull-request-draft",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["git-pull-request-draft", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-git-pull-request-draft"
   xmlns="http://www.w3.org/2000/svg"
@@ -18109,11 +15515,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M18 6V5" />
   <path d="M18 11v-1" />
   <line x1="6" x2="6" y1="9" y2="21" />
-</svg>`,
-  ],
-  [
-    "git-pull-request",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["git-pull-request", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-git-pull-request"
   xmlns="http://www.w3.org/2000/svg"
@@ -18130,11 +15533,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="6" cy="6" r="3" />
   <path d="M13 6h3a2 2 0 0 1 2 2v7" />
   <line x1="6" x2="6" y1="9" y2="21" />
-</svg>`,
-  ],
-  [
-    "github",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["github", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-github"
   xmlns="http://www.w3.org/2000/svg"
@@ -18149,11 +15549,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4" />
   <path d="M9 18c-4.51 2-5-2-7-2" />
-</svg>`,
-  ],
-  [
-    "gitlab",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["gitlab", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-gitlab"
   xmlns="http://www.w3.org/2000/svg"
@@ -18167,11 +15564,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="m22 13.29-3.33-10a.42.42 0 0 0-.14-.18.38.38 0 0 0-.22-.11.39.39 0 0 0-.23.07.42.42 0 0 0-.14.18l-2.26 6.67H8.32L6.1 3.26a.42.42 0 0 0-.1-.18.38.38 0 0 0-.26-.08.39.39 0 0 0-.23.07.42.42 0 0 0-.14.18L2 13.29a.74.74 0 0 0 .27.83L12 21l9.69-6.88a.71.71 0 0 0 .31-.83Z" />
-</svg>`,
-  ],
-  [
-    "glass-water",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["glass-water", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-glass-water"
   xmlns="http://www.w3.org/2000/svg"
@@ -18186,11 +15580,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M5.116 4.104A1 1 0 0 1 6.11 3h11.78a1 1 0 0 1 .994 1.105L17.19 20.21A2 2 0 0 1 15.2 22H8.8a2 2 0 0 1-2-1.79z" />
   <path d="M6 12a5 5 0 0 1 6 0 5 5 0 0 0 6 0" />
-</svg>`,
-  ],
-  [
-    "glasses",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["glasses", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-glasses"
   xmlns="http://www.w3.org/2000/svg"
@@ -18208,11 +15599,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 15a2 2 0 0 0-2-2 2 2 0 0 0-2 2" />
   <path d="M2.5 13 5 7c.7-1.3 1.4-2 3-2" />
   <path d="M21.5 13 19 7c-.7-1.3-1.5-2-3-2" />
-</svg>`,
-  ],
-  [
-    "globe-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["globe-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-globe-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -18229,11 +15617,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M7 3.34V5a3 3 0 0 0 3 3a2 2 0 0 1 2 2c0 1.1.9 2 2 2a2 2 0 0 0 2-2c0-1.1.9-2 2-2h3.17" />
   <path d="M11 21.95V18a2 2 0 0 0-2-2a2 2 0 0 1-2-2v-1a2 2 0 0 0-2-2H2.05" />
   <circle cx="12" cy="12" r="10" />
-</svg>`,
-  ],
-  [
-    "globe-lock",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["globe-lock", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-globe-lock"
   xmlns="http://www.w3.org/2000/svg"
@@ -18250,11 +15635,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M2 12h8.5" />
   <path d="M20 6V4a2 2 0 1 0-4 0v2" />
   <rect width="8" height="5" x="14" y="6" rx="1" />
-</svg>`,
-  ],
-  [
-    "globe-x",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["globe-x", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-globe-x"
   xmlns="http://www.w3.org/2000/svg"
@@ -18270,11 +15652,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m16 3 5 5" />
   <path d="M2 12h20A10 10 0 1 1 12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 4-10" />
   <path d="m21 3-5 5" />
-</svg>`,
-  ],
-  [
-    "globe",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["globe", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-globe"
   xmlns="http://www.w3.org/2000/svg"
@@ -18290,11 +15669,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="12" cy="12" r="10" />
   <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" />
   <path d="M2 12h20" />
-</svg>`,
-  ],
-  [
-    "goal",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["goal", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-goal"
   xmlns="http://www.w3.org/2000/svg"
@@ -18310,11 +15686,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 13V2l8 4-8 4" />
   <path d="M20.561 10.222a9 9 0 1 1-12.55-5.29" />
   <path d="M8.002 9.997a5 5 0 1 0 8.9 2.02" />
-</svg>`,
-  ],
-  [
-    "gpu",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["gpu", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-gpu"
   xmlns="http://www.w3.org/2000/svg"
@@ -18332,11 +15705,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M7 17v3a1 1 0 0 0 1 1h5a1 1 0 0 0 1-1v-3" />
   <circle cx="16" cy="11" r="2" />
   <circle cx="8" cy="11" r="2" />
-</svg>`,
-  ],
-  [
-    "grab",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["grab", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-grab"
   xmlns="http://www.w3.org/2000/svg"
@@ -18354,11 +15724,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M10 9.9V9a2 2 0 0 0-2-2a2 2 0 0 0-2 2v5" />
   <path d="M6 14a2 2 0 0 0-2-2a2 2 0 0 0-2 2" />
   <path d="M18 11a2 2 0 1 1 4 0v3a8 8 0 0 1-8 8h-4a8 8 0 0 1-8-8 2 2 0 1 1 4 0" />
-</svg>`,
-  ],
-  [
-    "graduation-cap",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["graduation-cap", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-graduation-cap"
   xmlns="http://www.w3.org/2000/svg"
@@ -18374,11 +15741,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z" />
   <path d="M22 10v6" />
   <path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5" />
-</svg>`,
-  ],
-  [
-    "grape",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["grape", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-grape"
   xmlns="http://www.w3.org/2000/svg"
@@ -18400,11 +15764,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="6.56" cy="13.2" r="3" />
   <circle cx="10.8" cy="17.44" r="3" />
   <circle cx="5" cy="19" r="3" />
-</svg>`,
-  ],
-  [
-    "grid-2-x-2-check",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["grid-2-x-2-check", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-grid-2-x-2-check"
   xmlns="http://www.w3.org/2000/svg"
@@ -18419,11 +15780,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M12 3v17a1 1 0 0 1-1 1H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v6a1 1 0 0 1-1 1H3" />
   <path d="m16 19 2 2 4-4" />
-</svg>`,
-  ],
-  [
-    "grid-2-x-2-plus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["grid-2-x-2-plus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-grid-2-x-2-plus"
   xmlns="http://www.w3.org/2000/svg"
@@ -18439,11 +15797,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 3v17a1 1 0 0 1-1 1H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v6a1 1 0 0 1-1 1H3" />
   <path d="M16 19h6" />
   <path d="M19 22v-6" />
-</svg>`,
-  ],
-  [
-    "grid-2-x-2-x",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["grid-2-x-2-x", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-grid-2-x-2-x"
   xmlns="http://www.w3.org/2000/svg"
@@ -18459,11 +15814,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 3v17a1 1 0 0 1-1 1H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v6a1 1 0 0 1-1 1H3" />
   <path d="m16 16 5 5" />
   <path d="m16 21 5-5" />
-</svg>`,
-  ],
-  [
-    "grid-2-x-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["grid-2-x-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-grid-2-x-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -18479,11 +15831,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 3v18" />
   <path d="M3 12h18" />
   <rect x="3" y="3" width="18" height="18" rx="2" />
-</svg>`,
-  ],
-  [
-    "grid-2x2-check",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["grid-2x2-check", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-grid-2x2-check"
   xmlns="http://www.w3.org/2000/svg"
@@ -18498,11 +15847,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M12 3v17a1 1 0 0 1-1 1H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v6a1 1 0 0 1-1 1H3" />
   <path d="m16 19 2 2 4-4" />
-</svg>`,
-  ],
-  [
-    "grid-2x2-plus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["grid-2x2-plus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-grid-2x2-plus"
   xmlns="http://www.w3.org/2000/svg"
@@ -18518,11 +15864,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 3v17a1 1 0 0 1-1 1H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v6a1 1 0 0 1-1 1H3" />
   <path d="M16 19h6" />
   <path d="M19 22v-6" />
-</svg>`,
-  ],
-  [
-    "grid-2x2-x",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["grid-2x2-x", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-grid-2x2-x"
   xmlns="http://www.w3.org/2000/svg"
@@ -18538,11 +15881,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 3v17a1 1 0 0 1-1 1H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v6a1 1 0 0 1-1 1H3" />
   <path d="m16 16 5 5" />
   <path d="m16 21 5-5" />
-</svg>`,
-  ],
-  [
-    "grid-2x2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["grid-2x2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-grid-2x2"
   xmlns="http://www.w3.org/2000/svg"
@@ -18558,11 +15898,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 3v18" />
   <path d="M3 12h18" />
   <rect x="3" y="3" width="18" height="18" rx="2" />
-</svg>`,
-  ],
-  [
-    "grid-3-x-3",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["grid-3-x-3", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-grid-3-x-3"
   xmlns="http://www.w3.org/2000/svg"
@@ -18580,11 +15917,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3 15h18" />
   <path d="M9 3v18" />
   <path d="M15 3v18" />
-</svg>`,
-  ],
-  [
-    "grid-3x2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["grid-3x2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-grid-3x2"
   xmlns="http://www.w3.org/2000/svg"
@@ -18601,11 +15935,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3 12h18" />
   <path d="M9 3v18" />
   <rect x="3" y="3" width="18" height="18" rx="2" />
-</svg>`,
-  ],
-  [
-    "grid-3x3",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["grid-3x3", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-grid-3x3"
   xmlns="http://www.w3.org/2000/svg"
@@ -18623,11 +15954,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3 15h18" />
   <path d="M9 3v18" />
   <path d="M15 3v18" />
-</svg>`,
-  ],
-  [
-    "grid",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["grid", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-grid"
   xmlns="http://www.w3.org/2000/svg"
@@ -18645,11 +15973,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3 15h18" />
   <path d="M9 3v18" />
   <path d="M15 3v18" />
-</svg>`,
-  ],
-  [
-    "grip-horizontal",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["grip-horizontal", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-grip-horizontal"
   xmlns="http://www.w3.org/2000/svg"
@@ -18668,11 +15993,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="12" cy="15" r="1" />
   <circle cx="19" cy="15" r="1" />
   <circle cx="5" cy="15" r="1" />
-</svg>`,
-  ],
-  [
-    "grip-vertical",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["grip-vertical", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-grip-vertical"
   xmlns="http://www.w3.org/2000/svg"
@@ -18691,11 +16013,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="15" cy="12" r="1" />
   <circle cx="15" cy="5" r="1" />
   <circle cx="15" cy="19" r="1" />
-</svg>`,
-  ],
-  [
-    "grip",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["grip", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-grip"
   xmlns="http://www.w3.org/2000/svg"
@@ -18717,11 +16036,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="12" cy="19" r="1" />
   <circle cx="19" cy="19" r="1" />
   <circle cx="5" cy="19" r="1" />
-</svg>`,
-  ],
-  [
-    "group",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["group", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-group"
   xmlns="http://www.w3.org/2000/svg"
@@ -18740,11 +16056,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M7 21H5c-1.1 0-2-.9-2-2v-2" />
   <rect width="7" height="5" x="7" y="7" rx="1" />
   <rect width="7" height="5" x="10" y="12" rx="1" />
-</svg>`,
-  ],
-  [
-    "guitar",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["guitar", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-guitar"
   xmlns="http://www.w3.org/2000/svg"
@@ -18761,11 +16074,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M20.1 2.3a1 1 0 0 0-1.4 0l-1.114 1.114A2 2 0 0 0 17 4.828v1.344a2 2 0 0 1-.586 1.414A2 2 0 0 1 17.828 7h1.344a2 2 0 0 0 1.414-.586L21.7 5.3a1 1 0 0 0 0-1.4z" />
   <path d="m6 16 2 2" />
   <path d="M8.23 9.85A3 3 0 0 1 11 8a5 5 0 0 1 5 5 3 3 0 0 1-1.85 2.77l-.92.38A2 2 0 0 0 12 18a4 4 0 0 1-4 4 6 6 0 0 1-6-6 4 4 0 0 1 4-4 2 2 0 0 0 1.85-1.23z" />
-</svg>`,
-  ],
-  [
-    "ham",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["ham", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-ham"
   xmlns="http://www.w3.org/2000/svg"
@@ -18782,11 +16092,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M13.144 21.144A7.274 4.365 45 0 0 2.856 10.856a7.274 4.365 45 0 0 10.288 10.288" />
   <path d="M16.565 10.435 18.6 8.4a2.501 2.501 0 1 0 1.65-4.65 2.5 2.5 0 1 0-4.66 1.66l-2.024 2.025" />
   <path d="m8.5 16.5-1-1" />
-</svg>`,
-  ],
-  [
-    "hamburger",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["hamburger", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-hamburger"
   xmlns="http://www.w3.org/2000/svg"
@@ -18803,11 +16110,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M5 12a2 2 0 0 1-2-2 9 7 0 0 1 18 0 2 2 0 0 1-2 2" />
   <path d="M5 16a2 2 0 0 0-2 2 3 3 0 0 0 3 3h12a3 3 0 0 0 3-3 2 2 0 0 0-2-2q0 0 0 0" />
   <path d="m6.67 12 6.13 4.6a2 2 0 0 0 2.8-.4l3.15-4.2" />
-</svg>`,
-  ],
-  [
-    "hammer",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["hammer", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-hammer"
   xmlns="http://www.w3.org/2000/svg"
@@ -18823,11 +16127,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m15 12-9.373 9.373a1 1 0 0 1-3.001-3L12 9" />
   <path d="m18 15 4-4" />
   <path d="m21.5 11.5-1.914-1.914A2 2 0 0 1 19 8.172v-.344a2 2 0 0 0-.586-1.414l-1.657-1.657A6 6 0 0 0 12.516 3H9l1.243 1.243A6 6 0 0 1 12 8.485V10l2 2h1.172a2 2 0 0 1 1.414.586L18.5 14.5" />
-</svg>`,
-  ],
-  [
-    "hand-coins",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["hand-coins", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-hand-coins"
   xmlns="http://www.w3.org/2000/svg"
@@ -18845,11 +16146,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m2 16 6 6" />
   <circle cx="16" cy="9" r="2.9" />
   <circle cx="6" cy="5" r="3" />
-</svg>`,
-  ],
-  [
-    "hand-fist",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["hand-fist", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-hand-fist"
   xmlns="http://www.w3.org/2000/svg"
@@ -18866,11 +16164,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M13.888 9.662A2 2 0 0 0 17 8V5A2 2 0 1 0 13 5" />
   <path d="M9 5A2 2 0 1 0 5 5V10" />
   <path d="M9 7V4A2 2 0 1 1 13 4V7.268" />
-</svg>`,
-  ],
-  [
-    "hand-grab",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["hand-grab", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-hand-grab"
   xmlns="http://www.w3.org/2000/svg"
@@ -18888,11 +16183,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M10 9.9V9a2 2 0 0 0-2-2a2 2 0 0 0-2 2v5" />
   <path d="M6 14a2 2 0 0 0-2-2a2 2 0 0 0-2 2" />
   <path d="M18 11a2 2 0 1 1 4 0v3a8 8 0 0 1-8 8h-4a8 8 0 0 1-8-8 2 2 0 1 1 4 0" />
-</svg>`,
-  ],
-  [
-    "hand-heart",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["hand-heart", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-hand-heart"
   xmlns="http://www.w3.org/2000/svg"
@@ -18909,11 +16201,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m14.45 13.39 5.05-4.694C20.196 8 21 6.85 21 5.75a2.75 2.75 0 0 0-4.797-1.837.276.276 0 0 1-.406 0A2.75 2.75 0 0 0 11 5.75c0 1.2.802 2.248 1.5 2.946L16 11.95" />
   <path d="m2 15 6 6" />
   <path d="m7 20 1.6-1.4c.3-.4.8-.6 1.4-.6h4c1.1 0 2.1-.4 2.8-1.2l4.6-4.4a1 1 0 0 0-2.75-2.91" />
-</svg>`,
-  ],
-  [
-    "hand-helping",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["hand-helping", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-hand-helping"
   xmlns="http://www.w3.org/2000/svg"
@@ -18929,11 +16218,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M11 12h2a2 2 0 1 0 0-4h-3c-.6 0-1.1.2-1.4.6L3 14" />
   <path d="m7 18 1.6-1.4c.3-.4.8-.6 1.4-.6h4c1.1 0 2.1-.4 2.8-1.2l4.6-4.4a2 2 0 0 0-2.75-2.91l-4.2 3.9" />
   <path d="m2 13 6 6" />
-</svg>`,
-  ],
-  [
-    "hand-metal",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["hand-metal", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-hand-metal"
   xmlns="http://www.w3.org/2000/svg"
@@ -18950,11 +16236,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 11V9a2 2 0 1 0-4 0v2" />
   <path d="M10 10.5V5a2 2 0 1 0-4 0v9" />
   <path d="m7 15-1.76-1.76a2 2 0 0 0-2.83 2.82l3.6 3.6C7.5 21.14 9.2 22 12 22h2a8 8 0 0 0 8-8V7a2 2 0 1 0-4 0v5" />
-</svg>`,
-  ],
-  [
-    "hand-platter",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["hand-platter", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-hand-platter"
   xmlns="http://www.w3.org/2000/svg"
@@ -18973,11 +16256,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M4 10h16" />
   <path d="M5 10a7 7 0 0 1 14 0" />
   <path d="M5 14v6a1 1 0 0 1-1 1H2" />
-</svg>`,
-  ],
-  [
-    "hand",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["hand", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-hand"
   xmlns="http://www.w3.org/2000/svg"
@@ -18994,11 +16274,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v2" />
   <path d="M10 10.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v8" />
   <path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15" />
-</svg>`,
-  ],
-  [
-    "handbag",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["handbag", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-handbag"
   xmlns="http://www.w3.org/2000/svg"
@@ -19013,11 +16290,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M2.048 18.566A2 2 0 0 0 4 21h16a2 2 0 0 0 1.952-2.434l-2-9A2 2 0 0 0 18 8H6a2 2 0 0 0-1.952 1.566z" />
   <path d="M8 11V6a4 4 0 0 1 8 0v5" />
-</svg>`,
-  ],
-  [
-    "handshake",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["handshake", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-handshake"
   xmlns="http://www.w3.org/2000/svg"
@@ -19035,11 +16309,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m21 3 1 11h-2" />
   <path d="M3 3 2 14l6.5 6.5a1 1 0 1 0 3-3" />
   <path d="M3 4h8" />
-</svg>`,
-  ],
-  [
-    "hard-drive-download",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["hard-drive-download", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-hard-drive-download"
   xmlns="http://www.w3.org/2000/svg"
@@ -19057,11 +16328,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="20" height="8" x="2" y="14" rx="2" />
   <path d="M6 18h.01" />
   <path d="M10 18h.01" />
-</svg>`,
-  ],
-  [
-    "hard-drive-upload",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["hard-drive-upload", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-hard-drive-upload"
   xmlns="http://www.w3.org/2000/svg"
@@ -19079,11 +16347,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="20" height="8" x="2" y="14" rx="2" />
   <path d="M6 18h.01" />
   <path d="M10 18h.01" />
-</svg>`,
-  ],
-  [
-    "hard-drive",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["hard-drive", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-hard-drive"
   xmlns="http://www.w3.org/2000/svg"
@@ -19100,11 +16365,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M2.212 11.577a2 2 0 0 0-.212.896V18a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-5.527a2 2 0 0 0-.212-.896L18.55 5.11A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" />
   <path d="M21.946 12.013H2.054" />
   <path d="M6 16h.01" />
-</svg>`,
-  ],
-  [
-    "hard-hat",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["hard-hat", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-hard-hat"
   xmlns="http://www.w3.org/2000/svg"
@@ -19121,11 +16383,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 6a6 6 0 0 1 6 6v3" />
   <path d="M4 15v-3a6 6 0 0 1 6-6" />
   <rect x="2" y="15" width="20" height="4" rx="1" />
-</svg>`,
-  ],
-  [
-    "hash",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["hash", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-hash"
   xmlns="http://www.w3.org/2000/svg"
@@ -19142,11 +16401,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <line x1="4" x2="20" y1="15" y2="15" />
   <line x1="10" x2="8" y1="3" y2="21" />
   <line x1="16" x2="14" y1="3" y2="21" />
-</svg>`,
-  ],
-  [
-    "hat-glasses",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["hat-glasses", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-hat-glasses"
   xmlns="http://www.w3.org/2000/svg"
@@ -19164,11 +16420,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M2 11h20" />
   <circle cx="17" cy="18" r="3" />
   <circle cx="7" cy="18" r="3" />
-</svg>`,
-  ],
-  [
-    "haze",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["haze", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-haze"
   xmlns="http://www.w3.org/2000/svg"
@@ -19189,11 +16442,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M22 21H2" />
   <path d="M16 13a4 4 0 0 0-8 0" />
   <path d="M12 5V2.5" />
-</svg>`,
-  ],
-  [
-    "hd",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["hd", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-hd"
   xmlns="http://www.w3.org/2000/svg"
@@ -19211,11 +16461,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 14.5a.5.5 0 0 0 .5.5h1a2.5 2.5 0 0 0 2.5-2.5v-1A2.5 2.5 0 0 0 15.5 9h-1a.5.5 0 0 0-.5.5z" />
   <path d="M6 15V9" />
   <rect x="2" y="5" width="20" height="14" rx="2" />
-</svg>`,
-  ],
-  [
-    "hdmi-port",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["hdmi-port", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-hdmi-port"
   xmlns="http://www.w3.org/2000/svg"
@@ -19230,11 +16477,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M22 9a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h1l2 2h12l2-2h1a1 1 0 0 0 1-1Z" />
   <path d="M7.5 12h9" />
-</svg>`,
-  ],
-  [
-    "heading-1",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["heading-1", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-heading-1"
   xmlns="http://www.w3.org/2000/svg"
@@ -19251,11 +16495,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M4 18V6" />
   <path d="M12 18V6" />
   <path d="m17 12 3-2v8" />
-</svg>`,
-  ],
-  [
-    "heading-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["heading-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-heading-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -19272,11 +16513,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M4 18V6" />
   <path d="M12 18V6" />
   <path d="M21 18h-4c0-4 4-3 4-6 0-1.5-2-2.5-4-1" />
-</svg>`,
-  ],
-  [
-    "heading-3",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["heading-3", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-heading-3"
   xmlns="http://www.w3.org/2000/svg"
@@ -19294,11 +16532,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 18V6" />
   <path d="M17.5 10.5c1.7-1 3.5 0 3.5 1.5a2 2 0 0 1-2 2" />
   <path d="M17 17.5c2 1.5 4 .3 4-1.5a2 2 0 0 0-2-2" />
-</svg>`,
-  ],
-  [
-    "heading-4",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["heading-4", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-heading-4"
   xmlns="http://www.w3.org/2000/svg"
@@ -19316,11 +16551,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M21 10v8" />
   <path d="M4 12h8" />
   <path d="M4 18V6" />
-</svg>`,
-  ],
-  [
-    "heading-5",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["heading-5", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-heading-5"
   xmlns="http://www.w3.org/2000/svg"
@@ -19338,11 +16570,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 18V6" />
   <path d="M17 13v-3h4" />
   <path d="M17 17.7c.4.2.8.3 1.3.3 1.5 0 2.7-1.1 2.7-2.5S19.8 13 18.3 13H17" />
-</svg>`,
-  ],
-  [
-    "heading-6",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["heading-6", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-heading-6"
   xmlns="http://www.w3.org/2000/svg"
@@ -19360,11 +16589,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 18V6" />
   <circle cx="19" cy="16" r="2" />
   <path d="M20 10c-2 2-3 3.5-3 6" />
-</svg>`,
-  ],
-  [
-    "heading",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["heading", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-heading"
   xmlns="http://www.w3.org/2000/svg"
@@ -19380,11 +16606,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M6 12h12" />
   <path d="M6 20V4" />
   <path d="M18 20V4" />
-</svg>`,
-  ],
-  [
-    "headphone-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["headphone-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-headphone-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -19402,11 +16625,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m2 2 20 20" />
   <path d="M20.414 20.414A2 2 0 0 1 19 21h-1a2 2 0 0 1-2-2v-3" />
   <path d="M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a9 9 0 0 1 2.636-6.364" />
-</svg>`,
-  ],
-  [
-    "headphones",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["headphones", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-headphones"
   xmlns="http://www.w3.org/2000/svg"
@@ -19420,11 +16640,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a9 9 0 0 1 18 0v7a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3" />
-</svg>`,
-  ],
-  [
-    "headset",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["headset", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-headset"
   xmlns="http://www.w3.org/2000/svg"
@@ -19439,11 +16656,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M3 11h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-5Zm0 0a9 9 0 1 1 18 0m0 0v5a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3Z" />
   <path d="M21 16v2a4 4 0 0 1-4 4h-5" />
-</svg>`,
-  ],
-  [
-    "heart-crack",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["heart-crack", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-heart-crack"
   xmlns="http://www.w3.org/2000/svg"
@@ -19458,11 +16672,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M12.409 5.824c-.702.792-1.15 1.496-1.415 2.166l2.153 2.156a.5.5 0 0 1 0 .707l-2.293 2.293a.5.5 0 0 0 0 .707L12 15" />
   <path d="M13.508 20.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5a5.5 5.5 0 0 1 9.591-3.677.6.6 0 0 0 .818.001A5.5 5.5 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5z" />
-</svg>`,
-  ],
-  [
-    "heart-handshake",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["heart-handshake", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-heart-handshake"
   xmlns="http://www.w3.org/2000/svg"
@@ -19476,11 +16687,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M19.414 14.414C21 12.828 22 11.5 22 9.5a5.5 5.5 0 0 0-9.591-3.676.6.6 0 0 1-.818.001A5.5 5.5 0 0 0 2 9.5c0 2.3 1.5 4 3 5.5l5.535 5.362a2 2 0 0 0 2.879.052 2.12 2.12 0 0 0-.004-3 2.124 2.124 0 1 0 3-3 2.124 2.124 0 0 0 3.004 0 2 2 0 0 0 0-2.828l-1.881-1.882a2.41 2.41 0 0 0-3.409 0l-1.71 1.71a2 2 0 0 1-2.828 0 2 2 0 0 1 0-2.828l2.823-2.762" />
-</svg>`,
-  ],
-  [
-    "heart-minus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["heart-minus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-heart-minus"
   xmlns="http://www.w3.org/2000/svg"
@@ -19495,11 +16703,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="m14.876 18.99-1.368 1.323a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5a5.2 5.2 0 0 1-.244 1.572" />
   <path d="M15 15h6" />
-</svg>`,
-  ],
-  [
-    "heart-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["heart-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-heart-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -19515,11 +16720,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M10.5 4.893a5.5 5.5 0 0 1 1.091.931.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 1.872-1.002 3.356-2.187 4.655" />
   <path d="m16.967 16.967-3.459 3.346a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5a5.5 5.5 0 0 1 2.747-4.761" />
   <path d="m2 2 20 20" />
-</svg>`,
-  ],
-  [
-    "heart-plus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["heart-plus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-heart-plus"
   xmlns="http://www.w3.org/2000/svg"
@@ -19535,11 +16737,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m14.479 19.374-.971.939a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5a5.2 5.2 0 0 1-.219 1.49" />
   <path d="M15 15h6" />
   <path d="M18 12v6" />
-</svg>`,
-  ],
-  [
-    "heart-pulse",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["heart-pulse", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-heart-pulse"
   xmlns="http://www.w3.org/2000/svg"
@@ -19554,11 +16753,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5" />
   <path d="M3.22 13H9.5l.5-1 2 4.5 2-7 1.5 3.5h5.27" />
-</svg>`,
-  ],
-  [
-    "heart",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["heart", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-heart"
   xmlns="http://www.w3.org/2000/svg"
@@ -19572,11 +16768,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5" />
-</svg>`,
-  ],
-  [
-    "heater",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["heater", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-heater"
   xmlns="http://www.w3.org/2000/svg"
@@ -19599,11 +16792,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M20 6a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3" />
   <path d="M5 20v2" />
   <path d="M19 20v2" />
-</svg>`,
-  ],
-  [
-    "helicopter",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["helicopter", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-helicopter"
   xmlns="http://www.w3.org/2000/svg"
@@ -19624,11 +16814,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M6 3h16" />
   <path d="M7 21h14" />
   <path d="M8 13H2" />
-</svg>`,
-  ],
-  [
-    "help-circle",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["help-circle", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-help-circle"
   xmlns="http://www.w3.org/2000/svg"
@@ -19644,11 +16831,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="12" cy="12" r="10" />
   <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
   <path d="M12 17h.01" />
-</svg>`,
-  ],
-  [
-    "helping-hand",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["helping-hand", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-helping-hand"
   xmlns="http://www.w3.org/2000/svg"
@@ -19664,11 +16848,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M11 12h2a2 2 0 1 0 0-4h-3c-.6 0-1.1.2-1.4.6L3 14" />
   <path d="m7 18 1.6-1.4c.3-.4.8-.6 1.4-.6h4c1.1 0 2.1-.4 2.8-1.2l4.6-4.4a2 2 0 0 0-2.75-2.91l-4.2 3.9" />
   <path d="m2 13 6 6" />
-</svg>`,
-  ],
-  [
-    "hexagon",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["hexagon", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-hexagon"
   xmlns="http://www.w3.org/2000/svg"
@@ -19682,11 +16863,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-</svg>`,
-  ],
-  [
-    "highlighter",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["highlighter", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-highlighter"
   xmlns="http://www.w3.org/2000/svg"
@@ -19701,11 +16879,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="m9 11-6 6v3h9l3-3" />
   <path d="m22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4" />
-</svg>`,
-  ],
-  [
-    "history",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["history", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-history"
   xmlns="http://www.w3.org/2000/svg"
@@ -19721,11 +16896,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
   <path d="M3 3v5h5" />
   <path d="M12 7v5l4 2" />
-</svg>`,
-  ],
-  [
-    "home",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["home", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-home"
   xmlns="http://www.w3.org/2000/svg"
@@ -19740,11 +16912,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8" />
   <path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-</svg>`,
-  ],
-  [
-    "hop-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["hop-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-hop-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -19766,11 +16935,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M5.52 17.99c1.05.95 2.91 2.42 4.5 3.15a.8.8 0 0 0 1.13-.68c.2-2.34-.33-5.3-1.57-8.28" />
   <path d="M8.35 2.68a10 10 0 0 1 9.98 1.58c.43.35.4.96-.12 1.17-1.5.6-4.3.98-6.07 1.05" />
   <path d="m2 2 20 20" />
-</svg>`,
-  ],
-  [
-    "hop",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["hop", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-hop"
   xmlns="http://www.w3.org/2000/svg"
@@ -19791,11 +16957,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M17.99 5.52a20.82 20.82 0 0 1 3.15 4.5.8.8 0 0 1-.68 1.13c-2.33.2-5.3-.32-8.27-1.57" />
   <path d="M4.93 4.93 3 3a.7.7 0 0 1 0-1" />
   <path d="M9.58 12.18c1.24 2.98 1.77 5.95 1.57 8.28a.8.8 0 0 1-1.13.68 20.82 20.82 0 0 1-4.5-3.15" />
-</svg>`,
-  ],
-  [
-    "hospital",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["hospital", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-hospital"
   xmlns="http://www.w3.org/2000/svg"
@@ -19813,11 +16976,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 9h-4" />
   <path d="M18 11h2a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2h2" />
   <path d="M18 21V5a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16" />
-</svg>`,
-  ],
-  [
-    "hotel",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["hotel", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-hotel"
   xmlns="http://www.w3.org/2000/svg"
@@ -19840,11 +17000,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M8 11h.01" />
   <path d="M8 7h.01" />
   <rect x="4" y="2" width="16" height="20" rx="2" />
-</svg>`,
-  ],
-  [
-    "hourglass",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["hourglass", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-hourglass"
   xmlns="http://www.w3.org/2000/svg"
@@ -19861,11 +17018,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M5 2h14" />
   <path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22" />
   <path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2" />
-</svg>`,
-  ],
-  [
-    "house-heart",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["house-heart", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-house-heart"
   xmlns="http://www.w3.org/2000/svg"
@@ -19880,11 +17034,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M8.62 13.8A2.25 2.25 0 1 1 12 10.836a2.25 2.25 0 1 1 3.38 2.966l-2.626 2.856a.998.998 0 0 1-1.507 0z" />
   <path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-</svg>`,
-  ],
-  [
-    "house-plug",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["house-plug", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-house-plug"
   xmlns="http://www.w3.org/2000/svg"
@@ -19901,11 +17052,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 12V8.964" />
   <path d="M15 12a1 1 0 0 1 1 1v2a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-2a1 1 0 0 1 1-1z" />
   <path d="M8.5 21H5a2 2 0 0 1-2-2v-9a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2h-5a2 2 0 0 1-2-2v-2" />
-</svg>`,
-  ],
-  [
-    "house-plus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["house-plus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-house-plus"
   xmlns="http://www.w3.org/2000/svg"
@@ -19922,11 +17070,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14.8 12.4A1 1 0 0 0 14 12h-4a1 1 0 0 0-1 1v8" />
   <path d="M15 18h6" />
   <path d="M18 15v6" />
-</svg>`,
-  ],
-  [
-    "house-wifi",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["house-wifi", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-house-wifi"
   xmlns="http://www.w3.org/2000/svg"
@@ -19943,11 +17088,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 17h.01" />
   <path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
   <path d="M7 10.754a8 8 0 0 1 10 0" />
-</svg>`,
-  ],
-  [
-    "house",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["house", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-house"
   xmlns="http://www.w3.org/2000/svg"
@@ -19962,11 +17104,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8" />
   <path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-</svg>`,
-  ],
-  [
-    "ice-cream-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["ice-cream-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-ice-cream-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -19982,11 +17121,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 17c5 0 8-2.69 8-6H4c0 3.31 3 6 8 6m-4 4h8m-4-3v3M5.14 11a3.5 3.5 0 1 1 6.71 0" />
   <path d="M12.14 11a3.5 3.5 0 1 1 6.71 0" />
   <path d="M15.5 6.5a3.5 3.5 0 1 0-7 0" />
-</svg>`,
-  ],
-  [
-    "ice-cream-bowl",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["ice-cream-bowl", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-ice-cream-bowl"
   xmlns="http://www.w3.org/2000/svg"
@@ -20002,11 +17138,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 17c5 0 8-2.69 8-6H4c0 3.31 3 6 8 6m-4 4h8m-4-3v3M5.14 11a3.5 3.5 0 1 1 6.71 0" />
   <path d="M12.14 11a3.5 3.5 0 1 1 6.71 0" />
   <path d="M15.5 6.5a3.5 3.5 0 1 0-7 0" />
-</svg>`,
-  ],
-  [
-    "ice-cream-cone",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["ice-cream-cone", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-ice-cream-cone"
   xmlns="http://www.w3.org/2000/svg"
@@ -20022,11 +17155,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m7 11 4.08 10.35a1 1 0 0 0 1.84 0L17 11" />
   <path d="M17 7A5 5 0 0 0 7 7" />
   <path d="M17 7a2 2 0 0 1 0 4H7a2 2 0 0 1 0-4" />
-</svg>`,
-  ],
-  [
-    "ice-cream",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["ice-cream", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-ice-cream"
   xmlns="http://www.w3.org/2000/svg"
@@ -20042,11 +17172,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m7 11 4.08 10.35a1 1 0 0 0 1.84 0L17 11" />
   <path d="M17 7A5 5 0 0 0 7 7" />
   <path d="M17 7a2 2 0 0 1 0 4H7a2 2 0 0 1 0-4" />
-</svg>`,
-  ],
-  [
-    "id-card-lanyard",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["id-card-lanyard", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-id-card-lanyard"
   xmlns="http://www.w3.org/2000/svg"
@@ -20064,11 +17191,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M16.899 22A5 5 0 0 0 7.1 22" />
   <path d="m9 2 3 6" />
   <circle cx="12" cy="15" r="3" />
-</svg>`,
-  ],
-  [
-    "id-card",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["id-card", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-id-card"
   xmlns="http://www.w3.org/2000/svg"
@@ -20086,11 +17210,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M6.17 15a3 3 0 0 1 5.66 0" />
   <circle cx="9" cy="11" r="2" />
   <rect x="2" y="5" width="20" height="14" rx="2" />
-</svg>`,
-  ],
-  [
-    "image-down",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["image-down", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-image-down"
   xmlns="http://www.w3.org/2000/svg"
@@ -20107,11 +17228,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m14 19 3 3v-5.5" />
   <path d="m17 22 3-3" />
   <circle cx="9" cy="9" r="2" />
-</svg>`,
-  ],
-  [
-    "image-minus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["image-minus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-image-minus"
   xmlns="http://www.w3.org/2000/svg"
@@ -20128,11 +17246,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <line x1="16" x2="22" y1="5" y2="5" />
   <circle cx="9" cy="9" r="2" />
   <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
-</svg>`,
-  ],
-  [
-    "image-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["image-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-image-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -20151,11 +17266,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <line x1="18" x2="21" y1="12" y2="15" />
   <path d="M3.59 3.59A1.99 1.99 0 0 0 3 5v14a2 2 0 0 0 2 2h14c.55 0 1.052-.22 1.41-.59" />
   <path d="M21 15V5a2 2 0 0 0-2-2H9" />
-</svg>`,
-  ],
-  [
-    "image-play",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["image-play", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-image-play"
   xmlns="http://www.w3.org/2000/svg"
@@ -20172,11 +17284,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M21 12.17V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h6" />
   <path d="m6 21 5-5" />
   <circle cx="9" cy="9" r="2" />
-</svg>`,
-  ],
-  [
-    "image-plus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["image-plus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-image-plus"
   xmlns="http://www.w3.org/2000/svg"
@@ -20194,11 +17303,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M21 11.5V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7.5" />
   <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
   <circle cx="9" cy="9" r="2" />
-</svg>`,
-  ],
-  [
-    "image-up",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["image-up", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-image-up"
   xmlns="http://www.w3.org/2000/svg"
@@ -20215,11 +17321,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m14 19.5 3-3 3 3" />
   <path d="M17 22v-5.5" />
   <circle cx="9" cy="9" r="2" />
-</svg>`,
-  ],
-  [
-    "image-upscale",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["image-upscale", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-image-upscale"
   xmlns="http://www.w3.org/2000/svg"
@@ -20240,11 +17343,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m5 21 4.144-4.144a1.21 1.21 0 0 1 1.712 0L13 19" />
   <path d="M9 3h3" />
   <rect x="3" y="11" width="10" height="10" rx="1" />
-</svg>`,
-  ],
-  [
-    "image",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["image", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-image"
   xmlns="http://www.w3.org/2000/svg"
@@ -20260,11 +17360,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
   <circle cx="9" cy="9" r="2" />
   <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
-</svg>`,
-  ],
-  [
-    "images",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["images", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-images"
   xmlns="http://www.w3.org/2000/svg"
@@ -20281,11 +17378,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M4 8a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2" />
   <circle cx="13" cy="7" r="1" fill="currentColor" />
   <rect x="8" y="2" width="14" height="14" rx="2" />
-</svg>`,
-  ],
-  [
-    "import",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["import", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-import"
   xmlns="http://www.w3.org/2000/svg"
@@ -20301,11 +17395,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 3v12" />
   <path d="m8 11 4 4 4-4" />
   <path d="M8 5H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-4" />
-</svg>`,
-  ],
-  [
-    "inbox",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["inbox", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-inbox"
   xmlns="http://www.w3.org/2000/svg"
@@ -20320,11 +17411,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <polyline points="22 12 16 12 14 15 10 15 8 12 2 12" />
   <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" />
-</svg>`,
-  ],
-  [
-    "indent-decrease",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["indent-decrease", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-indent-decrease"
   xmlns="http://www.w3.org/2000/svg"
@@ -20341,11 +17429,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M21 12H11" />
   <path d="M21 19H11" />
   <path d="m7 8-4 4 4 4" />
-</svg>`,
-  ],
-  [
-    "indent-increase",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["indent-increase", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-indent-increase"
   xmlns="http://www.w3.org/2000/svg"
@@ -20362,11 +17447,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M21 12H11" />
   <path d="M21 19H11" />
   <path d="m3 8 4 4-4 4" />
-</svg>`,
-  ],
-  [
-    "indent",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["indent", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-indent"
   xmlns="http://www.w3.org/2000/svg"
@@ -20383,11 +17465,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M21 12H11" />
   <path d="M21 19H11" />
   <path d="m3 8 4 4-4 4" />
-</svg>`,
-  ],
-  [
-    "indian-rupee",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["indian-rupee", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-indian-rupee"
   xmlns="http://www.w3.org/2000/svg"
@@ -20405,11 +17484,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m6 13 8.5 8" />
   <path d="M6 13h3" />
   <path d="M9 13c6.667 0 6.667-10 0-10" />
-</svg>`,
-  ],
-  [
-    "infinity",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["infinity", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-infinity"
   xmlns="http://www.w3.org/2000/svg"
@@ -20423,11 +17499,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M6 16c5 0 7-8 12-8a4 4 0 0 1 0 8c-5 0-7-8-12-8a4 4 0 1 0 0 8" />
-</svg>`,
-  ],
-  [
-    "info",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["info", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-info"
   xmlns="http://www.w3.org/2000/svg"
@@ -20443,11 +17516,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="12" cy="12" r="10" />
   <path d="M12 16v-4" />
   <path d="M12 8h.01" />
-</svg>`,
-  ],
-  [
-    "inspect",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["inspect", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-inspect"
   xmlns="http://www.w3.org/2000/svg"
@@ -20462,11 +17532,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M12.034 12.681a.498.498 0 0 1 .647-.647l9 3.5a.5.5 0 0 1-.033.943l-3.444 1.068a1 1 0 0 0-.66.66l-1.067 3.443a.5.5 0 0 1-.943.033z" />
   <path d="M21 11V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h6" />
-</svg>`,
-  ],
-  [
-    "inspection-panel",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["inspection-panel", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-inspection-panel"
   xmlns="http://www.w3.org/2000/svg"
@@ -20484,11 +17551,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M17 7h.01" />
   <path d="M7 17h.01" />
   <path d="M17 17h.01" />
-</svg>`,
-  ],
-  [
-    "instagram",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["instagram", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-instagram"
   xmlns="http://www.w3.org/2000/svg"
@@ -20504,11 +17568,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
   <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
   <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
-</svg>`,
-  ],
-  [
-    "italic",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["italic", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-italic"
   xmlns="http://www.w3.org/2000/svg"
@@ -20524,11 +17585,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <line x1="19" x2="10" y1="4" y2="4" />
   <line x1="14" x2="5" y1="20" y2="20" />
   <line x1="15" x2="9" y1="4" y2="20" />
-</svg>`,
-  ],
-  [
-    "iteration-ccw",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["iteration-ccw", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-iteration-ccw"
   xmlns="http://www.w3.org/2000/svg"
@@ -20543,11 +17601,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="m16 14 4 4-4 4" />
   <path d="M20 10a8 8 0 1 0-8 8h8" />
-</svg>`,
-  ],
-  [
-    "iteration-cw",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["iteration-cw", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-iteration-cw"
   xmlns="http://www.w3.org/2000/svg"
@@ -20562,11 +17617,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M4 10a8 8 0 1 1 8 8H4" />
   <path d="m8 22-4-4 4-4" />
-</svg>`,
-  ],
-  [
-    "japanese-yen",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["japanese-yen", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-japanese-yen"
   xmlns="http://www.w3.org/2000/svg"
@@ -20582,11 +17634,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 9.5V21m0-11.5L6 3m6 6.5L18 3" />
   <path d="M6 15h12" />
   <path d="M6 11h12" />
-</svg>`,
-  ],
-  [
-    "joystick",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["joystick", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-joystick"
   xmlns="http://www.w3.org/2000/svg"
@@ -20603,11 +17652,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M6 15v-2" />
   <path d="M12 15V9" />
   <circle cx="12" cy="6" r="3" />
-</svg>`,
-  ],
-  [
-    "kanban-square-dashed",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["kanban-square-dashed", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-kanban-square-dashed"
   xmlns="http://www.w3.org/2000/svg"
@@ -20635,11 +17681,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M5 21a2 2 0 0 1-2-2" />
   <path d="M3 14v1" />
   <path d="M3 9v1" />
-</svg>`,
-  ],
-  [
-    "kanban-square",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["kanban-square", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-kanban-square"
   xmlns="http://www.w3.org/2000/svg"
@@ -20656,11 +17699,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M8 7v7" />
   <path d="M12 7v4" />
   <path d="M16 7v9" />
-</svg>`,
-  ],
-  [
-    "kanban",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["kanban", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-kanban"
   xmlns="http://www.w3.org/2000/svg"
@@ -20676,11 +17716,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M5 3v14" />
   <path d="M12 3v8" />
   <path d="M19 3v18" />
-</svg>`,
-  ],
-  [
-    "kayak",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["kayak", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-kayak"
   xmlns="http://www.w3.org/2000/svg"
@@ -20697,11 +17734,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M20.97 3.61a.45.45 0 0 0-.58-.58C10.2 6.6 6.6 10.2 3.03 20.39a.45.45 0 0 0 .58.58C13.8 17.4 17.4 13.8 20.97 3.61" />
   <path d="m6.707 6.707 10.586 10.586" />
   <path d="M7 5a2 2 0 1 0-2 2h1a1 1 0 0 0 1-1z" />
-</svg>`,
-  ],
-  [
-    "key-round",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["key-round", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-key-round"
   xmlns="http://www.w3.org/2000/svg"
@@ -20716,11 +17750,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z" />
   <circle cx="16.5" cy="7.5" r=".5" fill="currentColor" />
-</svg>`,
-  ],
-  [
-    "key-square",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["key-square", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-key-square"
   xmlns="http://www.w3.org/2000/svg"
@@ -20736,11 +17767,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12.4 2.7a2.5 2.5 0 0 1 3.4 0l5.5 5.5a2.5 2.5 0 0 1 0 3.4l-3.7 3.7a2.5 2.5 0 0 1-3.4 0L8.7 9.8a2.5 2.5 0 0 1 0-3.4z" />
   <path d="m14 7 3 3" />
   <path d="m9.4 10.6-6.814 6.814A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814" />
-</svg>`,
-  ],
-  [
-    "key",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["key", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-key"
   xmlns="http://www.w3.org/2000/svg"
@@ -20756,11 +17784,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4" />
   <path d="m21 2-9.6 9.6" />
   <circle cx="7.5" cy="15.5" r="5.5" />
-</svg>`,
-  ],
-  [
-    "keyboard-music",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["keyboard-music", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-keyboard-music"
   xmlns="http://www.w3.org/2000/svg"
@@ -20782,11 +17807,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M10 12v4" />
   <path d="M14 12v4" />
   <path d="M18 12v4" />
-</svg>`,
-  ],
-  [
-    "keyboard-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["keyboard-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-keyboard-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -20809,11 +17831,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M20 20H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2" />
   <path d="M6 8h.01" />
   <path d="M8 12h.01" />
-</svg>`,
-  ],
-  [
-    "keyboard",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["keyboard", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-keyboard"
   xmlns="http://www.w3.org/2000/svg"
@@ -20835,11 +17854,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M7 16h10" />
   <path d="M8 12h.01" />
   <rect width="20" height="16" x="2" y="4" rx="2" />
-</svg>`,
-  ],
-  [
-    "lamp-ceiling",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["lamp-ceiling", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-lamp-ceiling"
   xmlns="http://www.w3.org/2000/svg"
@@ -20855,11 +17871,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 2v5" />
   <path d="M14.829 15.998a3 3 0 1 1-5.658 0" />
   <path d="M20.92 14.606A1 1 0 0 1 20 16H4a1 1 0 0 1-.92-1.394l3-7A1 1 0 0 1 7 7h10a1 1 0 0 1 .92.606z" />
-</svg>`,
-  ],
-  [
-    "lamp-desk",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["lamp-desk", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-lamp-desk"
   xmlns="http://www.w3.org/2000/svg"
@@ -20876,11 +17889,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m14.207 4.793-3.414 3.414" />
   <path d="M3 20a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v1a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z" />
   <path d="m9.086 6.5-4.793 4.793a1 1 0 0 0-.18 1.17L7 18" />
-</svg>`,
-  ],
-  [
-    "lamp-floor",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["lamp-floor", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-lamp-floor"
   xmlns="http://www.w3.org/2000/svg"
@@ -20896,11 +17906,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 10v12" />
   <path d="M17.929 7.629A1 1 0 0 1 17 9H7a1 1 0 0 1-.928-1.371l2-5A1 1 0 0 1 9 2h6a1 1 0 0 1 .928.629z" />
   <path d="M9 22h6" />
-</svg>`,
-  ],
-  [
-    "lamp-wall-down",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["lamp-wall-down", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-lamp-wall-down"
   xmlns="http://www.w3.org/2000/svg"
@@ -20916,11 +17923,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M19.929 18.629A1 1 0 0 1 19 20H9a1 1 0 0 1-.928-1.371l2-5A1 1 0 0 1 11 13h6a1 1 0 0 1 .928.629z" />
   <path d="M6 3a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" />
   <path d="M8 6h4a2 2 0 0 1 2 2v5" />
-</svg>`,
-  ],
-  [
-    "lamp-wall-up",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["lamp-wall-up", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-lamp-wall-up"
   xmlns="http://www.w3.org/2000/svg"
@@ -20936,11 +17940,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M19.929 9.629A1 1 0 0 1 19 11H9a1 1 0 0 1-.928-1.371l2-5A1 1 0 0 1 11 4h6a1 1 0 0 1 .928.629z" />
   <path d="M6 15a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2H5a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1z" />
   <path d="M8 18h4a2 2 0 0 0 2-2v-5" />
-</svg>`,
-  ],
-  [
-    "lamp",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["lamp", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-lamp"
   xmlns="http://www.w3.org/2000/svg"
@@ -20956,11 +17957,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 12v6" />
   <path d="M4.077 10.615A1 1 0 0 0 5 12h14a1 1 0 0 0 .923-1.385l-3.077-7.384A2 2 0 0 0 15 2H9a2 2 0 0 0-1.846 1.23Z" />
   <path d="M8 20a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v1a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1z" />
-</svg>`,
-  ],
-  [
-    "land-plot",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["land-plot", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-land-plot"
   xmlns="http://www.w3.org/2000/svg"
@@ -20977,11 +17975,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m8 11.99-5.5 3.14a1 1 0 0 0 0 1.74l8.5 4.86a2 2 0 0 0 2 0l8.5-4.86a1 1 0 0 0 0-1.74L16 12" />
   <path d="m6.49 12.85 11.02 6.3" />
   <path d="M17.51 12.85 6.5 19.15" />
-</svg>`,
-  ],
-  [
-    "landmark",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["landmark", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-landmark"
   xmlns="http://www.w3.org/2000/svg"
@@ -21000,11 +17995,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M18 18v-7" />
   <path d="M3 22h18" />
   <path d="M6 18v-7" />
-</svg>`,
-  ],
-  [
-    "languages",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["languages", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-languages"
   xmlns="http://www.w3.org/2000/svg"
@@ -21023,11 +18015,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M7 2h1" />
   <path d="m22 22-5-10-5 10" />
   <path d="M14 18h6" />
-</svg>`,
-  ],
-  [
-    "laptop-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["laptop-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-laptop-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -21042,11 +18031,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <rect width="18" height="12" x="3" y="4" rx="2" ry="2" />
   <line x1="2" x2="22" y1="20" y2="20" />
-</svg>`,
-  ],
-  [
-    "laptop-minimal-check",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["laptop-minimal-check", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-laptop-minimal-check"
   xmlns="http://www.w3.org/2000/svg"
@@ -21062,11 +18048,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M2 20h20" />
   <path d="m9 10 2 2 4-4" />
   <rect x="3" y="4" width="18" height="12" rx="2" />
-</svg>`,
-  ],
-  [
-    "laptop-minimal",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["laptop-minimal", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-laptop-minimal"
   xmlns="http://www.w3.org/2000/svg"
@@ -21081,11 +18064,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <rect width="18" height="12" x="3" y="4" rx="2" ry="2" />
   <line x1="2" x2="22" y1="20" y2="20" />
-</svg>`,
-  ],
-  [
-    "laptop",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["laptop", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-laptop"
   xmlns="http://www.w3.org/2000/svg"
@@ -21100,11 +18080,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M18 5a2 2 0 0 1 2 2v8.526a2 2 0 0 0 .212.897l1.068 2.127a1 1 0 0 1-.9 1.45H3.62a1 1 0 0 1-.9-1.45l1.068-2.127A2 2 0 0 0 4 15.526V7a2 2 0 0 1 2-2z" />
   <path d="M20.054 15.987H3.946" />
-</svg>`,
-  ],
-  [
-    "lasso-select",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["lasso-select", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-lasso-select"
   xmlns="http://www.w3.org/2000/svg"
@@ -21122,11 +18099,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3.34 14A6.8 6.8 0 0 1 2 10c0-4.42 4.48-8 10-8s10 3.58 10 8a7.19 7.19 0 0 1-.33 2" />
   <path d="M5 18a2 2 0 1 0 0-4 2 2 0 0 0 0 4z" />
   <path d="M14.33 22h-.09a.35.35 0 0 1-.24-.32v-10a.34.34 0 0 1 .33-.34c.08 0 .15.03.21.08l7.34 6a.33.33 0 0 1-.21.59h-4.49l-2.57 3.85a.35.35 0 0 1-.28.14z" />
-</svg>`,
-  ],
-  [
-    "lasso",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["lasso", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-lasso"
   xmlns="http://www.w3.org/2000/svg"
@@ -21142,11 +18116,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3.704 14.467a10 8 0 1 1 3.115 2.375" />
   <path d="M7 22a5 5 0 0 1-2-3.994" />
   <circle cx="5" cy="16" r="2" />
-</svg>`,
-  ],
-  [
-    "laugh",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["laugh", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-laugh"
   xmlns="http://www.w3.org/2000/svg"
@@ -21163,11 +18134,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M18 13a6 6 0 0 1-6 5 6 6 0 0 1-6-5h12Z" />
   <line x1="9" x2="9.01" y1="9" y2="9" />
   <line x1="15" x2="15.01" y1="9" y2="9" />
-</svg>`,
-  ],
-  [
-    "layers-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["layers-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-layers-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -21182,11 +18150,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M13 13.74a2 2 0 0 1-2 0L2.5 8.87a1 1 0 0 1 0-1.74L11 2.26a2 2 0 0 1 2 0l8.5 4.87a1 1 0 0 1 0 1.74z" />
   <path d="m20 14.285 1.5.845a1 1 0 0 1 0 1.74L13 21.74a2 2 0 0 1-2 0l-8.5-4.87a1 1 0 0 1 0-1.74l1.5-.845" />
-</svg>`,
-  ],
-  [
-    "layers-3",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["layers-3", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-layers-3"
   xmlns="http://www.w3.org/2000/svg"
@@ -21202,11 +18167,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z" />
   <path d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12" />
   <path d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17" />
-</svg>`,
-  ],
-  [
-    "layers-plus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["layers-plus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-layers-plus"
   xmlns="http://www.w3.org/2000/svg"
@@ -21224,11 +18186,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M19 14v6" />
   <path d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 .825.178" />
   <path d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l2.116-.962" />
-</svg>`,
-  ],
-  [
-    "layers",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["layers", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-layers"
   xmlns="http://www.w3.org/2000/svg"
@@ -21244,11 +18203,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z" />
   <path d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12" />
   <path d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17" />
-</svg>`,
-  ],
-  [
-    "layout-dashboard",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["layout-dashboard", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-layout-dashboard"
   xmlns="http://www.w3.org/2000/svg"
@@ -21265,11 +18221,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="7" height="5" x="14" y="3" rx="1" />
   <rect width="7" height="9" x="14" y="12" rx="1" />
   <rect width="7" height="5" x="3" y="16" rx="1" />
-</svg>`,
-  ],
-  [
-    "layout-grid",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["layout-grid", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-layout-grid"
   xmlns="http://www.w3.org/2000/svg"
@@ -21286,11 +18239,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="7" height="7" x="14" y="3" rx="1" />
   <rect width="7" height="7" x="14" y="14" rx="1" />
   <rect width="7" height="7" x="3" y="14" rx="1" />
-</svg>`,
-  ],
-  [
-    "layout-list",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["layout-list", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-layout-list"
   xmlns="http://www.w3.org/2000/svg"
@@ -21309,11 +18259,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 9h7" />
   <path d="M14 15h7" />
   <path d="M14 20h7" />
-</svg>`,
-  ],
-  [
-    "layout-panel-left",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["layout-panel-left", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-layout-panel-left"
   xmlns="http://www.w3.org/2000/svg"
@@ -21329,11 +18276,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="7" height="18" x="3" y="3" rx="1" />
   <rect width="7" height="7" x="14" y="3" rx="1" />
   <rect width="7" height="7" x="14" y="14" rx="1" />
-</svg>`,
-  ],
-  [
-    "layout-panel-top",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["layout-panel-top", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-layout-panel-top"
   xmlns="http://www.w3.org/2000/svg"
@@ -21349,11 +18293,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="18" height="7" x="3" y="3" rx="1" />
   <rect width="7" height="7" x="3" y="14" rx="1" />
   <rect width="7" height="7" x="14" y="14" rx="1" />
-</svg>`,
-  ],
-  [
-    "layout-template",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["layout-template", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-layout-template"
   xmlns="http://www.w3.org/2000/svg"
@@ -21369,11 +18310,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="18" height="7" x="3" y="3" rx="1" />
   <rect width="9" height="7" x="3" y="14" rx="1" />
   <rect width="5" height="7" x="16" y="14" rx="1" />
-</svg>`,
-  ],
-  [
-    "layout",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["layout", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-layout"
   xmlns="http://www.w3.org/2000/svg"
@@ -21389,11 +18327,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="M3 9h18" />
   <path d="M9 21V9" />
-</svg>`,
-  ],
-  [
-    "leaf",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["leaf", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-leaf"
   xmlns="http://www.w3.org/2000/svg"
@@ -21408,11 +18343,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z" />
   <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12" />
-</svg>`,
-  ],
-  [
-    "leafy-green",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["leafy-green", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-leafy-green"
   xmlns="http://www.w3.org/2000/svg"
@@ -21427,11 +18359,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M2 22c1.25-.987 2.27-1.975 3.9-2.2a5.56 5.56 0 0 1 3.8 1.5 4 4 0 0 0 6.187-2.353 3.5 3.5 0 0 0 3.69-5.116A3.5 3.5 0 0 0 20.95 8 3.5 3.5 0 1 0 16 3.05a3.5 3.5 0 0 0-5.831 1.373 3.5 3.5 0 0 0-5.116 3.69 4 4 0 0 0-2.348 6.155C3.499 15.42 4.409 16.712 4.2 18.1 3.926 19.743 3.014 20.732 2 22" />
   <path d="M2 22 17 7" />
-</svg>`,
-  ],
-  [
-    "lectern",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["lectern", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-lectern"
   xmlns="http://www.w3.org/2000/svg"
@@ -21447,11 +18376,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M16 12h3a2 2 0 0 0 1.902-1.38l1.056-3.333A1 1 0 0 0 21 6H3a1 1 0 0 0-.958 1.287l1.056 3.334A2 2 0 0 0 5 12h3" />
   <path d="M18 6V3a1 1 0 0 0-1-1h-3" />
   <rect width="8" height="12" x="8" y="10" rx="1" />
-</svg>`,
-  ],
-  [
-    "letter-text",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["letter-text", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-letter-text"
   xmlns="http://www.w3.org/2000/svg"
@@ -21469,11 +18395,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3 19h18" />
   <path d="m3 12 3.553-7.724a.5.5 0 0 1 .894 0L11 12" />
   <path d="M3.92 10h6.16" />
-</svg>`,
-  ],
-  [
-    "library-big",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["library-big", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-library-big"
   xmlns="http://www.w3.org/2000/svg"
@@ -21489,11 +18412,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="8" height="18" x="3" y="3" rx="1" />
   <path d="M7 3v18" />
   <path d="M20.4 18.9c.2.5-.1 1.1-.6 1.3l-1.9.7c-.5.2-1.1-.1-1.3-.6L11.1 5.1c-.2-.5.1-1.1.6-1.3l1.9-.7c.5-.2 1.1.1 1.3.6Z" />
-</svg>`,
-  ],
-  [
-    "library-square",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["library-square", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-library-square"
   xmlns="http://www.w3.org/2000/svg"
@@ -21510,11 +18430,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M7 7v10" />
   <path d="M11 7v10" />
   <path d="m15 7 2 10" />
-</svg>`,
-  ],
-  [
-    "library",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["library", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-library"
   xmlns="http://www.w3.org/2000/svg"
@@ -21531,11 +18448,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 6v14" />
   <path d="M8 8v12" />
   <path d="M4 4v16" />
-</svg>`,
-  ],
-  [
-    "life-buoy",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["life-buoy", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-life-buoy"
   xmlns="http://www.w3.org/2000/svg"
@@ -21554,11 +18468,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m14.83 14.83 4.24 4.24" />
   <path d="m9.17 14.83-4.24 4.24" />
   <circle cx="12" cy="12" r="4" />
-</svg>`,
-  ],
-  [
-    "ligature",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["ligature", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-ligature"
   xmlns="http://www.w3.org/2000/svg"
@@ -21576,11 +18487,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M6 12h4" />
   <path d="M6 20h4" />
   <path d="M8 20V8a4 4 0 0 1 7.464-2" />
-</svg>`,
-  ],
-  [
-    "lightbulb-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["lightbulb-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-lightbulb-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -21598,11 +18506,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M6.3 6.3a4.67 4.67 0 0 0 1.2 5.2c.7.7 1.3 1.5 1.5 2.5" />
   <path d="M9 18h6" />
   <path d="M10 22h4" />
-</svg>`,
-  ],
-  [
-    "lightbulb",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["lightbulb", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-lightbulb"
   xmlns="http://www.w3.org/2000/svg"
@@ -21618,11 +18523,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5" />
   <path d="M9 18h6" />
   <path d="M10 22h4" />
-</svg>`,
-  ],
-  [
-    "line-chart",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["line-chart", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-line-chart"
   xmlns="http://www.w3.org/2000/svg"
@@ -21637,11 +18539,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M3 3v16a2 2 0 0 0 2 2h16" />
   <path d="m19 9-5 5-4-4-3 3" />
-</svg>`,
-  ],
-  [
-    "line-squiggle",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["line-squiggle", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-line-squiggle"
   xmlns="http://www.w3.org/2000/svg"
@@ -21655,11 +18554,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M7 3.5c5-2 7 2.5 3 4C1.5 10 2 15 5 16c5 2 9-10 14-7s.5 13.5-4 12c-5-2.5.5-11 6-2" />
-</svg>`,
-  ],
-  [
-    "link-2-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["link-2-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-link-2-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -21676,11 +18572,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M15 7h2a5 5 0 0 1 4 8" />
   <line x1="8" x2="12" y1="12" y2="12" />
   <line x1="2" x2="22" y1="2" y2="22" />
-</svg>`,
-  ],
-  [
-    "link-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["link-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-link-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -21696,11 +18589,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M9 17H7A5 5 0 0 1 7 7h2" />
   <path d="M15 7h2a5 5 0 1 1 0 10h-2" />
   <line x1="8" x2="16" y1="12" y2="12" />
-</svg>`,
-  ],
-  [
-    "link",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["link", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-link"
   xmlns="http://www.w3.org/2000/svg"
@@ -21715,11 +18605,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
   <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-</svg>`,
-  ],
-  [
-    "linkedin",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["linkedin", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-linkedin"
   xmlns="http://www.w3.org/2000/svg"
@@ -21735,11 +18622,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
   <rect width="4" height="12" x="2" y="9" />
   <circle cx="4" cy="4" r="2" />
-</svg>`,
-  ],
-  [
-    "list-check",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["list-check", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-list-check"
   xmlns="http://www.w3.org/2000/svg"
@@ -21756,11 +18640,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M16 12H3" />
   <path d="M11 19H3" />
   <path d="m15 18 2 2 4-4" />
-</svg>`,
-  ],
-  [
-    "list-checks",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["list-checks", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-list-checks"
   xmlns="http://www.w3.org/2000/svg"
@@ -21778,11 +18659,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M13 19h8" />
   <path d="m3 17 2 2 4-4" />
   <path d="m3 7 2 2 4-4" />
-</svg>`,
-  ],
-  [
-    "list-chevrons-down-up",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["list-chevrons-down-up", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-list-chevrons-down-up"
   xmlns="http://www.w3.org/2000/svg"
@@ -21800,11 +18678,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3 19h8" />
   <path d="m15 5 3 3 3-3" />
   <path d="m15 19 3-3 3 3" />
-</svg>`,
-  ],
-  [
-    "list-chevrons-up-down",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["list-chevrons-up-down", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-list-chevrons-up-down"
   xmlns="http://www.w3.org/2000/svg"
@@ -21822,11 +18697,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3 19h8" />
   <path d="m15 8 3-3 3 3" />
   <path d="m15 16 3 3 3-3" />
-</svg>`,
-  ],
-  [
-    "list-collapse",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["list-collapse", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-list-collapse"
   xmlns="http://www.w3.org/2000/svg"
@@ -21844,11 +18716,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M10 19h11" />
   <path d="m3 10 3-3-3-3" />
   <path d="m3 20 3-3-3-3" />
-</svg>`,
-  ],
-  [
-    "list-end",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["list-end", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-list-end"
   xmlns="http://www.w3.org/2000/svg"
@@ -21866,11 +18735,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M9 19H3" />
   <path d="m16 16-3 3 3 3" />
   <path d="M21 5v12a2 2 0 0 1-2 2h-6" />
-</svg>`,
-  ],
-  [
-    "list-filter-plus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["list-filter-plus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-list-filter-plus"
   xmlns="http://www.w3.org/2000/svg"
@@ -21888,11 +18754,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M9 19h6" />
   <path d="M16 5h6" />
   <path d="M19 8V2" />
-</svg>`,
-  ],
-  [
-    "list-filter",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["list-filter", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-list-filter"
   xmlns="http://www.w3.org/2000/svg"
@@ -21908,11 +18771,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M2 5h20" />
   <path d="M6 12h12" />
   <path d="M9 19h6" />
-</svg>`,
-  ],
-  [
-    "list-indent-decrease",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["list-indent-decrease", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-list-indent-decrease"
   xmlns="http://www.w3.org/2000/svg"
@@ -21929,11 +18789,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M21 12H11" />
   <path d="M21 19H11" />
   <path d="m7 8-4 4 4 4" />
-</svg>`,
-  ],
-  [
-    "list-indent-increase",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["list-indent-increase", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-list-indent-increase"
   xmlns="http://www.w3.org/2000/svg"
@@ -21950,11 +18807,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M21 12H11" />
   <path d="M21 19H11" />
   <path d="m3 8 4 4-4 4" />
-</svg>`,
-  ],
-  [
-    "list-minus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["list-minus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-list-minus"
   xmlns="http://www.w3.org/2000/svg"
@@ -21971,11 +18825,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M11 12H3" />
   <path d="M16 19H3" />
   <path d="M21 12h-6" />
-</svg>`,
-  ],
-  [
-    "list-music",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["list-music", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-list-music"
   xmlns="http://www.w3.org/2000/svg"
@@ -21993,11 +18844,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M11 19H3" />
   <path d="M21 16V5" />
   <circle cx="18" cy="16" r="3" />
-</svg>`,
-  ],
-  [
-    "list-ordered",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["list-ordered", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-list-ordered"
   xmlns="http://www.w3.org/2000/svg"
@@ -22016,11 +18864,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M4 4h1v5" />
   <path d="M4 9h2" />
   <path d="M6.5 20H3.4c0-1 2.6-1.925 2.6-3.5a1.5 1.5 0 0 0-2.6-1.02" />
-</svg>`,
-  ],
-  [
-    "list-plus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["list-plus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-list-plus"
   xmlns="http://www.w3.org/2000/svg"
@@ -22038,11 +18883,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M16 19H3" />
   <path d="M18 9v6" />
   <path d="M21 12h-6" />
-</svg>`,
-  ],
-  [
-    "list-restart",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["list-restart", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-list-restart"
   xmlns="http://www.w3.org/2000/svg"
@@ -22060,11 +18902,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M7 19H3" />
   <path d="M12 18a5 5 0 0 0 9-3 4.5 4.5 0 0 0-4.5-4.5c-1.33 0-2.54.54-3.41 1.41L11 14" />
   <path d="M11 10v4h4" />
-</svg>`,
-  ],
-  [
-    "list-start",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["list-start", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-list-start"
   xmlns="http://www.w3.org/2000/svg"
@@ -22082,11 +18921,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3 19h13" />
   <path d="m16 8-3-3 3-3" />
   <path d="M21 19V7a2 2 0 0 0-2-2h-6" />
-</svg>`,
-  ],
-  [
-    "list-todo",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["list-todo", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-list-todo"
   xmlns="http://www.w3.org/2000/svg"
@@ -22104,11 +18940,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M13 19h8" />
   <path d="m3 17 2 2 4-4" />
   <rect x="3" y="4" width="6" height="6" rx="1" />
-</svg>`,
-  ],
-  [
-    "list-tree",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["list-tree", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-list-tree"
   xmlns="http://www.w3.org/2000/svg"
@@ -22126,11 +18959,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M13 19h8" />
   <path d="M3 10a2 2 0 0 0 2 2h3" />
   <path d="M3 5v12a2 2 0 0 0 2 2h3" />
-</svg>`,
-  ],
-  [
-    "list-video",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["list-video", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-list-video"
   xmlns="http://www.w3.org/2000/svg"
@@ -22147,11 +18977,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M10 12H3" />
   <path d="M10 19H3" />
   <path d="M15 12.003a1 1 0 0 1 1.517-.859l4.997 2.997a1 1 0 0 1 0 1.718l-4.997 2.997a1 1 0 0 1-1.517-.86z" />
-</svg>`,
-  ],
-  [
-    "list-x",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["list-x", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-list-x"
   xmlns="http://www.w3.org/2000/svg"
@@ -22169,11 +18996,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M16 19H3" />
   <path d="m15.5 9.5 5 5" />
   <path d="m20.5 9.5-5 5" />
-</svg>`,
-  ],
-  [
-    "list",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["list", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-list"
   xmlns="http://www.w3.org/2000/svg"
@@ -22192,11 +19016,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M8 5h13" />
   <path d="M8 12h13" />
   <path d="M8 19h13" />
-</svg>`,
-  ],
-  [
-    "loader-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["loader-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-loader-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -22210,11 +19031,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-</svg>`,
-  ],
-  [
-    "loader-circle",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["loader-circle", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-loader-circle"
   xmlns="http://www.w3.org/2000/svg"
@@ -22228,11 +19046,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-</svg>`,
-  ],
-  [
-    "loader-pinwheel",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["loader-pinwheel", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-loader-pinwheel"
   xmlns="http://www.w3.org/2000/svg"
@@ -22249,11 +19064,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M7 20.7a1 1 0 1 1 5-8.7 1 1 0 1 0 5-8.6" />
   <path d="M7 3.3a1 1 0 1 1 5 8.6 1 1 0 1 0 5 8.6" />
   <circle cx="12" cy="12" r="10" />
-</svg>`,
-  ],
-  [
-    "loader",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["loader", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-loader"
   xmlns="http://www.w3.org/2000/svg"
@@ -22274,11 +19086,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m4.9 19.1 2.9-2.9" />
   <path d="M2 12h4" />
   <path d="m4.9 4.9 2.9 2.9" />
-</svg>`,
-  ],
-  [
-    "locate-fixed",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["locate-fixed", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-locate-fixed"
   xmlns="http://www.w3.org/2000/svg"
@@ -22297,11 +19106,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <line x1="12" x2="12" y1="19" y2="22" />
   <circle cx="12" cy="12" r="7" />
   <circle cx="12" cy="12" r="3" />
-</svg>`,
-  ],
-  [
-    "locate-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["locate-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-locate-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -22321,11 +19127,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M2 12h3" />
   <path d="m2 2 20 20" />
   <path d="M7.05 7.05a7 7 0 0 0 9.9 9.9" />
-</svg>`,
-  ],
-  [
-    "locate",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["locate", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-locate"
   xmlns="http://www.w3.org/2000/svg"
@@ -22343,11 +19146,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <line x1="12" x2="12" y1="2" y2="5" />
   <line x1="12" x2="12" y1="19" y2="22" />
   <circle cx="12" cy="12" r="7" />
-</svg>`,
-  ],
-  [
-    "location-edit",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["location-edit", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-location-edit"
   xmlns="http://www.w3.org/2000/svg"
@@ -22363,11 +19163,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M17.97 9.304A8 8 0 0 0 2 10c0 4.69 4.887 9.562 7.022 11.468" />
   <path d="M21.378 16.626a1 1 0 0 0-3.004-3.004l-4.01 4.012a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506z" />
   <circle cx="10" cy="10" r="3" />
-</svg>`,
-  ],
-  [
-    "lock-keyhole-open",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["lock-keyhole-open", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-lock-keyhole-open"
   xmlns="http://www.w3.org/2000/svg"
@@ -22383,11 +19180,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="12" cy="16" r="1" />
   <rect width="18" height="12" x="3" y="10" rx="2" />
   <path d="M7 10V7a5 5 0 0 1 9.33-2.5" />
-</svg>`,
-  ],
-  [
-    "lock-keyhole",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["lock-keyhole", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-lock-keyhole"
   xmlns="http://www.w3.org/2000/svg"
@@ -22403,11 +19197,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="12" cy="16" r="1" />
   <rect x="3" y="10" width="18" height="12" rx="2" />
   <path d="M7 10V7a5 5 0 0 1 10 0v3" />
-</svg>`,
-  ],
-  [
-    "lock-open",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["lock-open", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-lock-open"
   xmlns="http://www.w3.org/2000/svg"
@@ -22422,11 +19213,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
   <path d="M7 11V7a5 5 0 0 1 9.9-1" />
-</svg>`,
-  ],
-  [
-    "lock",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["lock", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-lock"
   xmlns="http://www.w3.org/2000/svg"
@@ -22441,11 +19229,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
   <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-</svg>`,
-  ],
-  [
-    "log-in",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["log-in", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-log-in"
   xmlns="http://www.w3.org/2000/svg"
@@ -22461,11 +19246,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m10 17 5-5-5-5" />
   <path d="M15 12H3" />
   <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
-</svg>`,
-  ],
-  [
-    "log-out",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["log-out", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-log-out"
   xmlns="http://www.w3.org/2000/svg"
@@ -22481,11 +19263,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m16 17 5-5-5-5" />
   <path d="M21 12H9" />
   <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-</svg>`,
-  ],
-  [
-    "logs",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["logs", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-logs"
   xmlns="http://www.w3.org/2000/svg"
@@ -22507,11 +19286,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M13 5h8" />
   <path d="M13 12h8" />
   <path d="M13 19h8" />
-</svg>`,
-  ],
-  [
-    "lollipop",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["lollipop", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-lollipop"
   xmlns="http://www.w3.org/2000/svg"
@@ -22527,11 +19303,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="11" cy="11" r="8" />
   <path d="m21 21-4.3-4.3" />
   <path d="M11 11a2 2 0 0 0 4 0 4 4 0 0 0-8 0 6 6 0 0 0 12 0" />
-</svg>`,
-  ],
-  [
-    "luggage",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["luggage", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-luggage"
   xmlns="http://www.w3.org/2000/svg"
@@ -22549,11 +19322,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M10 20h4" />
   <circle cx="16" cy="20" r="2" />
   <circle cx="8" cy="20" r="2" />
-</svg>`,
-  ],
-  [
-    "m-square",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["m-square", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-m-square"
   xmlns="http://www.w3.org/2000/svg"
@@ -22568,11 +19338,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M8 16V8.5a.5.5 0 0 1 .9-.3l2.7 3.599a.5.5 0 0 0 .8 0l2.7-3.6a.5.5 0 0 1 .9.3V16" />
   <rect x="3" y="3" width="18" height="18" rx="2" />
-</svg>`,
-  ],
-  [
-    "magnet",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["magnet", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-magnet"
   xmlns="http://www.w3.org/2000/svg"
@@ -22588,11 +19355,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m12 15 4 4" />
   <path d="M2.352 10.648a1.205 1.205 0 0 0 0 1.704l2.296 2.296a1.205 1.205 0 0 0 1.704 0l6.029-6.029a1 1 0 1 1 3 3l-6.029 6.029a1.205 1.205 0 0 0 0 1.704l2.296 2.296a1.205 1.205 0 0 0 1.704 0l6.365-6.367A1 1 0 0 0 8.716 4.282z" />
   <path d="m5 8 4 4" />
-</svg>`,
-  ],
-  [
-    "mail-check",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["mail-check", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-mail-check"
   xmlns="http://www.w3.org/2000/svg"
@@ -22608,11 +19372,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M22 13V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12c0 1.1.9 2 2 2h8" />
   <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
   <path d="m16 19 2 2 4-4" />
-</svg>`,
-  ],
-  [
-    "mail-minus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["mail-minus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-mail-minus"
   xmlns="http://www.w3.org/2000/svg"
@@ -22628,11 +19389,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M22 15V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12c0 1.1.9 2 2 2h8" />
   <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
   <path d="M16 19h6" />
-</svg>`,
-  ],
-  [
-    "mail-open",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["mail-open", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-mail-open"
   xmlns="http://www.w3.org/2000/svg"
@@ -22647,11 +19405,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M21.2 8.4c.5.38.8.97.8 1.6v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V10a2 2 0 0 1 .8-1.6l8-6a2 2 0 0 1 2.4 0l8 6Z" />
   <path d="m22 10-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 10" />
-</svg>`,
-  ],
-  [
-    "mail-plus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["mail-plus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-mail-plus"
   xmlns="http://www.w3.org/2000/svg"
@@ -22668,11 +19423,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
   <path d="M19 16v6" />
   <path d="M16 19h6" />
-</svg>`,
-  ],
-  [
-    "mail-question-mark",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["mail-question-mark", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-mail-question-mark"
   xmlns="http://www.w3.org/2000/svg"
@@ -22689,11 +19441,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
   <path d="M18 15.28c.2-.4.5-.8.9-1a2.1 2.1 0 0 1 2.6.4c.3.4.5.8.5 1.3 0 1.3-2 2-2 2" />
   <path d="M20 22v.01" />
-</svg>`,
-  ],
-  [
-    "mail-question",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["mail-question", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-mail-question"
   xmlns="http://www.w3.org/2000/svg"
@@ -22710,11 +19459,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
   <path d="M18 15.28c.2-.4.5-.8.9-1a2.1 2.1 0 0 1 2.6.4c.3.4.5.8.5 1.3 0 1.3-2 2-2 2" />
   <path d="M20 22v.01" />
-</svg>`,
-  ],
-  [
-    "mail-search",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["mail-search", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-mail-search"
   xmlns="http://www.w3.org/2000/svg"
@@ -22732,11 +19478,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M18 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
   <circle cx="18" cy="18" r="3" />
   <path d="m22 22-1.5-1.5" />
-</svg>`,
-  ],
-  [
-    "mail-warning",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["mail-warning", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-mail-warning"
   xmlns="http://www.w3.org/2000/svg"
@@ -22753,11 +19496,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
   <path d="M20 14v4" />
   <path d="M20 22v.01" />
-</svg>`,
-  ],
-  [
-    "mail-x",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["mail-x", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-mail-x"
   xmlns="http://www.w3.org/2000/svg"
@@ -22774,11 +19514,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
   <path d="m17 17 4 4" />
   <path d="m21 17-4 4" />
-</svg>`,
-  ],
-  [
-    "mail",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["mail", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-mail"
   xmlns="http://www.w3.org/2000/svg"
@@ -22793,11 +19530,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7" />
   <rect x="2" y="4" width="20" height="16" rx="2" />
-</svg>`,
-  ],
-  [
-    "mailbox",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["mailbox", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-mailbox"
   xmlns="http://www.w3.org/2000/svg"
@@ -22814,11 +19548,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <polyline points="15,9 18,9 18,11" />
   <path d="M6.5 5C9 5 11 7 11 9.5V17a2 2 0 0 1-2 2" />
   <line x1="6" x2="7" y1="10" y2="10" />
-</svg>`,
-  ],
-  [
-    "mails",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["mails", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-mails"
   xmlns="http://www.w3.org/2000/svg"
@@ -22834,11 +19565,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M17 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 1-1.732" />
   <path d="m22 5.5-6.419 4.179a2 2 0 0 1-2.162 0L7 5.5" />
   <rect x="7" y="3" width="15" height="12" rx="2" />
-</svg>`,
-  ],
-  [
-    "map-minus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["map-minus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-map-minus"
   xmlns="http://www.w3.org/2000/svg"
@@ -22855,11 +19583,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M15 5.764V14" />
   <path d="M21 18h-6" />
   <path d="M9 3.236v15" />
-</svg>`,
-  ],
-  [
-    "map-pin-check-inside",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["map-pin-check-inside", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-map-pin-check-inside"
   xmlns="http://www.w3.org/2000/svg"
@@ -22874,11 +19599,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0" />
   <path d="m9 10 2 2 4-4" />
-</svg>`,
-  ],
-  [
-    "map-pin-check",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["map-pin-check", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-map-pin-check"
   xmlns="http://www.w3.org/2000/svg"
@@ -22894,11 +19616,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M19.43 12.935c.357-.967.57-1.955.57-2.935a8 8 0 0 0-16 0c0 4.993 5.539 10.193 7.399 11.799a1 1 0 0 0 1.202 0 32.197 32.197 0 0 0 .813-.728" />
   <circle cx="12" cy="10" r="3" />
   <path d="m16 18 2 2 4-4" />
-</svg>`,
-  ],
-  [
-    "map-pin-house",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["map-pin-house", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-map-pin-house"
   xmlns="http://www.w3.org/2000/svg"
@@ -22915,11 +19634,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M18 10a8 8 0 0 0-16 0c0 4.993 5.539 10.193 7.399 11.799a1 1 0 0 0 .601.2" />
   <path d="M18 22v-3" />
   <circle cx="10" cy="10" r="3" />
-</svg>`,
-  ],
-  [
-    "map-pin-minus-inside",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["map-pin-minus-inside", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-map-pin-minus-inside"
   xmlns="http://www.w3.org/2000/svg"
@@ -22934,11 +19650,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0" />
   <path d="M9 10h6" />
-</svg>`,
-  ],
-  [
-    "map-pin-minus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["map-pin-minus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-map-pin-minus"
   xmlns="http://www.w3.org/2000/svg"
@@ -22954,11 +19667,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M18.977 14C19.6 12.701 20 11.343 20 10a8 8 0 0 0-16 0c0 4.993 5.539 10.193 7.399 11.799a1 1 0 0 0 1.202 0 32 32 0 0 0 .824-.738" />
   <circle cx="12" cy="10" r="3" />
   <path d="M16 18h6" />
-</svg>`,
-  ],
-  [
-    "map-pin-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["map-pin-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-map-pin-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -22976,11 +19686,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m2 2 20 20" />
   <path d="M8.475 2.818A8 8 0 0 1 20 10c0 1.183-.31 2.377-.81 3.533" />
   <path d="M9.13 9.13a3 3 0 0 0 3.74 3.74" />
-</svg>`,
-  ],
-  [
-    "map-pin-pen",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["map-pin-pen", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-map-pin-pen"
   xmlns="http://www.w3.org/2000/svg"
@@ -22996,11 +19703,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M17.97 9.304A8 8 0 0 0 2 10c0 4.69 4.887 9.562 7.022 11.468" />
   <path d="M21.378 16.626a1 1 0 0 0-3.004-3.004l-4.01 4.012a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506z" />
   <circle cx="10" cy="10" r="3" />
-</svg>`,
-  ],
-  [
-    "map-pin-plus-inside",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["map-pin-plus-inside", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-map-pin-plus-inside"
   xmlns="http://www.w3.org/2000/svg"
@@ -23016,11 +19720,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0" />
   <path d="M12 7v6" />
   <path d="M9 10h6" />
-</svg>`,
-  ],
-  [
-    "map-pin-plus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["map-pin-plus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-map-pin-plus"
   xmlns="http://www.w3.org/2000/svg"
@@ -23037,11 +19738,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="12" cy="10" r="3" />
   <path d="M16 18h6" />
   <path d="M19 15v6" />
-</svg>`,
-  ],
-  [
-    "map-pin-x-inside",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["map-pin-x-inside", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-map-pin-x-inside"
   xmlns="http://www.w3.org/2000/svg"
@@ -23057,11 +19755,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0" />
   <path d="m14.5 7.5-5 5" />
   <path d="m9.5 7.5 5 5" />
-</svg>`,
-  ],
-  [
-    "map-pin-x",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["map-pin-x", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-map-pin-x"
   xmlns="http://www.w3.org/2000/svg"
@@ -23078,11 +19773,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="12" cy="10" r="3" />
   <path d="m21.5 15.5-5 5" />
   <path d="m21.5 20.5-5-5" />
-</svg>`,
-  ],
-  [
-    "map-pin",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["map-pin", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-map-pin"
   xmlns="http://www.w3.org/2000/svg"
@@ -23097,11 +19789,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0" />
   <circle cx="12" cy="10" r="3" />
-</svg>`,
-  ],
-  [
-    "map-pinned",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["map-pinned", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-map-pinned"
   xmlns="http://www.w3.org/2000/svg"
@@ -23117,11 +19806,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M18 8c0 3.613-3.869 7.429-5.393 8.795a1 1 0 0 1-1.214 0C9.87 15.429 6 11.613 6 8a6 6 0 0 1 12 0" />
   <circle cx="12" cy="8" r="2" />
   <path d="M8.714 14h-3.71a1 1 0 0 0-.948.683l-2.004 6A1 1 0 0 0 3 22h18a1 1 0 0 0 .948-1.316l-2-6a1 1 0 0 0-.949-.684h-3.712" />
-</svg>`,
-  ],
-  [
-    "map-plus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["map-plus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-map-plus"
   xmlns="http://www.w3.org/2000/svg"
@@ -23139,11 +19825,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M18 15v6" />
   <path d="M21 18h-6" />
   <path d="M9 3.236v15" />
-</svg>`,
-  ],
-  [
-    "map",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["map", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-map"
   xmlns="http://www.w3.org/2000/svg"
@@ -23159,11 +19842,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z" />
   <path d="M15 5.764v15" />
   <path d="M9 3.236v15" />
-</svg>`,
-  ],
-  [
-    "mars-stroke",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["mars-stroke", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-mars-stroke"
   xmlns="http://www.w3.org/2000/svg"
@@ -23180,11 +19860,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M17 3h4v4" />
   <path d="m21 3-7.75 7.75" />
   <circle cx="9" cy="15" r="6" />
-</svg>`,
-  ],
-  [
-    "mars",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["mars", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-mars"
   xmlns="http://www.w3.org/2000/svg"
@@ -23200,11 +19877,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M16 3h5v5" />
   <path d="m21 3-6.75 6.75" />
   <circle cx="10" cy="14" r="6" />
-</svg>`,
-  ],
-  [
-    "martini",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["martini", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-martini"
   xmlns="http://www.w3.org/2000/svg"
@@ -23220,11 +19894,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M8 22h8" />
   <path d="M12 11v11" />
   <path d="m19 3-7 8-7-8Z" />
-</svg>`,
-  ],
-  [
-    "maximize-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["maximize-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-maximize-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -23241,11 +19912,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m21 3-7 7" />
   <path d="m3 21 7-7" />
   <path d="M9 21H3v-6" />
-</svg>`,
-  ],
-  [
-    "maximize",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["maximize", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-maximize"
   xmlns="http://www.w3.org/2000/svg"
@@ -23262,11 +19930,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M21 8V5a2 2 0 0 0-2-2h-3" />
   <path d="M3 16v3a2 2 0 0 0 2 2h3" />
   <path d="M16 21h3a2 2 0 0 0 2-2v-3" />
-</svg>`,
-  ],
-  [
-    "medal",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["medal", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-medal"
   xmlns="http://www.w3.org/2000/svg"
@@ -23285,11 +19950,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M8 7h8" />
   <circle cx="12" cy="17" r="5" />
   <path d="M12 18v-2h-.5" />
-</svg>`,
-  ],
-  [
-    "megaphone-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["megaphone-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-megaphone-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -23307,11 +19969,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m2 2 20 20" />
   <path d="M6 14a12 12 0 0 0 2.4 7.2 2 2 0 0 0 3.2-2.4A8 8 0 0 1 10 14" />
   <path d="M8 8v6" />
-</svg>`,
-  ],
-  [
-    "megaphone",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["megaphone", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-megaphone"
   xmlns="http://www.w3.org/2000/svg"
@@ -23327,11 +19986,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M11 6a13 13 0 0 0 8.4-2.8A1 1 0 0 1 21 4v12a1 1 0 0 1-1.6.8A13 13 0 0 0 11 14H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z" />
   <path d="M6 14a12 12 0 0 0 2.4 7.2 2 2 0 0 0 3.2-2.4A8 8 0 0 1 10 14" />
   <path d="M8 6v8" />
-</svg>`,
-  ],
-  [
-    "meh",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["meh", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-meh"
   xmlns="http://www.w3.org/2000/svg"
@@ -23348,11 +20004,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <line x1="8" x2="16" y1="15" y2="15" />
   <line x1="9" x2="9.01" y1="9" y2="9" />
   <line x1="15" x2="15.01" y1="9" y2="9" />
-</svg>`,
-  ],
-  [
-    "memory-stick",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["memory-stick", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-memory-stick"
   xmlns="http://www.w3.org/2000/svg"
@@ -23376,11 +20029,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M8 12v-2" />
   <path d="M8 18v-2" />
   <rect x="2" y="6" width="20" height="10" rx="2" />
-</svg>`,
-  ],
-  [
-    "menu-square",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["menu-square", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-menu-square"
   xmlns="http://www.w3.org/2000/svg"
@@ -23397,11 +20047,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M7 8h10" />
   <path d="M7 12h10" />
   <path d="M7 16h10" />
-</svg>`,
-  ],
-  [
-    "menu",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["menu", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-menu"
   xmlns="http://www.w3.org/2000/svg"
@@ -23417,11 +20064,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M4 5h16" />
   <path d="M4 12h16" />
   <path d="M4 19h16" />
-</svg>`,
-  ],
-  [
-    "merge",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["merge", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-merge"
   xmlns="http://www.w3.org/2000/svg"
@@ -23437,11 +20081,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m8 6 4-4 4 4" />
   <path d="M12 2v10.3a4 4 0 0 1-1.172 2.872L4 22" />
   <path d="m20 22-5-5" />
-</svg>`,
-  ],
-  [
-    "message-circle-code",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["message-circle-code", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-message-circle-code"
   xmlns="http://www.w3.org/2000/svg"
@@ -23457,11 +20098,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m10 9-3 3 3 3" />
   <path d="m14 15 3-3-3-3" />
   <path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719" />
-</svg>`,
-  ],
-  [
-    "message-circle-dashed",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["message-circle-dashed", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-message-circle-dashed"
   xmlns="http://www.w3.org/2000/svg"
@@ -23482,11 +20120,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M21.818 10.1a10 10 0 0 1 0 3.8" />
   <path d="M3.721 6.391a10 10 0 0 1 2.7-2.69" />
   <path d="m6.163 21.117-2.906.85a1 1 0 0 1-1.236-1.169l.965-2.98" />
-</svg>`,
-  ],
-  [
-    "message-circle-heart",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["message-circle-heart", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-message-circle-heart"
   xmlns="http://www.w3.org/2000/svg"
@@ -23501,11 +20136,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719" />
   <path d="M7.828 13.07A3 3 0 0 1 12 8.764a3 3 0 0 1 5.004 2.224 3 3 0 0 1-.832 2.083l-3.447 3.62a1 1 0 0 1-1.45-.001z" />
-</svg>`,
-  ],
-  [
-    "message-circle-more",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["message-circle-more", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-message-circle-more"
   xmlns="http://www.w3.org/2000/svg"
@@ -23522,11 +20154,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M8 12h.01" />
   <path d="M12 12h.01" />
   <path d="M16 12h.01" />
-</svg>`,
-  ],
-  [
-    "message-circle-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["message-circle-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-message-circle-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -23542,11 +20171,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m2 2 20 20" />
   <path d="M4.93 4.929a10 10 0 0 0-1.938 11.412 2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 0 0 11.302-1.989" />
   <path d="M8.35 2.69A10 10 0 0 1 21.3 15.65" />
-</svg>`,
-  ],
-  [
-    "message-circle-plus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["message-circle-plus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-message-circle-plus"
   xmlns="http://www.w3.org/2000/svg"
@@ -23562,11 +20188,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719" />
   <path d="M8 12h8" />
   <path d="M12 8v8" />
-</svg>`,
-  ],
-  [
-    "message-circle-question-mark",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["message-circle-question-mark", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-message-circle-question-mark"
   xmlns="http://www.w3.org/2000/svg"
@@ -23582,11 +20205,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719" />
   <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
   <path d="M12 17h.01" />
-</svg>`,
-  ],
-  [
-    "message-circle-question",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["message-circle-question", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-message-circle-question"
   xmlns="http://www.w3.org/2000/svg"
@@ -23602,11 +20222,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719" />
   <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
   <path d="M12 17h.01" />
-</svg>`,
-  ],
-  [
-    "message-circle-reply",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["message-circle-reply", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-message-circle-reply"
   xmlns="http://www.w3.org/2000/svg"
@@ -23622,11 +20239,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719" />
   <path d="m10 15-3-3 3-3" />
   <path d="M7 12h8a2 2 0 0 1 2 2v1" />
-</svg>`,
-  ],
-  [
-    "message-circle-warning",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["message-circle-warning", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-message-circle-warning"
   xmlns="http://www.w3.org/2000/svg"
@@ -23642,11 +20256,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719" />
   <path d="M12 8v4" />
   <path d="M12 16h.01" />
-</svg>`,
-  ],
-  [
-    "message-circle-x",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["message-circle-x", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-message-circle-x"
   xmlns="http://www.w3.org/2000/svg"
@@ -23662,11 +20273,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719" />
   <path d="m15 9-6 6" />
   <path d="m9 9 6 6" />
-</svg>`,
-  ],
-  [
-    "message-circle",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["message-circle", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-message-circle"
   xmlns="http://www.w3.org/2000/svg"
@@ -23680,11 +20288,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719" />
-</svg>`,
-  ],
-  [
-    "message-square-code",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["message-square-code", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-message-square-code"
   xmlns="http://www.w3.org/2000/svg"
@@ -23700,11 +20305,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z" />
   <path d="m10 8-3 3 3 3" />
   <path d="m14 14 3-3-3-3" />
-</svg>`,
-  ],
-  [
-    "message-square-dashed",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["message-square-dashed", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-message-square-dashed"
   xmlns="http://www.w3.org/2000/svg"
@@ -23727,11 +20329,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M4 3a2 2 0 0 0-2 2v1" />
   <path d="M8 19h2" />
   <path d="M8 3h2" />
-</svg>`,
-  ],
-  [
-    "message-square-diff",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["message-square-diff", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-message-square-diff"
   xmlns="http://www.w3.org/2000/svg"
@@ -23748,11 +20347,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M10 15h4" />
   <path d="M10 9h4" />
   <path d="M12 7v4" />
-</svg>`,
-  ],
-  [
-    "message-square-dot",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["message-square-dot", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-message-square-dot"
   xmlns="http://www.w3.org/2000/svg"
@@ -23767,11 +20363,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M12.7 3H4a2 2 0 0 0-2 2v16.286a.71.71 0 0 0 1.212.502l2.202-2.202A2 2 0 0 1 6.828 19H20a2 2 0 0 0 2-2v-4.7" />
   <circle cx="19" cy="6" r="3" />
-</svg>`,
-  ],
-  [
-    "message-square-heart",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["message-square-heart", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-message-square-heart"
   xmlns="http://www.w3.org/2000/svg"
@@ -23786,11 +20379,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z" />
   <path d="M7.5 9.5c0 .687.265 1.383.697 1.844l3.009 3.264a1.14 1.14 0 0 0 .407.314 1 1 0 0 0 .783-.004 1.14 1.14 0 0 0 .398-.31l3.008-3.264A2.77 2.77 0 0 0 16.5 9.5 2.5 2.5 0 0 0 12 8a2.5 2.5 0 0 0-4.5 1.5" />
-</svg>`,
-  ],
-  [
-    "message-square-lock",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["message-square-lock", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-message-square-lock"
   xmlns="http://www.w3.org/2000/svg"
@@ -23806,11 +20396,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M22 8.5V5a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v16.286a.71.71 0 0 0 1.212.502l2.202-2.202A2 2 0 0 1 6.828 19H10" />
   <path d="M20 15v-2a2 2 0 0 0-4 0v2" />
   <rect x="14" y="15" width="8" height="5" rx="1" />
-</svg>`,
-  ],
-  [
-    "message-square-more",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["message-square-more", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-message-square-more"
   xmlns="http://www.w3.org/2000/svg"
@@ -23827,11 +20414,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 11h.01" />
   <path d="M16 11h.01" />
   <path d="M8 11h.01" />
-</svg>`,
-  ],
-  [
-    "message-square-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["message-square-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-message-square-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -23847,11 +20431,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M19 19H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.7.7 0 0 1 2 21.286V5a2 2 0 0 1 1.184-1.826" />
   <path d="m2 2 20 20" />
   <path d="M8.656 3H20a2 2 0 0 1 2 2v11.344" />
-</svg>`,
-  ],
-  [
-    "message-square-plus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["message-square-plus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-message-square-plus"
   xmlns="http://www.w3.org/2000/svg"
@@ -23867,11 +20448,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z" />
   <path d="M12 8v6" />
   <path d="M9 11h6" />
-</svg>`,
-  ],
-  [
-    "message-square-quote",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["message-square-quote", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-message-square-quote"
   xmlns="http://www.w3.org/2000/svg"
@@ -23887,11 +20465,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 14a2 2 0 0 0 2-2V8h-2" />
   <path d="M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z" />
   <path d="M8 14a2 2 0 0 0 2-2V8H8" />
-</svg>`,
-  ],
-  [
-    "message-square-reply",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["message-square-reply", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-message-square-reply"
   xmlns="http://www.w3.org/2000/svg"
@@ -23907,11 +20482,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z" />
   <path d="m10 8-3 3 3 3" />
   <path d="M17 14v-1a2 2 0 0 0-2-2H7" />
-</svg>`,
-  ],
-  [
-    "message-square-share",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["message-square-share", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-message-square-share"
   xmlns="http://www.w3.org/2000/svg"
@@ -23927,11 +20499,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 3H4a2 2 0 0 0-2 2v16.286a.71.71 0 0 0 1.212.502l2.202-2.202A2 2 0 0 1 6.828 19H20a2 2 0 0 0 2-2v-4" />
   <path d="M16 3h6v6" />
   <path d="m16 9 6-6" />
-</svg>`,
-  ],
-  [
-    "message-square-text",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["message-square-text", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-message-square-text"
   xmlns="http://www.w3.org/2000/svg"
@@ -23948,11 +20517,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M7 11h10" />
   <path d="M7 15h6" />
   <path d="M7 7h8" />
-</svg>`,
-  ],
-  [
-    "message-square-warning",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["message-square-warning", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-message-square-warning"
   xmlns="http://www.w3.org/2000/svg"
@@ -23968,11 +20534,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z" />
   <path d="M12 15h.01" />
   <path d="M12 7v4" />
-</svg>`,
-  ],
-  [
-    "message-square-x",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["message-square-x", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-message-square-x"
   xmlns="http://www.w3.org/2000/svg"
@@ -23988,11 +20551,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z" />
   <path d="m14.5 8.5-5 5" />
   <path d="m9.5 8.5 5 5" />
-</svg>`,
-  ],
-  [
-    "message-square",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["message-square", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-message-square"
   xmlns="http://www.w3.org/2000/svg"
@@ -24006,11 +20566,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z" />
-</svg>`,
-  ],
-  [
-    "messages-square",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["messages-square", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-messages-square"
   xmlns="http://www.w3.org/2000/svg"
@@ -24025,11 +20582,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M16 10a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 14.286V4a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
   <path d="M20 9a2 2 0 0 1 2 2v10.286a.71.71 0 0 1-1.212.502l-2.202-2.202A2 2 0 0 0 17.172 19H10a2 2 0 0 1-2-2v-1" />
-</svg>`,
-  ],
-  [
-    "mic-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["mic-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-mic-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -24045,11 +20599,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m11 7.601-5.994 8.19a1 1 0 0 0 .1 1.298l.817.818a1 1 0 0 0 1.314.087L15.09 12" />
   <path d="M16.5 21.174C15.5 20.5 14.372 20 13 20c-2.058 0-3.928 2.356-6 2-2.072-.356-2.775-3.369-1.5-4.5" />
   <circle cx="16" cy="7" r="5" />
-</svg>`,
-  ],
-  [
-    "mic-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["mic-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-mic-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -24068,11 +20619,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M18.89 13.23A7 7 0 0 0 19 12v-2" />
   <path d="m2 2 20 20" />
   <path d="M9 9v3a3 3 0 0 0 5.12 2.12" />
-</svg>`,
-  ],
-  [
-    "mic-vocal",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["mic-vocal", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-mic-vocal"
   xmlns="http://www.w3.org/2000/svg"
@@ -24088,11 +20636,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m11 7.601-5.994 8.19a1 1 0 0 0 .1 1.298l.817.818a1 1 0 0 0 1.314.087L15.09 12" />
   <path d="M16.5 21.174C15.5 20.5 14.372 20 13 20c-2.058 0-3.928 2.356-6 2-2.072-.356-2.775-3.369-1.5-4.5" />
   <circle cx="16" cy="7" r="5" />
-</svg>`,
-  ],
-  [
-    "mic",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["mic", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-mic"
   xmlns="http://www.w3.org/2000/svg"
@@ -24108,11 +20653,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 19v3" />
   <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
   <rect x="9" y="2" width="6" height="13" rx="3" />
-</svg>`,
-  ],
-  [
-    "microchip",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["microchip", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-microchip"
   xmlns="http://www.w3.org/2000/svg"
@@ -24135,11 +20677,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M4 18h2" />
   <path d="M4 6h2" />
   <rect x="6" y="2" width="12" height="20" rx="2" />
-</svg>`,
-  ],
-  [
-    "microscope",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["microscope", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-microscope"
   xmlns="http://www.w3.org/2000/svg"
@@ -24158,11 +20697,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M9 14h2" />
   <path d="M9 12a2 2 0 0 1-2-2V6h6v4a2 2 0 0 1-2 2Z" />
   <path d="M12 6V3a1 1 0 0 0-1-1H9a1 1 0 0 0-1 1v3" />
-</svg>`,
-  ],
-  [
-    "microwave",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["microwave", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-microwave"
   xmlns="http://www.w3.org/2000/svg"
@@ -24180,11 +20716,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M18 8v7" />
   <path d="M6 19v2" />
   <path d="M18 19v2" />
-</svg>`,
-  ],
-  [
-    "milestone",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["milestone", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-milestone"
   xmlns="http://www.w3.org/2000/svg"
@@ -24200,11 +20733,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 13v8" />
   <path d="M12 3v3" />
   <path d="M4 6a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1h13a2 2 0 0 0 1.152-.365l3.424-2.317a1 1 0 0 0 0-1.635l-3.424-2.318A2 2 0 0 0 17 6z" />
-</svg>`,
-  ],
-  [
-    "milk-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["milk-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-milk-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -24221,11 +20751,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M9 2v1.343M15 2v2.789a4 4 0 0 0 .672 2.219l.656.984a4 4 0 0 1 .672 2.22v1.131M7.8 7.8l-.128.192A4 4 0 0 0 7 10.212V20a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-3" />
   <path d="M7 15a6.47 6.47 0 0 1 5 0 6.472 6.472 0 0 0 3.435.435" />
   <line x1="2" x2="22" y1="2" y2="22" />
-</svg>`,
-  ],
-  [
-    "milk",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["milk", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-milk"
   xmlns="http://www.w3.org/2000/svg"
@@ -24241,11 +20768,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M8 2h8" />
   <path d="M9 2v2.789a4 4 0 0 1-.672 2.219l-.656.984A4 4 0 0 0 7 10.212V20a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-9.789a4 4 0 0 0-.672-2.219l-.656-.984A4 4 0 0 1 15 4.788V2" />
   <path d="M7 15a6.472 6.472 0 0 1 5 0 6.47 6.47 0 0 0 5 0" />
-</svg>`,
-  ],
-  [
-    "minimize-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["minimize-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-minimize-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -24262,11 +20786,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M20 10h-6V4" />
   <path d="m3 21 7-7" />
   <path d="M4 14h6v6" />
-</svg>`,
-  ],
-  [
-    "minimize",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["minimize", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-minimize"
   xmlns="http://www.w3.org/2000/svg"
@@ -24283,11 +20804,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M21 8h-3a2 2 0 0 1-2-2V3" />
   <path d="M3 16h3a2 2 0 0 1 2 2v3" />
   <path d="M16 21v-3a2 2 0 0 1 2-2h3" />
-</svg>`,
-  ],
-  [
-    "minus-circle",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["minus-circle", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-minus-circle"
   xmlns="http://www.w3.org/2000/svg"
@@ -24302,11 +20820,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <circle cx="12" cy="12" r="10" />
   <path d="M8 12h8" />
-</svg>`,
-  ],
-  [
-    "minus-square",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["minus-square", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-minus-square"
   xmlns="http://www.w3.org/2000/svg"
@@ -24321,11 +20836,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="M8 12h8" />
-</svg>`,
-  ],
-  [
-    "minus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["minus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-minus"
   xmlns="http://www.w3.org/2000/svg"
@@ -24339,11 +20851,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M5 12h14" />
-</svg>`,
-  ],
-  [
-    "monitor-check",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["monitor-check", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-monitor-check"
   xmlns="http://www.w3.org/2000/svg"
@@ -24360,11 +20869,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="20" height="14" x="2" y="3" rx="2" />
   <path d="M12 17v4" />
   <path d="M8 21h8" />
-</svg>`,
-  ],
-  [
-    "monitor-cloud",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["monitor-cloud", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-monitor-cloud"
   xmlns="http://www.w3.org/2000/svg"
@@ -24381,11 +20887,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 17v4" />
   <path d="M8 21h8" />
   <rect x="2" y="3" width="20" height="14" rx="2" />
-</svg>`,
-  ],
-  [
-    "monitor-cog",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["monitor-cog", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-monitor-cog"
   xmlns="http://www.w3.org/2000/svg"
@@ -24410,11 +20913,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M22 13v2a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7" />
   <path d="M8 21h8" />
   <circle cx="18" cy="6" r="3" />
-</svg>`,
-  ],
-  [
-    "monitor-dot",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["monitor-dot", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-monitor-dot"
   xmlns="http://www.w3.org/2000/svg"
@@ -24431,11 +20931,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M22 12.307V15a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8.693" />
   <path d="M8 21h8" />
   <circle cx="19" cy="6" r="3" />
-</svg>`,
-  ],
-  [
-    "monitor-down",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["monitor-down", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-monitor-down"
   xmlns="http://www.w3.org/2000/svg"
@@ -24453,11 +20950,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="20" height="14" x="2" y="3" rx="2" />
   <path d="M12 17v4" />
   <path d="M8 21h8" />
-</svg>`,
-  ],
-  [
-    "monitor-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["monitor-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-monitor-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -24475,11 +20969,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m2 2 20 20" />
   <path d="M8 21h8" />
   <path d="M8.656 3H20a2 2 0 0 1 2 2v10a2 2 0 0 1-.293 1.042" />
-</svg>`,
-  ],
-  [
-    "monitor-pause",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["monitor-pause", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-monitor-pause"
   xmlns="http://www.w3.org/2000/svg"
@@ -24497,11 +20988,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="20" height="14" x="2" y="3" rx="2" />
   <path d="M12 17v4" />
   <path d="M8 21h8" />
-</svg>`,
-  ],
-  [
-    "monitor-play",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["monitor-play", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-monitor-play"
   xmlns="http://www.w3.org/2000/svg"
@@ -24518,11 +21006,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 17v4" />
   <path d="M8 21h8" />
   <rect x="2" y="3" width="20" height="14" rx="2" />
-</svg>`,
-  ],
-  [
-    "monitor-smartphone",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["monitor-smartphone", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-monitor-smartphone"
   xmlns="http://www.w3.org/2000/svg"
@@ -24539,11 +21024,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M10 19v-3.96 3.15" />
   <path d="M7 19h5" />
   <rect width="6" height="10" x="16" y="12" rx="2" />
-</svg>`,
-  ],
-  [
-    "monitor-speaker",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["monitor-speaker", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-monitor-speaker"
   xmlns="http://www.w3.org/2000/svg"
@@ -24561,11 +21043,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="10" height="16" x="12" y="4" rx="2" />
   <path d="M8 6H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h4" />
   <circle cx="17" cy="15" r="1" />
-</svg>`,
-  ],
-  [
-    "monitor-stop",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["monitor-stop", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-monitor-stop"
   xmlns="http://www.w3.org/2000/svg"
@@ -24582,11 +21061,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M8 21h8" />
   <rect x="2" y="3" width="20" height="14" rx="2" />
   <rect x="9" y="7" width="6" height="6" rx="1" />
-</svg>`,
-  ],
-  [
-    "monitor-up",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["monitor-up", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-monitor-up"
   xmlns="http://www.w3.org/2000/svg"
@@ -24604,11 +21080,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="20" height="14" x="2" y="3" rx="2" />
   <path d="M12 17v4" />
   <path d="M8 21h8" />
-</svg>`,
-  ],
-  [
-    "monitor-x",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["monitor-x", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-monitor-x"
   xmlns="http://www.w3.org/2000/svg"
@@ -24626,11 +21099,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="20" height="14" x="2" y="3" rx="2" />
   <path d="M12 17v4" />
   <path d="M8 21h8" />
-</svg>`,
-  ],
-  [
-    "monitor",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["monitor", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-monitor"
   xmlns="http://www.w3.org/2000/svg"
@@ -24646,11 +21116,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="20" height="14" x="2" y="3" rx="2" />
   <line x1="8" x2="16" y1="21" y2="21" />
   <line x1="12" x2="12" y1="17" y2="21" />
-</svg>`,
-  ],
-  [
-    "moon-star",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["moon-star", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-moon-star"
   xmlns="http://www.w3.org/2000/svg"
@@ -24666,11 +21133,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M18 5h4" />
   <path d="M20 3v4" />
   <path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401" />
-</svg>`,
-  ],
-  [
-    "moon",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["moon", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-moon"
   xmlns="http://www.w3.org/2000/svg"
@@ -24684,11 +21148,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401" />
-</svg>`,
-  ],
-  [
-    "more-horizontal",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["more-horizontal", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-more-horizontal"
   xmlns="http://www.w3.org/2000/svg"
@@ -24704,11 +21165,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="12" cy="12" r="1" />
   <circle cx="19" cy="12" r="1" />
   <circle cx="5" cy="12" r="1" />
-</svg>`,
-  ],
-  [
-    "more-vertical",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["more-vertical", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-more-vertical"
   xmlns="http://www.w3.org/2000/svg"
@@ -24724,11 +21182,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="12" cy="12" r="1" />
   <circle cx="12" cy="5" r="1" />
   <circle cx="12" cy="19" r="1" />
-</svg>`,
-  ],
-  [
-    "motorbike",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["motorbike", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-motorbike"
   xmlns="http://www.w3.org/2000/svg"
@@ -24746,11 +21201,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M8 17h3a1 1 0 0 0 1-1 6 6 0 0 1 6-6 1 1 0 0 0 1-1v-.75A5 5 0 0 0 17 5" />
   <circle cx="19" cy="17" r="3" />
   <circle cx="5" cy="17" r="3" />
-</svg>`,
-  ],
-  [
-    "mountain-snow",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["mountain-snow", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-mountain-snow"
   xmlns="http://www.w3.org/2000/svg"
@@ -24765,11 +21217,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="m8 3 4 8 5-5 5 15H2L8 3z" />
   <path d="M4.14 15.08c2.62-1.57 5.24-1.43 7.86.42 2.74 1.94 5.49 2 8.23.19" />
-</svg>`,
-  ],
-  [
-    "mountain",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["mountain", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-mountain"
   xmlns="http://www.w3.org/2000/svg"
@@ -24783,11 +21232,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="m8 3 4 8 5-5 5 15H2L8 3z" />
-</svg>`,
-  ],
-  [
-    "mouse-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["mouse-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-mouse-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -24804,11 +21250,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M18.218 18.218A7 7 0 0 1 5 15V9a7 7 0 0 1 .782-3.218" />
   <path d="M19 13.343V9A7 7 0 0 0 8.56 2.902" />
   <path d="M22 22 2 2" />
-</svg>`,
-  ],
-  [
-    "mouse-pointer-2-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["mouse-pointer-2-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-mouse-pointer-2-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -24824,11 +21267,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m15.55 8.45 5.138 2.087a.5.5 0 0 1-.063.947l-6.124 1.58a2 2 0 0 0-1.438 1.435l-1.579 6.126a.5.5 0 0 1-.947.063L8.45 15.551" />
   <path d="M22 2 2 22" />
   <path d="m6.816 11.528-2.779-6.84a.495.495 0 0 1 .651-.651l6.84 2.779" />
-</svg>`,
-  ],
-  [
-    "mouse-pointer-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["mouse-pointer-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-mouse-pointer-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -24842,11 +21282,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M4.037 4.688a.495.495 0 0 1 .651-.651l16 6.5a.5.5 0 0 1-.063.947l-6.124 1.58a2 2 0 0 0-1.438 1.435l-1.579 6.126a.5.5 0 0 1-.947.063z" />
-</svg>`,
-  ],
-  [
-    "mouse-pointer-ban",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["mouse-pointer-ban", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-mouse-pointer-ban"
   xmlns="http://www.w3.org/2000/svg"
@@ -24862,11 +21299,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M2.034 2.681a.498.498 0 0 1 .647-.647l9 3.5a.5.5 0 0 1-.033.944L8.204 7.545a1 1 0 0 0-.66.66l-1.066 3.443a.5.5 0 0 1-.944.033z" />
   <circle cx="16" cy="16" r="6" />
   <path d="m11.8 11.8 8.4 8.4" />
-</svg>`,
-  ],
-  [
-    "mouse-pointer-click",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["mouse-pointer-click", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-mouse-pointer-click"
   xmlns="http://www.w3.org/2000/svg"
@@ -24884,11 +21318,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m6 12-1.9 2" />
   <path d="M7.2 2.2 8 5.1" />
   <path d="M9.037 9.69a.498.498 0 0 1 .653-.653l11 4.5a.5.5 0 0 1-.074.949l-4.349 1.041a1 1 0 0 0-.74.739l-1.04 4.35a.5.5 0 0 1-.95.074z" />
-</svg>`,
-  ],
-  [
-    "mouse-pointer-square-dashed",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["mouse-pointer-square-dashed", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-mouse-pointer-square-dashed"
   xmlns="http://www.w3.org/2000/svg"
@@ -24911,11 +21342,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3 9v1" />
   <path d="M21 9v2" />
   <path d="M3 14v1" />
-</svg>`,
-  ],
-  [
-    "mouse-pointer",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["mouse-pointer", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-mouse-pointer"
   xmlns="http://www.w3.org/2000/svg"
@@ -24930,11 +21358,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M12.586 12.586 19 19" />
   <path d="M3.688 3.037a.497.497 0 0 0-.651.651l6.5 15.999a.501.501 0 0 0 .947-.062l1.569-6.083a2 2 0 0 1 1.448-1.479l6.124-1.579a.5.5 0 0 0 .063-.947z" />
-</svg>`,
-  ],
-  [
-    "mouse",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["mouse", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-mouse"
   xmlns="http://www.w3.org/2000/svg"
@@ -24949,11 +21374,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <rect x="5" y="2" width="14" height="20" rx="7" />
   <path d="M12 6v4" />
-</svg>`,
-  ],
-  [
-    "move-3-d",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["move-3-d", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-move-3-d"
   xmlns="http://www.w3.org/2000/svg"
@@ -24970,11 +21392,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m5 19 6-6" />
   <path d="m2 6 3-3 3 3" />
   <path d="m18 16 3 3-3 3" />
-</svg>`,
-  ],
-  [
-    "move-3d",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["move-3d", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-move-3d"
   xmlns="http://www.w3.org/2000/svg"
@@ -24991,11 +21410,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m5 19 6-6" />
   <path d="m2 6 3-3 3 3" />
   <path d="m18 16 3 3-3 3" />
-</svg>`,
-  ],
-  [
-    "move-diagonal-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["move-diagonal-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-move-diagonal-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -25011,11 +21427,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M19 13v6h-6" />
   <path d="M5 11V5h6" />
   <path d="m5 5 14 14" />
-</svg>`,
-  ],
-  [
-    "move-diagonal",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["move-diagonal", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-move-diagonal"
   xmlns="http://www.w3.org/2000/svg"
@@ -25031,11 +21444,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M11 19H5v-6" />
   <path d="M13 5h6v6" />
   <path d="M19 5 5 19" />
-</svg>`,
-  ],
-  [
-    "move-down-left",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["move-down-left", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-move-down-left"
   xmlns="http://www.w3.org/2000/svg"
@@ -25050,11 +21460,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M11 19H5V13" />
   <path d="M19 5L5 19" />
-</svg>`,
-  ],
-  [
-    "move-down-right",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["move-down-right", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-move-down-right"
   xmlns="http://www.w3.org/2000/svg"
@@ -25069,11 +21476,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M19 13V19H13" />
   <path d="M5 5L19 19" />
-</svg>`,
-  ],
-  [
-    "move-down",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["move-down", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-move-down"
   xmlns="http://www.w3.org/2000/svg"
@@ -25088,11 +21492,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M8 18L12 22L16 18" />
   <path d="M12 2V22" />
-</svg>`,
-  ],
-  [
-    "move-horizontal",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["move-horizontal", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-move-horizontal"
   xmlns="http://www.w3.org/2000/svg"
@@ -25108,11 +21509,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m18 8 4 4-4 4" />
   <path d="M2 12h20" />
   <path d="m6 8-4 4 4 4" />
-</svg>`,
-  ],
-  [
-    "move-left",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["move-left", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-move-left"
   xmlns="http://www.w3.org/2000/svg"
@@ -25127,11 +21525,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M6 8L2 12L6 16" />
   <path d="M2 12H22" />
-</svg>`,
-  ],
-  [
-    "move-right",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["move-right", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-move-right"
   xmlns="http://www.w3.org/2000/svg"
@@ -25146,11 +21541,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M18 8L22 12L18 16" />
   <path d="M2 12H22" />
-</svg>`,
-  ],
-  [
-    "move-up-left",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["move-up-left", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-move-up-left"
   xmlns="http://www.w3.org/2000/svg"
@@ -25165,11 +21557,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M5 11V5H11" />
   <path d="M5 5L19 19" />
-</svg>`,
-  ],
-  [
-    "move-up-right",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["move-up-right", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-move-up-right"
   xmlns="http://www.w3.org/2000/svg"
@@ -25184,11 +21573,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M13 5H19V11" />
   <path d="M19 5L5 19" />
-</svg>`,
-  ],
-  [
-    "move-up",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["move-up", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-move-up"
   xmlns="http://www.w3.org/2000/svg"
@@ -25203,11 +21589,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M8 6L12 2L16 6" />
   <path d="M12 2V22" />
-</svg>`,
-  ],
-  [
-    "move-vertical",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["move-vertical", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-move-vertical"
   xmlns="http://www.w3.org/2000/svg"
@@ -25223,11 +21606,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 2v20" />
   <path d="m8 18 4 4 4-4" />
   <path d="m8 6 4-4 4 4" />
-</svg>`,
-  ],
-  [
-    "move",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["move", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-move"
   xmlns="http://www.w3.org/2000/svg"
@@ -25246,11 +21626,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M2 12h20" />
   <path d="m5 9-3 3 3 3" />
   <path d="m9 5 3-3 3 3" />
-</svg>`,
-  ],
-  [
-    "music-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["music-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-music-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -25265,11 +21642,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <circle cx="8" cy="18" r="4" />
   <path d="M12 18V2l7 4" />
-</svg>`,
-  ],
-  [
-    "music-3",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["music-3", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-music-3"
   xmlns="http://www.w3.org/2000/svg"
@@ -25284,11 +21658,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <circle cx="12" cy="18" r="4" />
   <path d="M16 18V2" />
-</svg>`,
-  ],
-  [
-    "music-4",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["music-4", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-music-4"
   xmlns="http://www.w3.org/2000/svg"
@@ -25305,11 +21676,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m9 9 12-2" />
   <circle cx="6" cy="18" r="3" />
   <circle cx="18" cy="16" r="3" />
-</svg>`,
-  ],
-  [
-    "music",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["music", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-music"
   xmlns="http://www.w3.org/2000/svg"
@@ -25325,11 +21693,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M9 18V5l12-2v13" />
   <circle cx="6" cy="18" r="3" />
   <circle cx="18" cy="16" r="3" />
-</svg>`,
-  ],
-  [
-    "navigation-2-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["navigation-2-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-navigation-2-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -25345,11 +21710,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M9.31 9.31 5 21l7-4 7 4-1.17-3.17" />
   <path d="M14.53 8.88 12 2l-1.17 3.17" />
   <line x1="2" x2="22" y1="2" y2="22" />
-</svg>`,
-  ],
-  [
-    "navigation-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["navigation-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-navigation-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -25363,11 +21725,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <polygon points="12 2 19 21 12 17 5 21 12 2" />
-</svg>`,
-  ],
-  [
-    "navigation-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["navigation-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-navigation-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -25383,11 +21742,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M8.43 8.43 3 11l8 2 2 8 2.57-5.43" />
   <path d="M17.39 11.73 22 2l-9.73 4.61" />
   <line x1="2" x2="22" y1="2" y2="22" />
-</svg>`,
-  ],
-  [
-    "navigation",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["navigation", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-navigation"
   xmlns="http://www.w3.org/2000/svg"
@@ -25401,11 +21757,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <polygon points="3 11 22 2 13 21 11 13 3 11" />
-</svg>`,
-  ],
-  [
-    "network",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["network", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-network"
   xmlns="http://www.w3.org/2000/svg"
@@ -25423,11 +21776,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect x="9" y="2" width="6" height="6" rx="1" />
   <path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3" />
   <path d="M12 12V8" />
-</svg>`,
-  ],
-  [
-    "newspaper",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["newspaper", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-newspaper"
   xmlns="http://www.w3.org/2000/svg"
@@ -25444,11 +21794,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M18 14h-8" />
   <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-4 0v-9a2 2 0 0 1 2-2h2" />
   <rect width="8" height="4" x="10" y="6" rx="1" />
-</svg>`,
-  ],
-  [
-    "nfc",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["nfc", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-nfc"
   xmlns="http://www.w3.org/2000/svg"
@@ -25465,11 +21812,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M9.46 6.21a11.76 11.76 0 0 1 0 11.58" />
   <path d="M12.91 4.1a15.91 15.91 0 0 1 .01 15.8" />
   <path d="M16.37 2a20.16 20.16 0 0 1 0 20" />
-</svg>`,
-  ],
-  [
-    "non-binary",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["non-binary", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-non-binary"
   xmlns="http://www.w3.org/2000/svg"
@@ -25486,11 +21830,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m8.5 4 7 4" />
   <path d="m8.5 8 7-4" />
   <circle cx="12" cy="17" r="5" />
-</svg>`,
-  ],
-  [
-    "notebook-pen",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["notebook-pen", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-notebook-pen"
   xmlns="http://www.w3.org/2000/svg"
@@ -25509,11 +21850,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M2 14h4" />
   <path d="M2 18h4" />
   <path d="M21.378 5.626a1 1 0 1 0-3.004-3.004l-5.01 5.012a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506z" />
-</svg>`,
-  ],
-  [
-    "notebook-tabs",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["notebook-tabs", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-notebook-tabs"
   xmlns="http://www.w3.org/2000/svg"
@@ -25535,11 +21873,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M15 7h5" />
   <path d="M15 12h5" />
   <path d="M15 17h5" />
-</svg>`,
-  ],
-  [
-    "notebook-text",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["notebook-text", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-notebook-text"
   xmlns="http://www.w3.org/2000/svg"
@@ -25560,11 +21895,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M9.5 8h5" />
   <path d="M9.5 12H16" />
   <path d="M9.5 16H14" />
-</svg>`,
-  ],
-  [
-    "notebook",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["notebook", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-notebook"
   xmlns="http://www.w3.org/2000/svg"
@@ -25583,11 +21915,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M2 18h4" />
   <rect width="16" height="20" x="4" y="2" rx="2" />
   <path d="M16 2v20" />
-</svg>`,
-  ],
-  [
-    "notepad-text-dashed",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["notepad-text-dashed", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-notepad-text-dashed"
   xmlns="http://www.w3.org/2000/svg"
@@ -25613,11 +21942,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M8 10h6" />
   <path d="M8 14h8" />
   <path d="M8 18h5" />
-</svg>`,
-  ],
-  [
-    "notepad-text",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["notepad-text", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-notepad-text"
   xmlns="http://www.w3.org/2000/svg"
@@ -25637,11 +21963,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M8 10h6" />
   <path d="M8 14h8" />
   <path d="M8 18h5" />
-</svg>`,
-  ],
-  [
-    "nut-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["nut-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-nut-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -25659,11 +21982,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M19 10v3.343" />
   <path d="M12 12c-1.349-.573-1.905-1.005-2.5-2-.546.902-1.048 1.353-2.5 2-1.018-.644-1.46-1.08-2-2-1.028.71-1.69.918-3 1 1.081-1.048 1.757-2.03 2-3 .194-.776.84-1.551 1.79-2.21m11.654 5.997c.887-.457 1.28-.891 1.556-1.787 1.032.916 1.683 1.157 3 1-1.297-1.036-1.758-2.03-2-3-.5-2-4-4-8-4-.74 0-1.461.068-2.15.192" />
   <line x1="2" x2="22" y1="2" y2="22" />
-</svg>`,
-  ],
-  [
-    "nut",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["nut", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-nut"
   xmlns="http://www.w3.org/2000/svg"
@@ -25679,11 +21999,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 4V2" />
   <path d="M5 10v4a7.004 7.004 0 0 0 5.277 6.787c.412.104.802.292 1.102.592L12 22l.621-.621c.3-.3.69-.488 1.102-.592A7.003 7.003 0 0 0 19 14v-4" />
   <path d="M12 4C8 4 4.5 6 4 8c-.243.97-.919 1.952-2 3 1.31-.082 1.972-.29 3-1 .54.92.982 1.356 2 2 1.452-.647 1.954-1.098 2.5-2 .595.995 1.151 1.427 2.5 2 1.31-.621 1.862-1.058 2.5-2 .629.977 1.162 1.423 2.5 2 1.209-.548 1.68-.967 2-2 1.032.916 1.683 1.157 3 1-1.297-1.036-1.758-2.03-2-3-.5-2-4-4-8-4Z" />
-</svg>`,
-  ],
-  [
-    "octagon-alert",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["octagon-alert", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-octagon-alert"
   xmlns="http://www.w3.org/2000/svg"
@@ -25699,11 +22016,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 16h.01" />
   <path d="M12 8v4" />
   <path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z" />
-</svg>`,
-  ],
-  [
-    "octagon-minus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["octagon-minus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-octagon-minus"
   xmlns="http://www.w3.org/2000/svg"
@@ -25718,11 +22032,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M2.586 16.726A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2h6.624a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586z" />
   <path d="M8 12h8" />
-</svg>`,
-  ],
-  [
-    "octagon-pause",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["octagon-pause", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-octagon-pause"
   xmlns="http://www.w3.org/2000/svg"
@@ -25738,11 +22049,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M10 15V9" />
   <path d="M14 15V9" />
   <path d="M2.586 16.726A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2h6.624a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586z" />
-</svg>`,
-  ],
-  [
-    "octagon-x",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["octagon-x", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-octagon-x"
   xmlns="http://www.w3.org/2000/svg"
@@ -25758,11 +22066,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m15 9-6 6" />
   <path d="M2.586 16.726A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2h6.624a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586z" />
   <path d="m9 9 6 6" />
-</svg>`,
-  ],
-  [
-    "octagon",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["octagon", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-octagon"
   xmlns="http://www.w3.org/2000/svg"
@@ -25776,11 +22081,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M2.586 16.726A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2h6.624a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586z" />
-</svg>`,
-  ],
-  [
-    "omega",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["omega", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-omega"
   xmlns="http://www.w3.org/2000/svg"
@@ -25794,11 +22096,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M3 20h4.5a.5.5 0 0 0 .5-.5v-.282a.52.52 0 0 0-.247-.437 8 8 0 1 1 8.494-.001.52.52 0 0 0-.247.438v.282a.5.5 0 0 0 .5.5H21" />
-</svg>`,
-  ],
-  [
-    "option",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["option", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-option"
   xmlns="http://www.w3.org/2000/svg"
@@ -25813,11 +22112,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M3 3h6l6 18h6" />
   <path d="M14 3h7" />
-</svg>`,
-  ],
-  [
-    "orbit",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["orbit", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-orbit"
   xmlns="http://www.w3.org/2000/svg"
@@ -25835,11 +22131,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="12" cy="12" r="3" />
   <circle cx="19" cy="5" r="2" />
   <circle cx="5" cy="19" r="2" />
-</svg>`,
-  ],
-  [
-    "origami",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["origami", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-origami"
   xmlns="http://www.w3.org/2000/svg"
@@ -25855,11 +22148,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 12V4a1 1 0 0 1 1-1h6.297a1 1 0 0 1 .651 1.759l-4.696 4.025" />
   <path d="m12 21-7.414-7.414A2 2 0 0 1 4 12.172V6.415a1.002 1.002 0 0 1 1.707-.707L20 20.009" />
   <path d="m12.214 3.381 8.414 14.966a1 1 0 0 1-.167 1.199l-1.168 1.163a1 1 0 0 1-.706.291H6.351a1 1 0 0 1-.625-.219L3.25 18.8a1 1 0 0 1 .631-1.781l4.165.027" />
-</svg>`,
-  ],
-  [
-    "outdent",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["outdent", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-outdent"
   xmlns="http://www.w3.org/2000/svg"
@@ -25876,11 +22166,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M21 12H11" />
   <path d="M21 19H11" />
   <path d="m7 8-4 4 4 4" />
-</svg>`,
-  ],
-  [
-    "package-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["package-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-package-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -25896,11 +22183,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 3v6" />
   <path d="M16.76 3a2 2 0 0 1 1.8 1.1l2.23 4.479a2 2 0 0 1 .21.891V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9.472a2 2 0 0 1 .211-.894L5.45 4.1A2 2 0 0 1 7.24 3z" />
   <path d="M3.054 9.013h17.893" />
-</svg>`,
-  ],
-  [
-    "package-check",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["package-check", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-package-check"
   xmlns="http://www.w3.org/2000/svg"
@@ -25918,11 +22202,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m7.5 4.27 9 5.15" />
   <polyline points="3.29 7 12 12 20.71 7" />
   <line x1="12" x2="12" y1="22" y2="12" />
-</svg>`,
-  ],
-  [
-    "package-minus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["package-minus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-package-minus"
   xmlns="http://www.w3.org/2000/svg"
@@ -25940,11 +22221,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m7.5 4.27 9 5.15" />
   <polyline points="3.29 7 12 12 20.71 7" />
   <line x1="12" x2="12" y1="22" y2="12" />
-</svg>`,
-  ],
-  [
-    "package-open",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["package-open", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-package-open"
   xmlns="http://www.w3.org/2000/svg"
@@ -25961,11 +22239,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M15.17 2.21a1.67 1.67 0 0 1 1.63 0L21 4.57a1.93 1.93 0 0 1 0 3.36L8.82 14.79a1.655 1.655 0 0 1-1.64 0L3 12.43a1.93 1.93 0 0 1 0-3.36z" />
   <path d="M20 13v3.87a2.06 2.06 0 0 1-1.11 1.83l-6 3.08a1.93 1.93 0 0 1-1.78 0l-6-3.08A2.06 2.06 0 0 1 4 16.87V13" />
   <path d="M21 12.43a1.93 1.93 0 0 0 0-3.36L8.83 2.2a1.64 1.64 0 0 0-1.63 0L3 4.57a1.93 1.93 0 0 0 0 3.36l12.18 6.86a1.636 1.636 0 0 0 1.63 0z" />
-</svg>`,
-  ],
-  [
-    "package-plus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["package-plus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-package-plus"
   xmlns="http://www.w3.org/2000/svg"
@@ -25984,11 +22259,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m7.5 4.27 9 5.15" />
   <polyline points="3.29 7 12 12 20.71 7" />
   <line x1="12" x2="12" y1="22" y2="12" />
-</svg>`,
-  ],
-  [
-    "package-search",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["package-search", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-package-search"
   xmlns="http://www.w3.org/2000/svg"
@@ -26007,11 +22279,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <line x1="12" x2="12" y1="22" y2="12" />
   <circle cx="18.5" cy="15.5" r="2.5" />
   <path d="M20.27 17.27 22 19" />
-</svg>`,
-  ],
-  [
-    "package-x",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["package-x", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-package-x"
   xmlns="http://www.w3.org/2000/svg"
@@ -26029,11 +22298,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <polyline points="3.29 7 12 12 20.71 7" />
   <line x1="12" x2="12" y1="22" y2="12" />
   <path d="m17 13 5 5m-5 0 5-5" />
-</svg>`,
-  ],
-  [
-    "package",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["package", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-package"
   xmlns="http://www.w3.org/2000/svg"
@@ -26050,11 +22316,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 22V12" />
   <polyline points="3.29 7 12 12 20.71 7" />
   <path d="m7.5 4.27 9 5.15" />
-</svg>`,
-  ],
-  [
-    "paint-bucket",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["paint-bucket", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-paint-bucket"
   xmlns="http://www.w3.org/2000/svg"
@@ -26071,11 +22334,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M18.992 12H2.041" />
   <path d="M21.145 18.38A3.34 3.34 0 0 1 20 16.5a3.3 3.3 0 0 1-1.145 1.88c-.575.46-.855 1.02-.855 1.595A2 2 0 0 0 20 22a2 2 0 0 0 2-2.025c0-.58-.285-1.13-.855-1.595" />
   <path d="m8.5 4.5 2.148-2.148a1.205 1.205 0 0 1 1.704 0l7.296 7.296a1.205 1.205 0 0 1 0 1.704l-7.592 7.592a3.615 3.615 0 0 1-5.112 0l-3.888-3.888a3.615 3.615 0 0 1 0-5.112L5.67 7.33" />
-</svg>`,
-  ],
-  [
-    "paint-roller",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["paint-roller", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-paint-roller"
   xmlns="http://www.w3.org/2000/svg"
@@ -26091,11 +22351,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="16" height="6" x="2" y="2" rx="2" />
   <path d="M10 16v-2a2 2 0 0 1 2-2h8a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
   <rect width="4" height="6" x="8" y="16" rx="1" />
-</svg>`,
-  ],
-  [
-    "paintbrush-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["paintbrush-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-paintbrush-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -26112,11 +22369,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 2v4" />
   <path d="M17 2a1 1 0 0 1 1 1v9H6V3a1 1 0 0 1 1-1z" />
   <path d="M6 12a1 1 0 0 0-1 1v1a2 2 0 0 0 2 2h2a1 1 0 0 1 1 1v2.9a2 2 0 1 0 4 0V17a1 1 0 0 1 1-1h2a2 2 0 0 0 2-2v-1a1 1 0 0 0-1-1" />
-</svg>`,
-  ],
-  [
-    "paintbrush-vertical",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["paintbrush-vertical", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-paintbrush-vertical"
   xmlns="http://www.w3.org/2000/svg"
@@ -26133,11 +22387,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 2v4" />
   <path d="M17 2a1 1 0 0 1 1 1v9H6V3a1 1 0 0 1 1-1z" />
   <path d="M6 12a1 1 0 0 0-1 1v1a2 2 0 0 0 2 2h2a1 1 0 0 1 1 1v2.9a2 2 0 1 0 4 0V17a1 1 0 0 1 1-1h2a2 2 0 0 0 2-2v-1a1 1 0 0 0-1-1" />
-</svg>`,
-  ],
-  [
-    "paintbrush",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["paintbrush", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-paintbrush"
   xmlns="http://www.w3.org/2000/svg"
@@ -26153,11 +22404,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m14.622 17.897-10.68-2.913" />
   <path d="M18.376 2.622a1 1 0 1 1 3.002 3.002L17.36 9.643a.5.5 0 0 0 0 .707l.944.944a2.41 2.41 0 0 1 0 3.408l-.944.944a.5.5 0 0 1-.707 0L8.354 7.348a.5.5 0 0 1 0-.707l.944-.944a2.41 2.41 0 0 1 3.408 0l.944.944a.5.5 0 0 0 .707 0z" />
   <path d="M9 8c-1.804 2.71-3.97 3.46-6.583 3.948a.507.507 0 0 0-.302.819l7.32 8.883a1 1 0 0 0 1.185.204C12.735 20.405 16 16.792 16 15" />
-</svg>`,
-  ],
-  [
-    "palette",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["palette", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-palette"
   xmlns="http://www.w3.org/2000/svg"
@@ -26175,11 +22423,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="17.5" cy="10.5" r=".5" fill="currentColor" />
   <circle cx="6.5" cy="12.5" r=".5" fill="currentColor" />
   <circle cx="8.5" cy="7.5" r=".5" fill="currentColor" />
-</svg>`,
-  ],
-  [
-    "palmtree",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["palmtree", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-palmtree"
   xmlns="http://www.w3.org/2000/svg"
@@ -26196,11 +22441,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M13 7.14A5.82 5.82 0 0 1 16.5 6c3.04 0 5.5 2.24 5.5 5h-3l-1-1-1 1h-3" />
   <path d="M5.89 9.71c-2.15 2.15-2.3 5.47-.35 7.43l4.24-4.25.7-.7.71-.71 2.12-2.12c-1.95-1.96-5.27-1.8-7.42.35" />
   <path d="M11 15.5c.5 2.5-.17 4.5-1 6.5h4c2-5.5-.5-12-1-14" />
-</svg>`,
-  ],
-  [
-    "panda",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["panda", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-panda"
   xmlns="http://www.w3.org/2000/svg"
@@ -26219,11 +22461,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M20.69 9.67a4.5 4.5 0 1 0-7.04-5.5 8.35 8.35 0 0 0-3.3 0 4.5 4.5 0 1 0-7.04 5.5C2.49 11.2 2 12.88 2 14.5 2 19.47 6.48 22 12 22s10-2.53 10-7.5c0-1.62-.48-3.3-1.3-4.83" />
   <path d="M6 6.5a.495.495 0 0 1 .5-.5" />
   <path d="m9 12-2 2" />
-</svg>`,
-  ],
-  [
-    "panel-bottom-close",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["panel-bottom-close", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-panel-bottom-close"
   xmlns="http://www.w3.org/2000/svg"
@@ -26239,11 +22478,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="M3 15h18" />
   <path d="m15 8-3 3-3-3" />
-</svg>`,
-  ],
-  [
-    "panel-bottom-dashed",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["panel-bottom-dashed", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-panel-bottom-dashed"
   xmlns="http://www.w3.org/2000/svg"
@@ -26261,11 +22497,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M19 15h2" />
   <path d="M3 15h2" />
   <path d="M9 15h1" />
-</svg>`,
-  ],
-  [
-    "panel-bottom-inactive",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["panel-bottom-inactive", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-panel-bottom-inactive"
   xmlns="http://www.w3.org/2000/svg"
@@ -26283,11 +22516,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M19 15h2" />
   <path d="M3 15h2" />
   <path d="M9 15h1" />
-</svg>`,
-  ],
-  [
-    "panel-bottom-open",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["panel-bottom-open", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-panel-bottom-open"
   xmlns="http://www.w3.org/2000/svg"
@@ -26303,11 +22533,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="M3 15h18" />
   <path d="m9 10 3-3 3 3" />
-</svg>`,
-  ],
-  [
-    "panel-bottom",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["panel-bottom", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-panel-bottom"
   xmlns="http://www.w3.org/2000/svg"
@@ -26322,11 +22549,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="M3 15h18" />
-</svg>`,
-  ],
-  [
-    "panel-left-close",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["panel-left-close", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-panel-left-close"
   xmlns="http://www.w3.org/2000/svg"
@@ -26342,11 +22566,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="M9 3v18" />
   <path d="m16 15-3-3 3-3" />
-</svg>`,
-  ],
-  [
-    "panel-left-dashed",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["panel-left-dashed", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-panel-left-dashed"
   xmlns="http://www.w3.org/2000/svg"
@@ -26364,11 +22585,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M9 19v2" />
   <path d="M9 3v2" />
   <path d="M9 9v1" />
-</svg>`,
-  ],
-  [
-    "panel-left-inactive",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["panel-left-inactive", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-panel-left-inactive"
   xmlns="http://www.w3.org/2000/svg"
@@ -26386,11 +22604,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M9 19v2" />
   <path d="M9 3v2" />
   <path d="M9 9v1" />
-</svg>`,
-  ],
-  [
-    "panel-left-open",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["panel-left-open", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-panel-left-open"
   xmlns="http://www.w3.org/2000/svg"
@@ -26406,11 +22621,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="M9 3v18" />
   <path d="m14 9 3 3-3 3" />
-</svg>`,
-  ],
-  [
-    "panel-left-right-dashed",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["panel-left-right-dashed", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-panel-left-right-dashed"
   xmlns="http://www.w3.org/2000/svg"
@@ -26432,11 +22644,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M9 21v-2" />
   <path d="M9 5V3" />
   <rect x="3" y="3" width="18" height="18" rx="2" />
-</svg>`,
-  ],
-  [
-    "panel-left",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["panel-left", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-panel-left"
   xmlns="http://www.w3.org/2000/svg"
@@ -26451,11 +22660,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="M9 3v18" />
-</svg>`,
-  ],
-  [
-    "panel-right-close",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["panel-right-close", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-panel-right-close"
   xmlns="http://www.w3.org/2000/svg"
@@ -26471,11 +22677,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="M15 3v18" />
   <path d="m8 9 3 3-3 3" />
-</svg>`,
-  ],
-  [
-    "panel-right-dashed",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["panel-right-dashed", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-panel-right-dashed"
   xmlns="http://www.w3.org/2000/svg"
@@ -26493,11 +22696,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M15 19v2" />
   <path d="M15 3v2" />
   <path d="M15 9v1" />
-</svg>`,
-  ],
-  [
-    "panel-right-inactive",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["panel-right-inactive", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-panel-right-inactive"
   xmlns="http://www.w3.org/2000/svg"
@@ -26515,11 +22715,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M15 19v2" />
   <path d="M15 3v2" />
   <path d="M15 9v1" />
-</svg>`,
-  ],
-  [
-    "panel-right-open",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["panel-right-open", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-panel-right-open"
   xmlns="http://www.w3.org/2000/svg"
@@ -26535,11 +22732,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="M15 3v18" />
   <path d="m10 15-3-3 3-3" />
-</svg>`,
-  ],
-  [
-    "panel-right",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["panel-right", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-panel-right"
   xmlns="http://www.w3.org/2000/svg"
@@ -26554,11 +22748,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="M15 3v18" />
-</svg>`,
-  ],
-  [
-    "panel-top-bottom-dashed",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["panel-top-bottom-dashed", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-panel-top-bottom-dashed"
   xmlns="http://www.w3.org/2000/svg"
@@ -26580,11 +22771,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M9 15h1" />
   <path d="M9 9h1" />
   <rect x="3" y="3" width="18" height="18" rx="2" />
-</svg>`,
-  ],
-  [
-    "panel-top-close",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["panel-top-close", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-panel-top-close"
   xmlns="http://www.w3.org/2000/svg"
@@ -26600,11 +22788,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="M3 9h18" />
   <path d="m9 16 3-3 3 3" />
-</svg>`,
-  ],
-  [
-    "panel-top-dashed",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["panel-top-dashed", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-panel-top-dashed"
   xmlns="http://www.w3.org/2000/svg"
@@ -26622,11 +22807,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M19 9h2" />
   <path d="M3 9h2" />
   <path d="M9 9h1" />
-</svg>`,
-  ],
-  [
-    "panel-top-inactive",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["panel-top-inactive", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-panel-top-inactive"
   xmlns="http://www.w3.org/2000/svg"
@@ -26644,11 +22826,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M19 9h2" />
   <path d="M3 9h2" />
   <path d="M9 9h1" />
-</svg>`,
-  ],
-  [
-    "panel-top-open",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["panel-top-open", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-panel-top-open"
   xmlns="http://www.w3.org/2000/svg"
@@ -26664,11 +22843,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="M3 9h18" />
   <path d="m15 14-3 3-3-3" />
-</svg>`,
-  ],
-  [
-    "panel-top",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["panel-top", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-panel-top"
   xmlns="http://www.w3.org/2000/svg"
@@ -26683,11 +22859,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="M3 9h18" />
-</svg>`,
-  ],
-  [
-    "panels-left-bottom",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["panels-left-bottom", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-panels-left-bottom"
   xmlns="http://www.w3.org/2000/svg"
@@ -26703,11 +22876,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="M9 3v18" />
   <path d="M9 15h12" />
-</svg>`,
-  ],
-  [
-    "panels-left-right",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["panels-left-right", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-panels-left-right"
   xmlns="http://www.w3.org/2000/svg"
@@ -26723,11 +22893,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="M9 3v18" />
   <path d="M15 3v18" />
-</svg>`,
-  ],
-  [
-    "panels-right-bottom",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["panels-right-bottom", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-panels-right-bottom"
   xmlns="http://www.w3.org/2000/svg"
@@ -26743,11 +22910,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="M3 15h12" />
   <path d="M15 3v18" />
-</svg>`,
-  ],
-  [
-    "panels-top-bottom",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["panels-top-bottom", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-panels-top-bottom"
   xmlns="http://www.w3.org/2000/svg"
@@ -26763,11 +22927,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="M21 9H3" />
   <path d="M21 15H3" />
-</svg>`,
-  ],
-  [
-    "panels-top-left",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["panels-top-left", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-panels-top-left"
   xmlns="http://www.w3.org/2000/svg"
@@ -26783,11 +22944,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="M3 9h18" />
   <path d="M9 21V9" />
-</svg>`,
-  ],
-  [
-    "paperclip",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["paperclip", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-paperclip"
   xmlns="http://www.w3.org/2000/svg"
@@ -26801,11 +22959,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="m16 6-8.414 8.586a2 2 0 0 0 2.829 2.829l8.414-8.586a4 4 0 1 0-5.657-5.657l-8.379 8.551a6 6 0 1 0 8.485 8.485l8.379-8.551" />
-</svg>`,
-  ],
-  [
-    "parentheses",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["parentheses", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-parentheses"
   xmlns="http://www.w3.org/2000/svg"
@@ -26820,11 +22975,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M8 21s-4-3-4-9 4-9 4-9" />
   <path d="M16 3s4 3 4 9-4 9-4 9" />
-</svg>`,
-  ],
-  [
-    "parking-circle-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["parking-circle-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-parking-circle-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -26843,11 +22995,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m2 2 20 20" />
   <path d="M8.357 2.687a10 10 0 0 1 12.956 12.956" />
   <path d="M9 17V9" />
-</svg>`,
-  ],
-  [
-    "parking-circle",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["parking-circle", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-parking-circle"
   xmlns="http://www.w3.org/2000/svg"
@@ -26862,11 +23011,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <circle cx="12" cy="12" r="10" />
   <path d="M9 17V7h4a3 3 0 0 1 0 6H9" />
-</svg>`,
-  ],
-  [
-    "parking-meter",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["parking-meter", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-parking-meter"
   xmlns="http://www.w3.org/2000/svg"
@@ -26884,11 +23030,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 19v3" />
   <path d="M15.282 19a1 1 0 0 0 .948-.68l2.37-6.988a7 7 0 1 0-13.2 0l2.37 6.988a1 1 0 0 0 .948.68z" />
   <path d="M9 9a3 3 0 1 1 6 0" />
-</svg>`,
-  ],
-  [
-    "parking-square-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["parking-square-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-parking-square-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -26906,11 +23049,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m2 2 20 20" />
   <path d="M13 13a3 3 0 1 0 0-6H9v2" />
   <path d="M9 17v-2.3" />
-</svg>`,
-  ],
-  [
-    "parking-square",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["parking-square", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-parking-square"
   xmlns="http://www.w3.org/2000/svg"
@@ -26925,11 +23065,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="M9 17V7h4a3 3 0 0 1 0 6H9" />
-</svg>`,
-  ],
-  [
-    "party-popper",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["party-popper", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-party-popper"
   xmlns="http://www.w3.org/2000/svg"
@@ -26951,11 +23088,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m22 13-.82-.33c-.86-.34-1.82.2-1.98 1.11c-.11.7-.72 1.22-1.43 1.22H17" />
   <path d="m11 2 .33.82c.34.86-.2 1.82-1.11 1.98C9.52 4.9 9 5.52 9 6.23V7" />
   <path d="M11 13c1.93 1.93 2.83 4.17 2 5-.83.83-3.07-.07-5-2-1.93-1.93-2.83-4.17-2-5 .83-.83 3.07.07 5 2Z" />
-</svg>`,
-  ],
-  [
-    "pause-circle",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["pause-circle", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-pause-circle"
   xmlns="http://www.w3.org/2000/svg"
@@ -26971,11 +23105,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="12" cy="12" r="10" />
   <line x1="10" x2="10" y1="15" y2="9" />
   <line x1="14" x2="14" y1="15" y2="9" />
-</svg>`,
-  ],
-  [
-    "pause-octagon",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["pause-octagon", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-pause-octagon"
   xmlns="http://www.w3.org/2000/svg"
@@ -26991,11 +23122,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M10 15V9" />
   <path d="M14 15V9" />
   <path d="M2.586 16.726A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2h6.624a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586z" />
-</svg>`,
-  ],
-  [
-    "pause",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["pause", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-pause"
   xmlns="http://www.w3.org/2000/svg"
@@ -27010,11 +23138,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <rect x="14" y="3" width="5" height="18" rx="1" />
   <rect x="5" y="3" width="5" height="18" rx="1" />
-</svg>`,
-  ],
-  [
-    "paw-print",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["paw-print", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-paw-print"
   xmlns="http://www.w3.org/2000/svg"
@@ -27031,11 +23156,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="18" cy="8" r="2" />
   <circle cx="20" cy="16" r="2" />
   <path d="M9 10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-6.84 1.045Q6.52 17.48 4.46 16.84A3.5 3.5 0 0 1 5.5 10Z" />
-</svg>`,
-  ],
-  [
-    "pc-case",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["pc-case", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-pc-case"
   xmlns="http://www.w3.org/2000/svg"
@@ -27052,11 +23174,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M15 14h.01" />
   <path d="M9 6h6" />
   <path d="M9 10h6" />
-</svg>`,
-  ],
-  [
-    "pen-box",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["pen-box", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-pen-box"
   xmlns="http://www.w3.org/2000/svg"
@@ -27071,11 +23190,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
   <path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z" />
-</svg>`,
-  ],
-  [
-    "pen-line",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["pen-line", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-pen-line"
   xmlns="http://www.w3.org/2000/svg"
@@ -27090,11 +23206,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M13 21h8" />
   <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z" />
-</svg>`,
-  ],
-  [
-    "pen-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["pen-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-pen-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -27110,11 +23223,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m10 10-6.157 6.162a2 2 0 0 0-.5.833l-1.322 4.36a.5.5 0 0 0 .622.624l4.358-1.323a2 2 0 0 0 .83-.5L14 13.982" />
   <path d="m12.829 7.172 4.359-4.346a1 1 0 1 1 3.986 3.986l-4.353 4.353" />
   <path d="m2 2 20 20" />
-</svg>`,
-  ],
-  [
-    "pen-square",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["pen-square", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-pen-square"
   xmlns="http://www.w3.org/2000/svg"
@@ -27129,11 +23239,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
   <path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z" />
-</svg>`,
-  ],
-  [
-    "pen-tool",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["pen-tool", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-pen-tool"
   xmlns="http://www.w3.org/2000/svg"
@@ -27150,11 +23257,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m18 13-1.375-6.874a1 1 0 0 0-.746-.776L3.235 2.028a1 1 0 0 0-1.207 1.207L5.35 15.879a1 1 0 0 0 .776.746L13 18" />
   <path d="m2.3 2.3 7.286 7.286" />
   <circle cx="11" cy="11" r="2" />
-</svg>`,
-  ],
-  [
-    "pen",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["pen", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-pen"
   xmlns="http://www.w3.org/2000/svg"
@@ -27168,11 +23272,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z" />
-</svg>`,
-  ],
-  [
-    "pencil-line",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["pencil-line", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-pencil-line"
   xmlns="http://www.w3.org/2000/svg"
@@ -27188,11 +23289,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M13 21h8" />
   <path d="m15 5 4 4" />
   <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z" />
-</svg>`,
-  ],
-  [
-    "pencil-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["pencil-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-pencil-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -27209,11 +23307,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m12.829 7.172 4.359-4.346a1 1 0 1 1 3.986 3.986l-4.353 4.353" />
   <path d="m15 5 4 4" />
   <path d="m2 2 20 20" />
-</svg>`,
-  ],
-  [
-    "pencil-ruler",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["pencil-ruler", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-pencil-ruler"
   xmlns="http://www.w3.org/2000/svg"
@@ -27232,11 +23327,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m17 11 4.3 4.3c.94.94.94 2.46 0 3.4l-2.6 2.6c-.94.94-2.46.94-3.4 0L11 17" />
   <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z" />
   <path d="m15 5 4 4" />
-</svg>`,
-  ],
-  [
-    "pencil",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["pencil", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-pencil"
   xmlns="http://www.w3.org/2000/svg"
@@ -27251,11 +23343,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z" />
   <path d="m15 5 4 4" />
-</svg>`,
-  ],
-  [
-    "pentagon",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["pentagon", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-pentagon"
   xmlns="http://www.w3.org/2000/svg"
@@ -27269,11 +23358,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M10.83 2.38a2 2 0 0 1 2.34 0l8 5.74a2 2 0 0 1 .73 2.25l-3.04 9.26a2 2 0 0 1-1.9 1.37H7.04a2 2 0 0 1-1.9-1.37L2.1 10.37a2 2 0 0 1 .73-2.25z" />
-</svg>`,
-  ],
-  [
-    "percent-circle",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["percent-circle", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-percent-circle"
   xmlns="http://www.w3.org/2000/svg"
@@ -27290,11 +23376,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m15 9-6 6" />
   <path d="M9 9h.01" />
   <path d="M15 15h.01" />
-</svg>`,
-  ],
-  [
-    "percent-diamond",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["percent-diamond", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-percent-diamond"
   xmlns="http://www.w3.org/2000/svg"
@@ -27311,11 +23394,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M9.2 9.2h.01" />
   <path d="m14.5 9.5-5 5" />
   <path d="M14.7 14.8h.01" />
-</svg>`,
-  ],
-  [
-    "percent-square",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["percent-square", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-percent-square"
   xmlns="http://www.w3.org/2000/svg"
@@ -27332,11 +23412,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m15 9-6 6" />
   <path d="M9 9h.01" />
   <path d="M15 15h.01" />
-</svg>`,
-  ],
-  [
-    "percent",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["percent", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-percent"
   xmlns="http://www.w3.org/2000/svg"
@@ -27352,11 +23429,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <line x1="19" x2="5" y1="5" y2="19" />
   <circle cx="6.5" cy="6.5" r="2.5" />
   <circle cx="17.5" cy="17.5" r="2.5" />
-</svg>`,
-  ],
-  [
-    "person-standing",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["person-standing", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-person-standing"
   xmlns="http://www.w3.org/2000/svg"
@@ -27373,11 +23447,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m9 20 3-6 3 6" />
   <path d="m6 8 6 2 6-2" />
   <path d="M12 10v4" />
-</svg>`,
-  ],
-  [
-    "philippine-peso",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["philippine-peso", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-philippine-peso"
   xmlns="http://www.w3.org/2000/svg"
@@ -27393,11 +23464,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M20 11H4" />
   <path d="M20 7H4" />
   <path d="M7 21V4a1 1 0 0 1 1-1h4a1 1 0 0 1 0 12H7" />
-</svg>`,
-  ],
-  [
-    "phone-call",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["phone-call", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-phone-call"
   xmlns="http://www.w3.org/2000/svg"
@@ -27413,11 +23481,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M13 2a9 9 0 0 1 9 9" />
   <path d="M13 6a5 5 0 0 1 5 5" />
   <path d="M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384" />
-</svg>`,
-  ],
-  [
-    "phone-forwarded",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["phone-forwarded", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-phone-forwarded"
   xmlns="http://www.w3.org/2000/svg"
@@ -27433,11 +23498,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 6h8" />
   <path d="m18 2 4 4-4 4" />
   <path d="M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384" />
-</svg>`,
-  ],
-  [
-    "phone-incoming",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["phone-incoming", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-phone-incoming"
   xmlns="http://www.w3.org/2000/svg"
@@ -27453,11 +23515,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M16 2v6h6" />
   <path d="m22 2-6 6" />
   <path d="M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384" />
-</svg>`,
-  ],
-  [
-    "phone-missed",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["phone-missed", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-phone-missed"
   xmlns="http://www.w3.org/2000/svg"
@@ -27473,11 +23532,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m16 2 6 6" />
   <path d="m22 2-6 6" />
   <path d="M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384" />
-</svg>`,
-  ],
-  [
-    "phone-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["phone-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-phone-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -27493,11 +23549,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M10.1 13.9a14 14 0 0 0 3.732 2.668 1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2 18 18 0 0 1-12.728-5.272" />
   <path d="M22 2 2 22" />
   <path d="M4.76 13.582A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 .244.473" />
-</svg>`,
-  ],
-  [
-    "phone-outgoing",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["phone-outgoing", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-phone-outgoing"
   xmlns="http://www.w3.org/2000/svg"
@@ -27513,11 +23566,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m16 8 6-6" />
   <path d="M22 8V2h-6" />
   <path d="M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384" />
-</svg>`,
-  ],
-  [
-    "phone",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["phone", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-phone"
   xmlns="http://www.w3.org/2000/svg"
@@ -27531,11 +23581,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384" />
-</svg>`,
-  ],
-  [
-    "pi-square",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["pi-square", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-pi-square"
   xmlns="http://www.w3.org/2000/svg"
@@ -27552,11 +23599,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M7 7h10" />
   <path d="M10 7v10" />
   <path d="M16 17a2 2 0 0 1-2-2V7" />
-</svg>`,
-  ],
-  [
-    "pi",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["pi", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-pi"
   xmlns="http://www.w3.org/2000/svg"
@@ -27572,11 +23616,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <line x1="9" x2="9" y1="4" y2="20" />
   <path d="M4 7c0-1.7 1.3-3 3-3h13" />
   <path d="M18 20c-1.7 0-3-1.3-3-3V4" />
-</svg>`,
-  ],
-  [
-    "piano",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["piano", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-piano"
   xmlns="http://www.w3.org/2000/svg"
@@ -27595,11 +23636,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M10 14v4" />
   <path d="M14 14v4" />
   <path d="M18 14v4" />
-</svg>`,
-  ],
-  [
-    "pickaxe",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["pickaxe", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-pickaxe"
   xmlns="http://www.w3.org/2000/svg"
@@ -27616,11 +23654,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M15.973 4.027A13 13 0 0 0 5.902 2.373c-1.398.342-1.092 2.158.277 2.601a19.9 19.9 0 0 1 5.822 3.024" />
   <path d="M16.001 11.999a19.9 19.9 0 0 1 3.024 5.824c.444 1.369 2.26 1.676 2.603.278A13 13 0 0 0 20 8.069" />
   <path d="M18.352 3.352a1.205 1.205 0 0 0-1.704 0l-5.296 5.296a1.205 1.205 0 0 0 0 1.704l2.296 2.296a1.205 1.205 0 0 0 1.704 0l5.296-5.296a1.205 1.205 0 0 0 0-1.704z" />
-</svg>`,
-  ],
-  [
-    "picture-in-picture-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["picture-in-picture-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-picture-in-picture-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -27635,11 +23670,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M21 9V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v10c0 1.1.9 2 2 2h4" />
   <rect width="10" height="7" x="12" y="13" rx="2" />
-</svg>`,
-  ],
-  [
-    "picture-in-picture",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["picture-in-picture", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-picture-in-picture"
   xmlns="http://www.w3.org/2000/svg"
@@ -27657,11 +23689,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M21 10V7a2 2 0 0 0-2-2h-7" />
   <path d="M3 14v2a2 2 0 0 0 2 2h3" />
   <rect x="12" y="14" width="10" height="7" rx="1" />
-</svg>`,
-  ],
-  [
-    "pie-chart",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["pie-chart", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-pie-chart"
   xmlns="http://www.w3.org/2000/svg"
@@ -27676,11 +23705,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M21 12c.552 0 1.005-.449.95-.998a10 10 0 0 0-8.953-8.951c-.55-.055-.998.398-.998.95v8a1 1 0 0 0 1 1z" />
   <path d="M21.21 15.89A10 10 0 1 1 8 2.83" />
-</svg>`,
-  ],
-  [
-    "piggy-bank",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["piggy-bank", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-piggy-bank"
   xmlns="http://www.w3.org/2000/svg"
@@ -27696,11 +23722,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M11 17h3v2a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-3a3.16 3.16 0 0 0 2-2h1a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1h-1a5 5 0 0 0-2-4V3a4 4 0 0 0-3.2 1.6l-.3.4H11a6 6 0 0 0-6 6v1a5 5 0 0 0 2 4v3a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1z" />
   <path d="M16 10h.01" />
   <path d="M2 8v1a2 2 0 0 0 2 2h1" />
-</svg>`,
-  ],
-  [
-    "pilcrow-left",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["pilcrow-left", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-pilcrow-left"
   xmlns="http://www.w3.org/2000/svg"
@@ -27718,11 +23741,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M18 3v11" />
   <path d="M22 18H2l4-4" />
   <path d="m6 22-4-4" />
-</svg>`,
-  ],
-  [
-    "pilcrow-right",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["pilcrow-right", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-pilcrow-right"
   xmlns="http://www.w3.org/2000/svg"
@@ -27740,11 +23760,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 3v11" />
   <path d="m18 14 4 4H2" />
   <path d="m22 18-4 4" />
-</svg>`,
-  ],
-  [
-    "pilcrow-square",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["pilcrow-square", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-pilcrow-square"
   xmlns="http://www.w3.org/2000/svg"
@@ -27761,11 +23778,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 12H9.5a2.5 2.5 0 0 1 0-5H17" />
   <path d="M12 7v10" />
   <path d="M16 7v10" />
-</svg>`,
-  ],
-  [
-    "pilcrow",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["pilcrow", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-pilcrow"
   xmlns="http://www.w3.org/2000/svg"
@@ -27781,11 +23795,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M13 4v16" />
   <path d="M17 4v16" />
   <path d="M19 4H9.5a4.5 4.5 0 0 0 0 9H13" />
-</svg>`,
-  ],
-  [
-    "pill-bottle",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["pill-bottle", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-pill-bottle"
   xmlns="http://www.w3.org/2000/svg"
@@ -27801,11 +23812,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M18 11h-4a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1h4" />
   <path d="M6 7v13a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7" />
   <rect width="16" height="5" x="4" y="2" rx="1" />
-</svg>`,
-  ],
-  [
-    "pill",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["pill", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-pill"
   xmlns="http://www.w3.org/2000/svg"
@@ -27820,11 +23828,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z" />
   <path d="m8.5 8.5 7 7" />
-</svg>`,
-  ],
-  [
-    "pin-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["pin-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-pin-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -27841,11 +23846,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M15 9.34V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H7.89" />
   <path d="m2 2 20 20" />
   <path d="M9 9v1.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h11" />
-</svg>`,
-  ],
-  [
-    "pin",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["pin", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-pin"
   xmlns="http://www.w3.org/2000/svg"
@@ -27860,11 +23862,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M12 17v5" />
   <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z" />
-</svg>`,
-  ],
-  [
-    "pipette",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["pipette", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-pipette"
   xmlns="http://www.w3.org/2000/svg"
@@ -27880,11 +23879,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m12 9-8.414 8.414A2 2 0 0 0 3 18.828v1.344a2 2 0 0 1-.586 1.414A2 2 0 0 1 3.828 21h1.344a2 2 0 0 0 1.414-.586L15 12" />
   <path d="m18 9 .4.4a1 1 0 1 1-3 3l-3.8-3.8a1 1 0 1 1 3-3l.4.4 3.4-3.4a1 1 0 1 1 3 3z" />
   <path d="m2 22 .414-.414" />
-</svg>`,
-  ],
-  [
-    "pizza",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["pizza", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-pizza"
   xmlns="http://www.w3.org/2000/svg"
@@ -27902,11 +23898,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M17.775 5.654a15.68 15.68 0 0 0-12.121 12.12" />
   <path d="M18.8 9.3a1 1 0 0 0 2.1 7.7" />
   <path d="M21.964 20.732a1 1 0 0 1-1.232 1.232l-18-5a1 1 0 0 1-.695-1.232A19.68 19.68 0 0 1 15.732 2.037a1 1 0 0 1 1.232.695z" />
-</svg>`,
-  ],
-  [
-    "plane-landing",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["plane-landing", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-plane-landing"
   xmlns="http://www.w3.org/2000/svg"
@@ -27921,11 +23914,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M2 22h20" />
   <path d="M3.77 10.77 2 9l2-4.5 1.1.55c.55.28.9.84.9 1.45s.35 1.17.9 1.45L8 8.5l3-6 1.05.53a2 2 0 0 1 1.09 1.52l.72 5.4a2 2 0 0 0 1.09 1.52l4.4 2.2c.42.22.78.55 1.01.96l.6 1.03c.49.88-.06 1.98-1.06 2.1l-1.18.15c-.47.06-.95-.02-1.37-.24L4.29 11.15a2 2 0 0 1-.52-.38Z" />
-</svg>`,
-  ],
-  [
-    "plane-takeoff",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["plane-takeoff", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-plane-takeoff"
   xmlns="http://www.w3.org/2000/svg"
@@ -27940,11 +23930,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M2 22h20" />
   <path d="M6.36 17.4 4 17l-2-4 1.1-.55a2 2 0 0 1 1.8 0l.17.1a2 2 0 0 0 1.8 0L8 12 5 6l.9-.45a2 2 0 0 1 2.09.2l4.02 3a2 2 0 0 0 2.1.2l4.19-2.06a2.41 2.41 0 0 1 1.73-.17L21 7a1.4 1.4 0 0 1 .87 1.99l-.38.76c-.23.46-.6.84-1.07 1.08L7.58 17.2a2 2 0 0 1-1.22.18Z" />
-</svg>`,
-  ],
-  [
-    "plane",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["plane", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-plane"
   xmlns="http://www.w3.org/2000/svg"
@@ -27958,11 +23945,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z" />
-</svg>`,
-  ],
-  [
-    "play-circle",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["play-circle", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-play-circle"
   xmlns="http://www.w3.org/2000/svg"
@@ -27977,11 +23961,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M9 9.003a1 1 0 0 1 1.517-.859l4.997 2.997a1 1 0 0 1 0 1.718l-4.997 2.997A1 1 0 0 1 9 14.996z" />
   <circle cx="12" cy="12" r="10" />
-</svg>`,
-  ],
-  [
-    "play-square",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["play-square", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-play-square"
   xmlns="http://www.w3.org/2000/svg"
@@ -27996,11 +23977,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <rect x="3" y="3" width="18" height="18" rx="2" />
   <path d="M9 9.003a1 1 0 0 1 1.517-.859l4.997 2.997a1 1 0 0 1 0 1.718l-4.997 2.997A1 1 0 0 1 9 14.996z" />
-</svg>`,
-  ],
-  [
-    "play",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["play", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-play"
   xmlns="http://www.w3.org/2000/svg"
@@ -28014,11 +23992,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z" />
-</svg>`,
-  ],
-  [
-    "plug-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["plug-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-plug-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -28036,11 +24011,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 17v5" />
   <path d="M5 8h14" />
   <path d="M6 11V8h12v3a6 6 0 1 1-12 0Z" />
-</svg>`,
-  ],
-  [
-    "plug-zap-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["plug-zap-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-plug-zap-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -28058,11 +24030,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M7.5 13.5 10 11" />
   <path d="M10.5 16.5 13 14" />
   <path d="m18 3-4 4h6l-4 4" />
-</svg>`,
-  ],
-  [
-    "plug-zap",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["plug-zap", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-plug-zap"
   xmlns="http://www.w3.org/2000/svg"
@@ -28080,11 +24049,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M7.5 13.5 10 11" />
   <path d="M10.5 16.5 13 14" />
   <path d="m18 3-4 4h6l-4 4" />
-</svg>`,
-  ],
-  [
-    "plug",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["plug", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-plug"
   xmlns="http://www.w3.org/2000/svg"
@@ -28101,11 +24067,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M15 8V2" />
   <path d="M17 8a1 1 0 0 1 1 1v4a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1z" />
   <path d="M9 8V2" />
-</svg>`,
-  ],
-  [
-    "plus-circle",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["plus-circle", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-plus-circle"
   xmlns="http://www.w3.org/2000/svg"
@@ -28121,11 +24084,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="12" cy="12" r="10" />
   <path d="M8 12h8" />
   <path d="M12 8v8" />
-</svg>`,
-  ],
-  [
-    "plus-square",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["plus-square", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-plus-square"
   xmlns="http://www.w3.org/2000/svg"
@@ -28141,11 +24101,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="M8 12h8" />
   <path d="M12 8v8" />
-</svg>`,
-  ],
-  [
-    "plus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["plus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-plus"
   xmlns="http://www.w3.org/2000/svg"
@@ -28160,11 +24117,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M5 12h14" />
   <path d="M12 5v14" />
-</svg>`,
-  ],
-  [
-    "pocket-knife",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["pocket-knife", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-pocket-knife"
   xmlns="http://www.w3.org/2000/svg"
@@ -28182,11 +24136,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M6 18h.01" />
   <path d="M20.83 8.83a4 4 0 0 0-5.66-5.66l-12 12a4 4 0 1 0 5.66 5.66Z" />
   <path d="M18 11.66V22a4 4 0 0 0 4-4V6" />
-</svg>`,
-  ],
-  [
-    "pocket",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["pocket", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-pocket"
   xmlns="http://www.w3.org/2000/svg"
@@ -28201,11 +24152,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M20 3a2 2 0 0 1 2 2v6a1 1 0 0 1-20 0V5a2 2 0 0 1 2-2z" />
   <path d="m8 10 4 4 4-4" />
-</svg>`,
-  ],
-  [
-    "podcast",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["podcast", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-podcast"
   xmlns="http://www.w3.org/2000/svg"
@@ -28222,11 +24170,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M16.85 18.58a9 9 0 1 0-9.7 0" />
   <path d="M8 14a5 5 0 1 1 8 0" />
   <circle cx="12" cy="11" r="1" fill="currentColor" />
-</svg>`,
-  ],
-  [
-    "pointer-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["pointer-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-pointer-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -28245,11 +24190,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m7 15-1.8-1.8a2 2 0 0 0-2.79 2.86L6 19.7a7.74 7.74 0 0 0 6 2.3h2a8 8 0 0 0 5.657-2.343" />
   <path d="M6 6v8" />
   <path d="m2 2 20 20" />
-</svg>`,
-  ],
-  [
-    "pointer",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["pointer", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-pointer"
   xmlns="http://www.w3.org/2000/svg"
@@ -28267,11 +24209,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 10V9a2 2 0 0 0-2-2a2 2 0 0 0-2 2v1" />
   <path d="M10 9.5V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v10" />
   <path d="M18 11a2 2 0 1 1 4 0v3a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15" />
-</svg>`,
-  ],
-  [
-    "popcorn",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["popcorn", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-popcorn"
   xmlns="http://www.w3.org/2000/svg"
@@ -28288,11 +24227,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M10 22 9 8" />
   <path d="m14 22 1-14" />
   <path d="M20 8c.5 0 .9.4.8 1l-2.6 12c-.1.5-.7 1-1.2 1H7c-.6 0-1.1-.4-1.2-1L3.2 9c-.1-.6.3-1 .8-1Z" />
-</svg>`,
-  ],
-  [
-    "popsicle",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["popsicle", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-popsicle"
   xmlns="http://www.w3.org/2000/svg"
@@ -28307,11 +24243,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M18.6 14.4c.8-.8.8-2 0-2.8l-8.1-8.1a4.95 4.95 0 1 0-7.1 7.1l8.1 8.1c.9.7 2.1.7 2.9-.1Z" />
   <path d="m22 22-5.5-5.5" />
-</svg>`,
-  ],
-  [
-    "pound-sterling",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["pound-sterling", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-pound-sterling"
   xmlns="http://www.w3.org/2000/svg"
@@ -28328,11 +24261,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M10 7v14" />
   <path d="M6 21h12" />
   <path d="M6 13h10" />
-</svg>`,
-  ],
-  [
-    "power-circle",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["power-circle", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-power-circle"
   xmlns="http://www.w3.org/2000/svg"
@@ -28348,11 +24278,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 7v4" />
   <path d="M7.998 9.003a5 5 0 1 0 8-.005" />
   <circle cx="12" cy="12" r="10" />
-</svg>`,
-  ],
-  [
-    "power-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["power-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-power-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -28369,11 +24296,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M6.16 6.16a9 9 0 1 0 12.68 12.68" />
   <path d="M12 2v4" />
   <path d="m2 2 20 20" />
-</svg>`,
-  ],
-  [
-    "power-square",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["power-square", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-power-square"
   xmlns="http://www.w3.org/2000/svg"
@@ -28389,11 +24313,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 7v4" />
   <path d="M7.998 9.003a5 5 0 1 0 8-.005" />
   <rect x="3" y="3" width="18" height="18" rx="2" />
-</svg>`,
-  ],
-  [
-    "power",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["power", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-power"
   xmlns="http://www.w3.org/2000/svg"
@@ -28408,11 +24329,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M12 2v10" />
   <path d="M18.4 6.6a9 9 0 1 1-12.77.04" />
-</svg>`,
-  ],
-  [
-    "presentation",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["presentation", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-presentation"
   xmlns="http://www.w3.org/2000/svg"
@@ -28428,11 +24346,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M2 3h20" />
   <path d="M21 3v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V3" />
   <path d="m7 21 5-5 5 5" />
-</svg>`,
-  ],
-  [
-    "printer-check",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["printer-check", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-printer-check"
   xmlns="http://www.w3.org/2000/svg"
@@ -28449,11 +24364,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m16 19 2 2 4-4" />
   <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v2" />
   <path d="M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6" />
-</svg>`,
-  ],
-  [
-    "printer-x",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["printer-x", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-printer-x"
   xmlns="http://www.w3.org/2000/svg"
@@ -28471,11 +24383,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m16.5 21.5 5-5" />
   <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v1.5" />
   <path d="M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6" />
-</svg>`,
-  ],
-  [
-    "printer",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["printer", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-printer"
   xmlns="http://www.w3.org/2000/svg"
@@ -28491,11 +24400,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
   <path d="M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6" />
   <rect x="6" y="14" width="12" height="8" rx="1" />
-</svg>`,
-  ],
-  [
-    "projector",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["projector", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-projector"
   xmlns="http://www.w3.org/2000/svg"
@@ -28514,11 +24420,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="9" cy="13" r="3" />
   <path d="M11.83 12H20a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h2.17" />
   <path d="M16 16h2" />
-</svg>`,
-  ],
-  [
-    "proportions",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["proportions", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-proportions"
   xmlns="http://www.w3.org/2000/svg"
@@ -28534,11 +24437,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="20" height="16" x="2" y="4" rx="2" />
   <path d="M12 9v11" />
   <path d="M2 9h13a2 2 0 0 1 2 2v9" />
-</svg>`,
-  ],
-  [
-    "puzzle",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["puzzle", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-puzzle"
   xmlns="http://www.w3.org/2000/svg"
@@ -28552,11 +24452,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M15.39 4.39a1 1 0 0 0 1.68-.474 2.5 2.5 0 1 1 3.014 3.015 1 1 0 0 0-.474 1.68l1.683 1.682a2.414 2.414 0 0 1 0 3.414L19.61 15.39a1 1 0 0 1-1.68-.474 2.5 2.5 0 1 0-3.014 3.015 1 1 0 0 1 .474 1.68l-1.683 1.682a2.414 2.414 0 0 1-3.414 0L8.61 19.61a1 1 0 0 0-1.68.474 2.5 2.5 0 1 1-3.014-3.015 1 1 0 0 0 .474-1.68l-1.683-1.682a2.414 2.414 0 0 1 0-3.414L4.39 8.61a1 1 0 0 1 1.68.474 2.5 2.5 0 1 0 3.014-3.015 1 1 0 0 1-.474-1.68l1.683-1.682a2.414 2.414 0 0 1 3.414 0z" />
-</svg>`,
-  ],
-  [
-    "pyramid",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["pyramid", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-pyramid"
   xmlns="http://www.w3.org/2000/svg"
@@ -28571,11 +24468,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M2.5 16.88a1 1 0 0 1-.32-1.43l9-13.02a1 1 0 0 1 1.64 0l9 13.01a1 1 0 0 1-.32 1.44l-8.51 4.86a2 2 0 0 1-1.98 0Z" />
   <path d="M12 2v20" />
-</svg>`,
-  ],
-  [
-    "qr-code",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["qr-code", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-qr-code"
   xmlns="http://www.w3.org/2000/svg"
@@ -28600,11 +24494,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M16 12h1" />
   <path d="M21 12v.01" />
   <path d="M12 21v-1" />
-</svg>`,
-  ],
-  [
-    "quote",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["quote", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-quote"
   xmlns="http://www.w3.org/2000/svg"
@@ -28619,11 +24510,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M16 3a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2 1 1 0 0 1 1 1v1a2 2 0 0 1-2 2 1 1 0 0 0-1 1v2a1 1 0 0 0 1 1 6 6 0 0 0 6-6V5a2 2 0 0 0-2-2z" />
   <path d="M5 3a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2 1 1 0 0 1 1 1v1a2 2 0 0 1-2 2 1 1 0 0 0-1 1v2a1 1 0 0 0 1 1 6 6 0 0 0 6-6V5a2 2 0 0 0-2-2z" />
-</svg>`,
-  ],
-  [
-    "rabbit",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["rabbit", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-rabbit"
   xmlns="http://www.w3.org/2000/svg"
@@ -28641,11 +24529,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M18 21h-8a4 4 0 0 1-4-4 7 7 0 0 1 7-7h.2L9.6 6.4a1 1 0 1 1 2.8-2.8L15.8 7h.2c3.3 0 6 2.7 6 6v1a2 2 0 0 1-2 2h-1a3 3 0 0 0-3 3" />
   <path d="M20 8.54V4a2 2 0 1 0-4 0v3" />
   <path d="M7.612 12.524a3 3 0 1 0-1.6 4.3" />
-</svg>`,
-  ],
-  [
-    "radar",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["radar", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-radar"
   xmlns="http://www.w3.org/2000/svg"
@@ -28666,11 +24551,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M17.99 11.66A6 6 0 0 1 15.77 16.67" />
   <circle cx="12" cy="12" r="2" />
   <path d="m13.41 10.59 5.66-5.66" />
-</svg>`,
-  ],
-  [
-    "radiation",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["radiation", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-radiation"
   xmlns="http://www.w3.org/2000/svg"
@@ -28687,11 +24569,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 15.4641a4 4 0 0 1-4 0L7.52786 19.74597 A 1 1 0 0 0 7.99303 21.16211 10 10 0 0 0 16.00697 21.16211 1 1 0 0 0 16.47214 19.74597z" />
   <path d="M16 12a4 4 0 0 0-2-3.464l2.472-4.282a1 1 0 0 1 1.46-.305 10 10 0 0 1 4.006 6.94A1 1 0 0 1 21 12z" />
   <path d="M8 12a4 4 0 0 1 2-3.464L7.528 4.254a1 1 0 0 0-1.46-.305 10 10 0 0 0-4.006 6.94A1 1 0 0 0 3 12z" />
-</svg>`,
-  ],
-  [
-    "radical",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["radical", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-radical"
   xmlns="http://www.w3.org/2000/svg"
@@ -28705,11 +24584,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M3 12h3.28a1 1 0 0 1 .948.684l2.298 7.934a.5.5 0 0 0 .96-.044L13.82 4.771A1 1 0 0 1 14.792 4H21" />
-</svg>`,
-  ],
-  [
-    "radio-receiver",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["radio-receiver", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-radio-receiver"
   xmlns="http://www.w3.org/2000/svg"
@@ -28726,11 +24602,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M19 16v2" />
   <rect width="20" height="8" x="2" y="8" rx="2" />
   <path d="M18 12h.01" />
-</svg>`,
-  ],
-  [
-    "radio-tower",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["radio-tower", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-radio-tower"
   xmlns="http://www.w3.org/2000/svg"
@@ -28750,11 +24623,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M19.1 1.9a9.96 9.96 0 0 1 0 14.1" />
   <path d="M9.5 18h5" />
   <path d="m8 22 4-11 4 11" />
-</svg>`,
-  ],
-  [
-    "radio",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["radio", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-radio"
   xmlns="http://www.w3.org/2000/svg"
@@ -28772,11 +24642,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M4.925 19.067a10 10 0 0 1 0-14.134" />
   <path d="M7.753 16.239a6 6 0 0 1 0-8.478" />
   <circle cx="12" cy="12" r="2" />
-</svg>`,
-  ],
-  [
-    "radius",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["radius", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-radius"
   xmlns="http://www.w3.org/2000/svg"
@@ -28793,11 +24660,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="19" cy="19" r="2" />
   <path d="m13.41 13.41 4.18 4.18" />
   <circle cx="12" cy="12" r="2" />
-</svg>`,
-  ],
-  [
-    "rail-symbol",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["rail-symbol", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-rail-symbol"
   xmlns="http://www.w3.org/2000/svg"
@@ -28813,11 +24677,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M5 15h14" />
   <path d="M5 9h14" />
   <path d="m14 20-5-5 6-6-5-5" />
-</svg>`,
-  ],
-  [
-    "rainbow",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["rainbow", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-rainbow"
   xmlns="http://www.w3.org/2000/svg"
@@ -28833,11 +24694,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M22 17a10 10 0 0 0-20 0" />
   <path d="M6 17a6 6 0 0 1 12 0" />
   <path d="M10 17a2 2 0 0 1 4 0" />
-</svg>`,
-  ],
-  [
-    "rat",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["rat", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-rat"
   xmlns="http://www.w3.org/2000/svg"
@@ -28855,11 +24713,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M16 9h.01" />
   <path d="M16.82 3.94a3 3 0 1 1 3.237 4.868l1.815 2.587a1.5 1.5 0 0 1-1.5 2.1l-2.872-.453a3 3 0 0 0-3.5 3" />
   <path d="M17 4.988a3 3 0 1 0-5.2 2.052A7 7 0 0 0 4 14.015 4 4 0 0 0 8 18" />
-</svg>`,
-  ],
-  [
-    "ratio",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["ratio", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-ratio"
   xmlns="http://www.w3.org/2000/svg"
@@ -28874,11 +24729,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <rect width="12" height="20" x="6" y="2" rx="2" />
   <rect width="20" height="12" x="2" y="6" rx="2" />
-</svg>`,
-  ],
-  [
-    "receipt-cent",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["receipt-cent", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-receipt-cent"
   xmlns="http://www.w3.org/2000/svg"
@@ -28894,11 +24746,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z" />
   <path d="M12 6.5v11" />
   <path d="M15 9.4a4 4 0 1 0 0 5.2" />
-</svg>`,
-  ],
-  [
-    "receipt-euro",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["receipt-euro", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-receipt-euro"
   xmlns="http://www.w3.org/2000/svg"
@@ -28914,11 +24763,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z" />
   <path d="M8 12h5" />
   <path d="M16 9.5a4 4 0 1 0 0 5.2" />
-</svg>`,
-  ],
-  [
-    "receipt-indian-rupee",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["receipt-indian-rupee", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-receipt-indian-rupee"
   xmlns="http://www.w3.org/2000/svg"
@@ -28935,11 +24781,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M8 7h8" />
   <path d="M12 17.5 8 15h1a4 4 0 0 0 0-8" />
   <path d="M8 11h8" />
-</svg>`,
-  ],
-  [
-    "receipt-japanese-yen",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["receipt-japanese-yen", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-receipt-japanese-yen"
   xmlns="http://www.w3.org/2000/svg"
@@ -28957,11 +24800,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m9 7 3 3v7.5" />
   <path d="M9 11h6" />
   <path d="M9 15h6" />
-</svg>`,
-  ],
-  [
-    "receipt-pound-sterling",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["receipt-pound-sterling", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-receipt-pound-sterling"
   xmlns="http://www.w3.org/2000/svg"
@@ -28978,11 +24818,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M8 13h5" />
   <path d="M10 17V9.5a2.5 2.5 0 0 1 5 0" />
   <path d="M8 17h7" />
-</svg>`,
-  ],
-  [
-    "receipt-russian-ruble",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["receipt-russian-ruble", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-receipt-russian-ruble"
   xmlns="http://www.w3.org/2000/svg"
@@ -28998,11 +24835,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z" />
   <path d="M8 15h5" />
   <path d="M8 11h5a2 2 0 1 0 0-4h-3v10" />
-</svg>`,
-  ],
-  [
-    "receipt-swiss-franc",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["receipt-swiss-franc", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-receipt-swiss-franc"
   xmlns="http://www.w3.org/2000/svg"
@@ -29019,11 +24853,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M10 17V7h5" />
   <path d="M10 11h4" />
   <path d="M8 15h5" />
-</svg>`,
-  ],
-  [
-    "receipt-text",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["receipt-text", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-receipt-text"
   xmlns="http://www.w3.org/2000/svg"
@@ -29040,11 +24871,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 8H8" />
   <path d="M16 12H8" />
   <path d="M4 3a1 1 0 0 1 1-1 1.3 1.3 0 0 1 .7.2l.933.6a1.3 1.3 0 0 0 1.4 0l.934-.6a1.3 1.3 0 0 1 1.4 0l.933.6a1.3 1.3 0 0 0 1.4 0l.933-.6a1.3 1.3 0 0 1 1.4 0l.934.6a1.3 1.3 0 0 0 1.4 0l.933-.6A1.3 1.3 0 0 1 19 2a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1 1.3 1.3 0 0 1-.7-.2l-.933-.6a1.3 1.3 0 0 0-1.4 0l-.934.6a1.3 1.3 0 0 1-1.4 0l-.933-.6a1.3 1.3 0 0 0-1.4 0l-.933.6a1.3 1.3 0 0 1-1.4 0l-.934-.6a1.3 1.3 0 0 0-1.4 0l-.933.6a1.3 1.3 0 0 1-.7.2 1 1 0 0 1-1-1z" />
-</svg>`,
-  ],
-  [
-    "receipt-turkish-lira",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["receipt-turkish-lira", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-receipt-turkish-lira"
   xmlns="http://www.w3.org/2000/svg"
@@ -29060,11 +24888,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M10 6.5v11a5.5 5.5 0 0 0 5.5-5.5" />
   <path d="m14 8-6 3" />
   <path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1z" />
-</svg>`,
-  ],
-  [
-    "receipt",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["receipt", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-receipt"
   xmlns="http://www.w3.org/2000/svg"
@@ -29080,11 +24905,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z" />
   <path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8" />
   <path d="M12 17.5v-11" />
-</svg>`,
-  ],
-  [
-    "rectangle-circle",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["rectangle-circle", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-rectangle-circle"
   xmlns="http://www.w3.org/2000/svg"
@@ -29099,11 +24921,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M14 4v16H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z" />
   <circle cx="14" cy="12" r="8" />
-</svg>`,
-  ],
-  [
-    "rectangle-ellipsis",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["rectangle-ellipsis", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-rectangle-ellipsis"
   xmlns="http://www.w3.org/2000/svg"
@@ -29120,11 +24939,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 12h.01" />
   <path d="M17 12h.01" />
   <path d="M7 12h.01" />
-</svg>`,
-  ],
-  [
-    "rectangle-goggles",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["rectangle-goggles", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-rectangle-goggles"
   xmlns="http://www.w3.org/2000/svg"
@@ -29138,11 +24954,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M20 6a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-4a2 2 0 0 1-1.6-.8l-1.6-2.13a1 1 0 0 0-1.6 0L9.6 17.2A2 2 0 0 1 8 18H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z" />
-</svg>`,
-  ],
-  [
-    "rectangle-horizontal",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["rectangle-horizontal", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-rectangle-horizontal"
   xmlns="http://www.w3.org/2000/svg"
@@ -29156,11 +24969,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <rect width="20" height="12" x="2" y="6" rx="2" />
-</svg>`,
-  ],
-  [
-    "rectangle-vertical",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["rectangle-vertical", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-rectangle-vertical"
   xmlns="http://www.w3.org/2000/svg"
@@ -29174,11 +24984,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <rect width="12" height="20" x="6" y="2" rx="2" />
-</svg>`,
-  ],
-  [
-    "recycle",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["recycle", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-recycle"
   xmlns="http://www.w3.org/2000/svg"
@@ -29197,11 +25004,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M8.293 13.596 7.196 9.5 3.1 10.598" />
   <path d="m9.344 5.811 1.093-1.892A1.83 1.83 0 0 1 11.985 3a1.784 1.784 0 0 1 1.546.888l3.943 6.843" />
   <path d="m13.378 9.633 4.096 1.098 1.097-4.096" />
-</svg>`,
-  ],
-  [
-    "redo-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["redo-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-redo-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -29216,11 +25020,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="m15 14 5-5-5-5" />
   <path d="M20 9H9.5A5.5 5.5 0 0 0 4 14.5A5.5 5.5 0 0 0 9.5 20H13" />
-</svg>`,
-  ],
-  [
-    "redo-dot",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["redo-dot", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-redo-dot"
   xmlns="http://www.w3.org/2000/svg"
@@ -29236,11 +25037,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="12" cy="17" r="1" />
   <path d="M21 7v6h-6" />
   <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7" />
-</svg>`,
-  ],
-  [
-    "redo",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["redo", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-redo"
   xmlns="http://www.w3.org/2000/svg"
@@ -29255,11 +25053,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M21 7v6h-6" />
   <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7" />
-</svg>`,
-  ],
-  [
-    "refresh-ccw-dot",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["refresh-ccw-dot", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-refresh-ccw-dot"
   xmlns="http://www.w3.org/2000/svg"
@@ -29277,11 +25072,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
   <path d="M16 16h5v5" />
   <circle cx="12" cy="12" r="1" />
-</svg>`,
-  ],
-  [
-    "refresh-ccw",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["refresh-ccw", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-refresh-ccw"
   xmlns="http://www.w3.org/2000/svg"
@@ -29298,11 +25090,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3 3v5h5" />
   <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
   <path d="M16 16h5v5" />
-</svg>`,
-  ],
-  [
-    "refresh-cw-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["refresh-cw-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-refresh-cw-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -29322,11 +25111,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M21 12c0 1-.16 1.97-.47 2.87" />
   <path d="M21 3v5h-5" />
   <path d="M22 22 2 2" />
-</svg>`,
-  ],
-  [
-    "refresh-cw",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["refresh-cw", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-refresh-cw"
   xmlns="http://www.w3.org/2000/svg"
@@ -29343,11 +25129,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M21 3v5h-5" />
   <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
   <path d="M8 16H3v5" />
-</svg>`,
-  ],
-  [
-    "refrigerator",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["refrigerator", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-refrigerator"
   xmlns="http://www.w3.org/2000/svg"
@@ -29363,11 +25146,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M5 6a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6Z" />
   <path d="M5 10h14" />
   <path d="M15 7v6" />
-</svg>`,
-  ],
-  [
-    "regex",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["regex", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-regex"
   xmlns="http://www.w3.org/2000/svg"
@@ -29384,11 +25164,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m12.67 5.5 8.66 5" />
   <path d="m12.67 10.5 8.66-5" />
   <path d="M9 17a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v2a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2v-2z" />
-</svg>`,
-  ],
-  [
-    "remove-formatting",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["remove-formatting", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-remove-formatting"
   xmlns="http://www.w3.org/2000/svg"
@@ -29406,11 +25183,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M13 4 8 20" />
   <path d="m15 15 5 5" />
   <path d="m20 15-5 5" />
-</svg>`,
-  ],
-  [
-    "repeat-1",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["repeat-1", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-repeat-1"
   xmlns="http://www.w3.org/2000/svg"
@@ -29428,11 +25202,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m7 22-4-4 4-4" />
   <path d="M21 13v1a4 4 0 0 1-4 4H3" />
   <path d="M11 10h1v4" />
-</svg>`,
-  ],
-  [
-    "repeat-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["repeat-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-repeat-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -29449,11 +25220,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M13 18H7a2 2 0 0 1-2-2V6" />
   <path d="m22 15-3 3-3-3" />
   <path d="M11 6h6a2 2 0 0 1 2 2v10" />
-</svg>`,
-  ],
-  [
-    "repeat",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["repeat", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-repeat"
   xmlns="http://www.w3.org/2000/svg"
@@ -29470,11 +25238,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3 11v-1a4 4 0 0 1 4-4h14" />
   <path d="m7 22-4-4 4-4" />
   <path d="M21 13v1a4 4 0 0 1-4 4H3" />
-</svg>`,
-  ],
-  [
-    "replace-all",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["replace-all", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-replace-all"
   xmlns="http://www.w3.org/2000/svg"
@@ -29496,11 +25261,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m3 7 3 3 3-3" />
   <path d="M6 10V5a2 2 0 0 1 2-2h2" />
   <rect x="3" y="14" width="7" height="7" rx="1" />
-</svg>`,
-  ],
-  [
-    "replace",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["replace", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-replace"
   xmlns="http://www.w3.org/2000/svg"
@@ -29520,11 +25282,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m3 7 3 3 3-3" />
   <path d="M6 10V5a2 2 0 0 1 2-2h2" />
   <rect x="3" y="14" width="7" height="7" rx="1" />
-</svg>`,
-  ],
-  [
-    "reply-all",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["reply-all", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-reply-all"
   xmlns="http://www.w3.org/2000/svg"
@@ -29540,11 +25299,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m12 17-5-5 5-5" />
   <path d="M22 18v-2a4 4 0 0 0-4-4H7" />
   <path d="m7 17-5-5 5-5" />
-</svg>`,
-  ],
-  [
-    "reply",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["reply", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-reply"
   xmlns="http://www.w3.org/2000/svg"
@@ -29559,11 +25315,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M20 18v-2a4 4 0 0 0-4-4H4" />
   <path d="m9 17-5-5 5-5" />
-</svg>`,
-  ],
-  [
-    "rewind",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["rewind", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-rewind"
   xmlns="http://www.w3.org/2000/svg"
@@ -29578,11 +25331,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M12 6a2 2 0 0 0-3.414-1.414l-6 6a2 2 0 0 0 0 2.828l6 6A2 2 0 0 0 12 18z" />
   <path d="M22 6a2 2 0 0 0-3.414-1.414l-6 6a2 2 0 0 0 0 2.828l6 6A2 2 0 0 0 22 18z" />
-</svg>`,
-  ],
-  [
-    "ribbon",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["ribbon", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-ribbon"
   xmlns="http://www.w3.org/2000/svg"
@@ -29600,11 +25350,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M6.243 9.016a7 7 0 0 1 11.507-.009" />
   <path d="M9.35 14.53 12 11.22" />
   <path d="M9.35 14.53C7.728 12.246 6 10.221 6 7a6 5 0 0 1 12 0c-.005 3.22-1.778 5.235-3.43 7.5l3.557 4.527a1 1 0 0 1-.203 1.43l-1.894 1.36a1 1 0 0 1-1.384-.215L12 18l-2.679 3.593a1 1 0 0 1-1.39.213l-1.865-1.353a1 1 0 0 1-.203-1.422z" />
-</svg>`,
-  ],
-  [
-    "rocket",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["rocket", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-rocket"
   xmlns="http://www.w3.org/2000/svg"
@@ -29621,11 +25368,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z" />
   <path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0" />
   <path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5" />
-</svg>`,
-  ],
-  [
-    "rocking-chair",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["rocking-chair", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-rocking-chair"
   xmlns="http://www.w3.org/2000/svg"
@@ -29642,11 +25386,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <line x1="9.5" x2="5.5" y1="12.5" y2="20" />
   <line x1="15" x2="18.5" y1="12.5" y2="20" />
   <path d="M2.75 18a13 13 0 0 0 18.5 0" />
-</svg>`,
-  ],
-  [
-    "roller-coaster",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["roller-coaster", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-roller-coaster"
   xmlns="http://www.w3.org/2000/svg"
@@ -29666,11 +25407,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M18 19v-6" />
   <path d="M22 19V9" />
   <path d="M2 19V9a4 4 0 0 1 4-4c2 0 4 1.33 6 4s4 4 6 4a4 4 0 1 0-3-6.65" />
-</svg>`,
-  ],
-  [
-    "rose",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["rose", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-rose"
   xmlns="http://www.w3.org/2000/svg"
@@ -29688,11 +25426,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M4.5 17c2.8-.5 4.4 0 5.5.8s1.8 2.2 2.3 3.7c-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2" />
   <path d="M9.77 12C4 15 2 22 2 22" />
   <circle cx="17" cy="8" r="2" />
-</svg>`,
-  ],
-  [
-    "rotate-3-d",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["rotate-3-d", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-rotate-3-d"
   xmlns="http://www.w3.org/2000/svg"
@@ -29708,11 +25443,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M16.466 7.5C15.643 4.237 13.952 2 12 2 9.239 2 7 6.477 7 12s2.239 10 5 10c.342 0 .677-.069 1-.2" />
   <path d="m15.194 13.707 3.814 1.86-1.86 3.814" />
   <path d="M19 15.57c-1.804.885-4.274 1.43-7 1.43-5.523 0-10-2.239-10-5s4.477-5 10-5c4.838 0 8.873 1.718 9.8 4" />
-</svg>`,
-  ],
-  [
-    "rotate-3d",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["rotate-3d", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-rotate-3d"
   xmlns="http://www.w3.org/2000/svg"
@@ -29728,11 +25460,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M16.466 7.5C15.643 4.237 13.952 2 12 2 9.239 2 7 6.477 7 12s2.239 10 5 10c.342 0 .677-.069 1-.2" />
   <path d="m15.194 13.707 3.814 1.86-1.86 3.814" />
   <path d="M19 15.57c-1.804.885-4.274 1.43-7 1.43-5.523 0-10-2.239-10-5s4.477-5 10-5c4.838 0 8.873 1.718 9.8 4" />
-</svg>`,
-  ],
-  [
-    "rotate-ccw-key",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["rotate-ccw-key", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-rotate-ccw-key"
   xmlns="http://www.w3.org/2000/svg"
@@ -29750,11 +25479,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3 12a9 9 0 1 0 9-9 9.74 9.74 0 0 0-6.74 2.74L3 8" />
   <path d="M3 3v5h5" />
   <circle cx="12" cy="15" r="2" />
-</svg>`,
-  ],
-  [
-    "rotate-ccw-square",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["rotate-ccw-square", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-rotate-ccw-square"
   xmlns="http://www.w3.org/2000/svg"
@@ -29770,11 +25496,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M20 9V7a2 2 0 0 0-2-2h-6" />
   <path d="m15 2-3 3 3 3" />
   <path d="M20 13v5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2" />
-</svg>`,
-  ],
-  [
-    "rotate-ccw",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["rotate-ccw", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-rotate-ccw"
   xmlns="http://www.w3.org/2000/svg"
@@ -29789,11 +25512,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
   <path d="M3 3v5h5" />
-</svg>`,
-  ],
-  [
-    "rotate-cw-square",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["rotate-cw-square", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-rotate-cw-square"
   xmlns="http://www.w3.org/2000/svg"
@@ -29809,11 +25529,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 5H6a2 2 0 0 0-2 2v3" />
   <path d="m9 8 3-3-3-3" />
   <path d="M4 14v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
-</svg>`,
-  ],
-  [
-    "rotate-cw",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["rotate-cw", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-rotate-cw"
   xmlns="http://www.w3.org/2000/svg"
@@ -29828,11 +25545,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
   <path d="M21 3v5h-5" />
-</svg>`,
-  ],
-  [
-    "route-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["route-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-route-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -29852,11 +25566,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M21 15.3a3.5 3.5 0 0 0-3.3-3.3" />
   <path d="M15 5h-4.3" />
   <circle cx="18" cy="5" r="3" />
-</svg>`,
-  ],
-  [
-    "route",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["route", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-route"
   xmlns="http://www.w3.org/2000/svg"
@@ -29872,11 +25583,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="6" cy="19" r="3" />
   <path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15" />
   <circle cx="18" cy="5" r="3" />
-</svg>`,
-  ],
-  [
-    "router",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["router", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-router"
   xmlns="http://www.w3.org/2000/svg"
@@ -29895,11 +25603,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M15 10v4" />
   <path d="M17.84 7.17a4 4 0 0 0-5.66 0" />
   <path d="M20.66 4.34a8 8 0 0 0-11.31 0" />
-</svg>`,
-  ],
-  [
-    "rows-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["rows-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-rows-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -29914,11 +25619,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="M3 12h18" />
-</svg>`,
-  ],
-  [
-    "rows-3",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["rows-3", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-rows-3"
   xmlns="http://www.w3.org/2000/svg"
@@ -29934,11 +25636,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="M21 9H3" />
   <path d="M21 15H3" />
-</svg>`,
-  ],
-  [
-    "rows-4",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["rows-4", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-rows-4"
   xmlns="http://www.w3.org/2000/svg"
@@ -29955,11 +25654,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M21 7.5H3" />
   <path d="M21 12H3" />
   <path d="M21 16.5H3" />
-</svg>`,
-  ],
-  [
-    "rows",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["rows", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-rows"
   xmlns="http://www.w3.org/2000/svg"
@@ -29974,11 +25670,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="M3 12h18" />
-</svg>`,
-  ],
-  [
-    "rss",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["rss", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-rss"
   xmlns="http://www.w3.org/2000/svg"
@@ -29994,11 +25687,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M4 11a9 9 0 0 1 9 9" />
   <path d="M4 4a16 16 0 0 1 16 16" />
   <circle cx="5" cy="19" r="1" />
-</svg>`,
-  ],
-  [
-    "ruler-dimension-line",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["ruler-dimension-line", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-ruler-dimension-line"
   xmlns="http://www.w3.org/2000/svg"
@@ -30019,11 +25709,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M22 8V4" />
   <path d="M6 15v-3" />
   <rect x="2" y="12" width="20" height="8" rx="2" />
-</svg>`,
-  ],
-  [
-    "ruler",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["ruler", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-ruler"
   xmlns="http://www.w3.org/2000/svg"
@@ -30041,11 +25728,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m11.5 9.5 2-2" />
   <path d="m8.5 6.5 2-2" />
   <path d="m17.5 15.5 2-2" />
-</svg>`,
-  ],
-  [
-    "russian-ruble",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["russian-ruble", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-russian-ruble"
   xmlns="http://www.w3.org/2000/svg"
@@ -30060,11 +25744,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M6 11h8a4 4 0 0 0 0-8H9v18" />
   <path d="M6 15h8" />
-</svg>`,
-  ],
-  [
-    "sailboat",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["sailboat", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-sailboat"
   xmlns="http://www.w3.org/2000/svg"
@@ -30080,11 +25761,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M10 2v15" />
   <path d="M7 22a4 4 0 0 1-4-4 1 1 0 0 1 1-1h16a1 1 0 0 1 1 1 4 4 0 0 1-4 4z" />
   <path d="M9.159 2.46a1 1 0 0 1 1.521-.193l9.977 8.98A1 1 0 0 1 20 13H4a1 1 0 0 1-.824-1.567z" />
-</svg>`,
-  ],
-  [
-    "salad",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["salad", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-salad"
   xmlns="http://www.w3.org/2000/svg"
@@ -30102,11 +25780,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M11.38 12a2.4 2.4 0 0 1-.4-4.77 2.4 2.4 0 0 1 3.2-2.77 2.4 2.4 0 0 1 3.47-.63 2.4 2.4 0 0 1 3.37 3.37 2.4 2.4 0 0 1-1.1 3.7 2.51 2.51 0 0 1 .03 1.1" />
   <path d="m13 12 4-4" />
   <path d="M10.9 7.25A3.99 3.99 0 0 0 4 10c0 .73.2 1.41.54 2" />
-</svg>`,
-  ],
-  [
-    "sandwich",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["sandwich", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-sandwich"
   xmlns="http://www.w3.org/2000/svg"
@@ -30124,11 +25799,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3 15a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h9" />
   <path d="m6.67 15 6.13 4.6a2 2 0 0 0 2.8-.4l3.15-4.2" />
   <rect width="20" height="4" x="2" y="11" rx="1" />
-</svg>`,
-  ],
-  [
-    "satellite-dish",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["satellite-dish", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-satellite-dish"
   xmlns="http://www.w3.org/2000/svg"
@@ -30145,11 +25817,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m9 15 3-3" />
   <path d="M17 13a6 6 0 0 0-6-6" />
   <path d="M21 13A10 10 0 0 0 11 3" />
-</svg>`,
-  ],
-  [
-    "satellite",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["satellite", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-satellite"
   xmlns="http://www.w3.org/2000/svg"
@@ -30167,11 +25836,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m17.5 10.5 3.148 3.148a1.205 1.205 0 0 1 0 1.704l-2.296 2.296a1.205 1.205 0 0 1-1.704 0L13.5 14.5" />
   <path d="M9 21a6 6 0 0 0-6-6" />
   <path d="M9.352 10.648a1.205 1.205 0 0 0 0 1.704l2.296 2.296a1.205 1.205 0 0 0 1.704 0l4.296-4.296a1.205 1.205 0 0 0 0-1.704l-2.296-2.296a1.205 1.205 0 0 0-1.704 0z" />
-</svg>`,
-  ],
-  [
-    "saudi-riyal",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["saudi-riyal", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-saudi-riyal"
   xmlns="http://www.w3.org/2000/svg"
@@ -30188,11 +25854,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14.5 4v11.22a1 1 0 0 0 1.242.97L20 15.2" />
   <path d="m2.978 19.351 5.549-1.363A2 2 0 0 0 10 16V2" />
   <path d="M20 10 4 13.5" />
-</svg>`,
-  ],
-  [
-    "save-all",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["save-all", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-save-all"
   xmlns="http://www.w3.org/2000/svg"
@@ -30209,11 +25872,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M18 18v-6a1 1 0 0 0-1-1h-6a1 1 0 0 0-1 1v6" />
   <path d="M18 22H4a2 2 0 0 1-2-2V6" />
   <path d="M8 18a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9.172a2 2 0 0 1 1.414.586l2.828 2.828A2 2 0 0 1 22 6.828V16a2 2 0 0 1-2.01 2z" />
-</svg>`,
-  ],
-  [
-    "save-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["save-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-save-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -30233,11 +25893,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M20.41 20.41A2 2 0 0 1 19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 .59-1.41" />
   <path d="M29.5 11.5s5 5 4 5" />
   <path d="M9 3h6.2a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V15" />
-</svg>`,
-  ],
-  [
-    "save",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["save", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-save"
   xmlns="http://www.w3.org/2000/svg"
@@ -30253,11 +25910,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" />
   <path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7" />
   <path d="M7 3v4a1 1 0 0 0 1 1h7" />
-</svg>`,
-  ],
-  [
-    "scale-3-d",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["scale-3-d", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-scale-3-d"
   xmlns="http://www.w3.org/2000/svg"
@@ -30274,11 +25928,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M5.293 18.707 11 13" />
   <circle cx="19" cy="19" r="2" />
   <circle cx="5" cy="5" r="2" />
-</svg>`,
-  ],
-  [
-    "scale-3d",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["scale-3d", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-scale-3d"
   xmlns="http://www.w3.org/2000/svg"
@@ -30295,11 +25946,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M5.293 18.707 11 13" />
   <circle cx="19" cy="19" r="2" />
   <circle cx="5" cy="5" r="2" />
-</svg>`,
-  ],
-  [
-    "scale",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["scale", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-scale"
   xmlns="http://www.w3.org/2000/svg"
@@ -30317,11 +25965,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3 7h1a17 17 0 0 0 8-2 17 17 0 0 0 8 2h1" />
   <path d="m5 8 3 8a5 5 0 0 1-6 0zV7" />
   <path d="M7 21h10" />
-</svg>`,
-  ],
-  [
-    "scaling",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["scaling", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-scaling"
   xmlns="http://www.w3.org/2000/svg"
@@ -30338,11 +25983,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 15H9v-5" />
   <path d="M16 3h5v5" />
   <path d="M21 3 9 15" />
-</svg>`,
-  ],
-  [
-    "scan-barcode",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["scan-barcode", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-scan-barcode"
   xmlns="http://www.w3.org/2000/svg"
@@ -30362,11 +26004,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M8 7v10" />
   <path d="M12 7v10" />
   <path d="M17 7v10" />
-</svg>`,
-  ],
-  [
-    "scan-eye",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["scan-eye", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-scan-eye"
   xmlns="http://www.w3.org/2000/svg"
@@ -30385,11 +26024,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M7 21H5a2 2 0 0 1-2-2v-2" />
   <circle cx="12" cy="12" r="1" />
   <path d="M18.944 12.33a1 1 0 0 0 0-.66 7.5 7.5 0 0 0-13.888 0 1 1 0 0 0 0 .66 7.5 7.5 0 0 0 13.888 0" />
-</svg>`,
-  ],
-  [
-    "scan-face",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["scan-face", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-scan-face"
   xmlns="http://www.w3.org/2000/svg"
@@ -30409,11 +26045,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M8 14s1.5 2 4 2 4-2 4-2" />
   <path d="M9 9h.01" />
   <path d="M15 9h.01" />
-</svg>`,
-  ],
-  [
-    "scan-heart",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["scan-heart", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-scan-heart"
   xmlns="http://www.w3.org/2000/svg"
@@ -30431,11 +26064,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3 7V5a2 2 0 0 1 2-2h2" />
   <path d="M7 21H5a2 2 0 0 1-2-2v-2" />
   <path d="M7.828 13.07A3 3 0 0 1 12 8.764a3 3 0 0 1 4.172 4.306l-3.447 3.62a1 1 0 0 1-1.449 0z" />
-</svg>`,
-  ],
-  [
-    "scan-line",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["scan-line", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-scan-line"
   xmlns="http://www.w3.org/2000/svg"
@@ -30453,11 +26083,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M21 17v2a2 2 0 0 1-2 2h-2" />
   <path d="M7 21H5a2 2 0 0 1-2-2v-2" />
   <path d="M7 12h10" />
-</svg>`,
-  ],
-  [
-    "scan-qr-code",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["scan-qr-code", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-scan-qr-code"
   xmlns="http://www.w3.org/2000/svg"
@@ -30478,11 +26105,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M7 17h.01" />
   <path d="M7 21H5a2 2 0 0 1-2-2v-2" />
   <rect x="7" y="7" width="5" height="5" rx="1" />
-</svg>`,
-  ],
-  [
-    "scan-search",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["scan-search", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-scan-search"
   xmlns="http://www.w3.org/2000/svg"
@@ -30501,11 +26125,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M7 21H5a2 2 0 0 1-2-2v-2" />
   <circle cx="12" cy="12" r="3" />
   <path d="m16 16-1.9-1.9" />
-</svg>`,
-  ],
-  [
-    "scan-text",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["scan-text", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-scan-text"
   xmlns="http://www.w3.org/2000/svg"
@@ -30525,11 +26146,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M7 8h8" />
   <path d="M7 12h10" />
   <path d="M7 16h6" />
-</svg>`,
-  ],
-  [
-    "scan",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["scan", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-scan"
   xmlns="http://www.w3.org/2000/svg"
@@ -30546,11 +26164,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M17 3h2a2 2 0 0 1 2 2v2" />
   <path d="M21 17v2a2 2 0 0 1-2 2h-2" />
   <path d="M7 21H5a2 2 0 0 1-2-2v-2" />
-</svg>`,
-  ],
-  [
-    "scatter-chart",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["scatter-chart", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-scatter-chart"
   xmlns="http://www.w3.org/2000/svg"
@@ -30569,11 +26184,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="7.5" cy="16.5" r=".5" fill="currentColor" />
   <circle cx="17.5" cy="14.5" r=".5" fill="currentColor" />
   <path d="M3 3v16a2 2 0 0 0 2 2h16" />
-</svg>`,
-  ],
-  [
-    "school-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["school-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-school-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -30593,11 +26205,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M6 12h.01" />
   <path d="M6 16h.01" />
   <circle cx="12" cy="10" r="2" />
-</svg>`,
-  ],
-  [
-    "school",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["school", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-school"
   xmlns="http://www.w3.org/2000/svg"
@@ -30616,11 +26225,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m6 11-3.52 2.147a1 1 0 0 0-.48.854V19a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-5a1 1 0 0 0-.48-.853L18 11" />
   <path d="M6 5v16" />
   <circle cx="12" cy="9" r="2" />
-</svg>`,
-  ],
-  [
-    "scissors-line-dashed",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["scissors-line-dashed", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-scissors-line-dashed"
   xmlns="http://www.w3.org/2000/svg"
@@ -30640,11 +26246,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M10.8 14.8 14 18" />
   <path d="M16 12h-2" />
   <path d="M22 12h-2" />
-</svg>`,
-  ],
-  [
-    "scissors-square-dashed-bottom",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["scissors-square-dashed-bottom", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-scissors-square-dashed-bottom"
   xmlns="http://www.w3.org/2000/svg"
@@ -30671,11 +26274,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <line x1="17" y1="17" x2="14.82" y2="14.82" />
   <circle cx="8.5" cy="15.5" r="1.5" />
   <line x1="9.56066" y1="14.43934" x2="17" y2="7" />
-</svg>`,
-  ],
-  [
-    "scissors-square",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["scissors-square", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-scissors-square"
   xmlns="http://www.w3.org/2000/svg"
@@ -30694,11 +26294,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <line x1="17" y1="17" x2="14.82" y2="14.82" />
   <circle cx="8.5" cy="15.5" r="1.5" />
   <line x1="9.56066" y1="14.43934" x2="17" y2="7" />
-</svg>`,
-  ],
-  [
-    "scissors",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["scissors", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-scissors"
   xmlns="http://www.w3.org/2000/svg"
@@ -30716,11 +26313,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M20 4 8.12 15.88" />
   <circle cx="6" cy="18" r="3" />
   <path d="M14.8 14.8 20 20" />
-</svg>`,
-  ],
-  [
-    "scooter",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["scooter", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-scooter"
   xmlns="http://www.w3.org/2000/svg"
@@ -30737,11 +26331,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M6.95 17h5.142c.523 0 .95-.406 1.063-.916a6.5 6.5 0 0 1 5.345-5.009" />
   <circle cx="19.5" cy="17.5" r="2.5" />
   <circle cx="4.5" cy="17.5" r="2.5" />
-</svg>`,
-  ],
-  [
-    "screen-share-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["screen-share-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-screen-share-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -30759,11 +26350,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 17v4" />
   <path d="m22 3-5 5" />
   <path d="m17 3 5 5" />
-</svg>`,
-  ],
-  [
-    "screen-share",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["screen-share", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-screen-share"
   xmlns="http://www.w3.org/2000/svg"
@@ -30781,11 +26369,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 17v4" />
   <path d="m17 8 5-5" />
   <path d="M17 3h5v5" />
-</svg>`,
-  ],
-  [
-    "scroll-text",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["scroll-text", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-scroll-text"
   xmlns="http://www.w3.org/2000/svg"
@@ -30802,11 +26387,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M15 8h-5" />
   <path d="M19 17V5a2 2 0 0 0-2-2H4" />
   <path d="M8 21h12a2 2 0 0 0 2-2v-1a1 1 0 0 0-1-1H11a1 1 0 0 0-1 1v1a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v2a1 1 0 0 0 1 1h3" />
-</svg>`,
-  ],
-  [
-    "scroll",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["scroll", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-scroll"
   xmlns="http://www.w3.org/2000/svg"
@@ -30821,11 +26403,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M19 17V5a2 2 0 0 0-2-2H4" />
   <path d="M8 21h12a2 2 0 0 0 2-2v-1a1 1 0 0 0-1-1H11a1 1 0 0 0-1 1v1a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v2a1 1 0 0 0 1 1h3" />
-</svg>`,
-  ],
-  [
-    "search-alert",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["search-alert", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-search-alert"
   xmlns="http://www.w3.org/2000/svg"
@@ -30842,11 +26421,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m21 21-4.3-4.3" />
   <path d="M11 7v4" />
   <path d="M11 15h.01" />
-</svg>`,
-  ],
-  [
-    "search-check",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["search-check", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-search-check"
   xmlns="http://www.w3.org/2000/svg"
@@ -30862,11 +26438,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m8 11 2 2 4-4" />
   <circle cx="11" cy="11" r="8" />
   <path d="m21 21-4.3-4.3" />
-</svg>`,
-  ],
-  [
-    "search-code",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["search-code", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-search-code"
   xmlns="http://www.w3.org/2000/svg"
@@ -30883,11 +26456,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m21 21-4.3-4.3" />
   <path d="M9 8.5 7 11l2 2.5" />
   <circle cx="11" cy="11" r="8" />
-</svg>`,
-  ],
-  [
-    "search-slash",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["search-slash", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-search-slash"
   xmlns="http://www.w3.org/2000/svg"
@@ -30903,11 +26473,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m13.5 8.5-5 5" />
   <circle cx="11" cy="11" r="8" />
   <path d="m21 21-4.3-4.3" />
-</svg>`,
-  ],
-  [
-    "search-x",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["search-x", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-search-x"
   xmlns="http://www.w3.org/2000/svg"
@@ -30924,11 +26491,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m8.5 8.5 5 5" />
   <circle cx="11" cy="11" r="8" />
   <path d="m21 21-4.3-4.3" />
-</svg>`,
-  ],
-  [
-    "search",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["search", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-search"
   xmlns="http://www.w3.org/2000/svg"
@@ -30943,11 +26507,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="m21 21-4.34-4.34" />
   <circle cx="11" cy="11" r="8" />
-</svg>`,
-  ],
-  [
-    "section",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["section", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-section"
   xmlns="http://www.w3.org/2000/svg"
@@ -30962,11 +26523,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M16 5a4 3 0 0 0-8 0c0 4 8 3 8 7a4 3 0 0 1-8 0" />
   <path d="M8 19a4 3 0 0 0 8 0c0-4-8-3-8-7a4 3 0 0 1 8 0" />
-</svg>`,
-  ],
-  [
-    "send-horizonal",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["send-horizonal", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-send-horizonal"
   xmlns="http://www.w3.org/2000/svg"
@@ -30981,11 +26539,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M3.714 3.048a.498.498 0 0 0-.683.627l2.843 7.627a2 2 0 0 1 0 1.396l-2.842 7.627a.498.498 0 0 0 .682.627l18-8.5a.5.5 0 0 0 0-.904z" />
   <path d="M6 12h16" />
-</svg>`,
-  ],
-  [
-    "send-horizontal",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["send-horizontal", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-send-horizontal"
   xmlns="http://www.w3.org/2000/svg"
@@ -31000,11 +26555,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M3.714 3.048a.498.498 0 0 0-.683.627l2.843 7.627a2 2 0 0 1 0 1.396l-2.842 7.627a.498.498 0 0 0 .682.627l18-8.5a.5.5 0 0 0 0-.904z" />
   <path d="M6 12h16" />
-</svg>`,
-  ],
-  [
-    "send-to-back",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["send-to-back", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-send-to-back"
   xmlns="http://www.w3.org/2000/svg"
@@ -31021,11 +26573,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect x="2" y="2" width="8" height="8" rx="2" />
   <path d="M7 14v1a2 2 0 0 0 2 2h1" />
   <path d="M14 7h1a2 2 0 0 1 2 2v1" />
-</svg>`,
-  ],
-  [
-    "send",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["send", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-send"
   xmlns="http://www.w3.org/2000/svg"
@@ -31040,11 +26589,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z" />
   <path d="m21.854 2.147-10.94 10.939" />
-</svg>`,
-  ],
-  [
-    "separator-horizontal",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["separator-horizontal", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-separator-horizontal"
   xmlns="http://www.w3.org/2000/svg"
@@ -31060,11 +26606,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m16 16-4 4-4-4" />
   <path d="M3 12h18" />
   <path d="m8 8 4-4 4 4" />
-</svg>`,
-  ],
-  [
-    "separator-vertical",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["separator-vertical", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-separator-vertical"
   xmlns="http://www.w3.org/2000/svg"
@@ -31080,11 +26623,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 3v18" />
   <path d="m16 16 4-4-4-4" />
   <path d="m8 8-4 4 4 4" />
-</svg>`,
-  ],
-  [
-    "server-cog",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["server-cog", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-server-cog"
   xmlns="http://www.w3.org/2000/svg"
@@ -31109,11 +26649,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M6 6h.01" />
   <path d="m9.228 10.852-.923-.383" />
   <path d="m9.228 13.148-.923.383" />
-</svg>`,
-  ],
-  [
-    "server-crash",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["server-crash", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-server-crash"
   xmlns="http://www.w3.org/2000/svg"
@@ -31131,11 +26668,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M6 6h.01" />
   <path d="M6 18h.01" />
   <path d="m13 6-4 6h6l-4 6" />
-</svg>`,
-  ],
-  [
-    "server-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["server-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-server-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -31154,11 +26688,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M4 14a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h16.5l1-.5.5.5-8-8H4z" />
   <path d="M6 18h.01" />
   <path d="m2 2 20 20" />
-</svg>`,
-  ],
-  [
-    "server",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["server", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-server"
   xmlns="http://www.w3.org/2000/svg"
@@ -31175,11 +26706,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="20" height="8" x="2" y="14" rx="2" ry="2" />
   <line x1="6" x2="6.01" y1="6" y2="6" />
   <line x1="6" x2="6.01" y1="18" y2="18" />
-</svg>`,
-  ],
-  [
-    "settings-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["settings-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-settings-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -31196,11 +26724,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M19 7h-9" />
   <circle cx="17" cy="17" r="3" />
   <circle cx="7" cy="7" r="3" />
-</svg>`,
-  ],
-  [
-    "settings",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["settings", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-settings"
   xmlns="http://www.w3.org/2000/svg"
@@ -31215,11 +26740,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915" />
   <circle cx="12" cy="12" r="3" />
-</svg>`,
-  ],
-  [
-    "shapes",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["shapes", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-shapes"
   xmlns="http://www.w3.org/2000/svg"
@@ -31235,11 +26757,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M8.3 10a.7.7 0 0 1-.626-1.079L11.4 3a.7.7 0 0 1 1.198-.043L16.3 8.9a.7.7 0 0 1-.572 1.1Z" />
   <rect x="3" y="14" width="7" height="7" rx="1" />
   <circle cx="17.5" cy="17.5" r="3.5" />
-</svg>`,
-  ],
-  [
-    "share-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["share-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-share-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -31257,11 +26776,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="18" cy="19" r="3" />
   <line x1="8.59" x2="15.42" y1="13.51" y2="17.49" />
   <line x1="15.41" x2="8.59" y1="6.51" y2="10.49" />
-</svg>`,
-  ],
-  [
-    "share",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["share", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-share"
   xmlns="http://www.w3.org/2000/svg"
@@ -31277,11 +26793,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 2v13" />
   <path d="m16 6-4-4-4 4" />
   <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
-</svg>`,
-  ],
-  [
-    "sheet",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["sheet", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-sheet"
   xmlns="http://www.w3.org/2000/svg"
@@ -31299,11 +26812,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <line x1="3" x2="21" y1="15" y2="15" />
   <line x1="9" x2="9" y1="9" y2="21" />
   <line x1="15" x2="15" y1="9" y2="21" />
-</svg>`,
-  ],
-  [
-    "shell",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["shell", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-shell"
   xmlns="http://www.w3.org/2000/svg"
@@ -31317,11 +26827,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M14 11a2 2 0 1 1-4 0 4 4 0 0 1 8 0 6 6 0 0 1-12 0 8 8 0 0 1 16 0 10 10 0 1 1-20 0 11.93 11.93 0 0 1 2.42-7.22 2 2 0 1 1 3.16 2.44" />
-</svg>`,
-  ],
-  [
-    "shield-alert",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["shield-alert", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-shield-alert"
   xmlns="http://www.w3.org/2000/svg"
@@ -31337,11 +26844,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
   <path d="M12 8v4" />
   <path d="M12 16h.01" />
-</svg>`,
-  ],
-  [
-    "shield-ban",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["shield-ban", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-shield-ban"
   xmlns="http://www.w3.org/2000/svg"
@@ -31356,11 +26860,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
   <path d="m4.243 5.21 14.39 12.472" />
-</svg>`,
-  ],
-  [
-    "shield-check",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["shield-check", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-shield-check"
   xmlns="http://www.w3.org/2000/svg"
@@ -31375,11 +26876,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
   <path d="m9 12 2 2 4-4" />
-</svg>`,
-  ],
-  [
-    "shield-close",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["shield-close", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-shield-close"
   xmlns="http://www.w3.org/2000/svg"
@@ -31395,11 +26893,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
   <path d="m14.5 9.5-5 5" />
   <path d="m9.5 9.5 5 5" />
-</svg>`,
-  ],
-  [
-    "shield-ellipsis",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["shield-ellipsis", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-shield-ellipsis"
   xmlns="http://www.w3.org/2000/svg"
@@ -31416,11 +26911,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M8 12h.01" />
   <path d="M12 12h.01" />
   <path d="M16 12h.01" />
-</svg>`,
-  ],
-  [
-    "shield-half",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["shield-half", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-shield-half"
   xmlns="http://www.w3.org/2000/svg"
@@ -31435,11 +26927,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
   <path d="M12 22V2" />
-</svg>`,
-  ],
-  [
-    "shield-minus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["shield-minus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-shield-minus"
   xmlns="http://www.w3.org/2000/svg"
@@ -31454,11 +26943,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
   <path d="M9 12h6" />
-</svg>`,
-  ],
-  [
-    "shield-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["shield-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-shield-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -31474,11 +26960,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m2 2 20 20" />
   <path d="M5 5a1 1 0 0 0-1 1v7c0 5 3.5 7.5 7.67 8.94a1 1 0 0 0 .67.01c2.35-.82 4.48-1.97 5.9-3.71" />
   <path d="M9.309 3.652A12.252 12.252 0 0 0 11.24 2.28a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1v7a9.784 9.784 0 0 1-.08 1.264" />
-</svg>`,
-  ],
-  [
-    "shield-plus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["shield-plus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-shield-plus"
   xmlns="http://www.w3.org/2000/svg"
@@ -31494,11 +26977,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
   <path d="M9 12h6" />
   <path d="M12 9v6" />
-</svg>`,
-  ],
-  [
-    "shield-question-mark",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["shield-question-mark", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-shield-question-mark"
   xmlns="http://www.w3.org/2000/svg"
@@ -31514,11 +26994,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
   <path d="M9.1 9a3 3 0 0 1 5.82 1c0 2-3 3-3 3" />
   <path d="M12 17h.01" />
-</svg>`,
-  ],
-  [
-    "shield-question",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["shield-question", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-shield-question"
   xmlns="http://www.w3.org/2000/svg"
@@ -31534,11 +27011,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
   <path d="M9.1 9a3 3 0 0 1 5.82 1c0 2-3 3-3 3" />
   <path d="M12 17h.01" />
-</svg>`,
-  ],
-  [
-    "shield-user",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["shield-user", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-shield-user"
   xmlns="http://www.w3.org/2000/svg"
@@ -31554,11 +27028,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
   <path d="M6.376 18.91a6 6 0 0 1 11.249.003" />
   <circle cx="12" cy="11" r="4" />
-</svg>`,
-  ],
-  [
-    "shield-x",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["shield-x", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-shield-x"
   xmlns="http://www.w3.org/2000/svg"
@@ -31574,11 +27045,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
   <path d="m14.5 9.5-5 5" />
   <path d="m9.5 9.5 5 5" />
-</svg>`,
-  ],
-  [
-    "shield",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["shield", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-shield"
   xmlns="http://www.w3.org/2000/svg"
@@ -31592,11 +27060,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
-</svg>`,
-  ],
-  [
-    "ship-wheel",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["ship-wheel", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-ship-wheel"
   xmlns="http://www.w3.org/2000/svg"
@@ -31619,11 +27084,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M9.5 12H2" />
   <path d="M10.23 10.23 5 5" />
   <circle cx="12" cy="12" r="2.5" />
-</svg>`,
-  ],
-  [
-    "ship",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["ship", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-ship"
   xmlns="http://www.w3.org/2000/svg"
@@ -31641,11 +27103,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M19 13V7a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v6" />
   <path d="M19.38 20A11.6 11.6 0 0 0 21 14l-8.188-3.639a2 2 0 0 0-1.624 0L3 14a11.6 11.6 0 0 0 2.81 7.76" />
   <path d="M2 21c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1s1.2 1 2.5 1c2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1" />
-</svg>`,
-  ],
-  [
-    "shirt",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["shirt", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-shirt"
   xmlns="http://www.w3.org/2000/svg"
@@ -31659,11 +27118,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z" />
-</svg>`,
-  ],
-  [
-    "shopping-bag",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["shopping-bag", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-shopping-bag"
   xmlns="http://www.w3.org/2000/svg"
@@ -31679,11 +27135,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M16 10a4 4 0 0 1-8 0" />
   <path d="M3.103 6.034h17.794" />
   <path d="M3.4 5.467a2 2 0 0 0-.4 1.2V20a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6.667a2 2 0 0 0-.4-1.2l-2-2.667A2 2 0 0 0 17 2H7a2 2 0 0 0-1.6.8z" />
-</svg>`,
-  ],
-  [
-    "shopping-basket",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["shopping-basket", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-shopping-basket"
   xmlns="http://www.w3.org/2000/svg"
@@ -31703,11 +27156,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M4.5 15.5h15" />
   <path d="m5 11 4-7" />
   <path d="m9 11 1 9" />
-</svg>`,
-  ],
-  [
-    "shopping-cart",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["shopping-cart", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-shopping-cart"
   xmlns="http://www.w3.org/2000/svg"
@@ -31723,11 +27173,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="8" cy="21" r="1" />
   <circle cx="19" cy="21" r="1" />
   <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" />
-</svg>`,
-  ],
-  [
-    "shovel",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["shovel", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-shovel"
   xmlns="http://www.w3.org/2000/svg"
@@ -31743,11 +27190,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M21.56 4.56a1.5 1.5 0 0 1 0 2.122l-.47.47a3 3 0 0 1-4.212-.03 3 3 0 0 1 0-4.243l.44-.44a1.5 1.5 0 0 1 2.121 0z" />
   <path d="M3 22a1 1 0 0 1-1-1v-3.586a1 1 0 0 1 .293-.707l3.355-3.355a1.205 1.205 0 0 1 1.704 0l3.296 3.296a1.205 1.205 0 0 1 0 1.704l-3.355 3.355a1 1 0 0 1-.707.293z" />
   <path d="m9 15 7.879-7.878" />
-</svg>`,
-  ],
-  [
-    "shower-head",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["shower-head", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-shower-head"
   xmlns="http://www.w3.org/2000/svg"
@@ -31770,11 +27214,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M11 20v.01" />
   <path d="M17 14v.01" />
   <path d="M20 11v.01" />
-</svg>`,
-  ],
-  [
-    "shredder",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["shredder", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-shredder"
   xmlns="http://www.w3.org/2000/svg"
@@ -31794,11 +27235,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M18 20v-3" />
   <path d="M2 13h20" />
   <path d="M6 20v-3" />
-</svg>`,
-  ],
-  [
-    "shrimp",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["shrimp", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-shrimp"
   xmlns="http://www.w3.org/2000/svg"
@@ -31816,11 +27254,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 2a3.28 3.28 0 0 1-3.227 1.798l-6.17-.561A2.387 2.387 0 1 0 4.387 8H15.5a1 1 0 0 1 0 13 1 1 0 0 0 0-5H12a7 7 0 0 1-7-7V8" />
   <path d="M14 8a8.5 8.5 0 0 1 0 8" />
   <path d="M16 16c2 0 4.5-4 4-6" />
-</svg>`,
-  ],
-  [
-    "shrink",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["shrink", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-shrink"
   xmlns="http://www.w3.org/2000/svg"
@@ -31837,11 +27272,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M9 19.8V15m0 0H4.2M9 15l-6 6" />
   <path d="M15 4.2V9m0 0h4.8M15 9l6-6" />
   <path d="M9 4.2V9m0 0H4.2M9 9 3 3" />
-</svg>`,
-  ],
-  [
-    "shrub",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["shrub", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-shrub"
   xmlns="http://www.w3.org/2000/svg"
@@ -31857,11 +27289,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 22v-5.172a2 2 0 0 0-.586-1.414L9.5 13.5" />
   <path d="M14.5 14.5 12 17" />
   <path d="M17 8.8A6 6 0 0 1 13.8 20H10A6.5 6.5 0 0 1 7 8a5 5 0 0 1 10 0z" />
-</svg>`,
-  ],
-  [
-    "shuffle",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["shuffle", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-shuffle"
   xmlns="http://www.w3.org/2000/svg"
@@ -31879,11 +27308,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M2 18h1.973a4 4 0 0 0 3.3-1.7l5.454-8.6a4 4 0 0 1 3.3-1.7H22" />
   <path d="M2 6h1.972a4 4 0 0 1 3.6 2.2" />
   <path d="M22 18h-6.041a4 4 0 0 1-3.3-1.8l-.359-.45" />
-</svg>`,
-  ],
-  [
-    "sidebar-close",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["sidebar-close", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-sidebar-close"
   xmlns="http://www.w3.org/2000/svg"
@@ -31899,11 +27325,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="M9 3v18" />
   <path d="m16 15-3-3 3-3" />
-</svg>`,
-  ],
-  [
-    "sidebar-open",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["sidebar-open", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-sidebar-open"
   xmlns="http://www.w3.org/2000/svg"
@@ -31919,11 +27342,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="M9 3v18" />
   <path d="m14 9 3 3-3 3" />
-</svg>`,
-  ],
-  [
-    "sidebar",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["sidebar", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-sidebar"
   xmlns="http://www.w3.org/2000/svg"
@@ -31938,11 +27358,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="M9 3v18" />
-</svg>`,
-  ],
-  [
-    "sigma-square",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["sigma-square", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-sigma-square"
   xmlns="http://www.w3.org/2000/svg"
@@ -31957,11 +27374,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="M16 8.9V7H8l4 5-4 5h8v-1.9" />
-</svg>`,
-  ],
-  [
-    "sigma",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["sigma", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-sigma"
   xmlns="http://www.w3.org/2000/svg"
@@ -31975,11 +27389,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M18 7V5a1 1 0 0 0-1-1H6.5a.5.5 0 0 0-.4.8l4.5 6a2 2 0 0 1 0 2.4l-4.5 6a.5.5 0 0 0 .4.8H17a1 1 0 0 0 1-1v-2" />
-</svg>`,
-  ],
-  [
-    "signal-high",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["signal-high", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-signal-high"
   xmlns="http://www.w3.org/2000/svg"
@@ -31996,11 +27407,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M7 20v-4" />
   <path d="M12 20v-8" />
   <path d="M17 20V8" />
-</svg>`,
-  ],
-  [
-    "signal-low",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["signal-low", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-signal-low"
   xmlns="http://www.w3.org/2000/svg"
@@ -32015,11 +27423,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M2 20h.01" />
   <path d="M7 20v-4" />
-</svg>`,
-  ],
-  [
-    "signal-medium",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["signal-medium", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-signal-medium"
   xmlns="http://www.w3.org/2000/svg"
@@ -32035,11 +27440,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M2 20h.01" />
   <path d="M7 20v-4" />
   <path d="M12 20v-8" />
-</svg>`,
-  ],
-  [
-    "signal-zero",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["signal-zero", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-signal-zero"
   xmlns="http://www.w3.org/2000/svg"
@@ -32053,11 +27455,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M2 20h.01" />
-</svg>`,
-  ],
-  [
-    "signal",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["signal", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-signal"
   xmlns="http://www.w3.org/2000/svg"
@@ -32075,11 +27474,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 20v-8" />
   <path d="M17 20V8" />
   <path d="M22 4v16" />
-</svg>`,
-  ],
-  [
-    "signature",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["signature", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-signature"
   xmlns="http://www.w3.org/2000/svg"
@@ -32094,11 +27490,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="m21 17-2.156-1.868A.5.5 0 0 0 18 15.5v.5a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1c0-2.545-3.991-3.97-8.5-4a1 1 0 0 0 0 5c4.153 0 4.745-11.295 5.708-13.5a2.5 2.5 0 1 1 3.31 3.284" />
   <path d="M3 21h18" />
-</svg>`,
-  ],
-  [
-    "signpost-big",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["signpost-big", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-signpost-big"
   xmlns="http://www.w3.org/2000/svg"
@@ -32115,11 +27508,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 5h6l2 2-2 2h-6" />
   <path d="M10 22V4a2 2 0 1 1 4 0v18" />
   <path d="M8 22h8" />
-</svg>`,
-  ],
-  [
-    "signpost",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["signpost", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-signpost"
   xmlns="http://www.w3.org/2000/svg"
@@ -32135,11 +27525,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 13v8" />
   <path d="M12 3v3" />
   <path d="M18 6a2 2 0 0 1 1.387.56l2.307 2.22a1 1 0 0 1 0 1.44l-2.307 2.22A2 2 0 0 1 18 13H6a2 2 0 0 1-1.387-.56l-2.306-2.22a1 1 0 0 1 0-1.44l2.306-2.22A2 2 0 0 1 6 6z" />
-</svg>`,
-  ],
-  [
-    "siren",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["siren", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-siren"
   xmlns="http://www.w3.org/2000/svg"
@@ -32160,11 +27547,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 2v1" />
   <path d="m4.929 4.929.707.707" />
   <path d="M12 12v6" />
-</svg>`,
-  ],
-  [
-    "skip-back",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["skip-back", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-skip-back"
   xmlns="http://www.w3.org/2000/svg"
@@ -32179,11 +27563,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M17.971 4.285A2 2 0 0 1 21 6v12a2 2 0 0 1-3.029 1.715l-9.997-5.998a2 2 0 0 1-.003-3.432z" />
   <path d="M3 20V4" />
-</svg>`,
-  ],
-  [
-    "skip-forward",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["skip-forward", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-skip-forward"
   xmlns="http://www.w3.org/2000/svg"
@@ -32198,11 +27579,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M21 4v16" />
   <path d="M6.029 4.285A2 2 0 0 0 3 6v12a2 2 0 0 0 3.029 1.715l9.997-5.998a2 2 0 0 0 .003-3.432z" />
-</svg>`,
-  ],
-  [
-    "skull",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["skull", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-skull"
   xmlns="http://www.w3.org/2000/svg"
@@ -32219,11 +27597,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M15 22a1 1 0 0 0 1-1v-1a2 2 0 0 0 1.56-3.25 8 8 0 1 0-11.12 0A2 2 0 0 0 8 20v1a1 1 0 0 0 1 1z" />
   <circle cx="15" cy="12" r="1" />
   <circle cx="9" cy="12" r="1" />
-</svg>`,
-  ],
-  [
-    "slack",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["slack", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-slack"
   xmlns="http://www.w3.org/2000/svg"
@@ -32244,11 +27619,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M15.5 19H14v1.5a1.5 1.5 0 1 0 1.5-1.5" />
   <rect width="8" height="3" x="2" y="8" rx="1.5" />
   <path d="M8.5 5H10V3.5A1.5 1.5 0 1 0 8.5 5" />
-</svg>`,
-  ],
-  [
-    "slash-square",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["slash-square", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-slash-square"
   xmlns="http://www.w3.org/2000/svg"
@@ -32263,11 +27635,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <line x1="9" x2="15" y1="15" y2="9" />
-</svg>`,
-  ],
-  [
-    "slash",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["slash", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-slash"
   xmlns="http://www.w3.org/2000/svg"
@@ -32281,11 +27650,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M22 2 2 22" />
-</svg>`,
-  ],
-  [
-    "slice",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["slice", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-slice"
   xmlns="http://www.w3.org/2000/svg"
@@ -32299,11 +27665,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M11 16.586V19a1 1 0 0 1-1 1H2L18.37 3.63a1 1 0 1 1 3 3l-9.663 9.663a1 1 0 0 1-1.414 0L8 14" />
-</svg>`,
-  ],
-  [
-    "sliders-horizontal",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["sliders-horizontal", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-sliders-horizontal"
   xmlns="http://www.w3.org/2000/svg"
@@ -32325,11 +27688,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M21 5h-7" />
   <path d="M8 10v4" />
   <path d="M8 12H3" />
-</svg>`,
-  ],
-  [
-    "sliders-vertical",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["sliders-vertical", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-sliders-vertical"
   xmlns="http://www.w3.org/2000/svg"
@@ -32351,11 +27711,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3 14h4" />
   <path d="M5 10V3" />
   <path d="M5 21v-7" />
-</svg>`,
-  ],
-  [
-    "sliders",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["sliders", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-sliders"
   xmlns="http://www.w3.org/2000/svg"
@@ -32377,11 +27734,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3 14h4" />
   <path d="M5 10V3" />
   <path d="M5 21v-7" />
-</svg>`,
-  ],
-  [
-    "smartphone-charging",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["smartphone-charging", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-smartphone-charging"
   xmlns="http://www.w3.org/2000/svg"
@@ -32396,11 +27750,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <rect width="14" height="20" x="5" y="2" rx="2" ry="2" />
   <path d="M12.667 8 10 12h4l-2.667 4" />
-</svg>`,
-  ],
-  [
-    "smartphone-nfc",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["smartphone-nfc", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-smartphone-nfc"
   xmlns="http://www.w3.org/2000/svg"
@@ -32417,11 +27768,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M13 8.32a7.43 7.43 0 0 1 0 7.36" />
   <path d="M16.46 6.21a11.76 11.76 0 0 1 0 11.58" />
   <path d="M19.91 4.1a15.91 15.91 0 0 1 .01 15.8" />
-</svg>`,
-  ],
-  [
-    "smartphone",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["smartphone", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-smartphone"
   xmlns="http://www.w3.org/2000/svg"
@@ -32436,11 +27784,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <rect width="14" height="20" x="5" y="2" rx="2" ry="2" />
   <path d="M12 18h.01" />
-</svg>`,
-  ],
-  [
-    "smile-plus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["smile-plus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-smile-plus"
   xmlns="http://www.w3.org/2000/svg"
@@ -32459,11 +27804,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <line x1="15" x2="15.01" y1="9" y2="9" />
   <path d="M16 5h6" />
   <path d="M19 2v6" />
-</svg>`,
-  ],
-  [
-    "smile",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["smile", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-smile"
   xmlns="http://www.w3.org/2000/svg"
@@ -32480,11 +27822,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M8 14s1.5 2 4 2 4-2 4-2" />
   <line x1="9" x2="9.01" y1="9" y2="9" />
   <line x1="15" x2="15.01" y1="9" y2="9" />
-</svg>`,
-  ],
-  [
-    "snail",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["snail", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-snail"
   xmlns="http://www.w3.org/2000/svg"
@@ -32502,11 +27841,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M2 21h12c4.4 0 8-3.6 8-8V7a2 2 0 1 0-4 0v6" />
   <path d="M18 3 19.1 5.2" />
   <path d="M22 3 20.9 5.2" />
-</svg>`,
-  ],
-  [
-    "snowflake",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["snowflake", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-snowflake"
   xmlns="http://www.w3.org/2000/svg"
@@ -32531,11 +27867,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m4 10 1.5 2L4 14" />
   <path d="m7 21 3-6-1.5-3" />
   <path d="m7 3 3 6h4" />
-</svg>`,
-  ],
-  [
-    "soap-dispenser-droplet",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["soap-dispenser-droplet", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-soap-dispenser-droplet"
   xmlns="http://www.w3.org/2000/svg"
@@ -32552,11 +27885,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 2H7a2 2 0 0 0-2 2" />
   <path d="M19.29 14.76A6.67 6.67 0 0 1 17 11a6.6 6.6 0 0 1-2.29 3.76c-1.15.92-1.71 2.04-1.71 3.19 0 2.22 1.8 4.05 4 4.05s4-1.83 4-4.05c0-1.16-.57-2.26-1.71-3.19" />
   <path d="M9.607 21H6a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h7V7a1 1 0 0 0-1-1H9a1 1 0 0 0-1 1v3" />
-</svg>`,
-  ],
-  [
-    "sofa",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["sofa", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-sofa"
   xmlns="http://www.w3.org/2000/svg"
@@ -32574,11 +27904,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M4 18v2" />
   <path d="M20 18v2" />
   <path d="M12 4v9" />
-</svg>`,
-  ],
-  [
-    "solar-panel",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["solar-panel", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-solar-panel"
   xmlns="http://www.w3.org/2000/svg"
@@ -32598,11 +27925,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M6.245 15.04A2 2 0 0 1 8 14h12a1 1 0 0 1 .864 1.505l-3.11 5.457A2 2 0 0 1 16 22H4a1 1 0 0 1-.863-1.506z" />
   <path d="M7 2a4 4 0 0 1-4 4" />
   <path d="m8.66 7.66 1.41 1.41" />
-</svg>`,
-  ],
-  [
-    "sort-asc",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["sort-asc", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-sort-asc"
   xmlns="http://www.w3.org/2000/svg"
@@ -32620,11 +27944,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M11 12h4" />
   <path d="M11 16h7" />
   <path d="M11 20h10" />
-</svg>`,
-  ],
-  [
-    "sort-desc",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["sort-desc", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-sort-desc"
   xmlns="http://www.w3.org/2000/svg"
@@ -32642,11 +27963,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M11 4h10" />
   <path d="M11 8h7" />
   <path d="M11 12h4" />
-</svg>`,
-  ],
-  [
-    "soup",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["soup", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-soup"
   xmlns="http://www.w3.org/2000/svg"
@@ -32665,11 +27983,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M16.25 3c.27.1.8.53.75 1.36-.06.83-.93 1.2-1 2.02-.05.78.34 1.24.73 1.62" />
   <path d="M11.25 3c.27.1.8.53.74 1.36-.05.83-.93 1.2-.98 2.02-.06.78.33 1.24.72 1.62" />
   <path d="M6.25 3c.27.1.8.53.75 1.36-.06.83-.93 1.2-1 2.02-.05.78.34 1.24.74 1.62" />
-</svg>`,
-  ],
-  [
-    "space",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["space", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-space"
   xmlns="http://www.w3.org/2000/svg"
@@ -32683,11 +27998,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M22 17v1c0 .5-.5 1-1 1H3c-.5 0-1-.5-1-1v-1" />
-</svg>`,
-  ],
-  [
-    "spade",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["spade", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-spade"
   xmlns="http://www.w3.org/2000/svg"
@@ -32702,11 +28014,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M12 18v4" />
   <path d="M2 14.499a5.5 5.5 0 0 0 9.591 3.675.6.6 0 0 1 .818.001A5.5 5.5 0 0 0 22 14.5c0-2.29-1.5-4-3-5.5l-5.492-5.312a2 2 0 0 0-3-.02L5 8.999c-1.5 1.5-3 3.2-3 5.5" />
-</svg>`,
-  ],
-  [
-    "sparkle",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["sparkle", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-sparkle"
   xmlns="http://www.w3.org/2000/svg"
@@ -32720,11 +28029,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z" />
-</svg>`,
-  ],
-  [
-    "sparkles",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["sparkles", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-sparkles"
   xmlns="http://www.w3.org/2000/svg"
@@ -32741,11 +28047,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M20 2v4" />
   <path d="M22 4h-4" />
   <circle cx="4" cy="20" r="2" />
-</svg>`,
-  ],
-  [
-    "speaker",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["speaker", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-speaker"
   xmlns="http://www.w3.org/2000/svg"
@@ -32762,11 +28065,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 6h.01" />
   <circle cx="12" cy="14" r="4" />
   <path d="M12 14h.01" />
-</svg>`,
-  ],
-  [
-    "speech",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["speech", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-speech"
   xmlns="http://www.w3.org/2000/svg"
@@ -32782,11 +28082,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M8.8 20v-4.1l1.9.2a2.3 2.3 0 0 0 2.164-2.1V8.3A5.37 5.37 0 0 0 2 8.25c0 2.8.656 3.054 1 4.55a5.77 5.77 0 0 1 .029 2.758L2 20" />
   <path d="M19.8 17.8a7.5 7.5 0 0 0 .003-10.603" />
   <path d="M17 15a3.5 3.5 0 0 0-.025-4.975" />
-</svg>`,
-  ],
-  [
-    "spell-check-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["spell-check-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-spell-check-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -32802,11 +28099,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m6 16 6-12 6 12" />
   <path d="M8 12h8" />
   <path d="M4 21c1.1 0 1.1-1 2.3-1s1.1 1 2.3 1c1.1 0 1.1-1 2.3-1 1.1 0 1.1 1 2.3 1 1.1 0 1.1-1 2.3-1 1.1 0 1.1 1 2.3 1 1.1 0 1.1-1 2.3-1" />
-</svg>`,
-  ],
-  [
-    "spell-check",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["spell-check", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-spell-check"
   xmlns="http://www.w3.org/2000/svg"
@@ -32822,11 +28116,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m6 16 6-12 6 12" />
   <path d="M8 12h8" />
   <path d="m16 20 2 2 4-4" />
-</svg>`,
-  ],
-  [
-    "spline-pointer",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["spline-pointer", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-spline-pointer"
   xmlns="http://www.w3.org/2000/svg"
@@ -32843,11 +28134,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M5 17A12 12 0 0 1 17 5" />
   <circle cx="19" cy="5" r="2" />
   <circle cx="5" cy="19" r="2" />
-</svg>`,
-  ],
-  [
-    "spline",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["spline", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-spline"
   xmlns="http://www.w3.org/2000/svg"
@@ -32863,11 +28151,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="19" cy="5" r="2" />
   <circle cx="5" cy="19" r="2" />
   <path d="M5 17A12 12 0 0 1 17 5" />
-</svg>`,
-  ],
-  [
-    "split-square-horizontal",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["split-square-horizontal", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-split-square-horizontal"
   xmlns="http://www.w3.org/2000/svg"
@@ -32883,11 +28168,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M8 19H5c-1 0-2-1-2-2V7c0-1 1-2 2-2h3" />
   <path d="M16 5h3c1 0 2 1 2 2v10c0 1-1 2-2 2h-3" />
   <line x1="12" x2="12" y1="4" y2="20" />
-</svg>`,
-  ],
-  [
-    "split-square-vertical",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["split-square-vertical", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-split-square-vertical"
   xmlns="http://www.w3.org/2000/svg"
@@ -32903,11 +28185,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M5 8V5c0-1 1-2 2-2h10c1 0 2 1 2 2v3" />
   <path d="M19 16v3c0 1-1 2-2 2H7c-1 0-2-1-2-2v-3" />
   <line x1="4" x2="20" y1="12" y2="12" />
-</svg>`,
-  ],
-  [
-    "split",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["split", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-split"
   xmlns="http://www.w3.org/2000/svg"
@@ -32924,11 +28203,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M8 3H3v5" />
   <path d="M12 22v-8.3a4 4 0 0 0-1.172-2.872L3 3" />
   <path d="m15 9 6-6" />
-</svg>`,
-  ],
-  [
-    "spool",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["spool", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-spool"
   xmlns="http://www.w3.org/2000/svg"
@@ -32943,11 +28219,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M17 13.44 4.442 17.082A2 2 0 0 0 4.982 21H19a2 2 0 0 0 .558-3.921l-1.115-.32A2 2 0 0 1 17 14.837V7.66" />
   <path d="m7 10.56 12.558-3.642A2 2 0 0 0 19.018 3H5a2 2 0 0 0-.558 3.921l1.115.32A2 2 0 0 1 7 9.163v7.178" />
-</svg>`,
-  ],
-  [
-    "spotlight",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["spotlight", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-spotlight"
   xmlns="http://www.w3.org/2000/svg"
@@ -32965,11 +28238,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m19 12.5 3.026-.598" />
   <path d="M7.61 6.3a3 3 0 0 0-3.92 1.3l-1.38 2.79a3 3 0 0 0 1.3 3.91l6.89 3.597a1 1 0 0 0 1.342-.447l3.106-6.211a1 1 0 0 0-.447-1.341z" />
   <path d="M8 9V2" />
-</svg>`,
-  ],
-  [
-    "spray-can",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["spray-can", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-spray-can"
   xmlns="http://www.w3.org/2000/svg"
@@ -32992,11 +28262,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m19 9 2 2v10c0 .6-.4 1-1 1h-6c-.6 0-1-.4-1-1V11l2-2" />
   <path d="m13 14 8-2" />
   <path d="m13 19 8-2" />
-</svg>`,
-  ],
-  [
-    "sprout",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["sprout", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-sprout"
   xmlns="http://www.w3.org/2000/svg"
@@ -33012,11 +28279,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 9.536V7a4 4 0 0 1 4-4h1.5a.5.5 0 0 1 .5.5V5a4 4 0 0 1-4 4 4 4 0 0 0-4 4c0 2 1 3 1 5a5 5 0 0 1-1 3" />
   <path d="M4 9a5 5 0 0 1 8 4 5 5 0 0 1-8-4" />
   <path d="M5 21h14" />
-</svg>`,
-  ],
-  [
-    "square-activity",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["square-activity", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-square-activity"
   xmlns="http://www.w3.org/2000/svg"
@@ -33031,11 +28295,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="M17 12h-2l-2 5-2-10-2 5H7" />
-</svg>`,
-  ],
-  [
-    "square-arrow-down-left",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["square-arrow-down-left", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-square-arrow-down-left"
   xmlns="http://www.w3.org/2000/svg"
@@ -33051,11 +28312,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="m16 8-8 8" />
   <path d="M16 16H8V8" />
-</svg>`,
-  ],
-  [
-    "square-arrow-down-right",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["square-arrow-down-right", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-square-arrow-down-right"
   xmlns="http://www.w3.org/2000/svg"
@@ -33071,11 +28329,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="m8 8 8 8" />
   <path d="M16 8v8H8" />
-</svg>`,
-  ],
-  [
-    "square-arrow-down",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["square-arrow-down", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-square-arrow-down"
   xmlns="http://www.w3.org/2000/svg"
@@ -33091,11 +28346,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="M12 8v8" />
   <path d="m8 12 4 4 4-4" />
-</svg>`,
-  ],
-  [
-    "square-arrow-left",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["square-arrow-left", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-square-arrow-left"
   xmlns="http://www.w3.org/2000/svg"
@@ -33111,11 +28363,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="m12 8-4 4 4 4" />
   <path d="M16 12H8" />
-</svg>`,
-  ],
-  [
-    "square-arrow-out-down-left",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["square-arrow-out-down-left", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-square-arrow-out-down-left"
   xmlns="http://www.w3.org/2000/svg"
@@ -33131,11 +28380,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M13 21h6a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v6" />
   <path d="m3 21 9-9" />
   <path d="M9 21H3v-6" />
-</svg>`,
-  ],
-  [
-    "square-arrow-out-down-right",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["square-arrow-out-down-right", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-square-arrow-out-down-right"
   xmlns="http://www.w3.org/2000/svg"
@@ -33151,11 +28397,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M21 11V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h6" />
   <path d="m21 21-9-9" />
   <path d="M21 15v6h-6" />
-</svg>`,
-  ],
-  [
-    "square-arrow-out-up-left",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["square-arrow-out-up-left", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-square-arrow-out-up-left"
   xmlns="http://www.w3.org/2000/svg"
@@ -33171,11 +28414,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M13 3h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-6" />
   <path d="m3 3 9 9" />
   <path d="M3 9V3h6" />
-</svg>`,
-  ],
-  [
-    "square-arrow-out-up-right",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["square-arrow-out-up-right", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-square-arrow-out-up-right"
   xmlns="http://www.w3.org/2000/svg"
@@ -33191,11 +28431,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M21 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h6" />
   <path d="m21 3-9 9" />
   <path d="M15 3h6v6" />
-</svg>`,
-  ],
-  [
-    "square-arrow-right",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["square-arrow-right", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-square-arrow-right"
   xmlns="http://www.w3.org/2000/svg"
@@ -33211,11 +28448,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="M8 12h8" />
   <path d="m12 16 4-4-4-4" />
-</svg>`,
-  ],
-  [
-    "square-arrow-up-left",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["square-arrow-up-left", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-square-arrow-up-left"
   xmlns="http://www.w3.org/2000/svg"
@@ -33231,11 +28465,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="M8 16V8h8" />
   <path d="M16 16 8 8" />
-</svg>`,
-  ],
-  [
-    "square-arrow-up-right",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["square-arrow-up-right", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-square-arrow-up-right"
   xmlns="http://www.w3.org/2000/svg"
@@ -33251,11 +28482,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="M8 8h8v8" />
   <path d="m8 16 8-8" />
-</svg>`,
-  ],
-  [
-    "square-arrow-up",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["square-arrow-up", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-square-arrow-up"
   xmlns="http://www.w3.org/2000/svg"
@@ -33271,11 +28499,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="m16 12-4-4-4 4" />
   <path d="M12 16V8" />
-</svg>`,
-  ],
-  [
-    "square-asterisk",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["square-asterisk", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-square-asterisk"
   xmlns="http://www.w3.org/2000/svg"
@@ -33292,11 +28517,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 8v8" />
   <path d="m8.5 14 7-4" />
   <path d="m8.5 10 7 4" />
-</svg>`,
-  ],
-  [
-    "square-bottom-dashed-scissors",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["square-bottom-dashed-scissors", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-square-bottom-dashed-scissors"
   xmlns="http://www.w3.org/2000/svg"
@@ -33323,11 +28545,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <line x1="17" y1="17" x2="14.82" y2="14.82" />
   <circle cx="8.5" cy="15.5" r="1.5" />
   <line x1="9.56066" y1="14.43934" x2="17" y2="7" />
-</svg>`,
-  ],
-  [
-    "square-chart-gantt",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["square-chart-gantt", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-square-chart-gantt"
   xmlns="http://www.w3.org/2000/svg"
@@ -33344,11 +28563,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M9 8h7" />
   <path d="M8 12h6" />
   <path d="M11 16h5" />
-</svg>`,
-  ],
-  [
-    "square-check-big",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["square-check-big", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-square-check-big"
   xmlns="http://www.w3.org/2000/svg"
@@ -33363,11 +28579,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M21 10.656V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h12.344" />
   <path d="m9 11 3 3L22 4" />
-</svg>`,
-  ],
-  [
-    "square-check",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["square-check", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-square-check"
   xmlns="http://www.w3.org/2000/svg"
@@ -33382,11 +28595,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="m9 12 2 2 4-4" />
-</svg>`,
-  ],
-  [
-    "square-chevron-down",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["square-chevron-down", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-square-chevron-down"
   xmlns="http://www.w3.org/2000/svg"
@@ -33401,11 +28611,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="m16 10-4 4-4-4" />
-</svg>`,
-  ],
-  [
-    "square-chevron-left",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["square-chevron-left", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-square-chevron-left"
   xmlns="http://www.w3.org/2000/svg"
@@ -33420,11 +28627,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="m14 16-4-4 4-4" />
-</svg>`,
-  ],
-  [
-    "square-chevron-right",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["square-chevron-right", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-square-chevron-right"
   xmlns="http://www.w3.org/2000/svg"
@@ -33439,11 +28643,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="m10 8 4 4-4 4" />
-</svg>`,
-  ],
-  [
-    "square-chevron-up",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["square-chevron-up", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-square-chevron-up"
   xmlns="http://www.w3.org/2000/svg"
@@ -33458,11 +28659,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="m8 14 4-4 4 4" />
-</svg>`,
-  ],
-  [
-    "square-code",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["square-code", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-square-code"
   xmlns="http://www.w3.org/2000/svg"
@@ -33478,11 +28676,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m10 9-3 3 3 3" />
   <path d="m14 15 3-3-3-3" />
   <rect x="3" y="3" width="18" height="18" rx="2" />
-</svg>`,
-  ],
-  [
-    "square-dashed-bottom-code",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["square-dashed-bottom-code", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-square-dashed-bottom-code"
   xmlns="http://www.w3.org/2000/svg"
@@ -33500,11 +28695,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m14 9.5 2 2.5-2 2.5" />
   <path d="M5 21a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2" />
   <path d="M9 21h1" />
-</svg>`,
-  ],
-  [
-    "square-dashed-bottom",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["square-dashed-bottom", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-square-dashed-bottom"
   xmlns="http://www.w3.org/2000/svg"
@@ -33520,11 +28712,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M5 21a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2" />
   <path d="M9 21h1" />
   <path d="M14 21h1" />
-</svg>`,
-  ],
-  [
-    "square-dashed-kanban",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["square-dashed-kanban", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-square-dashed-kanban"
   xmlns="http://www.w3.org/2000/svg"
@@ -33552,11 +28741,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M5 21a2 2 0 0 1-2-2" />
   <path d="M3 14v1" />
   <path d="M3 9v1" />
-</svg>`,
-  ],
-  [
-    "square-dashed-mouse-pointer",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["square-dashed-mouse-pointer", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-square-dashed-mouse-pointer"
   xmlns="http://www.w3.org/2000/svg"
@@ -33579,11 +28765,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3 9v1" />
   <path d="M21 9v2" />
   <path d="M3 14v1" />
-</svg>`,
-  ],
-  [
-    "square-dashed-top-solid",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["square-dashed-top-solid", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-square-dashed-top-solid"
   xmlns="http://www.w3.org/2000/svg"
@@ -33605,11 +28788,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3 9v1" />
   <path d="M5 21a2 2 0 0 1-2-2" />
   <path d="M9 21h1" />
-</svg>`,
-  ],
-  [
-    "square-dashed",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["square-dashed", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-square-dashed"
   xmlns="http://www.w3.org/2000/svg"
@@ -33634,11 +28814,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M21 9v1" />
   <path d="M3 14v1" />
   <path d="M21 14v1" />
-</svg>`,
-  ],
-  [
-    "square-divide",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["square-divide", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-square-divide"
   xmlns="http://www.w3.org/2000/svg"
@@ -33655,11 +28832,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <line x1="8" x2="16" y1="12" y2="12" />
   <line x1="12" x2="12" y1="16" y2="16" />
   <line x1="12" x2="12" y1="8" y2="8" />
-</svg>`,
-  ],
-  [
-    "square-dot",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["square-dot", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-square-dot"
   xmlns="http://www.w3.org/2000/svg"
@@ -33674,11 +28848,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <circle cx="12" cy="12" r="1" />
-</svg>`,
-  ],
-  [
-    "square-equal",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["square-equal", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-square-equal"
   xmlns="http://www.w3.org/2000/svg"
@@ -33694,11 +28865,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="M7 10h10" />
   <path d="M7 14h10" />
-</svg>`,
-  ],
-  [
-    "square-function",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["square-function", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-square-function"
   xmlns="http://www.w3.org/2000/svg"
@@ -33714,11 +28882,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
   <path d="M9 17c2 0 2.8-1 2.8-2.8V10c0-2 1-3.3 3.2-3" />
   <path d="M9 11.2h5.7" />
-</svg>`,
-  ],
-  [
-    "square-gantt-chart",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["square-gantt-chart", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-square-gantt-chart"
   xmlns="http://www.w3.org/2000/svg"
@@ -33735,11 +28900,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M9 8h7" />
   <path d="M8 12h6" />
   <path d="M11 16h5" />
-</svg>`,
-  ],
-  [
-    "square-kanban",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["square-kanban", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-square-kanban"
   xmlns="http://www.w3.org/2000/svg"
@@ -33756,11 +28918,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M8 7v7" />
   <path d="M12 7v4" />
   <path d="M16 7v9" />
-</svg>`,
-  ],
-  [
-    "square-library",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["square-library", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-square-library"
   xmlns="http://www.w3.org/2000/svg"
@@ -33777,11 +28936,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M7 7v10" />
   <path d="M11 7v10" />
   <path d="m15 7 2 10" />
-</svg>`,
-  ],
-  [
-    "square-m",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["square-m", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-square-m"
   xmlns="http://www.w3.org/2000/svg"
@@ -33796,11 +28952,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M8 16V8.5a.5.5 0 0 1 .9-.3l2.7 3.599a.5.5 0 0 0 .8 0l2.7-3.6a.5.5 0 0 1 .9.3V16" />
   <rect x="3" y="3" width="18" height="18" rx="2" />
-</svg>`,
-  ],
-  [
-    "square-menu",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["square-menu", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-square-menu"
   xmlns="http://www.w3.org/2000/svg"
@@ -33817,11 +28970,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M7 8h10" />
   <path d="M7 12h10" />
   <path d="M7 16h10" />
-</svg>`,
-  ],
-  [
-    "square-minus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["square-minus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-square-minus"
   xmlns="http://www.w3.org/2000/svg"
@@ -33836,11 +28986,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="M8 12h8" />
-</svg>`,
-  ],
-  [
-    "square-mouse-pointer",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["square-mouse-pointer", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-square-mouse-pointer"
   xmlns="http://www.w3.org/2000/svg"
@@ -33855,11 +29002,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M12.034 12.681a.498.498 0 0 1 .647-.647l9 3.5a.5.5 0 0 1-.033.943l-3.444 1.068a1 1 0 0 0-.66.66l-1.067 3.443a.5.5 0 0 1-.943.033z" />
   <path d="M21 11V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h6" />
-</svg>`,
-  ],
-  [
-    "square-parking-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["square-parking-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-square-parking-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -33877,11 +29021,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m2 2 20 20" />
   <path d="M13 13a3 3 0 1 0 0-6H9v2" />
   <path d="M9 17v-2.3" />
-</svg>`,
-  ],
-  [
-    "square-parking",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["square-parking", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-square-parking"
   xmlns="http://www.w3.org/2000/svg"
@@ -33896,11 +29037,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="M9 17V7h4a3 3 0 0 1 0 6H9" />
-</svg>`,
-  ],
-  [
-    "square-pause",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["square-pause", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-square-pause"
   xmlns="http://www.w3.org/2000/svg"
@@ -33916,11 +29054,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <line x1="10" x2="10" y1="15" y2="9" />
   <line x1="14" x2="14" y1="15" y2="9" />
-</svg>`,
-  ],
-  [
-    "square-pen",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["square-pen", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-square-pen"
   xmlns="http://www.w3.org/2000/svg"
@@ -33935,11 +29070,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
   <path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z" />
-</svg>`,
-  ],
-  [
-    "square-percent",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["square-percent", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-square-percent"
   xmlns="http://www.w3.org/2000/svg"
@@ -33956,11 +29088,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m15 9-6 6" />
   <path d="M9 9h.01" />
   <path d="M15 15h.01" />
-</svg>`,
-  ],
-  [
-    "square-pi",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["square-pi", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-square-pi"
   xmlns="http://www.w3.org/2000/svg"
@@ -33977,11 +29106,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M7 7h10" />
   <path d="M10 7v10" />
   <path d="M16 17a2 2 0 0 1-2-2V7" />
-</svg>`,
-  ],
-  [
-    "square-pilcrow",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["square-pilcrow", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-square-pilcrow"
   xmlns="http://www.w3.org/2000/svg"
@@ -33998,11 +29124,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 12H9.5a2.5 2.5 0 0 1 0-5H17" />
   <path d="M12 7v10" />
   <path d="M16 7v10" />
-</svg>`,
-  ],
-  [
-    "square-play",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["square-play", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-square-play"
   xmlns="http://www.w3.org/2000/svg"
@@ -34017,11 +29140,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <rect x="3" y="3" width="18" height="18" rx="2" />
   <path d="M9 9.003a1 1 0 0 1 1.517-.859l4.997 2.997a1 1 0 0 1 0 1.718l-4.997 2.997A1 1 0 0 1 9 14.996z" />
-</svg>`,
-  ],
-  [
-    "square-plus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["square-plus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-square-plus"
   xmlns="http://www.w3.org/2000/svg"
@@ -34037,11 +29157,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="M8 12h8" />
   <path d="M12 8v8" />
-</svg>`,
-  ],
-  [
-    "square-power",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["square-power", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-square-power"
   xmlns="http://www.w3.org/2000/svg"
@@ -34057,11 +29174,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 7v4" />
   <path d="M7.998 9.003a5 5 0 1 0 8-.005" />
   <rect x="3" y="3" width="18" height="18" rx="2" />
-</svg>`,
-  ],
-  [
-    "square-radical",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["square-radical", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-square-radical"
   xmlns="http://www.w3.org/2000/svg"
@@ -34076,11 +29190,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M7 12h2l2 5 2-10h4" />
   <rect x="3" y="3" width="18" height="18" rx="2" />
-</svg>`,
-  ],
-  [
-    "square-round-corner",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["square-round-corner", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-square-round-corner"
   xmlns="http://www.w3.org/2000/svg"
@@ -34095,11 +29206,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M21 11a8 8 0 0 0-8-8" />
   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-</svg>`,
-  ],
-  [
-    "square-scissors",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["square-scissors", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-square-scissors"
   xmlns="http://www.w3.org/2000/svg"
@@ -34118,11 +29226,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <line x1="17" y1="17" x2="14.82" y2="14.82" />
   <circle cx="8.5" cy="15.5" r="1.5" />
   <line x1="9.56066" y1="14.43934" x2="17" y2="7" />
-</svg>`,
-  ],
-  [
-    "square-sigma",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["square-sigma", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-square-sigma"
   xmlns="http://www.w3.org/2000/svg"
@@ -34137,11 +29242,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="M16 8.9V7H8l4 5-4 5h8v-1.9" />
-</svg>`,
-  ],
-  [
-    "square-slash",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["square-slash", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-square-slash"
   xmlns="http://www.w3.org/2000/svg"
@@ -34156,11 +29258,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <line x1="9" x2="15" y1="15" y2="9" />
-</svg>`,
-  ],
-  [
-    "square-split-horizontal",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["square-split-horizontal", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-square-split-horizontal"
   xmlns="http://www.w3.org/2000/svg"
@@ -34176,11 +29275,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M8 19H5c-1 0-2-1-2-2V7c0-1 1-2 2-2h3" />
   <path d="M16 5h3c1 0 2 1 2 2v10c0 1-1 2-2 2h-3" />
   <line x1="12" x2="12" y1="4" y2="20" />
-</svg>`,
-  ],
-  [
-    "square-split-vertical",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["square-split-vertical", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-square-split-vertical"
   xmlns="http://www.w3.org/2000/svg"
@@ -34196,11 +29292,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M5 8V5c0-1 1-2 2-2h10c1 0 2 1 2 2v3" />
   <path d="M19 16v3c0 1-1 2-2 2H7c-1 0-2-1-2-2v-3" />
   <line x1="4" x2="20" y1="12" y2="12" />
-</svg>`,
-  ],
-  [
-    "square-square",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["square-square", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-square-square"
   xmlns="http://www.w3.org/2000/svg"
@@ -34215,11 +29308,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <rect x="3" y="3" width="18" height="18" rx="2" />
   <rect x="8" y="8" width="8" height="8" rx="1" />
-</svg>`,
-  ],
-  [
-    "square-stack",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["square-stack", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-square-stack"
   xmlns="http://www.w3.org/2000/svg"
@@ -34235,11 +29325,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M4 10c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h4c1.1 0 2 .9 2 2" />
   <path d="M10 16c-1.1 0-2-.9-2-2v-4c0-1.1.9-2 2-2h4c1.1 0 2 .9 2 2" />
   <rect width="8" height="8" x="14" y="14" rx="2" />
-</svg>`,
-  ],
-  [
-    "square-star",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["square-star", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-square-star"
   xmlns="http://www.w3.org/2000/svg"
@@ -34254,11 +29341,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M11.035 7.69a1 1 0 0 1 1.909.024l.737 1.452a1 1 0 0 0 .737.535l1.634.256a1 1 0 0 1 .588 1.806l-1.172 1.168a1 1 0 0 0-.282.866l.259 1.613a1 1 0 0 1-1.541 1.134l-1.465-.75a1 1 0 0 0-.912 0l-1.465.75a1 1 0 0 1-1.539-1.133l.258-1.613a1 1 0 0 0-.282-.866l-1.156-1.153a1 1 0 0 1 .572-1.822l1.633-.256a1 1 0 0 0 .737-.535z" />
   <rect x="3" y="3" width="18" height="18" rx="2" />
-</svg>`,
-  ],
-  [
-    "square-stop",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["square-stop", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-square-stop"
   xmlns="http://www.w3.org/2000/svg"
@@ -34273,11 +29357,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <rect x="9" y="9" width="6" height="6" rx="1" />
-</svg>`,
-  ],
-  [
-    "square-terminal",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["square-terminal", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-square-terminal"
   xmlns="http://www.w3.org/2000/svg"
@@ -34293,11 +29374,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m7 11 2-2-2-2" />
   <path d="M11 13h4" />
   <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
-</svg>`,
-  ],
-  [
-    "square-user-round",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["square-user-round", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-square-user-round"
   xmlns="http://www.w3.org/2000/svg"
@@ -34313,11 +29391,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M18 21a6 6 0 0 0-12 0" />
   <circle cx="12" cy="11" r="4" />
   <rect width="18" height="18" x="3" y="3" rx="2" />
-</svg>`,
-  ],
-  [
-    "square-user",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["square-user", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-square-user"
   xmlns="http://www.w3.org/2000/svg"
@@ -34333,11 +29408,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <circle cx="12" cy="10" r="3" />
   <path d="M7 21v-2a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2" />
-</svg>`,
-  ],
-  [
-    "square-x",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["square-x", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-square-x"
   xmlns="http://www.w3.org/2000/svg"
@@ -34353,11 +29425,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
   <path d="m15 9-6 6" />
   <path d="m9 9 6 6" />
-</svg>`,
-  ],
-  [
-    "square",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["square", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-square"
   xmlns="http://www.w3.org/2000/svg"
@@ -34371,11 +29440,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <rect width="18" height="18" x="3" y="3" rx="2" />
-</svg>`,
-  ],
-  [
-    "squares-exclude",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["squares-exclude", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-squares-exclude"
   xmlns="http://www.w3.org/2000/svg"
@@ -34390,11 +29456,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M16 12v2a2 2 0 0 1-2 2H9a1 1 0 0 0-1 1v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V10a2 2 0 0 0-2-2h0" />
   <path d="M4 16a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v3a1 1 0 0 1-1 1h-5a2 2 0 0 0-2 2v2" />
-</svg>`,
-  ],
-  [
-    "squares-intersect",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["squares-intersect", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-squares-intersect"
   xmlns="http://www.w3.org/2000/svg"
@@ -34418,11 +29481,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M4 16a2 2 0 0 1-2-2" />
   <path d="M8 10a2 2 0 0 1 2-2h5a1 1 0 0 1 1 1v5a2 2 0 0 1-2 2H9a1 1 0 0 1-1-1z" />
   <path d="M8 2h2" />
-</svg>`,
-  ],
-  [
-    "squares-subtract",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["squares-subtract", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-squares-subtract"
   xmlns="http://www.w3.org/2000/svg"
@@ -34441,11 +29501,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M20 8a2 2 0 0 1 2 2" />
   <path d="M22 14v2" />
   <path d="M22 20a2 2 0 0 1-2 2" />
-</svg>`,
-  ],
-  [
-    "squares-unite",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["squares-unite", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-squares-unite"
   xmlns="http://www.w3.org/2000/svg"
@@ -34459,11 +29516,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M4 16a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v3a1 1 0 0 0 1 1h3a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2v-3a1 1 0 0 0-1-1z" />
-</svg>`,
-  ],
-  [
-    "squircle-dashed",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["squircle-dashed", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-squircle-dashed"
   xmlns="http://www.w3.org/2000/svg"
@@ -34484,11 +29538,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3.043 10.23a34 34 0 0 0 .001 3.541" />
   <path d="M6.26 20.179c-1.15-.508-1.93-1.29-2.44-2.438" />
   <path d="M6.26 3.82c-1.149.51-1.93 1.291-2.44 2.44" />
-</svg>`,
-  ],
-  [
-    "squircle",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["squircle", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-squircle"
   xmlns="http://www.w3.org/2000/svg"
@@ -34502,11 +29553,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M12 3c7.2 0 9 1.8 9 9s-1.8 9-9 9-9-1.8-9-9 1.8-9 9-9" />
-</svg>`,
-  ],
-  [
-    "squirrel",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["squirrel", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-squirrel"
   xmlns="http://www.w3.org/2000/svg"
@@ -34523,11 +29571,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M16 20a3 3 0 0 1 3-3h1a2 2 0 0 0 2-2v-2a4 4 0 0 0-4-4V4" />
   <path d="M18 13h.01" />
   <path d="M18 6a4 4 0 0 0-4 4 7 7 0 0 0-7 7c0-5 4-5 4-10.5a4.5 4.5 0 1 0-9 0 2.5 2.5 0 0 0 5 0C7 10 3 11 3 17c0 2.8 2.2 5 5 5h10" />
-</svg>`,
-  ],
-  [
-    "stamp",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["stamp", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-stamp"
   xmlns="http://www.w3.org/2000/svg"
@@ -34543,11 +29588,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 13V8.5C14 7 15 7 15 5a3 3 0 0 0-6 0c0 2 1 2 1 3.5V13" />
   <path d="M20 15.5a2.5 2.5 0 0 0-2.5-2.5h-11A2.5 2.5 0 0 0 4 15.5V17a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1z" />
   <path d="M5 22h14" />
-</svg>`,
-  ],
-  [
-    "star-half",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["star-half", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-star-half"
   xmlns="http://www.w3.org/2000/svg"
@@ -34561,11 +29603,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M12 18.338a2.1 2.1 0 0 0-.987.244L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.12 2.12 0 0 0 1.597-1.16l2.309-4.679A.53.53 0 0 1 12 2" />
-</svg>`,
-  ],
-  [
-    "star-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["star-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-star-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -34581,11 +29620,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m10.344 4.688 1.181-2.393a.53.53 0 0 1 .95 0l2.31 4.679a2.12 2.12 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.237 3.152" />
   <path d="m17.945 17.945.43 2.505a.53.53 0 0 1-.771.56l-4.618-2.428a2.12 2.12 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.12 2.12 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a8 8 0 0 0 .4-.099" />
   <path d="m2 2 20 20" />
-</svg>`,
-  ],
-  [
-    "star",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["star", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-star"
   xmlns="http://www.w3.org/2000/svg"
@@ -34599,11 +29635,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z" />
-</svg>`,
-  ],
-  [
-    "stars",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["stars", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-stars"
   xmlns="http://www.w3.org/2000/svg"
@@ -34620,11 +29653,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M20 2v4" />
   <path d="M22 4h-4" />
   <circle cx="4" cy="20" r="2" />
-</svg>`,
-  ],
-  [
-    "step-back",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["step-back", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-step-back"
   xmlns="http://www.w3.org/2000/svg"
@@ -34639,11 +29669,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M13.971 4.285A2 2 0 0 1 17 6v12a2 2 0 0 1-3.029 1.715l-9.997-5.998a2 2 0 0 1-.003-3.432z" />
   <path d="M21 20V4" />
-</svg>`,
-  ],
-  [
-    "step-forward",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["step-forward", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-step-forward"
   xmlns="http://www.w3.org/2000/svg"
@@ -34658,11 +29685,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M10.029 4.285A2 2 0 0 0 7 6v12a2 2 0 0 0 3.029 1.715l9.997-5.998a2 2 0 0 0 .003-3.432z" />
   <path d="M3 4v16" />
-</svg>`,
-  ],
-  [
-    "stethoscope",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["stethoscope", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-stethoscope"
   xmlns="http://www.w3.org/2000/svg"
@@ -34680,11 +29704,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M5 3H4a2 2 0 0 0-2 2v4a6 6 0 0 0 12 0V5a2 2 0 0 0-2-2h-1" />
   <path d="M8 15a6 6 0 0 0 12 0v-3" />
   <circle cx="20" cy="10" r="2" />
-</svg>`,
-  ],
-  [
-    "sticker",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["sticker", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-sticker"
   xmlns="http://www.w3.org/2000/svg"
@@ -34702,11 +29723,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M8 13h.01" />
   <path d="M16 13h.01" />
   <path d="M10 16s.8 1 2 1c1.3 0 2-1 2-1" />
-</svg>`,
-  ],
-  [
-    "sticky-note",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["sticky-note", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-sticky-note"
   xmlns="http://www.w3.org/2000/svg"
@@ -34721,11 +29739,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M21 9a2.4 2.4 0 0 0-.706-1.706l-3.588-3.588A2.4 2.4 0 0 0 15 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2z" />
   <path d="M15 3v5a1 1 0 0 0 1 1h5" />
-</svg>`,
-  ],
-  [
-    "stone",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["stone", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-stone"
   xmlns="http://www.w3.org/2000/svg"
@@ -34741,11 +29756,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M11.264 2.205A4 4 0 0 0 6.42 4.211l-4 8a4 4 0 0 0 1.359 5.117l6 4a4 4 0 0 0 4.438 0l6-4a4 4 0 0 0 1.576-4.592l-2-6a4 4 0 0 0-2.53-2.53z" />
   <path d="M11.99 22 14 12l7.822 3.184" />
   <path d="M14 12 8.47 2.302" />
-</svg>`,
-  ],
-  [
-    "stop-circle",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["stop-circle", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-stop-circle"
   xmlns="http://www.w3.org/2000/svg"
@@ -34760,11 +29772,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <circle cx="12" cy="12" r="10" />
   <rect x="9" y="9" width="6" height="6" rx="1" />
-</svg>`,
-  ],
-  [
-    "store",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["store", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-store"
   xmlns="http://www.w3.org/2000/svg"
@@ -34780,11 +29789,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M15 21v-5a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v5" />
   <path d="M17.774 10.31a1.12 1.12 0 0 0-1.549 0 2.5 2.5 0 0 1-3.451 0 1.12 1.12 0 0 0-1.548 0 2.5 2.5 0 0 1-3.452 0 1.12 1.12 0 0 0-1.549 0 2.5 2.5 0 0 1-3.77-3.248l2.889-4.184A2 2 0 0 1 7 2h10a2 2 0 0 1 1.653.873l2.895 4.192a2.5 2.5 0 0 1-3.774 3.244" />
   <path d="M4 10.95V19a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8.05" />
-</svg>`,
-  ],
-  [
-    "stretch-horizontal",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["stretch-horizontal", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-stretch-horizontal"
   xmlns="http://www.w3.org/2000/svg"
@@ -34799,11 +29805,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <rect width="20" height="6" x="2" y="4" rx="2" />
   <rect width="20" height="6" x="2" y="14" rx="2" />
-</svg>`,
-  ],
-  [
-    "stretch-vertical",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["stretch-vertical", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-stretch-vertical"
   xmlns="http://www.w3.org/2000/svg"
@@ -34818,11 +29821,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <rect width="6" height="20" x="4" y="2" rx="2" />
   <rect width="6" height="20" x="14" y="2" rx="2" />
-</svg>`,
-  ],
-  [
-    "strikethrough",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["strikethrough", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-strikethrough"
   xmlns="http://www.w3.org/2000/svg"
@@ -34838,11 +29838,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M16 4H9a3 3 0 0 0-2.83 4" />
   <path d="M14 12a4 4 0 0 1 0 8H6" />
   <line x1="4" x2="20" y1="12" y2="12" />
-</svg>`,
-  ],
-  [
-    "subscript",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["subscript", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-subscript"
   xmlns="http://www.w3.org/2000/svg"
@@ -34858,11 +29855,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m4 5 8 8" />
   <path d="m12 5-8 8" />
   <path d="M20 19h-4c0-1.5.44-2 1.5-2.5S20 15.33 20 14c0-.47-.17-.93-.48-1.29a2.11 2.11 0 0 0-2.62-.44c-.42.24-.74.62-.9 1.07" />
-</svg>`,
-  ],
-  [
-    "subtitles",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["subtitles", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-subtitles"
   xmlns="http://www.w3.org/2000/svg"
@@ -34877,11 +29871,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <rect width="18" height="14" x="3" y="5" rx="2" ry="2" />
   <path d="M7 15h4M15 15h2M7 11h2M13 11h4" />
-</svg>`,
-  ],
-  [
-    "sun-dim",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["sun-dim", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-sun-dim"
   xmlns="http://www.w3.org/2000/svg"
@@ -34903,11 +29894,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M17.657 17.657h.01" />
   <path d="M6.343 17.657h.01" />
   <path d="M6.343 6.343h.01" />
-</svg>`,
-  ],
-  [
-    "sun-medium",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["sun-medium", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-sun-medium"
   xmlns="http://www.w3.org/2000/svg"
@@ -34929,11 +29917,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m6.343 17.657-.707.707" />
   <path d="m5.636 5.636.707.707" />
   <path d="m17.657 17.657.707.707" />
-</svg>`,
-  ],
-  [
-    "sun-moon",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["sun-moon", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-sun-moon"
   xmlns="http://www.w3.org/2000/svg"
@@ -34951,11 +29936,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M16 12a4 4 0 0 0-4-4" />
   <path d="m19 5-1.256 1.256" />
   <path d="M20 12h2" />
-</svg>`,
-  ],
-  [
-    "sun-snow",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["sun-snow", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-sun-snow"
   xmlns="http://www.w3.org/2000/svg"
@@ -34979,11 +29961,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m20 10-1.5 2 1.5 2" />
   <path d="m3.64 18.36.7-.7" />
   <path d="m4.34 6.34-.7-.7" />
-</svg>`,
-  ],
-  [
-    "sun",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["sun", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-sun"
   xmlns="http://www.w3.org/2000/svg"
@@ -35005,11 +29984,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M20 12h2" />
   <path d="m6.34 17.66-1.41 1.41" />
   <path d="m19.07 4.93-1.41 1.41" />
-</svg>`,
-  ],
-  [
-    "sunrise",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["sunrise", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-sunrise"
   xmlns="http://www.w3.org/2000/svg"
@@ -35030,11 +30006,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M22 22H2" />
   <path d="m8 6 4-4 4 4" />
   <path d="M16 18a4 4 0 0 0-8 0" />
-</svg>`,
-  ],
-  [
-    "sunset",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["sunset", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-sunset"
   xmlns="http://www.w3.org/2000/svg"
@@ -35055,11 +30028,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M22 22H2" />
   <path d="m16 6-4 4-4-4" />
   <path d="M16 18a4 4 0 0 0-8 0" />
-</svg>`,
-  ],
-  [
-    "superscript",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["superscript", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-superscript"
   xmlns="http://www.w3.org/2000/svg"
@@ -35075,11 +30045,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m4 19 8-8" />
   <path d="m12 19-8-8" />
   <path d="M20 12h-4c0-1.5.442-2 1.5-2.5S20 8.334 20 7.002c0-.472-.17-.93-.484-1.29a2.105 2.105 0 0 0-2.617-.436c-.42.239-.738.614-.899 1.06" />
-</svg>`,
-  ],
-  [
-    "swatch-book",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["swatch-book", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-swatch-book"
   xmlns="http://www.w3.org/2000/svg"
@@ -35096,11 +30063,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M16.7 13H19a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H7" />
   <path d="M 7 17h.01" />
   <path d="m11 8 2.3-2.3a2.4 2.4 0 0 1 3.404.004L18.6 7.6a2.4 2.4 0 0 1 .026 3.434L9.9 19.8" />
-</svg>`,
-  ],
-  [
-    "swiss-franc",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["swiss-franc", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-swiss-franc"
   xmlns="http://www.w3.org/2000/svg"
@@ -35116,11 +30080,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M10 21V3h8" />
   <path d="M6 16h9" />
   <path d="M10 9.5h7" />
-</svg>`,
-  ],
-  [
-    "switch-camera",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["switch-camera", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-switch-camera"
   xmlns="http://www.w3.org/2000/svg"
@@ -35138,11 +30099,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="12" cy="12" r="3" />
   <path d="m18 22-3-3 3-3" />
   <path d="m6 2 3 3-3 3" />
-</svg>`,
-  ],
-  [
-    "sword",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["sword", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-sword"
   xmlns="http://www.w3.org/2000/svg"
@@ -35159,11 +30117,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m5 21-2-2" />
   <path d="m8 16-4 4" />
   <path d="M9.5 17.5 21 6V3h-3L6.5 14.5" />
-</svg>`,
-  ],
-  [
-    "swords",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["swords", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-swords"
   xmlns="http://www.w3.org/2000/svg"
@@ -35184,11 +30139,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <line x1="5" x2="9" y1="14" y2="18" />
   <line x1="7" x2="4" y1="17" y2="20" />
   <line x1="3" x2="5" y1="19" y2="21" />
-</svg>`,
-  ],
-  [
-    "syringe",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["syringe", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-syringe"
   xmlns="http://www.w3.org/2000/svg"
@@ -35207,11 +30159,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m9 11 4 4" />
   <path d="m5 19-3 3" />
   <path d="m14 4 6 6" />
-</svg>`,
-  ],
-  [
-    "table-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["table-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-table-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -35225,11 +30174,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18" />
-</svg>`,
-  ],
-  [
-    "table-cells-merge",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["table-cells-merge", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-table-cells-merge"
   xmlns="http://www.w3.org/2000/svg"
@@ -35247,11 +30193,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3 15h18" />
   <path d="M3 9h18" />
   <rect width="18" height="18" x="3" y="3" rx="2" />
-</svg>`,
-  ],
-  [
-    "table-cells-split",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["table-cells-split", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-table-cells-split"
   xmlns="http://www.w3.org/2000/svg"
@@ -35268,11 +30211,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3 15h18" />
   <path d="M3 9h18" />
   <rect width="18" height="18" x="3" y="3" rx="2" />
-</svg>`,
-  ],
-  [
-    "table-columns-split",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["table-columns-split", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-table-columns-split"
   xmlns="http://www.w3.org/2000/svg"
@@ -35296,11 +30236,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M22 3h-2a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h2" />
   <path d="M22 9h-4" />
   <path d="M5 3v18" />
-</svg>`,
-  ],
-  [
-    "table-config",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["table-config", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-table-config"
   xmlns="http://www.w3.org/2000/svg"
@@ -35325,11 +30262,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m21.7 19.4-.9-.3" />
   <path d="M9 3v18" />
   <circle cx="18" cy="18" r="3" />
-</svg>`,
-  ],
-  [
-    "table-of-contents",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["table-of-contents", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-table-of-contents"
   xmlns="http://www.w3.org/2000/svg"
@@ -35348,11 +30282,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M21 5h.01" />
   <path d="M21 12h.01" />
   <path d="M21 19h.01" />
-</svg>`,
-  ],
-  [
-    "table-properties",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["table-properties", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-table-properties"
   xmlns="http://www.w3.org/2000/svg"
@@ -35369,11 +30300,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="M21 9H3" />
   <path d="M21 15H3" />
-</svg>`,
-  ],
-  [
-    "table-rows-split",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["table-rows-split", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-table-rows-split"
   xmlns="http://www.w3.org/2000/svg"
@@ -35397,11 +30325,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M8 10h2" />
   <path d="M9 22v-8" />
   <path d="M9 2v4" />
-</svg>`,
-  ],
-  [
-    "table",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["table", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-table"
   xmlns="http://www.w3.org/2000/svg"
@@ -35418,11 +30343,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="M3 9h18" />
   <path d="M3 15h18" />
-</svg>`,
-  ],
-  [
-    "tablet-smartphone",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["tablet-smartphone", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-tablet-smartphone"
   xmlns="http://www.w3.org/2000/svg"
@@ -35438,11 +30360,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="10" height="14" x="3" y="8" rx="2" />
   <path d="M5 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2h-2.4" />
   <path d="M8 18h.01" />
-</svg>`,
-  ],
-  [
-    "tablet",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["tablet", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-tablet"
   xmlns="http://www.w3.org/2000/svg"
@@ -35457,11 +30376,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <rect width="16" height="20" x="4" y="2" rx="2" ry="2" />
   <line x1="12" x2="12.01" y1="18" y2="18" />
-</svg>`,
-  ],
-  [
-    "tablets",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["tablets", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-tablets"
   xmlns="http://www.w3.org/2000/svg"
@@ -35478,11 +30394,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="17" cy="17" r="5" />
   <path d="M12 17h10" />
   <path d="m3.46 10.54 7.08-7.08" />
-</svg>`,
-  ],
-  [
-    "tag",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["tag", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-tag"
   xmlns="http://www.w3.org/2000/svg"
@@ -35497,11 +30410,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z" />
   <circle cx="7.5" cy="7.5" r=".5" fill="currentColor" />
-</svg>`,
-  ],
-  [
-    "tags",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["tags", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-tags"
   xmlns="http://www.w3.org/2000/svg"
@@ -35517,11 +30427,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M13.172 2a2 2 0 0 1 1.414.586l6.71 6.71a2.4 2.4 0 0 1 0 3.408l-4.592 4.592a2.4 2.4 0 0 1-3.408 0l-6.71-6.71A2 2 0 0 1 6 9.172V3a1 1 0 0 1 1-1z" />
   <path d="M2 7v6.172a2 2 0 0 0 .586 1.414l6.71 6.71a2.4 2.4 0 0 0 3.191.193" />
   <circle cx="10.5" cy="6.5" r=".5" fill="currentColor" />
-</svg>`,
-  ],
-  [
-    "tally-1",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["tally-1", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-tally-1"
   xmlns="http://www.w3.org/2000/svg"
@@ -35535,11 +30442,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M4 4v16" />
-</svg>`,
-  ],
-  [
-    "tally-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["tally-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-tally-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -35554,11 +30458,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M4 4v16" />
   <path d="M9 4v16" />
-</svg>`,
-  ],
-  [
-    "tally-3",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["tally-3", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-tally-3"
   xmlns="http://www.w3.org/2000/svg"
@@ -35574,11 +30475,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M4 4v16" />
   <path d="M9 4v16" />
   <path d="M14 4v16" />
-</svg>`,
-  ],
-  [
-    "tally-4",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["tally-4", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-tally-4"
   xmlns="http://www.w3.org/2000/svg"
@@ -35595,11 +30493,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M9 4v16" />
   <path d="M14 4v16" />
   <path d="M19 4v16" />
-</svg>`,
-  ],
-  [
-    "tally-5",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["tally-5", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-tally-5"
   xmlns="http://www.w3.org/2000/svg"
@@ -35617,11 +30512,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 4v16" />
   <path d="M19 4v16" />
   <path d="M22 6 2 18" />
-</svg>`,
-  ],
-  [
-    "tangent",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["tangent", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-tangent"
   xmlns="http://www.w3.org/2000/svg"
@@ -35638,11 +30530,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M15.59 5.41 5.41 15.59" />
   <circle cx="4" cy="17" r="2" />
   <path d="M12 22s-4-9-1.5-11.5S22 12 22 12" />
-</svg>`,
-  ],
-  [
-    "target",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["target", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-target"
   xmlns="http://www.w3.org/2000/svg"
@@ -35658,11 +30547,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="12" cy="12" r="10" />
   <circle cx="12" cy="12" r="6" />
   <circle cx="12" cy="12" r="2" />
-</svg>`,
-  ],
-  [
-    "telescope",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["telescope", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-telescope"
   xmlns="http://www.w3.org/2000/svg"
@@ -35682,11 +30568,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m6.158 8.633 1.114 4.456" />
   <path d="m8 21 3.105-6.21" />
   <circle cx="12" cy="13" r="2" />
-</svg>`,
-  ],
-  [
-    "tent-tree",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["tent-tree", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-tent-tree"
   xmlns="http://www.w3.org/2000/svg"
@@ -35706,11 +30589,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M17 14H7l-5 8h20Z" />
   <path d="M8 14v8" />
   <path d="m9 14 5 8" />
-</svg>`,
-  ],
-  [
-    "tent",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["tent", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-tent"
   xmlns="http://www.w3.org/2000/svg"
@@ -35727,11 +30607,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M20.5 21 10 3" />
   <path d="M15.5 21 12 15l-3.5 6" />
   <path d="M2 21h20" />
-</svg>`,
-  ],
-  [
-    "terminal-square",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["terminal-square", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-terminal-square"
   xmlns="http://www.w3.org/2000/svg"
@@ -35747,11 +30624,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m7 11 2-2-2-2" />
   <path d="M11 13h4" />
   <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
-</svg>`,
-  ],
-  [
-    "terminal",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["terminal", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-terminal"
   xmlns="http://www.w3.org/2000/svg"
@@ -35766,11 +30640,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M12 19h8" />
   <path d="m4 17 6-6-6-6" />
-</svg>`,
-  ],
-  [
-    "test-tube-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["test-tube-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-test-tube-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -35786,11 +30657,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M21 7 6.82 21.18a2.83 2.83 0 0 1-3.99-.01a2.83 2.83 0 0 1 0-4L17 3" />
   <path d="m16 2 6 6" />
   <path d="M12 16H4" />
-</svg>`,
-  ],
-  [
-    "test-tube-diagonal",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["test-tube-diagonal", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-test-tube-diagonal"
   xmlns="http://www.w3.org/2000/svg"
@@ -35806,11 +30674,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M21 7 6.82 21.18a2.83 2.83 0 0 1-3.99-.01a2.83 2.83 0 0 1 0-4L17 3" />
   <path d="m16 2 6 6" />
   <path d="M12 16H4" />
-</svg>`,
-  ],
-  [
-    "test-tube",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["test-tube", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-test-tube"
   xmlns="http://www.w3.org/2000/svg"
@@ -35826,11 +30691,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14.5 2v17.5c0 1.4-1.1 2.5-2.5 2.5c-1.4 0-2.5-1.1-2.5-2.5V2" />
   <path d="M8.5 2h7" />
   <path d="M14.5 16h-5" />
-</svg>`,
-  ],
-  [
-    "test-tubes",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["test-tubes", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-test-tubes"
   xmlns="http://www.w3.org/2000/svg"
@@ -35849,11 +30711,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M14 2h7" />
   <path d="M9 16H4" />
   <path d="M20 16h-5" />
-</svg>`,
-  ],
-  [
-    "text-align-center",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["text-align-center", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-text-align-center"
   xmlns="http://www.w3.org/2000/svg"
@@ -35869,11 +30728,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M21 5H3" />
   <path d="M17 12H7" />
   <path d="M19 19H5" />
-</svg>`,
-  ],
-  [
-    "text-align-end",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["text-align-end", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-text-align-end"
   xmlns="http://www.w3.org/2000/svg"
@@ -35889,11 +30745,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M21 5H3" />
   <path d="M21 12H9" />
   <path d="M21 19H7" />
-</svg>`,
-  ],
-  [
-    "text-align-justify",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["text-align-justify", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-text-align-justify"
   xmlns="http://www.w3.org/2000/svg"
@@ -35909,11 +30762,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3 5h18" />
   <path d="M3 12h18" />
   <path d="M3 19h18" />
-</svg>`,
-  ],
-  [
-    "text-align-start",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["text-align-start", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-text-align-start"
   xmlns="http://www.w3.org/2000/svg"
@@ -35929,11 +30779,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M21 5H3" />
   <path d="M15 12H3" />
   <path d="M17 19H3" />
-</svg>`,
-  ],
-  [
-    "text-cursor-input",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["text-cursor-input", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-text-cursor-input"
   xmlns="http://www.w3.org/2000/svg"
@@ -35951,11 +30798,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M5 16H4a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h1" />
   <path d="M6 4h1a2 2 0 0 1 2 2 2 2 0 0 1 2-2h1" />
   <path d="M9 6v12" />
-</svg>`,
-  ],
-  [
-    "text-cursor",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["text-cursor", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-text-cursor"
   xmlns="http://www.w3.org/2000/svg"
@@ -35971,11 +30815,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M17 22h-1a4 4 0 0 1-4-4V6a4 4 0 0 1 4-4h1" />
   <path d="M7 22h1a4 4 0 0 0 4-4v-1" />
   <path d="M7 2h1a4 4 0 0 1 4 4v1" />
-</svg>`,
-  ],
-  [
-    "text-initial",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["text-initial", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-text-initial"
   xmlns="http://www.w3.org/2000/svg"
@@ -35993,11 +30834,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3 19h18" />
   <path d="m3 12 3.553-7.724a.5.5 0 0 1 .894 0L11 12" />
   <path d="M3.92 10h6.16" />
-</svg>`,
-  ],
-  [
-    "text-quote",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["text-quote", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-text-quote"
   xmlns="http://www.w3.org/2000/svg"
@@ -36014,11 +30852,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M21 12H8" />
   <path d="M21 19H8" />
   <path d="M3 12v7" />
-</svg>`,
-  ],
-  [
-    "text-search",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["text-search", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-text-search"
   xmlns="http://www.w3.org/2000/svg"
@@ -36036,11 +30871,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M10 19H3" />
   <circle cx="17" cy="15" r="3" />
   <path d="m21 19-1.9-1.9" />
-</svg>`,
-  ],
-  [
-    "text-select",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["text-select", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-text-select"
   xmlns="http://www.w3.org/2000/svg"
@@ -36068,11 +30900,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M7 8h8" />
   <path d="M9 21h1" />
   <path d="M9 3h1" />
-</svg>`,
-  ],
-  [
-    "text-selection",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["text-selection", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-text-selection"
   xmlns="http://www.w3.org/2000/svg"
@@ -36100,11 +30929,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M7 8h8" />
   <path d="M9 21h1" />
   <path d="M9 3h1" />
-</svg>`,
-  ],
-  [
-    "text-wrap",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["text-wrap", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-text-wrap"
   xmlns="http://www.w3.org/2000/svg"
@@ -36121,11 +30947,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3 12h14.5a1 1 0 0 1 0 7H13" />
   <path d="M3 19h6" />
   <path d="M3 5h18" />
-</svg>`,
-  ],
-  [
-    "text",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["text", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-text"
   xmlns="http://www.w3.org/2000/svg"
@@ -36141,11 +30964,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M21 5H3" />
   <path d="M15 12H3" />
   <path d="M17 19H3" />
-</svg>`,
-  ],
-  [
-    "theater",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["theater", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-theater"
   xmlns="http://www.w3.org/2000/svg"
@@ -36167,11 +30987,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M8 15h8" />
   <path d="M2 22v-1a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v1" />
   <path d="M14 22v-1a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v1" />
-</svg>`,
-  ],
-  [
-    "thermometer-snowflake",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["thermometer-snowflake", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-thermometer-snowflake"
   xmlns="http://www.w3.org/2000/svg"
@@ -36192,11 +31009,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m4 10 1.5 2L4 14" />
   <path d="m7 21 3-6-1.5-3" />
   <path d="m7 3 3 6h2" />
-</svg>`,
-  ],
-  [
-    "thermometer-sun",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["thermometer-sun", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-thermometer-sun"
   xmlns="http://www.w3.org/2000/svg"
@@ -36215,11 +31029,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M20 14.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0z" />
   <path d="m4.93 4.93 1.41 1.41" />
   <path d="m6.34 17.66-1.41 1.41" />
-</svg>`,
-  ],
-  [
-    "thermometer",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["thermometer", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-thermometer"
   xmlns="http://www.w3.org/2000/svg"
@@ -36233,11 +31044,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z" />
-</svg>`,
-  ],
-  [
-    "thumbs-down",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["thumbs-down", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-thumbs-down"
   xmlns="http://www.w3.org/2000/svg"
@@ -36252,11 +31060,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88Z" />
   <path d="M17 14V2" />
-</svg>`,
-  ],
-  [
-    "thumbs-up",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["thumbs-up", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-thumbs-up"
   xmlns="http://www.w3.org/2000/svg"
@@ -36271,11 +31076,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z" />
   <path d="M7 10v12" />
-</svg>`,
-  ],
-  [
-    "ticket-check",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["ticket-check", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-ticket-check"
   xmlns="http://www.w3.org/2000/svg"
@@ -36290,11 +31092,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" />
   <path d="m9 12 2 2 4-4" />
-</svg>`,
-  ],
-  [
-    "ticket-minus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["ticket-minus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-ticket-minus"
   xmlns="http://www.w3.org/2000/svg"
@@ -36309,11 +31108,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" />
   <path d="M9 12h6" />
-</svg>`,
-  ],
-  [
-    "ticket-percent",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["ticket-percent", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-ticket-percent"
   xmlns="http://www.w3.org/2000/svg"
@@ -36330,11 +31126,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M9 9h.01" />
   <path d="m15 9-6 6" />
   <path d="M15 15h.01" />
-</svg>`,
-  ],
-  [
-    "ticket-plus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["ticket-plus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-ticket-plus"
   xmlns="http://www.w3.org/2000/svg"
@@ -36350,11 +31143,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" />
   <path d="M9 12h6" />
   <path d="M12 9v6" />
-</svg>`,
-  ],
-  [
-    "ticket-slash",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["ticket-slash", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-ticket-slash"
   xmlns="http://www.w3.org/2000/svg"
@@ -36369,11 +31159,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" />
   <path d="m9.5 14.5 5-5" />
-</svg>`,
-  ],
-  [
-    "ticket-x",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["ticket-x", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-ticket-x"
   xmlns="http://www.w3.org/2000/svg"
@@ -36389,11 +31176,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" />
   <path d="m9.5 14.5 5-5" />
   <path d="m9.5 9.5 5 5" />
-</svg>`,
-  ],
-  [
-    "ticket",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["ticket", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-ticket"
   xmlns="http://www.w3.org/2000/svg"
@@ -36410,11 +31194,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M13 5v2" />
   <path d="M13 17v2" />
   <path d="M13 11v2" />
-</svg>`,
-  ],
-  [
-    "tickets-plane",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["tickets-plane", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-tickets-plane"
   xmlns="http://www.w3.org/2000/svg"
@@ -36434,11 +31215,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M6 14v1" />
   <path d="M6 19v2" />
   <rect x="2" y="8" width="20" height="13" rx="2" />
-</svg>`,
-  ],
-  [
-    "tickets",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["tickets", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-tickets"
   xmlns="http://www.w3.org/2000/svg"
@@ -36456,11 +31234,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M6 14v1" />
   <path d="M6 19v2" />
   <rect x="2" y="8" width="20" height="13" rx="2" />
-</svg>`,
-  ],
-  [
-    "timer-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["timer-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-timer-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -36478,11 +31253,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M7.4 7.4a8 8 0 0 1 10.3 1 8 8 0 0 1 .9 10.2" />
   <path d="m2 2 20 20" />
   <path d="M12 12v-2" />
-</svg>`,
-  ],
-  [
-    "timer-reset",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["timer-reset", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-timer-reset"
   xmlns="http://www.w3.org/2000/svg"
@@ -36499,11 +31271,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 14v-4" />
   <path d="M4 13a8 8 0 0 1 8-7 8 8 0 1 1-5.3 14L4 17.6" />
   <path d="M9 17H4v5" />
-</svg>`,
-  ],
-  [
-    "timer",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["timer", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-timer"
   xmlns="http://www.w3.org/2000/svg"
@@ -36519,11 +31288,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <line x1="10" x2="14" y1="2" y2="2" />
   <line x1="12" x2="15" y1="14" y2="11" />
   <circle cx="12" cy="14" r="8" />
-</svg>`,
-  ],
-  [
-    "toggle-left",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["toggle-left", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-toggle-left"
   xmlns="http://www.w3.org/2000/svg"
@@ -36538,11 +31304,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <circle cx="9" cy="12" r="3" />
   <rect width="20" height="14" x="2" y="5" rx="7" />
-</svg>`,
-  ],
-  [
-    "toggle-right",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["toggle-right", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-toggle-right"
   xmlns="http://www.w3.org/2000/svg"
@@ -36557,11 +31320,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <circle cx="15" cy="12" r="3" />
   <rect width="20" height="14" x="2" y="5" rx="7" />
-</svg>`,
-  ],
-  [
-    "toilet",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["toilet", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-toilet"
   xmlns="http://www.w3.org/2000/svg"
@@ -36576,11 +31336,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M7 12h13a1 1 0 0 1 1 1 5 5 0 0 1-5 5h-.598a.5.5 0 0 0-.424.765l1.544 2.47a.5.5 0 0 1-.424.765H5.402a.5.5 0 0 1-.424-.765L7 18" />
   <path d="M8 18a5 5 0 0 1-5-5V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8" />
-</svg>`,
-  ],
-  [
-    "tool-case",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["tool-case", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-tool-case"
   xmlns="http://www.w3.org/2000/svg"
@@ -36597,11 +31354,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m14.817 10.995-.971-1.45 1.034-1.232a2 2 0 0 0-2.025-3.238l-1.82.364L9.91 3.885a2 2 0 0 0-3.625.748L6.141 6.55l-1.725.426a2 2 0 0 0-.19 3.756l.657.27" />
   <path d="m18.822 10.995 2.26-5.38a1 1 0 0 0-.557-1.318L16.954 2.9a1 1 0 0 0-1.281.533l-.924 2.122" />
   <path d="M4 12.006A1 1 0 0 1 4.994 11H19a1 1 0 0 1 1 1v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z" />
-</svg>`,
-  ],
-  [
-    "toolbox",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["toolbox", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-toolbox"
   xmlns="http://www.w3.org/2000/svg"
@@ -36619,11 +31373,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M16 6V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" />
   <path d="M2 14h20" />
   <path d="M8 12v4" />
-</svg>`,
-  ],
-  [
-    "tornado",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["tornado", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-tornado"
   xmlns="http://www.w3.org/2000/svg"
@@ -36641,11 +31392,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M19 12H9" />
   <path d="M16 16h-6" />
   <path d="M11 20H9" />
-</svg>`,
-  ],
-  [
-    "torus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["torus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-torus"
   xmlns="http://www.w3.org/2000/svg"
@@ -36660,11 +31408,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <ellipse cx="12" cy="11" rx="3" ry="2" />
   <ellipse cx="12" cy="12.5" rx="10" ry="8.5" />
-</svg>`,
-  ],
-  [
-    "touchpad-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["touchpad-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-touchpad-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -36683,11 +31428,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m2 2 20 20" />
   <path d="M20 20H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2" />
   <path d="M9.656 4H20a2 2 0 0 1 2 2v10.344" />
-</svg>`,
-  ],
-  [
-    "touchpad",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["touchpad", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-touchpad"
   xmlns="http://www.w3.org/2000/svg"
@@ -36703,11 +31445,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="20" height="16" x="2" y="4" rx="2" />
   <path d="M2 14h20" />
   <path d="M12 20v-6" />
-</svg>`,
-  ],
-  [
-    "tower-control",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["tower-control", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-tower-control"
   xmlns="http://www.w3.org/2000/svg"
@@ -36727,11 +31466,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m15 6-1 7" />
   <path d="M12 6V2" />
   <path d="M13 2h-2" />
-</svg>`,
-  ],
-  [
-    "toy-brick",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["toy-brick", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-toy-brick"
   xmlns="http://www.w3.org/2000/svg"
@@ -36747,11 +31483,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="18" height="12" x="3" y="8" rx="1" />
   <path d="M10 8V5c0-.6-.4-1-1-1H6a1 1 0 0 0-1 1v3" />
   <path d="M19 8V5c0-.6-.4-1-1-1h-3a1 1 0 0 0-1 1v3" />
-</svg>`,
-  ],
-  [
-    "tractor",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["tractor", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-tractor"
   xmlns="http://www.w3.org/2000/svg"
@@ -36773,11 +31506,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M8 10.1V4" />
   <circle cx="18" cy="18" r="2" />
   <circle cx="7" cy="15" r="5" />
-</svg>`,
-  ],
-  [
-    "traffic-cone",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["traffic-cone", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-traffic-cone"
   xmlns="http://www.w3.org/2000/svg"
@@ -36794,11 +31524,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m16.923 14.049 4.48 2.04a1 1 0 0 1 .001 1.831l-8.574 3.9a2 2 0 0 1-1.66 0l-8.574-3.91a1 1 0 0 1 0-1.83l4.484-2.04" />
   <path d="M16.949 14.14a5 2.5 0 1 1-9.9 0L10.063 3.5a2 2 0 0 1 3.874 0z" />
   <path d="M9.194 6.57a5 2.5 0 0 0 5.61 0" />
-</svg>`,
-  ],
-  [
-    "train-front-tunnel",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["train-front-tunnel", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-train-front-tunnel"
   xmlns="http://www.w3.org/2000/svg"
@@ -36818,11 +31545,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M10 19a4 4 0 0 1-4-4v-3a6 6 0 1 1 12 0v3a4 4 0 0 1-4 4Z" />
   <path d="m9 19-2 3" />
   <path d="m15 19 2 3" />
-</svg>`,
-  ],
-  [
-    "train-front",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["train-front", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-train-front"
   xmlns="http://www.w3.org/2000/svg"
@@ -36841,11 +31565,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M9 19c-2.8 0-5-2.2-5-5v-4a8 8 0 0 1 16 0v4c0 2.8-2.2 5-5 5Z" />
   <path d="m8 19-2 3" />
   <path d="m16 19 2 3" />
-</svg>`,
-  ],
-  [
-    "train-track",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["train-track", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-train-track"
   xmlns="http://www.w3.org/2000/svg"
@@ -36865,11 +31586,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m11 5 8 8" />
   <path d="m14 2 8 8" />
   <path d="M7 22 22 7" />
-</svg>`,
-  ],
-  [
-    "train",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["train", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-train"
   xmlns="http://www.w3.org/2000/svg"
@@ -36889,11 +31607,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m18 22-2-3" />
   <path d="M8 15h.01" />
   <path d="M16 15h.01" />
-</svg>`,
-  ],
-  [
-    "tram-front",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["tram-front", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-tram-front"
   xmlns="http://www.w3.org/2000/svg"
@@ -36913,11 +31628,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m18 22-2-3" />
   <path d="M8 15h.01" />
   <path d="M16 15h.01" />
-</svg>`,
-  ],
-  [
-    "transgender",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["transgender", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-transgender"
   xmlns="http://www.w3.org/2000/svg"
@@ -36938,11 +31650,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m22 2-7.17 7.17" />
   <path d="M8 5 5 8" />
   <circle cx="12" cy="12" r="4" />
-</svg>`,
-  ],
-  [
-    "trash-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["trash-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-trash-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -36960,11 +31669,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
   <path d="M3 6h18" />
   <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-</svg>`,
-  ],
-  [
-    "trash",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["trash", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-trash"
   xmlns="http://www.w3.org/2000/svg"
@@ -36980,11 +31686,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
   <path d="M3 6h18" />
   <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-</svg>`,
-  ],
-  [
-    "tree-deciduous",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["tree-deciduous", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-tree-deciduous"
   xmlns="http://www.w3.org/2000/svg"
@@ -36999,11 +31702,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M8 19a4 4 0 0 1-2.24-7.32A3.5 3.5 0 0 1 9 6.03V6a3 3 0 1 1 6 0v.04a3.5 3.5 0 0 1 3.24 5.65A4 4 0 0 1 16 19Z" />
   <path d="M12 19v3" />
-</svg>`,
-  ],
-  [
-    "tree-palm",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["tree-palm", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-tree-palm"
   xmlns="http://www.w3.org/2000/svg"
@@ -37020,11 +31720,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M13 7.14A5.82 5.82 0 0 1 16.5 6c3.04 0 5.5 2.24 5.5 5h-3l-1-1-1 1h-3" />
   <path d="M5.89 9.71c-2.15 2.15-2.3 5.47-.35 7.43l4.24-4.25.7-.7.71-.71 2.12-2.12c-1.95-1.96-5.27-1.8-7.42.35" />
   <path d="M11 15.5c.5 2.5-.17 4.5-1 6.5h4c2-5.5-.5-12-1-14" />
-</svg>`,
-  ],
-  [
-    "tree-pine",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["tree-pine", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-tree-pine"
   xmlns="http://www.w3.org/2000/svg"
@@ -37039,11 +31736,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="m17 14 3 3.3a1 1 0 0 1-.7 1.7H4.7a1 1 0 0 1-.7-1.7L7 14h-.3a1 1 0 0 1-.7-1.7L9 9h-.2A1 1 0 0 1 8 7.3L12 3l4 4.3a1 1 0 0 1-.8 1.7H15l3 3.3a1 1 0 0 1-.7 1.7H17Z" />
   <path d="M12 22v-3" />
-</svg>`,
-  ],
-  [
-    "trees",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["trees", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-trees"
   xmlns="http://www.w3.org/2000/svg"
@@ -37060,11 +31754,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M7 16v6" />
   <path d="M13 19v3" />
   <path d="M12 19h8.3a1 1 0 0 0 .7-1.7L18 14h.3a1 1 0 0 0 .7-1.7L16 9h.2a1 1 0 0 0 .8-1.7L13 3l-1.4 1.5" />
-</svg>`,
-  ],
-  [
-    "trello",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["trello", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-trello"
   xmlns="http://www.w3.org/2000/svg"
@@ -37080,11 +31771,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
   <rect width="3" height="9" x="7" y="7" />
   <rect width="3" height="5" x="14" y="7" />
-</svg>`,
-  ],
-  [
-    "trending-down",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["trending-down", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-trending-down"
   xmlns="http://www.w3.org/2000/svg"
@@ -37099,11 +31787,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M16 17h6v-6" />
   <path d="m22 17-8.5-8.5-5 5L2 7" />
-</svg>`,
-  ],
-  [
-    "trending-up-down",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["trending-up-down", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-trending-up-down"
   xmlns="http://www.w3.org/2000/svg"
@@ -37120,11 +31805,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M21 16v5h-5" />
   <path d="m21 3-9 9-4-4-6 6" />
   <path d="M21 8V3h-5" />
-</svg>`,
-  ],
-  [
-    "trending-up",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["trending-up", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-trending-up"
   xmlns="http://www.w3.org/2000/svg"
@@ -37139,11 +31821,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M16 7h6v6" />
   <path d="m22 7-8.5 8.5-5-5L2 17" />
-</svg>`,
-  ],
-  [
-    "triangle-alert",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["triangle-alert", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-triangle-alert"
   xmlns="http://www.w3.org/2000/svg"
@@ -37159,11 +31838,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
   <path d="M12 9v4" />
   <path d="M12 17h.01" />
-</svg>`,
-  ],
-  [
-    "triangle-dashed",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["triangle-dashed", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-triangle-dashed"
   xmlns="http://www.w3.org/2000/svg"
@@ -37185,11 +31861,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m5.136 12.952-1 1.732" />
   <path d="M8 21h2" />
   <path d="m8.102 7.743-1 1.732" />
-</svg>`,
-  ],
-  [
-    "triangle-right",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["triangle-right", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-triangle-right"
   xmlns="http://www.w3.org/2000/svg"
@@ -37203,11 +31876,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M22 18a2 2 0 0 1-2 2H3c-1.1 0-1.3-.6-.4-1.3L20.4 4.3c.9-.7 1.6-.4 1.6.7Z" />
-</svg>`,
-  ],
-  [
-    "triangle",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["triangle", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-triangle"
   xmlns="http://www.w3.org/2000/svg"
@@ -37221,11 +31891,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M13.73 4a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
-</svg>`,
-  ],
-  [
-    "trophy",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["trophy", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-trophy"
   xmlns="http://www.w3.org/2000/svg"
@@ -37244,11 +31911,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M4 22h16" />
   <path d="M6 9a6 6 0 0 0 12 0V3a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1z" />
   <path d="M6 9H4.5a1 1 0 0 1 0-5H6" />
-</svg>`,
-  ],
-  [
-    "truck-electric",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["truck-electric", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-truck-electric"
   xmlns="http://www.w3.org/2000/svg"
@@ -37268,11 +31932,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M4 3 2.15 5.15a.495.495 0 0 0 .35.86h2.15a.47.47 0 0 1 .35.86L3 9.02" />
   <circle cx="17" cy="19" r="2" />
   <circle cx="7" cy="19" r="2" />
-</svg>`,
-  ],
-  [
-    "truck",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["truck", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-truck"
   xmlns="http://www.w3.org/2000/svg"
@@ -37290,11 +31951,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14" />
   <circle cx="17" cy="18" r="2" />
   <circle cx="7" cy="18" r="2" />
-</svg>`,
-  ],
-  [
-    "turkish-lira",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["turkish-lira", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-turkish-lira"
   xmlns="http://www.w3.org/2000/svg"
@@ -37310,11 +31968,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M15 4 5 9" />
   <path d="m15 8.5-10 5" />
   <path d="M18 12a9 9 0 0 1-9 9V3" />
-</svg>`,
-  ],
-  [
-    "turntable",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["turntable", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-turntable"
   xmlns="http://www.w3.org/2000/svg"
@@ -37331,11 +31986,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M18 8v4a8 8 0 0 1-1.07 4" />
   <circle cx="10" cy="12" r="4" />
   <rect x="2" y="4" width="20" height="16" rx="2" />
-</svg>`,
-  ],
-  [
-    "turtle",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["turtle", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-turtle"
   xmlns="http://www.w3.org/2000/svg"
@@ -37352,11 +32004,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M4.82 7.9 8 10" />
   <path d="M15.18 7.9 12 10" />
   <path d="M16.93 10H20a2 2 0 0 1 0 4H2" />
-</svg>`,
-  ],
-  [
-    "tv-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["tv-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-tv-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -37371,11 +32020,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M7 21h10" />
   <rect width="20" height="14" x="2" y="3" rx="2" />
-</svg>`,
-  ],
-  [
-    "tv-minimal-play",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["tv-minimal-play", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-tv-minimal-play"
   xmlns="http://www.w3.org/2000/svg"
@@ -37391,11 +32037,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M15.033 9.44a.647.647 0 0 1 0 1.12l-4.065 2.352a.645.645 0 0 1-.968-.56V7.648a.645.645 0 0 1 .967-.56z" />
   <path d="M7 21h10" />
   <rect width="20" height="14" x="2" y="3" rx="2" />
-</svg>`,
-  ],
-  [
-    "tv-minimal",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["tv-minimal", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-tv-minimal"
   xmlns="http://www.w3.org/2000/svg"
@@ -37410,11 +32053,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M7 21h10" />
   <rect width="20" height="14" x="2" y="3" rx="2" />
-</svg>`,
-  ],
-  [
-    "tv",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["tv", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-tv"
   xmlns="http://www.w3.org/2000/svg"
@@ -37429,11 +32069,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="m17 2-5 5-5-5" />
   <rect width="20" height="15" x="2" y="7" rx="2" />
-</svg>`,
-  ],
-  [
-    "twitch",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["twitch", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-twitch"
   xmlns="http://www.w3.org/2000/svg"
@@ -37447,11 +32084,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M21 2H3v16h5v4l4-4h5l4-4V2zm-10 9V7m5 4V7" />
-</svg>`,
-  ],
-  [
-    "twitter",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["twitter", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-twitter"
   xmlns="http://www.w3.org/2000/svg"
@@ -37465,11 +32099,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z" />
-</svg>`,
-  ],
-  [
-    "type-outline",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["type-outline", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-type-outline"
   xmlns="http://www.w3.org/2000/svg"
@@ -37483,11 +32114,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M14 16.5a.5.5 0 0 0 .5.5h.5a2 2 0 0 1 0 4H9a2 2 0 0 1 0-4h.5a.5.5 0 0 0 .5-.5v-9a.5.5 0 0 0-.5-.5h-3a.5.5 0 0 0-.5.5V8a2 2 0 0 1-4 0V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v3a2 2 0 0 1-4 0v-.5a.5.5 0 0 0-.5-.5h-3a.5.5 0 0 0-.5.5Z" />
-</svg>`,
-  ],
-  [
-    "type",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["type", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-type"
   xmlns="http://www.w3.org/2000/svg"
@@ -37503,11 +32131,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 4v16" />
   <path d="M4 7V5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v2" />
   <path d="M9 20h6" />
-</svg>`,
-  ],
-  [
-    "umbrella-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["umbrella-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-umbrella-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -37525,11 +32150,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M18.656 13h2.336a1 1 0 0 0 .97-1.274 10.284 10.284 0 0 0-12.07-7.51" />
   <path d="m2 2 20 20" />
   <path d="M5.961 5.957a10.28 10.28 0 0 0-3.922 5.769A1 1 0 0 0 3 13h10" />
-</svg>`,
-  ],
-  [
-    "umbrella",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["umbrella", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-umbrella"
   xmlns="http://www.w3.org/2000/svg"
@@ -37545,11 +32167,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 13v7a2 2 0 0 0 4 0" />
   <path d="M12 2v2" />
   <path d="M20.992 13a1 1 0 0 0 .97-1.274 10.284 10.284 0 0 0-19.923 0A1 1 0 0 0 3 13z" />
-</svg>`,
-  ],
-  [
-    "underline",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["underline", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-underline"
   xmlns="http://www.w3.org/2000/svg"
@@ -37564,11 +32183,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M6 4v6a6 6 0 0 0 12 0V4" />
   <line x1="4" x2="20" y1="20" y2="20" />
-</svg>`,
-  ],
-  [
-    "undo-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["undo-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-undo-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -37583,11 +32199,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M9 14 4 9l5-5" />
   <path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11" />
-</svg>`,
-  ],
-  [
-    "undo-dot",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["undo-dot", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-undo-dot"
   xmlns="http://www.w3.org/2000/svg"
@@ -37603,11 +32216,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M21 17a9 9 0 0 0-15-6.7L3 13" />
   <path d="M3 7v6h6" />
   <circle cx="12" cy="17" r="1" />
-</svg>`,
-  ],
-  [
-    "undo",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["undo", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-undo"
   xmlns="http://www.w3.org/2000/svg"
@@ -37622,11 +32232,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M3 7v6h6" />
   <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13" />
-</svg>`,
-  ],
-  [
-    "unfold-horizontal",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["unfold-horizontal", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-unfold-horizontal"
   xmlns="http://www.w3.org/2000/svg"
@@ -37647,11 +32254,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 20v2" />
   <path d="m19 15 3-3-3-3" />
   <path d="m5 9-3 3 3 3" />
-</svg>`,
-  ],
-  [
-    "unfold-vertical",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["unfold-vertical", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-unfold-vertical"
   xmlns="http://www.w3.org/2000/svg"
@@ -37672,11 +32276,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M22 12h-2" />
   <path d="m15 19-3 3-3-3" />
   <path d="m15 5-3-3-3 3" />
-</svg>`,
-  ],
-  [
-    "ungroup",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["ungroup", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-ungroup"
   xmlns="http://www.w3.org/2000/svg"
@@ -37691,11 +32292,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <rect width="8" height="6" x="5" y="4" rx="1" />
   <rect width="8" height="6" x="11" y="14" rx="1" />
-</svg>`,
-  ],
-  [
-    "university",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["university", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-university"
   xmlns="http://www.w3.org/2000/svg"
@@ -37715,11 +32313,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M6 12h.01" />
   <path d="M6 16h.01" />
   <circle cx="12" cy="10" r="2" />
-</svg>`,
-  ],
-  [
-    "unlink-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["unlink-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-unlink-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -37733,11 +32328,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M15 7h2a5 5 0 0 1 0 10h-2m-6 0H7A5 5 0 0 1 7 7h2" />
-</svg>`,
-  ],
-  [
-    "unlink",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["unlink", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-unlink"
   xmlns="http://www.w3.org/2000/svg"
@@ -37756,11 +32348,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <line x1="2" x2="5" y1="8" y2="8" />
   <line x1="16" x2="16" y1="19" y2="22" />
   <line x1="19" x2="22" y1="16" y2="16" />
-</svg>`,
-  ],
-  [
-    "unlock-keyhole",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["unlock-keyhole", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-unlock-keyhole"
   xmlns="http://www.w3.org/2000/svg"
@@ -37776,11 +32365,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="12" cy="16" r="1" />
   <rect width="18" height="12" x="3" y="10" rx="2" />
   <path d="M7 10V7a5 5 0 0 1 9.33-2.5" />
-</svg>`,
-  ],
-  [
-    "unlock",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["unlock", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-unlock"
   xmlns="http://www.w3.org/2000/svg"
@@ -37795,11 +32381,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
   <path d="M7 11V7a5 5 0 0 1 9.9-1" />
-</svg>`,
-  ],
-  [
-    "unplug",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["unplug", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-unplug"
   xmlns="http://www.w3.org/2000/svg"
@@ -37818,11 +32401,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M7.5 13.5 10 11" />
   <path d="M10.5 16.5 13 14" />
   <path d="m12 6 6 6 2.3-2.3a2.4 2.4 0 0 0 0-3.4l-2.6-2.6a2.4 2.4 0 0 0-3.4 0Z" />
-</svg>`,
-  ],
-  [
-    "upload-cloud",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["upload-cloud", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-upload-cloud"
   xmlns="http://www.w3.org/2000/svg"
@@ -37838,11 +32418,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 13v8" />
   <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242" />
   <path d="m8 17 4-4 4 4" />
-</svg>`,
-  ],
-  [
-    "upload",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["upload", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-upload"
   xmlns="http://www.w3.org/2000/svg"
@@ -37858,11 +32435,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 3v12" />
   <path d="m17 8-5-5-5 5" />
   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-</svg>`,
-  ],
-  [
-    "usb",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["usb", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-usb"
   xmlns="http://www.w3.org/2000/svg"
@@ -37882,11 +32456,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M9.26 7.68 5 12l2 5" />
   <path d="m10 14 5 2 3.5-3.5" />
   <path d="m18 12 1-1 1 1-1 1Z" />
-</svg>`,
-  ],
-  [
-    "user-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["user-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-user-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -37901,11 +32472,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <circle cx="12" cy="8" r="5" />
   <path d="M20 21a8 8 0 0 0-16 0" />
-</svg>`,
-  ],
-  [
-    "user-check-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["user-check-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-user-check-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -37921,11 +32489,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M2 21a8 8 0 0 1 13.292-6" />
   <circle cx="10" cy="8" r="5" />
   <path d="m16 19 2 2 4-4" />
-</svg>`,
-  ],
-  [
-    "user-check",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["user-check", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-user-check"
   xmlns="http://www.w3.org/2000/svg"
@@ -37941,11 +32506,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m16 11 2 2 4-4" />
   <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
   <circle cx="9" cy="7" r="4" />
-</svg>`,
-  ],
-  [
-    "user-circle-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["user-circle-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-user-circle-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -37961,11 +32523,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M18 20a6 6 0 0 0-12 0" />
   <circle cx="12" cy="10" r="4" />
   <circle cx="12" cy="12" r="10" />
-</svg>`,
-  ],
-  [
-    "user-circle",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["user-circle", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-user-circle"
   xmlns="http://www.w3.org/2000/svg"
@@ -37981,11 +32540,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="12" cy="12" r="10" />
   <circle cx="12" cy="10" r="3" />
   <path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662" />
-</svg>`,
-  ],
-  [
-    "user-cog-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["user-cog-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-user-cog-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -38009,11 +32565,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m20.772 19.148.924.383" />
   <circle cx="10" cy="8" r="5" />
   <circle cx="18" cy="18" r="3" />
-</svg>`,
-  ],
-  [
-    "user-cog",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["user-cog", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-user-cog"
   xmlns="http://www.w3.org/2000/svg"
@@ -38037,11 +32590,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m20.772 16.148.924.383" />
   <circle cx="18" cy="15" r="3" />
   <circle cx="9" cy="7" r="4" />
-</svg>`,
-  ],
-  [
-    "user-key",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["user-key", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-user-key"
   xmlns="http://www.w3.org/2000/svg"
@@ -38059,11 +32609,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3 21v-2a4 4 0 0 1 4-4h6a4 4 0 0 1 2.072.578" />
   <circle cx="10" cy="7" r="4" />
   <circle cx="20" cy="19" r="2" />
-</svg>`,
-  ],
-  [
-    "user-lock",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["user-lock", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-user-lock"
   xmlns="http://www.w3.org/2000/svg"
@@ -38080,11 +32627,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M9.5 15H7a4 4 0 0 0-4 4v2" />
   <circle cx="10" cy="7" r="4" />
   <rect x="13" y="16" width="8" height="5" rx=".899" />
-</svg>`,
-  ],
-  [
-    "user-minus-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["user-minus-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-user-minus-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -38100,11 +32644,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M2 21a8 8 0 0 1 13.292-6" />
   <circle cx="10" cy="8" r="5" />
   <path d="M22 19h-6" />
-</svg>`,
-  ],
-  [
-    "user-minus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["user-minus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-user-minus"
   xmlns="http://www.w3.org/2000/svg"
@@ -38120,11 +32661,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
   <circle cx="9" cy="7" r="4" />
   <line x1="22" x2="16" y1="11" y2="11" />
-</svg>`,
-  ],
-  [
-    "user-pen",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["user-pen", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-user-pen"
   xmlns="http://www.w3.org/2000/svg"
@@ -38140,11 +32678,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M11.5 15H7a4 4 0 0 0-4 4v2" />
   <path d="M21.378 16.626a1 1 0 0 0-3.004-3.004l-4.01 4.012a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506z" />
   <circle cx="10" cy="7" r="4" />
-</svg>`,
-  ],
-  [
-    "user-plus-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["user-plus-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-user-plus-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -38161,11 +32696,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="10" cy="8" r="5" />
   <path d="M19 16v6" />
   <path d="M22 19h-6" />
-</svg>`,
-  ],
-  [
-    "user-plus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["user-plus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-user-plus"
   xmlns="http://www.w3.org/2000/svg"
@@ -38182,11 +32714,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="9" cy="7" r="4" />
   <line x1="19" x2="19" y1="8" y2="14" />
   <line x1="22" x2="16" y1="11" y2="11" />
-</svg>`,
-  ],
-  [
-    "user-round-check",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["user-round-check", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-user-round-check"
   xmlns="http://www.w3.org/2000/svg"
@@ -38202,11 +32731,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M2 21a8 8 0 0 1 13.292-6" />
   <circle cx="10" cy="8" r="5" />
   <path d="m16 19 2 2 4-4" />
-</svg>`,
-  ],
-  [
-    "user-round-cog",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["user-round-cog", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-user-round-cog"
   xmlns="http://www.w3.org/2000/svg"
@@ -38230,11 +32756,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m20.772 19.148.924.383" />
   <circle cx="10" cy="8" r="5" />
   <circle cx="18" cy="18" r="3" />
-</svg>`,
-  ],
-  [
-    "user-round-key",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["user-round-key", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-user-round-key"
   xmlns="http://www.w3.org/2000/svg"
@@ -38252,11 +32775,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M2 21a8 8 0 0 1 12.868-6.349" />
   <circle cx="10" cy="8" r="5" />
   <circle cx="19" cy="19" r="2" />
-</svg>`,
-  ],
-  [
-    "user-round-minus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["user-round-minus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-user-round-minus"
   xmlns="http://www.w3.org/2000/svg"
@@ -38272,11 +32792,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M2 21a8 8 0 0 1 13.292-6" />
   <circle cx="10" cy="8" r="5" />
   <path d="M22 19h-6" />
-</svg>`,
-  ],
-  [
-    "user-round-pen",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["user-round-pen", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-user-round-pen"
   xmlns="http://www.w3.org/2000/svg"
@@ -38292,11 +32809,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M2 21a8 8 0 0 1 10.821-7.487" />
   <path d="M21.378 16.626a1 1 0 0 0-3.004-3.004l-4.01 4.012a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506z" />
   <circle cx="10" cy="8" r="5" />
-</svg>`,
-  ],
-  [
-    "user-round-plus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["user-round-plus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-user-round-plus"
   xmlns="http://www.w3.org/2000/svg"
@@ -38313,11 +32827,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="10" cy="8" r="5" />
   <path d="M19 16v6" />
   <path d="M22 19h-6" />
-</svg>`,
-  ],
-  [
-    "user-round-search",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["user-round-search", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-user-round-search"
   xmlns="http://www.w3.org/2000/svg"
@@ -38334,11 +32845,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M2 21a8 8 0 0 1 10.434-7.62" />
   <circle cx="18" cy="18" r="3" />
   <path d="m22 22-1.9-1.9" />
-</svg>`,
-  ],
-  [
-    "user-round-x",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["user-round-x", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-user-round-x"
   xmlns="http://www.w3.org/2000/svg"
@@ -38355,11 +32863,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="10" cy="8" r="5" />
   <path d="m17 17 5 5" />
   <path d="m22 17-5 5" />
-</svg>`,
-  ],
-  [
-    "user-round",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["user-round", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-user-round"
   xmlns="http://www.w3.org/2000/svg"
@@ -38374,11 +32879,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <circle cx="12" cy="8" r="5" />
   <path d="M20 21a8 8 0 0 0-16 0" />
-</svg>`,
-  ],
-  [
-    "user-search",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["user-search", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-user-search"
   xmlns="http://www.w3.org/2000/svg"
@@ -38395,11 +32897,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M10.3 15H7a4 4 0 0 0-4 4v2" />
   <circle cx="17" cy="17" r="3" />
   <path d="m21 21-1.9-1.9" />
-</svg>`,
-  ],
-  [
-    "user-square-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["user-square-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-user-square-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -38415,11 +32914,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M18 21a6 6 0 0 0-12 0" />
   <circle cx="12" cy="11" r="4" />
   <rect width="18" height="18" x="3" y="3" rx="2" />
-</svg>`,
-  ],
-  [
-    "user-square",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["user-square", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-user-square"
   xmlns="http://www.w3.org/2000/svg"
@@ -38435,11 +32931,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <circle cx="12" cy="10" r="3" />
   <path d="M7 21v-2a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2" />
-</svg>`,
-  ],
-  [
-    "user-star",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["user-star", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-user-star"
   xmlns="http://www.w3.org/2000/svg"
@@ -38455,11 +32948,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M16.051 12.616a1 1 0 0 1 1.909.024l.737 1.452a1 1 0 0 0 .737.535l1.634.256a1 1 0 0 1 .588 1.806l-1.172 1.168a1 1 0 0 0-.282.866l.259 1.613a1 1 0 0 1-1.541 1.134l-1.465-.75a1 1 0 0 0-.912 0l-1.465.75a1 1 0 0 1-1.539-1.133l.258-1.613a1 1 0 0 0-.282-.866l-1.156-1.153a1 1 0 0 1 .572-1.822l1.633-.256a1 1 0 0 0 .737-.535z" />
   <path d="M8 15H7a4 4 0 0 0-4 4v2" />
   <circle cx="10" cy="7" r="4" />
-</svg>`,
-  ],
-  [
-    "user-x-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["user-x-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-user-x-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -38476,11 +32966,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="10" cy="8" r="5" />
   <path d="m17 17 5 5" />
   <path d="m22 17-5 5" />
-</svg>`,
-  ],
-  [
-    "user-x",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["user-x", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-user-x"
   xmlns="http://www.w3.org/2000/svg"
@@ -38497,11 +32984,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="9" cy="7" r="4" />
   <line x1="17" x2="22" y1="8" y2="13" />
   <line x1="22" x2="17" y1="8" y2="13" />
-</svg>`,
-  ],
-  [
-    "user",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["user", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-user"
   xmlns="http://www.w3.org/2000/svg"
@@ -38516,11 +33000,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
   <circle cx="12" cy="7" r="4" />
-</svg>`,
-  ],
-  [
-    "users-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["users-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-users-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -38536,11 +33017,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M18 21a8 8 0 0 0-16 0" />
   <circle cx="10" cy="8" r="5" />
   <path d="M22 20c0-3.37-2-6.5-4-8a5 5 0 0 0-.45-8.3" />
-</svg>`,
-  ],
-  [
-    "users-round",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["users-round", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-users-round"
   xmlns="http://www.w3.org/2000/svg"
@@ -38556,11 +33034,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M18 21a8 8 0 0 0-16 0" />
   <circle cx="10" cy="8" r="5" />
   <path d="M22 20c0-3.37-2-6.5-4-8a5 5 0 0 0-.45-8.3" />
-</svg>`,
-  ],
-  [
-    "users",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["users", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-users"
   xmlns="http://www.w3.org/2000/svg"
@@ -38577,11 +33052,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M16 3.128a4 4 0 0 1 0 7.744" />
   <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
   <circle cx="9" cy="7" r="4" />
-</svg>`,
-  ],
-  [
-    "utensils-crossed",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["utensils-crossed", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-utensils-crossed"
   xmlns="http://www.w3.org/2000/svg"
@@ -38598,11 +33070,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M15 15 3.3 3.3a4.2 4.2 0 0 0 0 6l7.3 7.3c.7.7 2 .7 2.8 0L15 15Zm0 0 7 7" />
   <path d="m2.1 21.8 6.4-6.3" />
   <path d="m19 5-7 7" />
-</svg>`,
-  ],
-  [
-    "utensils",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["utensils", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-utensils"
   xmlns="http://www.w3.org/2000/svg"
@@ -38618,11 +33087,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2" />
   <path d="M7 2v20" />
   <path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7" />
-</svg>`,
-  ],
-  [
-    "utility-pole",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["utility-pole", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-utility-pole"
   xmlns="http://www.w3.org/2000/svg"
@@ -38642,11 +33108,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M17 3v2" />
   <path d="M21 3v2" />
   <path d="m19 5-7 7-7-7" />
-</svg>`,
-  ],
-  [
-    "van",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["van", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-van"
   xmlns="http://www.w3.org/2000/svg"
@@ -38664,11 +33127,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M9 18h5" />
   <circle cx="16" cy="18" r="2" />
   <circle cx="7" cy="18" r="2" />
-</svg>`,
-  ],
-  [
-    "variable",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["variable", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-variable"
   xmlns="http://www.w3.org/2000/svg"
@@ -38685,11 +33145,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M16 3s4 3 4 9-4 9-4 9" />
   <line x1="15" x2="9" y1="9" y2="15" />
   <line x1="9" x2="15" y1="9" y2="15" />
-</svg>`,
-  ],
-  [
-    "vault",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["vault", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-vault"
   xmlns="http://www.w3.org/2000/svg"
@@ -38712,11 +33169,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="16.5" cy="16.5" r=".5" fill="currentColor" />
   <path d="m13.4 13.4 2.7 2.7" />
   <circle cx="12" cy="12" r="2" />
-</svg>`,
-  ],
-  [
-    "vector-square",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["vector-square", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-vector-square"
   xmlns="http://www.w3.org/2000/svg"
@@ -38737,11 +33191,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect x="17" y="2" width="5" height="5" rx="1" />
   <rect x="2" y="17" width="5" height="5" rx="1" />
   <rect x="2" y="2" width="5" height="5" rx="1" />
-</svg>`,
-  ],
-  [
-    "vegan",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["vegan", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-vegan"
   xmlns="http://www.w3.org/2000/svg"
@@ -38757,11 +33208,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M16 8q6 0 6-6-6 0-6 6" />
   <path d="M17.41 3.59a10 10 0 1 0 3 3" />
   <path d="M2 2a26.6 26.6 0 0 1 10 20c.9-6.82 1.5-9.5 4-14" />
-</svg>`,
-  ],
-  [
-    "venetian-mask",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["venetian-mask", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-venetian-mask"
   xmlns="http://www.w3.org/2000/svg"
@@ -38777,11 +33225,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M18 11c-1.5 0-2.5.5-3 2" />
   <path d="M4 6a2 2 0 0 0-2 2v4a5 5 0 0 0 5 5 8 8 0 0 1 5 2 8 8 0 0 1 5-2 5 5 0 0 0 5-5V8a2 2 0 0 0-2-2h-3a8 8 0 0 0-5 2 8 8 0 0 0-5-2z" />
   <path d="M6 11c1.5 0 2.5.5 3 2" />
-</svg>`,
-  ],
-  [
-    "venus-and-mars",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["venus-and-mars", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-venus-and-mars"
   xmlns="http://www.w3.org/2000/svg"
@@ -38799,11 +33244,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M17 2h4v4" />
   <path d="m21 2-5.46 5.46" />
   <circle cx="12" cy="11" r="5" />
-</svg>`,
-  ],
-  [
-    "venus",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["venus", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-venus"
   xmlns="http://www.w3.org/2000/svg"
@@ -38819,11 +33261,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 15v7" />
   <path d="M9 19h6" />
   <circle cx="12" cy="9" r="6" />
-</svg>`,
-  ],
-  [
-    "verified",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["verified", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-verified"
   xmlns="http://www.w3.org/2000/svg"
@@ -38838,11 +33277,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z" />
   <path d="m9 12 2 2 4-4" />
-</svg>`,
-  ],
-  [
-    "vibrate-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["vibrate-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-vibrate-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -38860,11 +33296,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M8 8v10c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2" />
   <path d="M16 10.34V6c0-.55-.45-1-1-1h-4.34" />
   <line x1="2" x2="22" y1="2" y2="22" />
-</svg>`,
-  ],
-  [
-    "vibrate",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["vibrate", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-vibrate"
   xmlns="http://www.w3.org/2000/svg"
@@ -38880,11 +33313,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m2 8 2 2-2 2 2 2-2 2" />
   <path d="m22 8-2 2 2 2-2 2 2 2" />
   <rect width="8" height="14" x="8" y="5" rx="1" />
-</svg>`,
-  ],
-  [
-    "video-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["video-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-video-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -38900,11 +33330,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M10.66 6H14a2 2 0 0 1 2 2v2.5l5.248-3.062A.5.5 0 0 1 22 7.87v8.196" />
   <path d="M16 16a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h2" />
   <path d="m2 2 20 20" />
-</svg>`,
-  ],
-  [
-    "video",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["video", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-video"
   xmlns="http://www.w3.org/2000/svg"
@@ -38919,11 +33346,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.87a.5.5 0 0 0-.752-.432L16 10.5" />
   <rect x="2" y="6" width="14" height="12" rx="2" />
-</svg>`,
-  ],
-  [
-    "videotape",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["videotape", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-videotape"
   xmlns="http://www.w3.org/2000/svg"
@@ -38941,11 +33365,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="8" cy="14" r="2" />
   <path d="M8 12h8" />
   <circle cx="16" cy="14" r="2" />
-</svg>`,
-  ],
-  [
-    "view",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["view", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-view"
   xmlns="http://www.w3.org/2000/svg"
@@ -38962,11 +33383,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M21 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v2" />
   <circle cx="12" cy="12" r="1" />
   <path d="M18.944 12.33a1 1 0 0 0 0-.66 7.5 7.5 0 0 0-13.888 0 1 1 0 0 0 0 .66 7.5 7.5 0 0 0 13.888 0" />
-</svg>`,
-  ],
-  [
-    "voicemail",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["voicemail", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-voicemail"
   xmlns="http://www.w3.org/2000/svg"
@@ -38982,11 +33400,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="6" cy="12" r="4" />
   <circle cx="18" cy="12" r="4" />
   <line x1="6" x2="18" y1="16" y2="16" />
-</svg>`,
-  ],
-  [
-    "volleyball",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["volleyball", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-volleyball"
   xmlns="http://www.w3.org/2000/svg"
@@ -39005,11 +33420,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M20.7 17a12.8 12.8 0 0 0-8.7-5 13.3 13.3 0 0 1 0-10" />
   <path d="M6.3 3.8a16.55 16.55 0 0 0 1.9 11.5" />
   <circle cx="12" cy="12" r="10" />
-</svg>`,
-  ],
-  [
-    "volume-1",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["volume-1", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-volume-1"
   xmlns="http://www.w3.org/2000/svg"
@@ -39024,11 +33436,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z" />
   <path d="M16 9a5 5 0 0 1 0 6" />
-</svg>`,
-  ],
-  [
-    "volume-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["volume-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-volume-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -39044,11 +33453,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z" />
   <path d="M16 9a5 5 0 0 1 0 6" />
   <path d="M19.364 18.364a9 9 0 0 0 0-12.728" />
-</svg>`,
-  ],
-  [
-    "volume-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["volume-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-volume-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -39066,11 +33472,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m2 2 20 20" />
   <path d="m7 7-.587.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298V11" />
   <path d="M9.828 4.172A.686.686 0 0 1 11 4.657v.686" />
-</svg>`,
-  ],
-  [
-    "volume-x",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["volume-x", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-volume-x"
   xmlns="http://www.w3.org/2000/svg"
@@ -39086,11 +33489,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z" />
   <line x1="22" x2="16" y1="9" y2="15" />
   <line x1="16" x2="22" y1="9" y2="15" />
-</svg>`,
-  ],
-  [
-    "volume",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["volume", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-volume"
   xmlns="http://www.w3.org/2000/svg"
@@ -39104,11 +33504,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z" />
-</svg>`,
-  ],
-  [
-    "vote",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["vote", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-vote"
   xmlns="http://www.w3.org/2000/svg"
@@ -39124,11 +33521,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m9 12 2 2 4-4" />
   <path d="M5 7c0-1.1.9-2 2-2h10a2 2 0 0 1 2 2v12H5V7Z" />
   <path d="M22 19H2" />
-</svg>`,
-  ],
-  [
-    "wallet-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["wallet-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-wallet-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -39143,11 +33537,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M17 14h.01" />
   <path d="M7 7h12a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14" />
-</svg>`,
-  ],
-  [
-    "wallet-cards",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["wallet-cards", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-wallet-cards"
   xmlns="http://www.w3.org/2000/svg"
@@ -39163,11 +33554,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="M3 9a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2" />
   <path d="M3 11h3c.8 0 1.6.3 2.1.9l1.1.9c1.6 1.6 4.1 1.6 5.7 0l1.1-.9c.5-.5 1.3-.9 2.1-.9H21" />
-</svg>`,
-  ],
-  [
-    "wallet-minimal",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["wallet-minimal", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-wallet-minimal"
   xmlns="http://www.w3.org/2000/svg"
@@ -39182,11 +33570,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M17 14h.01" />
   <path d="M7 7h12a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14" />
-</svg>`,
-  ],
-  [
-    "wallet",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["wallet", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-wallet"
   xmlns="http://www.w3.org/2000/svg"
@@ -39201,11 +33586,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1" />
   <path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4" />
-</svg>`,
-  ],
-  [
-    "wallpaper",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["wallpaper", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-wallpaper"
   xmlns="http://www.w3.org/2000/svg"
@@ -39223,11 +33605,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m9 17 6.1-6.1a2 2 0 0 1 2.81.01L22 15" />
   <circle cx="8" cy="9" r="2" />
   <rect x="2" y="3" width="20" height="14" rx="2" />
-</svg>`,
-  ],
-  [
-    "wand-2",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["wand-2", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-wand-2"
   xmlns="http://www.w3.org/2000/svg"
@@ -39248,11 +33627,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M7 8H3" />
   <path d="M21 16h-4" />
   <path d="M11 3H9" />
-</svg>`,
-  ],
-  [
-    "wand-sparkles",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["wand-sparkles", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-wand-sparkles"
   xmlns="http://www.w3.org/2000/svg"
@@ -39273,11 +33649,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M7 8H3" />
   <path d="M21 16h-4" />
   <path d="M11 3H9" />
-</svg>`,
-  ],
-  [
-    "wand",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["wand", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-wand"
   xmlns="http://www.w3.org/2000/svg"
@@ -39299,11 +33672,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M17.8 6.2 19 5" />
   <path d="m3 21 9-9" />
   <path d="M12.2 6.2 11 5" />
-</svg>`,
-  ],
-  [
-    "warehouse",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["warehouse", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-warehouse"
   xmlns="http://www.w3.org/2000/svg"
@@ -39320,11 +33690,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 1.132-1.803l7.95-3.974a2 2 0 0 1 1.837 0l7.948 3.974A2 2 0 0 1 22 8z" />
   <path d="M6 13h12" />
   <path d="M6 17h12" />
-</svg>`,
-  ],
-  [
-    "washing-machine",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["washing-machine", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-washing-machine"
   xmlns="http://www.w3.org/2000/svg"
@@ -39342,11 +33709,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="18" height="20" x="3" y="2" rx="2" />
   <circle cx="12" cy="13" r="5" />
   <path d="M12 18a2.5 2.5 0 0 0 0-5 2.5 2.5 0 0 1 0-5" />
-</svg>`,
-  ],
-  [
-    "watch",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["watch", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-watch"
   xmlns="http://www.w3.org/2000/svg"
@@ -39363,11 +33727,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m16.13 7.66-.81-4.05a2 2 0 0 0-2-1.61h-2.68a2 2 0 0 0-2 1.61l-.78 4.05" />
   <path d="m7.88 16.36.8 4a2 2 0 0 0 2 1.61h2.72a2 2 0 0 0 2-1.61l.81-4.05" />
   <circle cx="12" cy="12" r="6" />
-</svg>`,
-  ],
-  [
-    "waves-arrow-down",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["waves-arrow-down", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-waves-arrow-down"
   xmlns="http://www.w3.org/2000/svg"
@@ -39384,11 +33745,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M16 6L12 10L8 6" />
   <path d="M2 15C2.6 15.5 3.2 16 4.5 16C7 16 7 14 9.5 14C12.1 14 11.9 16 14.5 16C17 16 17 14 19.5 14C20.8 14 21.4 14.5 22 15" />
   <path d="M2 21C2.6 21.5 3.2 22 4.5 22C7 22 7 20 9.5 20C12.1 20 11.9 22 14.5 22C17 22 17 20 19.5 20C20.8 20 21.4 20.5 22 21" />
-</svg>`,
-  ],
-  [
-    "waves-arrow-up",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["waves-arrow-up", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-waves-arrow-up"
   xmlns="http://www.w3.org/2000/svg"
@@ -39405,11 +33763,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M2 15c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1" />
   <path d="M2 21c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1" />
   <path d="m8 6 4-4 4 4" />
-</svg>`,
-  ],
-  [
-    "waves-ladder",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["waves-ladder", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-waves-ladder"
   xmlns="http://www.w3.org/2000/svg"
@@ -39427,11 +33782,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M7 13h10" />
   <path d="M7 9h10" />
   <path d="M9 5a2 2 0 0 0-2 2v11" />
-</svg>`,
-  ],
-  [
-    "waves",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["waves", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-waves"
   xmlns="http://www.w3.org/2000/svg"
@@ -39447,11 +33799,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M2 6c.6.5 1.2 1 2.5 1C7 7 7 5 9.5 5c2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1" />
   <path d="M2 12c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1" />
   <path d="M2 18c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1" />
-</svg>`,
-  ],
-  [
-    "waypoints",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["waypoints", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-waypoints"
   xmlns="http://www.w3.org/2000/svg"
@@ -39471,11 +33820,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="12" cy="4" r="2" />
   <circle cx="20" cy="12" r="2" />
   <circle cx="4" cy="12" r="2" />
-</svg>`,
-  ],
-  [
-    "webcam",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["webcam", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-webcam"
   xmlns="http://www.w3.org/2000/svg"
@@ -39492,11 +33838,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="12" cy="10" r="3" />
   <path d="M7 22h10" />
   <path d="M12 22v-4" />
-</svg>`,
-  ],
-  [
-    "webhook-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["webhook-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-webhook-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -39516,11 +33859,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M18.6 13a4 4 0 0 1 3.357 3.414" />
   <path d="m12 6 .6 1" />
   <path d="m2 2 20 20" />
-</svg>`,
-  ],
-  [
-    "webhook",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["webhook", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-webhook"
   xmlns="http://www.w3.org/2000/svg"
@@ -39536,11 +33876,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M18 16.98h-5.99c-1.1 0-1.95.94-2.48 1.9A4 4 0 0 1 2 17c.01-.7.2-1.4.57-2" />
   <path d="m6 17 3.13-5.78c.53-.97.1-2.18-.5-3.1a4 4 0 1 1 6.89-4.06" />
   <path d="m12 6 3.13 5.73C15.66 12.7 16.9 13 18 13a4 4 0 0 1 0 8" />
-</svg>`,
-  ],
-  [
-    "weight-tilde",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["weight-tilde", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-weight-tilde"
   xmlns="http://www.w3.org/2000/svg"
@@ -39556,11 +33893,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M6.5 8a2 2 0 0 0-1.906 1.46L2.1 18.5A2 2 0 0 0 4 21h16a2 2 0 0 0 1.925-2.54L19.4 9.5A2 2 0 0 0 17.48 8z" />
   <path d="M7.999 15a2.5 2.5 0 0 1 4 0 2.5 2.5 0 0 0 4 0" />
   <circle cx="12" cy="5" r="3" />
-</svg>`,
-  ],
-  [
-    "weight",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["weight", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-weight"
   xmlns="http://www.w3.org/2000/svg"
@@ -39575,11 +33909,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <circle cx="12" cy="5" r="3" />
   <path d="M6.5 8a2 2 0 0 0-1.905 1.46L2.1 18.5A2 2 0 0 0 4 21h16a2 2 0 0 0 1.925-2.54L19.4 9.5A2 2 0 0 0 17.48 8Z" />
-</svg>`,
-  ],
-  [
-    "wheat-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["wheat-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-wheat-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -39602,11 +33933,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m16 16-.53.53a3.5 3.5 0 0 1-4.94 0L9 15l1.53-1.53a3.49 3.49 0 0 1 1.97-.98" />
   <path d="M18.74 13.09c.26-.15.51-.34.73-.56L21 11l-1.53-1.53a3.5 3.5 0 0 0-4.62-.28" />
   <line x1="2" x2="22" y1="2" y2="22" />
-</svg>`,
-  ],
-  [
-    "wheat",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["wheat", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-wheat"
   xmlns="http://www.w3.org/2000/svg"
@@ -39627,11 +33955,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M11.47 17.47 13 19l-1.53 1.53a3.5 3.5 0 0 1-4.94 0L5 19l1.53-1.53a3.5 3.5 0 0 1 4.94 0Z" />
   <path d="M15.47 13.47 17 15l-1.53 1.53a3.5 3.5 0 0 1-4.94 0L9 15l1.53-1.53a3.5 3.5 0 0 1 4.94 0Z" />
   <path d="M19.47 9.47 21 11l-1.53 1.53a3.5 3.5 0 0 1-4.94 0L13 11l1.53-1.53a3.5 3.5 0 0 1 4.94 0Z" />
-</svg>`,
-  ],
-  [
-    "whole-word",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["whole-word", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-whole-word"
   xmlns="http://www.w3.org/2000/svg"
@@ -39649,11 +33974,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="17" cy="12" r="3" />
   <path d="M14 7v8" />
   <path d="M22 17v1c0 .5-.5 1-1 1H3c-.5 0-1-.5-1-1v-1" />
-</svg>`,
-  ],
-  [
-    "wifi-cog",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["wifi-cog", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-wifi-cog"
   xmlns="http://www.w3.org/2000/svg"
@@ -39678,11 +34000,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M5 11.858a10 10 0 0 1 11.5-1.785" />
   <path d="M8.5 15.429a5 5 0 0 1 2.413-1.31" />
   <circle cx="18" cy="18" r="3" />
-</svg>`,
-  ],
-  [
-    "wifi-high",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["wifi-high", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-wifi-high"
   xmlns="http://www.w3.org/2000/svg"
@@ -39698,11 +34017,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 20h.01" />
   <path d="M5 12.859a10 10 0 0 1 14 0" />
   <path d="M8.5 16.429a5 5 0 0 1 7 0" />
-</svg>`,
-  ],
-  [
-    "wifi-low",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["wifi-low", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-wifi-low"
   xmlns="http://www.w3.org/2000/svg"
@@ -39717,11 +34033,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M12 20h.01" />
   <path d="M8.5 16.429a5 5 0 0 1 7 0" />
-</svg>`,
-  ],
-  [
-    "wifi-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["wifi-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-wifi-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -39741,11 +34054,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M2 8.82a15 15 0 0 1 4.177-2.643" />
   <path d="M22 8.82a15 15 0 0 0-11.288-3.764" />
   <path d="m2 2 20 20" />
-</svg>`,
-  ],
-  [
-    "wifi-pen",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["wifi-pen", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-wifi-pen"
   xmlns="http://www.w3.org/2000/svg"
@@ -39762,11 +34072,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M21.378 16.626a1 1 0 0 0-3.004-3.004l-4.01 4.012a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506z" />
   <path d="M5 12.859a10 10 0 0 1 10.5-2.222" />
   <path d="M8.5 16.429a5 5 0 0 1 3-1.406" />
-</svg>`,
-  ],
-  [
-    "wifi-sync",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["wifi-sync", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-wifi-sync"
   xmlns="http://www.w3.org/2000/svg"
@@ -39786,11 +34093,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M21.965 22.105v-4" />
   <path d="M5 12.86a10 10 0 0 1 3-2.032" />
   <path d="M8.5 16.429h.01" />
-</svg>`,
-  ],
-  [
-    "wifi-zero",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["wifi-zero", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-wifi-zero"
   xmlns="http://www.w3.org/2000/svg"
@@ -39804,11 +34108,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M12 20h.01" />
-</svg>`,
-  ],
-  [
-    "wifi",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["wifi", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-wifi"
   xmlns="http://www.w3.org/2000/svg"
@@ -39825,11 +34126,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M2 8.82a15 15 0 0 1 20 0" />
   <path d="M5 12.859a10 10 0 0 1 14 0" />
   <path d="M8.5 16.429a5 5 0 0 1 7 0" />
-</svg>`,
-  ],
-  [
-    "wind-arrow-down",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["wind-arrow-down", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-wind-arrow-down"
   xmlns="http://www.w3.org/2000/svg"
@@ -39846,11 +34144,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12.8 21.6A2 2 0 1 0 14 18H2" />
   <path d="M17.5 10a2.5 2.5 0 1 1 2 4H2" />
   <path d="m6 6 4 4 4-4" />
-</svg>`,
-  ],
-  [
-    "wind",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["wind", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-wind"
   xmlns="http://www.w3.org/2000/svg"
@@ -39866,11 +34161,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12.8 19.6A2 2 0 1 0 14 16H2" />
   <path d="M17.5 8a2.5 2.5 0 1 1 2 4H2" />
   <path d="M9.8 4.4A2 2 0 1 1 11 8H2" />
-</svg>`,
-  ],
-  [
-    "wine-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["wine-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-wine-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -39888,11 +34180,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M12 15v7" />
   <path d="M7.307 7.307A12.33 12.33 0 0 0 7 10a5 5 0 0 0 7.391 4.391M8.638 2.981C8.75 2.668 8.872 2.34 9 2h6c1.5 4 2 6 2 8 0 .407-.05.809-.145 1.198" />
   <line x1="2" x2="22" y1="2" y2="22" />
-</svg>`,
-  ],
-  [
-    "wine",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["wine", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-wine"
   xmlns="http://www.w3.org/2000/svg"
@@ -39909,11 +34198,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M7 10h10" />
   <path d="M12 15v7" />
   <path d="M12 15a5 5 0 0 0 5-5c0-2-.5-4-2-8H9c-1.5 4-2 6-2 8a5 5 0 0 0 5 5Z" />
-</svg>`,
-  ],
-  [
-    "workflow",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["workflow", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-workflow"
   xmlns="http://www.w3.org/2000/svg"
@@ -39929,11 +34215,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="8" height="8" x="3" y="3" rx="2" />
   <path d="M7 11v4a2 2 0 0 0 2 2h4" />
   <rect width="8" height="8" x="13" y="13" rx="2" />
-</svg>`,
-  ],
-  [
-    "worm",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["worm", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-worm"
   xmlns="http://www.w3.org/2000/svg"
@@ -39949,11 +34232,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m19 12-1.5 3" />
   <path d="M19.63 18.81 22 20" />
   <path d="M6.47 8.23a1.68 1.68 0 0 1 2.44 1.93l-.64 2.08a6.76 6.76 0 0 0 10.16 7.67l.42-.27a1 1 0 1 0-2.73-4.21l-.42.27a1.76 1.76 0 0 1-2.63-1.99l.64-2.08A6.66 6.66 0 0 0 3.94 3.9l-.7.4a1 1 0 1 0 2.55 4.34z" />
-</svg>`,
-  ],
-  [
-    "wrap-text",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["wrap-text", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-wrap-text"
   xmlns="http://www.w3.org/2000/svg"
@@ -39970,11 +34250,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M3 12h14.5a1 1 0 0 1 0 7H13" />
   <path d="M3 19h6" />
   <path d="M3 5h18" />
-</svg>`,
-  ],
-  [
-    "wrench",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["wrench", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-wrench"
   xmlns="http://www.w3.org/2000/svg"
@@ -39988,11 +34265,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.106-3.105c.32-.322.863-.22.983.218a6 6 0 0 1-8.259 7.057l-7.91 7.91a1 1 0 0 1-2.999-3l7.91-7.91a6 6 0 0 1 7.057-8.259c.438.12.54.662.219.984z" />
-</svg>`,
-  ],
-  [
-    "x-circle",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["x-circle", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-x-circle"
   xmlns="http://www.w3.org/2000/svg"
@@ -40008,11 +34282,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="12" cy="12" r="10" />
   <path d="m15 9-6 6" />
   <path d="m9 9 6 6" />
-</svg>`,
-  ],
-  [
-    "x-octagon",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["x-octagon", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-x-octagon"
   xmlns="http://www.w3.org/2000/svg"
@@ -40028,11 +34299,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="m15 9-6 6" />
   <path d="M2.586 16.726A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2h6.624a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586z" />
   <path d="m9 9 6 6" />
-</svg>`,
-  ],
-  [
-    "x-square",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["x-square", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-x-square"
   xmlns="http://www.w3.org/2000/svg"
@@ -40048,11 +34316,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
   <path d="m15 9-6 6" />
   <path d="m9 9 6 6" />
-</svg>`,
-  ],
-  [
-    "x",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["x", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-x"
   xmlns="http://www.w3.org/2000/svg"
@@ -40067,11 +34332,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M18 6 6 18" />
   <path d="m6 6 12 12" />
-</svg>`,
-  ],
-  [
-    "youtube",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["youtube", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-youtube"
   xmlns="http://www.w3.org/2000/svg"
@@ -40086,11 +34348,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
 >
   <path d="M2.5 17a24.12 24.12 0 0 1 0-10 2 2 0 0 1 1.4-1.4 49.56 49.56 0 0 1 16.2 0A2 2 0 0 1 21.5 7a24.12 24.12 0 0 1 0 10 2 2 0 0 1-1.4 1.4 49.55 49.55 0 0 1-16.2 0A2 2 0 0 1 2.5 17" />
   <path d="m10 15 5-3-5-3z" />
-</svg>`,
-  ],
-  [
-    "zap-off",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["zap-off", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-zap-off"
   xmlns="http://www.w3.org/2000/svg"
@@ -40107,11 +34366,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <path d="M15.656 10H20a1 1 0 0 1 .78 1.63l-1.72 1.773" />
   <path d="M16.273 16.273 10.88 21.83a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14H4a1 1 0 0 1-.78-1.63l4.507-4.643" />
   <path d="m2 2 20 20" />
-</svg>`,
-  ],
-  [
-    "zap",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["zap", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-zap"
   xmlns="http://www.w3.org/2000/svg"
@@ -40125,11 +34381,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   stroke-linejoin="round"
 >
   <path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z" />
-</svg>`,
-  ],
-  [
-    "zoom-in",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["zoom-in", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-zoom-in"
   xmlns="http://www.w3.org/2000/svg"
@@ -40146,11 +34399,8 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <line x1="21" x2="16.65" y1="21" y2="16.65" />
   <line x1="11" x2="11" y1="8" y2="14" />
   <line x1="8" x2="14" y1="11" y2="11" />
-</svg>`,
-  ],
-  [
-    "zoom-out",
-    `<!-- @license lucide-static v0.564.0 - ISC -->
+</svg>`],
+  ["zoom-out", `<!-- @license lucide-static v0.564.0 - ISC -->
 <svg
   class="lucide lucide-zoom-out"
   xmlns="http://www.w3.org/2000/svg"
@@ -40166,8 +34416,7 @@ export const LUCIDE_ICONS: Map<string, string> = new Map([
   <circle cx="11" cy="11" r="8" />
   <line x1="21" x2="16.65" y1="21" y2="16.65" />
   <line x1="8" x2="14" y1="11" y2="11" />
-</svg>`,
-  ],
+</svg>`]
 ]);
 
 export const LUCIDE_ICON_NAMES: string[] = [...LUCIDE_ICONS.keys()].sort();
