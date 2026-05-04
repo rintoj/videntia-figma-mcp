@@ -60,7 +60,7 @@ export interface SearchNodesOptions {
 export async function searchNodes(options: SearchNodesOptions): Promise<unknown> {
   const { query, types, nodeId, limit: limitOpt, depth, leadingTrim } = options;
   const limit = limitOpt !== undefined ? limitOpt : 50;
-  const leadingTrimFilter = leadingTrim === undefined ? null : (Array.isArray(leadingTrim) ? leadingTrim : [leadingTrim]);
+  const leadingTrimFilter = leadingTrim === undefined ? null : Array.isArray(leadingTrim) ? leadingTrim : [leadingTrim];
 
   // When nodeId is an array, search each root independently and group results
   if (Array.isArray(nodeId)) {
@@ -112,7 +112,7 @@ export async function searchNodes(options: SearchNodesOptions): Promise<unknown>
         leadingTrimMatch = false;
       } else {
         const lt = (node as unknown as { leadingTrim?: string | symbol }).leadingTrim;
-        const ltStr = lt === figma.mixed ? "MIXED" : (typeof lt === "string" ? lt : "NONE");
+        const ltStr = lt === figma.mixed ? "MIXED" : typeof lt === "string" ? lt : "NONE";
         leadingTrimMatch = leadingTrimFilter.indexOf(ltStr) !== -1;
       }
     }
