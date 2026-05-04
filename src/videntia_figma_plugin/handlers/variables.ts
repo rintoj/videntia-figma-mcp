@@ -566,7 +566,7 @@ export async function bindVariable(params: Record<string, unknown>): Promise<Rec
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err);
       throw new Error(
-        `Failed to bind variable to text style: ${errMsg}. Make sure the variable type (${variable.resolvedType}) is compatible with the field "${field}"`,
+        `Failed to bind variable to text style: ${errMsg}. Field "${field}" must be one of: fontFamily, fontStyle, fontSize, fontWeight, lineHeight, letterSpacing, paragraphSpacing, paragraphIndent. Variable type (${variable.resolvedType}) must also match the field's expected type (FLOAT for sizes/spacing, STRING for fontFamily/fontStyle).`,
       );
     }
     return {

@@ -1561,7 +1561,9 @@ async function applyTextStyleBindings(
       ).setBoundVariable(field as VariableBindableTextField, variable);
       applied.push(field);
     } catch (e) {
-      warnings.push(`Failed to bind "${ref}" to "${field}": ${(e as Error).message}`);
+      warnings.push(
+        `Failed to bind "${ref}" to "${field}": ${(e as Error).message}. Valid fields: fontFamily, fontStyle, fontSize, fontWeight, lineHeight, letterSpacing, paragraphSpacing, paragraphIndent.`,
+      );
     }
   }
 
