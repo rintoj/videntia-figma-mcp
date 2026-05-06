@@ -1641,7 +1641,7 @@ export function registerDocumentTools(server: McpServer): void {
         const result = await sendCommandToFigma("export_image_fill", {
           nodeId,
           fillIndex: fillIndex ?? 0,
-        });
+        }, 120000);
         const typedResult = result as {
           imageData: string;
           mimeType: string;
