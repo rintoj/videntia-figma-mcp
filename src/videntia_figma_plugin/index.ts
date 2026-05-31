@@ -189,6 +189,15 @@ import { lintFrame } from "./handlers/lint/index";
 // Handlers — batch (injected with handleCommand to avoid circular import)
 import { batchActions } from "./handlers/batch";
 
+// Handlers — documentation
+import {
+  enumerateAllFrames,
+  mapPrototypeFlows,
+  bulkExportFrames,
+  getContentTree,
+  getFrameDocumentation,
+} from "./handlers/documentation";
+
 // ---------------------------------------------------------------------------
 // Plugin state
 // ---------------------------------------------------------------------------
@@ -245,6 +254,11 @@ var READONLY_COMMANDS = new Set([
   "export_image_fill",
   "load_font_async",
   "read_my_design",
+  "enumerate_all_frames",
+  "map_prototype_flows",
+  "bulk_export_frames",
+  "get_content_tree",
+  "get_frame_documentation",
 ]);
 
 // ---------------------------------------------------------------------------
@@ -894,6 +908,18 @@ async function _executeCommand(command: string, params: Record<string, unknown>)
       return triggerUndo();
     case "commit_undo":
       return commitUndoAction();
+
+    // Documentation
+    case "enumerate_all_frames":
+      return await enumerateAllFrames(params);
+    case "map_prototype_flows":
+      return await mapPrototypeFlows(params);
+    case "bulk_export_frames":
+      return await bulkExportFrames(params);
+    case "get_content_tree":
+      return await getContentTree(params);
+    case "get_frame_documentation":
+      return await getFrameDocumentation(params);
 
     default:
       throw new Error("Unknown command");

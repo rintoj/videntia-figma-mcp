@@ -184,7 +184,12 @@ export type FigmaCommand =
   | "set_component_property"
   | "swap_instance"
   | "add_prototype_link"
-  | "remove_prototype_link";
+  | "remove_prototype_link"
+  | "enumerate_all_frames"
+  | "map_prototype_flows"
+  | "bulk_export_frames"
+  | "get_content_tree"
+  | "get_frame_documentation";
 
 // Batch actions types
 export interface BatchActionResult {
