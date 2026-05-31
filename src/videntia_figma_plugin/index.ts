@@ -242,6 +242,7 @@ var READONLY_COMMANDS = new Set([
   "set_focus",
   "set_selections",
   "export_node_as_image",
+  "export_selection_as_image",
   "export_image_fill",
   "load_font_async",
   "read_my_design",
@@ -606,6 +607,12 @@ async function _executeCommand(command: string, params: Record<string, unknown>)
       return await flattenNode(params);
     case "export_node_as_image":
       return await exportNodeAsImage(params);
+    case "export_selection_as_image": {
+      const selection = figma.currentPage.selection;
+      if (!selection.length) throw new Error("No nodes selected. Select a frame in Figma first.");
+      const node = selection[0];
+      return await exportNodeAsImage({ nodeId: node.id, scale: params?.["scale"] ?? 2 });
+    }
     case "export_image_fill":
       return await exportImageFill(params);
     case "set_corner_radius":

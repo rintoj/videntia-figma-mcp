@@ -184,7 +184,16 @@ export type FigmaCommand =
   | "set_component_property"
   | "swap_instance"
   | "add_prototype_link"
-  | "remove_prototype_link";
+  | "remove_prototype_link"
+  | "export_selection_as_image";
+
+export type BrowserCommand =
+  | "get_dom_nodes"
+  | "get_computed_styles"
+  | "get_page_screenshot"
+  | "get_page_info"
+  | "inject_figma_overlay"
+  | "clear_figma_overlay";
 
 // Batch actions types
 export interface BatchActionResult {

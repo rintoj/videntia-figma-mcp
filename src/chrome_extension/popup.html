@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Figma Overlay</title>
+  <style>
+    :root {
+      --background: #2b2b2b;
+      --card: #1c1c1c;
+      --popover: #272727;
+      --muted: #242424;
+      --border: #383838;
+      --foreground: #e0e0e0;
+      --muted-foreground: #707070;
+      --primary: #4caf50;
+      --primary-foreground: #ffffff;
+      --secondary: #2a2a2a;
+      --accent: #2e382e;
+      --destructive: #ef4444;
+      --success: #4caf50;
+      --warning: #febc2f;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
+        Roboto, Helvetica, Arial, sans-serif;
+      width: 320px;
+      background: var(--background);
+      color: var(--foreground);
+      font-size: 13px;
+    }
+
+    /* ---- Title bar ---- */
+
+    .titlebar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 16px;
+    }
+
+    .icon-box {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      background: var(--primary);
+      border-radius: 8px;
+      flex-shrink: 0;
+    }
+
+    .titlebar h1 {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--primary-foreground);
+      letter-spacing: -0.01em;
+    }
+
+    /* ---- Content card ---- */
+
+    .card {
+      background: var(--card);
+      border-top: 1px solid var(--border);
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .field-label {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--muted-foreground);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .channel-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .channel-select {
+      flex: 1;
+      background: var(--secondary);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--foreground);
+      font-size: 12px;
+      padding: 6px 8px;
+      cursor: pointer;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .channel-select:hover { border-color: #4a4a4a; }
+    .channel-select:focus { border-color: var(--ring, var(--primary)); }
+
+    .refresh-btn {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--muted-foreground);
+      cursor: pointer;
+      padding: 6px 8px;
+      font-size: 13px;
+      line-height: 1;
+      transition: color 0.15s, border-color 0.15s;
+    }
+
+    .refresh-btn:hover { color: var(--foreground); border-color: #4a4a4a; }
+
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--foreground);
+      cursor: pointer;
+    }
+
+    .toggle-row input { accent-color: var(--primary); cursor: pointer; }
+
+    .grab-btn {
+      width: 100%;
+      padding: 9px;
+      background: var(--primary);
+      border: none;
+      border-radius: 8px;
+      color: var(--primary-foreground);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, opacity 0.15s;
+    }
+
+    .grab-btn:hover:not(:disabled) { opacity: 0.9; }
+    .grab-btn:disabled {
+      background: var(--secondary);
+      color: var(--muted-foreground);
+      cursor: not-allowed;
+    }
+
+    .clear-btn {
+      width: 100%;
+      padding: 8px;
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--muted-foreground);
+      font-size: 12px;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+    }
+
+    .clear-btn:hover { color: var(--destructive); border-color: var(--destructive); }
+
+    .status {
+      font-size: 11px;
+      color: var(--muted-foreground);
+      text-align: center;
+      min-height: 16px;
+    }
+
+    .status.error { color: var(--destructive); }
+    .status.success { color: var(--success); }
+    .status.loading { color: var(--warning); }
+
+    /* ---- Connection / bridge footer ---- */
+
+    .connection-bar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      font-size: 11px;
+      color: var(--muted-foreground);
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--muted-foreground);
+      flex-shrink: 0;
+    }
+
+    /* ---- Debug log ---- */
+
+    .log {
+      font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+      font-size: 10px;
+      color: #5a5a5a;
+      background: var(--popover);
+      border-top: 1px solid var(--border);
+      padding: 8px 16px;
+      max-height: 110px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    .log::-webkit-scrollbar { width: 4px; }
+    .log::-webkit-scrollbar-track { background: transparent; }
+    .log::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  </style>
+</head>
+<body>
+  <div class="titlebar">
+    <div class="icon-box">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+        stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="m18 16 4-4-4-4" />
+        <path d="m6 8-4 4 4 4" />
+        <path d="m14.5 4-5 16" />
+      </svg>
+    </div>
+    <h1>Figma Overlay</h1>
+  </div>
+
+  <div class="card">
+    <span class="field-label">Channel</span>
+    <div class="channel-row">
+      <select id="channelSelect" class="channel-select">
+        <option value="">— no channels found —</option>
+      </select>
+      <button id="refreshBtn" class="refresh-btn" title="Refresh channels">↻</button>
+    </div>
+
+    <label class="toggle-row">
+      <input type="checkbox" id="resizeWindow" checked />
+      Resize window to frame dimensions
+    </label>
+
+    <button id="grabBtn" class="grab-btn" disabled>Grab from Figma</button>
+    <button id="clearBtn" class="clear-btn">Clear overlay</button>
+
+    <div id="status" class="status">Open Figma and load the plugin first.</div>
+  </div>
+
+  <div class="connection-bar">
+    <span class="status-dot" id="bridgeDot"></span>
+    <span id="browserStatus">Claude bridge: checking…</span>
+  </div>
+
+  <pre id="log" class="log"></pre>
+
+  <script src="popup.js"></script>
+</body>
+</html>
