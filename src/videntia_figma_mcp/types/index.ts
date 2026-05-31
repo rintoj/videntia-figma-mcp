@@ -184,7 +184,8 @@ export type FigmaCommand =
   | "set_component_property"
   | "swap_instance"
   | "add_prototype_link"
-  | "remove_prototype_link";
+  | "remove_prototype_link"
+  | "get_comments";
 
 // Batch actions types
 export interface BatchActionResult {

@@ -143,6 +143,7 @@ export const ALLOWED_COMMANDS = new Set([
   "set_component_property",
   "swap_instance",
   "export_image_fill",
+  "get_comments",
 ]);
 
 export const MIN_PROGRESS_DISPLAY_MS = 600;

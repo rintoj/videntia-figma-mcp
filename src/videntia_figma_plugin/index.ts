@@ -189,6 +189,9 @@ import { lintFrame } from "./handlers/lint/index";
 // Handlers — batch (injected with handleCommand to avoid circular import)
 import { batchActions } from "./handlers/batch";
 
+// Handlers — comments
+import { getComments } from "./handlers/comments";
+
 // ---------------------------------------------------------------------------
 // Plugin state
 // ---------------------------------------------------------------------------
@@ -245,6 +248,7 @@ var READONLY_COMMANDS = new Set([
   "export_image_fill",
   "load_font_async",
   "read_my_design",
+  "get_comments",
 ]);
 
 // ---------------------------------------------------------------------------
@@ -894,6 +898,10 @@ async function _executeCommand(command: string, params: Record<string, unknown>)
       return triggerUndo();
     case "commit_undo":
       return commitUndoAction();
+
+    // Comments
+    case "get_comments":
+      return await getComments(params);
 
     default:
       throw new Error("Unknown command");
