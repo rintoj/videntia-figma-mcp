@@ -52,7 +52,7 @@ import {
   setImageFill,
   setGradientFill,
 } from "./handlers/fills";
-import { createEllipse, createPolygon, createStar, createSvg, createVector, createLine } from "./handlers/shapes";
+import { createEllipse, createPolygon, createStar, createSvg, createVector, createLine, createOrthogonalConnector, createFanConnectors } from "./handlers/shapes";
 import { updateIcon } from "./handlers/icons";
 
 // Handlers — text
@@ -320,6 +320,8 @@ var FOCUS_AFTER_COMMANDS = new Set([
   "create_svg",
   "create_vector",
   "create_line",
+  "create_orthogonal_connector",
+  "create_fan_connectors",
   "create_component",
   "create_component_set",
   "create_component_instance",
@@ -728,6 +730,10 @@ async function _executeCommand(command: string, params: Record<string, unknown>)
       return await createVector(params);
     case "create_line":
       return await createLine(params);
+    case "create_orthogonal_connector":
+      return await createOrthogonalConnector(params);
+    case "create_fan_connectors":
+      return await createFanConnectors(params);
 
     // Variables
     case "get_variables":

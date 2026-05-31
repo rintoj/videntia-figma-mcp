@@ -504,4 +504,184 @@ export function registerCreationTools(server: McpServer): void {
       }
     },
   );
+
+  // Create Orthogonal Connector Tool
+  server.tool(
+    "create_orthogonal_connector",
+    "Create an orthogonal (right-angle) connector line between two Figma nodes. Automatically calculates the best exit/entry sides and routes the path with 90-degree turns. Rendered as a vector with optional arrow caps — works in regular Figma files (no FigJam required).",
+    {
+      startNodeId: z.string().describe("ID of the source node to connect from"),
+      endNodeId: z.string().describe("ID of the destination node to connect to"),
+      name: z.string().optional().describe("Layer name (default: 'Connector')"),
+      parentId: z.string().optional().describe("Parent node ID to insert into (default: current page)"),
+      strokeColor: z
+        .object({
+          r: z.coerce.number().min(0).max(1),
+          g: z.coerce.number().min(0).max(1),
+          b: z.coerce.number().min(0).max(1),
+          a: z.coerce.number().min(0).max(1).optional(),
+        })
+        .optional()
+        .describe("Stroke color (default: dark gray)"),
+      strokeWeight: z.coerce.number().positive().optional().describe("Stroke thickness in pixels (default: 1.5)"),
+      startCap: z
+        .enum(["NONE", "ROUND", "SQUARE", "ARROW_LINES", "ARROW_EQUILATERAL"])
+        .optional()
+        .describe("Cap style at the start of the connector (default: NONE)"),
+      endCap: z
+        .enum(["NONE", "ROUND", "SQUARE", "ARROW_LINES", "ARROW_EQUILATERAL"])
+        .optional()
+        .describe("Cap style at the end of the connector (default: ARROW_LINES)"),
+      routingStyle: z
+        .enum(["AUTO", "HORIZONTAL_FIRST", "VERTICAL_FIRST"])
+        .optional()
+        .describe("Routing strategy when exitSide is not set: AUTO picks the axis with greater separation, HORIZONTAL_FIRST always exits left/right, VERTICAL_FIRST always exits top/bottom (default: AUTO)"),
+      exitSide: z
+        .enum(["TOP", "BOTTOM", "LEFT", "RIGHT"])
+        .optional()
+        .describe("Which side of the source node the connector exits from. Overrides routingStyle."),
+      entrySide: z
+        .enum(["TOP", "BOTTOM", "LEFT", "RIGHT"])
+        .optional()
+        .describe("Which side of the destination node the connector enters. Defaults to the side opposite exitSide."),
+      exitOffset: z.coerce.number().min(0).max(1).optional()
+        .describe("0–1 position along the exit edge (0=start of edge, 0.5=center, 1=end). For TOP/BOTTOM edges left→right; for LEFT/RIGHT edges top→bottom. Default: 0.5"),
+      entryOffset: z.coerce.number().min(0).max(1).optional()
+        .describe("0–1 position along the entry edge. Same axis convention as exitOffset. Default: 0.5"),
+      waypoints: z
+        .array(z.object({ x: z.coerce.number(), y: z.coerce.number() }))
+        .optional()
+        .describe("Optional absolute canvas coordinates the path must pass through, inserted between the exit and entry points. Overrides auto-routing entirely."),
+      cornerRadius: z.coerce.number().min(0).optional().describe("Corner rounding radius at bends in pixels (default: 0)"),
+    },
+    async ({ startNodeId, endNodeId, name, parentId, strokeColor, strokeWeight, startCap, endCap, routingStyle, exitSide, entrySide, exitOffset, entryOffset, waypoints, cornerRadius }) => {
+      startNodeId = normalizeNodeId(startNodeId);
+      endNodeId = normalizeNodeId(endNodeId);
+      if (parentId) parentId = normalizeNodeId(parentId);
+      try {
+        const result = await sendCommandToFigma("create_orthogonal_connector", {
+          startNodeId,
+          endNodeId,
+          name: name || "Connector",
+          parentId,
+          strokeColor,
+          strokeWeight,
+          startCap,
+          endCap,
+          routingStyle,
+          exitSide,
+          entrySide,
+          exitOffset,
+          entryOffset,
+          waypoints,
+          cornerRadius,
+        });
+        const r = result as {
+          id: string;
+          name: string;
+          startSide: string;
+          endSide: string;
+          waypointCount: number;
+        };
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Created orthogonal connector "${r.name}" (ID: ${r.id}) from ${r.startSide} → ${r.endSide} with ${r.waypointCount} waypoints`,
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error creating orthogonal connector: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  // Create Fan Connectors Tool
+  server.tool(
+    "create_fan_connectors",
+    "Create multiple orthogonal connectors from one source node to N target nodes. Exit points are automatically distributed evenly along the source's exit edge so connectors never stack on top of each other. Each connector is independently routed to its target with 90-degree turns.",
+    {
+      sourceNodeId: z.string().describe("ID of the shared source (hub) node"),
+      targetNodeIds: coerceArray(z.array(z.string())).describe("Ordered list of destination node IDs — order determines which exit offset each target gets"),
+      name: z.string().optional().describe("Base name for connectors. If multiple, numbered as 'Name 1', 'Name 2', etc. (default: 'Connector')"),
+      parentId: z.string().optional().describe("Parent node ID to insert connectors into (default: current page)"),
+      exitSide: z
+        .enum(["TOP", "BOTTOM", "LEFT", "RIGHT"])
+        .optional()
+        .describe("Which edge of the source node all connectors exit from. Auto-detected from the average direction to targets if omitted."),
+      entrySide: z
+        .enum(["TOP", "BOTTOM", "LEFT", "RIGHT"])
+        .optional()
+        .describe("Which edge each target is entered from. Defaults to the side opposite the exit axis."),
+      entryOffset: z.coerce.number().min(0).max(1).optional()
+        .describe("Fixed 0–1 offset along the entry edge for all targets (default: 0.5 = center)"),
+      strokeColor: z
+        .object({
+          r: z.coerce.number().min(0).max(1),
+          g: z.coerce.number().min(0).max(1),
+          b: z.coerce.number().min(0).max(1),
+          a: z.coerce.number().min(0).max(1).optional(),
+        })
+        .optional()
+        .describe("Stroke color for all connectors (default: dark gray)"),
+      strokeWeight: z.coerce.number().positive().optional().describe("Stroke thickness in pixels (default: 1.5)"),
+      startCap: z
+        .enum(["NONE", "ROUND", "SQUARE", "ARROW_LINES", "ARROW_EQUILATERAL"])
+        .optional()
+        .describe("Cap at the source end of every connector (default: NONE)"),
+      endCap: z
+        .enum(["NONE", "ROUND", "SQUARE", "ARROW_LINES", "ARROW_EQUILATERAL"])
+        .optional()
+        .describe("Cap at the destination end of every connector (default: ARROW_LINES)"),
+      cornerRadius: z.coerce.number().min(0).optional().describe("Corner rounding at bends in pixels (default: 0)"),
+    },
+    async ({ sourceNodeId, targetNodeIds, name, parentId, exitSide, entrySide, entryOffset, strokeColor, strokeWeight, startCap, endCap, cornerRadius }) => {
+      sourceNodeId = normalizeNodeId(sourceNodeId);
+      targetNodeIds = targetNodeIds.map(normalizeNodeId);
+      if (parentId) parentId = normalizeNodeId(parentId);
+      try {
+        const result = await sendCommandToFigma("create_fan_connectors", {
+          sourceNodeId,
+          targetNodeIds,
+          name: name || "Connector",
+          parentId,
+          exitSide,
+          entrySide,
+          entryOffset,
+          strokeColor,
+          strokeWeight,
+          startCap,
+          endCap,
+          cornerRadius,
+        });
+        const r = result as { createdCount: number; connectors: Array<{ id: string; name: string; targetId: string; exitSide: string; exitOffset: number }> };
+        const summary = r.connectors.map(c => `  • ${c.name} (ID: ${c.id}, exit: ${c.exitSide} @ ${c.exitOffset.toFixed(2)})`).join("\n");
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Created ${r.createdCount} connectors:\n${summary}`,
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error creating fan connectors: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    },
+  );
 }
