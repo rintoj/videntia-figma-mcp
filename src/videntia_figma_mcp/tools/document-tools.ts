@@ -402,13 +402,13 @@ export function registerDocumentTools(server: McpServer): void {
         const lines: string[] = [
           `Found ${annotations.length} annotation(s) on node "${(result as any).nodeName || (result as any).nodeId || nodeId}"`,
           "",
-          "| Index | Label | Category |",
-          "|-------|-------|----------|",
         ];
         for (const a of annotations) {
-          const label = truncate(((a as any).labelMarkdown || (a as any).label || "-").replace(/\n/g, " "), 60);
-          const cat = (a as any).category?.label || (a as any).categoryId || "-";
-          lines.push(`| ${(a as any).index ?? "-"} | ${label} | ${cat} |`);
+          const label = ((a as any).labelMarkdown || (a as any).label || "-");
+          const cat = (a as any).category?.label || (a as any).categoryId || null;
+          lines.push(`### Annotation ${(a as any).index ?? "-"}${cat ? ` [${cat}]` : ""}`);
+          lines.push(label);
+          lines.push("");
         }
         return {
           content: [
