@@ -679,3 +679,421 @@ export async function createLine(params: Record<string, unknown>): Promise<unkno
     parentId: line.parent ? line.parent.id : undefined,
   };
 }
+
+// ---------------------------------------------------------------------------
+// Orthogonal connector helpers
+// ---------------------------------------------------------------------------
+
+type ConnectorPoint = { x: number; y: number };
+type RoutingSide = "RIGHT" | "LEFT" | "BOTTOM" | "TOP";
+
+interface RouteResult {
+  points: ConnectorPoint[];
+  startSide: RoutingSide;
+  endSide: RoutingSide;
+}
+
+/** Returns the attachment point on an edge given a 0–1 offset along that edge. */
+function getEdgePoint(bounds: Rect, side: RoutingSide, offset: number): ConnectorPoint {
+  const t = Math.max(0, Math.min(1, offset));
+  switch (side) {
+    case "TOP":    return { x: bounds.x + bounds.width * t,  y: bounds.y };
+    case "BOTTOM": return { x: bounds.x + bounds.width * t,  y: bounds.y + bounds.height };
+    case "LEFT":   return { x: bounds.x,                     y: bounds.y + bounds.height * t };
+    case "RIGHT":  return { x: bounds.x + bounds.width,      y: bounds.y + bounds.height * t };
+  }
+}
+
+function computeOrthogonalRoute(
+  startBounds: Rect,
+  endBounds: Rect,
+  routingStyle: string,
+  exitSide?: string,
+  entrySide?: string,
+  exitOffset: number = 0.5,
+  entryOffset: number = 0.5,
+  waypoints?: ConnectorPoint[],
+): RouteResult {
+  const validSides = ["TOP", "BOTTOM", "LEFT", "RIGHT"];
+  const dx = (endBounds.x + endBounds.width / 2) - (startBounds.x + startBounds.width / 2);
+  const dy = (endBounds.y + endBounds.height / 2) - (startBounds.y + startBounds.height / 2);
+
+  let startSide: RoutingSide;
+  if (exitSide && validSides.includes(exitSide)) {
+    startSide = exitSide as RoutingSide;
+  } else {
+    const useHoriz =
+      routingStyle === "HORIZONTAL_FIRST" ||
+      (routingStyle !== "VERTICAL_FIRST" && Math.abs(dx) >= Math.abs(dy));
+    if (useHoriz) startSide = dx >= 0 ? "RIGHT" : "LEFT";
+    else           startSide = dy >= 0 ? "BOTTOM" : "TOP";
+  }
+
+  let endSide: RoutingSide;
+  if (entrySide && validSides.includes(entrySide)) {
+    endSide = entrySide as RoutingSide;
+  } else {
+    const opposites: Record<RoutingSide, RoutingSide> = {
+      RIGHT: "LEFT", LEFT: "RIGHT", BOTTOM: "TOP", TOP: "BOTTOM",
+    };
+    endSide = opposites[startSide];
+  }
+
+  const startPoint = getEdgePoint(startBounds, startSide, exitOffset);
+  const endPoint   = getEdgePoint(endBounds,   endSide,   entryOffset);
+
+  if (waypoints && waypoints.length > 0) {
+    return { points: [startPoint, ...waypoints, endPoint], startSide, endSide };
+  }
+
+  const isHorizExit = startSide === "LEFT" || startSide === "RIGHT";
+
+  if (isHorizExit) {
+    if (Math.abs(startPoint.y - endPoint.y) < 0.5) {
+      return { points: [startPoint, endPoint], startSide, endSide };
+    }
+    const midX = (startPoint.x + endPoint.x) / 2;
+    return {
+      points: [
+        startPoint,
+        { x: midX, y: startPoint.y },
+        { x: midX, y: endPoint.y },
+        endPoint,
+      ],
+      startSide,
+      endSide,
+    };
+  } else {
+    if (Math.abs(startPoint.x - endPoint.x) < 0.5) {
+      return { points: [startPoint, endPoint], startSide, endSide };
+    }
+    const midY = (startPoint.y + endPoint.y) / 2;
+    return {
+      points: [
+        startPoint,
+        { x: startPoint.x, y: midY },
+        { x: endPoint.x,   y: midY },
+        endPoint,
+      ],
+      startSide,
+      endSide,
+    };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// createOrthogonalConnector
+// ---------------------------------------------------------------------------
+
+export async function createOrthogonalConnector(params: Record<string, unknown>): Promise<unknown> {
+  const startNodeId = params["startNodeId"] as string;
+  const endNodeId = params["endNodeId"] as string;
+  const name = (params["name"] as string) || "Connector";
+  const parentId = params["parentId"] as string | undefined;
+  const strokeColorParam =
+    (params["strokeColor"] as Record<string, unknown>) || { r: 0.2, g: 0.2, b: 0.2, a: 1 };
+  const strokeWeight = params["strokeWeight"] !== undefined ? (params["strokeWeight"] as number) : 1.5;
+  const startCap = (params["startCap"] as string) || "NONE";
+  const endCap = (params["endCap"] as string) || "ARROW_LINES";
+  const routingStyle = (params["routingStyle"] as string) || "AUTO";
+  const cornerRadius = params["cornerRadius"] !== undefined ? (params["cornerRadius"] as number) : 0;
+  const exitSide = params["exitSide"] as string | undefined;
+  const entrySide = params["entrySide"] as string | undefined;
+  const exitOffset = params["exitOffset"] !== undefined ? (params["exitOffset"] as number) : 0.5;
+  const entryOffset = params["entryOffset"] !== undefined ? (params["entryOffset"] as number) : 0.5;
+  const waypointsRaw = params["waypoints"] as Array<Record<string, number>> | undefined;
+  const waypoints: ConnectorPoint[] | undefined = waypointsRaw
+    ? waypointsRaw.map(w => ({ x: w["x"] ?? 0, y: w["y"] ?? 0 }))
+    : undefined;
+
+  const startNode = await figma.getNodeByIdAsync(startNodeId) as SceneNode | null;
+  const endNode = await figma.getNodeByIdAsync(endNodeId) as SceneNode | null;
+
+  if (!startNode) throw new Error(`Start node not found: ${startNodeId}`);
+  if (!endNode) throw new Error(`End node not found: ${endNodeId}`);
+
+  const startBounds = startNode.absoluteBoundingBox;
+  const endBounds = endNode.absoluteBoundingBox;
+
+  if (!startBounds) throw new Error("Cannot get bounding box for start node");
+  if (!endBounds) throw new Error("Cannot get bounding box for end node");
+
+  const route = computeOrthogonalRoute(
+    startBounds, endBounds, routingStyle,
+    exitSide, entrySide, exitOffset, entryOffset, waypoints,
+  );
+  const points = route.points;
+
+  const xs = points.map(p => p.x);
+  const ys = points.map(p => p.y);
+  const minX = Math.min(...xs);
+  const minY = Math.min(...ys);
+  const maxX = Math.max(...xs);
+  const maxY = Math.max(...ys);
+  const bboxWidth = Math.max(maxX - minX, 1);
+  const bboxHeight = Math.max(maxY - minY, 1);
+
+  const localPoints = points.map(p => ({ x: p.x - minX, y: p.y - minY }));
+
+  const validCaps = ["NONE", "ROUND", "SQUARE", "ARROW_LINES", "ARROW_EQUILATERAL"];
+  const resolvedStartCap = validCaps.includes(startCap) ? startCap : "NONE";
+  const resolvedEndCap = validCaps.includes(endCap) ? endCap : "ARROW_LINES";
+
+  const vertices = localPoints.map((p, i) => {
+    const v: Record<string, unknown> = { x: p.x, y: p.y };
+    if (i === 0) v["strokeCap"] = resolvedStartCap;
+    if (i === localPoints.length - 1) v["strokeCap"] = resolvedEndCap;
+    if (cornerRadius > 0 && i > 0 && i < localPoints.length - 1) {
+      v["cornerRadius"] = cornerRadius;
+    }
+    return v;
+  });
+
+  const segments: Array<{ start: number; end: number }> = [];
+  for (let i = 0; i < localPoints.length - 1; i++) {
+    segments.push({ start: i, end: i + 1 });
+  }
+
+  const vector = figma.createVector();
+  vector.name = name;
+  vector.x = minX;
+  vector.y = minY;
+  vector.resize(bboxWidth, bboxHeight);
+
+  await (vector as unknown as {
+    setVectorNetworkAsync: (network: Record<string, unknown>) => Promise<void>;
+  }).setVectorNetworkAsync({
+    vertices,
+    segments,
+    regions: [],
+  });
+
+  vector.fills = [];
+  vector.strokes = [
+    {
+      type: "SOLID",
+      color: {
+        r: parseNum(strokeColorParam["r"], 0.2),
+        g: parseNum(strokeColorParam["g"], 0.2),
+        b: parseNum(strokeColorParam["b"], 0.2),
+      },
+      opacity: parseNum(strokeColorParam["a"], 1),
+    } as SolidPaint,
+  ];
+  vector.strokeWeight = strokeWeight;
+  vector.strokeJoin = "MITER";
+
+  if (parentId) {
+    const parentNode = await figma.getNodeByIdAsync(parentId);
+    if (!parentNode) throw new Error(`Parent node not found: ${parentId}`);
+    if (!("appendChild" in parentNode)) throw new Error(`Parent does not support children: ${parentId}`);
+    (parentNode as ChildrenMixin).appendChild(vector);
+    const parentBounds = (parentNode as SceneNode).absoluteBoundingBox;
+    if (parentBounds) {
+      vector.x = minX - parentBounds.x;
+      vector.y = minY - parentBounds.y;
+    }
+  } else {
+    figma.currentPage.appendChild(vector);
+  }
+
+  return {
+    id: vector.id,
+    name: vector.name,
+    type: vector.type,
+    x: vector.x,
+    y: vector.y,
+    width: vector.width,
+    height: vector.height,
+    startSide: route.startSide,
+    endSide: route.endSide,
+    waypointCount: points.length,
+    parentId: vector.parent ? vector.parent.id : undefined,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// createFanConnectors
+// ---------------------------------------------------------------------------
+
+function autoExitSide(sourceBounds: Rect, targetBounds: Rect): RoutingSide {
+  const dx = (targetBounds.x + targetBounds.width / 2) - (sourceBounds.x + sourceBounds.width / 2);
+  const dy = (targetBounds.y + targetBounds.height / 2) - (sourceBounds.y + sourceBounds.height / 2);
+  if (Math.abs(dx) >= Math.abs(dy)) return dx >= 0 ? "RIGHT" : "LEFT";
+  return dy >= 0 ? "BOTTOM" : "TOP";
+}
+
+export async function createFanConnectors(params: Record<string, unknown>): Promise<unknown> {
+  const sourceNodeId = params["sourceNodeId"] as string;
+  const targetNodeIds = params["targetNodeIds"] as string[];
+  const exitSideParam = params["exitSide"] as string | undefined;
+  const entrySideParam = params["entrySide"] as string | undefined;
+  const entryOffset = params["entryOffset"] !== undefined ? (params["entryOffset"] as number) : 0.5;
+  const strokeColorParam =
+    (params["strokeColor"] as Record<string, unknown>) || { r: 0.2, g: 0.2, b: 0.2, a: 1 };
+  const strokeWeight = params["strokeWeight"] !== undefined ? (params["strokeWeight"] as number) : 1.5;
+  const startCap = (params["startCap"] as string) || "NONE";
+  const endCap = (params["endCap"] as string) || "ARROW_LINES";
+  const cornerRadius = params["cornerRadius"] !== undefined ? (params["cornerRadius"] as number) : 0;
+  const parentId = params["parentId"] as string | undefined;
+  const baseName = (params["name"] as string) || "Connector";
+
+  if (!Array.isArray(targetNodeIds) || targetNodeIds.length === 0) {
+    throw new Error("targetNodeIds must be a non-empty array");
+  }
+
+  const sourceNode = await figma.getNodeByIdAsync(sourceNodeId) as SceneNode | null;
+  if (!sourceNode) throw new Error(`Source node not found: ${sourceNodeId}`);
+  const sourceBounds = sourceNode.absoluteBoundingBox;
+  if (!sourceBounds) throw new Error("Cannot get bounding box for source node");
+
+  let parentNode: ChildrenMixin | null = null;
+  let parentBounds: Rect | null = null;
+  if (parentId) {
+    const p = await figma.getNodeByIdAsync(parentId);
+    if (!p) throw new Error(`Parent node not found: ${parentId}`);
+    if (!("appendChild" in p)) throw new Error(`Parent does not support children: ${parentId}`);
+    parentNode = p as unknown as ChildrenMixin;
+    parentBounds = (p as SceneNode).absoluteBoundingBox;
+  }
+
+  const targets: Array<{ id: string; bounds: Rect; originalIndex: number }> = [];
+  for (let i = 0; i < targetNodeIds.length; i++) {
+    const id = targetNodeIds[i];
+    const node = await figma.getNodeByIdAsync(id) as SceneNode | null;
+    if (!node) throw new Error(`Target node not found: ${id}`);
+    const bounds = node.absoluteBoundingBox;
+    if (!bounds) throw new Error(`Cannot get bounding box for target: ${id}`);
+    targets.push({ id, bounds, originalIndex: i });
+  }
+
+  const validSides = ["TOP", "BOTTOM", "LEFT", "RIGHT"];
+  const validCaps = ["NONE", "ROUND", "SQUARE", "ARROW_LINES", "ARROW_EQUILATERAL"];
+  const resolvedStartCap = validCaps.includes(startCap) ? startCap : "NONE";
+  const resolvedEndCap = validCaps.includes(endCap) ? endCap : "ARROW_LINES";
+  const strokeStyle: SolidPaint = {
+    type: "SOLID",
+    color: {
+      r: parseNum(strokeColorParam["r"], 0.2),
+      g: parseNum(strokeColorParam["g"], 0.2),
+      b: parseNum(strokeColorParam["b"], 0.2),
+    },
+    opacity: parseNum(strokeColorParam["a"], 1),
+  };
+
+  type Assignment = {
+    target: typeof targets[0];
+    exitSide: RoutingSide;
+    exitOffset: number;
+  };
+  const assignments: Assignment[] = [];
+
+  if (exitSideParam && validSides.includes(exitSideParam)) {
+    const forcedSide = exitSideParam as RoutingSide;
+    const n = targets.length;
+    targets.forEach((t, i) => {
+      assignments.push({ target: t, exitSide: forcedSide, exitOffset: (i + 1) / (n + 1) });
+    });
+  } else {
+    const sideGroups: Record<RoutingSide, typeof targets> = {
+      RIGHT: [], LEFT: [], BOTTOM: [], TOP: [],
+    };
+    for (const t of targets) {
+      sideGroups[autoExitSide(sourceBounds, t.bounds)].push(t);
+    }
+
+    for (const side of ["RIGHT", "LEFT", "BOTTOM", "TOP"] as RoutingSide[]) {
+      const group = sideGroups[side];
+      if (group.length === 0) continue;
+
+      const isVerticalEdge = side === "RIGHT" || side === "LEFT";
+      group.sort((a, b) => {
+        const aPos = isVerticalEdge
+          ? a.bounds.y + a.bounds.height / 2
+          : a.bounds.x + a.bounds.width / 2;
+        const bPos = isVerticalEdge
+          ? b.bounds.y + b.bounds.height / 2
+          : b.bounds.x + b.bounds.width / 2;
+        return aPos - bPos;
+      });
+
+      const m = group.length;
+      group.forEach((t, i) => {
+        assignments.push({ target: t, exitSide: side, exitOffset: (i + 1) / (m + 1) });
+      });
+    }
+  }
+
+  const resultMap: Record<number, { id: string; name: string; targetId: string; exitSide: string; exitOffset: number }> = {};
+
+  for (const assign of assignments) {
+    const { target, exitSide, exitOffset: exitOff } = assign;
+
+    const route = computeOrthogonalRoute(
+      sourceBounds, target.bounds, "AUTO",
+      exitSide, entrySideParam,
+      exitOff, entryOffset,
+      undefined,
+    );
+
+    const pts = route.points;
+    const xs = pts.map(p => p.x);
+    const ys = pts.map(p => p.y);
+    const minX = Math.min(...xs);
+    const minY = Math.min(...ys);
+    const bboxWidth = Math.max(Math.max(...xs) - minX, 1);
+    const bboxHeight = Math.max(Math.max(...ys) - minY, 1);
+    const localPts = pts.map(p => ({ x: p.x - minX, y: p.y - minY }));
+
+    const vertices = localPts.map((p, vi) => {
+      const v: Record<string, unknown> = { x: p.x, y: p.y };
+      if (vi === 0) v["strokeCap"] = resolvedStartCap;
+      if (vi === localPts.length - 1) v["strokeCap"] = resolvedEndCap;
+      if (cornerRadius > 0 && vi > 0 && vi < localPts.length - 1) v["cornerRadius"] = cornerRadius;
+      return v;
+    });
+    const segments: Array<{ start: number; end: number }> = [];
+    for (let s = 0; s < localPts.length - 1; s++) segments.push({ start: s, end: s + 1 });
+
+    const label = target.originalIndex + 1;
+    const vector = figma.createVector();
+    vector.name = targetNodeIds.length === 1 ? baseName : `${baseName} ${label}`;
+    vector.x = minX;
+    vector.y = minY;
+    vector.resize(bboxWidth, bboxHeight);
+
+    await (vector as unknown as {
+      setVectorNetworkAsync: (network: Record<string, unknown>) => Promise<void>;
+    }).setVectorNetworkAsync({ vertices, segments, regions: [] });
+
+    vector.fills = [];
+    vector.strokes = [strokeStyle];
+    vector.strokeWeight = strokeWeight;
+    vector.strokeJoin = "MITER";
+
+    if (parentNode) {
+      parentNode.appendChild(vector);
+      if (parentBounds) {
+        vector.x = minX - parentBounds.x;
+        vector.y = minY - parentBounds.y;
+      }
+    } else {
+      figma.currentPage.appendChild(vector);
+    }
+
+    resultMap[target.originalIndex] = {
+      id: vector.id,
+      name: vector.name,
+      targetId: target.id,
+      exitSide,
+      exitOffset: exitOff,
+    };
+  }
+
+  const connectors = targetNodeIds.map((_, i) => resultMap[i]);
+
+  return {
+    createdCount: connectors.length,
+    connectors,
+  };
+}

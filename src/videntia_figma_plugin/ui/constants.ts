@@ -67,6 +67,8 @@ export const ALLOWED_COMMANDS = new Set([
   "update_icon",
   "create_vector",
   "create_line",
+  "create_orthogonal_connector",
+  "create_fan_connectors",
   "get_variables",
   "get_bound_variables",
   "scan_bound_variables",
