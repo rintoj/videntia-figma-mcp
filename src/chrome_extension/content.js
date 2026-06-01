@@ -173,8 +173,9 @@ function injectOverlay({ imageData, mimeType = 'image/png', width, height, opaci
   let blendOn = false;
   const toggleBlend = () => {
     blendOn = !blendOn;
-    img.style.mixBlendMode = blendOn ? 'difference' : '';
-    wrap.style.background = blendOn ? '#fff' : '';
+    wrap.style.mixBlendMode = blendOn ? 'difference' : '';
+    wrap.style.isolation = blendOn ? 'isolate' : '';
+    wrap.style.opacity = blendOn ? '1' : String(opacity);
     blendBtn.style.background = blendOn ? '#6b6bff' : 'none';
     blendBtn.style.color = blendOn ? '#fff' : '#888';
   };

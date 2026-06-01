@@ -318,10 +318,19 @@ function injectOverlay(imageData, mimeType, imgW, imgH) {
   blendBtn.title = 'Toggle difference blend mode (D)';
   Object.assign(blendBtn.style, btnStyle);
   let blendOn = false;
+  let savedOpacity = '0.5';
   const toggleBlend = () => {
     blendOn = !blendOn;
-    img.style.mixBlendMode = blendOn ? 'difference' : '';
-    wrap.style.background = blendOn ? '#fff' : '';
+    if (blendOn) {
+      savedOpacity = wrap.style.opacity || '0.5';
+      wrap.style.mixBlendMode = 'difference';
+      wrap.style.isolation = 'isolate';
+      wrap.style.opacity = '1';
+    } else {
+      wrap.style.mixBlendMode = '';
+      wrap.style.isolation = '';
+      wrap.style.opacity = savedOpacity;
+    }
     blendBtn.style.background = blendOn ? '#6b6bff' : 'none';
     blendBtn.style.color = blendOn ? '#fff' : '#888';
   };
