@@ -2,16 +2,44 @@
 // Maintains a persistent WebSocket on the "browser" channel and dispatches
 // incoming MCP commands to the active tab via content.js or Chrome APIs.
 
-const WS_URL = 'ws://localhost:3055';
+importScripts('config.js');
+
 const BROWSER_CHANNEL = 'browser';
 const RECONNECT_DELAY_MS = 3000;
 
 let inboundWs = null;
 let joined = false;
+let currentWsUrl = null;
 
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === 'local' && changes[SERVER_STORAGE_KEY]) {
+    console.log('[figma-overlay:bg] Server config changed, reconnecting');
+    if (inboundWs) {
+      try { inboundWs.close(); } catch {}
+    }
+    connectInbound();
+  }
+});
+
+let lastBadge = null;
 function setBadge(connected) {
-  chrome.action.setBadgeText({ text: ' ' });
-  chrome.action.setBadgeBackgroundColor({ color: connected ? '#4caf50' : '#e53935' });
+  if (lastBadge === connected) return;
+  lastBadge = connected;
+  chrome.action.setBadgeText({ text: '' });
+  const suffix = connected ? '' : '-off';
+  chrome.action.setIcon({
+    path: {
+      16:  `icon16${suffix}.png`,
+      48:  `icon48${suffix}.png`,
+      128: `icon128${suffix}.png`,
+    },
+  }, () => {
+    if (chrome.runtime.lastError) {
+      console.error('[figma-overlay:bg] setIcon error:', chrome.runtime.lastError.message);
+    } else {
+      console.log('[figma-overlay:bg] icon →', connected ? 'connected' : 'disconnected');
+    }
+  });
 }
 
 // --- Keep-alive: Chrome MV3 won't kill a service worker with an open WS,
@@ -28,17 +56,19 @@ connectInbound();
 
 // --- Persistent inbound WebSocket ---
 
-function connectInbound() {
+async function connectInbound() {
   if (inboundWs && (inboundWs.readyState === WebSocket.OPEN || inboundWs.readyState === WebSocket.CONNECTING)) {
     return;
   }
 
-  inboundWs = new WebSocket(WS_URL);
+  const serverUrl = await getServerUrl();
+  currentWsUrl = toWsUrl(serverUrl);
+  inboundWs = new WebSocket(currentWsUrl);
   joined = false;
 
   inboundWs.onopen = () => {
+    console.log('[figma-overlay:bg] WS open →', currentWsUrl);
     inboundWs.send(JSON.stringify({ type: 'join', channel: BROWSER_CHANNEL }));
-    setBadge(false);
   };
 
   inboundWs.onmessage = async (evt) => {
@@ -65,17 +95,18 @@ function connectInbound() {
     }
   };
 
-  inboundWs.onclose = () => {
+  inboundWs.onclose = (e) => {
     inboundWs = null;
     joined = false;
     setBadge(false);
-    console.log('[figma-overlay:bg] WS closed, reconnecting in', RECONNECT_DELAY_MS, 'ms');
+    console.warn('[figma-overlay:bg] WS closed', { code: e?.code, reason: e?.reason }, 'reconnect in', RECONNECT_DELAY_MS, 'ms');
     setTimeout(connectInbound, RECONNECT_DELAY_MS);
   };
 
-  inboundWs.onerror = () => {
-    // onclose will fire after onerror; reconnect handled there
+  inboundWs.onerror = (e) => {
+    console.error('[figma-overlay:bg] WS error', e);
   };
+
 }
 
 function respond(id, payload) {
@@ -198,7 +229,24 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
 });
 
-chrome.tabs.onRemoved.addListener((tabId) => { detachDebuggerForTab(tabId); });
+chrome.tabs.onRemoved.addListener((tabId) => {
+  detachDebuggerForTab(tabId);
+  clearOverlayStateForTab(tabId);
+});
+
+chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+  if (changeInfo.status === 'loading') {
+    clearOverlayStateForTab(tabId);
+  }
+});
+
+async function clearOverlayStateForTab(tabId) {
+  const all = (await chrome.storage.session.get('overlayState'))['overlayState'] || {};
+  if (all[tabId]) {
+    delete all[tabId];
+    await chrome.storage.session.set({ overlayState: all });
+  }
+}
 
 function sendToContentScript(tabId, command, params) {
   return new Promise((resolve, reject) => {

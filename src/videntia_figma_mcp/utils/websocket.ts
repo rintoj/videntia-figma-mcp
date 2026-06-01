@@ -2,7 +2,14 @@ import WebSocket from "ws";
 import { v4 as uuidv4 } from "uuid";
 import { logger } from "./logger";
 import { serverUrl, defaultPort, WS_URL, reconnectInterval } from "../config/config";
-import { FigmaCommand, FigmaResponse, CommandProgressUpdate, PendingRequest, ProgressMessage, BrowserCommand } from "../types";
+import {
+  FigmaCommand,
+  FigmaResponse,
+  CommandProgressUpdate,
+  PendingRequest,
+  ProgressMessage,
+  BrowserCommand,
+} from "../types";
 
 class ChannelValidationError extends Error {
   constructor(message: string) {
@@ -410,7 +417,11 @@ export async function sendCommandToChannel<T = unknown>(
     const timeout = setTimeout(() => {
       if (pendingRequests.has(id)) {
         pendingRequests.delete(id);
-        reject(new Error(`Browser command "${command}" timed out after ${timeoutMs / 1000}s. Is the Chrome extension connected?`));
+        reject(
+          new Error(
+            `Browser command "${command}" timed out after ${timeoutMs / 1000}s. Is the Chrome extension connected?`,
+          ),
+        );
       }
     }, timeoutMs);
 

@@ -1,10 +1,19 @@
 {
   "manifest_version": 3,
-  "name": "Figma Overlay",
+  "name": "Videntia Browser Connect",
   "version": "1.1.0",
   "description": "Overlay Figma frames on any webpage. Exposes browser DOM/styles/screenshot to Claude via MCP.",
   "permissions": ["activeTab", "scripting", "windows", "tabs", "alarms", "debugger", "storage"],
-  "host_permissions": ["http://localhost:3055/*", "<all_urls>"],
+  "host_permissions": [
+    "http://localhost:3055/*",
+    "https://figma-mcp.videntia.dev/*",
+    "<all_urls>"
+  ],
+  "icons": {
+    "16": "icon16.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  },
   "background": {
     "service_worker": "background.js"
   },

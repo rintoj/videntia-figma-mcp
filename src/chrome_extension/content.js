@@ -140,81 +140,13 @@ function injectOverlay({ imageData, mimeType = 'image/png', width, height, opaci
   wrap.appendChild(img);
   document.body.appendChild(wrap);
 
-  const controls = document.createElement('div');
-  controls.id = OVERLAY_ID + '_controls';
-  Object.assign(controls.style, {
-    position: 'fixed', bottom: '20px', right: '20px', zIndex: '2147483647',
-    display: 'flex', alignItems: 'center', gap: '8px',
-    background: 'rgba(20,20,20,0.88)', backdropFilter: 'blur(8px)',
-    borderRadius: '20px', padding: '6px 12px', fontFamily: 'sans-serif',
-    boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
-  });
+  if (blendMode === true || (typeof blendMode === 'string' && blendMode && blendMode !== 'normal')) {
+    wrap.style.mixBlendMode = blendMode === true ? 'difference' : blendMode;
+    wrap.style.isolation = 'isolate';
+    wrap.style.opacity = '1';
+  }
 
-  const label = document.createElement('span');
-  label.textContent = 'Figma';
-  Object.assign(label.style, { color: '#888', fontSize: '11px' });
-
-  const slider = document.createElement('input');
-  slider.type = 'range'; slider.min = '0'; slider.max = '100';
-  slider.value = String(Math.round(opacity * 100));
-  Object.assign(slider.style, { width: '72px', cursor: 'pointer', accentColor: '#6b6bff' });
-  slider.addEventListener('input', () => { wrap.style.opacity = String(slider.value / 100); });
-
-  const btnStyle = {
-    background: 'none', border: 'none', color: '#888',
-    cursor: 'pointer', fontSize: '11px', padding: '2px 6px', lineHeight: '1',
-    borderRadius: '4px',
-  };
-
-  const blendBtn = document.createElement('button');
-  blendBtn.textContent = 'diff';
-  blendBtn.title = 'Toggle difference blend mode (D)';
-  Object.assign(blendBtn.style, btnStyle);
-  let blendOn = false;
-  const toggleBlend = () => {
-    blendOn = !blendOn;
-    wrap.style.mixBlendMode = blendOn ? 'difference' : '';
-    wrap.style.isolation = blendOn ? 'isolate' : '';
-    wrap.style.opacity = blendOn ? '1' : String(opacity);
-    blendBtn.style.background = blendOn ? '#6b6bff' : 'none';
-    blendBtn.style.color = blendOn ? '#fff' : '#888';
-  };
-  blendBtn.addEventListener('click', toggleBlend);
-  if (blendMode) toggleBlend();
-
-  const closeBtn = document.createElement('button');
-  closeBtn.textContent = '✕';
-  Object.assign(closeBtn.style, { ...btnStyle, fontSize: '13px' });
-  const onClose = () => {
-    wrap.remove();
-    controls.remove();
-    document.removeEventListener('keydown', onKey, true);
-    try { chrome.runtime?.sendMessage({ type: 'detachDebugger' }); } catch {}
-  };
-  closeBtn.addEventListener('click', onClose);
-
-  let dx = offsetX, dy = offsetY;
-  const applyPos = () => { wrap.style.left = `${dx}px`; wrap.style.top = `${dy}px`; };
-  const onKey = (e) => {
-    if (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
-    if (e.target?.isContentEditable) return;
-    const step = e.shiftKey ? 10 : 1;
-    switch (e.key) {
-      case 'ArrowLeft':  dx -= step; applyPos(); break;
-      case 'ArrowRight': dx += step; applyPos(); break;
-      case 'ArrowUp':    dy -= step; applyPos(); break;
-      case 'ArrowDown':  dy += step; applyPos(); break;
-      case 'd': case 'D': toggleBlend(); break;
-      default: return;
-    }
-    e.preventDefault();
-    e.stopPropagation();
-  };
-  document.addEventListener('keydown', onKey, true);
-  window.__figmaOverlayCleanup = () => document.removeEventListener('keydown', onKey, true);
-
-  controls.append(label, slider, blendBtn, closeBtn);
-  document.documentElement.appendChild(controls);
+  window.__figmaOverlayCleanup = () => {};
 
   return { success: true, width, height };
 }
