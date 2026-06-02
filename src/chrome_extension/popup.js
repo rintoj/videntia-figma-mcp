@@ -294,6 +294,8 @@ function applyOverlayPatch(patch) {
   if (!el) return { ok: false };
   if (patch.opacity != null) el.style.opacity = String(patch.opacity);
   if (patch.blend != null) {
+    // Inline (not via helper) — this function runs in the *page* context via
+    // chrome.scripting.executeScript, so it can't reference popup-scoped helpers.
     if (patch.blend === 'normal') {
       el.style.mixBlendMode = '';
       el.style.isolation = '';
@@ -460,6 +462,12 @@ async function nudge(dx, dy) {
   }
 }
 
+async function nudgeBy(direction, step) {
+  const { dx, dy } = nudgeDelta(direction, step);
+  if (dx === 0 && dy === 0) return;
+  await nudge(dx, dy);
+}
+
 // ---- Match Design (resize window) ----
 
 async function matchDesign() {
@@ -520,14 +528,7 @@ chips.forEach(chip => {
 });
 
 nudgeBtns.forEach(btn => {
-  btn.addEventListener('click', () => {
-    const dir = btn.dataset.dir;
-    const s = state.step;
-    if (dir === 'left') nudge(-s, 0);
-    if (dir === 'right') nudge(s, 0);
-    if (dir === 'up') nudge(0, -s);
-    if (dir === 'down') nudge(0, s);
-  });
+  btn.addEventListener('click', () => nudgeBy(btn.dataset.dir, state.step));
 });
 
 resetBtn.addEventListener('click', async () => {
@@ -608,17 +609,14 @@ serverUrlInput.addEventListener('blur', () => updateServerUrl(serverUrlInput.val
 
 document.addEventListener('keydown', (e) => {
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
-
-  const mult = e.shiftKey ? 10 : 1;
-  const s = state.step * mult;
-
-  if (e.key === 'ArrowLeft')  { e.preventDefault(); nudge(-s, 0); return; }
-  if (e.key === 'ArrowRight') { e.preventDefault(); nudge(s, 0);  return; }
-  if (e.key === 'ArrowUp')    { e.preventDefault(); nudge(0, -s); return; }
-  if (e.key === 'ArrowDown')  { e.preventDefault(); nudge(0, s);  return; }
-
-  if (e.key === 'd' || e.key === 'D') {
-    e.preventDefault();
+  const action = keyboardAction(e, state.step);
+  if (!action) return;
+  e.preventDefault();
+  if (action.type === 'nudge') {
+    nudge(action.dx, action.dy);
+    return;
+  }
+  if (action.type === 'toggle-diff') {
     state.blend = state.blend === 'difference' ? 'normal' : 'difference';
     updateBlendUI();
     if (state.hasOverlay) {
@@ -639,13 +637,14 @@ document.addEventListener('keydown', (e) => {
   const tab = await activeTab();
   if (tab) {
     state.tabId = tab.id;
-    try { state.hostname = new URL(tab.url).hostname || '—'; } catch {}
+    state.hostname = parseHostname(tab.url);
     await restoreState(tab.id);
   }
   await loadChannels();
 
-  if (!state.channel && state.channels.length > 0) {
-    state.channel = state.channels[0].channel;
+  const initialChannel = pickInitialChannel(state.channels, state.channel);
+  if (!state.channel && initialChannel) {
+    state.channel = initialChannel;
     if (state.tabId != null) await persistState(state.tabId);
   }
 

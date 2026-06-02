@@ -33,3 +33,13 @@ if (typeof self !== 'undefined') {
   self.getServerUrl = getServerUrl;
   self.setServerUrl = setServerUrl;
 }
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    SERVER_PRESETS,
+    SERVER_DEFAULT,
+    SERVER_STORAGE_KEY,
+    toWsUrl,
+    toChannelsUrl,
+  };
+}
