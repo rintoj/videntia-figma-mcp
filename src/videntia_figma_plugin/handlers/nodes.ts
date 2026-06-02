@@ -377,7 +377,7 @@ export async function exportNodeAsImage(params: Record<string, unknown>): Promis
 
     return {
       nodeId,
-      name: ("name" in node ? (node as FrameNode).name : undefined),
+      name: "name" in node ? (node as FrameNode).name : undefined,
       format,
       requestedScale: scale,
       actualScale: finalScale,
