@@ -1,0 +1,1 @@
+/Users/rintoj/projects/agent-tools/commands/ship.md

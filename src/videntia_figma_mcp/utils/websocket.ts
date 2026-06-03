@@ -378,7 +378,6 @@ async function ensureBrowserChannelJoined(channel: string): Promise<void> {
   if (joinedChannels.has(channel)) return;
 
   await new Promise<void>((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error(`Timed out joining channel "${channel}"`)), 5000);
     const onMsg = (raw: WebSocket.RawData) => {
       try {
         const data = JSON.parse(raw.toString());
@@ -390,6 +389,10 @@ async function ensureBrowserChannelJoined(channel: string): Promise<void> {
         }
       } catch {}
     };
+    const timer = setTimeout(() => {
+      ws!.off("message", onMsg);
+      reject(new Error(`Timed out joining channel "${channel}"`));
+    }, 5000);
     ws!.on("message", onMsg);
     ws!.send(JSON.stringify({ type: "join", channel }));
   });

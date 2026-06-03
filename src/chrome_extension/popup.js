@@ -205,9 +205,11 @@ async function loadChannels() {
     state.serverUp = true;
     state.channels = list.filter(ch => ch.clients >= 1 && ch.fileName);
     channelPicker.innerHTML = '<option value="">— pick channel —</option>' +
-      state.channels.map(ch =>
-        `<option value="${ch.channel}">${ch.channel}${ch.fileName ? ` (${ch.fileName})` : ''}</option>`
-      ).join('');
+      state.channels.map(ch => {
+        const ch1 = escapeHtml(String(ch.channel));
+        const fn = ch.fileName ? ` (${escapeHtml(String(ch.fileName))})` : '';
+        return `<option value="${ch1}">${ch1}${fn}</option>`;
+      }).join('');
     if (state.channels.length === 1 && !state.channel) {
       channelPicker.value = state.channels[0].channel;
     }
