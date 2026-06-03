@@ -485,13 +485,22 @@
     /* ---------- Status ---------- */
 
     .status {
-      font-size: 10px;
+      font-size: 11px;
       color: var(--muted);
-      text-align: center;
+      text-align: left;
       min-height: 0;
-      transition: min-height 0.15s;
+      max-height: 0;
+      overflow: hidden;
+      padding: 0 12px;
+      background: var(--bg-deep);
+      border-top: 1px solid rgba(255,255,255,0.04);
+      box-sizing: border-box;
+      transition: max-height 0.15s, padding 0.15s;
     }
-    .status:not(:empty) { min-height: 14px; }
+    .status:not(:empty) {
+      max-height: 40px;
+      padding: 10px 12px;
+    }
     .status.error { color: var(--danger); }
     .status.success { color: var(--primary); }
 
@@ -894,9 +903,6 @@
 
     </div>
 
-    <!-- Global status (visible on all tabs) -->
-    <div id="status" class="status" style="padding: 0 12px 6px;"></div>
-
     <!-- Settings panel -->
     <div id="settingsPanel" class="settings hidden">
       <span class="section-title">Connection</span>
@@ -917,6 +923,9 @@
         </div>
       </div>
     </div>
+
+    <!-- Global status (visible on all tabs) -->
+    <div id="status" class="status"></div>
 
     <!-- Connection bar -->
     <div class="connection-bar">
