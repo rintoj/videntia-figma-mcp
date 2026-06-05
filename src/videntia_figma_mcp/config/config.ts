@@ -7,8 +7,13 @@ const portArg = args.find((arg) => arg.startsWith("--port="));
 const reconnectArg = args.find((arg) => arg.startsWith("--reconnect-interval="));
 const figmaTokenArg = args.find((arg) => arg.startsWith("--figma-token="));
 
+// When this process is the socket server itself (dist/socket.js), the embedded
+// MCP must connect to its own local WS rather than the remote default.
+const entry = process.argv[1] ?? "";
+const isSocketProcess = entry.endsWith("socket.js") || entry.endsWith("socket.ts") || entry.endsWith("socket.cjs");
+
 // Configuración de conexión extraída de argumentos CLI
-export const serverUrl = serverArg ? serverArg.split("=")[1] : "figma-mcp.videntia.dev";
+export const serverUrl = serverArg ? serverArg.split("=")[1] : isSocketProcess ? "localhost" : "figma-mcp.videntia.dev";
 export const defaultPort = portArg ? parseInt(portArg.split("=")[1], 10) : 3055;
 export const reconnectInterval = reconnectArg ? parseInt(reconnectArg.split("=")[1], 10) : 2000;
 
