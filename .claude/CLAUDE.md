@@ -289,17 +289,17 @@ bun run pub:release
 
 ### After Merging to Main
 
-After every merge to `main`, **switch to main, pull the latest, build, and deploy via Docker**:
+After every merge to `main`, **switch to main, pull the latest, build, and reload the launchd socket**:
 
 ```bash
-git checkout main && git pull && bun run build && docker compose up --build -d
+git checkout main && git pull && bun run build && launchctl kickstart -k gui/$(id -u)/com.videntia.figma-socket
 ```
 
 `bun run build` does two things:
 1. **Regenerates `src/videntia_figma_plugin/code.js`** from the TypeScript source modules — this is what Figma loads.
 2. **Rebuilds the MCP server** (`dist/`) — this is what Claude connects to.
 
-`docker compose up --build -d` rebuilds the Docker image and restarts the socket server container in the background.
+`launchctl kickstart -k` restarts the local launchd socket agent (`com.videntia.figma-socket`, plist at `~/Library/LaunchAgents/com.videntia.figma-socket.plist`) so it picks up the new `dist/socket.js`. The agent autostarts on login via `RunAtLoad` + `KeepAlive`.
 
 > **Reload in Figma:** After deploying, re-run the plugin in Figma (close and reopen from Plugins menu) to load the new `code.js`.
 
