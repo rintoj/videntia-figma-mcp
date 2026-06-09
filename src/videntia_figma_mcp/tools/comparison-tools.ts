@@ -5,6 +5,7 @@ import { captureUrl } from "../utils/screenshot.js";
 import { diffImages } from "../utils/pixel-diff.js";
 import { startSandpackServer } from "../utils/sandpack-server.js";
 import { buildRows, FigmaNodeLike } from "../utils/figma-to-css-rows.js";
+import { findNodeInPage } from "../utils/find-node-in-page.js";
 
 const BROWSER_CHANNEL = "browser";
 
@@ -97,8 +98,18 @@ export function registerComparisonTools(server: McpServer): void {
         ),
       css_selector: z
         .string()
+        .optional()
         .describe(
-          "CSS selector identifying the DOM element to compare against (e.g. '.pricing-card__title'). Should match a single element.",
+          "CSS selector identifying the DOM element to compare against (e.g. '.pricing-card__title'). If omitted, the element is auto-located by exporting the Figma node as an image and template-matching it against a page screenshot.",
+        ),
+      min_confidence: z
+        .number()
+        .min(0)
+        .max(1)
+        .optional()
+        .default(0.7)
+        .describe(
+          "When auto-locating, surface a low-confidence warning if the image-template match score falls below this threshold (default 0.7).",
         ),
       properties: z
         .array(z.string())
@@ -111,7 +122,7 @@ export function registerComparisonTools(server: McpServer): void {
         .optional()
         .describe("Per-property numeric tolerance overrides (e.g. { 'line-height': 1 })."),
     },
-    async ({ figma_node_id, css_selector, properties, tolerance_overrides }) => {
+    async ({ figma_node_id, css_selector, properties, tolerance_overrides, min_confidence }) => {
       const warnings: string[] = [];
 
       const nodeInfoRaw = await sendCommandToFigma("get_node_info", { nodeIds: [figma_node_id], depth: 2 });
@@ -124,8 +135,99 @@ export function registerComparisonTools(server: McpServer): void {
         };
       }
 
+      let resolvedSelector = css_selector;
+      let matchedVia: "explicit" | "image-template" = "explicit";
+      let matchRegion: { x: number; y: number; w: number; h: number; confidence: number } | undefined;
+
+      if (!resolvedSelector) {
+        matchedVia = "image-template";
+        try {
+          const figmaExport = (await sendCommandToFigma("export_node_as_image", {
+            nodeId: figma_node_id,
+            format: "PNG",
+            scale: 1,
+          })) as { imageData: string };
+          const referenceBuffer = Buffer.from(figmaExport.imageData, "base64");
+
+          const pageShot = (await sendCommandToChannel(BROWSER_CHANNEL, "get_page_screenshot", {})) as {
+            imageData: string;
+          };
+          const pageBuffer = Buffer.from(pageShot.imageData, "base64");
+
+          const match = await findNodeInPage(referenceBuffer, pageBuffer);
+          if (!match) {
+            return {
+              content: [
+                {
+                  type: "text",
+                  text: JSON.stringify(
+                    {
+                      error:
+                        "Could not locate the Figma node in the current browser viewport. Pass css_selector explicitly.",
+                    },
+                    null,
+                    2,
+                  ),
+                },
+              ],
+            };
+          }
+
+          matchRegion = {
+            x: match.x,
+            y: match.y,
+            w: match.width,
+            h: match.height,
+            confidence: match.confidence,
+          };
+          if (match.confidence < (min_confidence ?? 0.7)) {
+            warnings.push(`image-template confidence ${match.confidence} below threshold ${min_confidence ?? 0.7}`);
+          }
+
+          const cx = match.x + match.width / 2;
+          const cy = match.y + match.height / 2;
+          const resolved = (await sendCommandToChannel(BROWSER_CHANNEL, "resolve_selector_at_point", {
+            x: cx,
+            y: cy,
+            imagePixels: true,
+          })) as { selector: string | null; tag?: string };
+          if (!resolved?.selector) {
+            return {
+              content: [
+                {
+                  type: "text",
+                  text: JSON.stringify(
+                    {
+                      error: "Found the node in the screenshot but no DOM element resolved at its center.",
+                      matchRegion,
+                    },
+                    null,
+                    2,
+                  ),
+                },
+              ],
+            };
+          }
+          resolvedSelector = resolved.selector;
+        } catch (err) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: JSON.stringify(
+                  { error: `Auto-locate failed: ${err instanceof Error ? err.message : String(err)}` },
+                  null,
+                  2,
+                ),
+              },
+            ],
+          };
+        }
+      }
+
+      const finalSelector = resolvedSelector as string;
       const computedRaw = (await sendCommandToChannel(BROWSER_CHANNEL, "get_computed_styles", {
-        selector: css_selector,
+        selector: finalSelector,
         properties,
       })) as Record<string, unknown>;
 
@@ -145,13 +247,17 @@ export function registerComparisonTools(server: McpServer): void {
       let rect: { width?: number; height?: number } | undefined;
       try {
         const domRaw = (await sendCommandToChannel(BROWSER_CHANNEL, "get_dom_nodes", {
-          selector: css_selector,
+          selector: finalSelector,
           depth: 1,
           includeText: false,
           includeAttributes: false,
-        })) as any;
-        const first = Array.isArray(domRaw?.nodes) ? domRaw.nodes[0] : (domRaw?.node ?? domRaw);
-        const r = first?.rect ?? first?.boundingRect ?? first?.boundingClientRect;
+        })) as { nodes?: Array<Record<string, unknown>>; node?: Record<string, unknown> } & Record<string, unknown>;
+        const first = (Array.isArray(domRaw?.nodes) ? domRaw.nodes[0] : (domRaw?.node ?? domRaw)) as
+          | Record<string, unknown>
+          | undefined;
+        const r = (first?.rect ?? first?.boundingRect ?? first?.boundingClientRect) as
+          | { width?: number; height?: number }
+          | undefined;
         if (r && typeof r.width === "number" && typeof r.height === "number") {
           rect = { width: r.width, height: r.height };
         }
@@ -174,9 +280,10 @@ export function registerComparisonTools(server: McpServer): void {
             type: "text",
             text: JSON.stringify(
               {
-                selector: css_selector,
+                selector: finalSelector,
                 nodeId: figma_node_id,
-                matchedVia: "explicit",
+                matchedVia,
+                matchRegion,
                 textNodeId,
                 rows,
                 warnings: [...warnings, ...rowWarnings],

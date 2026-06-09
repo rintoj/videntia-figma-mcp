@@ -6,11 +6,15 @@ jest.mock("../../src/videntia_figma_mcp/utils/websocket", () => ({
   sendCommandToFigma: jest.fn(),
   sendCommandToChannel: jest.fn(),
 }));
+jest.mock("../../src/videntia_figma_mcp/utils/find-node-in-page", () => ({
+  findNodeInPage: jest.fn(),
+}));
 
 describe("diff_figma_to_browser tool", () => {
   let server: McpServer;
   let mockSendToFigma: jest.Mock;
   let mockSendToChannel: jest.Mock;
+  let mockFindNodeInPage: jest.Mock;
   let toolHandlers: Map<string, Function>;
   let toolSchemas: Map<string, z.ZodObject<any>>;
 
@@ -21,6 +25,8 @@ describe("diff_figma_to_browser tool", () => {
     mockSendToChannel = ws.sendCommandToChannel;
     mockSendToFigma.mockReset();
     mockSendToChannel.mockReset();
+    mockFindNodeInPage = require("../../src/videntia_figma_mcp/utils/find-node-in-page").findNodeInPage;
+    mockFindNodeInPage.mockReset();
 
     toolHandlers = new Map();
     toolSchemas = new Map();
@@ -159,6 +165,82 @@ describe("diff_figma_to_browser tool", () => {
     expect(byProp.get("background-color")).toMatchObject({ status: "✓" });
     expect(byProp.get("width")).toMatchObject({ status: "✓", figma: "320px" });
     expect(parsed.textNodeId).toBe("10:2");
+  });
+
+  it("auto-locates the selector via image template when css_selector is omitted", async () => {
+    mockSendToFigma
+      // get_node_info
+      .mockResolvedValueOnce({
+        nodes: [
+          {
+            id: "5:5",
+            type: "TEXT",
+            fontSize: 14,
+            fontWeight: 600,
+            fontFamily: "Inter",
+            fills: [{ type: "SOLID", color: { r: 0, g: 0, b: 0 } }],
+            absoluteBoundingBox: { x: 0, y: 0, width: 100, height: 24 },
+          },
+        ],
+      })
+      // export_node_as_image
+      .mockResolvedValueOnce({ imageData: Buffer.from("ref").toString("base64") });
+
+    mockSendToChannel
+      // get_page_screenshot
+      .mockResolvedValueOnce({ imageData: Buffer.from("page").toString("base64") })
+      // resolve_selector_at_point
+      .mockResolvedValueOnce({ selector: '[data-testid="title"]', tag: "h2" })
+      // get_computed_styles
+      .mockResolvedValueOnce({ styles: { "font-size": "14px" } })
+      // get_dom_nodes
+      .mockResolvedValueOnce({ nodes: [{ rect: { width: 100, height: 24 } }] });
+
+    mockFindNodeInPage.mockResolvedValueOnce({ x: 200, y: 480, width: 200, height: 48, confidence: 0.92 });
+
+    const result = await callTool("diff_figma_to_browser", {
+      figma_node_id: "5:5",
+      properties: ["font-size"],
+    });
+    const parsed = JSON.parse(result.content[0].text);
+
+    expect(parsed.selector).toBe('[data-testid="title"]');
+    expect(parsed.matchedVia).toBe("image-template");
+    expect(parsed.matchRegion).toMatchObject({ x: 200, y: 480, w: 200, h: 48, confidence: 0.92 });
+    // Verify resolve_selector_at_point was called with the screenshot-center coordinates.
+    const resolveCall = mockSendToChannel.mock.calls.find((c) => c[1] === "resolve_selector_at_point");
+    expect(resolveCall?.[2]).toMatchObject({ x: 300, y: 504, imagePixels: true });
+  });
+
+  it("warns when image-template confidence is below threshold", async () => {
+    mockSendToFigma
+      .mockResolvedValueOnce({ nodes: [{ id: "5:5", type: "TEXT", fontSize: 14 }] })
+      .mockResolvedValueOnce({ imageData: Buffer.from("ref").toString("base64") });
+    mockSendToChannel
+      .mockResolvedValueOnce({ imageData: Buffer.from("page").toString("base64") })
+      .mockResolvedValueOnce({ selector: ".x", tag: "div" })
+      .mockResolvedValueOnce({ styles: { "font-size": "14px" } })
+      .mockResolvedValueOnce({ nodes: [] });
+    mockFindNodeInPage.mockResolvedValueOnce({ x: 0, y: 0, width: 50, height: 50, confidence: 0.5 });
+
+    const result = await callTool("diff_figma_to_browser", {
+      figma_node_id: "5:5",
+      properties: ["font-size"],
+    });
+    const parsed = JSON.parse(result.content[0].text);
+    expect(parsed.warnings).toEqual(expect.arrayContaining([expect.stringMatching(/confidence 0\.5 below threshold/)]));
+  });
+
+  it("errors when auto-locate finds nothing in the viewport", async () => {
+    mockSendToFigma
+      .mockResolvedValueOnce({ nodes: [{ id: "5:5", type: "TEXT", fontSize: 14 }] })
+      .mockResolvedValueOnce({ imageData: Buffer.from("ref").toString("base64") });
+    mockSendToChannel.mockResolvedValueOnce({ imageData: Buffer.from("page").toString("base64") });
+    mockFindNodeInPage.mockResolvedValueOnce(null);
+
+    const result = await callTool("diff_figma_to_browser", { figma_node_id: "5:5" });
+    const parsed = JSON.parse(result.content[0].text);
+    expect(parsed.error).toMatch(/Could not locate/);
   });
 
   it("returns an error when the node lookup yields nothing", async () => {

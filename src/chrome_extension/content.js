@@ -158,6 +158,73 @@ function clearOverlay() {
   return { success: true };
 }
 
+function buildStableSelector(el) {
+  if (!el || el.nodeType !== 1) return null;
+  if (el.getAttribute && el.getAttribute('data-testid')) {
+    return `[data-testid="${cssEscape(el.getAttribute('data-testid'))}"]`;
+  }
+  if (el.id && /^[A-Za-z][\w-]*$/.test(el.id)) {
+    return `#${el.id}`;
+  }
+  const path = [];
+  let node = el;
+  const MAX_DEPTH = 6;
+  while (node && node.nodeType === 1 && path.length < MAX_DEPTH) {
+    const tag = node.tagName.toLowerCase();
+    if (tag === 'html' || tag === 'body') {
+      path.unshift(tag);
+      break;
+    }
+    if (node.getAttribute && node.getAttribute('data-testid')) {
+      path.unshift(`[data-testid="${cssEscape(node.getAttribute('data-testid'))}"]`);
+      break;
+    }
+    if (node.id && /^[A-Za-z][\w-]*$/.test(node.id)) {
+      path.unshift(`#${node.id}`);
+      break;
+    }
+    const parent = node.parentElement;
+    if (!parent) {
+      path.unshift(tag);
+      break;
+    }
+    const siblings = Array.from(parent.children).filter((c) => c.tagName === node.tagName);
+    if (siblings.length === 1) {
+      path.unshift(tag);
+    } else {
+      const idx = Array.from(parent.children).indexOf(node) + 1;
+      path.unshift(`${tag}:nth-child(${idx})`);
+    }
+    node = parent;
+  }
+  return path.join(' > ');
+}
+
+function cssEscape(s) {
+  if (typeof CSS !== 'undefined' && CSS.escape) return CSS.escape(s);
+  return String(s).replace(/[^A-Za-z0-9_-]/g, '\\$&');
+}
+
+function resolveSelectorAtPoint({ x, y, imagePixels = false }) {
+  const dpr = window.devicePixelRatio || 1;
+  const cssX = imagePixels ? x / dpr : x;
+  const cssY = imagePixels ? y / dpr : y;
+  const el = document.elementFromPoint(cssX, cssY);
+  if (!el) {
+    return { selector: null, x: cssX, y: cssY, dpr, tag: null };
+  }
+  const selector = buildStableSelector(el);
+  return {
+    selector,
+    x: cssX,
+    y: cssY,
+    dpr,
+    tag: el.tagName ? el.tagName.toLowerCase() : null,
+    id: el.id || null,
+    testId: el.getAttribute ? el.getAttribute('data-testid') : null,
+  };
+}
+
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   try {
     switch (msg.command) {
@@ -165,6 +232,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       case 'get_computed_styles': sendResponse(getComputedStyles(msg.params ?? {})); break;
       case 'inject_figma_overlay': sendResponse(injectOverlay(msg.params ?? {})); break;
       case 'clear_figma_overlay': sendResponse(clearOverlay()); break;
+      case 'resolve_selector_at_point': sendResponse(resolveSelectorAtPoint(msg.params ?? {})); break;
       default: sendResponse({ error: `Unknown command: ${msg.command}` });
     }
   } catch (e) {
