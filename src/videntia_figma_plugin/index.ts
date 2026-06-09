@@ -167,7 +167,14 @@ import {
 } from "./handlers/layout";
 
 // Handlers — selection & focus
-import { setFocus, setSelections, scanNodesByTypes, focusNode, softFocusNode } from "./handlers/selection";
+import {
+  setFocus,
+  setSelections,
+  scanNodesByTypes,
+  focusNode,
+  softFocusNode,
+  softFocusNodes,
+} from "./handlers/selection";
 
 // Handlers — annotations
 import {
@@ -477,10 +484,21 @@ async function handleCommand(command: string, params: Record<string, unknown>): 
 
   // Auto-focus before command
   if (state.autoFocus && FOCUS_BEFORE_COMMANDS.has(command) && params) {
-    var focusId = params["nodeId"] as string;
-    if (focusId) {
+    var focusIdsBefore: string[] = [];
+    var singleId = params["nodeId"] as string | undefined;
+    if (typeof singleId === "string" && singleId) {
+      focusIdsBefore.push(singleId);
+    }
+    var multiIds = params["nodeIds"] as unknown;
+    if (Array.isArray(multiIds)) {
+      for (var fi = 0; fi < multiIds.length; fi++) {
+        var mid = multiIds[fi];
+        if (typeof mid === "string" && mid) focusIdsBefore.push(mid);
+      }
+    }
+    if (focusIdsBefore.length > 0) {
       try {
-        await softFocusNode(focusId);
+        await softFocusNodes(focusIdsBefore);
       } catch (_e) {
         /* silent */
       }
