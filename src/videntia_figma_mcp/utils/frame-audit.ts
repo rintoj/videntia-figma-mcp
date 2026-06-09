@@ -188,6 +188,11 @@ export interface AuditOptions {
   maxCost?: number;
   // Skip matches whose IoU is below this threshold.
   minIou?: number;
+  // Pixels (Figma-space) to subtract from every Figma y coordinate before matching.
+  // Use to strip iOS status bar / browser chrome that's baked into mobile frames.
+  cropTop?: number;
+  // Pixels to subtract from the bottom of the Figma frame (effectively shrinks frame height).
+  cropBottom?: number;
 }
 
 // Match Figma candidates to DOM rects hierarchically. The root Figma frame is
@@ -201,9 +206,19 @@ export function auditFrame(
 ): FrameAuditResult {
   const maxCost = options.maxCost ?? 0.15;
   const minIou = options.minIou ?? 0.05;
+  const cropTop = options.cropTop ?? 0;
+  const cropBottom = options.cropBottom ?? 0;
 
   const figmaRoot = frameNode;
-  const figmaOrigin = figmaRoot.absoluteBoundingBox ?? { x: 0, y: 0, width: 0, height: 0 };
+  const rawOrigin = figmaRoot.absoluteBoundingBox ?? { x: 0, y: 0, width: 0, height: 0 };
+  // Shift origin down by cropTop and shrink height by (cropTop + cropBottom) so the
+  // "effective" Figma frame matches the visible browser viewport.
+  const figmaOrigin = {
+    x: rawOrigin.x,
+    y: rawOrigin.y + cropTop,
+    width: rawOrigin.width,
+    height: Math.max(1, rawOrigin.height - cropTop - cropBottom),
+  };
   const domRoot = domRects[rootDomIdx];
   const domOriginRect = domRoot?.rect ?? { x: 0, y: 0, w: 0, h: 0 };
 

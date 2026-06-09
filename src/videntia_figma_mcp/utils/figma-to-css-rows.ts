@@ -189,6 +189,7 @@ export function buildRows(
   options: BuildRowsOptions = {},
 ): BuildRowsResult {
   const warnings: string[] = [];
+  const explicitProps = options.properties !== undefined;
   const props = (options.properties ?? DEFAULT_PROPERTIES).map((p) => PROP_ALIAS[p] ?? p);
   const tols = { ...DEFAULT_TOLERANCES, ...(options.toleranceOverrides ?? {}) };
 
@@ -243,8 +244,16 @@ export function buildRows(
         break;
       }
       case "text-align": {
-        const figmaAlign = textNode?.textAlignHorizontal?.toLowerCase() ?? null;
-        const browserAlign = computedStyles["text-align"]?.toLowerCase() ?? null;
+        // CSS logical values: `start` is equivalent to `left` in LTR, `end` to `right`.
+        const normalizeAlign = (v: string | null | undefined): string | null => {
+          if (!v) return null;
+          const s = v.toLowerCase();
+          if (s === "start") return "left";
+          if (s === "end") return "right";
+          return s;
+        };
+        const figmaAlign = normalizeAlign(textNode?.textAlignHorizontal);
+        const browserAlign = normalizeAlign(computedStyles["text-align"]);
         if (figmaAlign === null) {
           rows.push({ property: prop, figma: "—", browser: browserAlign ?? "—", status: "—" });
         } else {
@@ -306,14 +315,24 @@ export function buildRows(
         break;
       }
       case "width": {
+        // Figma TEXT nodes store the container width; browsers shrink-to-fit by default,
+        // producing noisy false negatives. Skip unless the caller explicitly listed width.
+        if (figmaNode.type === "TEXT" && !explicitProps) {
+          rows.push({ property: prop, figma: "—", browser: "—", status: "—", note: "skipped for TEXT node" });
+          break;
+        }
         const figmaW = figmaNode.absoluteBoundingBox?.width ?? null;
-        const browserW = rect?.width ?? px(computedStyles["width"]);
+        const browserW = rect?.width ?? px(computedStyles.width);
         rows.push(compareNumeric(prop, figmaW, browserW ?? null, tol(prop)));
         break;
       }
       case "height": {
+        if (figmaNode.type === "TEXT" && !explicitProps) {
+          rows.push({ property: prop, figma: "—", browser: "—", status: "—", note: "skipped for TEXT node" });
+          break;
+        }
         const figmaH = figmaNode.absoluteBoundingBox?.height ?? null;
-        const browserH = rect?.height ?? px(computedStyles["height"]);
+        const browserH = rect?.height ?? px(computedStyles.height);
         rows.push(compareNumeric(prop, figmaH, browserH ?? null, tol(prop)));
         break;
       }

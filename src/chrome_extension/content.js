@@ -205,47 +205,47 @@ function cssEscape(s) {
   return String(s).replace(/[^A-Za-z0-9_-]/g, '\\$&');
 }
 
-function collectAllElementRects({ root = 'body', maxNodes = 1500 } = {}) {
+function collectAllElementRects({ root = 'body', maxNodes = 1500, includeZeroRect = false } = {}) {
   const rootEl = document.querySelector(root);
   if (!rootEl) return { error: `No element matches: ${root}` };
 
   const out = [];
-  const idMap = new Map();
   let truncated = false;
-
+  // Track which original-tree parent each emitted node's logical parent was. When we
+  // skip a zero-rect element we attach its children to its nearest visible ancestor.
   function visit(el, parentIdx, depth) {
     if (out.length >= maxNodes) {
       truncated = true;
       return;
     }
     const r = el.getBoundingClientRect();
-    if (r.width === 0 && r.height === 0) {
-      // still recurse — child may be visible
-    }
-    const idx = out.length;
-    idMap.set(el, idx);
-    out.push({
-      idx,
-      parent: parentIdx,
-      tag: el.tagName ? el.tagName.toLowerCase() : '#unknown',
-      id: el.id || null,
-      testId: el.getAttribute ? el.getAttribute('data-testid') : null,
-      depth,
-      rect: { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height) },
-      selector: buildStableSelector(el),
-      text: (() => {
-        let t = '';
-        for (const child of el.childNodes) {
-          if (child.nodeType === Node.TEXT_NODE) {
-            const piece = child.textContent.trim();
-            if (piece) t += (t ? ' ' : '') + piece;
-            if (t.length > 80) break;
+    const visible = !(r.width === 0 && r.height === 0);
+    let myIdx = parentIdx;
+    if (visible || includeZeroRect) {
+      myIdx = out.length;
+      out.push({
+        idx: myIdx,
+        parent: parentIdx,
+        tag: el.tagName ? el.tagName.toLowerCase() : '#unknown',
+        id: el.id || null,
+        testId: el.getAttribute ? el.getAttribute('data-testid') : null,
+        depth,
+        rect: { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height) },
+        selector: buildStableSelector(el),
+        text: (() => {
+          let t = '';
+          for (const child of el.childNodes) {
+            if (child.nodeType === Node.TEXT_NODE) {
+              const piece = child.textContent.trim();
+              if (piece) t += (t ? ' ' : '') + piece;
+              if (t.length > 80) break;
+            }
           }
-        }
-        return t.slice(0, 80) || null;
-      })(),
-    });
-    for (const child of el.children) visit(child, idx, depth + 1);
+          return t.slice(0, 80) || null;
+        })(),
+      });
+    }
+    for (const child of el.children) visit(child, myIdx, depth + 1);
   }
 
   visit(rootEl, -1, 0);

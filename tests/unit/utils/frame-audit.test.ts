@@ -189,6 +189,58 @@ describe("auditFrame", () => {
     expect(result.unmatchedDom.some((d) => d.selector === ".root > .extra")).toBe(true);
   });
 
+  it("applies cropTop to align mobile-frame coordinates with DOM coordinates", () => {
+    // Figma frame includes 91px of iOS status+address bar; DOM has none.
+    const fig: any = {
+      id: "F",
+      type: "FRAME",
+      absoluteBoundingBox: { x: 0, y: 0, width: 390, height: 691 },
+      children: [
+        {
+          id: "content",
+          type: "FRAME",
+          name: "Content",
+          // y=171 in Figma; once cropTop=91 shifts the origin to y=91,
+          // local y becomes 171-91=80, matching the DOM.
+          absoluteBoundingBox: { x: 0, y: 171, width: 390, height: 400 },
+        },
+      ],
+    };
+    const dom = [
+      {
+        idx: 0,
+        parent: -1,
+        tag: "body",
+        id: null,
+        testId: null,
+        depth: 0,
+        rect: { x: 0, y: 0, w: 390, h: 600 },
+        selector: "body",
+        text: null,
+      },
+      {
+        idx: 1,
+        parent: 0,
+        tag: "main",
+        id: null,
+        testId: null,
+        depth: 1,
+        rect: { x: 0, y: 80, w: 390, h: 400 },
+        selector: "main",
+        text: null,
+      },
+    ];
+    const without = auditFrame(fig, 0, dom);
+    const withCrop = auditFrame(fig, 0, dom, { cropTop: 91 });
+    // cropTop=91 eliminates the y-mismatch entirely → cost drops to ~0, IoU rises to ~1.
+    const wc = withCrop.matched.find((m) => m.figmaId === "content")!;
+    const wo = without.matched.find((m) => m.figmaId === "content")!;
+    expect(wc.iou).toBeGreaterThan(wo.iou);
+    expect(wc.cost).toBeLessThan(wo.cost);
+    expect(wc.iou).toBeGreaterThan(0.99);
+    expect(wc.selector).toBe("main");
+  });
+
   it("flags a Figma node with no DOM counterpart as unmatched", () => {
     const fig = makeFigma();
     fig.children.push({

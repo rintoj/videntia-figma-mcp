@@ -331,8 +331,36 @@ export function registerComparisonTools(server: McpServer): void {
         .optional()
         .default(1500)
         .describe("Cap on DOM nodes collected from the page (default 1500)."),
+      crop_top: z
+        .number()
+        .min(0)
+        .optional()
+        .default(0)
+        .describe(
+          "Pixels to strip from the top of the Figma frame before matching (design-space px). Use to skip iOS status bar / browser address bar baked into mobile frames.",
+        ),
+      crop_bottom: z
+        .number()
+        .min(0)
+        .optional()
+        .default(0)
+        .describe("Pixels to strip from the bottom of the Figma frame before matching."),
+      include_zero_rect: z
+        .boolean()
+        .optional()
+        .default(false)
+        .describe("Include hidden / zero-size DOM nodes in the matching pool. Default false."),
     },
-    async ({ frame_node_id, root_selector, max_cost, min_iou, max_nodes }) => {
+    async ({
+      frame_node_id,
+      root_selector,
+      max_cost,
+      min_iou,
+      max_nodes,
+      crop_top,
+      crop_bottom,
+      include_zero_rect,
+    }) => {
       const warnings: string[] = [];
       const nodeInfoRaw = await sendCommandToFigma("get_node_info", { nodeIds: [frame_node_id], depth: 20 });
       const frameNode = unwrapNode(nodeInfoRaw, frame_node_id);
@@ -385,6 +413,7 @@ export function registerComparisonTools(server: McpServer): void {
       const collected = (await sendCommandToChannel(BROWSER_CHANNEL, "collect_all_element_rects", {
         root: rootSelectorResolved,
         maxNodes: max_nodes,
+        includeZeroRect: include_zero_rect,
       })) as { nodes?: DomRect[]; truncated?: boolean; error?: string };
 
       if (collected.error || !collected.nodes) {
@@ -399,7 +428,12 @@ export function registerComparisonTools(server: McpServer): void {
       }
       if (collected.truncated) warnings.push(`DOM walk truncated at ${max_nodes} nodes`);
 
-      const audit = auditFrame(frameNode, 0, collected.nodes, { maxCost: max_cost, minIou: min_iou });
+      const audit = auditFrame(frameNode, 0, collected.nodes, {
+        maxCost: max_cost,
+        minIou: min_iou,
+        cropTop: crop_top,
+        cropBottom: crop_bottom,
+      });
 
       return {
         content: [
