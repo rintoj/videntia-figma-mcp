@@ -6,6 +6,7 @@ import { diffImages } from "../utils/pixel-diff.js";
 import { startSandpackServer } from "../utils/sandpack-server.js";
 import { buildRows, FigmaNodeLike } from "../utils/figma-to-css-rows.js";
 import { findNodeInPage } from "../utils/find-node-in-page.js";
+import { auditFrame, DomRect } from "../utils/frame-audit.js";
 
 const BROWSER_CHANNEL = "browser";
 
@@ -287,6 +288,147 @@ export function registerComparisonTools(server: McpServer): void {
                 textNodeId,
                 rows,
                 warnings: [...warnings, ...rowWarnings],
+              },
+              null,
+              2,
+            ),
+          },
+        ],
+      };
+    },
+  );
+
+  server.tool(
+    "diff_figma_frame_to_page",
+    "Audit an entire Figma frame against the live DOM in the active browser tab. Matches every Figma descendant to a DOM element using hierarchical Hungarian assignment over bounding boxes, then returns matched pairs and unmatched buckets. Requires the Figma plugin and Chrome extension to be connected.",
+    {
+      frame_node_id: z.string().describe("Figma frame node ID to audit (e.g. '123:456')."),
+      root_selector: z
+        .string()
+        .optional()
+        .describe(
+          "CSS selector for the DOM root (defaults to auto-locate via image template, then 'body' as fallback).",
+        ),
+      max_cost: z
+        .number()
+        .min(0)
+        .max(1)
+        .optional()
+        .default(0.15)
+        .describe("Skip matches whose normalized cost (center+size, scaled by frame diag) exceeds this. Default 0.15."),
+      min_iou: z
+        .number()
+        .min(0)
+        .max(1)
+        .optional()
+        .default(0.05)
+        .describe("Skip matches whose IoU is below this. Default 0.05."),
+      max_nodes: z
+        .number()
+        .int()
+        .min(50)
+        .max(5000)
+        .optional()
+        .default(1500)
+        .describe("Cap on DOM nodes collected from the page (default 1500)."),
+    },
+    async ({ frame_node_id, root_selector, max_cost, min_iou, max_nodes }) => {
+      const warnings: string[] = [];
+      const nodeInfoRaw = await sendCommandToFigma("get_node_info", { nodeIds: [frame_node_id], depth: 20 });
+      const frameNode = unwrapNode(nodeInfoRaw, frame_node_id);
+      if (!frameNode) {
+        return {
+          content: [
+            { type: "text", text: JSON.stringify({ error: `No Figma node found for id ${frame_node_id}` }, null, 2) },
+          ],
+        };
+      }
+
+      let rootSelectorResolved = root_selector;
+      let matchedVia: "explicit" | "image-template" | "fallback-body" = "explicit";
+      if (!rootSelectorResolved) {
+        try {
+          const figmaExport = (await sendCommandToFigma("export_node_as_image", {
+            nodeId: frame_node_id,
+            format: "PNG",
+            scale: 1,
+          })) as { imageData: string };
+          const refBuf = Buffer.from(figmaExport.imageData, "base64");
+          const shot = (await sendCommandToChannel(BROWSER_CHANNEL, "get_page_screenshot", {})) as {
+            imageData: string;
+          };
+          const pageBuf = Buffer.from(shot.imageData, "base64");
+          const match = await findNodeInPage(refBuf, pageBuf);
+          if (match) {
+            const cx = match.x + match.width / 2;
+            const cy = match.y + match.height / 2;
+            const resolved = (await sendCommandToChannel(BROWSER_CHANNEL, "resolve_selector_at_point", {
+              x: cx,
+              y: cy,
+              imagePixels: true,
+            })) as { selector: string | null };
+            if (resolved?.selector) {
+              rootSelectorResolved = resolved.selector;
+              matchedVia = "image-template";
+            }
+          }
+        } catch (err) {
+          warnings.push(`auto-locate failed: ${err instanceof Error ? err.message : String(err)}`);
+        }
+        if (!rootSelectorResolved) {
+          rootSelectorResolved = "body";
+          matchedVia = "fallback-body";
+          warnings.push("could not auto-locate frame root — falling back to 'body'");
+        }
+      }
+
+      const collected = (await sendCommandToChannel(BROWSER_CHANNEL, "collect_all_element_rects", {
+        root: rootSelectorResolved,
+        maxNodes: max_nodes,
+      })) as { nodes?: DomRect[]; truncated?: boolean; error?: string };
+
+      if (collected.error || !collected.nodes) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({ error: collected.error ?? "no DOM nodes returned", warnings }, null, 2),
+            },
+          ],
+        };
+      }
+      if (collected.truncated) warnings.push(`DOM walk truncated at ${max_nodes} nodes`);
+
+      const audit = auditFrame(frameNode, 0, collected.nodes, { maxCost: max_cost, minIou: min_iou });
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(
+              {
+                frameNodeId: frame_node_id,
+                rootSelector: rootSelectorResolved,
+                matchedVia,
+                summary: {
+                  matched: audit.matched.length,
+                  unmatchedFigma: audit.unmatchedFigma.length,
+                  unmatchedDom: audit.unmatchedDom.length,
+                  domNodes: collected.nodes.length,
+                },
+                matched: audit.matched,
+                unmatchedFigma: audit.unmatchedFigma.map((f) => ({
+                  id: f.id,
+                  name: f.name,
+                  type: f.type,
+                  rect: f.rect,
+                })),
+                unmatchedDom: audit.unmatchedDom.slice(0, 50).map((d) => ({
+                  selector: d.selector,
+                  tag: d.tag,
+                  rect: d.rect,
+                })),
+                warnings,
               },
               null,
               2,

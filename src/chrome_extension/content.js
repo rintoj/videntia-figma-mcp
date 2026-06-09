@@ -205,6 +205,53 @@ function cssEscape(s) {
   return String(s).replace(/[^A-Za-z0-9_-]/g, '\\$&');
 }
 
+function collectAllElementRects({ root = 'body', maxNodes = 1500 } = {}) {
+  const rootEl = document.querySelector(root);
+  if (!rootEl) return { error: `No element matches: ${root}` };
+
+  const out = [];
+  const idMap = new Map();
+  let truncated = false;
+
+  function visit(el, parentIdx, depth) {
+    if (out.length >= maxNodes) {
+      truncated = true;
+      return;
+    }
+    const r = el.getBoundingClientRect();
+    if (r.width === 0 && r.height === 0) {
+      // still recurse — child may be visible
+    }
+    const idx = out.length;
+    idMap.set(el, idx);
+    out.push({
+      idx,
+      parent: parentIdx,
+      tag: el.tagName ? el.tagName.toLowerCase() : '#unknown',
+      id: el.id || null,
+      testId: el.getAttribute ? el.getAttribute('data-testid') : null,
+      depth,
+      rect: { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height) },
+      selector: buildStableSelector(el),
+      text: (() => {
+        let t = '';
+        for (const child of el.childNodes) {
+          if (child.nodeType === Node.TEXT_NODE) {
+            const piece = child.textContent.trim();
+            if (piece) t += (t ? ' ' : '') + piece;
+            if (t.length > 80) break;
+          }
+        }
+        return t.slice(0, 80) || null;
+      })(),
+    });
+    for (const child of el.children) visit(child, idx, depth + 1);
+  }
+
+  visit(rootEl, -1, 0);
+  return { root, nodes: out, truncated, dpr: window.devicePixelRatio || 1 };
+}
+
 function resolveSelectorAtPoint({ x, y, imagePixels = false }) {
   const dpr = window.devicePixelRatio || 1;
   const cssX = imagePixels ? x / dpr : x;
@@ -233,6 +280,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       case 'inject_figma_overlay': sendResponse(injectOverlay(msg.params ?? {})); break;
       case 'clear_figma_overlay': sendResponse(clearOverlay()); break;
       case 'resolve_selector_at_point': sendResponse(resolveSelectorAtPoint(msg.params ?? {})); break;
+      case 'collect_all_element_rects': sendResponse(collectAllElementRects(msg.params ?? {})); break;
       default: sendResponse({ error: `Unknown command: ${msg.command}` });
     }
   } catch (e) {

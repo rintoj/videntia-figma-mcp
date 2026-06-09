@@ -129,6 +129,7 @@ async function handleBrowserCommand(command, params) {
     case 'get_dom_nodes':
     case 'get_computed_styles':
     case 'resolve_selector_at_point':
+    case 'collect_all_element_rects':
       return sendToContentScript(tab.id, command, params);
 
     case 'inject_figma_overlay': {

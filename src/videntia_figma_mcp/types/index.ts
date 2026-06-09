@@ -194,7 +194,8 @@ export type BrowserCommand =
   | "get_page_info"
   | "inject_figma_overlay"
   | "clear_figma_overlay"
-  | "resolve_selector_at_point";
+  | "resolve_selector_at_point"
+  | "collect_all_element_rects";
 
 // Batch actions types
 export interface BatchActionResult {

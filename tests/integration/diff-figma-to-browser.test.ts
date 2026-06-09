@@ -253,3 +253,181 @@ describe("diff_figma_to_browser tool", () => {
     expect(parsed.error).toMatch(/No Figma node/);
   });
 });
+
+describe("diff_figma_frame_to_page tool", () => {
+  let server: McpServer;
+  let mockSendToFigma: jest.Mock;
+  let mockSendToChannel: jest.Mock;
+  let toolHandlers: Map<string, Function>;
+  let toolSchemas: Map<string, z.ZodObject<any>>;
+
+  beforeEach(() => {
+    server = new McpServer({ name: "test", version: "1.0.0" }, { capabilities: { tools: {} } });
+    const ws = require("../../src/videntia_figma_mcp/utils/websocket");
+    mockSendToFigma = ws.sendCommandToFigma;
+    mockSendToChannel = ws.sendCommandToChannel;
+    mockSendToFigma.mockReset();
+    mockSendToChannel.mockReset();
+
+    toolHandlers = new Map();
+    toolSchemas = new Map();
+    const original = server.tool.bind(server);
+    jest.spyOn(server, "tool").mockImplementation((...args: any[]) => {
+      if (args.length === 4) {
+        const [name, , schema, handler] = args;
+        toolHandlers.set(name, handler);
+        toolSchemas.set(name, z.object(schema));
+      }
+      return (original as any)(...args);
+    });
+
+    require("../../src/videntia_figma_mcp/tools/comparison-tools").registerComparisonTools(server);
+  });
+
+  async function callTool(name: string, args: any = {}) {
+    const schema = toolSchemas.get(name);
+    const handler = toolHandlers.get(name);
+    if (!schema || !handler) throw new Error(`Tool ${name} not found`);
+    return await handler(schema.parse(args), { meta: {} });
+  }
+
+  it("audits a frame against a DOM tree and returns matched + unmatched buckets", async () => {
+    mockSendToFigma.mockResolvedValueOnce({
+      nodes: [
+        {
+          id: "F",
+          type: "FRAME",
+          name: "Frame",
+          absoluteBoundingBox: { x: 0, y: 0, width: 200, height: 100 },
+          children: [
+            { id: "title", type: "TEXT", name: "Title", absoluteBoundingBox: { x: 10, y: 10, width: 100, height: 24 } },
+            {
+              id: "card",
+              type: "FRAME",
+              name: "Card",
+              absoluteBoundingBox: { x: 10, y: 50, width: 180, height: 40 },
+              children: [
+                {
+                  id: "body",
+                  type: "TEXT",
+                  name: "Body",
+                  absoluteBoundingBox: { x: 20, y: 60, width: 100, height: 20 },
+                },
+              ],
+            },
+            {
+              id: "ghost",
+              type: "TEXT",
+              name: "Ghost",
+              absoluteBoundingBox: { x: 1000, y: 1000, width: 100, height: 24 },
+            },
+          ],
+        },
+      ],
+    });
+    mockSendToChannel.mockResolvedValueOnce({
+      nodes: [
+        {
+          idx: 0,
+          parent: -1,
+          tag: "section",
+          id: null,
+          testId: null,
+          depth: 0,
+          rect: { x: 0, y: 0, w: 400, h: 200 },
+          selector: ".root",
+          text: null,
+        },
+        {
+          idx: 1,
+          parent: 0,
+          tag: "h2",
+          id: null,
+          testId: null,
+          depth: 1,
+          rect: { x: 20, y: 20, w: 200, h: 48 },
+          selector: ".root > h2",
+          text: "Title",
+        },
+        {
+          idx: 2,
+          parent: 0,
+          tag: "div",
+          id: null,
+          testId: null,
+          depth: 1,
+          rect: { x: 20, y: 100, w: 360, h: 80 },
+          selector: ".root > div",
+          text: null,
+        },
+        {
+          idx: 3,
+          parent: 2,
+          tag: "p",
+          id: null,
+          testId: null,
+          depth: 2,
+          rect: { x: 40, y: 120, w: 200, h: 40 },
+          selector: ".root > div > p",
+          text: "Body",
+        },
+        {
+          idx: 4,
+          parent: 0,
+          tag: "div",
+          id: null,
+          testId: null,
+          depth: 1,
+          rect: { x: 300, y: 20, w: 50, h: 50 },
+          selector: ".root > .extra",
+          text: null,
+        },
+      ],
+    });
+
+    const result = await callTool("diff_figma_frame_to_page", {
+      frame_node_id: "F",
+      root_selector: ".root",
+    });
+    const parsed = JSON.parse(result.content[0].text);
+    const ids = parsed.matched.map((m: any) => m.figmaId).sort();
+    expect(ids).toEqual(["body", "card", "title"]);
+    expect(parsed.unmatchedFigma.map((f: any) => f.id)).toEqual(["ghost"]);
+    expect(parsed.unmatchedDom.map((d: any) => d.selector)).toContain(".root > .extra");
+    expect(parsed.matchedVia).toBe("explicit");
+    expect(parsed.summary.matched).toBe(3);
+  });
+
+  it("falls back to body when auto-locate finds nothing", async () => {
+    // get_node_info, export_node_as_image
+    mockSendToFigma
+      .mockResolvedValueOnce({
+        nodes: [{ id: "F", type: "FRAME", absoluteBoundingBox: { x: 0, y: 0, width: 100, height: 100 } }],
+      })
+      .mockResolvedValueOnce({ imageData: Buffer.from("r").toString("base64") });
+    // get_page_screenshot then collect_all_element_rects
+    mockSendToChannel.mockResolvedValueOnce({ imageData: Buffer.from("p").toString("base64") }).mockResolvedValueOnce({
+      nodes: [
+        {
+          idx: 0,
+          parent: -1,
+          tag: "body",
+          id: null,
+          testId: null,
+          depth: 0,
+          rect: { x: 0, y: 0, w: 100, h: 100 },
+          selector: "body",
+          text: null,
+        },
+      ],
+    });
+
+    const findMod = require("../../src/videntia_figma_mcp/utils/find-node-in-page");
+    findMod.findNodeInPage.mockResolvedValueOnce(null);
+
+    const result = await callTool("diff_figma_frame_to_page", { frame_node_id: "F" });
+    const parsed = JSON.parse(result.content[0].text);
+    expect(parsed.matchedVia).toBe("fallback-body");
+    expect(parsed.rootSelector).toBe("body");
+  });
+});
