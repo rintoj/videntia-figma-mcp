@@ -241,6 +241,60 @@ describe("auditFrame", () => {
     expect(wc.selector).toBe("main");
   });
 
+  it("matches grandchildren even when their direct Figma parent fails to match", () => {
+    // Figma: root → wrapper (no DOM counterpart) → contentContainer (has DOM counterpart)
+    const fig: any = {
+      id: "F",
+      type: "FRAME",
+      absoluteBoundingBox: { x: 0, y: 0, width: 400, height: 600 },
+      children: [
+        {
+          id: "wrapper",
+          type: "FRAME",
+          name: "Wrapper",
+          // Far from any real DOM element — won't match.
+          absoluteBoundingBox: { x: 9999, y: 9999, width: 100, height: 100 },
+          children: [
+            {
+              id: "contentContainer",
+              type: "FRAME",
+              name: "Content Container",
+              absoluteBoundingBox: { x: 20, y: 80, width: 350, height: 500 },
+            },
+          ],
+        },
+      ],
+    };
+    const dom = [
+      {
+        idx: 0,
+        parent: -1,
+        tag: "body",
+        id: null,
+        testId: null,
+        depth: 0,
+        rect: { x: 0, y: 0, w: 400, h: 600 },
+        selector: "body",
+        text: null,
+      },
+      {
+        idx: 1,
+        parent: 0,
+        tag: "main",
+        id: null,
+        testId: null,
+        depth: 1,
+        rect: { x: 20, y: 80, w: 350, h: 500 },
+        selector: "main",
+        text: null,
+      },
+    ];
+    const result = auditFrame(fig, 0, dom);
+    // Pre-fix: wrapper failed → contentContainer was dropped to unmatched without ever trying.
+    expect(result.matched.find((m) => m.figmaId === "contentContainer")?.selector).toBe("main");
+    expect(result.unmatchedFigma.map((f) => f.id)).toEqual(["wrapper"]);
+  });
+
   it("flags a Figma node with no DOM counterpart as unmatched", () => {
     const fig = makeFigma();
     fig.children.push({

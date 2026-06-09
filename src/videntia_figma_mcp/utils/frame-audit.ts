@@ -223,8 +223,10 @@ export function auditFrame(
   const domOriginRect = domRoot?.rect ?? { x: 0, y: 0, w: 0, h: 0 };
 
   const figByParent = new Map<string | undefined, FigmaCandidate[]>();
+  const figParentOf = new Map<string, string | undefined>();
   const candidates = flattenFigmaCandidates(figmaRoot);
   for (const c of candidates) {
+    figParentOf.set(c.id, c.parentId);
     if (c.id === figmaRoot.id) continue;
     const key = c.parentId;
     if (!figByParent.has(key)) figByParent.set(key, []);
@@ -244,6 +246,18 @@ export function auditFrame(
   const unmatchedFigma: FigmaCandidate[] = [];
   const matchedDomIdxs = new Set<number>([rootDomIdx]);
 
+  // Walk up the Figma ancestor chain until we hit a node with a DOM match; fall
+  // back to the root DOM idx if none up the chain has matched yet.
+  function nearestMatchedDomIdx(figmaId: string): number {
+    let cur: string | undefined = figmaId;
+    while (cur !== undefined) {
+      const idx = figmaIdToDomIdx.get(cur);
+      if (idx !== undefined) return idx;
+      cur = figParentOf.get(cur);
+    }
+    return rootDomIdx;
+  }
+
   // BFS over Figma tree by parent IDs.
   const queue: string[] = [figmaRoot.id!];
   while (queue.length) {
@@ -251,11 +265,10 @@ export function auditFrame(
     const figmaChildren = figByParent.get(parentFigmaId) ?? [];
     if (figmaChildren.length === 0) continue;
 
-    const parentDomIdx = figmaIdToDomIdx.get(parentFigmaId);
-    if (parentDomIdx === undefined) {
-      for (const f of figmaChildren) unmatchedFigma.push(f);
-      continue;
-    }
+    // If the figma parent didn't match a DOM element, climb to the nearest
+    // matched ancestor so its children still get a chance. Without this,
+    // a single bad match cascades into every descendant being unmatched.
+    const parentDomIdx = nearestMatchedDomIdx(parentFigmaId);
 
     // DOM candidate pool = descendants of parent's DOM element, exclude already matched.
     const descendants: number[] = [];
@@ -268,7 +281,11 @@ export function auditFrame(
       for (const k of kids) stack.push(k);
     }
     if (descendants.length === 0) {
-      for (const f of figmaChildren) unmatchedFigma.push(f);
+      for (const f of figmaChildren) {
+        unmatchedFigma.push(f);
+        // Still enqueue so grandchildren can try via the fallback pool.
+        queue.push(f.id);
+      }
       continue;
     }
 
@@ -300,6 +317,10 @@ export function auditFrame(
     for (let i = 0; i < figmaChildren.length; i++) {
       const f = figmaChildren[i];
       const col = assignment[i];
+      // Always enqueue so descendants still get processed even when the parent
+      // failed to find a DOM mate.
+      queue.push(f.id);
+
       if (col === -1) {
         unmatchedFigma.push(f);
         continue;
@@ -314,7 +335,6 @@ export function auditFrame(
       const d = domRects[local.idx];
       figmaIdToDomIdx.set(f.id, d.idx);
       matchedDomIdxs.add(d.idx);
-      queue.push(f.id);
       matched.push({
         figmaId: f.id,
         figmaName: f.name,
