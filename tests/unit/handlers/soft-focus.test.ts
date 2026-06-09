@@ -5,7 +5,11 @@ type MockNode = {
   absoluteBoundingBox: { x: number; y: number; width: number; height: number } | null;
 };
 
-function makeNode(id: string, page: MockNode, bbox: { x: number; y: number; width: number; height: number } | null): MockNode {
+function makeNode(
+  id: string,
+  page: MockNode,
+  bbox: { x: number; y: number; width: number; height: number } | null,
+): MockNode {
   return { id, type: "FRAME", parent: page, absoluteBoundingBox: bbox };
 }
 

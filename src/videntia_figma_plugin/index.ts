@@ -167,7 +167,14 @@ import {
 } from "./handlers/layout";
 
 // Handlers — selection & focus
-import { setFocus, setSelections, scanNodesByTypes, focusNode, softFocusNode, softFocusNodes } from "./handlers/selection";
+import {
+  setFocus,
+  setSelections,
+  scanNodesByTypes,
+  focusNode,
+  softFocusNode,
+  softFocusNodes,
+} from "./handlers/selection";
 
 // Handlers — annotations
 import {
