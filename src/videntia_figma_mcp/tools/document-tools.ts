@@ -752,9 +752,12 @@ export function registerDocumentTools(server: McpServer): void {
           "",
         ];
 
+        const escapeMd = (s: string): string => s.replace(/[\\`*_{}\[\]()#+\-.!|>~]/g, "\\$&");
+        const inlineMessage = (s: string): string => escapeMd(s).replace(/\r?\n/g, " ");
+
         for (const c of comments) {
           lines.push(`### ${c.resolved ? "[Resolved] " : ""}Comment ${c.id}`);
-          lines.push(`**Author:** ${c.author.name}`);
+          lines.push(`**Author:** ${escapeMd(c.author.name)}`);
           lines.push(`**Created:** ${c.createdAt}${c.editedAt ? ` (edited ${c.editedAt})` : ""}`);
           if (c.position) {
             const pos = c.position as Record<string, unknown>;
@@ -765,7 +768,7 @@ export function registerDocumentTools(server: McpServer): void {
               lines.push(`**Position:** frame ${pos["nodeId"]}${offset ? ` at (${offset["x"]}, ${offset["y"]})` : ""}`);
             }
           }
-          lines.push(`**Message:** ${c.message}`);
+          lines.push(`**Message:** ${inlineMessage(c.message)}`);
           if (c.reactions && c.reactions.length > 0) {
             const emojiSummary = c.reactions.map((r) => r.emoji).join(" ");
             lines.push(`**Reactions:** ${emojiSummary}`);
@@ -773,7 +776,8 @@ export function registerDocumentTools(server: McpServer): void {
           if (c.replies && c.replies.length > 0) {
             lines.push(`**Replies (${c.replies.length}):**`);
             for (const r of c.replies) {
-              lines.push(`  - ${r.author?.name ?? "Unknown"}: ${r.message}`);
+              const replyAuthor = r.author?.name ? escapeMd(r.author.name) : "Unknown";
+              lines.push(`  - ${replyAuthor}: ${inlineMessage(r.message)}`);
             }
           }
           lines.push("");

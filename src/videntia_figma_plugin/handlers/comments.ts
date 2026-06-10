@@ -61,13 +61,13 @@ function mapReactions(reactions: ReadonlyArray<ReactionShape> | undefined): Reco
 }
 
 function mapClientMeta(meta: unknown): Record<string, unknown> | undefined {
-  if (!meta || typeof meta !== 'object') return undefined;
+  if (!meta || typeof meta !== "object") return undefined;
   const m = meta as { x?: unknown; y?: unknown; nodeId?: unknown; nodeOffset?: unknown };
   if (m.x !== undefined && m.y !== undefined) {
-    return { type: 'canvas', x: m.x, y: m.y };
+    return { type: "canvas", x: m.x, y: m.y };
   }
   if (m.nodeId !== undefined) {
-    return { type: 'frame', nodeId: m.nodeId, offset: m.nodeOffset };
+    return { type: "frame", nodeId: m.nodeId, offset: m.nodeOffset };
   }
   return undefined;
 }
@@ -83,30 +83,21 @@ export async function getComments(params: Record<string, unknown>): Promise<Reco
 
   // Probe which access method is available
   let allComments: CommentShape[] = [];
-  let accessMethod = 'none';
+  let accessMethod = "none";
 
   if (Array.isArray(figmaAny.comments)) {
     allComments = Array.from(figmaAny.comments);
-    accessMethod = 'figma.comments';
-  } else if (typeof figmaAny.getCommentsAsync === 'function') {
+    accessMethod = "figma.comments";
+  } else if (typeof figmaAny.getCommentsAsync === "function") {
     allComments = Array.from(await figmaAny.getCommentsAsync());
-    accessMethod = 'figma.getCommentsAsync()';
+    accessMethod = "figma.getCommentsAsync()";
   }
 
-  if (accessMethod === 'none') {
-    // figma object keys that mention "comment" — helps diagnose the right API
-    const figmaKeys = Object.keys(figma as unknown as object);
-    const commentKeys = figmaKeys.filter((k) => k.toLowerCase().includes('comment'));
-    return {
-      success: false,
-      count: 0,
-      comments: [],
-      debug: {
-        commentKeys,
-        commentsType: typeof figmaAny.comments,
-        hint: 'figma.comments and figma.getCommentsAsync() are both unavailable. Check plugin manifest permissions.',
-      },
-    };
+  if (accessMethod === "none") {
+    throw new Error(
+      "Comments API is unavailable in this Figma plugin context. " +
+        'Ensure the plugin manifest includes the "comments" permission and that you are running a Figma version that exposes the comments API.',
+    );
   }
 
   const filtered = includeResolved ? allComments : allComments.filter((c) => !c.resolved);
