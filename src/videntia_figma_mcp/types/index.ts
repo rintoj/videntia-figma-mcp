@@ -185,6 +185,11 @@ export type FigmaCommand =
   | "swap_instance"
   | "add_prototype_link"
   | "remove_prototype_link"
+  | "enumerate_all_frames"
+  | "map_prototype_flows"
+  | "bulk_export_frames"
+  | "get_content_tree"
+  | "get_frame_documentation"
   | "get_comments"
   | "export_selection_as_image";
 

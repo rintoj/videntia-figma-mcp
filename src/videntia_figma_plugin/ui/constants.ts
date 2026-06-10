@@ -144,6 +144,11 @@ export const ALLOWED_COMMANDS = new Set([
   "set_component_property",
   "swap_instance",
   "export_image_fill",
+  "enumerate_all_frames",
+  "map_prototype_flows",
+  "bulk_export_frames",
+  "get_content_tree",
+  "get_frame_documentation",
   "get_comments",
 ]);
 

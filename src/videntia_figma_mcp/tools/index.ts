@@ -8,6 +8,7 @@ import { registerVariableTools } from "./variable-tools.js";
 import { registerBatchTools } from "./batch-tools.js";
 import { registerIconTools } from "./icon-tools.js";
 import { registerComparisonTools } from "./comparison-tools.js";
+import { registerDocumentationTools } from "./documentation-tools.js";
 import { registerBrowserTools } from "./browser-tools.js";
 
 /**
@@ -25,6 +26,7 @@ export function registerTools(server: McpServer): void {
   registerBatchTools(server);
   registerIconTools(server);
   registerComparisonTools(server);
+  registerDocumentationTools(server);
   registerBrowserTools(server);
 }
 
@@ -39,5 +41,6 @@ export {
   registerBatchTools,
   registerIconTools,
   registerComparisonTools,
+  registerDocumentationTools,
   registerBrowserTools,
 };
