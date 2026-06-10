@@ -167,7 +167,14 @@ import {
 } from "./handlers/layout";
 
 // Handlers — selection & focus
-import { setFocus, setSelections, scanNodesByTypes, focusNode, softFocusNode } from "./handlers/selection";
+import {
+  setFocus,
+  setSelections,
+  scanNodesByTypes,
+  focusNode,
+  softFocusNode,
+  softFocusNodes,
+} from "./handlers/selection";
 
 // Handlers — annotations
 import {
@@ -197,6 +204,9 @@ import {
   getContentTree,
   getFrameDocumentation,
 } from "./handlers/documentation";
+
+// Handlers — comments
+import { getComments } from "./handlers/comments";
 
 // ---------------------------------------------------------------------------
 // Plugin state
@@ -251,6 +261,7 @@ var READONLY_COMMANDS = new Set([
   "set_focus",
   "set_selections",
   "export_node_as_image",
+  "export_selection_as_image",
   "export_image_fill",
   "load_font_async",
   "read_my_design",
@@ -259,6 +270,7 @@ var READONLY_COMMANDS = new Set([
   "bulk_export_frames",
   "get_content_tree",
   "get_frame_documentation",
+  "get_comments",
 ]);
 
 // ---------------------------------------------------------------------------
@@ -490,10 +502,21 @@ async function handleCommand(command: string, params: Record<string, unknown>): 
 
   // Auto-focus before command
   if (state.autoFocus && FOCUS_BEFORE_COMMANDS.has(command) && params) {
-    var focusId = params["nodeId"] as string;
-    if (focusId) {
+    var focusIdsBefore: string[] = [];
+    var singleId = params["nodeId"] as string | undefined;
+    if (typeof singleId === "string" && singleId) {
+      focusIdsBefore.push(singleId);
+    }
+    var multiIds = params["nodeIds"] as unknown;
+    if (Array.isArray(multiIds)) {
+      for (var fi = 0; fi < multiIds.length; fi++) {
+        var mid = multiIds[fi];
+        if (typeof mid === "string" && mid) focusIdsBefore.push(mid);
+      }
+    }
+    if (focusIdsBefore.length > 0) {
       try {
-        await softFocusNode(focusId);
+        await softFocusNodes(focusIdsBefore);
       } catch (_e) {
         /* silent */
       }
@@ -620,6 +643,12 @@ async function _executeCommand(command: string, params: Record<string, unknown>)
       return await flattenNode(params);
     case "export_node_as_image":
       return await exportNodeAsImage(params);
+    case "export_selection_as_image": {
+      const selection = figma.currentPage.selection;
+      if (!selection.length) throw new Error("No nodes selected. Select a frame in Figma first.");
+      const node = selection[0];
+      return await exportNodeAsImage({ nodeId: node.id, scale: params?.["scale"] ?? 2 });
+    }
     case "export_image_fill":
       return await exportImageFill(params);
     case "set_corner_radius":
@@ -920,6 +949,10 @@ async function _executeCommand(command: string, params: Record<string, unknown>)
       return await getContentTree(params);
     case "get_frame_documentation":
       return await getFrameDocumentation(params);
+
+    // Comments
+    case "get_comments":
+      return await getComments(params);
 
     default:
       throw new Error("Unknown command");

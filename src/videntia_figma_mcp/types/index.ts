@@ -189,7 +189,19 @@ export type FigmaCommand =
   | "map_prototype_flows"
   | "bulk_export_frames"
   | "get_content_tree"
-  | "get_frame_documentation";
+  | "get_frame_documentation"
+  | "get_comments"
+  | "export_selection_as_image";
+
+export type BrowserCommand =
+  | "get_dom_nodes"
+  | "get_computed_styles"
+  | "get_page_screenshot"
+  | "get_page_info"
+  | "inject_figma_overlay"
+  | "clear_figma_overlay"
+  | "resolve_selector_at_point"
+  | "collect_all_element_rects";
 
 // Batch actions types
 export interface BatchActionResult {

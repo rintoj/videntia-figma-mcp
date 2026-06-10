@@ -10,112 +10,20 @@ AI Tool  ↔  MCP Server  ↔  WebSocket Server  ↔  Figma Plugin
 
 ---
 
-## Setup
+## Self-Hosted Setup (Local, macOS)
+
+Runs MCP + WebSocket on `localhost:3055` via launchd. No external dependency.
 
 ### Prerequisites
 
-- [Figma Desktop](https://www.figma.com/downloads/)
+- [Bun](https://bun.sh) runtime
+- [Figma Desktop](https://www.figma.com/downloads/) (browser Figma cannot load dev plugins)
+- Google Chrome (for the browser-connect extension)
 - An AI client: [Claude Desktop](https://claude.ai/download), [Claude Code](https://docs.anthropic.com/en/docs/claude-code), or [Cursor](https://cursor.com/downloads)
 
 ---
 
-### Step 1 — Install the Figma Plugin
-
-1. Download the latest `videntia-figma-plugin-vX.Y.Z.zip` from the [Releases](../../releases/latest) page
-2. Unzip it anywhere on your computer
-3. Open Figma Desktop
-4. Go to **Menu → Plugins → Development → Import plugin from manifest...**
-5. Select `manifest.json` from the unzipped folder
-
----
-
-### Step 2 — Configure MCP
-
-The MCP server is hosted at `https://figma-mcp.videntia.dev/sse`.
-
-#### Claude Code
-
-```bash
-claude mcp add --transport sse videntia-figma-mcp https://figma-mcp.videntia.dev/sse
-```
-
-#### Claude Desktop
-
-Edit `~/Library/Application Support/Claude/claude_desktop_config.json`:
-
-```json
-{
-  "mcpServers": {
-    "videntia-figma-mcp": {
-      "type": "sse",
-      "url": "https://figma-mcp.videntia.dev/sse"
-    }
-  }
-}
-```
-
-#### Cursor
-
-Go to **Settings → Tools & Integrations → New MCP Server** and add:
-
-```json
-{
-  "mcpServers": {
-    "videntia-figma-mcp": {
-      "type": "sse",
-      "url": "https://figma-mcp.videntia.dev/sse"
-    }
-  }
-}
-```
-
-#### Replit
-
-1. Go to **Replit → Tools → Integrations → MCP Servers**
-2. Click **Add MCP server**
-3. Enter name `videntia-figma-mcp` and URL: `https://figma-mcp.videntia.dev/sse`
-4. Click **Test & Save**
-
----
-
-### Step 3 — Start the Socket Server
-
-The socket server relays messages between your AI tool and Figma.
-
-**Option A — Hosted (default, no setup needed)**
-A server is already running at `ws://figma-mcp.videntia.dev`. The plugin connects to it automatically.
-
-**Option B — Docker (self-hosted)**
-
-```bash
-docker compose up -d
-```
-
-**Option C — Bun (self-hosted)**
-
-```bash
-bun run socket
-```
-
-When self-hosting, point Claude at your local build instead (see **Local Development** below).
-
----
-
-### Step 4 — Connect to Figma
-
-1. In Figma, run: **Plugins → Development → Figma MCP**
-2. The plugin shows a **Channel ID**
-3. Ask Claude: _"Connect to Figma channel abc123"_
-
----
-
-## Local Development
-
-### Requirements
-
-- [Bun](https://bun.sh) runtime
-
-### Install and build
+### Step 1 — Clone & Build
 
 ```bash
 git clone https://github.com/rintoj/videntia-figma-mcp.git
@@ -124,41 +32,141 @@ bun install
 bun run build
 ```
 
-`bun run build` does two things:
+`bun run build` produces:
 
-1. Regenerates `src/videntia_figma_plugin/code.js` from TypeScript source (what Figma loads)
-2. Builds the MCP server into `dist/` (what Claude connects to)
+- `dist/socket.js` — local socket + SSE server (port 3055)
+- `src/videntia_figma_plugin/code.js` — Figma plugin runtime
 
-### Development workflow
+---
 
-```bash
-bun run dev          # Watch mode — rebuilds on file changes
-bun run socket       # Start local WebSocket server (port 3055)
-bun test --watch     # Run tests in watch mode
-```
+### Step 2 — Start the Socket Server via launchd
 
-### Point Claude Code at your local build
+A plist template ships at `scripts/videntia-figma-mcp.socket.plist` with `$BUN_PATH` and `$PROJECT_PATH` placeholders. Substitute and install:
 
 ```bash
-claude mcp add videntia-figma-mcp -s user -- node /absolute/path/to/videntia-figma-mcp/dist/videntia_figma_mcp/server.js
+export BUN_PATH=$(which bun)
+export PROJECT_PATH=$(pwd)
+envsubst < scripts/videntia-figma-mcp.socket.plist \
+  > ~/Library/LaunchAgents/videntia-figma-mcp.socket.plist
+launchctl load -w ~/Library/LaunchAgents/videntia-figma-mcp.socket.plist
 ```
 
-For Claude Desktop / Cursor, update the config to use `node` instead of `npx`:
+Verify:
+
+```bash
+lsof -iTCP:3055 -sTCP:LISTEN                                                       # bun listening
+curl -s -o /dev/null -w "%{http_code}\n" http://localhost:3055/sse --max-time 2    # 200
+tail -f ~/Library/Logs/videntia-figma-mcp-socket.log                               # runtime logs
+```
+
+After future `bun run build` cycles, reload:
+
+```bash
+launchctl kickstart -k gui/$(id -u)/videntia-figma-mcp.socket
+```
+
+Stop / uninstall:
+
+```bash
+launchctl unload ~/Library/LaunchAgents/videntia-figma-mcp.socket.plist
+```
+
+> The template's `PATH` targets Apple Silicon Homebrew (`/opt/homebrew/bin`). `$BUN_PATH` is absolute so non-Homebrew Bun installs still work; edit the `PATH` key only if your runtime shells out to other binaries.
+
+---
+
+### Step 3 — Load the Figma Plugin
+
+1. Open **Figma Desktop** (browser Figma cannot load dev plugins).
+2. Top menu → **Plugins → Development → Import plugin from manifest...**
+3. Select `src/videntia_figma_plugin/manifest.json` from this repo.
+4. Run it: **Plugins → Development → Videntia Figma MCP**.
+5. In the plugin window, ensure the WebSocket URL is `ws://localhost:3055`, then click **Connect / Join Channel**.
+6. The plugin displays a **Channel ID** — Claude auto-discovers it via `get_open_channels`.
+
+After every `bun run build`, close and reopen the plugin so Figma reloads `code.js`.
+
+---
+
+### Step 4 — Load the Chrome Extension
+
+The extension exposes browser DOM/screenshot/console tools and overlays Figma frames on any webpage.
+
+1. Open Chrome → navigate to `chrome://extensions`.
+2. Toggle **Developer mode** (top-right).
+3. Click **Load unpacked**.
+4. Select the `src/chrome_extension/` directory from this repo.
+5. Pin **Videntia Browser Connect** from the puzzle-piece menu.
+6. Click the extension icon → confirm it targets `http://localhost:3055`. Open any tab to start exposing it to Claude.
+
+After pulling extension changes, hit the **Reload** button on the extension card in `chrome://extensions`.
+
+---
+
+### Step 5 — Configure `.mcp.json`
+
+Create `.mcp.json` at your project root (or any directory where you want the MCP available):
 
 ```json
 {
   "mcpServers": {
-    "videntia-figma-mcp": {
-      "command": "node",
-      "args": ["/absolute/path/to/videntia-figma-mcp/dist/videntia_figma_mcp/server.js"]
+    "videntia-figma": {
+      "type": "sse",
+      "url": "http://localhost:3055/sse"
     }
   }
 }
 ```
 
-### After making plugin changes
+In Claude Code, run `/mcp` → **Reconnect**. Status should flip to `connected` and tools become available.
 
-Reload the plugin in Figma (close and reopen from the Plugins menu) to pick up the new `code.js`.
+For **Claude Desktop**, edit `~/Library/Application Support/Claude/claude_desktop_config.json` with the same `mcpServers` block (restart Claude after saving).
+For **Cursor**, paste the block into **Settings → Tools & Integrations → New MCP Server**.
+
+---
+
+## Hosted Setup (Alternative)
+
+A managed MCP runs at `https://figma-mcp.videntia.dev/sse` if you do not want to host locally.
+
+```bash
+claude mcp add --transport sse videntia-figma-mcp https://figma-mcp.videntia.dev/sse
+```
+
+Or `.mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "videntia-figma": {
+      "type": "sse",
+      "url": "https://figma-mcp.videntia.dev/sse"
+    }
+  }
+}
+```
+
+The Figma plugin then connects to `wss://figma-mcp.videntia.dev` automatically — skip steps 2 and 4 above.
+
+---
+
+## Local Development
+
+Self-Hosted Setup above covers install + build. Common dev commands:
+
+```bash
+bun run dev          # Watch mode — rebuilds on file changes
+bun run socket       # Run socket server in foreground (alternative to launchd)
+bun test --watch     # Run tests in watch mode
+```
+
+After plugin or socket changes:
+
+```bash
+bun run build && launchctl kickstart -k gui/$(id -u)/videntia-figma-mcp.socket
+```
+
+Then close and reopen the plugin in Figma so it reloads `code.js`.
 
 ### Tests
 
@@ -223,7 +231,7 @@ This project contains two `manifest.json` files with different purposes:
 
 | Problem                             | Fix                                                                                                                                      |
 | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| Can't connect to WebSocket          | Start the socket server (`bun run socket` or `docker compose up -d`)                                                                     |
+| Can't connect to WebSocket          | Check launchd: `lsof -iTCP:3055 -sTCP:LISTEN`. Reload: `launchctl kickstart -k gui/$(id -u)/videntia-figma-mcp.socket`. Foreground fallback: `bun run socket` |
 | Plugin not found                    | Re-import `src/videntia_figma_plugin/manifest.json` via Figma → Plugins → Development                                                      |
 | MCP not available in Claude Desktop | Restart Claude after editing the config file                                                                                             |
 | Font not found                      | Use `load_font_async` to verify font availability                                                                                        |

@@ -23,6 +23,7 @@ export const ALLOWED_COMMANDS = new Set([
   "ungroup_nodes",
   "flatten_node",
   "export_node_as_image",
+  "export_selection_as_image",
   "set_corner_radius",
   "get_styles",
   "get_local_components",
@@ -148,6 +149,7 @@ export const ALLOWED_COMMANDS = new Set([
   "bulk_export_frames",
   "get_content_tree",
   "get_frame_documentation",
+  "get_comments",
 ]);
 
 export const MIN_PROGRESS_DISPLAY_MS = 600;

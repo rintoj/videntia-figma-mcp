@@ -52,21 +52,41 @@ export async function focusNode(nodeId: string): Promise<void> {
  * Used by auto-focus to avoid disrupting the user's view.
  */
 export async function softFocusNode(nodeId: string): Promise<void> {
-  var node = await figma.getNodeByIdAsync(nodeId);
-  if (!node) return;
+  await softFocusNodes([nodeId]);
+}
 
-  var page = getPage(node);
+/**
+ * Soft focus for multiple nodes. Uses the first resolvable node's page. Skips
+ * scroll/zoom if all nodes are already visible.
+ */
+export async function softFocusNodes(nodeIds: string[]): Promise<void> {
+  if (!Array.isArray(nodeIds) || nodeIds.length === 0) return;
+
+  var scenes: SceneNode[] = [];
+  for (var i = 0; i < nodeIds.length; i++) {
+    var node = await figma.getNodeByIdAsync(nodeIds[i]);
+    if (node) scenes.push(node as SceneNode);
+  }
+  if (scenes.length === 0) return;
+
+  var page = getPage(scenes[0]);
   var onDifferentPage = page && page.id !== figma.currentPage.id;
-
   if (onDifferentPage) {
     figma.currentPage = page!;
   }
 
-  var scene = node as SceneNode;
-  figma.currentPage.selection = [scene];
+  figma.currentPage.selection = scenes;
 
-  if (onDifferentPage || !isNodeVisibleInViewport(scene)) {
-    figma.viewport.scrollAndZoomIntoView([scene]);
+  var anyHidden = false;
+  for (var j = 0; j < scenes.length; j++) {
+    if (!isNodeVisibleInViewport(scenes[j])) {
+      anyHidden = true;
+      break;
+    }
+  }
+
+  if (onDifferentPage || anyHidden) {
+    figma.viewport.scrollAndZoomIntoView(scenes);
   }
 }
 
