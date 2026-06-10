@@ -185,6 +185,7 @@ export type FigmaCommand =
   | "swap_instance"
   | "add_prototype_link"
   | "remove_prototype_link"
+  | "get_comments"
   | "export_selection_as_image";
 
 export type BrowserCommand =

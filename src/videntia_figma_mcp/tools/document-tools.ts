@@ -703,6 +703,100 @@ export function registerDocumentTools(server: McpServer): void {
     },
   );
 
+  // Get Comments Tool
+  server.tool(
+    "get_comments",
+    "Get all comments in the current Figma file. Returns comment text, author, creation time, replies, and canvas position. Unresolved comments are returned by default.",
+    {
+      includeResolved: mcpBooleanSchema
+        .optional()
+        .default(false)
+        .describe("Whether to include resolved comments (default: false)"),
+    },
+    async ({ includeResolved }) => {
+      try {
+        const result = await sendCommandToFigma<{
+          success: boolean;
+          count: number;
+          totalComments: number;
+          includeResolved: boolean;
+          comments: Array<{
+            id: string;
+            message: string;
+            author: { id: string; name: string };
+            createdAt: string;
+            editedAt: string | null;
+            resolved: boolean;
+            resolvedAt: string | null;
+            position?: Record<string, unknown>;
+            reactions?: Array<{ emoji: string; user: { id: string; name: string } | null; createdAt: string | null }>;
+            replies?: Array<{
+              id: string;
+              message: string;
+              author: { id: string; name: string } | null;
+              createdAt: string | null;
+              editedAt: string | null;
+            }>;
+          }>;
+        }>("get_comments", { includeResolved });
+
+        const comments = result.comments || [];
+
+        if (comments.length === 0) {
+          const scope = includeResolved ? "the file" : "the file (unresolved only)";
+          return { content: [{ type: "text", text: `No comments found in ${scope}.` }] };
+        }
+
+        const lines: string[] = [
+          `Found ${comments.length} comment(s)${result.totalComments !== result.count ? ` (${result.totalComments} total)` : ""}`,
+          "",
+        ];
+
+        const escapeMd = (s: string): string => s.replace(/[\\`*_{}\[\]()#+\-.!|>~]/g, "\\$&");
+        const inlineMessage = (s: string): string => escapeMd(s).replace(/\r?\n/g, " ");
+
+        for (const c of comments) {
+          lines.push(`### ${c.resolved ? "[Resolved] " : ""}Comment ${c.id}`);
+          lines.push(`**Author:** ${escapeMd(c.author.name)}`);
+          lines.push(`**Created:** ${c.createdAt}${c.editedAt ? ` (edited ${c.editedAt})` : ""}`);
+          if (c.position) {
+            const pos = c.position as Record<string, unknown>;
+            if (pos["type"] === "canvas") {
+              lines.push(`**Position:** canvas (${pos["x"]}, ${pos["y"]})`);
+            } else if (pos["type"] === "frame") {
+              const offset = pos["offset"] as Record<string, unknown> | undefined;
+              lines.push(`**Position:** frame ${pos["nodeId"]}${offset ? ` at (${offset["x"]}, ${offset["y"]})` : ""}`);
+            }
+          }
+          lines.push(`**Message:** ${inlineMessage(c.message)}`);
+          if (c.reactions && c.reactions.length > 0) {
+            const emojiSummary = c.reactions.map((r) => r.emoji).join(" ");
+            lines.push(`**Reactions:** ${emojiSummary}`);
+          }
+          if (c.replies && c.replies.length > 0) {
+            lines.push(`**Replies (${c.replies.length}):**`);
+            for (const r of c.replies) {
+              const replyAuthor = r.author?.name ? escapeMd(r.author.name) : "Unknown";
+              lines.push(`  - ${replyAuthor}: ${inlineMessage(r.message)}`);
+            }
+          }
+          lines.push("");
+        }
+
+        return { content: [{ type: "text", text: lines.join("\n") }] };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error getting comments: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
   // Scan Nodes By Types Tool
   server.tool(
     "scan_nodes_by_types",

@@ -9,7 +9,7 @@
     "figjam",
     "dev"
   ],
-  "permissions": ["teamlibrary"],
+  "permissions": ["teamlibrary", "comments"],
   "networkAccess": {
     "allowedDomains": [
       "wss://figma-mcp.videntia.dev",
