@@ -119,11 +119,48 @@ function respond(id, payload) {
   }));
 }
 
+// --- Tab resolution ---
+//
+// Priority: explicit params.tabId → pinned tab (storage.session) → active tab.
+// This prevents commands from leaking onto whichever tab happens to be focused
+// when the user has bound a specific tab to the Figma session.
+
+const PINNED_TAB_KEY = 'pinnedTab';
+
+async function resolveTargetTab(params) {
+  // 1. Explicit tabId from caller wins.
+  if (params && typeof params.tabId === 'number') {
+    try {
+      const tab = await chrome.tabs.get(params.tabId);
+      if (tab) return tab;
+    } catch (e) {
+      throw new Error(`Tab ${params.tabId} not found: ${e.message}`);
+    }
+  }
+
+  // 2. Pinned tab (set via popup) wins over focus.
+  const store = await chrome.storage.session.get(PINNED_TAB_KEY);
+  const pinned = store[PINNED_TAB_KEY];
+  if (pinned && typeof pinned.tabId === 'number') {
+    try {
+      const tab = await chrome.tabs.get(pinned.tabId);
+      if (tab) return tab;
+    } catch {
+      // Pinned tab is gone — clear and fall through.
+      await chrome.storage.session.remove(PINNED_TAB_KEY);
+    }
+  }
+
+  // 3. Fallback: whatever is active in the focused window.
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab) throw new Error('No active tab found and no pinned tab configured');
+  return tab;
+}
+
 // --- Command dispatcher ---
 
 async function handleBrowserCommand(command, params) {
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (!tab) throw new Error('No active tab found');
+  const tab = await resolveTargetTab(params);
 
   switch (command) {
     case 'get_dom_nodes':
@@ -151,8 +188,10 @@ async function handleBrowserCommand(command, params) {
     }
 
     case 'get_page_screenshot': {
-      const dataUrl = await chrome.tabs.captureVisibleTab(tab.windowId, { format: 'png' });
-      return { imageData: dataUrl.replace('data:image/png;base64,', ''), mimeType: 'image/png' };
+      // Use chrome.debugger Page.captureScreenshot so the target tab does not
+      // need to be focused. captureVisibleTab is bound to the active tab in
+      // the given window and cannot screenshot background tabs.
+      return captureScreenshotViaDebugger(tab);
     }
 
     case 'get_page_info':
@@ -160,6 +199,38 @@ async function handleBrowserCommand(command, params) {
 
     default:
       throw new Error(`Unknown browser command: ${command}`);
+  }
+}
+
+// --- Screenshot via debugger (works on non-focused tabs) ---
+
+async function captureScreenshotViaDebugger(tab) {
+  const target = { tabId: tab.id };
+  const store = await chrome.storage.session.get(ATTACHED_TABS_KEY);
+  const attached = store[ATTACHED_TABS_KEY] || {};
+  const alreadyAttached = !!attached[tab.id];
+
+  try {
+    if (!alreadyAttached) {
+      await chrome.debugger.attach(target, '1.3');
+    }
+    const result = await chrome.debugger.sendCommand(target, 'Page.captureScreenshot', {
+      format: 'png',
+      captureBeyondViewport: false,
+    });
+    return { imageData: result.data, mimeType: 'image/png' };
+  } catch (e) {
+    // Fall back to captureVisibleTab if debugger attach fails (e.g. user
+    // declined the debugger warning bar).
+    console.warn('[figma-overlay:bg] debugger screenshot failed, falling back:', e.message);
+    const dataUrl = await chrome.tabs.captureVisibleTab(tab.windowId, { format: 'png' });
+    return { imageData: dataUrl.replace('data:image/png;base64,', ''), mimeType: 'image/png' };
+  } finally {
+    // Only detach if we attached just for this screenshot — preserve the
+    // attachment when viewport emulation is in use.
+    if (!alreadyAttached) {
+      try { await chrome.debugger.detach(target); } catch {}
+    }
   }
 }
 
@@ -228,6 +299,45 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     const tabId = msg.tabId ?? sender.tab?.id;
     if (tabId != null) detachDebuggerForTab(tabId).then(() => sendResponse({ ok: true }));
     return true;
+  }
+
+  if (msg?.type === 'pinTab') {
+    (async () => {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (!tab) {
+        sendResponse({ ok: false, error: 'No active tab to pin' });
+        return;
+      }
+      const pinned = { tabId: tab.id, windowId: tab.windowId, url: tab.url, title: tab.title };
+      await chrome.storage.session.set({ [PINNED_TAB_KEY]: pinned });
+      sendResponse({ ok: true, pinned });
+    })();
+    return true;
+  }
+
+  if (msg?.type === 'unpinTab') {
+    (async () => {
+      await chrome.storage.session.remove(PINNED_TAB_KEY);
+      sendResponse({ ok: true });
+    })();
+    return true;
+  }
+
+  if (msg?.type === 'getPinnedTab') {
+    (async () => {
+      const store = await chrome.storage.session.get(PINNED_TAB_KEY);
+      sendResponse({ pinned: store[PINNED_TAB_KEY] || null });
+    })();
+    return true;
+  }
+});
+
+// Clear pinned tab if it gets closed.
+chrome.tabs.onRemoved.addListener(async (tabId) => {
+  const store = await chrome.storage.session.get(PINNED_TAB_KEY);
+  const pinned = store[PINNED_TAB_KEY];
+  if (pinned && pinned.tabId === tabId) {
+    await chrome.storage.session.remove(PINNED_TAB_KEY);
   }
 });
 

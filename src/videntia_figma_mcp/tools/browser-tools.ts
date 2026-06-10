@@ -4,28 +4,44 @@ import { sendCommandToChannel, sendCommandToFigma } from "../utils/websocket.js"
 
 const BROWSER_CHANNEL = "browser";
 
+const tabIdSchema = z
+  .number()
+  .int()
+  .optional()
+  .describe(
+    "Optional Chrome tab ID to target. When omitted, the extension uses its pinned tab (set via the popup) or falls back to the active tab in the focused window. Use get_browser_page_info to discover tab IDs.",
+  );
+
 export function registerBrowserTools(server: McpServer): void {
   server.tool(
     "get_browser_page_info",
-    "Get the URL and title of the currently active browser tab. Requires the Figma Overlay Chrome extension to be installed and connected.",
-    {},
-    async () => {
-      const result = await sendCommandToChannel<{ url: string; title: string }>(BROWSER_CHANNEL, "get_page_info", {});
+    "Get the URL, title, and tab ID of the target browser tab. Returns the active tab by default; pass tab_id to target a specific tab. Requires the Figma Overlay Chrome extension to be installed and connected.",
+    {
+      tab_id: tabIdSchema,
+    },
+    async ({ tab_id }) => {
+      const result = await sendCommandToChannel<{ url: string; title: string; tabId: number }>(
+        BROWSER_CHANNEL,
+        "get_page_info",
+        { tabId: tab_id },
+      );
       return {
-        content: [{ type: "text", text: `URL: ${result.url}\nTitle: ${result.title}` }],
+        content: [{ type: "text", text: `URL: ${result.url}\nTitle: ${result.title}\nTab ID: ${result.tabId}` }],
       };
     },
   );
 
   server.tool(
     "get_browser_page_screenshot",
-    "Take a screenshot of the visible area of the active browser tab. Returns a PNG image. Requires the Figma Overlay Chrome extension.",
-    {},
-    async () => {
+    "Take a screenshot of the visible area of a browser tab. Targets the pinned/active tab by default, or pass tab_id to screenshot a specific (even non-focused) tab. Returns a PNG image. Requires the Figma Overlay Chrome extension.",
+    {
+      tab_id: tabIdSchema,
+    },
+    async ({ tab_id }) => {
       const result = await sendCommandToChannel<{ imageData: string; mimeType: string }>(
         BROWSER_CHANNEL,
         "get_page_screenshot",
-        {},
+        { tabId: tab_id },
       );
       return {
         content: [{ type: "image", data: result.imageData, mimeType: result.mimeType }],
@@ -35,7 +51,7 @@ export function registerBrowserTools(server: McpServer): void {
 
   server.tool(
     "get_browser_dom_nodes",
-    "Get serialized DOM nodes from the active browser tab. Returns tag names, attributes, text content, bounding rects, and children. Requires the Figma Overlay Chrome extension.",
+    "Get serialized DOM nodes from a browser tab. Returns tag names, attributes, text content, bounding rects, and children. Targets the pinned/active tab by default, or pass tab_id to target a specific tab. Requires the Figma Overlay Chrome extension.",
     {
       selector: z
         .string()
@@ -60,13 +76,15 @@ export function registerBrowserTools(server: McpServer): void {
         .optional()
         .default(true)
         .describe("Include element attributes (id, class, href, src, role, aria-label, etc.)."),
+      tab_id: tabIdSchema,
     },
-    async ({ selector, depth, include_text, include_attributes }) => {
+    async ({ selector, depth, include_text, include_attributes, tab_id }) => {
       const result = await sendCommandToChannel(BROWSER_CHANNEL, "get_dom_nodes", {
         selector,
         depth,
         includeText: include_text,
         includeAttributes: include_attributes,
+        tabId: tab_id,
       });
       return {
         content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
@@ -76,7 +94,7 @@ export function registerBrowserTools(server: McpServer): void {
 
   server.tool(
     "get_browser_computed_styles",
-    "Get computed CSS styles for a DOM element in the active browser tab. Useful for comparing implemented styles against Figma design specs. Requires the Figma Overlay Chrome extension.",
+    "Get computed CSS styles for a DOM element in a browser tab. Useful for comparing implemented styles against Figma design specs. Targets the pinned/active tab by default, or pass tab_id to target a specific tab. Requires the Figma Overlay Chrome extension.",
     {
       selector: z
         .string()
@@ -89,9 +107,14 @@ export function registerBrowserTools(server: McpServer): void {
         .describe(
           "Specific CSS property names to return (e.g. ['color', 'font-size', 'padding']). Omit for a curated set covering color, typography, spacing, layout, and effects.",
         ),
+      tab_id: tabIdSchema,
     },
-    async ({ selector, properties }) => {
-      const result = await sendCommandToChannel(BROWSER_CHANNEL, "get_computed_styles", { selector, properties });
+    async ({ selector, properties, tab_id }) => {
+      const result = await sendCommandToChannel(BROWSER_CHANNEL, "get_computed_styles", {
+        selector,
+        properties,
+        tabId: tab_id,
+      });
       return {
         content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
       };
@@ -100,7 +123,7 @@ export function registerBrowserTools(server: McpServer): void {
 
   server.tool(
     "overlay_figma_selection_in_browser",
-    "Export the currently selected Figma frame and inject it as a semi-transparent overlay in the active browser tab. Useful for design vs implementation comparison. Requires both the Figma plugin and Chrome extension to be connected.",
+    "Export the currently selected Figma frame and inject it as a semi-transparent overlay in a browser tab. Targets the pinned/active tab by default, or pass tab_id to overlay a specific tab. Useful for design vs implementation comparison. Requires both the Figma plugin and Chrome extension to be connected.",
     {
       opacity: z
         .number()
@@ -141,8 +164,9 @@ export function registerBrowserTools(server: McpServer): void {
         .describe(
           "When true, overlay starts with difference blend mode enabled — pixel-perfect matches render black, mismatches render bright. Useful for autonomous visual diffing without human eyeballing.",
         ),
+      tab_id: tabIdSchema,
     },
-    async ({ opacity, scale, cropTop, cropBottom, offsetX, offsetY, blendMode }) => {
+    async ({ opacity, scale, cropTop, cropBottom, offsetX, offsetY, blendMode, tab_id }) => {
       const exported = await sendCommandToFigma<{
         imageData: string;
         mimeType: string;
@@ -162,12 +186,13 @@ export function registerBrowserTools(server: McpServer): void {
         offsetX,
         offsetY,
         blendMode,
+        tabId: tab_id,
       });
 
-      const browserInfo = await sendCommandToChannel<{ url: string; title: string }>(
+      const browserInfo = await sendCommandToChannel<{ url: string; title: string; tabId: number }>(
         BROWSER_CHANNEL,
         "get_page_info",
-        {},
+        { tabId: tab_id },
       );
 
       return {
@@ -176,7 +201,7 @@ export function registerBrowserTools(server: McpServer): void {
             type: "text",
             text: [
               `Overlay injected: "${exported.name ?? "selection"}" (${exported.originalWidth}×${exported.originalHeight}px) at ${Math.round(opacity * 100)}% opacity.`,
-              `Browser: ${browserInfo.title} — ${browserInfo.url}`,
+              `Browser: ${browserInfo.title} — ${browserInfo.url} (tab ${browserInfo.tabId})`,
               exported.name && !browserInfo.url.toLowerCase().includes(exported.name.toLowerCase().replace(/\s+/g, ""))
                 ? `⚠️ The Figma frame name "${exported.name}" may not match the current browser page — verify you're on the right page before comparing.`
                 : `✓ Ready to compare.`,
@@ -187,8 +212,15 @@ export function registerBrowserTools(server: McpServer): void {
     },
   );
 
-  server.tool("clear_browser_overlay", "Remove the Figma overlay from the active browser tab.", {}, async () => {
-    await sendCommandToChannel(BROWSER_CHANNEL, "clear_figma_overlay", {});
-    return { content: [{ type: "text", text: "Overlay cleared." }] };
-  });
+  server.tool(
+    "clear_browser_overlay",
+    "Remove the Figma overlay from a browser tab. Targets the pinned/active tab by default, or pass tab_id to clear a specific tab.",
+    {
+      tab_id: tabIdSchema,
+    },
+    async ({ tab_id }) => {
+      await sendCommandToChannel(BROWSER_CHANNEL, "clear_figma_overlay", { tabId: tab_id });
+      return { content: [{ type: "text", text: "Overlay cleared." }] };
+    },
+  );
 }
