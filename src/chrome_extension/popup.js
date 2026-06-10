@@ -656,3 +656,62 @@ document.addEventListener('keydown', (e) => {
 })();
 
 window.addEventListener('focus', () => refreshSelectedNodeName());
+
+// ---- Pinned target tab ----
+
+const pinBtn = document.getElementById('pinBtn');
+const unpinBtn = document.getElementById('unpinBtn');
+const pinnedTabInfo = document.getElementById('pinnedTabInfo');
+const pinnedTabText = document.getElementById('pinnedTabText');
+
+function sendBgMessage(msg) {
+  return new Promise((resolve) => {
+    chrome.runtime.sendMessage(msg, (response) => {
+      if (chrome.runtime.lastError) {
+        resolve({ ok: false, error: chrome.runtime.lastError.message });
+      } else {
+        resolve(response || {});
+      }
+    });
+  });
+}
+
+function renderPinnedTab(pinned) {
+  if (pinned && typeof pinned.tabId === 'number') {
+    pinnedTabInfo.style.display = '';
+    pinBtn.style.display = 'none';
+    const label = pinned.title || pinned.url || `Tab ${pinned.tabId}`;
+    pinnedTabText.textContent = label;
+    pinnedTabText.title = `${label}\n${pinned.url || ''}\nTab ID: ${pinned.tabId}`;
+  } else {
+    pinnedTabInfo.style.display = 'none';
+    pinBtn.style.display = '';
+    pinnedTabText.textContent = '—';
+    pinnedTabText.title = '';
+  }
+}
+
+async function refreshPinnedTab() {
+  const { pinned } = await sendBgMessage({ type: 'getPinnedTab' });
+  renderPinnedTab(pinned);
+}
+
+pinBtn?.addEventListener('click', async () => {
+  const res = await sendBgMessage({ type: 'pinTab' });
+  if (res.ok) {
+    renderPinnedTab(res.pinned);
+    setStatus(`Pinned: ${res.pinned.title || res.pinned.url}`, 'success');
+  } else {
+    setStatus(res.error || 'Failed to pin tab', 'error');
+  }
+});
+
+unpinBtn?.addEventListener('click', async () => {
+  const res = await sendBgMessage({ type: 'unpinTab' });
+  if (res.ok) {
+    renderPinnedTab(null);
+    setStatus('Tab unpinned.', 'success');
+  }
+});
+
+refreshPinnedTab();
