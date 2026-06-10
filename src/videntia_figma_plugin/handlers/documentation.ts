@@ -2,13 +2,13 @@
 
 function getParam<T>(params: Record<string, unknown>, key: string, defaultVal: T): T {
   const p = params !== null && params !== undefined ? params[key] : undefined;
-  return (p !== null && p !== undefined) ? p as T : defaultVal;
+  return p !== null && p !== undefined ? (p as T) : defaultVal;
 }
 
 function getOptParam<T>(params: Record<string, unknown>, key: string): T | undefined {
   if (params === null || params === undefined) return undefined;
   const p = params[key];
-  return (p !== null && p !== undefined) ? p as T : undefined;
+  return p !== null && p !== undefined ? (p as T) : undefined;
 }
 
 // ---------------------------------------------------------------------------
@@ -31,14 +31,14 @@ interface FrameSummary {
 }
 
 export async function enumerateAllFrames(params: Record<string, unknown>): Promise<Record<string, unknown>> {
-  const pageId = getOptParam<string>(params, 'pageId');
-  const topLevelOnly = getParam<boolean>(params, 'topLevelOnly', true);
-  const includeComponents = getParam<boolean>(params, 'includeComponents', false);
+  const pageId = getOptParam<string>(params, "pageId");
+  const topLevelOnly = getParam<boolean>(params, "topLevelOnly", true);
+  const includeComponents = getParam<boolean>(params, "includeComponents", false);
 
   const pagesToScan: PageNode[] = [];
 
   if (pageId) {
-    const page = figma.root.children.find(p => p.id === pageId);
+    const page = figma.root.children.find((p) => p.id === pageId);
     if (!page) throw new Error(`Page not found: ${pageId}`);
     pagesToScan.push(page);
   } else {
@@ -50,23 +50,24 @@ export async function enumerateAllFrames(params: Record<string, unknown>): Promi
   for (const page of pagesToScan) {
     await page.loadAsync();
 
-    const nodesToScan = topLevelOnly
-      ? page.children
-      : flattenAll(page.children);
+    const nodesToScan = topLevelOnly ? page.children : flattenAll(page.children);
 
     for (const node of nodesToScan) {
-      const isFrame = node.type === 'FRAME';
-      const isComponent = includeComponents && (node.type === 'COMPONENT' || node.type === 'COMPONENT_SET');
+      const isFrame = node.type === "FRAME";
+      const isComponent = includeComponents && (node.type === "COMPONENT" || node.type === "COMPONENT_SET");
       if (!isFrame && !isComponent) continue;
 
       const frameNode = node as FrameNode;
       let hasPrototypeLinks = false;
       let annotationCount = 0;
 
-      if ('reactions' in frameNode && Array.isArray(frameNode.reactions)) {
+      if ("reactions" in frameNode && Array.isArray(frameNode.reactions)) {
         hasPrototypeLinks = frameNode.reactions.length > 0;
       }
-      if ('annotations' in frameNode && Array.isArray((frameNode as unknown as { annotations: unknown[] }).annotations)) {
+      if (
+        "annotations" in frameNode &&
+        Array.isArray((frameNode as unknown as { annotations: unknown[] }).annotations)
+      ) {
         annotationCount = (frameNode as unknown as { annotations: unknown[] }).annotations.length;
       }
 
@@ -81,8 +82,9 @@ export async function enumerateAllFrames(params: Record<string, unknown>): Promi
         y: frameNode.y,
         hasPrototypeLinks,
         annotationCount,
-        childCount: 'children' in frameNode ? (frameNode as FrameNode).children.length : 0,
-        description: 'description' in frameNode ? (frameNode as unknown as { description?: string }).description : undefined,
+        childCount: "children" in frameNode ? (frameNode as FrameNode).children.length : 0,
+        description:
+          "description" in frameNode ? (frameNode as unknown as { description?: string }).description : undefined,
       });
     }
   }
@@ -98,7 +100,7 @@ function flattenAll(nodes: readonly SceneNode[]): SceneNode[] {
   const result: SceneNode[] = [];
   for (const node of nodes) {
     result.push(node);
-    if ('children' in node) {
+    if ("children" in node) {
       result.push(...flattenAll((node as FrameNode).children));
     }
   }
@@ -129,11 +131,11 @@ interface FlowEdge {
 }
 
 export async function mapPrototypeFlows(params: Record<string, unknown>): Promise<Record<string, unknown>> {
-  const pageId = getOptParam<string>(params, 'pageId');
+  const pageId = getOptParam<string>(params, "pageId");
 
   const pagesToScan: PageNode[] = [];
   if (pageId) {
-    const page = figma.root.children.find(p => p.id === pageId);
+    const page = figma.root.children.find((p) => p.id === pageId);
     if (!page) throw new Error(`Page not found: ${pageId}`);
     pagesToScan.push(page);
   } else {
@@ -150,7 +152,7 @@ export async function mapPrototypeFlows(params: Record<string, unknown>): Promis
   }
 
   // Find entry points — nodes that are destinations of no edges
-  const destinationIds = new Set(edges.map(e => e.toId));
+  const destinationIds = new Set(edges.map((e) => e.toId));
   for (const [id, node] of nodesMap) {
     if (!destinationIds.has(id)) {
       entryPoints.push(node);
@@ -173,7 +175,7 @@ async function traverseForReactions(
   edges: FlowEdge[],
 ): Promise<void> {
   for (const node of nodes) {
-    if ('reactions' in node) {
+    if ("reactions" in node) {
       const reactiveNode = node as unknown as {
         id: string;
         name: string;
@@ -201,7 +203,7 @@ async function traverseForReactions(
               const destNode = await figma.getNodeByIdAsync(action.destinationId);
               if (destNode) {
                 const destPageId = getPageId(destNode);
-                const destPage = destPageId ? figma.root.children.find(p => p.id === destPageId) : page;
+                const destPage = destPageId ? figma.root.children.find((p) => p.id === destPageId) : page;
 
                 if (!nodesMap.has(destNode.id)) {
                   nodesMap.set(destNode.id, {
@@ -218,7 +220,7 @@ async function traverseForReactions(
                   fromName: reactiveNode.name,
                   toId: destNode.id,
                   toName: destNode.name,
-                  trigger: reaction.trigger?.type ?? 'UNKNOWN',
+                  trigger: reaction.trigger?.type ?? "UNKNOWN",
                   action: action.type,
                   pageId: page.id,
                   pageName: page.name,
@@ -230,7 +232,7 @@ async function traverseForReactions(
       }
     }
 
-    if ('children' in node) {
+    if ("children" in node) {
       await traverseForReactions((node as FrameNode).children, page, nodesMap, edges);
     }
   }
@@ -239,7 +241,7 @@ async function traverseForReactions(
 function getPageId(node: BaseNode): string | null {
   let current: BaseNode | null = node;
   while (current) {
-    if (current.type === 'PAGE') return current.id;
+    if (current.type === "PAGE") return current.id;
     current = current.parent;
   }
   return null;
@@ -250,10 +252,10 @@ function getPageId(node: BaseNode): string | null {
 // ---------------------------------------------------------------------------
 
 export async function bulkExportFrames(params: Record<string, unknown>): Promise<Record<string, unknown>> {
-  const nodeIds = getOptParam<string[]>(params, 'nodeIds');
-  const format = getParam<string>(params, 'format', 'PNG').toUpperCase() as 'PNG' | 'JPG' | 'SVG' | 'PDF';
-  const scale = getParam<number>(params, 'scale', 1);
-  const pageId = getOptParam<string>(params, 'pageId');
+  const nodeIds = getOptParam<string[]>(params, "nodeIds");
+  const format = getParam<string>(params, "format", "PNG").toUpperCase() as "PNG" | "JPG" | "SVG" | "PDF";
+  const scale = getParam<number>(params, "scale", 1);
+  const pageId = getOptParam<string>(params, "pageId");
 
   let targetIds: string[] = [];
 
@@ -261,13 +263,9 @@ export async function bulkExportFrames(params: Record<string, unknown>): Promise
     targetIds = nodeIds;
   } else {
     // Export all top-level frames from the given page (or current page)
-    const page = pageId
-      ? figma.root.children.find(p => p.id === pageId) ?? figma.currentPage
-      : figma.currentPage;
+    const page = pageId ? (figma.root.children.find((p) => p.id === pageId) ?? figma.currentPage) : figma.currentPage;
     await page.loadAsync();
-    targetIds = page.children
-      .filter(n => n.type === 'FRAME' || n.type === 'COMPONENT')
-      .map(n => n.id);
+    targetIds = page.children.filter((n) => n.type === "FRAME" || n.type === "COMPONENT").map((n) => n.id);
   }
 
   const results: Array<{
@@ -282,8 +280,16 @@ export async function bulkExportFrames(params: Record<string, unknown>): Promise
 
   for (const id of targetIds) {
     const node = await figma.getNodeByIdAsync(id);
-    if (!node || !('exportAsync' in node)) {
-      results.push({ nodeId: id, name: '', format, width: 0, height: 0, data: '', error: 'Node not found or not exportable' });
+    if (!node || !("exportAsync" in node)) {
+      results.push({
+        nodeId: id,
+        name: "",
+        format,
+        width: 0,
+        height: 0,
+        data: "",
+        error: "Node not found or not exportable",
+      });
       continue;
     }
 
@@ -298,11 +304,11 @@ export async function bulkExportFrames(params: Record<string, unknown>): Promise
     try {
       const bytes = await exportNode.exportAsync({
         format,
-        constraint: scale !== 1 ? { type: 'SCALE', value: scale } : undefined,
+        constraint: scale !== 1 ? { type: "SCALE", value: scale } : undefined,
       });
 
       // Convert to base64
-      let binary = '';
+      let binary = "";
       for (let i = 0; i < bytes.length; i++) {
         binary += String.fromCharCode(bytes[i]);
       }
@@ -323,7 +329,7 @@ export async function bulkExportFrames(params: Record<string, unknown>): Promise
         format,
         width: exportNode.width,
         height: exportNode.height,
-        data: '',
+        data: "",
         error: err instanceof Error ? err.message : String(err),
       });
     }
@@ -331,8 +337,8 @@ export async function bulkExportFrames(params: Record<string, unknown>): Promise
 
   return {
     total: results.length,
-    succeeded: results.filter(r => !r.error).length,
-    failed: results.filter(r => r.error).length,
+    succeeded: results.filter((r) => !r.error).length,
+    failed: results.filter((r) => r.error).length,
     exports: results,
   };
 }
@@ -356,10 +362,10 @@ interface ContentNode {
 }
 
 export async function getContentTree(params: Record<string, unknown>): Promise<Record<string, unknown>> {
-  const nodeId = getOptParam<string>(params, 'nodeId');
-  const pageId = getOptParam<string>(params, 'pageId');
-  const maxDepth = getParam<number>(params, 'maxDepth', 5);
-  const includeImages = getParam<boolean>(params, 'includeImages', false);
+  const nodeId = getOptParam<string>(params, "nodeId");
+  const pageId = getOptParam<string>(params, "pageId");
+  const maxDepth = getParam<number>(params, "maxDepth", 5);
+  const includeImages = getParam<boolean>(params, "includeImages", false);
 
   let rootNodes: SceneNode[] = [];
 
@@ -368,14 +374,12 @@ export async function getContentTree(params: Record<string, unknown>): Promise<R
     if (!node) throw new Error(`Node not found: ${nodeId}`);
     rootNodes = [node as SceneNode];
   } else {
-    const page = pageId
-      ? figma.root.children.find(p => p.id === pageId) ?? figma.currentPage
-      : figma.currentPage;
+    const page = pageId ? (figma.root.children.find((p) => p.id === pageId) ?? figma.currentPage) : figma.currentPage;
     await page.loadAsync();
-    rootNodes = page.children.filter(n => n.type === 'FRAME') as SceneNode[];
+    rootNodes = page.children.filter((n) => n.type === "FRAME") as SceneNode[];
   }
 
-  const tree = rootNodes.map(n => buildContentNode(n, 0, maxDepth, includeImages));
+  const tree = rootNodes.map((n) => buildContentNode(n, 0, maxDepth, includeImages));
   const allText = extractAllText(tree);
 
   return {
@@ -391,30 +395,30 @@ function buildContentNode(node: SceneNode, depth: number, maxDepth: number, incl
     name: node.name,
     type: node.type,
     role: inferRole(node),
-    width: 'width' in node ? (node as FrameNode).width : 0,
-    height: 'height' in node ? (node as FrameNode).height : 0,
+    width: "width" in node ? (node as FrameNode).width : 0,
+    height: "height" in node ? (node as FrameNode).height : 0,
   };
 
-  if (node.type === 'TEXT') {
+  if (node.type === "TEXT") {
     const textNode = node as TextNode;
     result.text = textNode.characters;
-    result.fontSize = typeof textNode.fontSize === 'number' ? textNode.fontSize : undefined;
-    result.fontWeight = typeof textNode.fontWeight === 'number' ? String(textNode.fontWeight) : undefined;
+    result.fontSize = typeof textNode.fontSize === "number" ? textNode.fontSize : undefined;
+    result.fontWeight = typeof textNode.fontWeight === "number" ? String(textNode.fontWeight) : undefined;
   }
 
-  if ('fills' in node && includeImages) {
+  if ("fills" in node && includeImages) {
     const fills = (node as FrameNode).fills;
     if (Array.isArray(fills)) {
-      const imageFills = fills.filter(f => f.type === 'IMAGE');
+      const imageFills = fills.filter((f) => f.type === "IMAGE");
       if (imageFills.length > 0) {
         result.fills = `image(${imageFills.length})`;
       }
     }
   }
 
-  if (depth < maxDepth && 'children' in node) {
-    result.children = (node as FrameNode).children.map(
-      child => buildContentNode(child, depth + 1, maxDepth, includeImages)
+  if (depth < maxDepth && "children" in node) {
+    result.children = (node as FrameNode).children.map((child) =>
+      buildContentNode(child, depth + 1, maxDepth, includeImages),
     );
   }
 
@@ -423,28 +427,28 @@ function buildContentNode(node: SceneNode, depth: number, maxDepth: number, incl
 
 function inferRole(node: SceneNode): string {
   const name = node.name.toLowerCase();
-  if (node.type === 'TEXT') {
+  if (node.type === "TEXT") {
     const textNode = node as TextNode;
-    const size = typeof textNode.fontSize === 'number' ? textNode.fontSize : 0;
-    if (size >= 24) return 'heading';
-    if (size >= 16) return 'subheading';
-    if (name.includes('label') || name.includes('caption')) return 'label';
-    if (name.includes('button') || name.includes('cta')) return 'cta';
-    if (name.includes('hint') || name.includes('placeholder')) return 'hint';
-    return 'body';
+    const size = typeof textNode.fontSize === "number" ? textNode.fontSize : 0;
+    if (size >= 24) return "heading";
+    if (size >= 16) return "subheading";
+    if (name.includes("label") || name.includes("caption")) return "label";
+    if (name.includes("button") || name.includes("cta")) return "cta";
+    if (name.includes("hint") || name.includes("placeholder")) return "hint";
+    return "body";
   }
-  if (node.type === 'FRAME') {
-    if (name.includes('screen') || name.includes('page')) return 'screen';
-    if (name.includes('card')) return 'card';
-    if (name.includes('modal') || name.includes('dialog')) return 'modal';
-    if (name.includes('nav') || name.includes('tab')) return 'navigation';
-    if (name.includes('header')) return 'header';
-    if (name.includes('footer')) return 'footer';
-    if (name.includes('button') || name.includes('cta')) return 'button';
-    return 'container';
+  if (node.type === "FRAME") {
+    if (name.includes("screen") || name.includes("page")) return "screen";
+    if (name.includes("card")) return "card";
+    if (name.includes("modal") || name.includes("dialog")) return "modal";
+    if (name.includes("nav") || name.includes("tab")) return "navigation";
+    if (name.includes("header")) return "header";
+    if (name.includes("footer")) return "footer";
+    if (name.includes("button") || name.includes("cta")) return "button";
+    return "container";
   }
-  if (node.type === 'COMPONENT' || node.type === 'INSTANCE') return 'component';
-  if (node.type === 'VECTOR' || node.type === 'ELLIPSE' || node.type === 'RECTANGLE') return 'shape';
+  if (node.type === "COMPONENT" || node.type === "INSTANCE") return "component";
+  if (node.type === "VECTOR" || node.type === "ELLIPSE" || node.type === "RECTANGLE") return "shape";
   return node.type.toLowerCase();
 }
 
@@ -461,7 +465,7 @@ interface TextItem {
 // ---------------------------------------------------------------------------
 
 interface CommentMeta {
-  type: 'canvas' | 'frame';
+  type: "canvas" | "frame";
   x?: number;
   y?: number;
   nodeId?: string;
@@ -478,21 +482,42 @@ interface FigmaWithComments {
     clientMeta?: { x?: unknown; y?: unknown; nodeId?: unknown; nodeOffset?: unknown };
     replies?: ReadonlyArray<{ id: string; message: string; author?: { id: string; name: string }; createdAt?: Date }>;
   }>;
-  getCommentsAsync?: () => Promise<ReadonlyArray<{
-    id: string;
-    message: string;
-    author: { id: string; name: string };
-    createdAt: Date;
-    resolved: boolean;
-    clientMeta?: { x?: unknown; y?: unknown; nodeId?: unknown; nodeOffset?: unknown };
-    replies?: ReadonlyArray<{ id: string; message: string; author?: { id: string; name: string }; createdAt?: Date }>;
-  }>>;
+  getCommentsAsync?: () => Promise<
+    ReadonlyArray<{
+      id: string;
+      message: string;
+      author: { id: string; name: string };
+      createdAt: Date;
+      resolved: boolean;
+      clientMeta?: { x?: unknown; y?: unknown; nodeId?: unknown; nodeOffset?: unknown };
+      replies?: ReadonlyArray<{ id: string; message: string; author?: { id: string; name: string }; createdAt?: Date }>;
+    }>
+  >;
 }
 
-type AnnotatableNode = BaseNode & { readonly annotations: ReadonlyArray<{ label?: string; labelMarkdown?: string; categoryId?: string; properties?: unknown[] }> };
+type AnnotatableNode = BaseNode & {
+  readonly annotations: ReadonlyArray<{
+    label?: string;
+    labelMarkdown?: string;
+    categoryId?: string;
+    properties?: unknown[];
+  }>;
+};
 
 function isAnnotatable(node: BaseNode): boolean {
-  return ['FRAME','COMPONENT','COMPONENT_SET','INSTANCE','RECTANGLE','ELLIPSE','VECTOR','LINE','POLYGON','STAR','TEXT'].includes(node.type);
+  return [
+    "FRAME",
+    "COMPONENT",
+    "COMPONENT_SET",
+    "INSTANCE",
+    "RECTANGLE",
+    "ELLIPSE",
+    "VECTOR",
+    "LINE",
+    "POLYGON",
+    "STAR",
+    "TEXT",
+  ].includes(node.type);
 }
 
 async function collectAnnotations(node: BaseNode): Promise<Record<string, unknown>[]> {
@@ -505,14 +530,14 @@ async function collectAnnotations(node: BaseNode): Promise<Record<string, unknow
         nodeId: node.id,
         nodeName: node.name,
         nodeType: node.type,
-        label: ann.label ?? '',
-        labelMarkdown: ann.labelMarkdown ?? '',
+        label: ann.label ?? "",
+        labelMarkdown: ann.labelMarkdown ?? "",
         categoryId: ann.categoryId,
         properties: ann.properties,
       });
     }
   }
-  if ('children' in node) {
+  if ("children" in node) {
     for (const child of (node as FrameNode).children) {
       results.push(...(await collectAnnotations(child)));
     }
@@ -523,7 +548,7 @@ async function collectAnnotations(node: BaseNode): Promise<Record<string, unknow
 function collectDescendantIds(node: BaseNode): Set<string> {
   const ids = new Set<string>();
   ids.add(node.id);
-  if ('children' in node) {
+  if ("children" in node) {
     for (const child of (node as FrameNode).children) {
       for (const id of collectDescendantIds(child)) ids.add(id);
     }
@@ -538,25 +563,30 @@ function toIso(date: unknown): string | null {
 }
 
 export async function getFrameDocumentation(params: Record<string, unknown>): Promise<Record<string, unknown>> {
-  const nodeIds = getOptParam<string[]>(params, 'nodeIds');
-  const nodeId = getOptParam<string>(params, 'nodeId');
-  const includeResolved = getParam<boolean>(params, 'includeResolved', false);
+  const nodeIds = getOptParam<string[]>(params, "nodeIds");
+  const nodeId = getOptParam<string>(params, "nodeId");
+  const includeResolved = getParam<boolean>(params, "includeResolved", false);
 
   const ids: string[] = nodeIds && nodeIds.length > 0 ? nodeIds : nodeId ? [nodeId] : [];
-  if (ids.length === 0) throw new Error('Provide nodeId or nodeIds');
+  if (ids.length === 0) throw new Error("Provide nodeId or nodeIds");
 
   // Load all comments once
   const figmaAny = figma as unknown as FigmaWithComments;
-  let allComments: ReturnType<typeof Array.from<{
-    id: string; message: string; author: { id: string; name: string };
-    createdAt: Date; resolved: boolean;
-    clientMeta?: { x?: unknown; y?: unknown; nodeId?: unknown; nodeOffset?: unknown };
-    replies?: ReadonlyArray<{ id: string; message: string; author?: { id: string; name: string }; createdAt?: Date }>;
-  }>> = [];
+  let allComments: ReturnType<
+    typeof Array.from<{
+      id: string;
+      message: string;
+      author: { id: string; name: string };
+      createdAt: Date;
+      resolved: boolean;
+      clientMeta?: { x?: unknown; y?: unknown; nodeId?: unknown; nodeOffset?: unknown };
+      replies?: ReadonlyArray<{ id: string; message: string; author?: { id: string; name: string }; createdAt?: Date }>;
+    }>
+  > = [];
 
   if (Array.isArray(figmaAny.comments)) {
     allComments = Array.from(figmaAny.comments);
-  } else if (typeof figmaAny.getCommentsAsync === 'function') {
+  } else if (typeof figmaAny.getCommentsAsync === "function") {
     allComments = Array.from(await figmaAny.getCommentsAsync());
   }
 
@@ -565,21 +595,28 @@ export async function getFrameDocumentation(params: Record<string, unknown>): Pr
   for (const id of ids) {
     const node = await figma.getNodeByIdAsync(id);
     if (!node) {
-      frames.push({ nodeId: id, error: 'Node not found' });
+      frames.push({ nodeId: id, error: "Node not found" });
       continue;
     }
 
     const frameNode = node as unknown as FrameNode & {
-      x: number; y: number; width: number; height: number;
+      x: number;
+      y: number;
+      width: number;
+      height: number;
       reactions?: Array<{ trigger: { type: string } | null; actions: Array<{ type: string; destinationId?: string }> }>;
     };
 
     // Page info
-    let pageId = '';
-    let pageName = '';
+    let pageId = "";
+    let pageName = "";
     let current: BaseNode | null = node;
     while (current) {
-      if (current.type === 'PAGE') { pageId = current.id; pageName = current.name; break; }
+      if (current.type === "PAGE") {
+        pageId = current.id;
+        pageName = current.name;
+        break;
+      }
       current = current.parent;
     }
 
@@ -597,7 +634,7 @@ export async function getFrameDocumentation(params: Record<string, unknown>): Pr
             destName = dest?.name;
           }
           reactions.push({
-            trigger: r.trigger?.type ?? 'UNKNOWN',
+            trigger: r.trigger?.type ?? "UNKNOWN",
             action: action.type,
             destinationId: action.destinationId,
             destinationName: destName,
@@ -614,8 +651,8 @@ export async function getFrameDocumentation(params: Record<string, unknown>): Pr
     const frameH = frameNode.height ?? 0;
 
     const frameComments = allComments
-      .filter(c => includeResolved || !c.resolved)
-      .filter(c => {
+      .filter((c) => includeResolved || !c.resolved)
+      .filter((c) => {
         const meta = c.clientMeta;
         if (!meta) return false;
         if (meta.nodeId !== undefined) {
@@ -628,21 +665,23 @@ export async function getFrameDocumentation(params: Record<string, unknown>): Pr
         }
         return false;
       })
-      .map(c => ({
+      .map((c) => ({
         id: c.id,
         message: c.message,
         author: { id: c.author.id, name: c.author.name },
         createdAt: toIso(c.createdAt),
         resolved: c.resolved,
         position: c.clientMeta?.nodeId
-          ? { type: 'frame', nodeId: c.clientMeta.nodeId }
-          : { type: 'canvas', x: c.clientMeta?.x, y: c.clientMeta?.y },
-        replies: c.replies ? Array.from(c.replies).map(r => ({
-          id: r.id,
-          message: r.message,
-          author: r.author ? { id: r.author.id, name: r.author.name } : null,
-          createdAt: toIso(r.createdAt),
-        })) : [],
+          ? { type: "frame", nodeId: c.clientMeta.nodeId }
+          : { type: "canvas", x: c.clientMeta?.x, y: c.clientMeta?.y },
+        replies: c.replies
+          ? Array.from(c.replies).map((r) => ({
+              id: r.id,
+              message: r.message,
+              author: r.author ? { id: r.author.id, name: r.author.name } : null,
+              createdAt: toIso(r.createdAt),
+            }))
+          : [],
       }));
 
     frames.push({
@@ -669,7 +708,7 @@ export async function getFrameDocumentation(params: Record<string, unknown>): Pr
 function extractAllText(nodes: ContentNode[]): TextItem[] {
   const items: TextItem[] = [];
   for (const node of nodes) {
-    if (node.text !== undefined && node.text !== '') {
+    if (node.text !== undefined && node.text !== "") {
       items.push({
         id: node.id,
         name: node.name,
