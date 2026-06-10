@@ -7,8 +7,13 @@ const portArg = args.find((arg) => arg.startsWith("--port="));
 const reconnectArg = args.find((arg) => arg.startsWith("--reconnect-interval="));
 const figmaTokenArg = args.find((arg) => arg.startsWith("--figma-token="));
 
+// When this process is the socket server itself (dist/socket.js), the embedded
+// MCP must connect to its own local WS rather than the remote default.
+const entry = process.argv[1] ?? "";
+const isSocketProcess = entry.endsWith("socket.js") || entry.endsWith("socket.ts") || entry.endsWith("socket.cjs");
+
 // Configuración de conexión extraída de argumentos CLI
-export const serverUrl = serverArg ? serverArg.split("=")[1] : "figma-mcp.videntia.dev";
+export const serverUrl = serverArg ? serverArg.split("=")[1] : isSocketProcess ? "localhost" : "figma-mcp.videntia.dev";
 export const defaultPort = portArg ? parseInt(portArg.split("=")[1], 10) : 3055;
 export const reconnectInterval = reconnectArg ? parseInt(reconnectArg.split("=")[1], 10) : 2000;
 
@@ -77,38 +82,4 @@ Most tools that accept an ID also accept a **name** as an alternative. You do no
 - **Dash normalization**: Names with dashes are automatically converted to slashes (e.g. \`"color-primary"\` → \`"color/primary"\`)
 
 Prefer using names over IDs — they are human-readable and don't require a prior lookup call.
-
-# Comparing Figma to Web (start_compare_figma_to_web)
-
-Do **not** call \`start_compare_figma_to_web\` on a large page-level node directly. Whole-page comparisons produce noisy diffs and useless reports. Instead:
-
-## Step 1 — Plan the comparison
-
-Call \`plan_figma_comparison\` with the target nodeId. It returns a list of logical sections (children of the node), each with:
-
-- \`nodeId\`, \`name\`, \`type\`, \`bbox\`
-- \`primaryText\` — visible text inside the section (useful for text anchors)
-- \`selectorCandidates\` — a ranked list of CSS selectors to try, derived from:
-  1. \`[data-figma-id="<nodeId>"]\` (works if the codebase annotates components)
-  2. Semantic tags inferred from the section name (\`Header\` → \`header\`, \`Nav\` → \`nav\`, etc.)
-  3. Text anchors (\`:has-text("Pricing")\`)
-  4. Kebab-cased class fragments from the name
-
-## Step 2 — Compare each section
-
-For each section returned by the plan, call \`start_compare_figma_to_web\` (then poll \`get_compare_result\` with the returned jobId) with:
-
-- \`nodeId\` = the section's nodeId
-- \`url\` = the same target URL
-- \`selector\` = the **first selector candidate that the agent has reason to believe will resolve** (e.g. you've seen the codebase use \`data-figma-id\`, or the name maps cleanly to a semantic tag). When unsure, try \`selectorCandidates[0]\` first; if the result echoes no \`selector\` (full-viewport fallback), retry with the next candidate.
-
-If no selector resolves, omit \`selector\` and fall back to the built-in 2D template-match (already enabled).
-
-## Step 3 — Aggregate
-
-Report per-section deviations. A single section above ~2% deviation is meaningful; a whole-page 5% number is not.
-
-## When to skip planning
-
-If the agent already knows the exact selector (e.g. user gave one, or the node is small and self-contained like a single button), skip \`plan_figma_comparison\` and call \`start_compare_figma_to_web\` directly.
 `;

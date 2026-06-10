@@ -17,16 +17,6 @@ describe("comparison tools registration", () => {
     registerComparisonTools(server);
   });
 
-  it("registers start_compare_figma_to_web tool", () => {
-    const tools = (server as any)._registeredTools;
-    expect(tools["start_compare_figma_to_web"]).toBeDefined();
-  });
-
-  it("registers plan_figma_comparison tool", () => {
-    const tools = (server as any)._registeredTools;
-    expect(tools["plan_figma_comparison"]).toBeDefined();
-  });
-
   it("registers compare_figma_to_component tool", () => {
     const tools = (server as any)._registeredTools;
     expect(tools["compare_figma_to_component"]).toBeDefined();

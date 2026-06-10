@@ -2,7 +2,14 @@ import WebSocket from "ws";
 import { v4 as uuidv4 } from "uuid";
 import { logger } from "./logger";
 import { serverUrl, defaultPort, WS_URL, reconnectInterval } from "../config/config";
-import { FigmaCommand, FigmaResponse, CommandProgressUpdate, PendingRequest, ProgressMessage } from "../types";
+import {
+  FigmaCommand,
+  FigmaResponse,
+  CommandProgressUpdate,
+  PendingRequest,
+  ProgressMessage,
+  BrowserCommand,
+} from "../types";
 
 class ChannelValidationError extends Error {
   constructor(message: string) {
@@ -14,6 +21,9 @@ class ChannelValidationError extends Error {
 // WebSocket connection and request tracking
 let ws: WebSocket | null = null;
 let currentChannel: string | null = null;
+
+// Track which non-Figma channels have been joined on the current WS connection
+const joinedChannels = new Set<string>();
 
 // Map of pending requests for promise tracking
 const pendingRequests = new Map<string, PendingRequest>();
@@ -157,6 +167,7 @@ export function connectToFigma(port: number = defaultPort) {
         `Disconnected from Figma socket server with code ${code} and reason: ${reason || "No reason provided"}`,
       );
       ws = null;
+      joinedChannels.clear();
 
       // Reject all pending requests
       for (const [id, request] of pendingRequests.entries()) {
@@ -353,5 +364,85 @@ function _sendCommandToFigma<T = unknown>(
     logger.info(`Sending command to Figma: ${command}`);
     logger.debug(`Request details: ${JSON.stringify(request)}`);
     ws.send(JSON.stringify(request));
+  }) as Promise<T>;
+}
+
+/**
+ * Ensures the current WS connection has joined the given channel.
+ * Used for non-Figma channels (e.g. "browser"). Idempotent per connection.
+ */
+async function ensureBrowserChannelJoined(channel: string): Promise<void> {
+  if (!ws || ws.readyState !== WebSocket.OPEN) {
+    throw new Error("Not connected to WebSocket server. Ensure the socket server is running.");
+  }
+  if (joinedChannels.has(channel)) return;
+
+  await new Promise<void>((resolve, reject) => {
+    const onMsg = (raw: WebSocket.RawData) => {
+      try {
+        const data = JSON.parse(raw.toString());
+        if (data.type === "system" && data.channel === channel && data.message?.result) {
+          clearTimeout(timer);
+          ws!.off("message", onMsg);
+          joinedChannels.add(channel);
+          resolve();
+        }
+      } catch {}
+    };
+    const timer = setTimeout(() => {
+      ws!.off("message", onMsg);
+      reject(new Error(`Timed out joining channel "${channel}"`));
+    }, 5000);
+    ws!.on("message", onMsg);
+    ws!.send(JSON.stringify({ type: "join", channel }));
+  });
+}
+
+/**
+ * Send a command to an explicit channel (not currentChannel).
+ * Used for non-Figma channels such as "browser".
+ */
+export async function sendCommandToChannel<T = unknown>(
+  targetChannel: string,
+  command: BrowserCommand,
+  params: unknown = {},
+  timeoutMs: number = 30000,
+): Promise<T> {
+  if (!ws || ws.readyState !== WebSocket.OPEN) {
+    throw new Error("Not connected to WebSocket server.");
+  }
+
+  await ensureBrowserChannelJoined(targetChannel);
+
+  return new Promise<T>((resolve, reject) => {
+    const id = uuidv4();
+
+    const timeout = setTimeout(() => {
+      if (pendingRequests.has(id)) {
+        pendingRequests.delete(id);
+        reject(
+          new Error(
+            `Browser command "${command}" timed out after ${timeoutMs / 1000}s. Is the Chrome extension connected?`,
+          ),
+        );
+      }
+    }, timeoutMs);
+
+    pendingRequests.set(id, {
+      resolve: resolve as (value: unknown) => void,
+      reject,
+      timeout,
+      lastActivity: Date.now(),
+    });
+
+    const request = {
+      id,
+      type: "message",
+      channel: targetChannel,
+      message: { id, command, params: { ...(params as any), commandId: id } },
+    };
+
+    logger.info(`Sending browser command: ${command}`);
+    ws!.send(JSON.stringify(request));
   }) as Promise<T>;
 }

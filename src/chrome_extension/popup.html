@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="dark" />
+  <title>Videntia Browser Connect</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #2b2b2b;
+      --bg-deep: #1c1c1c;
+      --bg-deeper: #1a1a1a;
+      --bg-mid: #242424;
+      --bg-chip: #1f1f1f;
+      --border: #383838;
+      --border-soft: #2a2a2a;
+      --border-chip: #2e2e2e;
+      --text: #e0e0e0;
+      --muted: #707070;
+      --muted-strong: #a0a0a0;
+      --muted-faint: #4c4c4c;
+      --primary: #4caf50;
+      --primary-fg: #ffffff;
+      --primary-tint-15: rgba(76, 175, 80, 0.15);
+      --primary-tint-22: rgba(76, 175, 80, 0.22);
+      --danger: #ef4444;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html {
+      background: #2b2b2b;
+      color-scheme: dark;
+    }
+
+    html, body {
+      width: 340px;
+      background: #2b2b2b;
+      color: var(--text);
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
+        Roboto, Helvetica, Arial, sans-serif;
+      font-size: 13px;
+      overflow: hidden;
+    }
+
+    button { font-family: inherit; }
+
+    .frame {
+      display: flex;
+      flex-direction: column;
+      width: 340px;
+      height: 600px;
+      background: var(--bg);
+      overflow: hidden;
+    }
+
+    /* ---------- Title bar ---------- */
+
+    .titlebar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px;
+    }
+
+    .title-left { display: flex; align-items: center; gap: 10px; }
+
+    .icon-box {
+      display: flex; align-items: center; justify-content: center;
+      width: 36px; height: 36px;
+      background: var(--primary);
+      border-radius: 8px;
+      flex-shrink: 0;
+    }
+
+    .title-text {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--primary-fg);
+      letter-spacing: -0.01em;
+    }
+
+    .close-btn {
+      background: none; border: none;
+      color: var(--muted);
+      cursor: pointer;
+      padding: 4px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 4px;
+    }
+    .close-btn:hover { color: var(--text); }
+
+    /* ---------- Content ---------- */
+
+    .content {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      padding: 16px;
+      flex: 1;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .field-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .label-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .label-value {
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--text);
+      letter-spacing: 0.04em;
+    }
+
+    /* ---------- Empty state ---------- */
+
+    .empty {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 16px;
+      flex: 1;
+      padding: 56px 16px 96px;  /* extra bottom padding reserves space for absolutely-pinned chip */
+    }
+
+    .empty-icon-box {
+      width: 64px; height: 64px;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--bg-deep);
+      border-radius: 12px;
+      color: var(--primary);
+    }
+
+    .empty-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .empty-desc {
+      font-size: 12px;
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.4;
+      max-width: 240px;
+      min-height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .cta-btn {
+      display: inline-flex;
+      align-items: center; justify-content: center;
+      gap: 6px;
+      padding: 9px 16px;
+      background: var(--primary-tint-15);
+      border: 1px solid var(--primary);
+      border-radius: 8px;
+      color: var(--primary);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .cta-btn:hover { background: var(--primary-tint-22); }
+    .cta-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .selection-info {
+      position: absolute;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 4px;
+      padding: 8px 12px;
+      width: calc(100% - 32px);
+      max-width: 260px;
+      height: 56px;
+    }
+    .selection-info-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .selection-info-name {
+      font-size: 12px;
+      color: var(--text);
+      text-align: center;
+      display: -webkit-box;
+      -webkit-line-clamp: 1;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+      word-break: break-all;
+    }
+    .selection-info.empty .selection-info-name { color: var(--muted); font-style: italic; }
+    .selection-info.invisible { visibility: hidden; }
+
+    /* ---------- Layers ---------- */
+
+    .layers-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .add-selected-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 8px;
+      background: var(--bg-chip);
+      border: 1px solid var(--border-chip);
+      border-radius: 5px;
+      color: var(--muted-strong);
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .add-selected-btn:hover { border-color: var(--primary); color: var(--text); }
+    .add-selected-btn svg { color: var(--primary); }
+
+    .layers { display: flex; flex-direction: column; gap: 6px; }
+
+    .layer-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      background: var(--bg-deep);
+      border: 1px solid var(--border-soft);
+      border-radius: 6px;
+    }
+
+    .layer-name {
+      flex: 1;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .layer-icon { flex-shrink: 0; display: flex; }
+    .figma-row .layer-icon { color: var(--primary); }
+    .page-row .layer-icon { color: var(--muted); }
+
+    .icon-btn {
+      background: none; border: none;
+      cursor: pointer;
+      padding: 0;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--muted);
+    }
+    .icon-btn:hover { color: var(--text); }
+    .icon-btn.on { color: var(--primary); }
+
+    /* ---------- Opacity slider ---------- */
+
+    .slider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 14px;
+      background: transparent;
+      outline: none;
+      cursor: pointer;
+      padding: 0;
+    }
+    .slider::-webkit-slider-runnable-track {
+      height: 4px;
+      border-radius: 2px;
+      background: linear-gradient(
+        to right,
+        #2e7d33 0%,
+        #6ed473 var(--fill, 60%),
+        var(--bg-mid) var(--fill, 60%),
+        var(--bg-mid) 100%
+      );
+    }
+    .slider::-moz-range-track {
+      height: 4px;
+      border-radius: 2px;
+      background: var(--bg-mid);
+    }
+    .slider::-moz-range-progress {
+      height: 4px;
+      border-radius: 2px;
+      background: linear-gradient(to right, #2e7d33, #6ed473);
+    }
+    .slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 3px;
+      height: 14px;
+      background: #6dd472;
+      border: 1px solid #6dd472;
+      border-radius: 2px;
+      cursor: pointer;
+      margin-top: -5px;
+    }
+    .slider::-moz-range-thumb {
+      width: 3px;
+      height: 14px;
+      background: #6dd472;
+      border: 1px solid #6dd472;
+      border-radius: 2px;
+      cursor: pointer;
+    }
+
+    /* ---------- Segmented (blend mode) ---------- */
+
+    .segmented {
+      display: flex;
+      gap: 3px;
+      padding: 3px;
+      background: var(--bg-deeper);
+      border: 1px solid var(--border-soft);
+      border-radius: 7px;
+    }
+    .seg {
+      flex: 1;
+      display: flex; align-items: center; justify-content: center;
+      padding: 5px 0;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--muted);
+      cursor: pointer;
+      border-radius: 5px;
+      background: transparent;
+      border: none;
+      transition: background 0.15s, color 0.15s;
+    }
+    .seg:hover { color: var(--text); }
+    .seg.active {
+      background: var(--primary-tint-22);
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    /* ---------- Frame size ---------- */
+
+    .size-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 6px 6px 10px;
+      background: var(--bg-deep);
+      border-radius: 6px;
+    }
+
+    .size-info {
+      display: flex; align-items: center;
+      gap: 6px;
+      color: var(--text);
+      font-size: 12px;
+      overflow: hidden;
+    }
+    .size-info svg { color: var(--muted); flex-shrink: 0; }
+    .size-info-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    .match-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      background: var(--primary-tint-15);
+      border: 1px solid var(--primary);
+      border-radius: 4px;
+      color: var(--primary);
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background 0.15s;
+    }
+    .match-btn:hover { background: var(--primary-tint-22); }
+    .match-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ---------- Nudge D-pad ---------- */
+
+    .step-chips {
+      display: flex;
+      gap: 2px;
+      padding: 2px;
+      background: var(--bg-mid);
+      border-radius: 5px;
+    }
+    .chip {
+      width: 28px; height: 18px;
+      display: flex; align-items: center; justify-content: center;
+      background: transparent;
+      border: none;
+      border-radius: 4px;
+      color: var(--muted-strong);
+      font-size: 10px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    .chip.active {
+      background: var(--primary-tint-22);
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    .dpad-wrapper {
+      display: flex;
+      justify-content: center;
+      padding: 2px 0;
+    }
+    .dpad {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .dpad-row { display: flex; gap: 4px; }
+    .dpad-cell { width: 30px; height: 30px; }
+    .nudge-btn {
+      width: 30px; height: 30px;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--bg-deep);
+      border: 1px solid var(--border-chip);
+      border-radius: 6px;
+      color: var(--muted-strong);
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .nudge-btn:hover { color: var(--text); border-color: #4a4a4a; }
+    .nudge-btn:active { background: var(--bg-mid); }
+    .nudge-btn.reset {
+      background: var(--primary-tint-15);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    .nudge-btn.reset:hover { background: var(--primary-tint-22); }
+
+    .key-hints {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+    }
+    .hint { display: inline-flex; align-items: center; gap: 4px; }
+    .kbd {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: 16px; height: 14px;
+      padding: 0 3px;
+      background: var(--bg-deep);
+      border: 1px solid var(--border-chip);
+      border-radius: 3px;
+      color: var(--muted-strong);
+      font-size: 9px;
+      font-weight: 600;
+    }
+    .hint-text { color: var(--muted); font-size: 10px; }
+    .hint-sep { color: var(--muted-faint); font-size: 10px; }
+
+    /* ---------- Status ---------- */
+
+    .status {
+      font-size: 11px;
+      color: var(--muted);
+      text-align: left;
+      min-height: 0;
+      max-height: 0;
+      overflow: hidden;
+      padding: 0 12px;
+      background: var(--bg-deep);
+      border-top: 1px solid rgba(255,255,255,0.04);
+      box-sizing: border-box;
+      transition: max-height 0.15s, padding 0.15s;
+    }
+    .status:not(:empty) {
+      max-height: 40px;
+      padding: 10px 12px;
+    }
+    .status.error { color: var(--danger); }
+    .status.success { color: var(--primary); }
+
+    /* ---------- Connection bar ---------- */
+
+    .connection-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 12px;
+      background: var(--bg-deep);
+    }
+
+    .conn-left {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .conn-icon { color: var(--primary); display: flex; flex-shrink: 0; }
+    .conn-icon.off { color: var(--muted); }
+    .conn-icon.err { color: var(--danger); }
+
+    .conn-channel {
+      font-size: 11px;
+      color: var(--primary);
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .conn-channel.muted { color: var(--muted); }
+
+    .conn-port { font-size: 11px; color: var(--muted); }
+
+    .channel-picker {
+      flex: 1;
+      background: var(--bg-mid);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text);
+      font-size: 11px;
+      padding: 2px 4px;
+      outline: none;
+      cursor: pointer;
+      min-width: 0;
+    }
+
+    .disconnect-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 8px;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--primary);
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .disconnect-btn:hover { border-color: var(--primary); background: var(--primary-tint-15); }
+    .disconnect-btn:disabled { color: var(--muted); cursor: default; }
+    .disconnect-btn:disabled:hover { border-color: var(--border); background: transparent; }
+
+    .hidden { display: none !important; }
+
+    /* ---------- Tabs ---------- */
+
+    .tabs {
+      display: flex;
+      width: 100%;
+      background: var(--bg-deeper);
+      border-bottom: 1px solid var(--border-soft);
+      position: relative;
+    }
+    .tab {
+      flex: 1;
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: 4px;
+      padding: 10px 0;
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      position: relative;
+    }
+    .tab:hover { color: var(--text); }
+    .tab.active { color: var(--primary); background: var(--bg); }
+    .tab.active::after {
+      content: '';
+      position: absolute;
+      left: 0; right: 0; bottom: -1px;
+      height: 2px;
+      background: var(--primary);
+    }
+
+    /* ---------- Settings ---------- */
+
+    .settings {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 16px;
+      flex: 1;
+    }
+    .section-title {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .setting-row {
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .setting-row-head {
+      display: flex; flex-direction: column; gap: 2px;
+    }
+    .setting-label {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text);
+    }
+    .setting-desc {
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+    .preset-row {
+      display: flex; gap: 6px;
+    }
+    .preset {
+      flex: 1;
+      display: inline-flex; align-items: center; justify-content: center;
+      padding: 6px 10px;
+      background: var(--bg-deep);
+      border: 1px solid var(--border-soft);
+      border-radius: 6px;
+      color: var(--muted-strong);
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .preset:hover { color: var(--text); border-color: #4a4a4a; }
+    .preset.active {
+      background: var(--primary-tint-15);
+      border-color: var(--primary);
+      color: var(--primary);
+      font-weight: 600;
+    }
+    .url-input {
+      width: 100%;
+      padding: 7px 10px;
+      background: var(--bg-deep);
+      border: 1px solid var(--border-soft);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 11px;
+      font-family: ui-monospace, "SF Mono", Menlo, monospace;
+      outline: none;
+    }
+    .url-input:focus { border-color: var(--primary); }
+    .divider {
+      width: 100%; height: 1px;
+      background: var(--border-soft);
+    }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <!-- Title bar -->
+    <div class="titlebar">
+      <div class="title-left">
+        <div class="icon-box">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+            stroke="#ffffff" stroke-width="1.67" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m18 16 4-4-4-4" />
+            <path d="m6 8-4 4 4 4" />
+            <path d="m14.5 4-5 16" />
+          </svg>
+        </div>
+        <span class="title-text">Videntia Browser Connect</span>
+      </div>
+      <button id="closeBtn" class="close-btn" title="Close">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 6 6 18" /><path d="m6 6 12 12" />
+        </svg>
+      </button>
+    </div>
+
+    <!-- Tab bar -->
+    <div class="tabs">
+      <button class="tab active" data-tab="overlay">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z" />
+          <path d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12" />
+        </svg>
+        Overlay
+      </button>
+      <button class="tab" data-tab="settings">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+          <circle cx="12" cy="12" r="3" />
+        </svg>
+        Settings
+      </button>
+    </div>
+
+    <!-- Empty state -->
+    <div id="emptyState" class="empty">
+      <div class="empty-icon-box">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2.33" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z" />
+          <path d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12" />
+          <path d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17" />
+        </svg>
+      </div>
+      <span class="empty-title">No overlays yet</span>
+      <span id="emptyDesc" class="empty-desc">Select a frame in Figma, then tap the button below to add it as an overlay.</span>
+      <button id="overlayCta" class="cta-btn">Overlay Selected Figma Node</button>
+      <div id="selectionInfo" class="selection-info hidden">
+        <span class="selection-info-label">Current selection</span>
+        <span id="selectionInfoName" class="selection-info-name">—</span>
+      </div>
+    </div>
+
+    <!-- Filled content -->
+    <div id="filledState" class="content hidden">
+      <!-- Layers -->
+      <div class="field">
+        <div class="layers-header">
+          <span class="field-label">Layers</span>
+          <button id="addSelectedBtn" class="add-selected-btn" title="Replace overlay with current Figma selection">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 12h14" /><path d="M12 5v14" />
+            </svg>
+            <span>Add Selected</span>
+          </button>
+        </div>
+        <div class="layers">
+          <div class="layer-row figma-row">
+            <span class="layer-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="22" x2="2" y1="6" y2="6" />
+                <line x1="22" x2="2" y1="18" y2="18" />
+                <line x1="6" x2="6" y1="2" y2="22" />
+                <line x1="18" x2="18" y1="2" y2="22" />
+              </svg>
+            </span>
+            <span class="layer-name" id="figmaLayerName">Figma · —</span>
+            <button class="icon-btn on" id="figmaEye" title="Toggle overlay visibility">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+            </button>
+            <button class="icon-btn" id="figmaRemove" title="Remove overlay">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 6 6 18" /><path d="m6 6 12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Opacity -->
+      <div class="field">
+        <div class="label-row">
+          <span class="field-label">Opacity</span>
+          <span class="label-value" id="opacityValue">60%</span>
+        </div>
+        <input type="range" id="opacitySlider" class="slider" min="0" max="100" value="60" />
+      </div>
+
+      <!-- Blend mode -->
+      <div class="field">
+        <span class="field-label">Blend mode</span>
+        <div class="segmented">
+          <button class="seg" data-mode="normal">Normal</button>
+          <button class="seg active" data-mode="difference">Difference</button>
+          <button class="seg" data-mode="multiply">Multiply</button>
+          <button class="seg" data-mode="overlay">Overlay</button>
+        </div>
+      </div>
+
+      <!-- Frame -->
+      <div class="field">
+        <span class="field-label">Frame</span>
+        <div class="size-row">
+          <div class="size-info">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect width="20" height="14" x="2" y="3" rx="2" />
+              <line x1="8" x2="16" y1="21" y2="21" />
+              <line x1="12" x2="12" y1="17" y2="21" />
+            </svg>
+            <span class="size-info-text" id="sizeInfoText">Browser  — × —</span>
+          </div>
+          <button id="matchBtn" class="match-btn" title="Resize browser window to match design">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="15 3 21 3 21 9" />
+              <polyline points="9 21 3 21 3 15" />
+              <line x1="21" x2="14" y1="3" y2="10" />
+              <line x1="3" x2="10" y1="21" y2="14" />
+            </svg>
+            <span>Match Design</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Nudge -->
+      <div class="field">
+        <div class="label-row">
+          <span class="field-label">Nudge</span>
+          <div class="step-chips" id="stepChips">
+            <button class="chip active" data-step="1">1px</button>
+            <button class="chip" data-step="4">4px</button>
+            <button class="chip" data-step="8">8px</button>
+          </div>
+        </div>
+        <div class="dpad-wrapper">
+          <div class="dpad">
+            <div class="dpad-row">
+              <div class="dpad-cell"></div>
+              <button class="nudge-btn" data-dir="up" title="Nudge up">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="m5 12 7-7 7 7" /><path d="M12 19V5" />
+                </svg>
+              </button>
+              <div class="dpad-cell"></div>
+            </div>
+            <div class="dpad-row">
+              <button class="nudge-btn" data-dir="left" title="Nudge left">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="m12 19-7-7 7-7" /><path d="M19 12H5" />
+                </svg>
+              </button>
+              <button class="nudge-btn reset" id="resetBtn" title="Reset offset">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                  <path d="M3 3v5h5" />
+                </svg>
+              </button>
+              <button class="nudge-btn" data-dir="right" title="Nudge right">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M5 12h14" /><path d="m12 5 7 7-7 7" />
+                </svg>
+              </button>
+            </div>
+            <div class="dpad-row">
+              <div class="dpad-cell"></div>
+              <button class="nudge-btn" data-dir="down" title="Nudge down">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 5v14" /><path d="m19 12-7 7-7-7" />
+                </svg>
+              </button>
+              <div class="dpad-cell"></div>
+            </div>
+          </div>
+        </div>
+        <div class="key-hints">
+          <div class="hint">
+            <span class="kbd">↑↓←→</span>
+            <span class="hint-text">move</span>
+          </div>
+          <span class="hint-sep">·</span>
+          <div class="hint">
+            <span class="kbd">⇧</span>
+            <span class="hint-text">×10</span>
+          </div>
+          <span class="hint-sep">·</span>
+          <div class="hint">
+            <span class="kbd">D</span>
+            <span class="hint-text">diff</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Settings panel -->
+    <div id="settingsPanel" class="settings hidden">
+      <span class="section-title">Connection</span>
+      <div class="setting-row">
+        <div class="setting-row-head">
+          <span class="setting-label">Server</span>
+          <span class="setting-desc">WebSocket endpoint that bridges Figma and the browser.</span>
+        </div>
+        <div class="preset-row" id="presetRow"></div>
+        <input type="text" id="serverUrlInput" class="url-input" spellcheck="false" autocomplete="off" />
+      </div>
+      <div class="divider"></div>
+      <span class="section-title">About</span>
+      <div class="setting-row">
+        <div class="setting-row-head">
+          <span class="setting-label">Videntia Browser Connect</span>
+          <span class="setting-desc">Overlay Figma frames on any webpage for design QA.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Global status (visible on all tabs) -->
+    <div id="status" class="status"></div>
+
+    <!-- Connection bar -->
+    <div class="connection-bar">
+      <div class="conn-left">
+        <span class="conn-icon off" id="connIcon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 12.55a11 11 0 0 1 14 0" />
+            <path d="M1.42 9a16 16 0 0 1 21.16 0" />
+            <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
+            <line x1="12" x2="12.01" y1="20" y2="20" />
+          </svg>
+        </span>
+        <span class="conn-channel muted" id="connChannel">no channel</span>
+        <select id="channelPicker" class="channel-picker" style="display:none;">
+          <option value="">— pick channel —</option>
+        </select>
+        <span class="conn-port">:3055</span>
+      </div>
+      <button id="connBtn" class="disconnect-btn" disabled>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m13 2-2 2.5h3L12 7" />
+          <path d="M8 4H6a2 2 0 0 0-2 2v11l4 4 4-4V6a2 2 0 0 0-2-2h-2z" />
+          <path d="m10 8 4 4" />
+          <path d="m14 22 4-4" />
+          <path d="m18 14 4 4" />
+        </svg>
+        <span id="connBtnLabel">Connect</span>
+      </button>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="popup-helpers.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

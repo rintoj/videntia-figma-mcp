@@ -8,6 +8,7 @@ import { registerVariableTools } from "./variable-tools.js";
 import { registerBatchTools } from "./batch-tools.js";
 import { registerIconTools } from "./icon-tools.js";
 import { registerComparisonTools } from "./comparison-tools.js";
+import { registerBrowserTools } from "./browser-tools.js";
 
 /**
  * Register all Figma tools to the MCP server
@@ -24,6 +25,7 @@ export function registerTools(server: McpServer): void {
   registerBatchTools(server);
   registerIconTools(server);
   registerComparisonTools(server);
+  registerBrowserTools(server);
 }
 
 // Export all tool registration functions for individual usage if needed
@@ -37,4 +39,5 @@ export {
   registerBatchTools,
   registerIconTools,
   registerComparisonTools,
+  registerBrowserTools,
 };
