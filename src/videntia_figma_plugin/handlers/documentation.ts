@@ -567,6 +567,7 @@ export async function getFrameDocumentation(params: Record<string, unknown>): Pr
   const nodeId = getOptParam<string>(params, "nodeId");
   const includeResolved = getParam<boolean>(params, "includeResolved", false);
 
+  // Defense-in-depth: MCP layer also gates this; throw here if called directly.
   const ids: string[] = nodeIds && nodeIds.length > 0 ? nodeIds : nodeId ? [nodeId] : [];
   if (ids.length === 0) throw new Error("Provide nodeId or nodeIds");
 
