@@ -14,6 +14,7 @@ import { register, verifyEmail, login } from "./auth/accounts";
 import { createToken, listTokens, revokeToken, validateKey } from "./auth/tokens";
 import { signJwt, verifyJwt, parseCookies } from "./auth/session";
 import { sendVerificationEmail } from "./auth/email";
+import { isSameFile } from "./socket-channel-identity";
 
 // Enhanced logging system
 const logger = {
@@ -98,7 +99,7 @@ async function readBody(req: http.IncomingMessage): Promise<string> {
 // ─── Figma relay state ────────────────────────────────────────────────────────
 
 const channels = new Map<string, Set<WebSocket>>();
-const channelMetadata = new Map<string, { fileName?: string; joinedAt: number }>();
+const channelMetadata = new Map<string, { fileName?: string; fileKey?: string; joinedAt: number }>();
 const stats = { totalConnections: 0, activeConnections: 0, messagesSent: 0, messagesReceived: 0, errors: 0 };
 
 function cleanupDeadConnections(): number {
@@ -120,6 +121,19 @@ function cleanupDeadConnections(): number {
   return removed;
 }
 
+// Removes a socket from a channel's client set, closing out the channel
+// entirely once no clients remain.
+function leaveChannel(channelName: string, ws: WebSocket): void {
+  const clients = channels.get(channelName);
+  if (!clients) return;
+  clients.delete(ws);
+  if (clients.size === 0) {
+    channels.delete(channelName);
+    channelMetadata.delete(channelName);
+    logger.info(`Removed empty channel: ${channelName}`);
+  }
+}
+
 function handleWebSocketMessage(ws: WebSocket, raw: string) {
   const clientId: string = (ws as any)._clientId ?? "unknown";
   stats.messagesReceived++;
@@ -132,30 +146,47 @@ function handleWebSocketMessage(ws: WebSocket, raw: string) {
       return;
     }
 
-    // Remove stale channels with same fileName
-    if (data.fileName) {
+    // Remove stale plugin connections for the same file (reconnect from the same
+    // Figma file, from a *different* socket). Only the plugin's own prior socket
+    // is closed here — other clients sharing the channel (e.g. an MCP session
+    // mid-command) are left alone.
+    if (data.fileName || data.fileKey) {
       for (const [existing, clients] of channels) {
         if (existing === channelName) continue;
-        if (channelMetadata.get(existing)?.fileName === data.fileName) {
-          clients.forEach((c) => c.close(1000, "Replaced by new connection"));
-          channels.delete(existing);
-          channelMetadata.delete(existing);
-          logger.info(`Removed stale channel ${existing} for file "${data.fileName}"`);
+        const existingMeta = channelMetadata.get(existing);
+        if (!existingMeta || !isSameFile(existingMeta, data)) continue;
+        const stalePlugins = [...clients].filter((c) => (c as any)._isPlugin);
+        stalePlugins.forEach((c) => {
+          c.close(1000, "Replaced by new connection");
+          leaveChannel(existing, c);
+        });
+        if (stalePlugins.length > 0) {
+          const label = existingMeta.fileName ?? existingMeta.fileKey;
+          logger.info(`Removed stale plugin connection(s) from channel ${existing} for file "${label}"`);
         }
       }
     }
 
-    // Deduplicate channel name
-    if (data.fileName && channels.has(channelName)) {
+    // Deduplicate channel name: only rename if the existing occupant is a *different* file
+    if ((data.fileName || data.fileKey) && channels.has(channelName)) {
       const existingMeta = channelMetadata.get(channelName);
-      if (existingMeta?.fileName && existingMeta.fileName !== data.fileName) {
+      if (existingMeta && (existingMeta.fileName || existingMeta.fileKey) && !isSameFile(existingMeta, data)) {
         let counter = 2;
         let candidate = channelName;
-        while (channels.has(candidate) && channelMetadata.get(candidate)?.fileName !== data.fileName) {
+        while (channels.has(candidate) && !isSameFile(channelMetadata.get(candidate) ?? {}, data)) {
           candidate = `${channelName}-${counter++}`;
         }
         channelName = candidate;
       }
+    }
+
+    // A socket belongs to at most one channel: rejoining under a new name (e.g. a
+    // plugin's fallback-channel-to-real-channel handoff, or an MCP session
+    // switching project channels) leaves its previous channel automatically,
+    // rather than relying on every join path to remember to send "leave".
+    const priorChannel = (ws as any)._channel;
+    if (priorChannel && priorChannel !== channelName) {
+      leaveChannel(priorChannel, ws);
     }
 
     if (!channels.has(channelName)) channels.set(channelName, new Set());
@@ -169,9 +200,11 @@ function handleWebSocketMessage(ws: WebSocket, raw: string) {
     logger.info(`Client ${clientId} joined channel: ${channelName} (plugin=${!!(ws as any)._isPlugin})`);
 
     if (!channelMetadata.has(channelName)) {
-      channelMetadata.set(channelName, { fileName: data.fileName, joinedAt: Date.now() });
-    } else if (data.fileName) {
-      channelMetadata.get(channelName)!.fileName = data.fileName;
+      channelMetadata.set(channelName, { fileName: data.fileName, fileKey: data.fileKey, joinedAt: Date.now() });
+    } else {
+      const meta = channelMetadata.get(channelName)!;
+      if (data.fileName) meta.fileName = data.fileName;
+      if (data.fileKey) meta.fileKey = data.fileKey;
     }
 
     ws.send(JSON.stringify({ type: "system", message: `Joined channel: ${channelName}`, channel: channelName }));
@@ -198,6 +231,12 @@ function handleWebSocketMessage(ws: WebSocket, raw: string) {
         stats.messagesSent++;
       }
     });
+    return;
+  }
+
+  if (data.type === "leave") {
+    const channelName: string = data.channel;
+    if (channelName) leaveChannel(channelName, ws);
     return;
   }
 

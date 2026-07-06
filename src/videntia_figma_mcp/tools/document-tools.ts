@@ -1610,7 +1610,9 @@ export function registerDocumentTools(server: McpServer): void {
           })
           .join("\n");
         const hasAnyPlugin = channels.some((ch) => ch.hasPlugin);
-        const warning = hasAnyPlugin ? "" : "\n\nWARNING: No channels have an active Figma plugin. Open the Claude MCP Plugin inside Figma to connect.";
+        const warning = hasAnyPlugin
+          ? ""
+          : "\n\nWARNING: No channels have an active Figma plugin. Open the Claude MCP Plugin inside Figma to connect.";
         return {
           content: [
             {

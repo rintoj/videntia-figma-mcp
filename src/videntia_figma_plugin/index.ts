@@ -359,7 +359,7 @@ var FOCUS_AFTER_COMMANDS = new Set([
 figma.showUI(__html__, { width: 315, height: 430 });
 
 // Send file name to UI immediately on startup so it's available before WebSocket connects
-figma.ui.postMessage({ type: "file-name", fileName: figma.root.name });
+figma.ui.postMessage({ type: "file-name", fileName: figma.root.name, fileKey: figma.fileKey });
 
 // Auto-connect is triggered after init-settings so saved URL/port are applied first.
 
@@ -1000,7 +1000,7 @@ figma.ui.onmessage = async (msg: Record<string, unknown>) => {
       figma.closePlugin();
       break;
     case "get-file-name":
-      figma.ui.postMessage({ type: "file-name", fileName: figma.root.name });
+      figma.ui.postMessage({ type: "file-name", fileName: figma.root.name, fileKey: figma.fileKey });
       break;
     case "save-selection-history": {
       var historyData = msg["nodes"] as Array<Record<string, unknown>>;

@@ -270,6 +270,11 @@ async function activeTab() {
   return tab;
 }
 
+async function activeTabId() {
+  const tab = await activeTab();
+  return tab ? tab.id : undefined;
+}
+
 async function sendToTab(tab, command, params = {}) {
   try {
     return await chrome.tabs.sendMessage(tab.id, { command, params });
@@ -368,22 +373,27 @@ async function refreshBrowserDims() {
 // ---- Persistence ----
 
 async function persistState(tabId) {
-  const all = (await chrome.storage.session.get(STATE_KEY))[STATE_KEY] || {};
-  all[tabId] = {
-    hasOverlay: state.hasOverlay,
-    figmaVisible: state.figmaVisible,
-    pageVisible: state.pageVisible,
-    opacity: state.opacity,
-    blend: state.blend,
-    offsetX: state.offsetX,
-    offsetY: state.offsetY,
-    step: state.step,
-    frameName: state.frameName,
-    frameWidth: state.frameWidth,
-    frameHeight: state.frameHeight,
-    channel: state.channel,
-  };
-  await chrome.storage.session.set({ [STATE_KEY]: all });
+  if (tabId == null) return;
+  try {
+    const all = (await chrome.storage.session.get(STATE_KEY))[STATE_KEY] || {};
+    all[tabId] = {
+      hasOverlay: state.hasOverlay,
+      figmaVisible: state.figmaVisible,
+      pageVisible: state.pageVisible,
+      opacity: state.opacity,
+      blend: state.blend,
+      offsetX: state.offsetX,
+      offsetY: state.offsetY,
+      step: state.step,
+      frameName: state.frameName,
+      frameWidth: state.frameWidth,
+      frameHeight: state.frameHeight,
+      channel: state.channel,
+    };
+    await chrome.storage.session.set({ [STATE_KEY]: all });
+  } catch (err) {
+    console.error('[figma-overlay] Failed to persist state:', err);
+  }
 }
 
 async function restoreState(tabId) {
@@ -436,11 +446,15 @@ async function removeOverlay() {
   const tab = await activeTab();
   if (tab) {
     await sendToTab(tab, 'clear_figma_overlay');
-    await chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      func: applyPageVisibility,
-      args: [true],
-    });
+    try {
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        func: applyPageVisibility,
+        args: [true],
+      });
+    } catch (err) {
+      console.error('[figma-overlay] Could not restore page visibility on this tab:', err);
+    }
   }
   state.hasOverlay = false;
   state.frameName = null;
@@ -505,7 +519,7 @@ opacitySlider.addEventListener('input', async () => {
     if (state.blend === 'normal') {
       await patchOverlay({ opacity: state.opacity });
     } else {
-      await persistState((await activeTab()).id);
+      await persistState(await activeTabId());
     }
   }
 });
@@ -556,13 +570,17 @@ channelPicker.addEventListener('change', () => {
 
 connBtn.addEventListener('click', async () => {
   if (state.channel) {
-    await removeOverlay();
+    try {
+      await removeOverlay();
+    } catch (err) {
+      console.error('[figma-overlay] Failed to clear overlay during disconnect:', err);
+    }
     state.channel = null;
-    await persistState((await activeTab()).id);
+    await persistState(await activeTabId());
     setStatus('Disconnected.');
   } else if (channelPicker.value) {
     state.channel = channelPicker.value;
-    await persistState((await activeTab()).id);
+    await persistState(await activeTabId());
     setStatus(`Connected to ${state.channel}.`, 'success');
   }
   refreshUI();

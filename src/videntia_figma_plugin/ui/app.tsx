@@ -69,7 +69,7 @@ export function App() {
           conn.handleCommandError(msg)
           break
         case 'file-name':
-          conn.handleFileName(msg.fileName)
+          conn.handleFileName(msg.fileName, msg.fileKey)
           break
         case 'command_progress':
           conn.handleProgressUpdate(msg)
