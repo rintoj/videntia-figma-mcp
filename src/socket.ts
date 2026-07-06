@@ -147,8 +147,9 @@ function handleWebSocketMessage(ws: WebSocket, raw: string) {
     }
 
     // Remove stale plugin connections for the same file (reconnect from the same
-    // Figma file). Only the plugin's own prior socket is closed here — other
-    // clients sharing the channel (e.g. an MCP session mid-command) are left alone.
+    // Figma file, from a *different* socket). Only the plugin's own prior socket
+    // is closed here — other clients sharing the channel (e.g. an MCP session
+    // mid-command) are left alone.
     if (data.fileName || data.fileKey) {
       for (const [existing, clients] of channels) {
         if (existing === channelName) continue;
@@ -157,14 +158,11 @@ function handleWebSocketMessage(ws: WebSocket, raw: string) {
         const stalePlugins = [...clients].filter((c) => (c as any)._isPlugin);
         stalePlugins.forEach((c) => {
           c.close(1000, "Replaced by new connection");
-          clients.delete(c);
+          leaveChannel(existing, c);
         });
-        if (clients.size === 0) {
-          channels.delete(existing);
-          channelMetadata.delete(existing);
-        }
         if (stalePlugins.length > 0) {
-          logger.info(`Removed stale plugin connection(s) from channel ${existing} for file "${data.fileName}"`);
+          const label = existingMeta.fileName ?? existingMeta.fileKey;
+          logger.info(`Removed stale plugin connection(s) from channel ${existing} for file "${label}"`);
         }
       }
     }
@@ -180,6 +178,15 @@ function handleWebSocketMessage(ws: WebSocket, raw: string) {
         }
         channelName = candidate;
       }
+    }
+
+    // A socket belongs to at most one channel: rejoining under a new name (e.g. a
+    // plugin's fallback-channel-to-real-channel handoff, or an MCP session
+    // switching project channels) leaves its previous channel automatically,
+    // rather than relying on every join path to remember to send "leave".
+    const priorChannel = (ws as any)._channel;
+    if (priorChannel && priorChannel !== channelName) {
+      leaveChannel(priorChannel, ws);
     }
 
     if (!channels.has(channelName)) channels.set(channelName, new Set());
