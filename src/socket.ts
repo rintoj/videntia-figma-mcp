@@ -14,6 +14,7 @@ import { register, verifyEmail, login } from "./auth/accounts";
 import { createToken, listTokens, revokeToken, validateKey } from "./auth/tokens";
 import { signJwt, verifyJwt, parseCookies } from "./auth/session";
 import { sendVerificationEmail } from "./auth/email";
+import { isSameFile } from "./socket-channel-identity";
 
 // Enhanced logging system
 const logger = {
@@ -120,13 +121,17 @@ function cleanupDeadConnections(): number {
   return removed;
 }
 
-// Two joins are the same Figma file only if they share a fileKey (Figma's unique
-// per-file id), or, for unsaved files with no fileKey, an identical fileName.
-// Never match a fileKey-identified entry against a fileName-only one — file
-// names collide across distinct files (e.g. duplicated/templated project names).
-function isSameFile(a: { fileName?: string; fileKey?: string }, b: { fileName?: string; fileKey?: string }): boolean {
-  if (a.fileKey || b.fileKey) return !!a.fileKey && a.fileKey === b.fileKey;
-  return !!a.fileName && a.fileName === b.fileName;
+// Removes a socket from a channel's client set, closing out the channel
+// entirely once no clients remain.
+function leaveChannel(channelName: string, ws: WebSocket): void {
+  const clients = channels.get(channelName);
+  if (!clients) return;
+  clients.delete(ws);
+  if (clients.size === 0) {
+    channels.delete(channelName);
+    channelMetadata.delete(channelName);
+    logger.info(`Removed empty channel: ${channelName}`);
+  }
 }
 
 function handleWebSocketMessage(ws: WebSocket, raw: string) {
@@ -141,16 +146,25 @@ function handleWebSocketMessage(ws: WebSocket, raw: string) {
       return;
     }
 
-    // Remove stale channels for the same file (reconnect from the same Figma file)
+    // Remove stale plugin connections for the same file (reconnect from the same
+    // Figma file). Only the plugin's own prior socket is closed here — other
+    // clients sharing the channel (e.g. an MCP session mid-command) are left alone.
     if (data.fileName || data.fileKey) {
       for (const [existing, clients] of channels) {
         if (existing === channelName) continue;
         const existingMeta = channelMetadata.get(existing);
-        if (existingMeta && isSameFile(existingMeta, data)) {
-          clients.forEach((c) => c.close(1000, "Replaced by new connection"));
+        if (!existingMeta || !isSameFile(existingMeta, data)) continue;
+        const stalePlugins = [...clients].filter((c) => (c as any)._isPlugin);
+        stalePlugins.forEach((c) => {
+          c.close(1000, "Replaced by new connection");
+          clients.delete(c);
+        });
+        if (clients.size === 0) {
           channels.delete(existing);
           channelMetadata.delete(existing);
-          logger.info(`Removed stale channel ${existing} for file "${data.fileName}"`);
+        }
+        if (stalePlugins.length > 0) {
+          logger.info(`Removed stale plugin connection(s) from channel ${existing} for file "${data.fileName}"`);
         }
       }
     }
@@ -210,6 +224,12 @@ function handleWebSocketMessage(ws: WebSocket, raw: string) {
         stats.messagesSent++;
       }
     });
+    return;
+  }
+
+  if (data.type === "leave") {
+    const channelName: string = data.channel;
+    if (channelName) leaveChannel(channelName, ws);
     return;
   }
 
