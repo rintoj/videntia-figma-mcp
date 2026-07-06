@@ -63,6 +63,7 @@ export function useConnection() {
   var socketRef = useRef<WebSocket | null>(null);
   var channelRef = useRef<string | null>(null);
   var fileNameRef = useRef<string | null>(null);
+  var fileKeyRef = useRef<string | null>(null);
   var pendingRequestsRef = useRef<Map<string, { resolve: Function; reject: Function }>>(new Map());
   var intentionalDisconnectRef = useRef(false);
   var reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -274,6 +275,9 @@ export function useConnection() {
       if (fileNameRef.current) {
         joinPayload.fileName = fileNameRef.current;
       }
+      if (fileKeyRef.current) {
+        joinPayload.fileKey = fileKeyRef.current;
+      }
       ws.send(JSON.stringify(joinPayload));
 
       if (!fileNameRef.current) {
@@ -417,9 +421,12 @@ export function useConnection() {
     sendProgressUpdateToServer(message);
   }
 
-  function handleFileName(fileName: string) {
+  function handleFileName(fileName: string, fileKey?: string) {
     var isFirstFileName = !fileNameRef.current;
     fileNameRef.current = fileName;
+    if (fileKey) {
+      fileKeyRef.current = fileKey;
+    }
     console.log("File name received:", fileName);
     var sock = socketRef.current;
     if (sock && sock.readyState === WebSocket.OPEN && channelRef.current) {
@@ -432,6 +439,7 @@ export function useConnection() {
             type: "join",
             channel: newChannel,
             fileName: fileName,
+            fileKey: fileKeyRef.current || undefined,
           }),
         );
       } else {
@@ -441,6 +449,7 @@ export function useConnection() {
             type: "join",
             channel: channelRef.current,
             fileName: fileName,
+            fileKey: fileKeyRef.current || undefined,
           }),
         );
       }

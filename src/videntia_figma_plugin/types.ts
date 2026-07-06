@@ -43,6 +43,7 @@ export interface AutoConnectMessage extends BaseMessage {
 export interface FileNameMessage extends BaseMessage {
   type: "file-name";
   fileName: string;
+  fileKey?: string;
 }
 
 export interface UpdateSettingsMessage extends BaseMessage {

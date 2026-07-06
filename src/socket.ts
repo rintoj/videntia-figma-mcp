@@ -98,7 +98,7 @@ async function readBody(req: http.IncomingMessage): Promise<string> {
 // ─── Figma relay state ────────────────────────────────────────────────────────
 
 const channels = new Map<string, Set<WebSocket>>();
-const channelMetadata = new Map<string, { fileName?: string; joinedAt: number }>();
+const channelMetadata = new Map<string, { fileName?: string; fileKey?: string; joinedAt: number }>();
 const stats = { totalConnections: 0, activeConnections: 0, messagesSent: 0, messagesReceived: 0, errors: 0 };
 
 function cleanupDeadConnections(): number {
@@ -120,6 +120,15 @@ function cleanupDeadConnections(): number {
   return removed;
 }
 
+// Two joins are the same Figma file only if they share a fileKey (Figma's unique
+// per-file id), or, for unsaved files with no fileKey, an identical fileName.
+// Never match a fileKey-identified entry against a fileName-only one — file
+// names collide across distinct files (e.g. duplicated/templated project names).
+function isSameFile(a: { fileName?: string; fileKey?: string }, b: { fileName?: string; fileKey?: string }): boolean {
+  if (a.fileKey || b.fileKey) return !!a.fileKey && a.fileKey === b.fileKey;
+  return !!a.fileName && a.fileName === b.fileName;
+}
+
 function handleWebSocketMessage(ws: WebSocket, raw: string) {
   const clientId: string = (ws as any)._clientId ?? "unknown";
   stats.messagesReceived++;
@@ -132,11 +141,12 @@ function handleWebSocketMessage(ws: WebSocket, raw: string) {
       return;
     }
 
-    // Remove stale channels with same fileName
-    if (data.fileName) {
+    // Remove stale channels for the same file (reconnect from the same Figma file)
+    if (data.fileName || data.fileKey) {
       for (const [existing, clients] of channels) {
         if (existing === channelName) continue;
-        if (channelMetadata.get(existing)?.fileName === data.fileName) {
+        const existingMeta = channelMetadata.get(existing);
+        if (existingMeta && isSameFile(existingMeta, data)) {
           clients.forEach((c) => c.close(1000, "Replaced by new connection"));
           channels.delete(existing);
           channelMetadata.delete(existing);
@@ -145,13 +155,13 @@ function handleWebSocketMessage(ws: WebSocket, raw: string) {
       }
     }
 
-    // Deduplicate channel name
-    if (data.fileName && channels.has(channelName)) {
+    // Deduplicate channel name: only rename if the existing occupant is a *different* file
+    if ((data.fileName || data.fileKey) && channels.has(channelName)) {
       const existingMeta = channelMetadata.get(channelName);
-      if (existingMeta?.fileName && existingMeta.fileName !== data.fileName) {
+      if (existingMeta && (existingMeta.fileName || existingMeta.fileKey) && !isSameFile(existingMeta, data)) {
         let counter = 2;
         let candidate = channelName;
-        while (channels.has(candidate) && channelMetadata.get(candidate)?.fileName !== data.fileName) {
+        while (channels.has(candidate) && !isSameFile(channelMetadata.get(candidate) ?? {}, data)) {
           candidate = `${channelName}-${counter++}`;
         }
         channelName = candidate;
@@ -165,9 +175,11 @@ function handleWebSocketMessage(ws: WebSocket, raw: string) {
     logger.info(`Client ${clientId} joined channel: ${channelName}`);
 
     if (!channelMetadata.has(channelName)) {
-      channelMetadata.set(channelName, { fileName: data.fileName, joinedAt: Date.now() });
-    } else if (data.fileName) {
-      channelMetadata.get(channelName)!.fileName = data.fileName;
+      channelMetadata.set(channelName, { fileName: data.fileName, fileKey: data.fileKey, joinedAt: Date.now() });
+    } else {
+      const meta = channelMetadata.get(channelName)!;
+      if (data.fileName) meta.fileName = data.fileName;
+      if (data.fileKey) meta.fileKey = data.fileKey;
     }
 
     ws.send(JSON.stringify({ type: "system", message: `Joined channel: ${channelName}`, channel: channelName }));
