@@ -1603,12 +1603,19 @@ export function registerDocumentTools(server: McpServer): void {
             ],
           };
         }
-        const channelList = channels.map((ch) => `  - ${ch.channel} (${ch.fileName || "unknown file"})`).join("\n");
+        const channelList = channels
+          .map((ch) => {
+            const pluginStatus = ch.hasPlugin ? "plugin connected" : "NO PLUGIN — stale channel";
+            return `  - ${ch.channel} (${ch.fileName || "unknown file"}) [${pluginStatus}]`;
+          })
+          .join("\n");
+        const hasAnyPlugin = channels.some((ch) => ch.hasPlugin);
+        const warning = hasAnyPlugin ? "" : "\n\nWARNING: No channels have an active Figma plugin. Open the Claude MCP Plugin inside Figma to connect.";
         return {
           content: [
             {
               type: "text",
-              text: `Available channels:\n${channelList}`,
+              text: `Available channels:\n${channelList}${warning}`,
             },
           ],
         };
