@@ -430,28 +430,23 @@ export function useConnection() {
     console.log("File name received:", fileName);
     var sock = socketRef.current;
     if (sock && sock.readyState === WebSocket.OPEN && channelRef.current) {
-      if (isFirstFileName) {
-        // First file name received — generate a friendly channel name and rejoin
-        var newChannel = generateChannelName(fileName);
-        channelRef.current = newChannel;
-        sock.send(
-          JSON.stringify({
-            type: "join",
-            channel: newChannel,
-            fileName: fileName,
-            fileKey: fileKeyRef.current || undefined,
-          }),
-        );
-      } else {
-        // Subsequent calls — just update fileName on existing channel
-        sock.send(
-          JSON.stringify({
-            type: "join",
-            channel: channelRef.current,
-            fileName: fileName,
-            fileKey: fileKeyRef.current || undefined,
-          }),
-        );
+      var previousChannel = channelRef.current;
+      // First file name received — generate a friendly channel name and rejoin;
+      // subsequent calls just update fileName/fileKey on the existing channel.
+      var joinChannel = isFirstFileName ? generateChannelName(fileName) : previousChannel;
+      channelRef.current = joinChannel;
+      sock.send(
+        JSON.stringify({
+          type: "join",
+          channel: joinChannel,
+          fileName: fileName,
+          fileKey: fileKeyRef.current || undefined,
+        }),
+      );
+      // Leave the random fallback channel joined at connect time before the
+      // file name was known — otherwise it lingers as an orphaned channel.
+      if (isFirstFileName && previousChannel !== joinChannel) {
+        sock.send(JSON.stringify({ type: "leave", channel: previousChannel }));
       }
     }
   }
