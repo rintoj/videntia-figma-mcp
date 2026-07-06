@@ -13,7 +13,7 @@ const entry = process.argv[1] ?? "";
 const isSocketProcess = entry.endsWith("socket.js") || entry.endsWith("socket.ts") || entry.endsWith("socket.cjs");
 
 // Configuración de conexión extraída de argumentos CLI
-export const serverUrl = serverArg ? serverArg.split("=")[1] : isSocketProcess ? "localhost" : "figma-mcp.videntia.dev";
+export const serverUrl = serverArg ? serverArg.split("=")[1] : "localhost";
 export const defaultPort = portArg ? parseInt(portArg.split("=")[1], 10) : 3055;
 export const reconnectInterval = reconnectArg ? parseInt(reconnectArg.split("=")[1], 10) : 2000;
 

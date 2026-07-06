@@ -172,7 +172,11 @@ function handleWebSocketMessage(ws: WebSocket, raw: string) {
     const channelClients = channels.get(channelName)!;
     channelClients.add(ws);
     (ws as any)._channel = channelName;
-    logger.info(`Client ${clientId} joined channel: ${channelName}`);
+    // Mark plugin connections by presence of fileName in the join message
+    if (data.fileName) {
+      (ws as any)._isPlugin = true;
+    }
+    logger.info(`Client ${clientId} joined channel: ${channelName} (plugin=${!!(ws as any)._isPlugin})`);
 
     if (!channelMetadata.has(channelName)) {
       channelMetadata.set(channelName, { fileName: data.fileName, fileKey: data.fileKey, joinedAt: Date.now() });
@@ -439,12 +443,18 @@ const httpServer = http.createServer(async (reqOrig, res) => {
   // Channels
   if (url.pathname === "/channels") {
     cleanupDeadConnections();
-    const list = [...channels.entries()].map(([name, clients]) => ({
-      channel: name,
-      clients: clients.size,
-      fileName: channelMetadata.get(name)?.fileName ?? null,
-      joinedAt: channelMetadata.get(name)?.joinedAt ?? null,
-    }));
+    const list = [...channels.entries()].map(([name, clients]) => {
+      const clientArr = [...clients];
+      const pluginClients = clientArr.filter((c) => (c as any)._isPlugin).length;
+      return {
+        channel: name,
+        clients: clients.size,
+        pluginClients,
+        hasPlugin: pluginClients > 0,
+        fileName: channelMetadata.get(name)?.fileName ?? null,
+        joinedAt: channelMetadata.get(name)?.joinedAt ?? null,
+      };
+    });
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify(list));
     return;

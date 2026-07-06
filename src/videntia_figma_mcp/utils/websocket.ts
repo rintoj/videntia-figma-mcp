@@ -215,12 +215,25 @@ export async function joinChannel(channelName: string): Promise<void> {
     const openChannels = await getOpenChannels();
     const match = openChannels.find((ch) => ch.channel === channelName);
     if (!match) {
-      const available = openChannels.map((ch) => `  - ${ch.channel} (${ch.fileName ?? "unknown file"})`).join("\n");
+      const available = openChannels
+        .map((ch) => `  - ${ch.channel} (${ch.fileName ?? "unknown file"})${ch.hasPlugin ? "" : " [no plugin]"}`)
+        .join("\n");
       throw new ChannelValidationError(
-        `Invalid channel ID: "${channelName}". No Figma plugin is connected on this channel.` +
+        `Invalid channel ID: "${channelName}". Channel not found.` +
           (openChannels.length > 0
             ? `\nAvailable channels:\n${available}`
             : "\nNo channels are currently available. Ensure the Claude MCP Plugin is open in Figma."),
+      );
+    }
+    if (!match.hasPlugin) {
+      const withPlugin = openChannels.filter((ch) => ch.hasPlugin);
+      const pluginList = withPlugin.map((ch) => `  - ${ch.channel} (${ch.fileName ?? "unknown file"})`).join("\n");
+      throw new ChannelValidationError(
+        `Channel "${channelName}" exists but has no active Figma plugin connected.\n` +
+          `The channel may be stale from a previous session. Open the Claude MCP Plugin in Figma and try again.\n` +
+          (withPlugin.length > 0
+            ? `\nChannels with an active plugin:\n${pluginList}`
+            : "\nNo channels currently have an active Figma plugin."),
       );
     }
   } catch (error) {
@@ -255,7 +268,14 @@ export function getCurrentChannel(): string | null {
  * @returns A promise that resolves with an array of channel objects
  */
 export async function getOpenChannels(): Promise<
-  Array<{ channel: string; clients: number; fileName: string | null; joinedAt: number | null }>
+  Array<{
+    channel: string;
+    clients: number;
+    pluginClients: number;
+    hasPlugin: boolean;
+    fileName: string | null;
+    joinedAt: number | null;
+  }>
 > {
   const httpUrl = serverUrl === "localhost" ? `http://localhost:${defaultPort}` : `https://${serverUrl}`;
   const response = await fetch(`${httpUrl}/channels`);
@@ -263,7 +283,14 @@ export async function getOpenChannels(): Promise<
     throw new Error(`Failed to fetch channels: ${response.status} ${response.statusText}`);
   }
   return response.json() as Promise<
-    Array<{ channel: string; clients: number; fileName: string | null; joinedAt: number | null }>
+    Array<{
+      channel: string;
+      clients: number;
+      pluginClients: number;
+      hasPlugin: boolean;
+      fileName: string | null;
+      joinedAt: number | null;
+    }>
   >;
 }
 
