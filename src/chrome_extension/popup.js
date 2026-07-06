@@ -436,11 +436,15 @@ async function removeOverlay() {
   const tab = await activeTab();
   if (tab) {
     await sendToTab(tab, 'clear_figma_overlay');
-    await chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      func: applyPageVisibility,
-      args: [true],
-    });
+    try {
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        func: applyPageVisibility,
+        args: [true],
+      });
+    } catch (err) {
+      console.error('[figma-overlay] Could not restore page visibility on this tab:', err);
+    }
   }
   state.hasOverlay = false;
   state.frameName = null;
@@ -556,7 +560,11 @@ channelPicker.addEventListener('change', () => {
 
 connBtn.addEventListener('click', async () => {
   if (state.channel) {
-    await removeOverlay();
+    try {
+      await removeOverlay();
+    } catch (err) {
+      console.error('[figma-overlay] Failed to clear overlay during disconnect:', err);
+    }
     state.channel = null;
     await persistState((await activeTab()).id);
     setStatus('Disconnected.');
