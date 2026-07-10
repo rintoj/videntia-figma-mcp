@@ -49,6 +49,9 @@ beforeEach(() => {
     set currentPage(p: any) {
       currentPageRef = { id: p.id, selection: [] };
     },
+    setCurrentPageAsync: jest.fn(async (p: any) => {
+      currentPageRef = { id: p.id, selection: [] };
+    }),
     viewport: {
       get bounds() {
         return viewportBounds;

@@ -40,7 +40,7 @@ export async function focusNode(nodeId: string): Promise<void> {
 
   var page = getPage(node);
   if (page && page.id !== figma.currentPage.id) {
-    figma.currentPage = page;
+    await figma.setCurrentPageAsync(page);
   }
 
   figma.currentPage.selection = [node as SceneNode];
@@ -72,7 +72,7 @@ export async function softFocusNodes(nodeIds: string[]): Promise<void> {
   var page = getPage(scenes[0]);
   var onDifferentPage = page && page.id !== figma.currentPage.id;
   if (onDifferentPage) {
-    figma.currentPage = page!;
+    await figma.setCurrentPageAsync(page!);
   }
 
   figma.currentPage.selection = scenes;
@@ -131,7 +131,7 @@ export async function setSelections(params: Record<string, unknown>): Promise<Re
   // Navigate to the page of the first node (all nodes must be on the same page)
   const page = getPage(nodes[0]);
   if (page && page.id !== figma.currentPage.id) {
-    figma.currentPage = page;
+    await figma.setCurrentPageAsync(page);
   }
 
   figma.currentPage.selection = nodes;
