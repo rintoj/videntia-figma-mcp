@@ -197,7 +197,14 @@ function handleWebSocketMessage(ws: WebSocket, raw: string) {
     if (data.fileName) {
       (ws as any)._isPlugin = true;
     }
-    logger.info(`Client ${clientId} joined channel: ${channelName} (plugin=${!!(ws as any)._isPlugin})`);
+    // Mark the Chrome extension's connection to the "browser" channel; it has no
+    // fileName (it's not a Figma file) so it needs its own identifying flag.
+    if (data.clientType === "extension") {
+      (ws as any)._isExtension = true;
+    }
+    logger.info(
+      `Client ${clientId} joined channel: ${channelName} (plugin=${!!(ws as any)._isPlugin}, extension=${!!(ws as any)._isExtension})`,
+    );
 
     if (!channelMetadata.has(channelName)) {
       channelMetadata.set(channelName, { fileName: data.fileName, fileKey: data.fileKey, joinedAt: Date.now() });
@@ -473,11 +480,14 @@ const httpServer = http.createServer(async (reqOrig, res) => {
     const list = [...channels.entries()].map(([name, clients]) => {
       const clientArr = [...clients];
       const pluginClients = clientArr.filter((c) => (c as any)._isPlugin).length;
+      const extensionClients = clientArr.filter((c) => (c as any)._isExtension).length;
       return {
         channel: name,
         clients: clients.size,
         pluginClients,
         hasPlugin: pluginClients > 0,
+        extensionClients,
+        hasExtension: extensionClients > 0,
         fileName: channelMetadata.get(name)?.fileName ?? null,
         joinedAt: channelMetadata.get(name)?.joinedAt ?? null,
       };
@@ -640,7 +650,12 @@ wss.on("connection", (ws, req) => {
   stats.activeConnections++;
   const clientId = `client_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
   (ws as any)._clientId = clientId;
+  (ws as any)._isAlive = true;
   logger.info(`New client connected: ${clientId}`);
+
+  ws.on("pong", () => {
+    (ws as any)._isAlive = true;
+  });
 
   ws.send(JSON.stringify({ type: "system", message: "Please join a channel to start communicating with Figma" }));
   stats.messagesSent++;
@@ -712,3 +727,26 @@ setInterval(() => {
     lastStatsLog = now;
   }
 }, CLEANUP_INTERVAL_MS);
+
+// Heartbeat: some connections (notably the MCP process's own loopback relay
+// client) can end up half-open — readyState stays OPEN with no FIN/RST ever
+// received — leaving in-flight commands to silently time out instead of
+// failing fast so the caller can reconnect. Ping every client each interval
+// and terminate any that missed the previous pong.
+const HEARTBEAT_INTERVAL_MS = 15_000;
+setInterval(() => {
+  const seen = new Set<WebSocket>();
+  for (const clients of channels.values()) {
+    for (const c of clients) {
+      if (seen.has(c)) continue;
+      seen.add(c);
+      if ((c as any)._isAlive === false) {
+        logger.warn(`Terminating unresponsive client ${(c as any)._clientId ?? "unknown"} (missed heartbeat)`);
+        c.terminate();
+        continue;
+      }
+      (c as any)._isAlive = false;
+      c.ping();
+    }
+  }
+}, HEARTBEAT_INTERVAL_MS);
