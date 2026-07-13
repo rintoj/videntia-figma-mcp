@@ -68,6 +68,31 @@ export function registerDocumentationTools(server: McpServer): void {
   );
 
   server.tool(
+    "get_frame_animations",
+    "Read all prototype animations (transitions) within a frame and its descendants. Unlike get_reactions/map_prototype_flows, this surfaces the full animation detail that those tools drop: transition type (SMART_ANIMATE, MOVE_IN, PUSH, DISSOLVE, SLIDE_IN, SCROLL_ANIMATE…), direction, matchLayers, duration (seconds), and easing (including custom cubic-bezier control points). Each entry also includes the trigger (with AFTER_TIMEOUT timeout), destination, and preserveScrollPosition. Use this to document or audit motion/interaction design.",
+    {
+      nodeId: z.string().describe("Frame/node ID to scan. Animations on this node and all descendants are returned."),
+    },
+    async ({ nodeId }) => {
+      try {
+        const result = await sendCommandToFigma<Record<string, unknown>>("get_frame_animations", { nodeId });
+        return {
+          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error getting frame animations: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  server.tool(
     "bulk_export_frames",
     "Export multiple frames as images in a single call. Returns base64-encoded image data for each frame. If no nodeIds are provided, exports all top-level frames on the current page (or specified page).",
     {
