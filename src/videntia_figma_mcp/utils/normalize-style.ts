@@ -1,5 +1,7 @@
 // Normalizers + per-property comparators for diff_figma_to_browser.
 
+import { deltaE76 } from "./color-calculations.js";
+
 export type CompareStatus = "✓" | "❌" | "—";
 
 export interface CompareRow {
@@ -7,6 +9,8 @@ export interface CompareRow {
   figma: string;
   browser: string;
   status: CompareStatus;
+  // "error" = real mismatch, "warn" = likely-intentional or low-confidence difference.
+  severity?: "error" | "warn";
   note?: string;
 }
 
@@ -236,6 +240,43 @@ export function compareNumeric(
     browser: format(browserVal),
     status: within(figmaVal, browserVal, tol) ? "✓" : "❌",
   };
+}
+
+// One "just noticeable difference" in CIE76 is ~2.3; 2.5 tolerates rounding noise
+// (rgb→hex truncation, sub-pixel blending) while still catching real token drift.
+export const COLOR_DELTA_E_THRESHOLD = 2.5;
+
+const SIX_DIGIT_HEX = /^#[0-9a-f]{6}$/;
+
+// Compare two colors perceptually. Exact hex equality is the fast path; otherwise
+// colors within the ΔE threshold count as a match (annotated with the distance).
+export function compareColor(
+  property: string,
+  figmaHex: string | null,
+  browserRaw: unknown,
+  threshold: number = COLOR_DELTA_E_THRESHOLD,
+): CompareRow {
+  const browserHex = hex(browserRaw);
+  if (figmaHex === null || browserHex === null) {
+    return compareString(property, figmaHex, browserHex);
+  }
+  if (figmaHex === browserHex) {
+    return { property, figma: figmaHex, browser: browserHex, status: "✓" };
+  }
+  if (!SIX_DIGIT_HEX.test(figmaHex) || !SIX_DIGIT_HEX.test(browserHex)) {
+    return compareString(property, figmaHex, browserHex);
+  }
+  const dE = deltaE76(figmaHex, browserHex);
+  if (dE <= threshold) {
+    return {
+      property,
+      figma: figmaHex,
+      browser: browserHex,
+      status: "✓",
+      note: `ΔE ${dE.toFixed(1)} — perceptually identical`,
+    };
+  }
+  return { property, figma: figmaHex, browser: browserHex, status: "❌" };
 }
 
 export function compareString(property: string, figmaVal: string | null, browserVal: string | null): CompareRow {

@@ -196,12 +196,15 @@ export type FigmaCommand =
 export type BrowserCommand =
   | "get_dom_nodes"
   | "get_computed_styles"
+  | "get_computed_styles_batch"
   | "get_page_screenshot"
   | "get_page_info"
   | "inject_figma_overlay"
   | "clear_figma_overlay"
   | "resolve_selector_at_point"
-  | "collect_all_element_rects";
+  | "collect_all_element_rects"
+  | "set_viewport"
+  | "reset_viewport";
 
 // Batch actions types
 export interface BatchActionResult {

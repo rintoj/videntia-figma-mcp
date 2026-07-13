@@ -1605,11 +1605,20 @@ export function registerDocumentTools(server: McpServer): void {
         }
         const channelList = channels
           .map((ch) => {
-            const pluginStatus = ch.hasPlugin ? "plugin connected" : "NO PLUGIN — stale channel";
-            return `  - ${ch.channel} (${ch.fileName || "unknown file"}) [${pluginStatus}]`;
+            // The "browser" channel is joined by the Chrome extension, not a Figma file,
+            // so it's judged by hasExtension rather than the Figma-plugin-only hasPlugin flag.
+            const status =
+              ch.channel === "browser"
+                ? ch.hasExtension
+                  ? "Chrome extension connected"
+                  : "NO CHROME EXTENSION — open/reconnect the Figma Overlay extension"
+                : ch.hasPlugin
+                  ? "plugin connected"
+                  : "NO PLUGIN — stale channel";
+            return `  - ${ch.channel} (${ch.fileName || "unknown file"}) [${status}]`;
           })
           .join("\n");
-        const hasAnyPlugin = channels.some((ch) => ch.hasPlugin);
+        const hasAnyPlugin = channels.some((ch) => ch.channel !== "browser" && ch.hasPlugin);
         const warning = hasAnyPlugin
           ? ""
           : "\n\nWARNING: No channels have an active Figma plugin. Open the Claude MCP Plugin inside Figma to connect.";

@@ -6,6 +6,8 @@ export interface DomRect {
   tag: string;
   id: string | null;
   testId: string | null;
+  // Value of the element's data-fig-id annotation (Figma node id), when present.
+  figId?: string | null;
   depth: number;
   rect: { x: number; y: number; w: number; h: number };
   selector: string | null;
@@ -30,6 +32,8 @@ export interface MatchPair {
   tag: string;
   cost: number;
   iou: number;
+  // "fig-id" when paired via a data-fig-id annotation; geometry matches omit this.
+  matchedBy?: "fig-id";
 }
 
 export interface FrameAuditResult {
@@ -76,7 +80,10 @@ function toLocal(rect: { x: number; y: number; w: number; h: number }, origin: {
   return { x: rect.x - origin.x, y: rect.y - origin.y, w: rect.w, h: rect.h };
 }
 
-function iou(a: { x: number; y: number; w: number; h: number }, b: { x: number; y: number; w: number; h: number }) {
+export function iou(
+  a: { x: number; y: number; w: number; h: number },
+  b: { x: number; y: number; w: number; h: number },
+) {
   const ix = Math.max(0, Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x));
   const iy = Math.max(0, Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y));
   const inter = ix * iy;
@@ -123,7 +130,11 @@ export function hungarian(costMatrix: number[][]): number[] {
   const n = costMatrix.length;
   if (n === 0) return [];
   const m = costMatrix[0].length;
-  const INF = 1e15;
+  // Padding cost for the square expansion. Must dominate every real cost but stay
+  // small enough that real cost differences survive floating-point subtraction:
+  // at 1e15 a double's ULP is 0.125, which swallows our ~0.01 normalized costs and
+  // makes the augmenting path cycle forever. Real costs here are O(1).
+  const INF = 1e9;
   const size = Math.max(n, m);
   // Pad to square with INF.
   const a: number[][] = Array.from({ length: size }, (_, i) =>
@@ -138,12 +149,15 @@ export function hungarian(costMatrix: number[][]): number[] {
   for (let i = 1; i <= size; i++) {
     p[0] = i;
     let j0 = 0;
-    const minv = new Array(size + 1).fill(INF);
+    // Search sentinels must be Infinity, NOT the finite padding constant: a padded
+    // cell's reduced cost can equal a finite sentinel exactly, and the strict `<`
+    // comparisons below then never select a column (j1 stays 0 → infinite loop).
+    const minv = new Array(size + 1).fill(Number.POSITIVE_INFINITY);
     const used = new Array(size + 1).fill(false);
     do {
       used[j0] = true;
       const i0 = p[j0];
-      let delta = INF;
+      let delta = Number.POSITIVE_INFINITY;
       let j1 = 0;
       for (let j = 1; j <= size; j++) {
         if (used[j]) continue;
@@ -246,6 +260,49 @@ export function auditFrame(
   const unmatchedFigma: FigmaCandidate[] = [];
   const matchedDomIdxs = new Set<number>([rootDomIdx]);
 
+  // data-fig-id exact-match pre-pass: annotated DOM elements pair deterministically
+  // (cost 0) and are removed from the Hungarian pool. Duplicate annotations are
+  // ignored so a bad annotation degrades to geometry matching instead of mispairing.
+  const figIdToDom = new Map<string, number>();
+  const duplicateFigIds = new Set<string>();
+  for (const d of domRects) {
+    if (!d.figId) continue;
+    if (figIdToDom.has(d.figId)) {
+      duplicateFigIds.add(d.figId);
+      continue;
+    }
+    figIdToDom.set(d.figId, d.idx);
+  }
+  const preScaleX = figmaOrigin.width > 0 && domOriginRect.w > 0 ? figmaOrigin.width / domOriginRect.w : 1;
+  const preScaleY = figmaOrigin.height > 0 && domOriginRect.h > 0 ? figmaOrigin.height / domOriginRect.h : 1;
+  for (const c of candidates) {
+    if (c.id === figmaRoot.id) continue;
+    const domIdx = c.id ? figIdToDom.get(c.id) : undefined;
+    if (domIdx === undefined || duplicateFigIds.has(c.id) || matchedDomIdxs.has(domIdx)) continue;
+    const d = domRects[domIdx];
+    if (!d) continue;
+    const figmaLocal = toLocal(c.rect, figmaOrigin);
+    const domLocal = {
+      x: (d.rect.x - domOriginRect.x) * preScaleX,
+      y: (d.rect.y - domOriginRect.y) * preScaleY,
+      w: d.rect.w * preScaleX,
+      h: d.rect.h * preScaleY,
+    };
+    figmaIdToDomIdx.set(c.id, domIdx);
+    matchedDomIdxs.add(domIdx);
+    matched.push({
+      figmaId: c.id,
+      figmaName: c.name,
+      figmaType: c.type,
+      selector: d.selector,
+      domIdx,
+      tag: d.tag,
+      cost: 0,
+      iou: parseFloat(iou(figmaLocal, domLocal).toFixed(3)),
+      matchedBy: "fig-id",
+    });
+  }
+
   // Walk up the Figma ancestor chain until we hit a node with a DOM match; fall
   // back to the root DOM idx if none up the chain has matched yet.
   function nearestMatchedDomIdx(figmaId: string): number {
@@ -262,7 +319,12 @@ export function auditFrame(
   const queue: string[] = [figmaRoot.id!];
   while (queue.length) {
     const parentFigmaId = queue.shift()!;
-    const figmaChildren = figByParent.get(parentFigmaId) ?? [];
+    const allChildren = figByParent.get(parentFigmaId) ?? [];
+    if (allChildren.length === 0) continue;
+    // Enqueue every child so grandchildren are always processed; only children not
+    // already paired by the fig-id pre-pass enter the Hungarian pool.
+    for (const f of allChildren) queue.push(f.id);
+    const figmaChildren = allChildren.filter((f) => !figmaIdToDomIdx.has(f.id));
     if (figmaChildren.length === 0) continue;
 
     // If the figma parent didn't match a DOM element, climb to the nearest
@@ -283,8 +345,6 @@ export function auditFrame(
     if (descendants.length === 0) {
       for (const f of figmaChildren) {
         unmatchedFigma.push(f);
-        // Still enqueue so grandchildren can try via the fallback pool.
-        queue.push(f.id);
       }
       continue;
     }
@@ -309,23 +369,41 @@ export function auditFrame(
       };
     });
 
-    const costMatrix: number[][] = figmaChildren.map((f, i) =>
+    const fullCostMatrix: number[][] = figmaChildren.map((f, i) =>
       domLocals.map((d) => cost(f, domRects[d.idx], figmaLocals[i], d.rect, frameSize)),
     );
+
+    // Hungarian is O(size^3) with size = max(rows, cols). Deep DOM subtrees can put
+    // 1000+ candidates in the pool and wedge the process, so prune each row to its
+    // K cheapest columns and solve over the union. The optimal assignment almost
+    // always lives inside these per-row shortlists.
+    const CANDIDATES_PER_ROW = 8;
+    let columnPool: number[] = domLocals.map((_, j) => j);
+    if (domLocals.length > Math.max(figmaChildren.length * CANDIDATES_PER_ROW, 64)) {
+      const keep = new Set<number>();
+      for (const row of fullCostMatrix) {
+        const ranked = row
+          .map((c, j) => ({ c, j }))
+          .sort((a, b) => a.c - b.c)
+          .slice(0, CANDIDATES_PER_ROW);
+        for (const { j } of ranked) keep.add(j);
+      }
+      columnPool = [...keep];
+    }
+
+    const costMatrix = fullCostMatrix.map((row) => columnPool.map((j) => row[j]));
     const assignment = hungarian(costMatrix);
 
     for (let i = 0; i < figmaChildren.length; i++) {
       const f = figmaChildren[i];
-      const col = assignment[i];
-      // Always enqueue so descendants still get processed even when the parent
-      // failed to find a DOM mate.
-      queue.push(f.id);
+      const reducedCol = assignment[i];
+      const col = reducedCol === -1 ? -1 : columnPool[reducedCol];
 
       if (col === -1) {
         unmatchedFigma.push(f);
         continue;
       }
-      const c = costMatrix[i][col];
+      const c = fullCostMatrix[i][col];
       const local = domLocals[col];
       const overlap = iou(figmaLocals[i], local.rect);
       if (c > maxCost || overlap < minIou) {

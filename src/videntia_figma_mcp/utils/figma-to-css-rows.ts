@@ -1,5 +1,6 @@
 import {
   CompareRow,
+  compareColor,
   compareNumeric,
   compareString,
   figmaLetterSpacingPx,
@@ -10,6 +11,7 @@ import {
   normalizeFontWeight,
   primaryFontFamily,
   px,
+  within,
 } from "./normalize-style.js";
 
 export interface FigmaPaint {
@@ -51,6 +53,13 @@ export interface FigmaNodeLike {
   paddingBottom?: number;
   paddingLeft?: number;
   itemSpacing?: number;
+  layoutMode?: string;
+  primaryAxisAlignItems?: string;
+  counterAxisAlignItems?: string;
+  layoutWrap?: string;
+  layoutSizingHorizontal?: string;
+  layoutSizingVertical?: string;
+  bindings?: Record<string, { id?: string; name?: string }>;
   absoluteBoundingBox?: { x: number; y: number; width: number; height: number };
   children?: FigmaNodeLike[];
 }
@@ -126,6 +135,16 @@ function fillHex(fill: FigmaPaint | null): string | null {
   return hex(fill.color);
 }
 
+// Render "token-name (#hex)" when the property is bound to a Figma variable —
+// makes mismatch reports actionable ("use gold-200") instead of raw hex only.
+function withTokenName(node: FigmaNodeLike | null | undefined, bindingKey: string, row: CompareRow): CompareRow {
+  const name = node?.bindings?.[bindingKey]?.name;
+  if (name && row.figma !== "—") {
+    row.figma = `${name} (${row.figma})`;
+  }
+  return row;
+}
+
 function dropShadow(effects: FigmaEffect[] | undefined): FigmaEffect | null {
   if (!effects?.length) return null;
   for (const e of effects) {
@@ -166,9 +185,34 @@ function parseBrowserBoxShadow(
   };
 }
 
+// Detect a border implemented as an inset box-shadow ring (Tailwind `inset-ring-*`,
+// `ring-* ring-inset`): an inset shadow with zero offset/blur and a positive spread.
+// getComputedStyle serializes as e.g. "rgb(226, 225, 223) 0px 0px 0px 1px inset".
+export function parseInsetRing(raw: string | undefined): { spread: number; color: string | null } | null {
+  if (!raw || raw === "none") return null;
+  for (const segment of raw.split(/,(?![^()]*\))/)) {
+    if (!/\binset\b/.test(segment)) continue;
+    const colorMatch = segment.match(/(rgba?\([^)]+\)|#[0-9a-fA-F]{3,8})/);
+    const rest = colorMatch ? segment.replace(colorMatch[1], "") : segment;
+    const nums = (rest.match(/-?\d*\.?\d+px/g) ?? []).map((n) => px(n) ?? 0);
+    const [ox = 0, oy = 0, blur = 0, spread = 0] = nums;
+    if (ox === 0 && oy === 0 && blur === 0 && spread > 0) {
+      return { spread, color: colorMatch ? hex(colorMatch[1]) : null };
+    }
+  }
+  return null;
+}
+
 export interface BuildRowsOptions {
   properties?: string[];
   toleranceOverrides?: Record<string, number>;
+  // Emit auto-layout ↔ flexbox rows (layout-mode, justify-content, align-items, flex-wrap).
+  layout?: boolean;
+  // Computed layout styles of the element's parent (display, flex-direction,
+  // justify-content, align-items, gap) — used for flex-centering equivalence.
+  parentStyles?: Record<string, string>;
+  // The element's class attribute — used to ground fix hints in real classes.
+  className?: string;
 }
 
 export interface BuildRowsResult {
@@ -181,6 +225,124 @@ const PROP_ALIAS: Record<string, string> = {
   border: "border-width",
   padding: "padding-top",
 };
+
+// Figma auto-layout enums → CSS flexbox values.
+const FIGMA_JUSTIFY: Record<string, string> = {
+  MIN: "flex-start",
+  CENTER: "center",
+  MAX: "flex-end",
+  SPACE_BETWEEN: "space-between",
+};
+
+const FIGMA_ALIGN: Record<string, string> = {
+  MIN: "flex-start",
+  CENTER: "center",
+  MAX: "flex-end",
+  BASELINE: "baseline",
+};
+
+// getComputedStyle keywords that resolve to the same rendered behavior.
+function normalizeFlexValue(v: string | undefined, fallback: string): string {
+  if (!v || v === "normal") return fallback;
+  if (v === "start") return "flex-start";
+  if (v === "end") return "flex-end";
+  return v;
+}
+
+// Auto-layout ↔ flexbox rows. Only meaningful when the Figma node uses auto-layout;
+// layoutMode NONE/undefined is skipped entirely to avoid noise on absolute frames.
+function buildLayoutRows(figmaNode: FigmaNodeLike, computedStyles: Record<string, string>): CompareRow[] {
+  const mode = figmaNode.layoutMode;
+  if (mode !== "HORIZONTAL" && mode !== "VERTICAL") return [];
+
+  // Without the computed display value (e.g. caller restricted `properties`),
+  // layout comparison would be guesswork — skip rather than emit false errors.
+  const display = computedStyles["display"];
+  if (display === undefined) return [];
+
+  const rows: CompareRow[] = [];
+  const isFlex = display.includes("flex");
+  const isGrid = display.includes("grid");
+  const figmaDirection = mode === "HORIZONTAL" ? "row" : "column";
+  const figmaLayout = `flex ${figmaDirection}`;
+
+  if (isGrid) {
+    // Grid can legitimately implement an auto-layout design; compare gap only.
+    rows.push({
+      property: "layout-mode",
+      figma: figmaLayout,
+      browser: display,
+      status: "❌",
+      severity: "warn",
+      note: "grid implementation of a flex (auto-layout) design — gap compared, alignment skipped",
+    });
+    return rows;
+  }
+
+  const flexDirection = computedStyles["flex-direction"] || "row";
+  if (!isFlex || flexDirection !== figmaDirection) {
+    rows.push({
+      property: "layout-mode",
+      figma: figmaLayout,
+      browser: isFlex ? `flex ${flexDirection}` : display || "—",
+      status: "❌",
+      severity: "error",
+    });
+  } else {
+    rows.push({ property: "layout-mode", figma: figmaLayout, browser: `flex ${flexDirection}`, status: "✓" });
+  }
+
+  if (figmaNode.primaryAxisAlignItems !== undefined) {
+    const figmaJ = FIGMA_JUSTIFY[figmaNode.primaryAxisAlignItems];
+    const browserJ = normalizeFlexValue(computedStyles["justify-content"], "flex-start");
+    if (figmaJ) {
+      rows.push({
+        property: "justify-content",
+        figma: figmaJ,
+        browser: browserJ,
+        status: figmaJ === browserJ ? "✓" : "❌",
+        severity: figmaJ === browserJ ? undefined : "error",
+      });
+    }
+  }
+
+  if (figmaNode.counterAxisAlignItems !== undefined) {
+    const figmaA = FIGMA_ALIGN[figmaNode.counterAxisAlignItems];
+    const browserARaw = computedStyles["align-items"];
+    const browserA = normalizeFlexValue(browserARaw, "stretch");
+    if (figmaA) {
+      // CSS default (normal/stretch) with Figma MIN both render children from the
+      // start edge when children are hug-sized — treat as match with a note.
+      const defaultEquivalent = figmaA === "flex-start" && browserA === "stretch";
+      const match = figmaA === browserA || defaultEquivalent;
+      rows.push({
+        property: "align-items",
+        figma: figmaA,
+        browser: browserA,
+        status: match ? "✓" : "❌",
+        severity: match ? undefined : "error",
+        ...(defaultEquivalent ? { note: "CSS default stretch ≈ Figma MIN for hug-sized children" } : {}),
+      });
+    }
+  }
+
+  const figmaWraps = figmaNode.layoutWrap === "WRAP";
+  const browserWrap = computedStyles["flex-wrap"] ?? "nowrap";
+  const browserWraps = browserWrap === "wrap" || browserWrap === "wrap-reverse";
+  if (figmaWraps !== browserWraps) {
+    rows.push({
+      property: "flex-wrap",
+      figma: figmaWraps ? "wrap" : "nowrap",
+      browser: browserWrap,
+      status: "❌",
+      severity: "error",
+    });
+  } else if (figmaWraps) {
+    rows.push({ property: "flex-wrap", figma: "wrap", browser: browserWrap, status: "✓" });
+  }
+
+  return rows;
+}
 
 export function buildRows(
   figmaNode: FigmaNodeLike,
@@ -256,9 +418,35 @@ export function buildRows(
         const browserAlign = normalizeAlign(computedStyles["text-align"]);
         if (figmaAlign === null) {
           rows.push({ property: prop, figma: "—", browser: browserAlign ?? "—", status: "—" });
-        } else {
-          rows.push(compareString(prop, figmaAlign, browserAlign));
+          break;
         }
+        // Figma CENTER is visually equivalent to text-align:left when the element (or
+        // its parent) horizontally centers content via flexbox.
+        if (figmaAlign === "center" && browserAlign === "left") {
+          const centersHorizontally = (s: Record<string, string> | undefined): boolean => {
+            if (!s) return false;
+            const display = s["display"] ?? "";
+            if (!display.includes("flex")) return false;
+            const direction = s["flex-direction"] ?? "row";
+            const isRow = direction.startsWith("row");
+            const value = normalizeFlexValue(
+              isRow ? s["justify-content"] : s["align-items"],
+              isRow ? "flex-start" : "stretch",
+            );
+            return value === "center";
+          };
+          if (centersHorizontally(computedStyles) || centersHorizontally(options.parentStyles)) {
+            rows.push({
+              property: prop,
+              figma: figmaAlign,
+              browser: browserAlign,
+              status: "✓",
+              note: "centered via flex, not text-align",
+            });
+            break;
+          }
+        }
+        rows.push(compareString(prop, figmaAlign, browserAlign));
         break;
       }
       case "color": {
@@ -268,8 +456,7 @@ export function buildRows(
         }
         const fill = firstVisibleSolidFill(textNode?.fills);
         const figmaColor = fillHex(fill);
-        const browserColor = hex(computedStyles["color"]);
-        rows.push(compareString(prop, figmaColor, browserColor));
+        rows.push(withTokenName(textNode, "fills/0", compareColor(prop, figmaColor, computedStyles["color"])));
         break;
       }
       case "background-color": {
@@ -283,7 +470,7 @@ export function buildRows(
         if (figmaBg === null && (browserBg === undefined || isTransparent(browserBg))) {
           rows.push({ property: prop, figma: "—", browser: "transparent", status: "—" });
         } else {
-          rows.push(compareString(prop, figmaBg, hex(browserBg)));
+          rows.push(withTokenName(figmaNode, "fills/0", compareColor(prop, figmaBg, browserBg)));
         }
         break;
       }
@@ -293,9 +480,22 @@ export function buildRows(
         const browserC = hex(computedStyles["border-color"] ?? computedStyles["border-top-color"]);
         if (figmaC === null && browserC === null) {
           rows.push({ property: prop, figma: "—", browser: "—", status: "—" });
-        } else {
-          rows.push(compareString(prop, figmaC, browserC));
+          break;
         }
+        // Border realized as an inset box-shadow ring — compare against the ring color.
+        const borderWidth = px(computedStyles["border-width"] ?? computedStyles["border-top-width"]);
+        if (figmaC !== null && (borderWidth === null || borderWidth === 0)) {
+          const ring = parseInsetRing(computedStyles["box-shadow"]);
+          if (ring) {
+            const ringRow = compareColor(prop, figmaC, ring.color);
+            ringRow.note = ringRow.note
+              ? `${ringRow.note}; border implemented as inset box-shadow ring`
+              : "border implemented as inset box-shadow ring";
+            rows.push(withTokenName(figmaNode, "strokes/0", ringRow));
+            break;
+          }
+        }
+        rows.push(withTokenName(figmaNode, "strokes/0", compareColor(prop, figmaC, browserC)));
         break;
       }
       case "border-width": {
@@ -303,9 +503,23 @@ export function buildRows(
         const browserW = px(computedStyles["border-width"] ?? computedStyles["border-top-width"]);
         if (figmaW === null && (browserW === null || browserW === 0)) {
           rows.push({ property: prop, figma: "—", browser: browserW === null ? "—" : "0px", status: "—" });
-        } else {
-          rows.push(compareNumeric(prop, figmaW, browserW, tol(prop)));
+          break;
         }
+        // Border realized as an inset box-shadow ring — compare stroke weight to ring spread.
+        if (figmaW !== null && figmaW > 0 && (browserW === null || browserW === 0)) {
+          const ring = parseInsetRing(computedStyles["box-shadow"]);
+          if (ring) {
+            rows.push({
+              property: prop,
+              figma: `${figmaW}px`,
+              browser: `${ring.spread}px (ring)`,
+              status: within(figmaW, ring.spread, tol(prop)) ? "✓" : "❌",
+              note: "border implemented as inset box-shadow ring",
+            });
+            break;
+          }
+        }
+        rows.push(compareNumeric(prop, figmaW, browserW, tol(prop)));
         break;
       }
       case "border-radius": {
@@ -323,7 +537,13 @@ export function buildRows(
         }
         const figmaW = figmaNode.absoluteBoundingBox?.width ?? null;
         const browserW = rect?.width ?? px(computedStyles.width);
-        rows.push(compareNumeric(prop, figmaW, browserW ?? null, tol(prop)));
+        const widthRow = compareNumeric(prop, figmaW, browserW ?? null, tol(prop));
+        // Hug-sized nodes derive width from content — a small delta is expected, not a bug.
+        if (widthRow.status === "❌" && figmaNode.layoutSizingHorizontal === "HUG") {
+          widthRow.severity = "warn";
+          widthRow.note = "hug-content: browser width driven by content";
+        }
+        rows.push(widthRow);
         break;
       }
       case "height": {
@@ -333,7 +553,12 @@ export function buildRows(
         }
         const figmaH = figmaNode.absoluteBoundingBox?.height ?? null;
         const browserH = rect?.height ?? px(computedStyles.height);
-        rows.push(compareNumeric(prop, figmaH, browserH ?? null, tol(prop)));
+        const heightRow = compareNumeric(prop, figmaH, browserH ?? null, tol(prop));
+        if (heightRow.status === "❌" && figmaNode.layoutSizingVertical === "HUG") {
+          heightRow.severity = "warn";
+          heightRow.note = "hug-content: browser height driven by content";
+        }
+        rows.push(heightRow);
         break;
       }
       case "padding-top":
@@ -400,7 +625,7 @@ export function buildRows(
         const spreadMatch = Math.abs((figmaShadow.spread ?? 0) - browserShadow.s) <= t;
         const colorMatch = (() => {
           const f = figmaShadow.color ? hex(figmaShadow.color) : null;
-          return f === browserShadow.color;
+          return compareColor(prop, f, browserShadow.color).status === "✓";
         })();
         rows.push({
           property: prop,
@@ -423,6 +648,10 @@ export function buildRows(
         break;
       }
     }
+  }
+
+  if (options.layout) {
+    rows.push(...buildLayoutRows(figmaNode, computedStyles));
   }
 
   if (isTextTarget && textNode && textNode !== figmaNode) {

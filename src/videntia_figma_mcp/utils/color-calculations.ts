@@ -219,3 +219,53 @@ export function convertColorFormat(
     return normalized;
   }
 }
+
+/**
+ * CIE L*a*b* color (D65 illuminant), used for perceptual color difference.
+ */
+export interface LabColor {
+  l: number;
+  a: number;
+  b: number;
+}
+
+/**
+ * Convert a normalized sRGB color (0-1 channels) to CIE L*a*b* (D65).
+ */
+export function rgbToLab(color: RGBAColor): LabColor {
+  // sRGB → linear RGB
+  const linear = (c: number): number => (c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
+  const r = linear(color.r);
+  const g = linear(color.g);
+  const b = linear(color.b);
+
+  // Linear RGB → XYZ (D65)
+  const x = r * 0.4124564 + g * 0.3575761 + b * 0.1804375;
+  const y = r * 0.2126729 + g * 0.7151522 + b * 0.072175;
+  const z = r * 0.0193339 + g * 0.119192 + b * 0.9503041;
+
+  // XYZ → Lab (D65 reference white)
+  const xn = 0.95047;
+  const yn = 1.0;
+  const zn = 1.08883;
+  const f = (t: number): number => (t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116);
+  const fx = f(x / xn);
+  const fy = f(y / yn);
+  const fz = f(z / zn);
+
+  return {
+    l: 116 * fy - 16,
+    a: 500 * (fx - fy),
+    b: 200 * (fy - fz),
+  };
+}
+
+/**
+ * CIE76 color difference between two hex colors. ~2.3 is one "just noticeable
+ * difference" — values below that are perceptually identical for diff purposes.
+ */
+export function deltaE76(hexA: string, hexB: string): number {
+  const labA = rgbToLab(hexToRgba(hexA));
+  const labB = rgbToLab(hexToRgba(hexB));
+  return Math.sqrt((labA.l - labB.l) ** 2 + (labA.a - labB.a) ** 2 + (labA.b - labB.b) ** 2);
+}
