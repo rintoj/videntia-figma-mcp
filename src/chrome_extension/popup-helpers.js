@@ -28,11 +28,16 @@ function nudgeDelta(direction, step) {
     return { dx: 0, dy: 0 };
   }
   switch (direction) {
-    case "left":  return { dx: -step, dy: 0 };
-    case "right": return { dx:  step, dy: 0 };
-    case "up":    return { dx: 0, dy: -step };
-    case "down":  return { dx: 0, dy:  step };
-    default:      return { dx: 0, dy: 0 };
+    case "left":
+      return { dx: -step, dy: 0 };
+    case "right":
+      return { dx: step, dy: 0 };
+    case "up":
+      return { dx: 0, dy: -step };
+    case "down":
+      return { dx: 0, dy: step };
+    default:
+      return { dx: 0, dy: 0 };
   }
 }
 
@@ -46,10 +51,14 @@ function keyboardAction(event, step) {
   const mult = event.shiftKey ? 10 : 1;
   const s = (typeof step === "number" && step > 0 ? step : 1) * mult;
   switch (event.key) {
-    case "ArrowLeft":  return { type: "nudge", dx: -s, dy: 0 };
-    case "ArrowRight": return { type: "nudge", dx:  s, dy: 0 };
-    case "ArrowUp":    return { type: "nudge", dx: 0, dy: -s };
-    case "ArrowDown":  return { type: "nudge", dx: 0, dy:  s };
+    case "ArrowLeft":
+      return { type: "nudge", dx: -s, dy: 0 };
+    case "ArrowRight":
+      return { type: "nudge", dx: s, dy: 0 };
+    case "ArrowUp":
+      return { type: "nudge", dx: 0, dy: -s };
+    case "ArrowDown":
+      return { type: "nudge", dx: 0, dy: s };
     case "d":
     case "D":
       return { type: "toggle-diff" };
@@ -101,8 +110,9 @@ function parseHostname(url, fallback = "—") {
  */
 function escapeHtml(str) {
   if (str == null) return "";
-  return String(str).replace(/[<>&"']/g, (c) =>
-    ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&#39;" }[c]),
+  return String(str).replace(
+    /[<>&"']/g,
+    (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&#39;" })[c],
   );
 }
 
@@ -114,9 +124,12 @@ function escapeHtml(str) {
 function matchDesignWindowSize({ frameWidth, frameHeight, chromeOffsetW = 0, chromeOffsetH = 0, availW, availH }) {
   const w = frameWidth + chromeOffsetW;
   const h = frameHeight + chromeOffsetH;
+  // chrome.windows.update rejects non-integer width/height synchronously, so
+  // floor the result — frame sizes and chrome offsets are frequently fractional
+  // (non-integer Figma frames, OS display scaling ≠ 100%).
   return {
-    width:  availW ? Math.min(w, availW) : w,
-    height: availH ? Math.min(h, availH) : h,
+    width: Math.floor(availW ? Math.min(w, availW) : w),
+    height: Math.floor(availH ? Math.min(h, availH) : h),
   };
 }
 

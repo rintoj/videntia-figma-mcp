@@ -1,18 +1,18 @@
 // Shared server config — loaded by popup (<script>) and background (importScripts).
 
 const SERVER_PRESETS = [
-  { id: 'production', label: 'Production', url: 'https://figma-mcp.videntia.dev' },
-  { id: 'localhost',  label: 'Localhost',  url: 'http://localhost:3055' },
+  { id: "production", label: "Production", url: "https://figma-mcp.videntia.dev" },
+  { id: "localhost", label: "Localhost", url: "http://localhost:3055" },
 ];
 const SERVER_DEFAULT = SERVER_PRESETS[0].url;
-const SERVER_STORAGE_KEY = 'serverConfig';
+const SERVER_STORAGE_KEY = "serverConfig";
 
 function toWsUrl(httpUrl) {
-  return httpUrl.replace(/^http:/, 'ws:').replace(/^https:/, 'wss:');
+  return httpUrl.replace(/^http:/, "ws:").replace(/^https:/, "wss:");
 }
 
 function toChannelsUrl(httpUrl) {
-  return httpUrl.replace(/\/$/, '') + '/channels';
+  return httpUrl.replace(/\/$/, "") + "/channels";
 }
 
 async function getServerUrl() {
@@ -24,7 +24,7 @@ async function setServerUrl(url) {
   await chrome.storage.local.set({ [SERVER_STORAGE_KEY]: { url } });
 }
 
-if (typeof self !== 'undefined') {
+if (typeof self !== "undefined") {
   self.SERVER_PRESETS = SERVER_PRESETS;
   self.SERVER_DEFAULT = SERVER_DEFAULT;
   self.SERVER_STORAGE_KEY = SERVER_STORAGE_KEY;
@@ -34,7 +34,7 @@ if (typeof self !== 'undefined') {
   self.setServerUrl = setServerUrl;
 }
 
-if (typeof module !== 'undefined' && module.exports) {
+if (typeof module !== "undefined" && module.exports) {
   module.exports = {
     SERVER_PRESETS,
     SERVER_DEFAULT,
