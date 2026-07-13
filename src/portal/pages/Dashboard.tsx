@@ -1,75 +1,83 @@
-import { h, Fragment } from 'preact'
-import { useState, useEffect } from 'preact/hooks'
-import { api } from '../api'
+import { h, Fragment } from "preact";
+import { useState, useEffect } from "preact/hooks";
+import { api } from "../api";
 
 interface Token {
-  id: string
-  name: string
-  key_prefix: string
-  created_at: number
-  last_used_at: number | null
-  revoked: number
+  id: string;
+  name: string;
+  key_prefix: string;
+  created_at: number;
+  last_used_at: number | null;
+  revoked: number;
 }
 
-interface Props { onNavigate: (page: 'login' | 'register' | 'dashboard') => void }
+interface Props {
+  onNavigate: (page: "login" | "register" | "dashboard") => void;
+}
 
 export function Dashboard({ onNavigate }: Props) {
-  const [email, setEmail] = useState('')
-  const [tokens, setTokens] = useState<Token[]>([])
-  const [newKeyName, setNewKeyName] = useState('')
-  const [createdKey, setCreatedKey] = useState('')
-  const [showModal, setShowModal] = useState(false)
-  const [copied, setCopied] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  const [email, setEmail] = useState("");
+  const [tokens, setTokens] = useState<Token[]>([]);
+  const [newKeyName, setNewKeyName] = useState("");
+  const [createdKey, setCreatedKey] = useState("");
+  const [showModal, setShowModal] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     api.me().then(({ data }) => {
-      if (!data) { onNavigate('login'); return }
-      setEmail(data.email)
-    })
-    loadTokens()
-  }, [])
+      if (!data) {
+        onNavigate("login");
+        return;
+      }
+      setEmail(data.email);
+    });
+    loadTokens();
+  }, []);
 
   async function loadTokens() {
-    const { data } = await api.listTokens()
-    if (data) setTokens(data.filter(t => !t.revoked))
+    const { data } = await api.listTokens();
+    if (data) setTokens(data.filter((t) => !t.revoked));
   }
 
   async function handleCreate(e: Event) {
-    e.preventDefault()
-    if (!newKeyName.trim()) return
-    setLoading(true)
-    setError('')
-    const { data, error: err } = await api.createToken(newKeyName.trim())
-    setLoading(false)
-    if (err) { setError(err); return }
-    setCreatedKey(data!.fullKey)
-    setNewKeyName('')
-    setShowModal(false)
-    await loadTokens()
+    e.preventDefault();
+    if (!newKeyName.trim()) return;
+    setLoading(true);
+    setError("");
+    const { data, error: err } = await api.createToken(newKeyName.trim());
+    setLoading(false);
+    if (err) {
+      setError(err);
+      return;
+    }
+    setCreatedKey(data!.fullKey);
+    setNewKeyName("");
+    setShowModal(false);
+    await loadTokens();
   }
 
   async function handleRevoke(id: string) {
-    if (!confirm('Revoke this API key? Any app using it will stop working.')) return
-    await api.revokeToken(id)
-    await loadTokens()
+    if (!confirm("Revoke this API key? Any app using it will stop working.")) return;
+    await api.revokeToken(id);
+    await loadTokens();
   }
 
   async function handleLogout() {
-    await api.logout()
-    onNavigate('login')
+    await api.logout();
+    onNavigate("login");
   }
 
   function copyKey() {
-    navigator.clipboard.writeText(createdKey)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    navigator.clipboard.writeText(createdKey);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   }
 
   function fmt(ts: number | null) {
-    if (!ts) return 'Never'
-    return new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    if (!ts) return "Never";
+    return new Date(ts).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
   }
 
   return (
@@ -80,7 +88,9 @@ export function Dashboard({ onNavigate }: Props) {
           <h1 class="text-xl font-bold">API Keys</h1>
           <p class="text-gray-500 text-sm">{email}</p>
         </div>
-        <button onClick={handleLogout} class="text-sm text-gray-500 hover:text-gray-300">Sign out</button>
+        <button onClick={handleLogout} class="text-sm text-gray-500 hover:text-gray-300">
+          Sign out
+        </button>
       </div>
 
       {/* Created key banner */}
@@ -88,12 +98,19 @@ export function Dashboard({ onNavigate }: Props) {
         <div class="bg-green-900/30 border border-green-700 rounded-xl p-4 mb-6">
           <p class="text-green-300 font-medium text-sm mb-2">Your new API key — copy it now, it won't be shown again</p>
           <div class="flex items-center gap-2">
-            <code class="flex-1 bg-gray-900 text-green-300 text-xs rounded-lg px-3 py-2 font-mono break-all">{createdKey}</code>
-            <button onClick={copyKey} class="shrink-0 bg-green-700 hover:bg-green-600 text-white text-xs px-3 py-2 rounded-lg">
-              {copied ? 'Copied!' : 'Copy'}
+            <code class="flex-1 bg-gray-900 text-green-300 text-xs rounded-lg px-3 py-2 font-mono break-all">
+              {createdKey}
+            </code>
+            <button
+              onClick={copyKey}
+              class="shrink-0 bg-green-700 hover:bg-green-600 text-white text-xs px-3 py-2 rounded-lg"
+            >
+              {copied ? "Copied!" : "Copy"}
             </button>
           </div>
-          <button onClick={() => setCreatedKey('')} class="mt-2 text-xs text-gray-500 hover:text-gray-300">Dismiss</button>
+          <button onClick={() => setCreatedKey("")} class="mt-2 text-xs text-gray-500 hover:text-gray-300">
+            Dismiss
+          </button>
         </div>
       )}
 
@@ -101,8 +118,10 @@ export function Dashboard({ onNavigate }: Props) {
       <div class="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden mb-4">
         <div class="flex items-center justify-between px-4 py-3 border-b border-gray-800">
           <span class="text-sm font-medium">Active keys</span>
-          <button onClick={() => setShowModal(true)}
-            class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium px-3 py-1.5 rounded-lg">
+          <button
+            onClick={() => setShowModal(true)}
+            class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium px-3 py-1.5 rounded-lg"
+          >
             + New key
           </button>
         </div>
@@ -121,15 +140,16 @@ export function Dashboard({ onNavigate }: Props) {
               </tr>
             </thead>
             <tbody>
-              {tokens.map(t => (
+              {tokens.map((t) => (
                 <tr key={t.id} class="border-b border-gray-800 last:border-0 hover:bg-gray-800/50">
                   <td class="px-4 py-3 font-medium">{t.name}</td>
                   <td class="px-4 py-3 font-mono text-gray-400 text-xs">{t.key_prefix}…</td>
                   <td class="px-4 py-3 text-gray-500 text-xs">{fmt(t.created_at)}</td>
                   <td class="px-4 py-3 text-gray-500 text-xs">{fmt(t.last_used_at)}</td>
                   <td class="px-4 py-3 text-right">
-                    <button onClick={() => handleRevoke(t.id)}
-                      class="text-red-500 hover:text-red-400 text-xs">Revoke</button>
+                    <button onClick={() => handleRevoke(t.id)} class="text-red-500 hover:text-red-400 text-xs">
+                      Revoke
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -148,18 +168,30 @@ export function Dashboard({ onNavigate }: Props) {
             <form onSubmit={handleCreate} class="space-y-4">
               <div>
                 <label class="block text-sm text-gray-300 mb-1">Key name</label>
-                <input autoFocus type="text" required placeholder="e.g. My Claude Desktop"
-                  value={newKeyName} onInput={e => setNewKeyName((e.target as HTMLInputElement).value)}
-                  class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500" />
+                <input
+                  autoFocus
+                  type="text"
+                  required
+                  placeholder="e.g. My Claude Desktop"
+                  value={newKeyName}
+                  onInput={(e) => setNewKeyName((e.target as HTMLInputElement).value)}
+                  class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500"
+                />
               </div>
               <div class="flex gap-2">
-                <button type="button" onClick={() => setShowModal(false)}
-                  class="flex-1 border border-gray-700 text-gray-400 hover:text-gray-200 rounded-lg px-4 py-2 text-sm">
+                <button
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  class="flex-1 border border-gray-700 text-gray-400 hover:text-gray-200 rounded-lg px-4 py-2 text-sm"
+                >
                   Cancel
                 </button>
-                <button type="submit" disabled={loading}
-                  class="flex-1 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-lg px-4 py-2 text-sm">
-                  {loading ? 'Creating…' : 'Create'}
+                <button
+                  type="submit"
+                  disabled={loading}
+                  class="flex-1 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-lg px-4 py-2 text-sm"
+                >
+                  {loading ? "Creating…" : "Create"}
                 </button>
               </div>
             </form>
@@ -167,5 +199,5 @@ export function Dashboard({ onNavigate }: Props) {
         </div>
       )}
     </div>
-  )
+  );
 }
