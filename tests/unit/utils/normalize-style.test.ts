@@ -165,3 +165,34 @@ describe("normalize-style", () => {
     });
   });
 });
+
+describe("compareColor (perceptual)", () => {
+  const { compareColor } = require("../../../src/videntia_figma_mcp/utils/normalize-style");
+
+  it("exact match is a plain ✓ without a ΔE note", () => {
+    const row = compareColor("color", "#083b38", "rgb(8, 59, 56)");
+    expect(row).toMatchObject({ status: "✓" });
+    expect(row.note).toBeUndefined();
+  });
+
+  it("sub-JND difference matches with a ΔE note", () => {
+    const row = compareColor("color", "#083b38", "#083b37");
+    expect(row.status).toBe("✓");
+    expect(row.note).toMatch(/ΔE/);
+  });
+
+  it("real token drift stays a mismatch", () => {
+    const row = compareColor("border-color", "#d0ccc4", "rgb(226, 225, 223)");
+    expect(row).toMatchObject({ status: "❌", figma: "#d0ccc4", browser: "#e2e1df" });
+  });
+
+  it("null figma side degrades to '—'", () => {
+    const row = compareColor("color", null, "rgb(0, 0, 0)");
+    expect(row.status).toBe("—");
+  });
+
+  it("transparent browser side does not crash the Lab conversion", () => {
+    const row = compareColor("background-color", "#ffffff", "transparent");
+    expect(row.status).toBe("❌");
+  });
+});

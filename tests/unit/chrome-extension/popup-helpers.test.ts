@@ -179,6 +179,12 @@ describe("popup-helpers / matchDesignWindowSize", () => {
   it("defaults chrome offsets to 0", () => {
     expect(matchDesignWindowSize({ frameWidth: 800, frameHeight: 600 })).toEqual({ width: 800, height: 600 });
   });
+
+  it("floors fractional dimensions (chrome.windows.update rejects non-integers)", () => {
+    expect(
+      matchDesignWindowSize({ frameWidth: 375.5, frameHeight: 812.5, chromeOffsetW: 0, chromeOffsetH: 79.6 }),
+    ).toEqual({ width: 375, height: 892 });
+  });
 });
 
 describe("popup-helpers / emptyStateView", () => {
