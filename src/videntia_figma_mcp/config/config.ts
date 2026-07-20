@@ -82,4 +82,16 @@ Most tools that accept an ID also accept a **name** as an alternative. You do no
 - **Dash normalization**: Names with dashes are automatically converted to slashes (e.g. \`"color-primary"\` → \`"color/primary"\`)
 
 Prefer using names over IDs — they are human-readable and don't require a prior lookup call.
+
+# Browser Tools: Tab Targeting
+
+Browser tools (\`browser_*\`, \`get_browser_*\`, \`set_browser_viewport\`, overlay and diff tools) do NOT require the target tab to be focused or visible — screenshots, input, viewport emulation, and style reads all work on background tabs via the Chrome debugger.
+
+For any multi-step browser workflow (visual QA, design diffing, form automation):
+
+1. Call \`browser_list_tabs\` to find the target tab's ID, or \`browser_create_tab\` to open one (it returns the new tab ID and groups it in the "Videntia" tab group). If the workflow will resize the window (\`set_browser_viewport\` at desktop widths), pass \`new_window: true\` so resizes never disturb the user's own window; close such tabs with \`browser_close_tab\` (they are not part of the agent group).
+2. Pass that \`tab_id\` to EVERY subsequent browser call. Never rely on the active-tab fallback — the user may be working in other tabs, and omitting \`tab_id\` routes commands to whichever tab happens to be focused (unless a tab was pinned via the extension popup).
+3. The first debugger attach shows Chrome's "is debugging this browser" infobar — the user should leave it open; dismissing it detaches the session.
+4. CDP viewport emulation (\`set_browser_viewport\` with mobile widths) persists across \`browser_navigate\`/\`browser_back\`/\`browser_forward\` automatically, but not across user-initiated reloads.
+5. Call \`browser_close_group\` for end-of-session cleanup of agent-created tabs.
 `;

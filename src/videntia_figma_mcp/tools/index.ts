@@ -10,6 +10,7 @@ import { registerIconTools } from "./icon-tools.js";
 import { registerComparisonTools } from "./comparison-tools.js";
 import { registerDocumentationTools } from "./documentation-tools.js";
 import { registerBrowserTools } from "./browser-tools.js";
+import { registerBrowserControlTools } from "./browser-control-tools.js";
 
 /**
  * Register all Figma tools to the MCP server
@@ -28,6 +29,7 @@ export function registerTools(server: McpServer): void {
   registerComparisonTools(server);
   registerDocumentationTools(server);
   registerBrowserTools(server);
+  registerBrowserControlTools(server);
 }
 
 // Export all tool registration functions for individual usage if needed
@@ -43,4 +45,5 @@ export {
   registerComparisonTools,
   registerDocumentationTools,
   registerBrowserTools,
+  registerBrowserControlTools,
 };

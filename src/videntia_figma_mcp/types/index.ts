@@ -205,7 +205,22 @@ export type BrowserCommand =
   | "resolve_selector_at_point"
   | "collect_all_element_rects"
   | "set_viewport"
-  | "reset_viewport";
+  | "reset_viewport"
+  | "click"
+  | "hover"
+  | "scroll"
+  | "type_text"
+  | "press_key"
+  | "evaluate_js"
+  | "navigate"
+  | "go_back"
+  | "go_forward"
+  | "list_tabs"
+  | "create_tab"
+  | "close_tab"
+  | "close_group"
+  | "read_console"
+  | "read_network";
 
 // Batch actions types
 export interface BatchActionResult {

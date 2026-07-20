@@ -393,6 +393,57 @@ function collectAllElementRects({ root = "body", maxNodes = 1500, includeZeroRec
   return { root, nodes: out, truncated, dpr: window.devicePixelRatio || 1 };
 }
 
+function prepareElementForInteraction({ selector, focus = false, select = false }) {
+  let el;
+  try {
+    el = document.querySelector(selector);
+  } catch (e) {
+    return { found: false, error: `Invalid selector: ${e.message}` };
+  }
+  if (!el) return { found: false, error: `No element matches: ${selector}` };
+
+  try {
+    el.scrollIntoView({ block: "center", inline: "center", behavior: "instant" });
+  } catch {}
+
+  const r = el.getBoundingClientRect();
+  // Clamp the interaction point inside the viewport — CDP input events with
+  // out-of-viewport coordinates silently hit nothing.
+  const x = Math.min(Math.max(Math.round(r.x + r.width / 2), 1), Math.round(window.innerWidth) - 1);
+  const y = Math.min(Math.max(Math.round(r.y + r.height / 2), 1), Math.round(window.innerHeight) - 1);
+
+  if (focus && typeof el.focus === "function") {
+    try {
+      el.focus();
+    } catch {}
+  }
+  let selected = false;
+  if (select) {
+    try {
+      if (typeof el.select === "function") {
+        el.select();
+        selected = true;
+      } else if (el.isContentEditable) {
+        const range = document.createRange();
+        range.selectNodeContents(el);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+        selected = true;
+      }
+    } catch {}
+  }
+
+  return {
+    found: true,
+    x,
+    y,
+    selected,
+    tag: el.tagName.toLowerCase(),
+    rect: { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height) },
+  };
+}
+
 function resolveSelectorAtPoint({ x, y, imagePixels = false }) {
   const dpr = window.devicePixelRatio || 1;
   const cssX = imagePixels ? x / dpr : x;
@@ -430,6 +481,9 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
         break;
       case "clear_figma_overlay":
         sendResponse(clearOverlay());
+        break;
+      case "prepare_element_for_interaction":
+        sendResponse(prepareElementForInteraction(msg.params ?? {}));
         break;
       case "resolve_selector_at_point":
         sendResponse(resolveSelectorAtPoint(msg.params ?? {}));
