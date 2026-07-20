@@ -212,6 +212,38 @@ rows (layout-mode, justify-content, align-items, flex-wrap, gap). Rows carry
 implementations. Semantic equivalences are normalized away (border-as-inset-ring,
 flex-centered `text-align: left`).
 
+## Browser Control Tools
+
+The Videntia Browser Connect extension (`src/chrome_extension/`) exposes full Chrome
+control to MCP, driven over the WebSocket relay (`"browser"` channel) and executed via
+`chrome.debugger` (CDP 1.3). The CDP session manager lives in
+`src/chrome_extension/cdp.js`; MCP tool definitions in
+`src/videntia_figma_mcp/tools/browser-control-tools.ts`.
+
+**Interaction** — `browser_click`, `browser_hover`, `browser_scroll`, `browser_type`,
+`browser_press_key`, `browser_evaluate_js`. Click/hover/type target elements by CSS
+selector (auto scroll-into-view, prefers `data-fig-id`/`data-testid`) or viewport x/y.
+Input is dispatched with CDP `Input.*` events — real trusted events that work with
+React/Vue controlled inputs.
+
+**Navigation & tabs** — `browser_navigate` (http/https/about:blank only, waits for
+load, re-applies viewport emulation), `browser_back`, `browser_forward`,
+`browser_list_tabs`, `browser_create_tab`, `browser_close_tab` (requires explicit
+`tab_id` — no implicit fallback). Agent-created tabs are collected into a purple
+"Videntia" Chrome tab group (opt out with `grouped: false`); `browser_close_group`
+closes the whole group for end-of-session cleanup.
+
+**Observability** — `browser_read_console` and `browser_read_network` read per-tab
+ring buffers (500 console entries / 300 requests) captured via `Runtime`/`Log`/
+`Network` CDP domains. The first call on a tab starts monitoring; console buffers
+reset on navigation, network buffers persist across navigations. JavaScript dialogs
+are auto-handled (beforeunload accepted, alerts/confirms dismissed) and logged to the
+console buffer.
+
+`get_browser_page_screenshot` also accepts `full_page: true` for beyond-viewport
+capture. The debugger session is shared: screenshots detach afterwards only when no
+emulation or monitoring needs the attachment to persist.
+
 ## Development Guidelines
 
 ### Adding New MCP Tools
