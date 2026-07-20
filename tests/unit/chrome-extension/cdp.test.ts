@@ -94,6 +94,13 @@ describe("filterConsoleEntries", () => {
     expect(out).toEqual([{ level: "error", text: "TypeError: x is undefined" }]);
   });
 
+  it("falls back to a literal substring match when the pattern is an invalid regex", () => {
+    // "[App" is an unterminated character class (invalid regex) but a literal substring of two entries.
+    const { total, entries: out } = filterConsoleEntries(entries, { pattern: "[App" });
+    expect(total).toBe(2);
+    expect(out.map((e: any) => e.text)).toEqual(["[App] booted", "[App] failed to fetch"]);
+  });
+
   it("handles empty input", () => {
     expect(filterConsoleEntries([], {})).toEqual({ total: 0, entries: [] });
   });

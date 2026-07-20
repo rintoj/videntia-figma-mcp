@@ -385,15 +385,13 @@ async function handleBrowserCommand(command, params) {
 
 // --- Interaction helpers ---
 
-async function resolveInteractionPoint(tab, params, { focus = false, select = false } = {}) {
+async function resolveInteractionPoint(tab, params) {
   if (typeof params?.x === "number" && typeof params?.y === "number") {
     return { x: params.x, y: params.y };
   }
   if (params?.selector) {
     const r = await sendToContentScript(tab.id, "prepare_element_for_interaction", {
       selector: params.selector,
-      focus,
-      select,
     });
     if (!r?.found) throw new Error(r?.error || `No element matches selector: ${params.selector}`);
     return { x: r.x, y: r.y };

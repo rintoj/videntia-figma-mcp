@@ -388,8 +388,15 @@ function filterConsoleEntries(entries, { pattern, level, limit = 200 } = {}) {
   let out = entries;
   if (level) out = out.filter((e) => e.level === level);
   if (pattern) {
-    const re = new RegExp(pattern);
-    out = out.filter((e) => re.test(e.text || ""));
+    let re;
+    try {
+      re = new RegExp(pattern);
+    } catch {
+      re = null; // invalid regex — degrade to a literal substring match rather than failing the read
+    }
+    out = re
+      ? out.filter((e) => re.test(e.text || ""))
+      : out.filter((e) => (e.text || "").includes(pattern));
   }
   return { total: out.length, entries: out.slice(-limit) };
 }
