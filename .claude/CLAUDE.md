@@ -166,6 +166,52 @@ Built-in accessibility validation:
 - **AAA Normal**: 7:1 minimum
 - **AAA Large**: 4.5:1 minimum
 
+## Figma ↔ Browser Diff Tooling
+
+### The `data-fig-id` convention
+
+To pair implemented DOM elements with their Figma design nodes deterministically (no
+computer vision, no geometry heuristics), annotate app markup with the Figma node id:
+
+```html
+<section data-fig-id="3082:47270">…</section>
+```
+
+In React apps, prefer a small dev-only helper so annotations never ship to production
+(reference implementation: `apps/web/src/lib/fig-id.ts` in HomeVault):
+
+```tsx
+export function figId(id: string): { 'data-fig-id'?: string } {
+  if (process.env.NODE_ENV === 'production') return {}
+  return { 'data-fig-id': id }
+}
+
+<section {...figId('3082:47270')}>…</section>
+```
+
+- `diff_figma_to_browser` (no `css_selector`) resolves `[data-fig-id="<node_id>"]` first,
+  falling back to image-template matching only when the annotation is absent.
+- `diff_figma_frame_to_page` pairs annotated elements at cost 0 before running the
+  Hungarian geometry matcher; duplicate annotations are ignored (geometry fallback).
+- `buildStableSelector` in the Chrome extension prefers `data-fig-id` over `data-testid`.
+- Pass `annotation_map: true` to `diff_figma_frame_to_page` to get an annotation plan:
+  `suggested` (geometry-matched pairs as ready-to-apply instructions — figmaId, selector,
+  tag, confidence, and an `apply` string) plus `unmatched` (figmaId → name/type/text
+  needing manual mapping).
+
+> ⚠️ Figma node ids are stable within a file but change when nodes are copied to another
+> file. Re-run with `annotation_map: true` after such moves to refresh annotations.
+
+### Frame-level style audit
+
+`diff_figma_frame_to_page` with `include_style_diff: true` fetches computed styles for all
+matched pairs in ONE batched round trip (`get_computed_styles_batch`) and returns
+mismatch-only rows per node (`styleDiff.mismatches`), including auto-layout ↔ flexbox
+rows (layout-mode, justify-content, align-items, flex-wrap, gap). Rows carry
+`severity: "error" | "warn"` — warns cover hug-content sizing drift and grid-for-flex
+implementations. Semantic equivalences are normalized away (border-as-inset-ring,
+flex-centered `text-align: left`).
+
 ## Development Guidelines
 
 ### Adding New MCP Tools
@@ -292,14 +338,14 @@ bun run pub:release
 After every merge to `main`, **switch to main, pull the latest, build, and reload the launchd socket**:
 
 ```bash
-git checkout main && git pull && bun run build && launchctl kickstart -k gui/$(id -u)/videntia-figma-mcp.socket
+git checkout main && git pull && bun run build && launchctl kickstart -k gui/$(id -u)/com.videntia.figma-socket
 ```
 
 `bun run build` does two things:
 1. **Regenerates `src/videntia_figma_plugin/code.js`** from the TypeScript source modules — this is what Figma loads.
 2. **Rebuilds the MCP server** (`dist/`) — this is what Claude connects to.
 
-`launchctl kickstart -k` restarts the local launchd socket agent (`videntia-figma-mcp.socket`, plist at `~/Library/LaunchAgents/videntia-figma-mcp.socket.plist`) so it picks up the new `dist/socket.js`. The agent autostarts on login via `RunAtLoad` + `KeepAlive`.
+`launchctl kickstart -k` restarts the local launchd socket agent (`com.videntia.figma-socket`, plist at `~/Library/LaunchAgents/com.videntia.figma-socket.plist`) so it picks up the new `dist/socket.js`. The agent autostarts on login via `RunAtLoad` + `KeepAlive`.
 
 > **Reload in Figma:** After deploying, re-run the plugin in Figma (close and reopen from Plugins menu) to load the new `code.js`.
 

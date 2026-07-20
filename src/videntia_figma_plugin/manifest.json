@@ -4,18 +4,10 @@
   "api": "1.0.0",
   "main": "code.js",
   "ui": "ui.html",
-  "editorType": [
-    "figma",
-    "figjam",
-    "dev"
-  ],
+  "editorType": ["figma", "figjam", "dev"],
   "permissions": ["teamlibrary"],
   "networkAccess": {
-    "allowedDomains": [
-      "wss://figma-mcp.videntia.dev",
-      "https://images.unsplash.com",
-      "https://picsum.photos"
-    ],
+    "allowedDomains": ["wss://figma-mcp.videntia.dev", "https://images.unsplash.com", "https://picsum.photos"],
     "devAllowedDomains": [
       "http://localhost:3055",
       "ws://localhost:3055",

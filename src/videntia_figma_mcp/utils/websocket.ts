@@ -20,10 +20,17 @@ class ChannelValidationError extends Error {
 
 // WebSocket connection and request tracking
 let ws: WebSocket | null = null;
+// The channel this SINGLE relay connection is actually joined to right now,
+// server-confirmed. The server allows a socket to be a member of only one
+// channel at a time — joining a new one silently evicts it from the previous
+// one (see socket.ts's join handler) — so this must be one shared variable,
+// not independent trackers per "kind" of channel (Figma file vs. "browser").
 let currentChannel: string | null = null;
-
-// Track which non-Figma channels have been joined on the current WS connection
-const joinedChannels = new Set<string>();
+// The last Figma channel we successfully joined, kept across reconnects/across
+// switches to the "browser" channel so we know what to silently rejoin before
+// the next Figma command.
+let lastChannelName: string | null = null;
+let heartbeatInterval: ReturnType<typeof setInterval> | null = null;
 
 // Map of pending requests for promise tracking
 const pendingRequests = new Map<string, PendingRequest>();
@@ -70,11 +77,46 @@ export function connectToFigma(port: number = defaultPort) {
       logger.info("Connected to Figma socket server");
       // Reset channel on new connection
       currentChannel = null;
+
+      // Heartbeat: without this, a half-dead loopback connection (peer gone but
+      // no FIN/RST received) can sit in readyState OPEN indefinitely, so
+      // in-flight commands silently time out instead of failing fast/reconnecting.
+      let isAlive = true;
+      ws!.on("pong", () => {
+        isAlive = true;
+      });
+      heartbeatInterval = setInterval(() => {
+        if (!ws || ws.readyState !== WebSocket.OPEN) return;
+        if (!isAlive) {
+          logger.warn("Relay connection heartbeat missed; terminating stale socket");
+          ws.terminate();
+          return;
+        }
+        isAlive = false;
+        ws.ping();
+      }, 15000);
     });
 
     ws.on("message", (data: any) => {
       try {
         const json = JSON.parse(data) as ProgressMessage;
+
+        // Handle relay-level errors (e.g. "You must join the channel first"). These carry
+        // no request id to correlate against, so — since this connection only ever has one
+        // command in flight at a time — reject the oldest pending request instead of letting
+        // it silently sit until its 30s timeout fires.
+        if ((json as any).type === "error") {
+          const message = typeof (json as any).message === "string" ? (json as any).message : JSON.stringify(json);
+          logger.error(`Relay error: ${message}`);
+          const oldest = pendingRequests.entries().next();
+          if (!oldest.done) {
+            const [id, request] = oldest.value;
+            clearTimeout(request.timeout);
+            pendingRequests.delete(id);
+            request.reject(new Error(message));
+          }
+          return;
+        }
 
         // Handle peer disconnect notifications
         if (json.type === "channel_peer_disconnected") {
@@ -163,11 +205,14 @@ export function connectToFigma(port: number = defaultPort) {
 
     ws.on("close", (code: number, reason: Buffer) => {
       clearTimeout(connectionTimeout);
+      if (heartbeatInterval) {
+        clearInterval(heartbeatInterval);
+        heartbeatInterval = null;
+      }
       logger.info(
         `Disconnected from Figma socket server with code ${code} and reason: ${reason || "No reason provided"}`,
       );
       ws = null;
-      joinedChannels.clear();
 
       // Reject all pending requests
       for (const [id, request] of pendingRequests.entries()) {
@@ -248,6 +293,7 @@ export async function joinChannel(channelName: string): Promise<void> {
   try {
     await sendCommandToFigma("join", { channel: channelName });
     currentChannel = channelName;
+    lastChannelName = channelName;
     logger.info(`Joined channel: ${channelName}`);
   } catch (error) {
     logger.error(`Failed to join channel: ${error instanceof Error ? error.message : String(error)}`);
@@ -273,6 +319,8 @@ export async function getOpenChannels(): Promise<
     clients: number;
     pluginClients: number;
     hasPlugin: boolean;
+    extensionClients: number;
+    hasExtension: boolean;
     fileName: string | null;
     joinedAt: number | null;
   }>
@@ -288,6 +336,8 @@ export async function getOpenChannels(): Promise<
       clients: number;
       pluginClients: number;
       hasPlugin: boolean;
+      extensionClients: number;
+      hasExtension: boolean;
       fileName: string | null;
       joinedAt: number | null;
     }>
@@ -301,15 +351,42 @@ export async function getOpenChannels(): Promise<
  * @param timeoutMs - Timeout in milliseconds before failing
  * @returns A promise that resolves with the Figma response
  */
-export function sendCommandToFigma<T = unknown>(
+export async function sendCommandToFigma<T = unknown>(
   command: FigmaCommand,
   params: unknown = {},
   timeoutMs: number = 30000,
 ): Promise<T> {
-  return waitForConnection().then(
-    () => _sendCommandToFigma<T>(command, params, timeoutMs),
-    (err) => Promise.reject(err),
-  ) as Promise<T>;
+  await waitForConnection();
+
+  // This connection can only be a member of one channel at a time — a browser
+  // command (e.g. inject_figma_overlay) run in between may have switched it to
+  // "browser", evicting it from our Figma channel. Rejoin transparently rather
+  // than sending into a channel this socket is no longer actually a member of.
+  if (command !== "join" && lastChannelName && currentChannel !== lastChannelName) {
+    await _sendCommandToFigma("join", { channel: lastChannelName });
+    currentChannel = lastChannelName;
+  }
+
+  try {
+    return await _sendCommandToFigma<T>(command, params, timeoutMs);
+  } catch (error) {
+    // A drop mid-command rejects every pending request with "Connection closed ...".
+    // "You must join the channel first" means we got evicted from this channel by an
+    // interleaved command on the shared connection. Either way, if we know which channel
+    // we were on, silently reconnect/rejoin + retry once instead of surfacing this to the
+    // caller as a one-off failure.
+    const recoverable =
+      error instanceof Error &&
+      (error.message.startsWith("Connection closed") || error.message === "You must join the channel first");
+    if (recoverable && command !== "join" && lastChannelName) {
+      logger.warn(`Relay connection dropped during "${command}"; reconnecting and retrying once.`);
+      await waitForConnection();
+      await _sendCommandToFigma("join", { channel: lastChannelName });
+      currentChannel = lastChannelName;
+      return await _sendCommandToFigma<T>(command, params, timeoutMs);
+    }
+    throw error;
+  }
 }
 
 function _sendCommandToFigma<T = unknown>(
@@ -397,12 +474,20 @@ function _sendCommandToFigma<T = unknown>(
 /**
  * Ensures the current WS connection has joined the given channel.
  * Used for non-Figma channels (e.g. "browser"). Idempotent per connection.
+ *
+ * The relay server allows a socket to be a member of only one channel at a
+ * time (joining a new one silently evicts it from the previous one), so this
+ * MUST check against the single shared `currentChannel`, not an independent
+ * per-channel cache — otherwise a Figma-channel command in between two browser
+ * commands leaves this connection evicted from "browser" while still
+ * believing it's joined, and every subsequent browser command is rejected
+ * server-side with "You must join the channel first" until it times out.
  */
 async function ensureBrowserChannelJoined(channel: string): Promise<void> {
   if (!ws || ws.readyState !== WebSocket.OPEN) {
     throw new Error("Not connected to WebSocket server. Ensure the socket server is running.");
   }
-  if (joinedChannels.has(channel)) return;
+  if (currentChannel === channel) return;
 
   await new Promise<void>((resolve, reject) => {
     const onMsg = (raw: WebSocket.RawData) => {
@@ -411,7 +496,7 @@ async function ensureBrowserChannelJoined(channel: string): Promise<void> {
         if (data.type === "system" && data.channel === channel && data.message?.result) {
           clearTimeout(timer);
           ws!.off("message", onMsg);
-          joinedChannels.add(channel);
+          currentChannel = channel;
           resolve();
         }
       } catch {}
@@ -435,11 +520,34 @@ export async function sendCommandToChannel<T = unknown>(
   params: unknown = {},
   timeoutMs: number = 30000,
 ): Promise<T> {
-  if (!ws || ws.readyState !== WebSocket.OPEN) {
-    throw new Error("Not connected to WebSocket server.");
-  }
-
+  await waitForConnection();
   await ensureBrowserChannelJoined(targetChannel);
+
+  try {
+    return await _sendCommandToChannel<T>(targetChannel, command, params, timeoutMs);
+  } catch (error) {
+    const recoverable =
+      error instanceof Error &&
+      (error.message.startsWith("Connection closed") || error.message === "You must join the channel first");
+    if (recoverable) {
+      logger.warn(`Relay connection dropped during browser command "${command}"; reconnecting and retrying once.`);
+      await waitForConnection();
+      await ensureBrowserChannelJoined(targetChannel);
+      return await _sendCommandToChannel<T>(targetChannel, command, params, timeoutMs);
+    }
+    throw error;
+  }
+}
+
+function _sendCommandToChannel<T = unknown>(
+  targetChannel: string,
+  command: BrowserCommand,
+  params: unknown,
+  timeoutMs: number,
+): Promise<T> {
+  if (!ws || ws.readyState !== WebSocket.OPEN) {
+    return Promise.reject(new Error("Not connected to WebSocket server."));
+  }
 
   return new Promise<T>((resolve, reject) => {
     const id = uuidv4();

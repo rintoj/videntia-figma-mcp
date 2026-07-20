@@ -1,25 +1,77 @@
 // content.js — injected into every page, handles browser inspection commands
 
 const SAFE_ATTRS = new Set([
-  'id', 'class', 'href', 'src', 'alt', 'type', 'role', 'aria-label',
-  'data-testid', 'placeholder', 'name', 'value', 'disabled', 'checked',
-  'for', 'action', 'method', 'target', 'rel',
+  "id",
+  "class",
+  "href",
+  "src",
+  "alt",
+  "type",
+  "role",
+  "aria-label",
+  "data-testid",
+  "data-fig-id",
+  "placeholder",
+  "name",
+  "value",
+  "disabled",
+  "checked",
+  "for",
+  "action",
+  "method",
+  "target",
+  "rel",
 ]);
 
 const CURATED_STYLES = [
-  'color', 'background-color', 'background-image',
-  'font-family', 'font-size', 'font-weight', 'font-style', 'line-height', 'letter-spacing',
-  'padding', 'padding-top', 'padding-right', 'padding-bottom', 'padding-left',
-  'margin', 'margin-top', 'margin-right', 'margin-bottom', 'margin-left',
-  'border', 'border-radius', 'border-color', 'border-width',
-  'display', 'position', 'width', 'height', 'max-width', 'min-height',
-  'opacity', 'box-shadow', 'text-decoration', 'text-align', 'white-space',
-  'flex-direction', 'align-items', 'justify-content', 'gap', 'flex-wrap',
-  'grid-template-columns', 'grid-template-rows',
-  'z-index', 'overflow', 'cursor', 'visibility',
+  "color",
+  "background-color",
+  "background-image",
+  "font-family",
+  "font-size",
+  "font-weight",
+  "font-style",
+  "line-height",
+  "letter-spacing",
+  "padding",
+  "padding-top",
+  "padding-right",
+  "padding-bottom",
+  "padding-left",
+  "margin",
+  "margin-top",
+  "margin-right",
+  "margin-bottom",
+  "margin-left",
+  "border",
+  "border-radius",
+  "border-color",
+  "border-width",
+  "display",
+  "position",
+  "width",
+  "height",
+  "max-width",
+  "min-height",
+  "opacity",
+  "box-shadow",
+  "text-decoration",
+  "text-align",
+  "white-space",
+  "flex-direction",
+  "align-items",
+  "justify-content",
+  "gap",
+  "flex-wrap",
+  "grid-template-columns",
+  "grid-template-rows",
+  "z-index",
+  "overflow",
+  "cursor",
+  "visibility",
 ];
 
-function getDomNodes({ selector = 'body', depth = 3, includeText = true, includeAttributes = true }) {
+function getDomNodes({ selector = "body", depth = 3, includeText = true, includeAttributes = true }) {
   const MAX_NODES = 500;
   const MAX_TEXT = 200;
   let nodeCount = 0;
@@ -28,7 +80,7 @@ function getDomNodes({ selector = 'body', depth = 3, includeText = true, include
     if (!el || nodeCount >= MAX_NODES || d <= 0) return null;
     nodeCount++;
 
-    const node = { tag: el.tagName?.toLowerCase() ?? '#unknown' };
+    const node = { tag: el.tagName?.toLowerCase() ?? "#unknown" };
 
     if (includeAttributes && el.attributes) {
       const attrs = {};
@@ -46,7 +98,7 @@ function getDomNodes({ selector = 'body', depth = 3, includeText = true, include
           if (t) parts.push(t);
         }
       }
-      if (parts.length) node.text = parts.join(' ').slice(0, MAX_TEXT);
+      if (parts.length) node.text = parts.join(" ").slice(0, MAX_TEXT);
     }
 
     try {
@@ -70,11 +122,12 @@ function getDomNodes({ selector = 'body', depth = 3, includeText = true, include
 
   try {
     const roots = Array.from(document.querySelectorAll(selector));
+    const nodes = roots.map((el) => serialize(el, depth)).filter(Boolean);
     return {
       selector,
       matched: roots.length,
-      truncated: false,
-      nodes: roots.map(el => serialize(el, depth)).filter(Boolean),
+      truncated: nodeCount >= MAX_NODES,
+      nodes,
       nodeCount,
     };
   } catch (e) {
@@ -88,7 +141,7 @@ function getComputedStyles({ selector, properties }) {
     if (!el) return { error: `No element matches: ${selector}` };
 
     const computed = window.getComputedStyle(el);
-    const props = (properties?.length) ? properties : CURATED_STYLES;
+    const props = properties?.length ? properties : CURATED_STYLES;
     const styles = {};
     for (const prop of props) {
       const val = computed.getPropertyValue(prop).trim();
@@ -107,43 +160,118 @@ function getComputedStyles({ selector, properties }) {
   }
 }
 
-function injectOverlay({ imageData, mimeType = 'image/png', width, height, opacity = 0.5, cropTop = 0, cropBottom = 0, offsetX = 0, offsetY = 0, blendMode = false }) {
-  console.log('[figma-overlay] inject', { width, height, opacity, cropTop, cropBottom, offsetX, offsetY, blendMode });
-  const OVERLAY_ID = '__figma_overlay__';
-  if (window.__figmaOverlayCleanup) { try { window.__figmaOverlayCleanup(); } catch {} }
+const PARENT_LAYOUT_STYLES = ["display", "flex-direction", "justify-content", "align-items", "gap"];
+
+function getComputedStylesBatch({ selectors, properties, includeParent = false, includeClass = false } = {}) {
+  const MAX_SELECTORS = 200;
+  const MAX_PROPS = 60;
+  const MAX_VALUE = 200;
+  const MAX_CLASS = 300;
+
+  if (!Array.isArray(selectors) || selectors.length === 0) {
+    return { error: "selectors must be a non-empty array" };
+  }
+
+  const truncated = selectors.length > MAX_SELECTORS;
+  const wanted = selectors.slice(0, MAX_SELECTORS);
+  const props = (properties?.length ? properties : CURATED_STYLES).slice(0, MAX_PROPS);
+
+  const readStyles = (el, propList) => {
+    const computed = window.getComputedStyle(el);
+    const styles = {};
+    for (const prop of propList) {
+      const val = computed.getPropertyValue(prop).trim();
+      if (val) styles[prop] = val.slice(0, MAX_VALUE);
+    }
+    return styles;
+  };
+
+  const results = wanted.map((selector) => {
+    let el = null;
+    try {
+      el = document.querySelector(selector);
+    } catch {
+      return { selector, found: false, error: "invalid selector" };
+    }
+    if (!el) return { selector, found: false };
+
+    const r = el.getBoundingClientRect();
+    const result = {
+      selector,
+      found: true,
+      rect: { x: Math.round(r.x), y: Math.round(r.y), width: Math.round(r.width), height: Math.round(r.height) },
+      styles: readStyles(el, props),
+    };
+    if (includeParent && el.parentElement) {
+      result.parentStyles = readStyles(el.parentElement, PARENT_LAYOUT_STYLES);
+    }
+    if (includeClass && typeof el.className === "string" && el.className) {
+      result.className = el.className.slice(0, MAX_CLASS);
+    }
+    return result;
+  });
+
+  return { dpr: window.devicePixelRatio || 1, truncated, results };
+}
+
+function injectOverlay({
+  imageData,
+  mimeType = "image/png",
+  width,
+  height,
+  opacity = 0.5,
+  cropTop = 0,
+  cropBottom = 0,
+  offsetX = 0,
+  offsetY = 0,
+  blendMode = false,
+}) {
+  console.log("[figma-overlay] inject", { width, height, opacity, cropTop, cropBottom, offsetX, offsetY, blendMode });
+  const OVERLAY_ID = "__figma_overlay__";
+  if (window.__figmaOverlayCleanup) {
+    try {
+      window.__figmaOverlayCleanup();
+    } catch {}
+  }
   document.getElementById(OVERLAY_ID)?.remove();
-  document.getElementById(OVERLAY_ID + '_controls')?.remove();
+  document.getElementById(OVERLAY_ID + "_controls")?.remove();
 
   const src = `data:${mimeType};base64,${imageData}`;
 
   const visibleHeight = Math.max(0, height - cropTop - cropBottom);
   const cropped = cropTop > 0 || cropBottom > 0;
 
-  const wrap = document.createElement('div');
+  const wrap = document.createElement("div");
   wrap.id = OVERLAY_ID;
   Object.assign(wrap.style, {
-    position: 'absolute', top: `${offsetY}px`, left: `${offsetX}px`,
+    position: "absolute",
+    top: `${offsetY}px`,
+    left: `${offsetX}px`,
     width: `${width}px`,
-    ...(cropped ? { height: `${visibleHeight}px`, overflow: 'hidden' } : {}),
-    zIndex: '2147483646',
-    userSelect: 'none', pointerEvents: 'none',
+    ...(cropped ? { height: `${visibleHeight}px`, overflow: "hidden" } : {}),
+    zIndex: "2147483646",
+    userSelect: "none",
+    pointerEvents: "none",
     opacity: String(opacity),
   });
 
-  const img = document.createElement('img');
+  const img = document.createElement("img");
   img.src = src;
   Object.assign(img.style, {
-    display: 'block', width: '100%', height: 'auto',
+    display: "block",
+    width: "100%",
+    height: "auto",
     ...(cropTop > 0 ? { marginTop: `-${cropTop}px` } : {}),
-    imageRendering: 'crisp-edges', pointerEvents: 'none',
+    imageRendering: "crisp-edges",
+    pointerEvents: "none",
   });
   wrap.appendChild(img);
   document.body.appendChild(wrap);
 
-  if (blendMode === true || (typeof blendMode === 'string' && blendMode && blendMode !== 'normal')) {
-    wrap.style.mixBlendMode = blendMode === true ? 'difference' : blendMode;
-    wrap.style.isolation = 'isolate';
-    wrap.style.opacity = '1';
+  if (blendMode === true || (typeof blendMode === "string" && blendMode && blendMode !== "normal")) {
+    wrap.style.mixBlendMode = blendMode === true ? "difference" : blendMode;
+    wrap.style.isolation = "isolate";
+    wrap.style.opacity = "1";
   }
 
   window.__figmaOverlayCleanup = () => {};
@@ -152,16 +280,24 @@ function injectOverlay({ imageData, mimeType = 'image/png', width, height, opaci
 }
 
 function clearOverlay() {
-  if (window.__figmaOverlayCleanup) { try { window.__figmaOverlayCleanup(); } catch {} window.__figmaOverlayCleanup = null; }
-  document.getElementById('__figma_overlay__')?.remove();
-  document.getElementById('__figma_overlay___controls')?.remove();
+  if (window.__figmaOverlayCleanup) {
+    try {
+      window.__figmaOverlayCleanup();
+    } catch {}
+    window.__figmaOverlayCleanup = null;
+  }
+  document.getElementById("__figma_overlay__")?.remove();
+  document.getElementById("__figma_overlay___controls")?.remove();
   return { success: true };
 }
 
 function buildStableSelector(el) {
   if (!el || el.nodeType !== 1) return null;
-  if (el.getAttribute && el.getAttribute('data-testid')) {
-    return `[data-testid="${cssEscape(el.getAttribute('data-testid'))}"]`;
+  if (el.getAttribute && el.getAttribute("data-fig-id")) {
+    return `[data-fig-id="${cssEscape(el.getAttribute("data-fig-id"))}"]`;
+  }
+  if (el.getAttribute && el.getAttribute("data-testid")) {
+    return `[data-testid="${cssEscape(el.getAttribute("data-testid"))}"]`;
   }
   if (el.id && /^[A-Za-z][\w-]*$/.test(el.id)) {
     return `#${el.id}`;
@@ -171,12 +307,16 @@ function buildStableSelector(el) {
   const MAX_DEPTH = 6;
   while (node && node.nodeType === 1 && path.length < MAX_DEPTH) {
     const tag = node.tagName.toLowerCase();
-    if (tag === 'html' || tag === 'body') {
+    if (tag === "html" || tag === "body") {
       path.unshift(tag);
       break;
     }
-    if (node.getAttribute && node.getAttribute('data-testid')) {
-      path.unshift(`[data-testid="${cssEscape(node.getAttribute('data-testid'))}"]`);
+    if (node.getAttribute && node.getAttribute("data-fig-id")) {
+      path.unshift(`[data-fig-id="${cssEscape(node.getAttribute("data-fig-id"))}"]`);
+      break;
+    }
+    if (node.getAttribute && node.getAttribute("data-testid")) {
+      path.unshift(`[data-testid="${cssEscape(node.getAttribute("data-testid"))}"]`);
       break;
     }
     if (node.id && /^[A-Za-z][\w-]*$/.test(node.id)) {
@@ -197,15 +337,15 @@ function buildStableSelector(el) {
     }
     node = parent;
   }
-  return path.join(' > ');
+  return path.join(" > ");
 }
 
 function cssEscape(s) {
-  if (typeof CSS !== 'undefined' && CSS.escape) return CSS.escape(s);
-  return String(s).replace(/[^A-Za-z0-9_-]/g, '\\$&');
+  if (typeof CSS !== "undefined" && CSS.escape) return CSS.escape(s);
+  return String(s).replace(/[^A-Za-z0-9_-]/g, "\\$&");
 }
 
-function collectAllElementRects({ root = 'body', maxNodes = 1500, includeZeroRect = false } = {}) {
+function collectAllElementRects({ root = "body", maxNodes = 1500, includeZeroRect = false } = {}) {
   const rootEl = document.querySelector(root);
   if (!rootEl) return { error: `No element matches: ${root}` };
 
@@ -226,18 +366,19 @@ function collectAllElementRects({ root = 'body', maxNodes = 1500, includeZeroRec
       out.push({
         idx: myIdx,
         parent: parentIdx,
-        tag: el.tagName ? el.tagName.toLowerCase() : '#unknown',
+        tag: el.tagName ? el.tagName.toLowerCase() : "#unknown",
         id: el.id || null,
-        testId: el.getAttribute ? el.getAttribute('data-testid') : null,
+        testId: el.getAttribute ? el.getAttribute("data-testid") : null,
+        figId: el.getAttribute ? el.getAttribute("data-fig-id") : null,
         depth,
         rect: { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height) },
         selector: buildStableSelector(el),
         text: (() => {
-          let t = '';
+          let t = "";
           for (const child of el.childNodes) {
             if (child.nodeType === Node.TEXT_NODE) {
               const piece = child.textContent.trim();
-              if (piece) t += (t ? ' ' : '') + piece;
+              if (piece) t += (t ? " " : "") + piece;
               if (t.length > 80) break;
             }
           }
@@ -268,20 +409,36 @@ function resolveSelectorAtPoint({ x, y, imagePixels = false }) {
     dpr,
     tag: el.tagName ? el.tagName.toLowerCase() : null,
     id: el.id || null,
-    testId: el.getAttribute ? el.getAttribute('data-testid') : null,
+    testId: el.getAttribute ? el.getAttribute("data-testid") : null,
   };
 }
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   try {
     switch (msg.command) {
-      case 'get_dom_nodes':       sendResponse(getDomNodes(msg.params ?? {})); break;
-      case 'get_computed_styles': sendResponse(getComputedStyles(msg.params ?? {})); break;
-      case 'inject_figma_overlay': sendResponse(injectOverlay(msg.params ?? {})); break;
-      case 'clear_figma_overlay': sendResponse(clearOverlay()); break;
-      case 'resolve_selector_at_point': sendResponse(resolveSelectorAtPoint(msg.params ?? {})); break;
-      case 'collect_all_element_rects': sendResponse(collectAllElementRects(msg.params ?? {})); break;
-      default: sendResponse({ error: `Unknown command: ${msg.command}` });
+      case "get_dom_nodes":
+        sendResponse(getDomNodes(msg.params ?? {}));
+        break;
+      case "get_computed_styles":
+        sendResponse(getComputedStyles(msg.params ?? {}));
+        break;
+      case "get_computed_styles_batch":
+        sendResponse(getComputedStylesBatch(msg.params ?? {}));
+        break;
+      case "inject_figma_overlay":
+        sendResponse(injectOverlay(msg.params ?? {}));
+        break;
+      case "clear_figma_overlay":
+        sendResponse(clearOverlay());
+        break;
+      case "resolve_selector_at_point":
+        sendResponse(resolveSelectorAtPoint(msg.params ?? {}));
+        break;
+      case "collect_all_element_rects":
+        sendResponse(collectAllElementRects(msg.params ?? {}));
+        break;
+      default:
+        sendResponse({ error: `Unknown command: ${msg.command}` });
     }
   } catch (e) {
     sendResponse({ error: e.message });

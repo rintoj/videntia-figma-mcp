@@ -307,3 +307,194 @@ describe("auditFrame", () => {
     expect(result.unmatchedFigma.some((f) => f.id === "ghost")).toBe(true);
   });
 });
+
+describe("auditFrame — data-fig-id pre-pass", () => {
+  const dom = (over: Partial<DomRect> & { idx: number; parent: number }): DomRect => ({
+    tag: "div",
+    id: null,
+    testId: null,
+    figId: null,
+    depth: over.parent === -1 ? 0 : 1,
+    rect: { x: 0, y: 0, w: 10, h: 10 },
+    selector: `sel-${over.idx}`,
+    text: null,
+    ...over,
+  });
+
+  const tree = {
+    id: "1:0",
+    type: "FRAME",
+    name: "Root",
+    absoluteBoundingBox: { x: 0, y: 0, width: 400, height: 200 },
+    children: [
+      {
+        id: "1:1",
+        type: "FRAME",
+        name: "Card A",
+        absoluteBoundingBox: { x: 0, y: 0, width: 200, height: 200 },
+      },
+      {
+        id: "1:2",
+        type: "FRAME",
+        name: "Card B",
+        absoluteBoundingBox: { x: 200, y: 0, width: 200, height: 200 },
+      },
+    ],
+  };
+
+  it("pairs annotated elements at cost 0 even when geometry disagrees", () => {
+    const domRects: DomRect[] = [
+      dom({ idx: 0, parent: -1, rect: { x: 0, y: 0, w: 400, h: 200 } }),
+      // Annotated for Card A but positioned where Card B lives — the annotation must win.
+      dom({ idx: 1, parent: 0, figId: "1:1", rect: { x: 200, y: 0, w: 200, h: 200 } }),
+      dom({ idx: 2, parent: 0, rect: { x: 0, y: 0, w: 200, h: 200 } }),
+    ];
+
+    const result = auditFrame(tree as any, 0, domRects);
+    const cardA = result.matched.find((m) => m.figmaId === "1:1");
+    expect(cardA).toMatchObject({ domIdx: 1, cost: 0, matchedBy: "fig-id" });
+  });
+
+  it("keeps annotated pairs out of the Hungarian pool so siblings match correctly", () => {
+    const domRects: DomRect[] = [
+      dom({ idx: 0, parent: -1, rect: { x: 0, y: 0, w: 400, h: 200 } }),
+      dom({ idx: 1, parent: 0, figId: "1:1", rect: { x: 0, y: 0, w: 200, h: 200 } }),
+      dom({ idx: 2, parent: 0, rect: { x: 200, y: 0, w: 200, h: 200 } }),
+    ];
+
+    const result = auditFrame(tree as any, 0, domRects);
+    const cardB = result.matched.find((m) => m.figmaId === "1:2");
+    // Card B geometry-matches the remaining element — never the consumed annotated one.
+    expect(cardB).toMatchObject({ domIdx: 2 });
+    expect(cardB?.matchedBy).toBeUndefined();
+    expect(result.unmatchedFigma).toHaveLength(0);
+  });
+
+  it("ignores duplicate fig-id annotations and falls back to geometry", () => {
+    const domRects: DomRect[] = [
+      dom({ idx: 0, parent: -1, rect: { x: 0, y: 0, w: 400, h: 200 } }),
+      dom({ idx: 1, parent: 0, figId: "1:1", rect: { x: 0, y: 0, w: 200, h: 200 } }),
+      dom({ idx: 2, parent: 0, figId: "1:1", rect: { x: 200, y: 0, w: 200, h: 200 } }),
+    ];
+
+    const result = auditFrame(tree as any, 0, domRects);
+    // No cost-0 pre-pass matches; both matched via geometry instead.
+    expect(result.matched.filter((m) => m.matchedBy === "fig-id")).toHaveLength(0);
+    expect(result.matched).toHaveLength(2);
+  });
+
+  it("still processes children of pre-matched parents", () => {
+    const deepTree = {
+      ...tree,
+      children: [
+        {
+          id: "1:1",
+          type: "FRAME",
+          name: "Card A",
+          absoluteBoundingBox: { x: 0, y: 0, width: 200, height: 200 },
+          children: [
+            {
+              id: "1:3",
+              type: "TEXT",
+              name: "Label",
+              absoluteBoundingBox: { x: 10, y: 10, width: 100, height: 20 },
+            },
+          ],
+        },
+      ],
+    };
+    const domRects: DomRect[] = [
+      dom({ idx: 0, parent: -1, rect: { x: 0, y: 0, w: 400, h: 200 } }),
+      dom({ idx: 1, parent: 0, figId: "1:1", rect: { x: 0, y: 0, w: 200, h: 200 } }),
+      dom({ idx: 2, parent: 1, tag: "span", text: "Label", rect: { x: 10, y: 10, w: 100, h: 20 } }),
+    ];
+
+    const result = auditFrame(deepTree as any, 0, domRects);
+    const label = result.matched.find((m) => m.figmaId === "1:3");
+    expect(label).toMatchObject({ domIdx: 2 });
+  });
+});
+
+describe("auditFrame — large DOM pool performance", () => {
+  it("completes quickly with 1200 DOM candidates (candidate pruning)", () => {
+    const children = Array.from({ length: 40 }, (_, i) => ({
+      id: `c:${i}`,
+      type: "FRAME",
+      name: `Child ${i}`,
+      absoluteBoundingBox: { x: (i % 8) * 100, y: Math.floor(i / 8) * 100, width: 90, height: 90 },
+    }));
+    const tree = {
+      id: "root",
+      type: "FRAME",
+      absoluteBoundingBox: { x: 0, y: 0, width: 800, height: 500 },
+      children,
+    };
+    const domRects: DomRect[] = [
+      {
+        idx: 0,
+        parent: -1,
+        tag: "div",
+        id: null,
+        testId: null,
+        depth: 0,
+        rect: { x: 0, y: 0, w: 800, h: 500 },
+        selector: "root",
+        text: null,
+      },
+    ];
+    for (let i = 1; i <= 1200; i++) {
+      domRects.push({
+        idx: i,
+        parent: 0,
+        tag: "div",
+        id: null,
+        testId: null,
+        depth: 1,
+        rect: { x: (i % 40) * 20, y: Math.floor(i / 40) * 16, w: 90, h: 90 },
+        selector: `sel-${i}`,
+        text: null,
+      });
+    }
+
+    const start = Date.now();
+    const result = auditFrame(tree as any, 0, domRects);
+    const elapsed = Date.now() - start;
+
+    // Pre-pruning this padded to a 1200³ Hungarian (~minutes); pruned it's well under a second.
+    expect(elapsed).toBeLessThan(2000);
+    expect(result.matched.length + result.unmatchedFigma.length).toBe(40);
+  });
+});
+
+describe("hungarian — regression: rectangular matrix that cycled forever", () => {
+  it("terminates on the real 2x28 hero matrix (finite-sentinel tie bug)", () => {
+    // Captured live from the HomeVault hero audit: the original implementation used
+    // the finite padding constant as the search sentinel, and exact ties made the
+    // augmenting path cycle forever. Sentinels must be Infinity.
+    const matrix: number[][] = [
+      [
+        0.2812080883936198, 0.2812080883936198, 0.3350755891741938, 0.43229404182206116, 0.43539169426905205,
+        0.37810457165296096, 0.22059297836755556, 0.24026585545414125, 0.22059297836755556, 0.3229520679970676,
+        0.3290573181869906, 0.2464792086088192, 0.26769358658840137, 0.12112220978065173, 0.12112220978065173,
+        0.12112220978065173, 0.12112220978065173, 0.2648603409042668, 0.2648603409042668, 0.2681437402888681,
+        0.2908429098949092, 0.35393034617461433, 0.35393034617461433, 0.23865027714543752, 0.38538815198573934,
+        0.400214100243464, 0.42240523146278774, 0.44677886493002017,
+      ],
+      [
+        0.32610941405367366, 0.32610941405367366, 0.34700461857475423, 0.4426571604849823, 0.4457548129319733,
+        0.32041238723714455, 0.24199410980494362, 0.2968488322468357, 0.24199410980494362, 0.34022513795190035,
+        0.3463559170860993, 0.26880356808685896, 0.22239454813349466, 0.16969647154948003, 0.16969647154948003,
+        0.16969647154948003, 0.16969647154948003, 0.28870319030764413, 0.28870319030764413, 0.291604314871493,
+        0.2636163434977342, 0.5670437364569184, 0.5670437364569184, 0.2702661711513781, 0.4996903160018187,
+        0.5142516767940514, 0.46644280801337507, 0.5641483610877952,
+      ],
+    ];
+    const start = Date.now();
+    const assignment = hungarian(matrix);
+    expect(Date.now() - start).toBeLessThan(1000);
+    expect(assignment).toHaveLength(2);
+    expect(assignment[0]).not.toBe(-1);
+    expect(assignment[1]).not.toBe(-1);
+    expect(assignment[0]).not.toBe(assignment[1]);
+  });
+});

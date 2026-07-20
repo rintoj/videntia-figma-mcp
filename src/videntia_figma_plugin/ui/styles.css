@@ -29,8 +29,15 @@
 /* ---- Base resets ---- */
 
 body {
-  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-    Helvetica, Arial, sans-serif;
+  font-family:
+    "Inter",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    Helvetica,
+    Arial,
+    sans-serif;
 }
 
 /* ---- Scrollbar ---- */
@@ -51,7 +58,7 @@ body {
 /* ---- Pseudo-element accents ---- */
 
 .tab-active-bar::after {
-  content: '';
+  content: "";
   position: absolute;
   left: 0;
   bottom: 0;
@@ -61,7 +68,7 @@ body {
 }
 
 .action-selected-bar::before {
-  content: '';
+  content: "";
   position: absolute;
   left: 0;
   top: 0;
@@ -73,7 +80,7 @@ body {
 /* ---- Detail block left accent ---- */
 
 .detail-block-accent::before {
-  content: '';
+  content: "";
   position: absolute;
   left: 0;
   top: 0;
@@ -127,12 +134,17 @@ body {
 /* ---- Button & input hover ---- */
 
 button {
-  transition: background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    opacity 0.15s ease;
 }
 
 input[type="text"],
 input[type="number"] {
-  transition: border-color 0.15s ease, background-color 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease;
 }
 
 input[type="text"]:hover,

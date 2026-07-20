@@ -213,6 +213,65 @@ export function registerBrowserTools(server: McpServer): void {
   );
 
   server.tool(
+    "set_browser_viewport",
+    "Set the browser viewport size. Widths below Chrome's ~500px window minimum (or force_emulation) use CDP device emulation (Emulation.setDeviceMetricsOverride with touch) — a true mobile viewport, like DevTools device mode. Larger sizes resize the OS window. NOTE: CDP emulation resets on navigation — re-apply after every navigate. Requires the Figma Overlay Chrome extension; no Figma plugin needed.",
+    {
+      width: z.number().int().min(1).describe("Viewport width in CSS px (e.g. 390 for iPhone-class mobile)."),
+      height: z.number().int().min(1).describe("Viewport height in CSS px (e.g. 844)."),
+      device_scale_factor: z
+        .number()
+        .min(1)
+        .max(4)
+        .optional()
+        .describe("Device pixel ratio for emulated viewports (default 2). Ignored when the window is simply resized."),
+      force_emulation: z
+        .boolean()
+        .optional()
+        .default(false)
+        .describe(
+          "Use CDP emulation even for widths ≥ 500px (e.g. to emulate a tablet with touch instead of resizing the window).",
+        ),
+      tab_id: tabIdSchema,
+    },
+    async ({ width, height, device_scale_factor, force_emulation, tab_id }) => {
+      const result = await sendCommandToChannel<{
+        emulated: boolean;
+        windowWidth: number;
+        windowHeight: number;
+        tabId: number;
+      }>(BROWSER_CHANNEL, "set_viewport", {
+        width,
+        height,
+        deviceScaleFactor: device_scale_factor,
+        forceEmulation: force_emulation,
+        tabId: tab_id,
+      });
+      return {
+        content: [
+          {
+            type: "text",
+            text: result.emulated
+              ? `Viewport emulated at ${width}×${height} via CDP (tab ${result.tabId}). Touch enabled. ⚠️ Emulation resets on navigation — re-apply after navigate. Use reset_browser_viewport to restore.`
+              : `Window resized to ${width}×${height} (tab ${result.tabId}).`,
+          },
+        ],
+      };
+    },
+  );
+
+  server.tool(
+    "reset_browser_viewport",
+    "Clear CDP viewport emulation set by set_browser_viewport (or by a narrow overlay) and detach the debugger from the tab.",
+    {
+      tab_id: tabIdSchema,
+    },
+    async ({ tab_id }) => {
+      await sendCommandToChannel(BROWSER_CHANNEL, "reset_viewport", { tabId: tab_id });
+      return { content: [{ type: "text", text: "Viewport emulation cleared." }] };
+    },
+  );
+
+  server.tool(
     "clear_browser_overlay",
     "Remove the Figma overlay from a browser tab. Targets the pinned/active tab by default, or pass tab_id to clear a specific tab.",
     {

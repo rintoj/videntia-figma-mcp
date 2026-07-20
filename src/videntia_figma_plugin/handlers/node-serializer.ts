@@ -225,7 +225,8 @@ async function processNode(
   }
 
   // Layout properties
-  if ("layoutMode" in node && (node as FrameNode).layoutMode) {
+  if ("layoutMode" in node) {
+    // Emit "NONE" explicitly so consumers can distinguish non-auto-layout from not-serialized.
     info["layoutMode"] = (node as FrameNode).layoutMode;
   }
   if ("layoutSizingHorizontal" in node) info["layoutSizingHorizontal"] = (node as FrameNode).layoutSizingHorizontal;
