@@ -9,7 +9,7 @@ const tabIdSchema = z
   .int()
   .optional()
   .describe(
-    "Optional Chrome tab ID to target. When omitted, the extension uses its pinned tab (set via the popup) or falls back to the active tab in the focused window. Use get_browser_page_info to discover tab IDs.",
+    "Optional Chrome tab ID to target. The tab does NOT need to be focused or visible — screenshots, styles, and viewport emulation all work on background tabs via CDP. When omitted, the extension uses its pinned tab (set via the popup) or falls back to the active tab in the focused window; pass an explicit tab ID for any multi-step workflow so commands never leak onto whichever tab the user has focused. Use browser_list_tabs to discover tab IDs.",
   );
 
 export function registerBrowserTools(server: McpServer): void {
@@ -33,15 +33,20 @@ export function registerBrowserTools(server: McpServer): void {
 
   server.tool(
     "get_browser_page_screenshot",
-    "Take a screenshot of the visible area of a browser tab. Targets the pinned/active tab by default, or pass tab_id to screenshot a specific (even non-focused) tab. Returns a PNG image. Requires the Figma Overlay Chrome extension.",
+    "Take a screenshot of a browser tab. Uses debugger-based capture, so the tab does NOT need to be focused — pass tab_id to screenshot a background tab while the user works elsewhere. Targets the pinned/active tab when tab_id is omitted. Set full_page to capture beyond the viewport (entire scrollable page). Returns a PNG image. Requires the Figma Overlay Chrome extension.",
     {
+      full_page: z
+        .boolean()
+        .optional()
+        .default(false)
+        .describe("Capture the full scrollable page instead of just the visible viewport."),
       tab_id: tabIdSchema,
     },
-    async ({ tab_id }) => {
+    async ({ full_page, tab_id }) => {
       const result = await sendCommandToChannel<{ imageData: string; mimeType: string }>(
         BROWSER_CHANNEL,
         "get_page_screenshot",
-        { tabId: tab_id },
+        { tabId: tab_id, fullPage: full_page },
       );
       return {
         content: [{ type: "image", data: result.imageData, mimeType: result.mimeType }],
