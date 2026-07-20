@@ -120,6 +120,7 @@ export const ALLOWED_COMMANDS = new Set([
   "update_annotation_category",
   "delete_annotation_category",
   "get_reactions",
+  "get_frame_animations",
   "set_default_connector",
   "create_connections",
   "create_page",

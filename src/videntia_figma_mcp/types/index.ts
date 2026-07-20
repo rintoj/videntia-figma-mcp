@@ -127,6 +127,7 @@ export type FigmaCommand =
   | "scan_nodes_by_types"
   | "search_nodes"
   | "get_reactions"
+  | "get_frame_animations"
   | "set_default_connector"
   | "create_connections"
   | "get_instance_overrides"

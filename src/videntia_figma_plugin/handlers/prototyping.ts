@@ -77,6 +77,145 @@ export async function getReactions(params: Record<string, unknown>): Promise<Get
   };
 }
 
+// ---------------------------------------------------------------------------
+// get_frame_animations — read prototype transitions (animations) within a frame
+// ---------------------------------------------------------------------------
+
+export interface AnimationEasing {
+  type: string;
+  cubicBezier?: { x1: number; y1: number; x2: number; y2: number };
+}
+
+export interface FrameAnimationInfo {
+  sourceId: string;
+  sourceName: string;
+  sourceType: string;
+  trigger: string;
+  triggerTimeout?: number;
+  action: string;
+  navigation?: string;
+  destinationId?: string;
+  destinationName?: string;
+  transitionType: string;
+  direction?: string;
+  matchLayers?: boolean;
+  duration?: number;
+  easing?: AnimationEasing;
+  preserveScrollPosition?: boolean;
+}
+
+export interface GetFrameAnimationsResult {
+  frameId: string;
+  frameName: string;
+  nodesScanned: number;
+  animationCount: number;
+  animations: FrameAnimationInfo[];
+}
+
+interface RawTransition {
+  type?: string;
+  direction?: string;
+  matchLayers?: boolean;
+  duration?: number;
+  easing?: { type?: string; easingFunctionCubicBezier?: { x1: number; y1: number; x2: number; y2: number } };
+}
+
+interface RawAction {
+  type: string;
+  destinationId?: string;
+  navigation?: string;
+  transition?: RawTransition | null;
+  preserveScrollPosition?: boolean;
+}
+
+interface RawReaction {
+  trigger: { type: string; timeout?: number } | null;
+  actions?: RawAction[];
+}
+
+interface RawReactiveNode {
+  id: string;
+  name: string;
+  type: string;
+  reactions?: RawReaction[];
+  children?: readonly SceneNode[];
+}
+
+export async function getFrameAnimations(params: Record<string, unknown>): Promise<GetFrameAnimationsResult> {
+  const nodeId = params["nodeId"] as string | undefined;
+  if (!nodeId) throw new Error("nodeId is required");
+
+  const frame = await figma.getNodeByIdAsync(nodeId);
+  if (!frame) throw new Error("Node not found: " + nodeId);
+
+  const animations: FrameAnimationInfo[] = [];
+  let nodesScanned = 0;
+
+  // Depth-first walk of the frame subtree, including the frame node itself.
+  const stack: SceneNode[] = [frame as SceneNode];
+  while (stack.length > 0) {
+    const node = stack.pop() as unknown as RawReactiveNode;
+    nodesScanned += 1;
+
+    if (Array.isArray(node.reactions)) {
+      for (const reaction of node.reactions) {
+        const actions = Array.isArray(reaction.actions) ? reaction.actions : [];
+        for (const action of actions) {
+          const transition = action.transition;
+          // Only actions that carry a transition are "animations".
+          if (!transition || !transition.type) continue;
+
+          const info: FrameAnimationInfo = {
+            sourceId: node.id,
+            sourceName: node.name,
+            sourceType: node.type,
+            trigger: reaction.trigger?.type ?? "UNKNOWN",
+            action: action.type,
+            transitionType: transition.type,
+          };
+
+          if (reaction.trigger && typeof reaction.trigger.timeout === "number") {
+            info.triggerTimeout = reaction.trigger.timeout;
+          }
+          if (action.navigation) info.navigation = action.navigation;
+          if (action.destinationId) {
+            info.destinationId = action.destinationId;
+            const dest = await figma.getNodeByIdAsync(action.destinationId);
+            if (dest) info.destinationName = dest.name;
+          }
+          if (transition.direction) info.direction = transition.direction;
+          if (typeof transition.matchLayers === "boolean") info.matchLayers = transition.matchLayers;
+          if (typeof transition.duration === "number") info.duration = transition.duration;
+          if (transition.easing && transition.easing.type) {
+            const easing: AnimationEasing = { type: transition.easing.type };
+            if (transition.easing.easingFunctionCubicBezier) {
+              easing.cubicBezier = transition.easing.easingFunctionCubicBezier;
+            }
+            info.easing = easing;
+          }
+          if (typeof action.preserveScrollPosition === "boolean") {
+            info.preserveScrollPosition = action.preserveScrollPosition;
+          }
+
+          animations.push(info);
+        }
+      }
+    }
+
+    if (Array.isArray(node.children)) {
+      for (const child of node.children) stack.push(child);
+    }
+  }
+
+  return {
+    frameId: frame.id,
+    frameName: frame.name,
+    nodesScanned,
+    animationCount: animations.length,
+    animations,
+  };
+}
+
 export interface SetDefaultConnectorParams {
   connectorId: string;
 }

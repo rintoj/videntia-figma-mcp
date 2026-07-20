@@ -18,6 +18,7 @@ import { serializeNodes } from "./handlers/node-serializer";
 import { createPage, renamePage, deletePage } from "./handlers/pages";
 import {
   getReactions,
+  getFrameAnimations,
   setDefaultConnector,
   createConnections,
   addPrototypeLink,
@@ -256,6 +257,7 @@ var READONLY_COMMANDS = new Set([
   "get_annotations",
   "get_annotation_categories",
   "get_reactions",
+  "get_frame_animations",
   "get_design_system",
   "lint_frame",
   "set_focus",
@@ -287,6 +289,7 @@ var FOCUS_BEFORE_COMMANDS = new Set([
   "get_styled_text_segments",
   "get_annotations",
   "get_reactions",
+  "get_frame_animations",
   "export_node_as_image",
   "lint_frame",
   // Modify commands with nodeId
@@ -885,6 +888,8 @@ async function _executeCommand(command: string, params: Record<string, unknown>)
     // Prototyping
     case "get_reactions":
       return await getReactions(params);
+    case "get_frame_animations":
+      return await getFrameAnimations(params);
     case "add_prototype_link":
       return await addPrototypeLink(params);
     case "remove_prototype_link":
