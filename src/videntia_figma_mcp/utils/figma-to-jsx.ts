@@ -74,6 +74,14 @@ function fontWeightClass(weight: number): string {
   return map[weight] || `font-[${weight}]`;
 }
 
+// Tailwind spacing suffix for a gap value — the bound variable name when one exists,
+// otherwise an arbitrary px value. Returns null when there is no gap to emit.
+function gapSuffix(value: number | undefined, binding: string | undefined): string | null {
+  if (binding) return normalizeName(binding);
+  if (value === undefined || value <= 0) return null;
+  return `[${value}px]`;
+}
+
 /**
  * Build the Tailwind className string for a node.
  */
@@ -92,12 +100,18 @@ function buildTailwindClasses(node: FigmaNodeData, parentLayoutMode?: string): s
     classes.push("flex", "flex-row");
   } else if (node.layoutMode === "VERTICAL") {
     classes.push("flex", "flex-col");
+  } else if (node.layoutMode === "GRID") {
+    classes.push("grid");
+    if (node.gridColumnCount !== undefined && node.gridColumnCount > 0) {
+      classes.push(`grid-cols-${node.gridColumnCount}`);
+    }
   } else if (!isText && node.children && node.children.length > 0) {
     classes.push("relative");
   }
 
   // Primary axis alignment (omit MIN = justify-start, the default)
-  if (node.layoutMode && node.layoutMode !== "NONE") {
+  // GRID is excluded: its alignment maps to grid placement, not flex alignment.
+  if (node.layoutMode && node.layoutMode !== "NONE" && node.layoutMode !== "GRID") {
     if (node.primaryAxisAlignItems === "CENTER") classes.push("justify-center");
     else if (node.primaryAxisAlignItems === "MAX") classes.push("justify-end");
     else if (node.primaryAxisAlignItems === "SPACE_BETWEEN") classes.push("justify-between");
@@ -112,8 +126,19 @@ function buildTailwindClasses(node: FigmaNodeData, parentLayoutMode?: string): s
     if (node.layoutWrap === "WRAP") classes.push("flex-wrap");
   }
 
-  // Item spacing (gap)
-  if (node.layoutMode && node.layoutMode !== "NONE" && node.itemSpacing !== undefined && node.itemSpacing > 0) {
+  // Item spacing (gap). GRID keeps a stale itemSpacing from before it became a grid —
+  // its real gaps are gridRowGap/gridColumnGap, emitted as gap-y/gap-x (or a single
+  // gap when both axes match).
+  if (node.layoutMode === "GRID") {
+    const rowGap = gapSuffix(node.gridRowGap, bindings["gridRowGap"]);
+    const colGap = gapSuffix(node.gridColumnGap, bindings["gridColumnGap"]);
+    if (rowGap !== null && rowGap === colGap) {
+      classes.push(`gap-${rowGap}`);
+    } else {
+      if (rowGap !== null) classes.push(`gap-y-${rowGap}`);
+      if (colGap !== null) classes.push(`gap-x-${colGap}`);
+    }
+  } else if (node.layoutMode && node.layoutMode !== "NONE" && node.itemSpacing !== undefined && node.itemSpacing > 0) {
     if (bindings["itemSpacing"]) {
       classes.push(`gap-${normalizeName(bindings["itemSpacing"])}`);
     } else {
@@ -121,10 +146,12 @@ function buildTailwindClasses(node: FigmaNodeData, parentLayoutMode?: string): s
     }
   }
 
-  // Cross-axis spacing (gap-x/gap-y in wrapped layouts)
+  // Cross-axis spacing (gap-x/gap-y in wrapped layouts) — flex-wrap only; GRID gaps
+  // are already emitted above.
   if (
     node.layoutMode &&
     node.layoutMode !== "NONE" &&
+    node.layoutMode !== "GRID" &&
     node.layoutWrap === "WRAP" &&
     node.counterAxisSpacing !== undefined &&
     node.counterAxisSpacing > 0

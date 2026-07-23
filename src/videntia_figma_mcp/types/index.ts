@@ -320,13 +320,18 @@ export interface FigmaNodeData {
   x?: number;
   y?: number;
   // Layout
-  layoutMode?: "HORIZONTAL" | "VERTICAL" | "NONE";
+  layoutMode?: "HORIZONTAL" | "VERTICAL" | "GRID" | "NONE";
   layoutSizingHorizontal?: "FIXED" | "HUG" | "FILL";
   layoutSizingVertical?: "FIXED" | "HUG" | "FILL";
   primaryAxisAlignItems?: "MIN" | "CENTER" | "MAX" | "SPACE_BETWEEN";
   counterAxisAlignItems?: "MIN" | "CENTER" | "MAX" | "BASELINE";
   itemSpacing?: number;
   counterAxisSpacing?: number;
+  // GRID layout only — itemSpacing is vestigial there, these are the live gaps.
+  gridRowGap?: number;
+  gridColumnGap?: number;
+  gridRowCount?: number;
+  gridColumnCount?: number;
   layoutWrap?: "NO_WRAP" | "WRAP";
   paddingTop?: number;
   paddingRight?: number;

@@ -233,6 +233,8 @@ async function processNode(
   if ("layoutSizingVertical" in node) info["layoutSizingVertical"] = (node as FrameNode).layoutSizingVertical;
   if ("primaryAxisAlignItems" in node) info["primaryAxisAlignItems"] = (node as FrameNode).primaryAxisAlignItems;
   if ("counterAxisAlignItems" in node) info["counterAxisAlignItems"] = (node as FrameNode).counterAxisAlignItems;
+  // Still emitted for GRID frames (where it is stale) so consumers keep a complete
+  // picture — read gridRowGap/gridColumnGap below instead when layoutMode is GRID.
   if ("itemSpacing" in node && (node as FrameNode).itemSpacing !== undefined)
     info["itemSpacing"] = (node as FrameNode).itemSpacing;
   if ("counterAxisSpacing" in node && (node as FrameNode).counterAxisSpacing !== undefined)
