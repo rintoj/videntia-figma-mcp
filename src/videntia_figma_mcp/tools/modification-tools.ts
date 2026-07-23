@@ -376,31 +376,52 @@ export function registerModificationTools(server: McpServer): void {
     {
       nodeId: z.string().describe("Frame node ID — must be a FRAME type, not a group"),
       mode: z
-        .enum(["NONE", "HORIZONTAL", "VERTICAL"])
+        .enum(["NONE", "HORIZONTAL", "VERTICAL", "GRID"])
         .describe(
-          "Layout direction: NONE = no auto-layout, HORIZONTAL = children flow left-to-right, VERTICAL = children flow top-to-bottom",
+          "Layout direction: NONE = no auto-layout, HORIZONTAL = children flow left-to-right, VERTICAL = children flow top-to-bottom, GRID = children placed on a row/column grid",
         ),
       wrap: z
         .enum(["NO_WRAP", "WRAP"])
         .optional()
         .describe(
-          "WRAP = children wrap to next row/column when they overflow (only applies in HORIZONTAL or VERTICAL mode; default: NO_WRAP)",
+          "WRAP = children wrap to next row/column when they overflow (only applies in HORIZONTAL or VERTICAL mode; ignored for GRID; default: NO_WRAP)",
         ),
+      rows: z.coerce
+        .number()
+        .int()
+        .positive()
+        .optional()
+        .describe("Number of grid rows (GRID mode only; omit to keep Figma's current track count)"),
+      columns: z.coerce
+        .number()
+        .int()
+        .positive()
+        .optional()
+        .describe("Number of grid columns (GRID mode only; omit to keep Figma's current track count)"),
     },
-    async ({ nodeId, mode, wrap }) => {
+    async ({ nodeId, mode, wrap, rows, columns }) => {
       nodeId = normalizeNodeId(nodeId);
       try {
+        if (mode !== "GRID" && (rows !== undefined || columns !== undefined)) {
+          throw new Error(`rows/columns apply to GRID mode only (mode is ${mode})`);
+        }
         const result = await sendCommandToFigma("set_layout_mode", {
           nodeId,
           layoutMode: mode,
           layoutWrap: wrap || "NO_WRAP",
+          ...(rows !== undefined ? { gridRowCount: rows } : {}),
+          ...(columns !== undefined ? { gridColumnCount: columns } : {}),
         });
-        const typedResult = result as { name: string };
+        const typedResult = result as { name: string; gridRowCount?: number; gridColumnCount?: number };
+        const tracks =
+          mode === "GRID" && typedResult.gridColumnCount !== undefined
+            ? ` (${typedResult.gridRowCount} rows × ${typedResult.gridColumnCount} columns)`
+            : "";
         return {
           content: [
             {
               type: "text",
-              text: `Set layout mode of frame "${typedResult.name}" to ${mode}`,
+              text: `Set layout mode of frame "${typedResult.name}" to ${mode}${tracks}`,
             },
           ],
         };
@@ -586,33 +607,52 @@ export function registerModificationTools(server: McpServer): void {
     "set_item_spacing",
     "Set distance between children in an auto-layout frame",
     {
-      nodeId: z.string().describe("Auto-layout frame node ID — frame must have HORIZONTAL or VERTICAL layout mode"),
+      nodeId: z.string().describe("Auto-layout frame node ID — frame must have HORIZONTAL, VERTICAL, or GRID layout"),
       gap: z.coerce
         .number()
         .optional()
-        .describe("Gap between children in pixels along the primary axis (≥ 0; equivalent to CSS gap)"),
+        .describe(
+          "Gap between children in pixels (≥ 0; equivalent to CSS gap). On HORIZONTAL/VERTICAL frames this is the primary-axis spacing; on GRID frames it is the shorthand and sets both axes",
+        ),
       counterAxisSpacing: z.coerce
         .number()
         .optional()
-        .describe("Gap between wrapped rows/columns in pixels (≥ 0; only applies when wrap=WRAP)"),
+        .describe("Gap between wrapped rows/columns in pixels (≥ 0; only applies when wrap=WRAP; not valid on GRID)"),
+      rowGap: z.coerce
+        .number()
+        .optional()
+        .describe("Gap between grid rows in pixels (GRID frames only; overrides gap for this axis)"),
+      columnGap: z.coerce
+        .number()
+        .optional()
+        .describe("Gap between grid columns in pixels (GRID frames only; overrides gap for this axis)"),
     },
-    async ({ nodeId, gap, counterAxisSpacing }) => {
+    async ({ nodeId, gap, counterAxisSpacing, rowGap, columnGap }) => {
       nodeId = normalizeNodeId(nodeId);
       try {
         const params: any = { nodeId };
         if (gap !== undefined) params.itemSpacing = gap;
         if (counterAxisSpacing !== undefined) params.counterAxisSpacing = counterAxisSpacing;
+        if (rowGap !== undefined) params.gridRowGap = rowGap;
+        if (columnGap !== undefined) params.gridColumnGap = columnGap;
 
         const result = await sendCommandToFigma("set_item_spacing", params);
         const typedResult = result as {
           name: string;
           itemSpacing?: number;
           counterAxisSpacing?: number;
+          gridRowGap?: number;
+          gridColumnGap?: number;
+          layoutMode?: string;
         };
 
         let message = `Updated spacing for frame "${typedResult.name}":`;
-        if (gap !== undefined) message += ` gap=${gap}`;
-        if (counterAxisSpacing !== undefined) message += ` counterAxisSpacing=${counterAxisSpacing}`;
+        if (typedResult.layoutMode === "GRID") {
+          message += ` rowGap=${typedResult.gridRowGap} columnGap=${typedResult.gridColumnGap}`;
+        } else {
+          if (gap !== undefined) message += ` gap=${gap}`;
+          if (counterAxisSpacing !== undefined) message += ` counterAxisSpacing=${counterAxisSpacing}`;
+        }
 
         return {
           content: [
