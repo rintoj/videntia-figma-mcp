@@ -974,25 +974,56 @@ export async function setAutoLayout(params: Record<string, unknown>): Promise<Re
   if (layoutMode === "NONE") {
     frameNode.layoutMode = "NONE";
   } else {
-    frameNode.layoutMode = layoutMode as "HORIZONTAL" | "VERTICAL";
+    // Mode must be assigned before the grid track counts — they are only writable
+    // once the frame is actually a grid.
+    frameNode.layoutMode = layoutMode as "HORIZONTAL" | "VERTICAL" | "GRID";
 
     if (paddingTop !== undefined) frameNode.paddingTop = paddingTop;
     if (paddingBottom !== undefined) frameNode.paddingBottom = paddingBottom;
     if (paddingLeft !== undefined) frameNode.paddingLeft = paddingLeft;
     if (paddingRight !== undefined) frameNode.paddingRight = paddingRight;
 
-    if (itemSpacing !== undefined) frameNode.itemSpacing = itemSpacing;
+    if (layoutMode === "GRID") {
+      // itemSpacing is inert on grids, and flex alignment/wrap do not apply —
+      // gaps live on gridRowGap/gridColumnGap and alignment maps to placement.
+      // Accept both full names and the MCP tool's shorthand aliases, as above.
+      const gridRowCount = (safeParams.gridRowCount !== undefined ? safeParams.gridRowCount : safeParams.rows) as
+        | number
+        | undefined;
+      const gridColumnCount = (
+        safeParams.gridColumnCount !== undefined ? safeParams.gridColumnCount : safeParams.columns
+      ) as number | undefined;
+      const gridRowGap = (safeParams.gridRowGap !== undefined ? safeParams.gridRowGap : safeParams.rowGap) as
+        | number
+        | undefined;
+      const gridColumnGap = (
+        safeParams.gridColumnGap !== undefined ? safeParams.gridColumnGap : safeParams.columnGap
+      ) as number | undefined;
 
-    if (primaryAxisAlignItems !== undefined) {
-      frameNode.primaryAxisAlignItems = primaryAxisAlignItems as "MIN" | "CENTER" | "MAX" | "SPACE_BETWEEN";
-    }
+      if (gridRowCount !== undefined) frameNode.gridRowCount = gridRowCount;
+      if (gridColumnCount !== undefined) frameNode.gridColumnCount = gridColumnCount;
 
-    if (counterAxisAlignItems !== undefined) {
-      frameNode.counterAxisAlignItems = counterAxisAlignItems as "MIN" | "CENTER" | "MAX" | "BASELINE";
-    }
+      // `gap` is the CSS shorthand: it sets both axes unless a per-axis value wins.
+      if (itemSpacing !== undefined) {
+        frameNode.gridRowGap = itemSpacing;
+        frameNode.gridColumnGap = itemSpacing;
+      }
+      if (gridRowGap !== undefined) frameNode.gridRowGap = gridRowGap;
+      if (gridColumnGap !== undefined) frameNode.gridColumnGap = gridColumnGap;
+    } else {
+      if (itemSpacing !== undefined) frameNode.itemSpacing = itemSpacing;
 
-    if (layoutWrap !== undefined) {
-      frameNode.layoutWrap = layoutWrap as "NO_WRAP" | "WRAP";
+      if (primaryAxisAlignItems !== undefined) {
+        frameNode.primaryAxisAlignItems = primaryAxisAlignItems as "MIN" | "CENTER" | "MAX" | "SPACE_BETWEEN";
+      }
+
+      if (counterAxisAlignItems !== undefined) {
+        frameNode.counterAxisAlignItems = counterAxisAlignItems as "MIN" | "CENTER" | "MAX" | "BASELINE";
+      }
+
+      if (layoutWrap !== undefined) {
+        frameNode.layoutWrap = layoutWrap as "NO_WRAP" | "WRAP";
+      }
     }
 
     if (strokesIncludedInLayout !== undefined) {
@@ -1030,6 +1061,14 @@ export async function setAutoLayout(params: Record<string, unknown>): Promise<Re
     primaryAxisAlignItems: frameNode.primaryAxisAlignItems,
     counterAxisAlignItems: frameNode.counterAxisAlignItems,
     layoutWrap: frameNode.layoutWrap,
+    ...(frameNode.layoutMode === "GRID"
+      ? {
+          gridRowCount: frameNode.gridRowCount,
+          gridColumnCount: frameNode.gridColumnCount,
+          gridRowGap: frameNode.gridRowGap,
+          gridColumnGap: frameNode.gridColumnGap,
+        }
+      : {}),
     strokesIncludedInLayout: frameNode.strokesIncludedInLayout,
     clipsContent: frameNode.clipsContent,
     layoutSizingHorizontal: frameNode.layoutSizingHorizontal,

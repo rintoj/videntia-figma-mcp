@@ -240,16 +240,37 @@ export async function setLayoutMode(params: Record<string, unknown>): Promise<Re
     throw new Error(`Node "${node.name}" does not support auto layout (type: ${node.type})`);
   }
 
-  (node as FrameNode).layoutMode = layoutMode as "NONE" | "HORIZONTAL" | "VERTICAL";
+  const frame = node as FrameNode;
+  // Mode must be assigned before the grid track counts — they are only writable
+  // once the frame is actually a grid.
+  frame.layoutMode = layoutMode as "NONE" | "HORIZONTAL" | "VERTICAL" | "GRID";
+
+  if (layoutMode === "GRID") {
+    // layoutWrap is a flex-wrap concept and does not apply to grids.
+    const gridRowCount = params["gridRowCount"] as number | undefined;
+    const gridColumnCount = params["gridColumnCount"] as number | undefined;
+    if (gridRowCount !== undefined) frame.gridRowCount = gridRowCount;
+    if (gridColumnCount !== undefined) frame.gridColumnCount = gridColumnCount;
+
+    return {
+      nodeId: node.id,
+      name: node.name,
+      layoutMode: frame.layoutMode,
+      gridRowCount: frame.gridRowCount,
+      gridColumnCount: frame.gridColumnCount,
+      success: true,
+    };
+  }
+
   if (layoutWrap !== undefined) {
-    (node as FrameNode).layoutWrap = layoutWrap as "NO_WRAP" | "WRAP";
+    frame.layoutWrap = layoutWrap as "NO_WRAP" | "WRAP";
   }
 
   return {
     nodeId: node.id,
     name: node.name,
-    layoutMode: (node as FrameNode).layoutMode,
-    layoutWrap: (node as FrameNode).layoutWrap,
+    layoutMode: frame.layoutMode,
+    layoutWrap: frame.layoutWrap,
     success: true,
   };
 }
@@ -304,6 +325,45 @@ export async function setItemSpacing(params: Record<string, unknown>): Promise<R
   }
 
   const frame = node as FrameNode;
+  const gridRowGap = params["gridRowGap"] as number | undefined;
+  const gridColumnGap = params["gridColumnGap"] as number | undefined;
+  const isGrid = frame.layoutMode === "GRID";
+
+  // itemSpacing is inert on GRID frames and the grid gaps are inert everywhere
+  // else. Fail loudly naming the right parameter rather than writing a property
+  // that will never render.
+  if (isGrid && counterAxisSpacing !== undefined) {
+    throw new Error(
+      `Frame "${node.name}" has GRID layout — counterAxisSpacing does not apply. Use rowGap/columnGap instead.`,
+    );
+  }
+  if (!isGrid && (gridRowGap !== undefined || gridColumnGap !== undefined)) {
+    throw new Error(
+      `Frame "${node.name}" has ${frame.layoutMode} layout — rowGap/columnGap apply to GRID frames only. Use gap${
+        frame.layoutWrap === "WRAP" ? "/counterAxisSpacing" : ""
+      } instead.`,
+    );
+  }
+
+  if (isGrid) {
+    // `gap` is the CSS shorthand: it sets both axes unless a per-axis value wins.
+    if (itemSpacing !== undefined) {
+      frame.gridRowGap = itemSpacing;
+      frame.gridColumnGap = itemSpacing;
+    }
+    if (gridRowGap !== undefined) frame.gridRowGap = gridRowGap;
+    if (gridColumnGap !== undefined) frame.gridColumnGap = gridColumnGap;
+
+    return {
+      nodeId: node.id,
+      name: node.name,
+      layoutMode: frame.layoutMode,
+      gridRowGap: frame.gridRowGap,
+      gridColumnGap: frame.gridColumnGap,
+      success: true,
+    };
+  }
+
   if (itemSpacing !== undefined) frame.itemSpacing = itemSpacing;
   if (counterAxisSpacing !== undefined) frame.counterAxisSpacing = counterAxisSpacing;
 
