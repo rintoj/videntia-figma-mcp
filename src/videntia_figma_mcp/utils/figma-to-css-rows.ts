@@ -53,6 +53,8 @@ export interface FigmaNodeLike {
   paddingBottom?: number;
   paddingLeft?: number;
   itemSpacing?: number;
+  gridRowGap?: number;
+  gridColumnGap?: number;
   layoutMode?: string;
   primaryAxisAlignItems?: string;
   counterAxisAlignItems?: string;
@@ -253,7 +255,7 @@ function normalizeFlexValue(v: string | undefined, fallback: string): string {
 // layoutMode NONE/undefined is skipped entirely to avoid noise on absolute frames.
 function buildLayoutRows(figmaNode: FigmaNodeLike, computedStyles: Record<string, string>): CompareRow[] {
   const mode = figmaNode.layoutMode;
-  if (mode !== "HORIZONTAL" && mode !== "VERTICAL") return [];
+  if (mode !== "HORIZONTAL" && mode !== "VERTICAL" && mode !== "GRID") return [];
 
   // Without the computed display value (e.g. caller restricted `properties`),
   // layout comparison would be guesswork — skip rather than emit false errors.
@@ -263,6 +265,23 @@ function buildLayoutRows(figmaNode: FigmaNodeLike, computedStyles: Record<string
   const rows: CompareRow[] = [];
   const isFlex = display.includes("flex");
   const isGrid = display.includes("grid");
+
+  if (mode === "GRID") {
+    // Figma grid auto-layout — alignment maps to grid placement, not flex alignment,
+    // so only the mode itself is compared here (gaps are handled by the gap rows).
+    return [
+      isGrid
+        ? { property: "layout-mode", figma: "grid", browser: display, status: "✓" }
+        : {
+            property: "layout-mode",
+            figma: "grid",
+            browser: display,
+            status: "❌",
+            severity: isFlex ? "warn" : "error",
+            ...(isFlex ? { note: "flex implementation of a grid (auto-layout) design" } : {}),
+          },
+    ];
+  }
   const figmaDirection = mode === "HORIZONTAL" ? "row" : "column";
   const figmaLayout = `flex ${figmaDirection}`;
 
@@ -579,6 +598,31 @@ export function buildRows(
         break;
       }
       case "gap": {
+        // GRID auto-layout ignores itemSpacing (it keeps whatever value the frame had
+        // before it became a grid) — the live gaps are gridRowGap/gridColumnGap, which
+        // map to CSS row-gap/column-gap independently.
+        if (figmaNode.layoutMode === "GRID") {
+          // `gap` shorthand is "<row> <column>", or a single value applying to both.
+          const shorthand = (computedStyles["gap"] ?? "").trim().split(/\s+/).filter(Boolean);
+          const axes = [
+            {
+              property: "row-gap",
+              figma: figmaNode.gridRowGap ?? null,
+              raw: computedStyles["row-gap"] ?? shorthand[0],
+            },
+            {
+              property: "column-gap",
+              figma: figmaNode.gridColumnGap ?? null,
+              raw: computedStyles["column-gap"] ?? shorthand[1] ?? shorthand[0],
+            },
+          ];
+          for (const axis of axes) {
+            const browserG = axis.raw === "normal" || axis.raw === undefined ? null : px(axis.raw);
+            if (axis.figma === null && browserG === null) continue;
+            rows.push(compareNumeric(axis.property, axis.figma, browserG, tol("gap")));
+          }
+          break;
+        }
         const figmaG = figmaNode.itemSpacing ?? null;
         const browserGRaw = computedStyles["gap"] ?? computedStyles["row-gap"];
         const browserG = browserGRaw === "normal" ? null : px(browserGRaw);

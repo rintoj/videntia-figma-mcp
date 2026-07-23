@@ -215,6 +215,85 @@ describe("buildRows — auto-layout ↔ flexbox rows", () => {
   });
 });
 
+describe("buildRows — GRID auto-layout", () => {
+  // Real false positive: under layoutMode GRID, itemSpacing is a vestigial leftover (8)
+  // and the live gaps are gridRowGap/gridColumnGap (48).
+  const gridFrame = {
+    id: "20:1",
+    type: "FRAME",
+    layoutMode: "GRID",
+    itemSpacing: 8,
+    gridRowGap: 48,
+    gridColumnGap: 48,
+    absoluteBoundingBox: { x: 0, y: 0, width: 1200, height: 400 },
+  };
+
+  const byProp = (rows: any[]) => new Map(rows.map((r) => [r.property, r]));
+
+  it("compares grid gaps against gridRowGap/gridColumnGap, not itemSpacing", () => {
+    const { rows } = buildRows(
+      gridFrame as any,
+      { display: "grid", "row-gap": "48px", "column-gap": "48px" },
+      undefined,
+      { properties: ["gap"] },
+    );
+    const m = byProp(rows);
+    expect(m.get("gap")).toBeUndefined();
+    expect(m.get("row-gap")).toMatchObject({ status: "✓" });
+    expect(m.get("column-gap")).toMatchObject({ status: "✓" });
+  });
+
+  it("falls back to the two-value gap shorthand per axis", () => {
+    const frame = { ...gridFrame, gridRowGap: 48, gridColumnGap: 24 };
+    const { rows } = buildRows(frame as any, { display: "grid", gap: "48px 24px" }, undefined, {
+      properties: ["gap"],
+    });
+    const m = byProp(rows);
+    expect(m.get("row-gap")).toMatchObject({ status: "✓" });
+    expect(m.get("column-gap")).toMatchObject({ status: "✓" });
+  });
+
+  it("applies a single-value gap shorthand to both axes", () => {
+    const { rows } = buildRows(gridFrame as any, { display: "grid", gap: "48px" }, undefined, {
+      properties: ["gap"],
+    });
+    const m = byProp(rows);
+    expect(m.get("row-gap")).toMatchObject({ status: "✓" });
+    expect(m.get("column-gap")).toMatchObject({ status: "✓" });
+  });
+
+  it("still reports a genuine grid gap mismatch", () => {
+    const { rows } = buildRows(gridFrame as any, { display: "grid", "row-gap": "16px", gap: "16px" }, undefined, {
+      properties: ["gap"],
+    });
+    expect(byProp(rows).get("row-gap")).toMatchObject({ status: "❌" });
+  });
+
+  it("matches display:grid for a GRID frame", () => {
+    const { rows } = buildRows(gridFrame as any, { display: "grid", gap: "48px" }, undefined, {
+      properties: ["gap"],
+      layout: true,
+    });
+    expect(byProp(rows).get("layout-mode")).toMatchObject({ status: "✓", figma: "grid" });
+  });
+
+  it("warns when a GRID design is implemented with flex", () => {
+    const { rows } = buildRows(gridFrame as any, { display: "flex", "flex-direction": "row" }, undefined, {
+      properties: ["gap"],
+      layout: true,
+    });
+    expect(byProp(rows).get("layout-mode")).toMatchObject({ status: "❌", severity: "warn" });
+  });
+
+  it("errors when a GRID design renders as block", () => {
+    const { rows } = buildRows(gridFrame as any, { display: "block" }, undefined, {
+      properties: ["gap"],
+      layout: true,
+    });
+    expect(byProp(rows).get("layout-mode")).toMatchObject({ status: "❌", severity: "error" });
+  });
+});
+
 describe("buildRows — semantic equivalences (real HomeVault failure modes)", () => {
   // FM2: Tailwind `inset-ring-1 inset-ring-neutral-300` renders the border as an
   // inset box-shadow — border-width computes 0 despite a visible 1px ring.

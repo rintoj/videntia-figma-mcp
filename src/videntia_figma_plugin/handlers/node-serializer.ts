@@ -233,10 +233,25 @@ async function processNode(
   if ("layoutSizingVertical" in node) info["layoutSizingVertical"] = (node as FrameNode).layoutSizingVertical;
   if ("primaryAxisAlignItems" in node) info["primaryAxisAlignItems"] = (node as FrameNode).primaryAxisAlignItems;
   if ("counterAxisAlignItems" in node) info["counterAxisAlignItems"] = (node as FrameNode).counterAxisAlignItems;
+  // Still emitted for GRID frames (where it is stale) so consumers keep a complete
+  // picture — read gridRowGap/gridColumnGap below instead when layoutMode is GRID.
   if ("itemSpacing" in node && (node as FrameNode).itemSpacing !== undefined)
     info["itemSpacing"] = (node as FrameNode).itemSpacing;
   if ("counterAxisSpacing" in node && (node as FrameNode).counterAxisSpacing !== undefined)
     info["counterAxisSpacing"] = (node as FrameNode).counterAxisSpacing;
+  // Grid auto-layout keeps itemSpacing at a stale value; the real gaps live here.
+  if ((node as FrameNode).layoutMode === "GRID") {
+    const grid = node as FrameNode & {
+      gridRowGap?: number;
+      gridColumnGap?: number;
+      gridRowCount?: number;
+      gridColumnCount?: number;
+    };
+    if (grid.gridRowGap !== undefined) info["gridRowGap"] = grid.gridRowGap;
+    if (grid.gridColumnGap !== undefined) info["gridColumnGap"] = grid.gridColumnGap;
+    if (grid.gridRowCount !== undefined) info["gridRowCount"] = grid.gridRowCount;
+    if (grid.gridColumnCount !== undefined) info["gridColumnCount"] = grid.gridColumnCount;
+  }
   if ("layoutWrap" in node) info["layoutWrap"] = (node as FrameNode).layoutWrap;
   if ("paddingTop" in node) info["paddingTop"] = (node as FrameNode).paddingTop;
   if ("paddingRight" in node) info["paddingRight"] = (node as FrameNode).paddingRight;

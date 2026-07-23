@@ -41,6 +41,8 @@ const RADIUS_SCALE: Record<number, string> = {
 
 const SPACING_PREFIX: Record<string, string> = {
   gap: "gap",
+  "row-gap": "gap-y",
+  "column-gap": "gap-x",
   "padding-top": "pt",
   "padding-right": "pr",
   "padding-bottom": "pb",
@@ -99,6 +101,8 @@ export function suggestFix(row: CompareRow, ctx: FixHintContext = {}): string | 
 
   switch (row.property) {
     case "gap":
+    case "row-gap":
+    case "column-gap":
     case "padding-top":
     case "padding-right":
     case "padding-bottom":
