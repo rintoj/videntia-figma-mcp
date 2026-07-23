@@ -279,6 +279,12 @@ async function activeTab() {
   return tab;
 }
 
+// Chrome refuses content-script injection on privileged/internal pages. Guard
+// executeScript calls with this so we don't throw on chrome://, the Web Store, etc.
+function isInjectableUrl(url) {
+  return typeof url === "string" && /^https?:\/\//.test(url);
+}
+
 async function activeTabId() {
   const tab = await activeTab();
   return tab ? tab.id : undefined;
@@ -467,14 +473,19 @@ async function removeOverlay() {
   const tab = await activeTab();
   if (tab) {
     await sendToTab(tab, "clear_figma_overlay");
-    try {
-      await chrome.scripting.executeScript({
-        target: { tabId: tab.id },
-        func: applyPageVisibility,
-        args: [true],
-      });
-    } catch (err) {
-      console.error("[figma-overlay] Could not restore page visibility on this tab:", err);
+    // Only http(s) pages are script-injectable. chrome://, chrome-extension://,
+    // devtools://, view-source:, and the Web Store reject executeScript, so skip
+    // the visibility restore there instead of logging an error every time.
+    if (isInjectableUrl(tab.url)) {
+      try {
+        await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          func: applyPageVisibility,
+          args: [true],
+        });
+      } catch (err) {
+        console.error("[figma-overlay] Could not restore page visibility on this tab:", err);
+      }
     }
   }
   state.hasOverlay = false;
