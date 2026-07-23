@@ -1214,6 +1214,22 @@ describe("convertToJsx", () => {
       expect(jsx).not.toContain("gap-");
     });
 
+    it("omits a bound gap that resolves to zero, matching the flex path", () => {
+      const jsx = convertToJsx([
+        gridNode({
+          gridRowGap: 0,
+          gridColumnGap: 0,
+          bindings: { gridRowGap: { name: "spacing/0" }, gridColumnGap: { name: "spacing/0" } } as any,
+        }),
+      ]);
+      expect(jsx).not.toContain("gap-");
+    });
+
+    it("uses an arbitrary track list beyond Tailwind's grid-cols-12", () => {
+      expect(convertToJsx([gridNode({ gridColumnCount: 16 })])).toContain("grid-cols-[repeat(16,minmax(0,1fr))]");
+      expect(convertToJsx([gridNode({ gridColumnCount: 12 })])).toContain("grid-cols-12");
+    });
+
     it("does not emit flex alignment classes for GRID", () => {
       const jsx = convertToJsx([gridNode({ primaryAxisAlignItems: "CENTER", counterAxisAlignItems: "CENTER" })]);
       expect(jsx).not.toContain("justify-center");

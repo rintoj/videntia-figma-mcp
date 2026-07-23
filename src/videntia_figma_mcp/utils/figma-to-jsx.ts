@@ -77,9 +77,14 @@ function fontWeightClass(weight: number): string {
 // Tailwind spacing suffix for a gap value — the bound variable name when one exists,
 // otherwise an arbitrary px value. Returns null when there is no gap to emit.
 function gapSuffix(value: number | undefined, binding: string | undefined): string | null {
-  if (binding) return normalizeName(binding);
   if (value === undefined || value <= 0) return null;
+  if (binding) return normalizeName(binding);
   return `[${value}px]`;
+}
+
+// Tailwind ships grid-cols-1..12; anything wider needs an arbitrary track list.
+function gridColsClass(count: number): string {
+  return count <= 12 ? `grid-cols-${count}` : `grid-cols-[repeat(${count},minmax(0,1fr))]`;
 }
 
 /**
@@ -103,7 +108,7 @@ function buildTailwindClasses(node: FigmaNodeData, parentLayoutMode?: string): s
   } else if (node.layoutMode === "GRID") {
     classes.push("grid");
     if (node.gridColumnCount !== undefined && node.gridColumnCount > 0) {
-      classes.push(`grid-cols-${node.gridColumnCount}`);
+      classes.push(gridColsClass(node.gridColumnCount));
     }
   } else if (!isText && node.children && node.children.length > 0) {
     classes.push("relative");
