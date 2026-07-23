@@ -986,10 +986,19 @@ export async function setAutoLayout(params: Record<string, unknown>): Promise<Re
     if (layoutMode === "GRID") {
       // itemSpacing is inert on grids, and flex alignment/wrap do not apply —
       // gaps live on gridRowGap/gridColumnGap and alignment maps to placement.
-      const gridRowCount = safeParams.gridRowCount as number | undefined;
-      const gridColumnCount = safeParams.gridColumnCount as number | undefined;
-      const gridRowGap = safeParams.gridRowGap as number | undefined;
-      const gridColumnGap = safeParams.gridColumnGap as number | undefined;
+      // Accept both full names and the MCP tool's shorthand aliases, as above.
+      const gridRowCount = (safeParams.gridRowCount !== undefined ? safeParams.gridRowCount : safeParams.rows) as
+        | number
+        | undefined;
+      const gridColumnCount = (
+        safeParams.gridColumnCount !== undefined ? safeParams.gridColumnCount : safeParams.columns
+      ) as number | undefined;
+      const gridRowGap = (safeParams.gridRowGap !== undefined ? safeParams.gridRowGap : safeParams.rowGap) as
+        | number
+        | undefined;
+      const gridColumnGap = (
+        safeParams.gridColumnGap !== undefined ? safeParams.gridColumnGap : safeParams.columnGap
+      ) as number | undefined;
 
       if (gridRowCount !== undefined) frameNode.gridRowCount = gridRowCount;
       if (gridColumnCount !== undefined) frameNode.gridColumnCount = gridColumnCount;

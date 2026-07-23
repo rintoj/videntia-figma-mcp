@@ -201,6 +201,17 @@ describe("new modification tools integration", () => {
       expect(response.content[0].text).toContain("GRID mode only");
     });
 
+    it("rejects wrap on GRID rather than silently dropping it", async () => {
+      const response = await callTool("set_layout_mode", {
+        nodeId: "frame-123",
+        mode: "GRID",
+        wrap: "WRAP",
+      });
+
+      expect(mockSendCommand).not.toHaveBeenCalled();
+      expect(response.content[0].text).toContain("does not apply to GRID");
+    });
+
     it("requires nodeId and layoutMode parameters", async () => {
       await expect(
         callTool("set_layout_mode", {
@@ -260,6 +271,34 @@ describe("new modification tools integration", () => {
 
         expect(mockSendCommand).not.toHaveBeenCalled();
         expect(response.content[0].text).toContain("GRID mode only");
+      });
+
+      it("rejects flex-only params on GRID rather than silently dropping them", async () => {
+        const response = await callTool("set_auto_layout", {
+          nodeId: "frame-123",
+          mode: "GRID",
+          counterAxisAlignItems: "CENTER",
+          wrap: "WRAP",
+        });
+
+        expect(mockSendCommand).not.toHaveBeenCalled();
+        expect(response.content[0].text).toContain("counterAxisAlignItems/wrap");
+        expect(response.content[0].text).toContain("do not apply to GRID");
+      });
+
+      it("still accepts padding and sizing alongside GRID", async () => {
+        mockSendCommand.mockResolvedValue({ name: "Perks", layoutMode: "GRID" });
+
+        await callTool("set_auto_layout", {
+          nodeId: "frame-123",
+          mode: "GRID",
+          top: 16,
+          horizontal: "FILL",
+        });
+
+        const [, params] = mockSendCommand.mock.calls[0];
+        expect(params.paddingTop).toBe(16);
+        expect(params.layoutSizingHorizontal).toBe("FILL");
       });
     });
 

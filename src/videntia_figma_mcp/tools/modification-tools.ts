@@ -405,17 +405,19 @@ export function registerModificationTools(server: McpServer): void {
         if (mode !== "GRID" && (rows !== undefined || columns !== undefined)) {
           throw new Error(`rows/columns apply to GRID mode only (mode is ${mode})`);
         }
-        const result = await sendCommandToFigma("set_layout_mode", {
-          nodeId,
-          layoutMode: mode,
-          // layoutWrap is a flex-wrap concept; the plugin ignores it for GRID.
-          ...(mode === "GRID"
-            ? {
-                ...(rows !== undefined ? { gridRowCount: rows } : {}),
-                ...(columns !== undefined ? { gridColumnCount: columns } : {}),
-              }
-            : { layoutWrap: wrap || "NO_WRAP" }),
-        });
+        if (mode === "GRID" && wrap !== undefined) {
+          throw new Error("wrap does not apply to GRID mode — grid children are placed on tracks, not wrapped");
+        }
+
+        const params: Record<string, unknown> = { nodeId, layoutMode: mode };
+        if (mode === "GRID") {
+          if (rows !== undefined) params.gridRowCount = rows;
+          if (columns !== undefined) params.gridColumnCount = columns;
+        } else {
+          params.layoutWrap = wrap || "NO_WRAP";
+        }
+
+        const result = await sendCommandToFigma("set_layout_mode", params);
         const typedResult = result as { name: string; gridRowCount?: number; gridColumnCount?: number };
         const tracks =
           mode === "GRID" && typedResult.gridColumnCount !== undefined
@@ -828,6 +830,18 @@ export function registerModificationTools(server: McpServer): void {
           (rows !== undefined || columns !== undefined || rowGap !== undefined || columnGap !== undefined)
         ) {
           throw new Error(`rows/columns/rowGap/columnGap apply to GRID mode only (mode is ${mode})`);
+        }
+        if (mode === "GRID") {
+          // Flex-only parameters would otherwise be accepted and silently dropped.
+          const flexOnly: string[] = [];
+          if (primaryAxisAlignItems !== undefined) flexOnly.push("primaryAxisAlignItems");
+          if (counterAxisAlignItems !== undefined) flexOnly.push("counterAxisAlignItems");
+          if (wrap !== undefined) flexOnly.push("wrap");
+          if (flexOnly.length > 0) {
+            throw new Error(
+              `${flexOnly.join("/")} do not apply to GRID mode — use rows/columns for placement and rowGap/columnGap for spacing`,
+            );
+          }
         }
         const result = await sendCommandToFigma("set_auto_layout", {
           nodeId,
