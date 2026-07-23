@@ -408,9 +408,13 @@ export function registerModificationTools(server: McpServer): void {
         const result = await sendCommandToFigma("set_layout_mode", {
           nodeId,
           layoutMode: mode,
-          layoutWrap: wrap || "NO_WRAP",
-          ...(rows !== undefined ? { gridRowCount: rows } : {}),
-          ...(columns !== undefined ? { gridColumnCount: columns } : {}),
+          // layoutWrap is a flex-wrap concept; the plugin ignores it for GRID.
+          ...(mode === "GRID"
+            ? {
+                ...(rows !== undefined ? { gridRowCount: rows } : {}),
+                ...(columns !== undefined ? { gridColumnCount: columns } : {}),
+              }
+            : { layoutWrap: wrap || "NO_WRAP" }),
         });
         const typedResult = result as { name: string; gridRowCount?: number; gridColumnCount?: number };
         const tracks =
@@ -728,9 +732,9 @@ export function registerModificationTools(server: McpServer): void {
     {
       nodeId: z.string().describe("Frame node ID to enable/configure auto-layout on"),
       mode: z
-        .enum(["HORIZONTAL", "VERTICAL", "NONE"])
+        .enum(["HORIZONTAL", "VERTICAL", "GRID", "NONE"])
         .describe(
-          "Layout direction: HORIZONTAL = children flow left-to-right, VERTICAL = children flow top-to-bottom, NONE = disable auto-layout",
+          "Layout direction: HORIZONTAL = children flow left-to-right, VERTICAL = children flow top-to-bottom, GRID = children placed on a row/column grid, NONE = disable auto-layout",
         ),
       top: z.coerce.number().optional().describe("Top padding in pixels (≥ 0)"),
       bottom: z.coerce.number().optional().describe("Bottom padding in pixels (≥ 0)"),
@@ -739,7 +743,29 @@ export function registerModificationTools(server: McpServer): void {
       gap: z.coerce
         .number()
         .optional()
-        .describe("Gap between children in pixels along the primary axis (≥ 0; CSS gap equivalent)"),
+        .describe(
+          "Gap between children in pixels (≥ 0; CSS gap equivalent). Primary-axis spacing in HORIZONTAL/VERTICAL mode; in GRID mode it is the shorthand and sets both axes",
+        ),
+      rows: z.coerce
+        .number()
+        .int()
+        .positive()
+        .optional()
+        .describe("Number of grid rows (GRID mode only; omit to keep Figma's current track count)"),
+      columns: z.coerce
+        .number()
+        .int()
+        .positive()
+        .optional()
+        .describe("Number of grid columns (GRID mode only; omit to keep Figma's current track count)"),
+      rowGap: z.coerce
+        .number()
+        .optional()
+        .describe("Gap between grid rows in pixels (GRID mode only; overrides gap for this axis)"),
+      columnGap: z.coerce
+        .number()
+        .optional()
+        .describe("Gap between grid columns in pixels (GRID mode only; overrides gap for this axis)"),
       primaryAxisAlignItems: z
         .enum(["MIN", "CENTER", "MAX", "SPACE_BETWEEN"])
         .optional()
@@ -783,6 +809,10 @@ export function registerModificationTools(server: McpServer): void {
       left,
       right,
       gap,
+      rows,
+      columns,
+      rowGap,
+      columnGap,
       primaryAxisAlignItems,
       counterAxisAlignItems,
       wrap,
@@ -793,6 +823,12 @@ export function registerModificationTools(server: McpServer): void {
     }) => {
       nodeId = normalizeNodeId(nodeId);
       try {
+        if (
+          mode !== "GRID" &&
+          (rows !== undefined || columns !== undefined || rowGap !== undefined || columnGap !== undefined)
+        ) {
+          throw new Error(`rows/columns/rowGap/columnGap apply to GRID mode only (mode is ${mode})`);
+        }
         const result = await sendCommandToFigma("set_auto_layout", {
           nodeId,
           layoutMode: mode,
@@ -801,6 +837,10 @@ export function registerModificationTools(server: McpServer): void {
           paddingLeft: left,
           paddingRight: right,
           itemSpacing: gap,
+          ...(rows !== undefined ? { gridRowCount: rows } : {}),
+          ...(columns !== undefined ? { gridColumnCount: columns } : {}),
+          ...(rowGap !== undefined ? { gridRowGap: rowGap } : {}),
+          ...(columnGap !== undefined ? { gridColumnGap: columnGap } : {}),
           primaryAxisAlignItems,
           counterAxisAlignItems,
           layoutWrap: wrap,

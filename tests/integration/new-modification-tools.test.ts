@@ -159,10 +159,10 @@ describe("new modification tools integration", () => {
         mode: "GRID",
       });
 
+      // layoutWrap is a flex concept and is omitted for GRID.
       expect(mockSendCommand).toHaveBeenCalledWith("set_layout_mode", {
         nodeId: "frame-123",
         layoutMode: "GRID",
-        layoutWrap: "NO_WRAP",
       });
       expect(response.content[0].text).toContain("GRID");
     });
@@ -184,7 +184,6 @@ describe("new modification tools integration", () => {
       expect(mockSendCommand).toHaveBeenCalledWith("set_layout_mode", {
         nodeId: "frame-123",
         layoutMode: "GRID",
-        layoutWrap: "NO_WRAP",
         gridRowCount: 2,
         gridColumnCount: 3,
       });
@@ -209,6 +208,59 @@ describe("new modification tools integration", () => {
         }),
       ).rejects.toThrow();
       expect(mockSendCommand).not.toHaveBeenCalled();
+    });
+
+    describe("set_auto_layout GRID support", () => {
+      it("forwards grid tracks and gaps", async () => {
+        mockSendCommand.mockResolvedValue({
+          name: "Perks",
+          layoutMode: "GRID",
+          gridRowGap: 48,
+          gridColumnGap: 24,
+        });
+
+        await callTool("set_auto_layout", {
+          nodeId: "frame-123",
+          mode: "GRID",
+          rows: 2,
+          columns: 3,
+          rowGap: 48,
+          columnGap: 24,
+        });
+
+        const [command, params] = mockSendCommand.mock.calls[0];
+        expect(command).toBe("set_auto_layout");
+        expect(params.layoutMode).toBe("GRID");
+        expect(params.gridRowCount).toBe(2);
+        expect(params.gridColumnCount).toBe(3);
+        expect(params.gridRowGap).toBe(48);
+        expect(params.gridColumnGap).toBe(24);
+      });
+
+      it("passes gap through as the shorthand for GRID", async () => {
+        mockSendCommand.mockResolvedValue({ name: "Perks", layoutMode: "GRID" });
+
+        await callTool("set_auto_layout", {
+          nodeId: "frame-123",
+          mode: "GRID",
+          gap: 48,
+        });
+
+        const [, params] = mockSendCommand.mock.calls[0];
+        expect(params.itemSpacing).toBe(48);
+        expect(params.gridRowGap).toBeUndefined();
+      });
+
+      it("rejects grid params on non-GRID modes without calling Figma", async () => {
+        const response = await callTool("set_auto_layout", {
+          nodeId: "frame-123",
+          mode: "VERTICAL",
+          columns: 3,
+        });
+
+        expect(mockSendCommand).not.toHaveBeenCalled();
+        expect(response.content[0].text).toContain("GRID mode only");
+      });
     });
 
     it("rejects invalid layoutMode values", async () => {
@@ -538,7 +590,8 @@ describe("new modification tools integration", () => {
       });
       expect(response.content[0].text).toContain("rowGap=48");
       expect(response.content[0].text).toContain("columnGap=48");
-      expect(response.content[0].text).not.toContain("gap=48 ");
+      // The flex-shaped "gap=48" wording must not appear for a grid frame.
+      expect(response.content[0].text).not.toMatch(/\bgap=48/);
     });
 
     it("surfaces the plugin's guidance when grid params hit a flex frame", async () => {
