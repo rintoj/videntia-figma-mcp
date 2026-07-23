@@ -62,6 +62,8 @@ const CURATED_STYLES = [
   "align-items",
   "justify-content",
   "gap",
+  "row-gap",
+  "column-gap",
   "flex-wrap",
   "grid-template-columns",
   "grid-template-rows",

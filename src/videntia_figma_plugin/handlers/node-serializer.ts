@@ -237,6 +237,19 @@ async function processNode(
     info["itemSpacing"] = (node as FrameNode).itemSpacing;
   if ("counterAxisSpacing" in node && (node as FrameNode).counterAxisSpacing !== undefined)
     info["counterAxisSpacing"] = (node as FrameNode).counterAxisSpacing;
+  // Grid auto-layout keeps itemSpacing at a stale value; the real gaps live here.
+  if ((node as FrameNode).layoutMode === "GRID") {
+    const grid = node as FrameNode & {
+      gridRowGap?: number;
+      gridColumnGap?: number;
+      gridRowCount?: number;
+      gridColumnCount?: number;
+    };
+    if (grid.gridRowGap !== undefined) info["gridRowGap"] = grid.gridRowGap;
+    if (grid.gridColumnGap !== undefined) info["gridColumnGap"] = grid.gridColumnGap;
+    if (grid.gridRowCount !== undefined) info["gridRowCount"] = grid.gridRowCount;
+    if (grid.gridColumnCount !== undefined) info["gridColumnCount"] = grid.gridColumnCount;
+  }
   if ("layoutWrap" in node) info["layoutWrap"] = (node as FrameNode).layoutWrap;
   if ("paddingTop" in node) info["paddingTop"] = (node as FrameNode).paddingTop;
   if ("paddingRight" in node) info["paddingRight"] = (node as FrameNode).paddingRight;
