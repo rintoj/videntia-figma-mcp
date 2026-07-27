@@ -365,7 +365,7 @@ function readViewportDims() {
 
 async function patchOverlay(patch) {
   const tab = await activeTab();
-  if (!tab) return;
+  if (!tab || !isInjectableUrl(tab.url)) return;
   await chrome.scripting.executeScript({
     target: { tabId: tab.id },
     func: applyOverlayPatch,
@@ -376,7 +376,7 @@ async function patchOverlay(patch) {
 
 async function refreshBrowserDims() {
   const tab = await activeTab();
-  if (!tab) return;
+  if (!tab || !isInjectableUrl(tab.url)) return;
   try {
     const [{ result }] = await chrome.scripting.executeScript({
       target: { tabId: tab.id },
