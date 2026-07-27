@@ -73,16 +73,33 @@ async function connectInbound() {
   }
 
   const serverUrl = await getServerUrl();
+  // A second connectInbound() may have raced through the await above and already
+  // created a socket. Re-check so we don't clobber inboundWs with a duplicate —
+  // the clobbered-but-still-CONNECTING socket is what caused the "Failed to
+  // execute 'send' on 'WebSocket': Still in CONNECTING state" errors.
+  if (inboundWs && (inboundWs.readyState === WebSocket.OPEN || inboundWs.readyState === WebSocket.CONNECTING)) {
+    return;
+  }
   currentWsUrl = toWsUrl(serverUrl);
-  inboundWs = new WebSocket(currentWsUrl);
+  // Capture the socket in a local so every handler acts on ITS OWN instance,
+  // never the mutable global (which a later reconnect may have reassigned).
+  const ws = new WebSocket(currentWsUrl);
+  inboundWs = ws;
   joined = false;
 
-  inboundWs.onopen = () => {
+  ws.onopen = () => {
+    // A newer socket superseded this one during the reconnect window — abandon it.
+    if (inboundWs !== ws) {
+      try {
+        ws.close();
+      } catch {}
+      return;
+    }
     console.log("[figma-overlay:bg] WS open →", currentWsUrl);
-    inboundWs.send(JSON.stringify({ type: "join", channel: BROWSER_CHANNEL, clientType: "extension" }));
+    ws.send(JSON.stringify({ type: "join", channel: BROWSER_CHANNEL, clientType: "extension" }));
   };
 
-  inboundWs.onmessage = async (evt) => {
+  ws.onmessage = async (evt) => {
     let data;
     try {
       data = JSON.parse(evt.data);
@@ -110,7 +127,10 @@ async function connectInbound() {
     }
   };
 
-  inboundWs.onclose = (e) => {
+  ws.onclose = (e) => {
+    // Only tear down global state if this is still the active socket; a superseded
+    // orphan closing must not null out the live connection or double-schedule.
+    if (inboundWs !== ws) return;
     inboundWs = null;
     joined = false;
     setBadge(false);
@@ -124,8 +144,10 @@ async function connectInbound() {
     setTimeout(connectInbound, RECONNECT_DELAY_MS);
   };
 
-  inboundWs.onerror = (e) => {
-    console.error("[figma-overlay:bg] WS error", e);
+  ws.onerror = (e) => {
+    // Transient connect/reconnect blips surface here (e.g. the socket server
+    // restarting). Log at warn — the onclose handler drives the actual reconnect.
+    console.warn("[figma-overlay:bg] WS error (will reconnect)", e?.type || e);
   };
 }
 
