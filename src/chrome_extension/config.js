@@ -1,8 +1,8 @@
 // Shared server config — loaded by popup (<script>) and background (importScripts).
 
 const SERVER_PRESETS = [
-  { id: "production", label: "Production", url: "https://figma-mcp.videntia.dev" },
   { id: "localhost", label: "Localhost", url: "http://localhost:3055" },
+  { id: "production", label: "Production", url: "https://figma-mcp.videntia.dev" },
 ];
 const SERVER_DEFAULT = SERVER_PRESETS[0].url;
 const SERVER_STORAGE_KEY = "serverConfig";
