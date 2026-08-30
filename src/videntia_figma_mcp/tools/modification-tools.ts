@@ -1469,7 +1469,7 @@ export function registerModificationTools(server: McpServer): void {
   // Bind Variable Tool
   server.tool(
     "bind_variable",
-    "Bind a variable to a node property OR a text style field in Figma. For nodes: fills/strokes/opacity/strokeWeight/cornerRadius/etc. For text styles: pass the text style id (e.g. 'S:abc123,') or name (e.g. 'body/md') as nodeId, and a field of fontFamily, fontStyle, fontSize, fontWeight, lineHeight, letterSpacing, paragraphSpacing, or paragraphIndent.",
+    'Bind a variable to a node property OR a text style field in Figma. For nodes: fills/strokes need an index, e.g. "fills/0" or "fills/0/color" (bare "fills" or "strokes" defaults to index 0); other fields are opacity/strokeWeight/cornerRadius/etc with no index. For text styles: pass the text style id (e.g. \'S:abc123,\') or name (e.g. \'body/md\') as nodeId, and a field of fontFamily, fontStyle, fontSize, fontWeight, lineHeight, letterSpacing, paragraphSpacing, or paragraphIndent.',
     {
       nodeId: z.string().describe("The ID of the node, or the ID/name of a text style (e.g. 'body/md')"),
       variableId: z

@@ -586,8 +586,8 @@ export async function bindVariable(params: Record<string, unknown>): Promise<Rec
   const fieldParts = field.split("/");
 
   try {
-    if (fieldParts[0] === "fills" && fieldParts.length >= 2) {
-      const fillIndex = parseInt(fieldParts[1]);
+    if (fieldParts[0] === "fills") {
+      const fillIndex = fieldParts.length >= 2 ? parseInt(fieldParts[1]) : 0;
       if (isNaN(fillIndex)) {
         throw new Error(`Invalid fill index: ${fieldParts[1]}`);
       }
@@ -610,8 +610,8 @@ export async function bindVariable(params: Record<string, unknown>): Promise<Rec
         );
         nodeWithFills.fills = updatedFills;
       }
-    } else if (fieldParts[0] === "strokes" && fieldParts.length >= 2) {
-      const strokeIndex = parseInt(fieldParts[1]);
+    } else if (fieldParts[0] === "strokes") {
+      const strokeIndex = fieldParts.length >= 2 ? parseInt(fieldParts[1]) : 0;
       if (isNaN(strokeIndex)) {
         throw new Error(`Invalid stroke index: ${fieldParts[1]}`);
       }
@@ -712,8 +712,8 @@ export async function unbindVariable(params: Record<string, unknown>): Promise<R
   const fieldParts = field.split("/");
 
   try {
-    if (fieldParts[0] === "fills" && fieldParts.length >= 2) {
-      const fillIndex = parseInt(fieldParts[1]);
+    if (fieldParts[0] === "fills") {
+      const fillIndex = fieldParts.length >= 2 ? parseInt(fieldParts[1]) : 0;
       if (isNaN(fillIndex)) {
         throw new Error(`Invalid fill index: ${fieldParts[1]}`);
       }
@@ -732,8 +732,8 @@ export async function unbindVariable(params: Record<string, unknown>): Promise<R
           }
         }
       }
-    } else if (fieldParts[0] === "strokes" && fieldParts.length >= 2) {
-      const strokeIndex = parseInt(fieldParts[1]);
+    } else if (fieldParts[0] === "strokes") {
+      const strokeIndex = fieldParts.length >= 2 ? parseInt(fieldParts[1]) : 0;
       if (isNaN(strokeIndex)) {
         throw new Error(`Invalid stroke index: ${fieldParts[1]}`);
       }
