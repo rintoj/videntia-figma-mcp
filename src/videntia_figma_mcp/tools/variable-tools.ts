@@ -440,18 +440,18 @@ export function registerVariableTools(server: McpServer): void {
    */
   server.tool(
     "update_variable_value",
-    "Update a variable's value (supports COLOR, FLOAT, STRING, BOOLEAN types)",
+    "Update a variable's value (supports COLOR, FLOAT, STRING, BOOLEAN types). Field names match the plugin command exactly (variableId/collectionId), so this also works unchanged inside a batch_actions action.",
     {
-      id: z.string().describe("Variable ID or name"),
-      collection_id: z.string().optional().describe("Collection ID (required if using variable name)"),
+      variableId: z.string().describe("Variable ID or name"),
+      collectionId: z.string().optional().describe("Collection ID (required if using variable name)"),
       value: VariableInputValueSchema.describe("New value (type must match variable type)"),
       mode: z.string().optional().describe("Mode to update (default: first mode)"),
     },
-    async ({ id: variable_id, collection_id, value, mode }) => {
+    async ({ variableId, collectionId, value, mode }) => {
       try {
         const result = await sendCommandToFigma<UpdateVariableValueResult>("update_variable_value", {
-          variableId: variable_id,
-          collectionId: collection_id,
+          variableId,
+          collectionId,
           value,
           mode,
         });
@@ -459,7 +459,7 @@ export function registerVariableTools(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: `Updated variable "${result.variableId || variable_id}" value${mode ? ` (mode: ${mode})` : ""}`,
+              text: `Updated variable "${result.variableId || variableId}" value${mode ? ` (mode: ${mode})` : ""}`,
             },
           ],
         };
@@ -468,7 +468,7 @@ export function registerVariableTools(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: `Error updating variable value for "${variable_id}": ${error instanceof Error ? error.message : String(error)}`,
+              text: `Error updating variable value for "${variableId}": ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };
@@ -953,7 +953,7 @@ export function registerVariableTools(server: McpServer): void {
    */
   server.tool(
     "get_schema_definition",
-    "Return the complete standard schema definition",
+    "Return this project's built-in standard design-token variable schema (the 106-variable theme: surfaces, brand, states, interactive, feedback, color scales, optional chart colors). Takes no tool name — it is unrelated to any MCP tool's parameter schema. Used by audit_collection/fix_collection_to_standard as the reference to compare a Figma variable collection against.",
     {
       chartColors: mcpBooleanSchema
         .optional()
