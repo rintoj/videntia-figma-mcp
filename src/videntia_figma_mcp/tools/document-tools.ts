@@ -1175,7 +1175,7 @@ export function registerDocumentTools(server: McpServer): void {
     "lint_frame",
     "Run a comprehensive compliance audit on a frame (or any node with children). Checks color tokens, spacing tokens, border radius tokens, text styles, effect styles, auto-layout compliance, child overflow, and screen naming conventions in a single traversal. Returns a structured report with violations by severity (CRITICAL/HIGH/MEDIUM/LOW) and compliance percentages across 10 categories. Pass fix=true to auto-fix deterministic violations (root frame sizing: layoutSizingHorizontal→FIXED, layoutSizingVertical→HUG, minHeight→device standard) and report only the remaining issues.",
     {
-      node_id: z.string().describe("The ID of the root node to lint"),
+      nodeId: z.string().describe("The ID of the root node to lint"),
       fix: z
         .boolean()
         .optional()
@@ -1206,12 +1206,12 @@ export function registerDocumentTools(server: McpServer): void {
         .optional()
         .describe("Toggle individual check categories (all enabled by default)"),
     },
-    async ({ node_id, fix, checks }) => {
-      node_id = normalizeNodeId(node_id);
+    async ({ nodeId, fix, checks }) => {
+      nodeId = normalizeNodeId(nodeId);
       try {
         const result = await sendCommandToFigma<LintFrameResult>(
           "lint_frame",
-          { nodeId: node_id, fix: fix ?? false, checks },
+          { nodeId, fix: fix ?? false, checks },
           60000,
         );
 
@@ -1356,7 +1356,7 @@ export function registerDocumentTools(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: `Error running lint_frame on node "${node_id}": ${error instanceof Error ? error.message : String(error)}`,
+              text: `Error running lint_frame on node "${nodeId}": ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };

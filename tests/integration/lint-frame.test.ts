@@ -78,7 +78,7 @@ describe("lint_frame tool", () => {
   it("sends lint_frame command with nodeId and 60s timeout", async () => {
     mockSendCommand.mockResolvedValue(makeResult());
 
-    await callTool("lint_frame", { node_id: "1:100" });
+    await callTool("lint_frame", { nodeId: "1:100" });
 
     expect(mockSendCommand).toHaveBeenCalledWith(
       "lint_frame",
@@ -91,7 +91,7 @@ describe("lint_frame tool", () => {
     mockSendCommand.mockResolvedValue(makeResult());
 
     const checks = { colors: true, spacing: false, autoLayout: false };
-    await callTool("lint_frame", { node_id: "1:100", checks });
+    await callTool("lint_frame", { nodeId: "1:100", checks });
 
     expect(mockSendCommand).toHaveBeenCalledWith("lint_frame", { nodeId: "1:100", fix: false, checks }, 60000);
   });
@@ -99,7 +99,7 @@ describe("lint_frame tool", () => {
   it("formats compliance table with all categories", async () => {
     mockSendCommand.mockResolvedValue(makeResult());
 
-    const response = await callTool("lint_frame", { node_id: "1:100" });
+    const response = await callTool("lint_frame", { nodeId: "1:100" });
     const text = response.content[0].text;
 
     expect(text).toContain("# Compliance Audit: Test Frame");
@@ -117,7 +117,7 @@ describe("lint_frame tool", () => {
   it("shows PASS/WARN/FAIL status based on compliance percentage", async () => {
     mockSendCommand.mockResolvedValue(makeResult());
 
-    const response = await callTool("lint_frame", { node_id: "1:100" });
+    const response = await callTool("lint_frame", { nodeId: "1:100" });
     const text = response.content[0].text;
 
     // Typography at 100% → PASS
@@ -131,7 +131,7 @@ describe("lint_frame tool", () => {
   it("shows summary with overall compliance", async () => {
     mockSendCommand.mockResolvedValue(makeResult());
 
-    const response = await callTool("lint_frame", { node_id: "1:100" });
+    const response = await callTool("lint_frame", { nodeId: "1:100" });
     const text = response.content[0].text;
 
     expect(text).toContain("## Summary");
@@ -143,7 +143,7 @@ describe("lint_frame tool", () => {
       makeResult({ violations: [], summary: { total: 0, critical: 0, high: 0, medium: 0, low: 0, compliance: 100 } }),
     );
 
-    const response = await callTool("lint_frame", { node_id: "1:100" });
+    const response = await callTool("lint_frame", { nodeId: "1:100" });
     const text = response.content[0].text;
 
     expect(text).toContain("No violations found.");
@@ -198,7 +198,7 @@ describe("lint_frame tool", () => {
     });
     mockSendCommand.mockResolvedValue(result);
 
-    const response = await callTool("lint_frame", { node_id: "1:100" });
+    const response = await callTool("lint_frame", { nodeId: "1:100" });
     const text = response.content[0].text;
 
     expect(text).toContain("## Violations");
@@ -228,7 +228,7 @@ describe("lint_frame tool", () => {
     });
     mockSendCommand.mockResolvedValue(result);
 
-    const response = await callTool("lint_frame", { node_id: "1:100" });
+    const response = await callTool("lint_frame", { nodeId: "1:100" });
     const text = response.content[0].text;
 
     expect(text).toContain("**Verdict: FAIL** — Critical violations must be resolved.");
@@ -252,7 +252,7 @@ describe("lint_frame tool", () => {
     });
     mockSendCommand.mockResolvedValue(result);
 
-    const response = await callTool("lint_frame", { node_id: "1:100" });
+    const response = await callTool("lint_frame", { nodeId: "1:100" });
     const text = response.content[0].text;
 
     expect(text).toContain("**Verdict: WARN** — Minor issues to address.");
@@ -286,7 +286,7 @@ describe("lint_frame tool", () => {
     });
     mockSendCommand.mockResolvedValue(result);
 
-    const response = await callTool("lint_frame", { node_id: "1:100" });
+    const response = await callTool("lint_frame", { nodeId: "1:100" });
     const text = response.content[0].text;
 
     expect(text).toContain("**Verdict: FAIL** — Significant compliance gaps.");
@@ -330,7 +330,7 @@ describe("lint_frame tool", () => {
     });
     mockSendCommand.mockResolvedValue(result);
 
-    const response = await callTool("lint_frame", { node_id: "1:100" });
+    const response = await callTool("lint_frame", { nodeId: "1:100" });
     const text = response.content[0].text;
 
     expect(text).toContain("Pending violations: 3");
@@ -344,7 +344,7 @@ describe("lint_frame tool", () => {
   it("includes node metadata in header", async () => {
     mockSendCommand.mockResolvedValue(makeResult({ totalNodes: 42 }));
 
-    const response = await callTool("lint_frame", { node_id: "1:100" });
+    const response = await callTool("lint_frame", { nodeId: "1:100" });
     const text = response.content[0].text;
 
     expect(text).toContain("**Node:** 1:100 (FRAME)");
@@ -369,7 +369,7 @@ describe("lint_frame tool", () => {
     });
     mockSendCommand.mockResolvedValue(result);
 
-    const response = await callTool("lint_frame", { node_id: "1:100" });
+    const response = await callTool("lint_frame", { nodeId: "1:100" });
     const text = response.content[0].text;
 
     expect(text).toContain("Left\\|Right");
@@ -378,21 +378,21 @@ describe("lint_frame tool", () => {
   it("handles errors gracefully", async () => {
     mockSendCommand.mockRejectedValue(new Error("Node not found: 999:999"));
 
-    const response = await callTool("lint_frame", { node_id: "999:999" });
+    const response = await callTool("lint_frame", { nodeId: "999:999" });
     const text = response.content[0].text;
 
     expect(text).toContain('Error running lint_frame on node "999:999"');
     expect(text).toContain("Node not found: 999:999");
   });
 
-  it("validates node_id is required", async () => {
+  it("validates nodeId is required", async () => {
     await expect(callTool("lint_frame", {})).rejects.toThrow();
   });
 
   it("shows Overflow category in compliance table", async () => {
     mockSendCommand.mockResolvedValue(makeResult());
 
-    const response = await callTool("lint_frame", { node_id: "1:100" });
+    const response = await callTool("lint_frame", { nodeId: "1:100" });
     const text = response.content[0].text;
 
     expect(text).toContain("| Overflow |");
@@ -417,7 +417,7 @@ describe("lint_frame tool", () => {
     });
     mockSendCommand.mockResolvedValue(result);
 
-    const response = await callTool("lint_frame", { node_id: "1:100" });
+    const response = await callTool("lint_frame", { nodeId: "1:100" });
     const text = response.content[0].text;
 
     expect(text).toContain("Horizontal overflow: child extends 24px beyond parent right edge");
@@ -443,7 +443,7 @@ describe("lint_frame tool", () => {
     });
     mockSendCommand.mockResolvedValue(result);
 
-    const response = await callTool("lint_frame", { node_id: "1:100" });
+    const response = await callTool("lint_frame", { nodeId: "1:100" });
     const text = response.content[0].text;
 
     expect(text).toContain("Vertical overflow: child extends 16px beyond parent bottom edge");
@@ -454,7 +454,7 @@ describe("lint_frame tool", () => {
     mockSendCommand.mockResolvedValue(makeResult());
 
     const checks = { overflow: false };
-    await callTool("lint_frame", { node_id: "1:100", checks });
+    await callTool("lint_frame", { nodeId: "1:100", checks });
 
     expect(mockSendCommand).toHaveBeenCalledWith("lint_frame", { nodeId: "1:100", fix: false, checks }, 60000);
   });
@@ -462,7 +462,7 @@ describe("lint_frame tool", () => {
   it("shows PASS for Overflow when no overflow violations", async () => {
     mockSendCommand.mockResolvedValue(makeResult());
 
-    const response = await callTool("lint_frame", { node_id: "1:100" });
+    const response = await callTool("lint_frame", { nodeId: "1:100" });
     const text = response.content[0].text;
 
     expect(text).toContain("| Overflow | 10 | 10 | 0 | PASS 100% |");
@@ -486,7 +486,7 @@ describe("lint_frame tool", () => {
     });
     mockSendCommand.mockResolvedValue(result);
 
-    const response = await callTool("lint_frame", { node_id: "1:100" });
+    const response = await callTool("lint_frame", { nodeId: "1:100" });
     const text = response.content[0].text;
 
     expect(text).toContain("Auto-layout frame has 2 absolute-positioned children");
@@ -516,7 +516,7 @@ describe("lint_frame tool", () => {
     });
     mockSendCommand.mockResolvedValue(result);
 
-    const response = await callTool("lint_frame", { node_id: "1:100" });
+    const response = await callTool("lint_frame", { nodeId: "1:100" });
     const text = response.content[0].text;
 
     expect(text).toContain("| Screen Naming | 1 | 0 | 1 | FAIL 0% |");
@@ -527,7 +527,7 @@ describe("lint_frame tool", () => {
     mockSendCommand.mockResolvedValue(makeResult());
 
     const checks = { screenNaming: false };
-    await callTool("lint_frame", { node_id: "1:100", checks });
+    await callTool("lint_frame", { nodeId: "1:100", checks });
 
     expect(mockSendCommand).toHaveBeenCalledWith("lint_frame", { nodeId: "1:100", fix: false, checks }, 60000);
   });
@@ -550,7 +550,7 @@ describe("lint_frame tool", () => {
     });
     mockSendCommand.mockResolvedValue(result);
 
-    const response = await callTool("lint_frame", { node_id: "1:100" });
+    const response = await callTool("lint_frame", { nodeId: "1:100" });
     const text = response.content[0].text;
 
     expect(text).toContain("### MEDIUM (1)");
