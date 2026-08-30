@@ -134,6 +134,36 @@ describe("Color Calculations", () => {
         expect(result.g).toBeCloseTo(0.0);
         expect(result.b).toBeCloseTo(0.0);
       });
+
+      it("should expand 3-digit shorthand", () => {
+        const result = hexToRgba("#f00");
+
+        expect(result.r).toBeCloseTo(1.0);
+        expect(result.g).toBeCloseTo(0.0);
+        expect(result.b).toBeCloseTo(0.0);
+        expect(result.a).toBe(1);
+      });
+
+      it("should expand 4-digit shorthand with alpha", () => {
+        const result = hexToRgba("#f008");
+
+        expect(result.r).toBeCloseTo(1.0);
+        expect(result.g).toBeCloseTo(0.0);
+        expect(result.b).toBeCloseTo(0.0);
+        expect(result.a).toBeCloseTo(0x88 / 255, 2);
+      });
+
+      it("should parse 8-digit hex with alpha", () => {
+        const result = hexToRgba("#ff000080");
+
+        expect(result.r).toBeCloseTo(1.0);
+        expect(result.a).toBeCloseTo(0x80 / 255, 2);
+      });
+
+      it("should throw on an invalid hex string", () => {
+        expect(() => hexToRgba("not-a-color")).toThrow();
+        expect(() => hexToRgba("#12345")).toThrow();
+      });
     });
 
     describe("convertColorFormat", () => {

@@ -103,19 +103,36 @@ export function rgbaToHex(color: RGBAColor): string {
 }
 
 /**
- * Convert hex color string to RGBA
+ * Convert hex color string to RGBA. Accepts 3-digit (#f00), 4-digit with alpha
+ * (#f008), 6-digit (#ff0000), and 8-digit with alpha (#ff000080) forms — the
+ * same formats set_fill_color/set_stroke_color document — with or without a
+ * leading "#".
  */
 export function hexToRgba(hex: string): RGBAColor {
-  const cleanHex = hex.replace("#", "");
+  let cleanHex = hex.replace("#", "");
+  if (cleanHex.length === 3 || cleanHex.length === 4) {
+    cleanHex = cleanHex
+      .split("")
+      .map((c) => c + c)
+      .join("");
+  }
+  if (cleanHex.length !== 6 && cleanHex.length !== 8) {
+    throw new Error(`Invalid hex color: ${hex}`);
+  }
+
   const r = parseInt(cleanHex.substring(0, 2), 16);
   const g = parseInt(cleanHex.substring(2, 4), 16);
   const b = parseInt(cleanHex.substring(4, 6), 16);
+  if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) {
+    throw new Error(`Invalid hex color: ${hex}`);
+  }
+  const a = cleanHex.length === 8 ? parseInt(cleanHex.substring(6, 8), 16) / 255 : 1;
 
   return {
     r: r / 255,
     g: g / 255,
     b: b / 255,
-    a: 1,
+    a,
   };
 }
 

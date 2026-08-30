@@ -162,6 +162,22 @@ describe("variable tools integration", () => {
         mode: undefined,
       });
     });
+
+    it("accepts a hex string for a COLOR value", async () => {
+      await callTool("create_variable", {
+        collection_id: "col-123",
+        name: "primary",
+        type: "COLOR",
+        value: "#ff0000",
+      });
+
+      expect(mockSendCommand).toHaveBeenCalledWith(
+        "create_variable",
+        expect.objectContaining({
+          value: { r: 1, g: 0, b: 0, a: 1 },
+        }),
+      );
+    });
   });
 
   describe("create_variables_batch", () => {

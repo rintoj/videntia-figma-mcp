@@ -11,6 +11,7 @@ import {
   getWCAGCompliance,
   getContrastRecommendation,
   rgbaToHex,
+  hexToRgba,
   SCALE_MIX_PERCENTAGES,
   RGBAColor,
 } from "../utils/color-calculations.js";
@@ -87,6 +88,17 @@ function normalizeVariableValueByType(
   value: unknown,
 ): RGBAColor | number | string | boolean {
   if (type === "COLOR") {
+    // Accept a hex string (e.g. "#ff0000", "#f00", "#ff000080") the same way
+    // set_fill_color/set_stroke_color do, in addition to an {r,g,b,a} object.
+    if (typeof value === "string") {
+      try {
+        return hexToRgba(value);
+      } catch {
+        throw new Error(
+          `Invalid COLOR value: "${value}". Pass a hex string (e.g. "#ff0000") or an {r,g,b,a} object with 0-1 channels.`,
+        );
+      }
+    }
     return RGBAColorSchema.parse(value);
   }
 
@@ -337,7 +349,7 @@ export function registerVariableTools(server: McpServer): void {
         "Variable type: COLOR = RGBA color object {r,g,b,a} with normalized 0–1 values, FLOAT = numeric value (spacing, sizing, etc.), STRING = text value, BOOLEAN = true/false",
       ),
       value: VariableInputValueSchema.describe(
-        "Variable value matching the type: COLOR → {r:0–1, g:0–1, b:0–1, a:0–1}, FLOAT → number, STRING → string, BOOLEAN → true/false",
+        "Variable value matching the type: COLOR → hex string (e.g. '#ff0000') or {r:0–1, g:0–1, b:0–1, a:0–1}, FLOAT → number, STRING → string, BOOLEAN → true/false",
       ),
       mode: z
         .string()
@@ -391,7 +403,7 @@ export function registerVariableTools(server: McpServer): void {
             name: z.string().describe("Variable name"),
             type: VariableTypeSchema.describe("Variable type — value must match this type"),
             value: VariableInputValueSchema.describe(
-              "Value matching the type: COLOR → {r,g,b,a} normalized, FLOAT → number, STRING → string, BOOLEAN → true/false",
+              "Value matching the type: COLOR → hex string (e.g. '#ff0000') or {r,g,b,a} normalized, FLOAT → number, STRING → string, BOOLEAN → true/false",
             ),
           }),
         ),
@@ -444,7 +456,9 @@ export function registerVariableTools(server: McpServer): void {
     {
       variableId: z.string().describe("Variable ID or name"),
       collectionId: z.string().optional().describe("Collection ID (required if using variable name)"),
-      value: VariableInputValueSchema.describe("New value (type must match variable type)"),
+      value: VariableInputValueSchema.describe(
+        "New value matching the variable's type: COLOR → hex string (e.g. '#ff0000') or {r,g,b,a} normalized, FLOAT → number, STRING → string, BOOLEAN → true/false",
+      ),
       mode: z.string().optional().describe("Mode to update (default: first mode)"),
     },
     async ({ variableId, collectionId, value, mode }) => {

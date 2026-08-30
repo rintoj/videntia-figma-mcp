@@ -4,6 +4,7 @@
 
 import { debugLog, sendProgressUpdate, generateCommandId } from "../utils/helpers";
 import { formatVariableValue } from "../utils/color";
+import { parseHexColor } from "./fills";
 import type { RgbaColor, VariableResolvedType, VariableValue } from "../types";
 
 // Default chart color palette (8 entries) shared by applyCustomPalette and addChartColors.
@@ -83,9 +84,19 @@ function coerceValueForType(
   variableNameForError: string,
 ): VariableValue {
   if (variableType === "COLOR") {
+    // Accept a hex string (e.g. "#ff0000", "#f00", "#ff000080") the same way
+    // set_fill_color/set_stroke_color do, in addition to an {r,g,b,a} object
+    // (as a real object or JSON-stringified, since the MCP transport can send
+    // either).
+    if (typeof value === "string") {
+      const hexColor = parseHexColor(value);
+      if (hexColor) return hexColor;
+    }
     const rawColor = typeof value === "string" ? JSON.parse(value) : value;
     if (typeof rawColor !== "object" || rawColor === null || (rawColor as RgbaColor).r === undefined) {
-      throw new Error(`Expected color value with r, g, b properties for COLOR variable "${variableNameForError}"`);
+      throw new Error(
+        `Expected a hex color string (e.g. "#ff0000") or an object with r, g, b properties for COLOR variable "${variableNameForError}"`,
+      );
     }
     const colorValue = rawColor as RgbaColor;
     return {
