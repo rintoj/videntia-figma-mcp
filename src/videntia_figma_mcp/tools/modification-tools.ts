@@ -83,7 +83,7 @@ export function registerModificationTools(server: McpServer): void {
   // Set Stroke Color Tool
   server.tool(
     "set_stroke_color",
-    "Set the stroke color of a node in Figma. Accepts either a hex color string (e.g. '#ff0000', '#ff000080' with alpha) or individual r,g,b,a channels (0–1). Defaults: opacity 1, weight 1.",
+    "Set the stroke color of a node in Figma. Accepts either a hex color string (e.g. '#ff0000', '#ff000080' with alpha) or individual r,g,b,a channels (0–1). Defaults: opacity 1, weight 1. Optionally set dashPattern for a dashed/dotted stroke.",
     {
       nodeId: z.string().describe("Node ID (e.g. '123:456') — get from get_selection or get_node_info"),
       color: z
@@ -104,8 +104,14 @@ export function registerModificationTools(server: McpServer): void {
         .min(0)
         .optional()
         .describe("Stroke thickness in pixels ≥ 0 (default: 1; use 0 for invisible stroke)"),
+      dashPattern: z
+        .array(z.coerce.number().min(0))
+        .optional()
+        .describe(
+          "Dash/gap lengths in pixels, e.g. [4, 4] for an even dashed line, [1, 3] for dotted, [8, 4, 2, 4] for dash-dot. Omit for a solid stroke; pass [] to clear an existing pattern back to solid.",
+        ),
     },
-    async ({ nodeId, color, r, g, b, a, weight }) => {
+    async ({ nodeId, color, r, g, b, a, weight, dashPattern }) => {
       nodeId = normalizeNodeId(nodeId);
       try {
         const params: Record<string, unknown> = { nodeId };
@@ -121,6 +127,9 @@ export function registerModificationTools(server: McpServer): void {
 
         const strokeWeightWithDefault = applyDefault(weight, FIGMA_DEFAULTS.stroke.weight);
         params.strokeWeight = strokeWeightWithDefault;
+        if (dashPattern !== undefined) {
+          params.dashPattern = dashPattern;
+        }
 
         const result = await sendCommandToFigma("set_stroke_color", params);
         const typedResult = result as { name: string };

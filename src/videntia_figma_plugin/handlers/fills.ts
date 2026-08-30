@@ -209,6 +209,7 @@ export async function setStrokeColor(params: Record<string, unknown>): Promise<u
   var paramsObj = params !== null && params !== undefined ? params : {};
   var nodeId = paramsObj["nodeId"] as string | undefined;
   var strokeWeight = paramsObj["strokeWeight"];
+  var dashPattern = paramsObj["dashPattern"] as number[] | undefined;
 
   if (!nodeId) {
     throw new Error("Missing nodeId parameter");
@@ -244,9 +245,23 @@ export async function setStrokeColor(params: Record<string, unknown>): Promise<u
 
   (node as GeometryMixin).strokes = [paintStyle];
 
-  // Set stroke weight if the node supports it
+  // Set stroke weight if the node supports it. When individual side weights are
+  // enabled, writing the uniform `strokeWeight` alone is silently ignored by the
+  // Figma API — the per-side weights still win. Disable that mode first so the
+  // requested uniform weight actually takes effect.
   if ("strokeWeight" in node) {
+    if ("individualStrokeWeightsEnabled" in node) {
+      (node as unknown as { individualStrokeWeightsEnabled: boolean }).individualStrokeWeightsEnabled = false;
+    }
     (node as unknown as { strokeWeight: number }).strokeWeight = strokeWeightParsed;
+  }
+
+  // Set dash pattern if provided, e.g. [4, 4] for an even dash/gap, [] to clear
+  if (dashPattern !== undefined && "dashPattern" in node) {
+    if (!Array.isArray(dashPattern) || dashPattern.some((n) => typeof n !== "number" || isNaN(n) || n < 0)) {
+      throw new Error("Invalid dashPattern - must be an array of non-negative numbers, e.g. [4, 4]");
+    }
+    (node as unknown as { dashPattern: number[] }).dashPattern = dashPattern;
   }
 
   return {
@@ -254,6 +269,7 @@ export async function setStrokeColor(params: Record<string, unknown>): Promise<u
     name: node.name,
     strokes: (node as GeometryMixin).strokes,
     strokeWeight: "strokeWeight" in node ? (node as unknown as { strokeWeight: number }).strokeWeight : undefined,
+    dashPattern: "dashPattern" in node ? (node as unknown as { dashPattern: number[] }).dashPattern : undefined,
   };
 }
 
