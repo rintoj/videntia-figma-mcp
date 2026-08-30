@@ -21,12 +21,16 @@ export async function createRectangle(params: Record<string, unknown>): Promise<
   const name: string = getParam<string>(params, "name", "Rectangle");
   const parentId: string | undefined = getOptParam<string>(params, "parentId");
   const layoutPositioning: string | undefined = getOptParam<string>(params, "layoutPositioning");
+  const cornerRadius: number | undefined = getOptParam<number>(params, "cornerRadius");
 
   const rect = figma.createRectangle();
   rect.x = x;
   rect.y = y;
   rect.resize(width, height);
   rect.name = name;
+  if (cornerRadius !== undefined) {
+    rect.cornerRadius = cornerRadius;
+  }
 
   // If parentId is provided, append to that node, otherwise append to current page
   if (parentId) {
@@ -57,6 +61,7 @@ export async function createRectangle(params: Record<string, unknown>): Promise<
     y: rect.y,
     width: rect.width,
     height: rect.height,
+    cornerRadius: rect.cornerRadius,
     parentId: rect.parent ? rect.parent.id : undefined,
   };
 }
@@ -73,12 +78,16 @@ export async function createFrame(params: Record<string, unknown>): Promise<Reco
   const strokeWeight: number | undefined = getOptParam<number>(params, "strokeWeight");
   const clipsContent: boolean | undefined = getOptParam<boolean>(params, "clipsContent");
   const layoutPositioning: string | undefined = getOptParam<string>(params, "layoutPositioning");
+  const cornerRadius: number | undefined = getOptParam<number>(params, "cornerRadius");
 
   const frame = figma.createFrame();
   frame.x = x;
   frame.y = y;
   frame.resize(width, height);
   frame.name = name;
+  if (cornerRadius !== undefined) {
+    frame.cornerRadius = cornerRadius;
+  }
 
   // Set fill color if provided, otherwise clear the default white fill
   if (fillColor) {
@@ -153,6 +162,7 @@ export async function createFrame(params: Record<string, unknown>): Promise<Reco
     strokes: frame.strokes,
     strokeWeight: frame.strokeWeight,
     clipsContent: frame.clipsContent,
+    cornerRadius: frame.cornerRadius,
     parentId: frame.parent ? frame.parent.id : undefined,
   };
 }
