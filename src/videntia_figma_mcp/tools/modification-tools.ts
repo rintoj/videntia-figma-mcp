@@ -1626,10 +1626,22 @@ export function registerModificationTools(server: McpServer): void {
   // Set Image Fill Tool
   server.tool(
     "set_image_fill",
-    "Set an image fill on a node from a URL. Supports PNG, JPEG, and GIF images up to 4096x4096 pixels.",
+    "Set an image fill on a node, either from a URL or from raw image bytes sent directly. Supports PNG, JPEG, and GIF images up to 4096x4096 pixels. Provide exactly one of imageUrl or imageBytes.",
     {
       nodeId: z.string().describe("The ID of the node to modify"),
-      imageUrl: z.string().url().describe("URL of the image (PNG, JPEG, or GIF)"),
+      imageUrl: z
+        .string()
+        .url()
+        .optional()
+        .describe(
+          "URL of the image (PNG, JPEG, or GIF) — fetched by Figma itself, so it must be a public http(s) URL (no loopback/private-network/.local addresses). Use this OR imageBytes, not both.",
+        ),
+      imageBytes: z
+        .string()
+        .optional()
+        .describe(
+          "Base64-encoded image bytes (PNG, JPEG, or GIF), sent directly with no network fetch — use this for images you already have in hand (screenshots, generated assets, local files) instead of hosting them first. A `data:image/...;base64,` prefix is accepted and stripped automatically. Use this OR imageUrl, not both. Capped at 20MB decoded.",
+        ),
       scaleMode: z
         .enum(["FILL", "FIT", "CROP", "TILE"])
         .optional()
@@ -1653,6 +1665,7 @@ export function registerModificationTools(server: McpServer): void {
     async ({
       nodeId,
       imageUrl,
+      imageBytes,
       scaleMode,
       rotation,
       exposure,
@@ -1665,9 +1678,16 @@ export function registerModificationTools(server: McpServer): void {
     }) => {
       nodeId = normalizeNodeId(nodeId);
       try {
+        if (!imageUrl && !imageBytes) {
+          throw new Error("Provide either imageUrl or imageBytes");
+        }
+        if (imageUrl && imageBytes) {
+          throw new Error("Provide only one of imageUrl or imageBytes, not both");
+        }
         const result = await sendCommandToFigma("set_image_fill", {
           nodeId,
           imageUrl,
+          imageBytes,
           scaleMode: scaleMode || "FILL",
           rotation,
           exposure,

@@ -837,13 +837,39 @@ describe("new modification tools integration", () => {
       expect(mockSendCommand).not.toHaveBeenCalled();
     });
 
-    it("requires imageUrl parameter", async () => {
-      await expect(
-        callTool("set_image_fill", {
-          nodeId: "rect-123",
-        }),
-      ).rejects.toThrow();
+    it("requires either imageUrl or imageBytes", async () => {
+      const response = await callTool("set_image_fill", {
+        nodeId: "rect-123",
+      });
+      expect(response.content[0].text).toContain("Provide either imageUrl or imageBytes");
       expect(mockSendCommand).not.toHaveBeenCalled();
+    });
+
+    it("rejects both imageUrl and imageBytes together", async () => {
+      const response = await callTool("set_image_fill", {
+        nodeId: "rect-123",
+        imageUrl: "https://picsum.photos/800/600",
+        imageBytes: "aGVsbG8=",
+      });
+      expect(response.content[0].text).toContain("Provide only one of imageUrl or imageBytes");
+      expect(mockSendCommand).not.toHaveBeenCalled();
+    });
+
+    it("successfully sets image fill from imageBytes", async () => {
+      const response = await callTool("set_image_fill", {
+        nodeId: "rect-123",
+        imageBytes: "aGVsbG8=",
+      });
+
+      expect(mockSendCommand).toHaveBeenCalledWith(
+        "set_image_fill",
+        expect.objectContaining({
+          nodeId: "rect-123",
+          imageBytes: "aGVsbG8=",
+          scaleMode: "FILL",
+        }),
+      );
+      expect(response.content[0].text).toContain("Set image fill");
     });
 
     it("requires valid URL for imageUrl", async () => {
