@@ -562,19 +562,13 @@ export async function cloneNode(params: Record<string, unknown>): Promise<Record
     throw new Error(`Node not found with ID: ${nodeId}`);
   }
 
-  // Clone the node
+  // Clone the node — clone() already places it in the same parent as the
+  // original, right next to it, so only reparent when a different parentId
+  // was explicitly requested. Unconditionally re-appending even without one
+  // used to bump the clone to the end of the original parent's children list,
+  // losing its natural post-clone position.
   const clone = (node as SceneNode).clone();
 
-  // If x and y are provided, move the clone to that position
-  if (x !== undefined && y !== undefined) {
-    if (!("x" in clone) || !("y" in clone)) {
-      throw new Error(`Cloned node does not support position: ${nodeId}`);
-    }
-    (clone as FrameNode).x = x;
-    (clone as FrameNode).y = y;
-  }
-
-  // Determine target parent
   if (parentId) {
     const parentNode = await figma.getNodeByIdAsync(parentId);
     if (!parentNode) {
@@ -589,10 +583,26 @@ export async function cloneNode(params: Record<string, unknown>): Promise<Record
     } else {
       container.appendChild(clone);
     }
-  } else if ((node as SceneNode).parent) {
-    ((node as SceneNode).parent as FrameNode).appendChild(clone);
-  } else {
+  } else if (!(node as SceneNode).parent) {
     figma.currentPage.appendChild(clone);
+  }
+
+  // If x and y are provided, move the clone to that position. Inside an
+  // auto-layout parent, x/y are meaningless unless the node opts out of the
+  // layout flow via layoutPositioning="ABSOLUTE" — without it Figma silently
+  // ignores the assignment and the clone stays wherever the flow places it.
+  if (x !== undefined && y !== undefined) {
+    if (!("x" in clone) || !("y" in clone)) {
+      throw new Error(`Cloned node does not support position: ${nodeId}`);
+    }
+    const cloneParent = clone.parent;
+    const parentIsAutoLayout =
+      cloneParent !== null && "layoutMode" in cloneParent && (cloneParent as FrameNode).layoutMode !== "NONE";
+    if (parentIsAutoLayout && "layoutPositioning" in clone) {
+      (clone as unknown as { layoutPositioning: string }).layoutPositioning = "ABSOLUTE";
+    }
+    (clone as FrameNode).x = x;
+    (clone as FrameNode).y = y;
   }
 
   // Focus on the cloned node (only when auto-focus is enabled)
