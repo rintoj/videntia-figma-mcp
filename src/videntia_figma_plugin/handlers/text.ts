@@ -970,13 +970,22 @@ export async function setAutoLayout(params: Record<string, unknown>): Promise<Re
   }
 
   const frameNode = node as FrameNode;
+  // Capture before mutating: drives whether we touch layoutSizing* below, and
+  // guards against reassigning layoutMode to its current value — Figma resets
+  // layoutSizingHorizontal/Vertical (and thus item spacing/padding rendering)
+  // as a side effect of ANY layoutMode write, even a same-value one.
+  const wasAutoLayout = frameNode.layoutMode !== "NONE";
 
   if (layoutMode === "NONE") {
-    frameNode.layoutMode = "NONE";
+    if (frameNode.layoutMode !== "NONE") {
+      frameNode.layoutMode = "NONE";
+    }
   } else {
     // Mode must be assigned before the grid track counts — they are only writable
     // once the frame is actually a grid.
-    frameNode.layoutMode = layoutMode as "HORIZONTAL" | "VERTICAL" | "GRID";
+    if (frameNode.layoutMode !== layoutMode) {
+      frameNode.layoutMode = layoutMode as "HORIZONTAL" | "VERTICAL" | "GRID";
+    }
 
     if (paddingTop !== undefined) frameNode.paddingTop = paddingTop;
     if (paddingBottom !== undefined) frameNode.paddingBottom = paddingBottom;
@@ -1034,19 +1043,28 @@ export async function setAutoLayout(params: Record<string, unknown>): Promise<Re
       frameNode.clipsContent = clipsContent;
     }
 
-    // Determine safe defaults based on whether this frame is inside an auto-layout parent.
-    // FILL is only valid for children of auto-layout frames; default to FIXED otherwise.
-    const parentIsAutoLayout =
-      frameNode.parent !== null &&
-      frameNode.parent !== undefined &&
-      "layoutMode" in frameNode.parent &&
-      (frameNode.parent as FrameNode).layoutMode !== "NONE";
-    const defaultHSizing = parentIsAutoLayout ? "FILL" : "FIXED";
-    const hSizing =
-      layoutSizingHorizontal !== null && layoutSizingHorizontal !== undefined ? layoutSizingHorizontal : defaultHSizing;
-    const vSizing = layoutSizingVertical !== null && layoutSizingVertical !== undefined ? layoutSizingVertical : "HUG";
-    frameNode.layoutSizingHorizontal = hSizing as "FIXED" | "HUG" | "FILL";
-    frameNode.layoutSizingVertical = vSizing as "FIXED" | "HUG" | "FILL";
+    // Only touch layoutSizing* when the caller explicitly asked for it, or when
+    // this frame is newly gaining auto-layout (was NONE before this call) and
+    // therefore has no meaningful existing sizing state to preserve. Applying a
+    // default on every call — including ones that only touch padding/spacing —
+    // silently overwrites whatever set_layout_sizing had already set.
+    if (layoutSizingHorizontal !== null && layoutSizingHorizontal !== undefined) {
+      frameNode.layoutSizingHorizontal = layoutSizingHorizontal as "FIXED" | "HUG" | "FILL";
+    } else if (!wasAutoLayout) {
+      // FILL is only valid for children of auto-layout frames; default to FIXED otherwise.
+      const parentIsAutoLayout =
+        frameNode.parent !== null &&
+        frameNode.parent !== undefined &&
+        "layoutMode" in frameNode.parent &&
+        (frameNode.parent as FrameNode).layoutMode !== "NONE";
+      frameNode.layoutSizingHorizontal = parentIsAutoLayout ? "FILL" : "FIXED";
+    }
+
+    if (layoutSizingVertical !== null && layoutSizingVertical !== undefined) {
+      frameNode.layoutSizingVertical = layoutSizingVertical as "FIXED" | "HUG" | "FILL";
+    } else if (!wasAutoLayout) {
+      frameNode.layoutSizingVertical = "HUG";
+    }
   }
 
   return {

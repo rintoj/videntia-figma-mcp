@@ -786,7 +786,9 @@ export function registerModificationTools(server: McpServer): void {
       counterAxisAlignItems: z
         .enum(["MIN", "CENTER", "MAX"])
         .optional()
-        .describe("Alignment perpendicular to layout direction: MIN = top/left, CENTER = center, MAX = bottom/right"),
+        .describe(
+          "Alignment perpendicular to layout direction: MIN = top/left, CENTER = center, MAX = bottom/right. There is no STRETCH value — to make children fill the counter axis (equal-height/width rows), set that child's layoutSizingVertical/Horizontal to FILL via set_layout_sizing instead. At least one child in the row must stay HUG or FIXED, or the row collapses.",
+        ),
       wrap: z
         .enum(["WRAP", "NO_WRAP"])
         .optional()

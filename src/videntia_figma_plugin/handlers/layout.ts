@@ -242,8 +242,14 @@ export async function setLayoutMode(params: Record<string, unknown>): Promise<Re
 
   const frame = node as FrameNode;
   // Mode must be assigned before the grid track counts — they are only writable
-  // once the frame is actually a grid.
-  frame.layoutMode = layoutMode as "NONE" | "HORIZONTAL" | "VERTICAL" | "GRID";
+  // once the frame is actually a grid. But only write it when it's actually
+  // changing: reassigning layoutMode — even to its current value — resets the
+  // frame's layoutSizingHorizontal/Vertical (and thus item spacing/padding
+  // rendering) back to their defaults as a side effect, silently clobbering
+  // whatever set_layout_sizing/set_item_spacing already set.
+  if (frame.layoutMode !== layoutMode) {
+    frame.layoutMode = layoutMode as "NONE" | "HORIZONTAL" | "VERTICAL" | "GRID";
+  }
 
   if (layoutMode === "GRID") {
     // layoutWrap is a flex-wrap concept and does not apply to grids.
@@ -430,6 +436,29 @@ export async function setLayoutSizing(params: Record<string, unknown>): Promise<
   }
 
   const sizingNode = node as FrameNode | TextNode;
+
+  // TEXT nodes drive their HUG behavior off `textAutoResize`, not layoutSizing*
+  // directly — setting layoutSizingHorizontal/Vertical to HUG without also
+  // updating textAutoResize is silently ignored by the Figma runtime. Resolve
+  // the effective horizontal/vertical intent (falling back to the node's
+  // current sizing for whichever axis wasn't passed) and derive the matching
+  // textAutoResize value before touching layoutSizing*.
+  if (node.type === "TEXT") {
+    const textNode = node as TextNode;
+    const effectiveHorizontal = layoutSizingHorizontal ?? textNode.layoutSizingHorizontal;
+    const effectiveVertical = layoutSizingVertical ?? textNode.layoutSizingVertical;
+    const hugH = effectiveHorizontal === "HUG";
+    const hugV = effectiveVertical === "HUG";
+
+    // Figma's TextAutoResize enum has no "WIDTH"-only value, so a horizontal-only
+    // hug still requires WIDTH_AND_HEIGHT (the vertical axis rides along with it).
+    if (hugH || hugV) {
+      textNode.textAutoResize = hugV && !hugH ? "HEIGHT" : "WIDTH_AND_HEIGHT";
+    } else {
+      textNode.textAutoResize = "NONE";
+    }
+  }
+
   if (layoutSizingHorizontal !== undefined) {
     sizingNode.layoutSizingHorizontal = layoutSizingHorizontal as "FIXED" | "HUG" | "FILL";
   }
@@ -442,6 +471,7 @@ export async function setLayoutSizing(params: Record<string, unknown>): Promise<
     name: node.name,
     layoutSizingHorizontal: sizingNode.layoutSizingHorizontal,
     layoutSizingVertical: sizingNode.layoutSizingVertical,
+    textAutoResize: node.type === "TEXT" ? (node as TextNode).textAutoResize : undefined,
     success: true,
   };
 }
