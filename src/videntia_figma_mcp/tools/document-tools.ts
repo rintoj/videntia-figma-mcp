@@ -1116,7 +1116,7 @@ export function registerDocumentTools(server: McpServer): void {
   // Get Local Components Tool
   server.tool(
     "get_local_components",
-    "Get all local components from the Figma document. Returns JSX+Tailwind markup.",
+    'Get all local components from the Figma document. Returns JSX+Tailwind markup. WARNING: like other tools using `depth`, this defaults to depth=1 (direct children only) — nodes nested deeper (e.g. an icon\'s fill color three levels down) are silently omitted with no truncation notice. Pass depth: "all" when you need the full subtree, e.g. to audit every color/style actually used inside a component.',
     {
       depth: depthSchema,
       output_format: outputFormatSchema,
