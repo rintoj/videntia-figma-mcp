@@ -181,11 +181,15 @@ export function registerComponentTools(server: McpServer): void {
     "Convert a frame or group into a component in Figma",
     {
       nodeId: z.string().describe("The ID of the frame or group to convert to a component"),
+      name: z
+        .string()
+        .optional()
+        .describe("Optional name for the resulting component (default: keeps the source node's name)"),
     },
-    async ({ nodeId }) => {
+    async ({ nodeId, name }) => {
       nodeId = normalizeNodeId(nodeId);
       try {
-        const result = await sendCommandToFigma("create_component", { nodeId });
+        const result = await sendCommandToFigma("create_component", { nodeId, name });
         const typedResult = result as { id: string; name: string; key: string };
         return {
           content: [

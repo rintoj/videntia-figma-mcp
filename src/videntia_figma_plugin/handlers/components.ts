@@ -636,6 +636,7 @@ export async function detachInstance(params: Record<string, unknown>): Promise<R
 
 export async function createComponent(params: Record<string, unknown>): Promise<Record<string, unknown>> {
   const nodeId = params["nodeId"] as string | undefined;
+  const name = params["name"] as string | undefined;
 
   if (!nodeId) {
     throw new Error("Missing nodeId parameter");
@@ -666,6 +667,10 @@ export async function createComponent(params: Record<string, unknown>): Promise<
         | TextNode
         | LineNode,
     );
+
+    if (name !== undefined) {
+      component.name = name;
+    }
 
     return {
       id: component.id,
