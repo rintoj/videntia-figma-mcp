@@ -1679,6 +1679,14 @@ export async function createTextStyle(params: Record<string, unknown>): Promise<
     textNode.textDecoration === figma.mixed
       ? (textNode.getRangeTextDecoration(0, 1) as TextDecoration)
       : (textNode.textDecoration as TextDecoration);
+  const resolvedParagraphIndent: number =
+    textNode.paragraphIndent === figma.mixed
+      ? (textNode.getRangeParagraphIndent(0, 1) as number)
+      : textNode.paragraphIndent;
+  const resolvedParagraphSpacing: number =
+    textNode.paragraphSpacing === figma.mixed
+      ? (textNode.getRangeParagraphSpacing(0, 1) as number)
+      : textNode.paragraphSpacing;
 
   try {
     // Load both the default new-style font (Inter Regular) and the resolved target font.
@@ -1706,8 +1714,8 @@ export async function createTextStyle(params: Record<string, unknown>): Promise<
     textStyle.fontSize = resolvedFontSize;
     textStyle.letterSpacing = resolvedLetterSpacing;
     textStyle.lineHeight = resolvedLineHeight;
-    textStyle.paragraphIndent = textNode.paragraphIndent;
-    textStyle.paragraphSpacing = textNode.paragraphSpacing;
+    textStyle.paragraphIndent = resolvedParagraphIndent;
+    textStyle.paragraphSpacing = resolvedParagraphSpacing;
     textStyle.textCase = resolvedTextCase;
     textStyle.textDecoration = resolvedTextDecoration;
 
