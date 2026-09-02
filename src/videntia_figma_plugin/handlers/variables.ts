@@ -116,6 +116,36 @@ function coerceValueForType(
     throw new Error(`Expected number value for FLOAT variable "${variableNameForError}", got ${typeof value}`);
   }
 
+  if (variableType === "TIMING") {
+    if (typeof value === "number") return value;
+    if (typeof value === "string") {
+      const parsed = Number(value);
+      if (!Number.isNaN(parsed)) return parsed;
+    }
+    throw new Error(`Expected a number of seconds for TIMING variable "${variableNameForError}", got ${typeof value}`);
+  }
+
+  if (variableType === "EASING") {
+    const rawEasing = typeof value === "string" ? JSON.parse(value) : value;
+    if (typeof rawEasing !== "object" || rawEasing === null || typeof (rawEasing as MotionEasing).type !== "string") {
+      throw new Error(
+        `Expected a MotionEasing object (e.g. {type: "EASE_IN_AND_OUT"}) for EASING variable "${variableNameForError}"`,
+      );
+    }
+    const easing = rawEasing as MotionEasing;
+    if (easing.type === "CUSTOM_CUBIC_BEZIER" && !easing.easingFunctionCubicBezier) {
+      throw new Error(
+        `EASING variable "${variableNameForError}" of type CUSTOM_CUBIC_BEZIER requires easingFunctionCubicBezier: {x1,y1,x2,y2}`,
+      );
+    }
+    if (easing.type === "CUSTOM_SPRING" && !easing.easingFunctionSpring) {
+      throw new Error(
+        `EASING variable "${variableNameForError}" of type CUSTOM_SPRING requires easingFunctionSpring: {bounce}`,
+      );
+    }
+    return easing;
+  }
+
   if (variableType === "STRING") {
     // MCP transport sends all values as strings, but also accept numbers/booleans
     // by coercing them — consistent with how FLOAT and BOOLEAN are handled above.
@@ -338,7 +368,7 @@ export async function getVariables(): Promise<Record<string, unknown>> {
       description: v.description || "",
       collectionId: v.variableCollectionId,
       values: Object.entries(v.valuesByMode).map(([modeId, value]) => {
-        const knownTypes: VariableResolvedType[] = ["COLOR", "FLOAT", "STRING", "BOOLEAN"];
+        const knownTypes: VariableResolvedType[] = ["COLOR", "FLOAT", "STRING", "BOOLEAN", "EASING", "TIMING"];
         const resolvedType = knownTypes.includes(v.resolvedType as VariableResolvedType)
           ? (v.resolvedType as VariableResolvedType)
           : ("STRING" as VariableResolvedType);
@@ -814,6 +844,46 @@ export async function createVariableCollection(params: Record<string, unknown>):
   };
 }
 
+// 2b. create_variable_collection_extension
+export async function createVariableCollectionExtension(
+  params: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
+  const parentCollectionId = params["parentCollectionId"] as string;
+  const name = params["name"] as string;
+
+  if (!parentCollectionId) {
+    throw new Error("Missing parentCollectionId parameter");
+  }
+  if (!name) {
+    throw new Error("Missing name parameter");
+  }
+
+  const parentCollection = await findCollection(parentCollectionId);
+
+  let extended: ExtendedVariableCollection;
+  try {
+    extended = parentCollection.extend(name);
+  } catch (error) {
+    const errMsg = error instanceof Error ? error.message : String(error);
+    if (errMsg.indexOf("Cannot create extended collections outside of enterprise plan") !== -1) {
+      throw new Error(
+        "Extended variable collections require a Figma Enterprise plan. This file's plan does not support them.",
+      );
+    }
+    throw error;
+  }
+
+  return {
+    collectionId: extended.id,
+    name: extended.name,
+    isExtension: extended.isExtension,
+    parentVariableCollectionId: extended.parentVariableCollectionId,
+    rootVariableCollectionId: extended.rootVariableCollectionId,
+    modes: extended.modes.map((m) => ({ modeId: m.modeId, name: m.name, parentModeId: m.parentModeId })),
+    success: true,
+  };
+}
+
 // 3. get_collection_info
 export async function getCollectionInfo(params: Record<string, unknown>): Promise<Record<string, unknown>> {
   const collectionId = params["collectionId"] as string;
@@ -888,7 +958,7 @@ export async function createVariable(params: Record<string, unknown>): Promise<R
   const collectionId = params["collectionId"] as string;
   const name = params["name"] as string;
   const type = params["type"] as string | undefined;
-  const value = params["value"] as RgbaColor | number | string | boolean;
+  const value = params["value"] as RgbaColor | MotionEasing | number | string | boolean;
   const mode = params["mode"] as string | undefined;
 
   const collection = await findCollection(collectionId);
@@ -973,17 +1043,26 @@ export async function updateVariableValue(params: Record<string, unknown>): Prom
   const collectionId = params["collectionId"] as string | undefined;
   const value = params["value"];
   const mode = params["mode"] as string | undefined;
+  // Set on an extended collection's own mode (a value from create_variable_collection_extension's
+  // `modes[].modeId`) to write an override for that mode rather than the base collection's value —
+  // no separate API, setValueForMode on an extended mode ID IS how overrides are set.
+  const extendedModeId = params["extendedModeId"] as string | undefined;
 
   // Single parallel fetch — avoids the sequential findVariable() + getVariableCollectionByIdAsync() round-trip
   const { collections, variables } = await fetchVariableData();
   const variable = findVariableIn(variables, collections, variableId, collectionId);
   const collection = findCollectionIn(collections, variable.variableCollectionId);
 
-  const targetMode =
-    mode !== undefined && mode !== null
-      ? collection.modes.find((m: { modeId: string; name: string }) => m.name === mode)
-      : null;
-  const modeId = targetMode !== undefined && targetMode !== null ? targetMode.modeId : collection.modes[0].modeId;
+  let modeId: string;
+  if (extendedModeId !== undefined && extendedModeId !== null) {
+    modeId = extendedModeId;
+  } else {
+    const targetMode =
+      mode !== undefined && mode !== null
+        ? collection.modes.find((m: { modeId: string; name: string }) => m.name === mode)
+        : null;
+    modeId = targetMode !== undefined && targetMode !== null ? targetMode.modeId : collection.modes[0].modeId;
+  }
 
   if (!modeId) {
     throw new Error(`Mode not found: ${mode}`);
@@ -998,6 +1077,8 @@ export async function updateVariableValue(params: Record<string, unknown>): Prom
     variableId: variable.id,
     name: variable.name,
     type: variableType,
+    modeId,
+    isOverride: extendedModeId !== undefined && extendedModeId !== null,
     updated: true,
   };
 }

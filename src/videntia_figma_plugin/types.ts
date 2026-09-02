@@ -155,6 +155,12 @@ export interface SvgRootStroke {
 // Variable value types
 // ---------------------------------------------------------------------------
 
-export type VariableResolvedType = "COLOR" | "FLOAT" | "STRING" | "BOOLEAN";
+export type VariableResolvedType = "COLOR" | "FLOAT" | "STRING" | "BOOLEAN" | "EASING" | "TIMING";
 
-export type VariableValue = RgbaColor | number | string | boolean | { type: "VARIABLE_ALIAS"; id: string };
+export type VariableValue =
+  | RgbaColor
+  | MotionEasing
+  | number
+  | string
+  | boolean
+  | { type: "VARIABLE_ALIAS"; id: string };

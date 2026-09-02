@@ -136,6 +136,7 @@ export type FigmaCommand =
   | "set_instance_overrides"
   | "get_variable_collections"
   | "create_variable_collection"
+  | "create_variable_collection_extension"
   | "get_collection_info"
   | "rename_variable_collection"
   | "delete_variable_collection"
@@ -466,6 +467,15 @@ export interface CreateVariableCollectionResult {
   id?: string;
   name?: string;
   defaultMode?: string;
+}
+
+export interface CreateVariableCollectionExtensionResult {
+  collectionId?: string;
+  name?: string;
+  isExtension?: boolean;
+  parentVariableCollectionId?: string;
+  rootVariableCollectionId?: string;
+  modes?: Array<{ modeId: string; name: string; parentModeId: string }>;
 }
 
 export interface GetCollectionInfoResult {

@@ -495,7 +495,7 @@ describe("Design System Preset Commands", () => {
         "font.lineHeight.relaxed",
         "font.lineHeight.loose",
       ],
-      preset: params.scale_preset,
+      preset: params.scalePreset,
     });
 
     mockCommands["create_radius_system"] = (params: any) => ({
@@ -518,9 +518,9 @@ describe("Design System Preset Commands", () => {
 
   it("should create spacing system with 8pt grid", async () => {
     const result = await mockSendCommandToFigma("create_spacing_system", {
-      collection_id: collectionId,
+      collectionId: collectionId,
       preset: "8pt",
-      include_semantic: true,
+      includeSemantic: true,
     });
 
     expect(result.success).toBe(true);
@@ -532,12 +532,12 @@ describe("Design System Preset Commands", () => {
 
   it("should create typography system with major-third scale", async () => {
     const result = await mockSendCommandToFigma("create_typography_system", {
-      collection_id: collectionId,
-      scale_preset: "major-third",
-      base_size: 16,
-      include_weights: true,
-      include_line_heights: true,
-      include_semantic: true,
+      collectionId: collectionId,
+      scalePreset: "major-third",
+      baseSize: 16,
+      includeWeights: true,
+      includeLineHeights: true,
+      includeSemantic: true,
     });
 
     expect(result.success).toBe(true);
@@ -550,7 +550,7 @@ describe("Design System Preset Commands", () => {
 
   it("should create radius system with standard preset", async () => {
     const result = await mockSendCommandToFigma("create_radius_system", {
-      collection_id: collectionId,
+      collectionId: collectionId,
       preset: "standard",
     });
 

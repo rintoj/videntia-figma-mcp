@@ -127,6 +127,7 @@ import {
   unbindVariable,
   getVariableCollections,
   createVariableCollection,
+  createVariableCollectionExtension,
   getCollectionInfo,
   renameVariableCollection,
   deleteVariableCollection,
@@ -794,6 +795,8 @@ async function _executeCommand(command: string, params: Record<string, unknown>)
       return await getVariableCollections();
     case "create_variable_collection":
       return await createVariableCollection(params);
+    case "create_variable_collection_extension":
+      return await createVariableCollectionExtension(params);
     case "get_collection_info":
       return await getCollectionInfo(params);
     case "rename_variable_collection":

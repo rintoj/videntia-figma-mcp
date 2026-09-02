@@ -64,7 +64,7 @@ describe("token system tools", () => {
 
     it("successfully creates 8pt spacing system", async () => {
       const response = await callTool("create_spacing_system", {
-        collection_id: "Design Tokens",
+        collectionId: "Design Tokens",
         preset: "8pt",
       });
 
@@ -86,7 +86,7 @@ describe("token system tools", () => {
 
     it("successfully creates 4pt spacing system", async () => {
       const response = await callTool("create_spacing_system", {
-        collection_id: "Design Tokens",
+        collectionId: "Design Tokens",
         preset: "4pt",
       });
 
@@ -100,7 +100,7 @@ describe("token system tools", () => {
 
     it("successfully creates Tailwind spacing system", async () => {
       await callTool("create_spacing_system", {
-        collection_id: "Design Tokens",
+        collectionId: "Design Tokens",
         preset: "tailwind",
       });
 
@@ -109,7 +109,7 @@ describe("token system tools", () => {
 
     it("successfully creates Material spacing system", async () => {
       await callTool("create_spacing_system", {
-        collection_id: "Design Tokens",
+        collectionId: "Design Tokens",
         preset: "material",
       });
 
@@ -119,7 +119,7 @@ describe("token system tools", () => {
     it("validates preset is valid", async () => {
       await expect(
         callTool("create_spacing_system", {
-          collection_id: "Design Tokens",
+          collectionId: "Design Tokens",
           preset: "invalid",
         }),
       ).rejects.toThrow();
@@ -142,8 +142,8 @@ describe("token system tools", () => {
 
     it("successfully creates major-third typography system", async () => {
       const response = await callTool("create_typography_system", {
-        collection_id: "Design Tokens",
-        scale_preset: "major-third",
+        collectionId: "Design Tokens",
+        scalePreset: "major-third",
       });
 
       expect(mockSendCommand).toHaveBeenCalledTimes(1);
@@ -163,8 +163,8 @@ describe("token system tools", () => {
 
     it("successfully creates minor-third typography system", async () => {
       await callTool("create_typography_system", {
-        collection_id: "Design Tokens",
-        scale_preset: "minor-third",
+        collectionId: "Design Tokens",
+        scalePreset: "minor-third",
       });
 
       expect(mockSendCommand).toHaveBeenCalled();
@@ -172,8 +172,8 @@ describe("token system tools", () => {
 
     it("successfully creates perfect-fourth typography system", async () => {
       await callTool("create_typography_system", {
-        collection_id: "Design Tokens",
-        scale_preset: "perfect-fourth",
+        collectionId: "Design Tokens",
+        scalePreset: "perfect-fourth",
       });
 
       expect(mockSendCommand).toHaveBeenCalled();
@@ -182,8 +182,8 @@ describe("token system tools", () => {
     it("validates preset is valid", async () => {
       await expect(
         callTool("create_typography_system", {
-          collection_id: "Design Tokens",
-          scale_preset: "invalid",
+          collectionId: "Design Tokens",
+          scalePreset: "invalid",
         }),
       ).rejects.toThrow();
     });
@@ -205,7 +205,7 @@ describe("token system tools", () => {
 
     it("successfully creates standard radius system", async () => {
       const response = await callTool("create_radius_system", {
-        collection_id: "Design Tokens",
+        collectionId: "Design Tokens",
         preset: "standard",
       });
 
@@ -226,7 +226,7 @@ describe("token system tools", () => {
 
     it("successfully creates subtle radius system", async () => {
       await callTool("create_radius_system", {
-        collection_id: "Design Tokens",
+        collectionId: "Design Tokens",
         preset: "subtle",
       });
 
@@ -235,7 +235,7 @@ describe("token system tools", () => {
 
     it("successfully creates bold radius system", async () => {
       await callTool("create_radius_system", {
-        collection_id: "Design Tokens",
+        collectionId: "Design Tokens",
         preset: "bold",
       });
 
@@ -245,7 +245,7 @@ describe("token system tools", () => {
     it("validates preset is valid", async () => {
       await expect(
         callTool("create_radius_system", {
-          collection_id: "Design Tokens",
+          collectionId: "Design Tokens",
           preset: "invalid",
         }),
       ).rejects.toThrow();
@@ -261,7 +261,7 @@ describe("token system tools", () => {
       mockSendCommand.mockRejectedValue(new Error("Collection not found"));
 
       const response = await callTool("create_spacing_system", {
-        collection_id: "NonExistent",
+        collectionId: "NonExistent",
         preset: "8pt",
       });
 

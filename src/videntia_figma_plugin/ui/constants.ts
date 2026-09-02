@@ -76,6 +76,7 @@ export const ALLOWED_COMMANDS = new Set([
   "unbind_variable",
   "get_variable_collections",
   "create_variable_collection",
+  "create_variable_collection_extension",
   "get_collection_info",
   "rename_variable_collection",
   "delete_variable_collection",
