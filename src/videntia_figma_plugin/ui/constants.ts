@@ -47,6 +47,7 @@ export const ALLOWED_COMMANDS = new Set([
   "set_line_height",
   "set_paragraph_spacing",
   "set_text_case",
+  "set_text_wrap_style",
   "set_text_decoration",
   "get_styled_text_segments",
   "load_font_async",

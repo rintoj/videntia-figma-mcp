@@ -69,6 +69,7 @@ import {
   setLineHeight,
   setParagraphSpacing,
   setTextCase,
+  setTextWrapStyle,
   setTextDecoration,
   getStyledTextSegments,
   loadFontAsyncWrapper,
@@ -715,6 +716,8 @@ async function _executeCommand(command: string, params: Record<string, unknown>)
       return await setParagraphSpacing(params);
     case "set_text_case":
       return await setTextCase(params);
+    case "set_text_wrap_style":
+      return await setTextWrapStyle(params);
     case "set_text_decoration":
       return await setTextDecoration(params);
     case "get_styled_text_segments":

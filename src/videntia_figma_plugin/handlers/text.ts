@@ -1418,6 +1418,48 @@ export async function setTextCase(params: Record<string, unknown>): Promise<Reco
 }
 
 // ---------------------------------------------------------------------------
+// Public: setTextWrapStyle
+// ---------------------------------------------------------------------------
+
+export async function setTextWrapStyle(params: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const safeParams = params !== null && params !== undefined ? params : {};
+  const nodeId = safeParams.nodeId as string | undefined;
+  const textWrapStyle = safeParams.textWrapStyle;
+
+  if (!nodeId || textWrapStyle === undefined) {
+    throw new Error("Missing nodeId or textWrapStyle");
+  }
+
+  if (!["AUTO", "BALANCE", "PRETTY"].includes(textWrapStyle as string)) {
+    throw new Error("Invalid textWrapStyle value. Must be one of: AUTO, BALANCE, PRETTY");
+  }
+
+  const node = await figma.getNodeByIdAsync(nodeId);
+  if (!node) {
+    throw new Error(`Node not found with ID: ${nodeId}`);
+  }
+
+  if (node.type !== "TEXT") {
+    throw new Error(`Node is not a text node: ${nodeId}`);
+  }
+
+  try {
+    const twsFontName = (node as TextNode).fontName;
+    const twsFont =
+      twsFontName === figma.mixed ? ((node as TextNode).getRangeFontName(0, 1) as FontName) : (twsFontName as FontName);
+    await figma.loadFontAsync(twsFont);
+    (node as TextNode).textWrapStyle = textWrapStyle as TextWrapStyle;
+    return {
+      id: node.id,
+      name: node.name,
+      textWrapStyle: (node as TextNode).textWrapStyle,
+    };
+  } catch (error) {
+    throw new Error(`Error setting text wrap style: ${(error as Error).message}`);
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Public: setTextDecoration
 // ---------------------------------------------------------------------------
 
@@ -1750,6 +1792,7 @@ export async function createTextStyleFromProperties(params: Record<string, unkno
   const letterSpacing = safeParams.letterSpacing as LetterSpacing | undefined;
   const textCase = safeParams.textCase as TextCase | undefined;
   const textDecoration = safeParams.textDecoration as TextDecoration | undefined;
+  const textWrapStyle = safeParams.textWrapStyle as TextWrapStyle | undefined;
   const description = safeParams.description as string | undefined;
   const bindings = safeParams.bindings as Record<string, string> | undefined;
 
@@ -1807,6 +1850,10 @@ export async function createTextStyleFromProperties(params: Record<string, unkno
 
     if (textDecoration !== null && textDecoration !== undefined) {
       textStyle.textDecoration = textDecoration;
+    }
+
+    if (textWrapStyle !== null && textWrapStyle !== undefined) {
+      textStyle.textWrapStyle = textWrapStyle;
     }
 
     const { applied, warnings } = await applyTextStyleBindings(textStyle, bindings);
