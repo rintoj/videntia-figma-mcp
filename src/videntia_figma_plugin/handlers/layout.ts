@@ -255,6 +255,15 @@ export async function setLayoutMode(params: Record<string, unknown>): Promise<Re
     // layoutWrap is a flex-wrap concept and does not apply to grids.
     const gridRowCount = params["gridRowCount"] as number | undefined;
     const gridColumnCount = params["gridColumnCount"] as number | undefined;
+    const gridAutoTracks = params["gridAutoTracks"] as string | undefined;
+    const gridItemsPositioning = params["gridItemsPositioning"] as string | undefined;
+
+    // gridAutoTracks must be set before gridRowCount/gridColumnCount when set to
+    // "ROWS": Figma throws if you try to write gridRowCount while auto-tracking
+    // rows, since the count becomes automatically managed.
+    if (gridAutoTracks !== undefined) frame.gridAutoTracks = gridAutoTracks as "NONE" | "ROWS";
+    if (gridItemsPositioning !== undefined)
+      frame.gridItemsPositioning = gridItemsPositioning as "MANUAL" | "ROW_AUTO_FLOW";
     if (gridRowCount !== undefined) frame.gridRowCount = gridRowCount;
     if (gridColumnCount !== undefined) frame.gridColumnCount = gridColumnCount;
 
@@ -264,6 +273,8 @@ export async function setLayoutMode(params: Record<string, unknown>): Promise<Re
       layoutMode: frame.layoutMode,
       gridRowCount: frame.gridRowCount,
       gridColumnCount: frame.gridColumnCount,
+      gridAutoTracks: frame.gridAutoTracks,
+      gridItemsPositioning: frame.gridItemsPositioning,
       success: true,
     };
   }
@@ -277,6 +288,46 @@ export async function setLayoutMode(params: Record<string, unknown>): Promise<Re
     name: node.name,
     layoutMode: frame.layoutMode,
     layoutWrap: frame.layoutWrap,
+    success: true,
+  };
+}
+
+export async function reorderGridTracks(params: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const nodeId = params["nodeId"] as string;
+  const axis = params["axis"] as string;
+  const fromIndices = params["fromIndices"] as number[];
+  const insertionIndex = params["insertionIndex"] as number;
+
+  const node = await figma.getNodeByIdAsync(nodeId);
+  if (!node) {
+    throw new Error(`Node with ID ${nodeId} not found`);
+  }
+  if (!isAutoLayoutNode(node)) {
+    throw new Error(`Node "${node.name}" does not support grid track reordering (type: ${node.type})`);
+  }
+
+  const frame = node as FrameNode;
+  if (frame.layoutMode !== "GRID") {
+    throw new Error(`Node "${node.name}" is not a GRID frame (layoutMode: ${frame.layoutMode})`);
+  }
+  if (axis !== "ROW" && axis !== "COLUMN") {
+    throw new Error(`Invalid axis: ${axis}. Must be "ROW" or "COLUMN"`);
+  }
+  if (!Array.isArray(fromIndices) || fromIndices.length === 0) {
+    throw new Error("fromIndices must be a non-empty array of track indices");
+  }
+  if (typeof insertionIndex !== "number") {
+    throw new Error("Missing insertionIndex parameter");
+  }
+
+  const options = { fromIndices, insertionIndex };
+  const moves = axis === "ROW" ? frame.reorderRows(options) : frame.reorderColumns(options);
+
+  return {
+    nodeId: node.id,
+    name: node.name,
+    axis,
+    moves: moves.map((m) => ({ from: m.from, to: m.to })),
     success: true,
   };
 }

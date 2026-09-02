@@ -407,12 +407,27 @@ export function registerModificationTools(server: McpServer): void {
         .positive()
         .optional()
         .describe("Number of grid columns (GRID mode only; omit to keep Figma's current track count)"),
+      gridAutoTracks: z
+        .enum(["NONE", "ROWS"])
+        .optional()
+        .describe(
+          "GRID mode only. ROWS = automatically add/remove rows to fit children (gridRowCount becomes read-only and cannot be set directly while this is ROWS); NONE = manual row count (default).",
+        ),
+      gridItemsPositioning: z
+        .enum(["MANUAL", "ROW_AUTO_FLOW"])
+        .optional()
+        .describe(
+          "GRID mode only. MANUAL = children stay at their explicitly assigned cell (default); ROW_AUTO_FLOW = children auto-place into the next free cell in row-major order as they're added — reorder via insert_child, not manual cell assignment, in this mode.",
+        ),
     },
-    async ({ nodeId, mode, wrap, rows, columns }) => {
+    async ({ nodeId, mode, wrap, rows, columns, gridAutoTracks, gridItemsPositioning }) => {
       nodeId = normalizeNodeId(nodeId);
       try {
         if (mode !== "GRID" && (rows !== undefined || columns !== undefined)) {
           throw new Error(`rows/columns apply to GRID mode only (mode is ${mode})`);
+        }
+        if (mode !== "GRID" && (gridAutoTracks !== undefined || gridItemsPositioning !== undefined)) {
+          throw new Error(`gridAutoTracks/gridItemsPositioning apply to GRID mode only (mode is ${mode})`);
         }
         if (mode === "GRID" && wrap !== undefined) {
           throw new Error("wrap does not apply to GRID mode — grid children are placed on tracks, not wrapped");
@@ -420,6 +435,8 @@ export function registerModificationTools(server: McpServer): void {
 
         const params: Record<string, unknown> = { nodeId, layoutMode: mode };
         if (mode === "GRID") {
+          if (gridAutoTracks !== undefined) params.gridAutoTracks = gridAutoTracks;
+          if (gridItemsPositioning !== undefined) params.gridItemsPositioning = gridItemsPositioning;
           if (rows !== undefined) params.gridRowCount = rows;
           if (columns !== undefined) params.gridColumnCount = columns;
         } else {
@@ -446,6 +463,56 @@ export function registerModificationTools(server: McpServer): void {
             {
               type: "text",
               text: `Error setting layout mode: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  // Reorder Grid Tracks Tool
+  server.tool(
+    "reorder_grid_tracks",
+    "Move one or more rows or columns to a new position in a GRID-mode frame, shifting the other tracks as needed. GRID mode only.",
+    {
+      nodeId: z.string().describe("GRID-mode frame node ID"),
+      axis: z.enum(["ROW", "COLUMN"]).describe("Whether to reorder rows or columns"),
+      fromIndices: coerceArray(z.array(z.coerce.number().int().nonnegative())).describe(
+        "Indices of the rows/columns to move. Need not be sorted, contiguous, or deduplicated; all must be within the current track count.",
+      ),
+      insertionIndex: z.coerce
+        .number()
+        .int()
+        .nonnegative()
+        .describe(
+          "Position to insert the selected tracks at, evaluated against the original track order before the move (e.g. a 4-column grid accepts insertion indices 0-4).",
+        ),
+    },
+    async ({ nodeId, axis, fromIndices, insertionIndex }) => {
+      nodeId = normalizeNodeId(nodeId);
+      try {
+        const result = await sendCommandToFigma("reorder_grid_tracks", {
+          nodeId,
+          axis,
+          fromIndices,
+          insertionIndex,
+        });
+        const typedResult = result as { name: string; moves: Array<{ from: number; to: number }> };
+        const movesDesc = typedResult.moves.map((m) => `${m.from}→${m.to}`).join(", ");
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Reordered ${axis.toLowerCase()}s on "${typedResult.name}": ${movesDesc || "no movement"}`,
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error reordering grid tracks: ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };
@@ -777,6 +844,18 @@ export function registerModificationTools(server: McpServer): void {
         .number()
         .optional()
         .describe("Gap between grid columns in pixels (GRID mode only; overrides gap for this axis)"),
+      gridAutoTracks: z
+        .enum(["NONE", "ROWS"])
+        .optional()
+        .describe(
+          "GRID mode only. ROWS = automatically add/remove rows to fit children (gridRowCount becomes read-only and cannot be set directly while this is ROWS); NONE = manual row count (default).",
+        ),
+      gridItemsPositioning: z
+        .enum(["MANUAL", "ROW_AUTO_FLOW"])
+        .optional()
+        .describe(
+          "GRID mode only. MANUAL = children stay at their explicitly assigned cell (default); ROW_AUTO_FLOW = children auto-place into the next free cell in row-major order as they're added — reorder via insert_child, not manual cell assignment, in this mode.",
+        ),
       primaryAxisAlignItems: z
         .enum(["MIN", "CENTER", "MAX", "SPACE_BETWEEN"])
         .optional()
@@ -826,6 +905,8 @@ export function registerModificationTools(server: McpServer): void {
       columns,
       rowGap,
       columnGap,
+      gridAutoTracks,
+      gridItemsPositioning,
       primaryAxisAlignItems,
       counterAxisAlignItems,
       wrap,
@@ -838,9 +919,16 @@ export function registerModificationTools(server: McpServer): void {
       try {
         if (
           mode !== "GRID" &&
-          (rows !== undefined || columns !== undefined || rowGap !== undefined || columnGap !== undefined)
+          (rows !== undefined ||
+            columns !== undefined ||
+            rowGap !== undefined ||
+            columnGap !== undefined ||
+            gridAutoTracks !== undefined ||
+            gridItemsPositioning !== undefined)
         ) {
-          throw new Error(`rows/columns/rowGap/columnGap apply to GRID mode only (mode is ${mode})`);
+          throw new Error(
+            `rows/columns/rowGap/columnGap/gridAutoTracks/gridItemsPositioning apply to GRID mode only (mode is ${mode})`,
+          );
         }
         if (mode === "GRID") {
           // Flex-only parameters would otherwise be accepted and silently dropped.
@@ -866,6 +954,8 @@ export function registerModificationTools(server: McpServer): void {
           ...(columns !== undefined ? { gridColumnCount: columns } : {}),
           ...(rowGap !== undefined ? { gridRowGap: rowGap } : {}),
           ...(columnGap !== undefined ? { gridColumnGap: columnGap } : {}),
+          ...(gridAutoTracks !== undefined ? { gridAutoTracks } : {}),
+          ...(gridItemsPositioning !== undefined ? { gridItemsPositioning } : {}),
           primaryAxisAlignItems,
           counterAxisAlignItems,
           layoutWrap: wrap,

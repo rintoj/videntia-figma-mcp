@@ -161,6 +161,7 @@ import {
   createTypographySystem,
   createRadiusSystem,
   setLayoutMode,
+  reorderGridTracks,
   setPadding,
   setItemSpacing,
   setAxisAlign,
@@ -852,6 +853,8 @@ async function _executeCommand(command: string, params: Record<string, unknown>)
       return await createRadiusSystem(params);
     case "set_layout_mode":
       return await setLayoutMode(params);
+    case "reorder_grid_tracks":
+      return await reorderGridTracks(params);
     case "set_padding":
       return await setPadding(params);
     case "set_item_spacing":

@@ -105,6 +105,7 @@ export const ALLOWED_COMMANDS = new Set([
   "create_typography_system",
   "create_radius_system",
   "set_layout_mode",
+  "reorder_grid_tracks",
   "set_padding",
   "set_item_spacing",
   "set_axis_align",

@@ -74,6 +74,7 @@ export type FigmaCommand =
   | "set_multiple_text_contents"
   | "set_auto_layout"
   | "set_layout_mode"
+  | "reorder_grid_tracks"
   | "set_padding"
   | "set_axis_align"
   | "set_layout_sizing"
