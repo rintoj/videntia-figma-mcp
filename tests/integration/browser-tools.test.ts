@@ -183,7 +183,7 @@ describe("set_browser_viewport / reset_browser_viewport tools", () => {
     });
     const text = result.content[0].text;
     expect(text).toMatch(/emulated at 390×844 via CDP/);
-    expect(text).toMatch(/resets on navigation/);
+    expect(text).toMatch(/automatically re-applied after navigation/);
   });
 
   it("reports a plain window resize for desktop widths", async () => {

@@ -93,18 +93,20 @@ describe("browser control tools", () => {
     });
 
     it("rejects when neither selector nor coordinates are given", async () => {
-      await expect(callTool("browser_click", {})).rejects.toThrow(/selector or both x and y/);
+      await expect(callTool("browser_click", {})).rejects.toThrow(/selector, backend_dom_node_id, or both x and y/);
       expect(mockSendToChannel).not.toHaveBeenCalled();
     });
 
     it("rejects when only one coordinate is given", async () => {
-      await expect(callTool("browser_click", { x: 100 })).rejects.toThrow(/selector or both x and y/);
+      await expect(callTool("browser_click", { x: 100 })).rejects.toThrow(
+        /selector, backend_dom_node_id, or both x and y/,
+      );
     });
   });
 
   describe("browser_hover", () => {
     it("requires a target like click does", async () => {
-      await expect(callTool("browser_hover", {})).rejects.toThrow(/selector or both x and y/);
+      await expect(callTool("browser_hover", {})).rejects.toThrow(/selector, backend_dom_node_id, or both x and y/);
     });
   });
 

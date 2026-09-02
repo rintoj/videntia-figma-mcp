@@ -255,8 +255,10 @@ async function handleBrowserCommand(command, params) {
     case "set_viewport": {
       // First-class viewport control. Widths below Chrome's window minimum (or
       // forceEmulation) use CDP Emulation.setDeviceMetricsOverride — a true
-      // mobile viewport with touch emulation. Note: emulation resets on
-      // navigation; callers must re-apply after navigate.
+      // mobile viewport with touch emulation. CDP overrides don't reliably
+      // survive cross-page navigation, but the navigate/go_back/go_forward
+      // handlers below auto-reapply everything active via cdpReapplyOverrides
+      // — callers do not need to manually re-apply after navigating.
       const width = Number(params?.width);
       const height = Number(params?.height);
       if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
@@ -271,6 +273,47 @@ async function handleBrowserCommand(command, params) {
 
     case "reset_viewport": {
       await cdpClearEmulation(tab.id);
+      await cdpMaybeDetach(tab.id);
+      return { success: true, tabId: tab.id };
+    }
+
+    // --- Consolidated emulation (browser_emulate) ---
+    //
+    // Distinct from set_viewport/reset_viewport above (kept working unchanged
+    // for backward compatibility) — this covers the full override surface:
+    // viewport, color-scheme/reduced-motion media features, network
+    // throttling, geolocation, timezone, and CPU throttling in one call.
+    case "emulate": {
+      await cdpEnsureAttached(tab.id);
+      const p = params || {};
+      if (p.viewport && typeof p.viewport.width === "number" && typeof p.viewport.height === "number") {
+        await cdpApplyEmulation(tab.id, {
+          width: p.viewport.width,
+          height: p.viewport.height,
+          deviceScaleFactor: p.viewport.deviceScaleFactor,
+        });
+      }
+      if (p.colorScheme !== undefined || p.reducedMotion !== undefined) {
+        await cdpSetEmulatedMedia(tab.id, { colorScheme: p.colorScheme, reducedMotion: p.reducedMotion });
+      }
+      if (p.networkConditions !== undefined) {
+        await cdpSetNetworkConditions(tab.id, p.networkConditions);
+      }
+      if (p.geolocation !== undefined) {
+        await cdpSetGeolocation(tab.id, p.geolocation);
+      }
+      if (p.timezone !== undefined) {
+        await cdpSetTimezone(tab.id, p.timezone);
+      }
+      if (p.cpuThrottlingRate !== undefined) {
+        await cdpSetCpuThrottling(tab.id, p.cpuThrottlingRate);
+      }
+      const state = await getTabState(tab.id);
+      return { success: true, tabId: tab.id, ...state };
+    }
+
+    case "clear_emulation": {
+      await cdpClearAllEmulation(tab.id);
       await cdpMaybeDetach(tab.id);
       return { success: true, tabId: tab.id };
     }
@@ -300,7 +343,11 @@ async function handleBrowserCommand(command, params) {
     case "scroll": {
       await cdpEnsureAttached(tab.id);
       let point;
-      if (params?.selector || (typeof params?.x === "number" && typeof params?.y === "number")) {
+      if (
+        params?.selector ||
+        typeof params?.backendDOMNodeId === "number" ||
+        (typeof params?.x === "number" && typeof params?.y === "number")
+      ) {
         point = await resolveInteractionPoint(tab, params);
       } else {
         const center = await cdpEvaluate(tab.id, "({x: Math.round(innerWidth/2), y: Math.round(innerHeight/2)})");
@@ -323,6 +370,9 @@ async function handleBrowserCommand(command, params) {
         });
         if (!r?.found) throw new Error(`No element matches selector: ${params.selector}`);
         if (clearFirst && !r.selected) await selectAllViaKeyboard(tab.id);
+      } else if (typeof params?.backendDOMNodeId === "number") {
+        await cdpFocusBackendNode(tab.id, params.backendDOMNodeId);
+        if (clearFirst) await selectAllViaKeyboard(tab.id);
       } else if (clearFirst) {
         await selectAllViaKeyboard(tab.id);
       }
@@ -353,11 +403,11 @@ async function handleBrowserCommand(command, params) {
 
     case "navigate": {
       const url = validateNavigationUrl(params?.url);
-      const emulation = await cdpGetEmulation(tab.id);
       await chrome.tabs.update(tab.id, { url });
       await waitForTabComplete(tab.id, 30000);
-      // CDP device emulation does not reliably survive cross-page navigation.
-      if (emulation) await cdpApplyEmulation(tab.id, emulation);
+      // CDP overrides (viewport emulation, media, network, geolocation,
+      // timezone, CPU throttling) do not reliably survive cross-page navigation.
+      await cdpReapplyOverrides(tab.id);
       const updated = await chrome.tabs.get(tab.id);
       return { success: true, tabId: tab.id, url: updated.url, title: updated.title };
     }
@@ -371,8 +421,7 @@ async function handleBrowserCommand(command, params) {
         throw new Error(`Cannot ${command === "go_back" ? "go back" : "go forward"}: ${e.message}`);
       }
       await waitForTabComplete(tab.id, 15000);
-      const emulation = await cdpGetEmulation(tab.id);
-      if (emulation) await cdpApplyEmulation(tab.id, emulation);
+      await cdpReapplyOverrides(tab.id);
       const updated = await chrome.tabs.get(tab.id);
       return { success: true, tabId: tab.id, url: updated.url, title: updated.title };
     }
@@ -400,6 +449,85 @@ async function handleBrowserCommand(command, params) {
       return { tabId: tab.id, monitoringJustStarted: startedNow, ...data };
     }
 
+    // --- Accessibility-tree snapshot + element highlighting ---
+
+    case "get_ax_tree": {
+      const rawNodes = await cdpGetAXTree(tab.id, { depth: params?.depth });
+      const nodes = flattenAXNodes(rawNodes, { includeIgnored: params?.includeIgnored === true });
+      return { tabId: tab.id, count: nodes.length, nodes };
+    }
+
+    case "highlight_node": {
+      let nodeId;
+      if (params?.selector) {
+        nodeId = await cdpQuerySelector(tab.id, params.selector);
+      } else if (typeof params?.backendDOMNodeId !== "number") {
+        throw new Error("highlight_node requires a selector or backendDOMNodeId");
+      }
+      await cdpHighlightNode(tab.id, {
+        nodeId,
+        backendDOMNodeId: params?.backendDOMNodeId,
+        highlightConfig: params?.highlightConfig,
+      });
+      return { success: true, tabId: tab.id };
+    }
+
+    case "clear_highlight": {
+      await cdpClearHighlight(tab.id);
+      return { success: true, tabId: tab.id };
+    }
+
+    // --- Fetch domain interception ---
+
+    case "intercept_start": {
+      await cdpStartInterception(tab.id, params?.patterns, params?.timeoutMs);
+      return { success: true, tabId: tab.id };
+    }
+
+    case "intercept_stop": {
+      await cdpStopInterception(tab.id);
+      return { success: true, tabId: tab.id };
+    }
+
+    case "list_pending_requests": {
+      return { tabId: tab.id, requests: listPendingInterceptions(tab.id) };
+    }
+
+    case "fulfill_request": {
+      if (!params?.requestId) throw new Error("fulfill_request requires requestId");
+      await cdpFulfillRequest(tab.id, params.requestId, {
+        responseCode: params.responseCode,
+        responseHeaders: params.responseHeaders,
+        body: params.body,
+      });
+      return { success: true, tabId: tab.id, requestId: params.requestId };
+    }
+
+    case "fail_request": {
+      if (!params?.requestId) throw new Error("fail_request requires requestId");
+      await cdpFailRequest(tab.id, params.requestId, params.errorReason);
+      return { success: true, tabId: tab.id, requestId: params.requestId };
+    }
+
+    case "continue_request": {
+      if (!params?.requestId) throw new Error("continue_request requires requestId");
+      await cdpContinueRequest(tab.id, params.requestId, params.overrides || {});
+      return { success: true, tabId: tab.id, requestId: params.requestId };
+    }
+
+    // --- Storage / page snapshot ---
+
+    case "clear_storage": {
+      if (!params?.origin) throw new Error("clear_storage requires an origin");
+      await cdpClearStorage(tab.id, params.origin, params.storageTypes);
+      return { success: true, tabId: tab.id, origin: params.origin };
+    }
+
+    case "capture_mhtml": {
+      const data = await cdpCaptureMhtml(tab.id);
+      return { tabId: tab.id, mimeType: "multipart/related", data };
+    }
+
     default:
       throw new Error(`Unknown browser command: ${command}`);
   }
@@ -411,6 +539,12 @@ async function resolveInteractionPoint(tab, params) {
   if (typeof params?.x === "number" && typeof params?.y === "number") {
     return { x: params.x, y: params.y };
   }
+  // backendDOMNodeId comes from a prior browser_snapshot call — resolved via
+  // CDP (DOM.getBoxModel) rather than the content script, reusing the exact
+  // same clamping the selector path below gets from prepareElementForInteraction.
+  if (typeof params?.backendDOMNodeId === "number") {
+    return await cdpResolveAXNode(tab.id, params.backendDOMNodeId);
+  }
   if (params?.selector) {
     const r = await sendToContentScript(tab.id, "prepare_element_for_interaction", {
       selector: params.selector,
@@ -418,7 +552,7 @@ async function resolveInteractionPoint(tab, params) {
     if (!r?.found) throw new Error(r?.error || `No element matches selector: ${params.selector}`);
     return { x: r.x, y: r.y };
   }
-  throw new Error("Provide either a selector or x/y coordinates");
+  throw new Error("Provide a selector, backendDOMNodeId, or x/y coordinates");
 }
 
 async function selectAllViaKeyboard(tabId) {

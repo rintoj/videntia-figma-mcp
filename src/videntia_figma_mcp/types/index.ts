@@ -223,7 +223,20 @@ export type BrowserCommand =
   | "close_tab"
   | "close_group"
   | "read_console"
-  | "read_network";
+  | "read_network"
+  | "get_ax_tree"
+  | "highlight_node"
+  | "clear_highlight"
+  | "emulate"
+  | "clear_emulation"
+  | "intercept_start"
+  | "intercept_stop"
+  | "list_pending_requests"
+  | "fulfill_request"
+  | "fail_request"
+  | "continue_request"
+  | "clear_storage"
+  | "capture_mhtml";
 
 // Batch actions types
 export interface BatchActionResult {
