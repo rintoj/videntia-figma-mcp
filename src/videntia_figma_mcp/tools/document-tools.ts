@@ -1646,24 +1646,85 @@ export function registerDocumentTools(server: McpServer): void {
   // Export Node as Image Tool
   server.tool(
     "export_node_as_image",
-    "Export a node as a base64 image from Figma.",
+    "Export a node as a base64 image (PNG/JPG/SVG/PDF), or as a base64 video (MP4/GIF/WEBM) from Figma. Video export requires the node to be a top-level frame (a direct child of a page) with animated content — a nested animated frame or an individual keyframed layer is rejected.",
     {
       nodeId: z.string().describe("The ID of the node to export"),
       format: z
-        .enum(["PNG", "JPG", "SVG", "PDF", "png", "jpg", "svg", "pdf"])
-        .transform((v) => v.toUpperCase() as "PNG" | "JPG" | "SVG" | "PDF")
+        .enum(["PNG", "JPG", "SVG", "PDF", "MP4", "GIF", "WEBM", "png", "jpg", "svg", "pdf", "mp4", "gif", "webm"])
+        .transform((v) => v.toUpperCase() as "PNG" | "JPG" | "SVG" | "PDF" | "MP4" | "GIF" | "WEBM")
         .optional()
-        .describe("Export format (e.g. 'png' or 'PNG')"),
-      scale: z.coerce.number().positive().optional().describe("Export scale"),
+        .describe("Export format (e.g. 'png' or 'PNG'). MP4/GIF/WEBM export a video instead of an image."),
+      scale: z.coerce.number().positive().optional().describe("Export scale — image formats only (PNG/JPG/SVG/PDF)"),
+      fps: z.coerce
+        .number()
+        .optional()
+        .describe(
+          "Video frame rate — video formats only. GIF: one of 8/12/15/24/30 (default 15). MP4/WEBM: one of 12/24/30/60 (default 30).",
+        ),
+      quality: z
+        .enum(["LOW", "MEDIUM", "HIGH"])
+        .optional()
+        .describe("Video quality preset — MP4/WEBM only (default HIGH). Higher quality produces a larger file."),
+      loopCount: z.coerce
+        .number()
+        .int()
+        .min(0)
+        .max(1000)
+        .optional()
+        .describe("Number of times the GIF loops, 0 = infinite (default 0) — GIF only."),
+      constraintType: z
+        .enum(["SCALE", "WIDTH", "HEIGHT"])
+        .optional()
+        .describe(
+          "Video size constraint type — video formats only (default SCALE at value 1, i.e. 100% of node size).",
+        ),
+      constraintValue: z.coerce
+        .number()
+        .optional()
+        .describe(
+          "Video size constraint value — video formats only. For SCALE, must be one of 0.5/0.75/1/1.5/2/3/4. For WIDTH/HEIGHT, a pixel value (capped at 4K/3840x2160).",
+        ),
     },
-    async ({ nodeId, format, scale }) => {
+    async ({ nodeId, format, scale, fps, quality, loopCount, constraintType, constraintValue }) => {
       nodeId = normalizeNodeId(nodeId);
+      const isVideo = format === "MP4" || format === "GIF" || format === "WEBM";
       try {
         const result = await sendCommandToFigma("export_node_as_image", {
           nodeId,
           format: format || "PNG",
           scale: scale || 1,
+          fps,
+          quality,
+          loopCount,
+          constraintType,
+          constraintValue,
         });
+
+        if (isVideo) {
+          const typedResult = result as {
+            videoData: string;
+            mimeType: string;
+            format: string;
+            byteLength: number;
+          };
+          return {
+            content: [
+              {
+                type: "text",
+                text: `Exported "${nodeId}" as ${typedResult.format} (${(typedResult.byteLength / 1024).toFixed(0)} KB).`,
+              },
+              {
+                type: "resource",
+                resource: {
+                  uri: `figma-export://${nodeId}.${typedResult.format.toLowerCase()}`,
+                  mimeType: typedResult.mimeType,
+                  blob: typedResult.videoData,
+                },
+              },
+            ],
+          };
+        }
+
         const typedResult = result as {
           imageData: string;
           mimeType: string;
@@ -1705,7 +1766,7 @@ export function registerDocumentTools(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: `Error exporting node "${nodeId}" as image (${format || "PNG"}): ${error instanceof Error ? error.message : String(error)}`,
+              text: `Error exporting node "${nodeId}" as ${format || "PNG"}: ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };

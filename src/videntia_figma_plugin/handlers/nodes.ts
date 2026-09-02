@@ -321,11 +321,12 @@ export async function deleteMultipleNodes(params: Record<string, unknown>): Prom
   };
 }
 
+const VIDEO_FORMATS = new Set(["MP4", "GIF", "WEBM"]);
+
 export async function exportNodeAsImage(params: Record<string, unknown>): Promise<Record<string, unknown>> {
   const nodeId = getOptParam<string>(params, "nodeId");
   const scale: number = getParam<number>(params, "scale", 1);
-
-  const format = "PNG";
+  const format = (getOptParam<string>(params, "format") || "PNG").toUpperCase();
   const MAX_DIMENSION = 7680; // Stay under Claude's 8000px limit with some margin
 
   if (!nodeId) {
@@ -339,6 +340,10 @@ export async function exportNodeAsImage(params: Record<string, unknown>): Promis
 
   if (!("exportAsync" in node)) {
     throw new Error(`Node does not support exporting: ${nodeId}`);
+  }
+
+  if (VIDEO_FORMATS.has(format)) {
+    return exportNodeAsVideo(node as SceneNode, format as "MP4" | "GIF" | "WEBM", params);
   }
 
   try {
@@ -360,12 +365,18 @@ export async function exportNodeAsImage(params: Record<string, unknown>): Promis
       );
     }
 
-    const settings: ExportSettingsImage = {
-      format: format,
-      constraint: { type: "SCALE", value: finalScale },
-    };
+    if (format !== "PNG" && format !== "JPG" && format !== "SVG" && format !== "PDF") {
+      throw new Error(
+        `Invalid format: ${format}. Must be one of PNG, JPG, SVG, PDF (or MP4, GIF, WEBM for video export).`,
+      );
+    }
 
-    const bytes = await (node as FrameNode).exportAsync(settings);
+    const settings = {
+      format,
+      constraint: { type: "SCALE", value: finalScale },
+    } as ExportSettings;
+
+    const bytes = (await (node as FrameNode).exportAsync(settings)) as Uint8Array;
 
     // Use a local string variable so the switch is not narrowed to the literal type 'PNG'
     const formatStr: string = format;
@@ -401,6 +412,104 @@ export async function exportNodeAsImage(params: Record<string, unknown>): Promis
   } catch (error) {
     throw new Error(`Error exporting node as image: ${(error as Error).message}`);
   }
+}
+
+const VIDEO_CONSTRAINT_SCALES = new Set([0.5, 0.75, 1, 1.5, 2, 3, 4]);
+
+/**
+ * Export a top-level animated frame as MP4/GIF/WEBM. Video export requires the
+ * node to be a top-level frame (a direct child of a page) — a nested animated
+ * frame or an individual keyframed layer rejects with an error from Figma, so
+ * that requirement is validated up front with a clear message rather than
+ * surfacing Figma's own less-actionable rejection.
+ */
+async function exportNodeAsVideo(
+  node: SceneNode,
+  format: "MP4" | "GIF" | "WEBM",
+  params: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
+  if (node.type !== "FRAME" || !node.parent || node.parent.type !== "PAGE") {
+    throw new Error(
+      `Video export requires a top-level frame (a frame placed directly on a page) with animated content. ` +
+        `Node "${node.name}" (${node.type}) is not one — resolve its enclosing top-level frame first (e.g. via the parent chain) and export that instead.`,
+    );
+  }
+
+  const fpsParam = getOptParam<number>(params, "fps");
+  const validFps: readonly number[] = format === "GIF" ? [8, 12, 15, 24, 30] : [12, 24, 30, 60];
+  if (fpsParam !== undefined && !validFps.includes(fpsParam)) {
+    throw new Error(`Invalid fps for ${format}: ${fpsParam}. Must be one of ${validFps.join(", ")}.`);
+  }
+
+  const constraintType = getOptParam<string>(params, "constraintType");
+  const constraintValue = getOptParam<number>(params, "constraintValue");
+  let constraint: VideoExportConstraint | undefined;
+  if (constraintType !== undefined) {
+    if (constraintType !== "SCALE" && constraintType !== "WIDTH" && constraintType !== "HEIGHT") {
+      throw new Error(`Invalid constraintType: ${constraintType}. Must be one of SCALE, WIDTH, HEIGHT.`);
+    }
+    if (constraintValue === undefined) {
+      throw new Error("constraintValue is required when constraintType is provided.");
+    }
+    if (constraintType === "SCALE" && !VIDEO_CONSTRAINT_SCALES.has(constraintValue)) {
+      throw new Error(`Invalid SCALE constraintValue: ${constraintValue}. Must be one of 0.5, 0.75, 1, 1.5, 2, 3, 4.`);
+    }
+    constraint = { type: constraintType, value: constraintValue } as VideoExportConstraint;
+  }
+
+  const quality = getOptParam<string>(params, "quality");
+  if (quality !== undefined && quality !== "LOW" && quality !== "MEDIUM" && quality !== "HIGH") {
+    throw new Error(`Invalid quality: ${quality}. Must be one of LOW, MEDIUM, HIGH.`);
+  }
+  const loopCount = getOptParam<number>(params, "loopCount");
+  if (loopCount !== undefined && (!Number.isInteger(loopCount) || loopCount < 0 || loopCount > 1000)) {
+    throw new Error(`Invalid loopCount: ${loopCount}. Must be an integer between 0 and 1000.`);
+  }
+
+  // No hard byte-size cap is enforced here — there's no way to know the encoded
+  // size before export completes, and this project has no precedent for
+  // splitting a single large binary payload across multiple relay messages.
+  // Keeping fps/quality/constraint bounded to Figma's own accepted ranges (and
+  // documenting sane defaults in the tool description) is the practical guard;
+  // a genuinely oversized export still fails at the relay/transport layer with
+  // whatever error that layer produces, rather than silently truncating.
+  let settings: ExportSettingsMP4 | ExportSettingsGIF | ExportSettingsWEBM;
+  if (format === "GIF") {
+    settings = {
+      format: "GIF",
+      fps: fpsParam as 8 | 12 | 15 | 24 | 30 | undefined,
+      loopCount,
+      constraint,
+    };
+  } else {
+    settings = {
+      format,
+      fps: fpsParam as 12 | 24 | 30 | 60 | undefined,
+      quality: quality as "LOW" | "MEDIUM" | "HIGH" | undefined,
+      constraint,
+    };
+  }
+
+  let bytes: Uint8Array;
+  try {
+    bytes = await (node as FrameNode).exportAsync(settings);
+  } catch (error) {
+    throw new Error(
+      `Failed to export video: ${(error as Error).message}. This frame may have no animated content to encode.`,
+    );
+  }
+
+  const mimeType = format === "MP4" ? "video/mp4" : format === "WEBM" ? "video/webm" : "image/gif";
+  const base64 = customBase64Encode(bytes);
+
+  return {
+    nodeId: node.id,
+    name: node.name,
+    format,
+    mimeType,
+    byteLength: bytes.byteLength,
+    videoData: base64,
+  };
 }
 
 export async function exportImageFill(params: Record<string, unknown>): Promise<Record<string, unknown>> {
