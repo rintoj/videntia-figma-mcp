@@ -1008,7 +1008,16 @@ export async function setAutoLayout(params: Record<string, unknown>): Promise<Re
       const gridColumnGap = (
         safeParams.gridColumnGap !== undefined ? safeParams.gridColumnGap : safeParams.columnGap
       ) as number | undefined;
+      const gridAutoTracks = safeParams.gridAutoTracks as string | undefined;
+      const gridItemsPositioning = safeParams.gridItemsPositioning as string | undefined;
 
+      // gridAutoTracks must be set before gridRowCount/gridColumnCount when set
+      // to "ROWS": Figma throws if you write gridRowCount while auto-tracking
+      // rows, since the count becomes automatically managed.
+      if (gridAutoTracks !== undefined) frameNode.gridAutoTracks = gridAutoTracks as "NONE" | "ROWS";
+      if (gridItemsPositioning !== undefined) {
+        frameNode.gridItemsPositioning = gridItemsPositioning as "MANUAL" | "ROW_AUTO_FLOW";
+      }
       if (gridRowCount !== undefined) frameNode.gridRowCount = gridRowCount;
       if (gridColumnCount !== undefined) frameNode.gridColumnCount = gridColumnCount;
 
@@ -1085,6 +1094,8 @@ export async function setAutoLayout(params: Record<string, unknown>): Promise<Re
           gridColumnCount: frameNode.gridColumnCount,
           gridRowGap: frameNode.gridRowGap,
           gridColumnGap: frameNode.gridColumnGap,
+          gridAutoTracks: frameNode.gridAutoTracks,
+          gridItemsPositioning: frameNode.gridItemsPositioning,
         }
       : {}),
     strokesIncludedInLayout: frameNode.strokesIncludedInLayout,
