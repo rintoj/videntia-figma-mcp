@@ -498,6 +498,27 @@ function parseDepth(value: unknown): number | undefined {
 // Command dispatch
 // ---------------------------------------------------------------------------
 
+// figma.ui.onmessage fires a fresh async callback per incoming message with no
+// serialization of its own. Multiple agents sharing one plugin channel can
+// send commands close enough together that their execution interleaves at
+// await points inside handleCommand, causing read-modify-write races (e.g.
+// two inserts computed against the same stale children.length). Queue every
+// command through this promise chain so each one — including its post-hooks
+// (auto-focus, auto-commit-undo) — fully completes before the next starts.
+let commandQueue: Promise<unknown> = Promise.resolve();
+
+function enqueueCommand(command: string, params: Record<string, unknown>): Promise<unknown> {
+  const tail = commandQueue.then(
+    () => handleCommand(command, params),
+    () => handleCommand(command, params),
+  );
+  // Swallow rejections here so one failed command doesn't poison the queue
+  // for everything queued behind it; the real rejection still propagates to
+  // whichever caller awaited `tail` below.
+  commandQueue = tail.catch(() => undefined);
+  return tail;
+}
+
 async function handleCommand(command: string, params: Record<string, unknown>): Promise<unknown> {
   debugLog(`handleCommand: ${command}`);
 
@@ -1421,7 +1442,7 @@ figma.ui.onmessage = async (msg: Record<string, unknown>) => {
     }
     case "execute-command":
       try {
-        const result = await handleCommand(msg["command"] as string, (msg["params"] as Record<string, unknown>) || {});
+        const result = await enqueueCommand(msg["command"] as string, (msg["params"] as Record<string, unknown>) || {});
         figma.ui.postMessage({
           type: "command-result",
           id: msg["id"],
