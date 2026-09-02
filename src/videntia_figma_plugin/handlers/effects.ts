@@ -226,7 +226,7 @@ export async function setEffectStyleId(params: Record<string, unknown>): Promise
 }
 
 // Private helper: build a valid Figma effect object for style operations
-function buildValidStyleEffect(effect: Record<string, unknown>): DropShadowEffect | InnerShadowEffect | BlurEffect {
+function buildValidStyleEffect(effect: Record<string, unknown>): Effect {
   if (!effect["type"]) {
     throw new Error("Each effect must have a type property");
   }
@@ -250,9 +250,46 @@ function buildValidStyleEffect(effect: Record<string, unknown>): DropShadowEffec
         radius: effect["radius"] !== undefined ? (effect["radius"] as number) : 5,
         visible: effect["visible"] !== undefined ? (effect["visible"] as boolean) : true,
       } as BlurEffect;
+    case "NOISE": {
+      const noiseEffect: Record<string, unknown> = {
+        type: "NOISE",
+        noiseType: effect["noiseType"] !== undefined ? effect["noiseType"] : "MONOTONE",
+        color: effect["color"] !== undefined ? effect["color"] : { r: 0, g: 0, b: 0, a: 0.1 },
+        noiseSize: effect["noiseSize"] !== undefined ? effect["noiseSize"] : 1,
+        density: effect["density"] !== undefined ? effect["density"] : 0.5,
+        blendMode: effect["blendMode"] !== undefined ? effect["blendMode"] : "NORMAL",
+        visible: effect["visible"] !== undefined ? effect["visible"] : true,
+      };
+      if (effect["noiseType"] === "DUOTONE" && effect["secondaryColor"] !== undefined) {
+        noiseEffect["secondaryColor"] = effect["secondaryColor"];
+      }
+      if (effect["noiseType"] === "MULTITONE" && effect["opacity"] !== undefined) {
+        noiseEffect["opacity"] = effect["opacity"];
+      }
+      return noiseEffect as unknown as Effect;
+    }
+    case "TEXTURE":
+      return {
+        type: "TEXTURE",
+        noiseSize: effect["noiseSize"] !== undefined ? effect["noiseSize"] : 1,
+        radius: effect["radius"] !== undefined ? effect["radius"] : 0,
+        clipToShape: effect["clipToShape"] !== undefined ? effect["clipToShape"] : true,
+        visible: effect["visible"] !== undefined ? effect["visible"] : true,
+      } as unknown as Effect;
+    case "GLASS":
+      return {
+        type: "GLASS",
+        lightIntensity: effect["lightIntensity"] !== undefined ? effect["lightIntensity"] : 0.5,
+        lightAngle: effect["lightAngle"] !== undefined ? effect["lightAngle"] : 0,
+        refraction: effect["refraction"] !== undefined ? effect["refraction"] : 0.5,
+        depth: effect["depth"] !== undefined ? effect["depth"] : 0.5,
+        dispersion: effect["dispersion"] !== undefined ? effect["dispersion"] : 0,
+        radius: effect["radius"] !== undefined ? effect["radius"] : 0,
+        visible: effect["visible"] !== undefined ? effect["visible"] : true,
+      } as unknown as Effect;
     default:
       throw new Error(
-        `Unsupported effect type for style: ${effect["type"]}. Supported: DROP_SHADOW, INNER_SHADOW, LAYER_BLUR, BACKGROUND_BLUR`,
+        `Unsupported effect type for style: ${effect["type"]}. Supported: DROP_SHADOW, INNER_SHADOW, LAYER_BLUR, BACKGROUND_BLUR, NOISE, TEXTURE, GLASS`,
       );
   }
 }

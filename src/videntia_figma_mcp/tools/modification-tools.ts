@@ -1180,7 +1180,11 @@ export function registerModificationTools(server: McpServer): void {
 
   // Shared schema for effect style operations
   const effectStyleEntrySchema = z.object({
-    type: z.enum(["DROP_SHADOW", "INNER_SHADOW", "LAYER_BLUR", "BACKGROUND_BLUR"]).describe("Effect type"),
+    type: z
+      .enum(["DROP_SHADOW", "INNER_SHADOW", "LAYER_BLUR", "BACKGROUND_BLUR", "NOISE", "TEXTURE", "GLASS"])
+      .describe(
+        "Effect type: DROP_SHADOW = shadow cast outward, INNER_SHADOW = shadow inside the shape, LAYER_BLUR = blurs the node itself, BACKGROUND_BLUR = blurs content behind the node, NOISE = grain/film grain overlay, TEXTURE = frosted texture surface, GLASS = frosted glass with refraction (frames only)",
+      ),
     color: z
       .object({
         r: z.coerce.number().min(0).max(1).describe("Red (0-1)"),
@@ -1189,18 +1193,85 @@ export function registerModificationTools(server: McpServer): void {
         a: z.coerce.number().min(0).max(1).describe("Alpha (0-1)"),
       })
       .optional()
-      .describe("Effect color (for shadows)"),
+      .describe("Effect color (for shadows and NOISE)"),
     offset: z
       .object({
         x: z.coerce.number().describe("X offset"),
         y: z.coerce.number().describe("Y offset"),
       })
       .optional()
-      .describe("Offset (for shadows)"),
-    radius: z.coerce.number().optional().describe("Blur radius"),
-    spread: z.coerce.number().optional().describe("Shadow spread (for shadows)"),
+      .describe("Shadow offset in pixels (DROP_SHADOW and INNER_SHADOW only)"),
+    radius: z.coerce
+      .number()
+      .optional()
+      .describe("Blur radius in pixels ≥ 0 (used for all blur types, TEXTURE, and GLASS; higher = more blur)"),
+    spread: z.coerce
+      .number()
+      .optional()
+      .describe(
+        "Shadow expansion in pixels — positive spreads outward, negative contracts (DROP_SHADOW and INNER_SHADOW only)",
+      ),
     visible: mcpBooleanSchema.optional().describe("Whether the effect is visible"),
-    blendMode: z.string().optional().describe("Blend mode"),
+    blendMode: z
+      .string()
+      .optional()
+      .describe("CSS-compatible blend mode string, e.g. 'NORMAL', 'MULTIPLY', 'SCREEN', 'OVERLAY' (default: NORMAL)"),
+    noiseType: z
+      .enum(["MONOTONE", "DUOTONE", "MULTITONE"])
+      .optional()
+      .describe(
+        "Grain color style (NOISE only): MONOTONE = single color grain, DUOTONE = two-color grain (requires secondaryColor), MULTITONE = full color grain (default: MONOTONE)",
+      ),
+    noiseSize: z.coerce
+      .number()
+      .optional()
+      .describe("Grain particle size in pixels — larger = coarser grain (NOISE and TEXTURE; typical range 1–100)"),
+    density: z.coerce
+      .number()
+      .optional()
+      .describe("Grain density 0–1 — higher = more grain particles visible (NOISE only; typical range 0.1–0.9)"),
+    secondaryColor: z
+      .object({
+        r: z.coerce.number().min(0).max(1).describe("Red (0-1)"),
+        g: z.coerce.number().min(0).max(1).describe("Green (0-1)"),
+        b: z.coerce.number().min(0).max(1).describe("Blue (0-1)"),
+        a: z.coerce.number().min(0).max(1).describe("Alpha (0-1)"),
+      })
+      .optional()
+      .describe("Second grain color (NOISE DUOTONE only — ignored for MONOTONE/MULTITONE)"),
+    opacity: z.coerce
+      .number()
+      .min(0)
+      .max(1)
+      .optional()
+      .describe("Effect opacity 0–1 (NOISE MULTITONE only — ignored for MONOTONE/DUOTONE)"),
+    clipToShape: mcpBooleanSchema
+      .optional()
+      .describe(
+        "true = texture is masked to the node's shape; false = texture fills bounding box (TEXTURE only; default: true)",
+      ),
+    lightIntensity: z.coerce
+      .number()
+      .optional()
+      .describe("Simulated light brightness 0–1 (GLASS only; typical range 0–1)"),
+    lightAngle: z.coerce
+      .number()
+      .optional()
+      .describe("Light source direction in degrees 0–360, where 0 = top (GLASS only)"),
+    refraction: z.coerce
+      .number()
+      .optional()
+      .describe(
+        "Background distortion amount ≥ 0 — higher = more bending of background (GLASS only; typical range 0–50)",
+      ),
+    depth: z.coerce
+      .number()
+      .optional()
+      .describe("Perceived 3D depth of the glass surface ≥ 0 (GLASS only; typical range 0–100)"),
+    dispersion: z.coerce
+      .number()
+      .optional()
+      .describe("Chromatic aberration/rainbow fringing amount ≥ 0 (GLASS only; typical range 0–20)"),
   });
 
   // Create Effect Style Tool
