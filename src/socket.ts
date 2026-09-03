@@ -18,6 +18,7 @@ import { isSameFile } from "./socket-channel-identity";
 import {
   listBrowsers,
   resolveTarget,
+  reserveBrowserChannel,
   formatBrowserList,
   sanitizeIdentityValue,
   BROWSER_ID_MAX_LENGTH,
@@ -170,6 +171,15 @@ function handleWebSocketMessage(ws: WebSocket, raw: string) {
       return;
     }
     const browserLabel = sanitizeIdentityValue(data.browserLabel, BROWSER_LABEL_MAX_LENGTH);
+
+    // Keep Figma plugins off the channel the extension hardcodes. A file named
+    // "Browser" slugs onto it, and a shared channel makes every untargeted send
+    // ambiguous between two protocols: the plugin answers a browser command with
+    // "Command not permitted" under the same message id (beating the extension's
+    // real reply), and Figma traffic is routed away or duplicated. The dedup pass
+    // below resolves any collision on the reassigned name.
+    const isPluginJoin = !isExtensionJoin && !!(data.fileName || data.fileKey);
+    channelName = reserveBrowserChannel(channelName, isPluginJoin);
 
     // Remove stale plugin connections for the same file (reconnect from the same
     // Figma file, from a *different* socket). Only the plugin's own prior socket

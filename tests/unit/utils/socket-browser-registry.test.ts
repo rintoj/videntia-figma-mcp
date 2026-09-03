@@ -3,6 +3,8 @@ import {
   listBrowsers,
   resolveTarget,
   formatBrowserList,
+  reserveBrowserChannel,
+  RESERVED_BROWSER_CHANNEL,
   sanitizeIdentityValue,
   BROWSER_ID_MAX_LENGTH,
   BROWSER_LABEL_MAX_LENGTH,
@@ -134,6 +136,25 @@ describe("resolveTarget on a channel shared with a Figma plugin", () => {
   it("ignores a plugin whose socket is already closed", () => {
     const only = browser({ _browserId: "a" });
     expect(resolveTarget([{ _isPlugin: true, readyState: CLOSED }, only])).toEqual({ kind: "single", client: only });
+  });
+});
+
+describe("reserveBrowserChannel", () => {
+  // The extension hardcodes "browser"; the plugin slugs its file name onto the
+  // same namespace. Letting both occupy it makes untargeted routing ambiguous
+  // between two protocols, so a plugin join is moved off it.
+  it("moves a Figma plugin off the reserved browser channel", () => {
+    expect(reserveBrowserChannel(RESERVED_BROWSER_CHANNEL, true)).toBe("browser-figma");
+  });
+
+  it("leaves the reserved channel alone for non-plugin joins (extension, MCP client)", () => {
+    expect(reserveBrowserChannel(RESERVED_BROWSER_CHANNEL, false)).toBe(RESERVED_BROWSER_CHANNEL);
+  });
+
+  it("leaves every other channel untouched", () => {
+    expect(reserveBrowserChannel("homevault", true)).toBe("homevault");
+    expect(reserveBrowserChannel("browser2", true)).toBe("browser2");
+    expect(reserveBrowserChannel("browser-figma", true)).toBe("browser-figma");
   });
 });
 

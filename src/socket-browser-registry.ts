@@ -82,6 +82,33 @@ export function resolveTarget(clients: Iterable<BrowserClientLike>, target?: str
   return { kind: "ambiguous", available: listBrowsers(all) };
 }
 
+// --- Channel reservation ------------------------------------------------------
+
+/** The channel the Chrome extension hardcodes; no Figma plugin may occupy it. */
+export const RESERVED_BROWSER_CHANNEL = "browser";
+
+/**
+ * Keeps Figma plugins off the reserved browser channel.
+ *
+ * Channel names are otherwise unreserved: the plugin derives its channel from a
+ * slugged file name, so a file called "Browser" lands on the very channel the
+ * extension uses. Sharing it makes every untargeted send ambiguous between two
+ * unrelated protocols — the plugin answers a browser command with
+ * "Command not permitted" under the *same* message id, racing (and usually
+ * beating) the extension's real reply, and an untargeted Figma command is
+ * either routed to the extension or duplicated across every connected browser.
+ * Moving the plugin to its own channel removes the overlap at the source; the
+ * caller's existing dedup pass resolves any collision on the new name.
+ *
+ * @param channelName - Channel the client asked to join.
+ * @param isPluginJoin - Whether the join carries Figma file identity.
+ * @returns The channel to actually join.
+ */
+export function reserveBrowserChannel(channelName: string, isPluginJoin: boolean): string {
+  if (!isPluginJoin || channelName !== RESERVED_BROWSER_CHANNEL) return channelName;
+  return `${RESERVED_BROWSER_CHANNEL}-figma`;
+}
+
 /** Renders browser entries for error messages: `8f3a12 (User A), c1d0ff (User B)`. */
 export function formatBrowserList(entries: BrowserEntry[]): string {
   if (entries.length === 0) return "none";

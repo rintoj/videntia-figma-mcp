@@ -52,9 +52,19 @@ The relay then decides:
 | `target` set, unknown/stale | error: `No browser with id "X" is connected. Connected: <list>` |
 | no `target`, exactly 1 browser | delivered normally (unchanged single-profile behaviour) |
 | no `target`, 2+ browsers | error: `Multiple browsers are connected: <list>. Pass browser_id to target one.` |
-| no `target`, channel also holds a Figma plugin | broadcast — a plugin-bearing channel is a Figma channel and is never routed (a file named "Browser" slugs onto the `"browser"` channel) |
+| no `target`, channel also holds a Figma plugin | broadcast — a plugin-bearing channel is a Figma channel and is never routed |
 
 Both errors surface verbatim as a failed tool call.
+
+**`"browser"` is a reserved channel name.** The plugin derives its channel from a slug of
+the Figma file name, so a file called "Browser" would otherwise land on the very channel
+the extension hardcodes. A shared channel is unroutable in both directions: the plugin
+answers a browser command with `Command not permitted` under the *same* message id
+(usually beating the extension's real reply), and untargeted Figma traffic is either
+routed to the extension or duplicated across every connected browser. The relay therefore
+moves any Figma-plugin join on `"browser"` to `"browser-figma"` (further collisions get
+the usual `-2`, `-3` suffixes), and the plugin adopts the server-assigned name. The
+plugin-bearing-channel broadcast rule above remains as a backstop.
 
 **Labels.** Each browser gets an auto-generated label `Chrome-<first 6 chars of its id>`,
 editable in the extension popup so profiles are recognizable ("Work", "Personal").
