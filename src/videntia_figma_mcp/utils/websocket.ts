@@ -326,7 +326,15 @@ export async function getOpenChannels(): Promise<
   }>
 > {
   const httpUrl = serverUrl === "localhost" ? `http://localhost:${defaultPort}` : `https://${serverUrl}`;
-  const response = await fetch(`${httpUrl}/channels`);
+  let response: Response;
+  try {
+    response = await fetch(`${httpUrl}/channels`, { signal: AbortSignal.timeout(10000) });
+  } catch (error) {
+    if (error instanceof Error && error.name === "TimeoutError") {
+      throw new Error(`Timed out fetching channels from ${httpUrl}/channels after 10s. Is the socket server running?`);
+    }
+    throw error;
+  }
   if (!response.ok) {
     throw new Error(`Failed to fetch channels: ${response.status} ${response.statusText}`);
   }

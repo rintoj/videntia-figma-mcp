@@ -69,6 +69,7 @@ import {
   setLineHeight,
   setParagraphSpacing,
   setTextCase,
+  setTextWrapStyle,
   setTextDecoration,
   getStyledTextSegments,
   loadFontAsyncWrapper,
@@ -126,6 +127,7 @@ import {
   unbindVariable,
   getVariableCollections,
   createVariableCollection,
+  createVariableCollectionExtension,
   getCollectionInfo,
   renameVariableCollection,
   deleteVariableCollection,
@@ -161,6 +163,7 @@ import {
   createTypographySystem,
   createRadiusSystem,
   setLayoutMode,
+  reorderGridTracks,
   setPadding,
   setItemSpacing,
   setAxisAlign,
@@ -495,6 +498,27 @@ function parseDepth(value: unknown): number | undefined {
 // Command dispatch
 // ---------------------------------------------------------------------------
 
+// figma.ui.onmessage fires a fresh async callback per incoming message with no
+// serialization of its own. Multiple agents sharing one plugin channel can
+// send commands close enough together that their execution interleaves at
+// await points inside handleCommand, causing read-modify-write races (e.g.
+// two inserts computed against the same stale children.length). Queue every
+// command through this promise chain so each one — including its post-hooks
+// (auto-focus, auto-commit-undo) — fully completes before the next starts.
+let commandQueue: Promise<unknown> = Promise.resolve();
+
+function enqueueCommand(command: string, params: Record<string, unknown>): Promise<unknown> {
+  const tail = commandQueue.then(
+    () => handleCommand(command, params),
+    () => handleCommand(command, params),
+  );
+  // Swallow rejections here so one failed command doesn't poison the queue
+  // for everything queued behind it; the real rejection still propagates to
+  // whichever caller awaited `tail` below.
+  commandQueue = tail.catch(() => undefined);
+  return tail;
+}
+
 async function handleCommand(command: string, params: Record<string, unknown>): Promise<unknown> {
   debugLog(`handleCommand: ${command}`);
 
@@ -714,6 +738,8 @@ async function _executeCommand(command: string, params: Record<string, unknown>)
       return await setParagraphSpacing(params);
     case "set_text_case":
       return await setTextCase(params);
+    case "set_text_wrap_style":
+      return await setTextWrapStyle(params);
     case "set_text_decoration":
       return await setTextDecoration(params);
     case "get_styled_text_segments":
@@ -790,6 +816,8 @@ async function _executeCommand(command: string, params: Record<string, unknown>)
       return await getVariableCollections();
     case "create_variable_collection":
       return await createVariableCollection(params);
+    case "create_variable_collection_extension":
+      return await createVariableCollectionExtension(params);
     case "get_collection_info":
       return await getCollectionInfo(params);
     case "rename_variable_collection":
@@ -852,6 +880,8 @@ async function _executeCommand(command: string, params: Record<string, unknown>)
       return await createRadiusSystem(params);
     case "set_layout_mode":
       return await setLayoutMode(params);
+    case "reorder_grid_tracks":
+      return await reorderGridTracks(params);
     case "set_padding":
       return await setPadding(params);
     case "set_item_spacing":
@@ -1412,7 +1442,7 @@ figma.ui.onmessage = async (msg: Record<string, unknown>) => {
     }
     case "execute-command":
       try {
-        const result = await handleCommand(msg["command"] as string, (msg["params"] as Record<string, unknown>) || {});
+        const result = await enqueueCommand(msg["command"] as string, (msg["params"] as Record<string, unknown>) || {});
         figma.ui.postMessage({
           type: "command-result",
           id: msg["id"],

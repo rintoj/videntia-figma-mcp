@@ -83,7 +83,7 @@ export function registerModificationTools(server: McpServer): void {
   // Set Stroke Color Tool
   server.tool(
     "set_stroke_color",
-    "Set the stroke color of a node in Figma. Accepts either a hex color string (e.g. '#ff0000', '#ff000080' with alpha) or individual r,g,b,a channels (0–1). Defaults: opacity 1, weight 1.",
+    "Set the stroke color of a node in Figma. Accepts either a hex color string (e.g. '#ff0000', '#ff000080' with alpha) or individual r,g,b,a channels (0–1). Defaults: opacity 1, weight 1. Optionally set dashPattern for a dashed/dotted stroke.",
     {
       nodeId: z.string().describe("Node ID (e.g. '123:456') — get from get_selection or get_node_info"),
       color: z
@@ -104,8 +104,14 @@ export function registerModificationTools(server: McpServer): void {
         .min(0)
         .optional()
         .describe("Stroke thickness in pixels ≥ 0 (default: 1; use 0 for invisible stroke)"),
+      dashPattern: z
+        .array(z.coerce.number().min(0))
+        .optional()
+        .describe(
+          "Dash/gap lengths in pixels, e.g. [4, 4] for an even dashed line, [1, 3] for dotted, [8, 4, 2, 4] for dash-dot. Omit for a solid stroke; pass [] to clear an existing pattern back to solid.",
+        ),
     },
-    async ({ nodeId, color, r, g, b, a, weight }) => {
+    async ({ nodeId, color, r, g, b, a, weight, dashPattern }) => {
       nodeId = normalizeNodeId(nodeId);
       try {
         const params: Record<string, unknown> = { nodeId };
@@ -121,6 +127,9 @@ export function registerModificationTools(server: McpServer): void {
 
         const strokeWeightWithDefault = applyDefault(weight, FIGMA_DEFAULTS.stroke.weight);
         params.strokeWeight = strokeWeightWithDefault;
+        if (dashPattern !== undefined) {
+          params.dashPattern = dashPattern;
+        }
 
         const result = await sendCommandToFigma("set_stroke_color", params);
         const typedResult = result as { name: string };
@@ -398,12 +407,27 @@ export function registerModificationTools(server: McpServer): void {
         .positive()
         .optional()
         .describe("Number of grid columns (GRID mode only; omit to keep Figma's current track count)"),
+      gridAutoTracks: z
+        .enum(["NONE", "ROWS"])
+        .optional()
+        .describe(
+          "GRID mode only. ROWS = automatically add/remove rows to fit children (gridRowCount becomes read-only and cannot be set directly while this is ROWS); NONE = manual row count (default).",
+        ),
+      gridItemsPositioning: z
+        .enum(["MANUAL", "ROW_AUTO_FLOW"])
+        .optional()
+        .describe(
+          "GRID mode only. MANUAL = children stay at their explicitly assigned cell (default); ROW_AUTO_FLOW = children auto-place into the next free cell in row-major order as they're added — reorder via insert_child, not manual cell assignment, in this mode.",
+        ),
     },
-    async ({ nodeId, mode, wrap, rows, columns }) => {
+    async ({ nodeId, mode, wrap, rows, columns, gridAutoTracks, gridItemsPositioning }) => {
       nodeId = normalizeNodeId(nodeId);
       try {
         if (mode !== "GRID" && (rows !== undefined || columns !== undefined)) {
           throw new Error(`rows/columns apply to GRID mode only (mode is ${mode})`);
+        }
+        if (mode !== "GRID" && (gridAutoTracks !== undefined || gridItemsPositioning !== undefined)) {
+          throw new Error(`gridAutoTracks/gridItemsPositioning apply to GRID mode only (mode is ${mode})`);
         }
         if (mode === "GRID" && wrap !== undefined) {
           throw new Error("wrap does not apply to GRID mode — grid children are placed on tracks, not wrapped");
@@ -411,6 +435,8 @@ export function registerModificationTools(server: McpServer): void {
 
         const params: Record<string, unknown> = { nodeId, layoutMode: mode };
         if (mode === "GRID") {
+          if (gridAutoTracks !== undefined) params.gridAutoTracks = gridAutoTracks;
+          if (gridItemsPositioning !== undefined) params.gridItemsPositioning = gridItemsPositioning;
           if (rows !== undefined) params.gridRowCount = rows;
           if (columns !== undefined) params.gridColumnCount = columns;
         } else {
@@ -437,6 +463,56 @@ export function registerModificationTools(server: McpServer): void {
             {
               type: "text",
               text: `Error setting layout mode: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  // Reorder Grid Tracks Tool
+  server.tool(
+    "reorder_grid_tracks",
+    "Move one or more rows or columns to a new position in a GRID-mode frame, shifting the other tracks as needed. GRID mode only.",
+    {
+      nodeId: z.string().describe("GRID-mode frame node ID"),
+      axis: z.enum(["ROW", "COLUMN"]).describe("Whether to reorder rows or columns"),
+      fromIndices: coerceArray(z.array(z.coerce.number().int().nonnegative())).describe(
+        "Indices of the rows/columns to move. Need not be sorted, contiguous, or deduplicated; all must be within the current track count.",
+      ),
+      insertionIndex: z.coerce
+        .number()
+        .int()
+        .nonnegative()
+        .describe(
+          "Position to insert the selected tracks at, evaluated against the original track order before the move (e.g. a 4-column grid accepts insertion indices 0-4).",
+        ),
+    },
+    async ({ nodeId, axis, fromIndices, insertionIndex }) => {
+      nodeId = normalizeNodeId(nodeId);
+      try {
+        const result = await sendCommandToFigma("reorder_grid_tracks", {
+          nodeId,
+          axis,
+          fromIndices,
+          insertionIndex,
+        });
+        const typedResult = result as { name: string; moves: Array<{ from: number; to: number }> };
+        const movesDesc = typedResult.moves.map((m) => `${m.from}→${m.to}`).join(", ");
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Reordered ${axis.toLowerCase()}s on "${typedResult.name}": ${movesDesc || "no movement"}`,
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error reordering grid tracks: ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };
@@ -768,6 +844,18 @@ export function registerModificationTools(server: McpServer): void {
         .number()
         .optional()
         .describe("Gap between grid columns in pixels (GRID mode only; overrides gap for this axis)"),
+      gridAutoTracks: z
+        .enum(["NONE", "ROWS"])
+        .optional()
+        .describe(
+          "GRID mode only. ROWS = automatically add/remove rows to fit children (gridRowCount becomes read-only and cannot be set directly while this is ROWS); NONE = manual row count (default).",
+        ),
+      gridItemsPositioning: z
+        .enum(["MANUAL", "ROW_AUTO_FLOW"])
+        .optional()
+        .describe(
+          "GRID mode only. MANUAL = children stay at their explicitly assigned cell (default); ROW_AUTO_FLOW = children auto-place into the next free cell in row-major order as they're added — reorder via insert_child, not manual cell assignment, in this mode.",
+        ),
       primaryAxisAlignItems: z
         .enum(["MIN", "CENTER", "MAX", "SPACE_BETWEEN"])
         .optional()
@@ -777,7 +865,9 @@ export function registerModificationTools(server: McpServer): void {
       counterAxisAlignItems: z
         .enum(["MIN", "CENTER", "MAX"])
         .optional()
-        .describe("Alignment perpendicular to layout direction: MIN = top/left, CENTER = center, MAX = bottom/right"),
+        .describe(
+          "Alignment perpendicular to layout direction: MIN = top/left, CENTER = center, MAX = bottom/right. There is no STRETCH value — to make children fill the counter axis (equal-height/width rows), set that child's layoutSizingVertical/Horizontal to FILL via set_layout_sizing instead. At least one child in the row must stay HUG or FIXED, or the row collapses.",
+        ),
       wrap: z
         .enum(["WRAP", "NO_WRAP"])
         .optional()
@@ -815,6 +905,8 @@ export function registerModificationTools(server: McpServer): void {
       columns,
       rowGap,
       columnGap,
+      gridAutoTracks,
+      gridItemsPositioning,
       primaryAxisAlignItems,
       counterAxisAlignItems,
       wrap,
@@ -827,9 +919,16 @@ export function registerModificationTools(server: McpServer): void {
       try {
         if (
           mode !== "GRID" &&
-          (rows !== undefined || columns !== undefined || rowGap !== undefined || columnGap !== undefined)
+          (rows !== undefined ||
+            columns !== undefined ||
+            rowGap !== undefined ||
+            columnGap !== undefined ||
+            gridAutoTracks !== undefined ||
+            gridItemsPositioning !== undefined)
         ) {
-          throw new Error(`rows/columns/rowGap/columnGap apply to GRID mode only (mode is ${mode})`);
+          throw new Error(
+            `rows/columns/rowGap/columnGap/gridAutoTracks/gridItemsPositioning apply to GRID mode only (mode is ${mode})`,
+          );
         }
         if (mode === "GRID") {
           // Flex-only parameters would otherwise be accepted and silently dropped.
@@ -855,6 +954,8 @@ export function registerModificationTools(server: McpServer): void {
           ...(columns !== undefined ? { gridColumnCount: columns } : {}),
           ...(rowGap !== undefined ? { gridRowGap: rowGap } : {}),
           ...(columnGap !== undefined ? { gridColumnGap: columnGap } : {}),
+          ...(gridAutoTracks !== undefined ? { gridAutoTracks } : {}),
+          ...(gridItemsPositioning !== undefined ? { gridItemsPositioning } : {}),
           primaryAxisAlignItems,
           counterAxisAlignItems,
           layoutWrap: wrap,
@@ -1079,7 +1180,11 @@ export function registerModificationTools(server: McpServer): void {
 
   // Shared schema for effect style operations
   const effectStyleEntrySchema = z.object({
-    type: z.enum(["DROP_SHADOW", "INNER_SHADOW", "LAYER_BLUR", "BACKGROUND_BLUR"]).describe("Effect type"),
+    type: z
+      .enum(["DROP_SHADOW", "INNER_SHADOW", "LAYER_BLUR", "BACKGROUND_BLUR", "NOISE", "TEXTURE", "GLASS"])
+      .describe(
+        "Effect type: DROP_SHADOW = shadow cast outward, INNER_SHADOW = shadow inside the shape, LAYER_BLUR = blurs the node itself, BACKGROUND_BLUR = blurs content behind the node, NOISE = grain/film grain overlay, TEXTURE = frosted texture surface, GLASS = frosted glass with refraction (frames only)",
+      ),
     color: z
       .object({
         r: z.coerce.number().min(0).max(1).describe("Red (0-1)"),
@@ -1088,18 +1193,85 @@ export function registerModificationTools(server: McpServer): void {
         a: z.coerce.number().min(0).max(1).describe("Alpha (0-1)"),
       })
       .optional()
-      .describe("Effect color (for shadows)"),
+      .describe("Effect color (for shadows and NOISE)"),
     offset: z
       .object({
         x: z.coerce.number().describe("X offset"),
         y: z.coerce.number().describe("Y offset"),
       })
       .optional()
-      .describe("Offset (for shadows)"),
-    radius: z.coerce.number().optional().describe("Blur radius"),
-    spread: z.coerce.number().optional().describe("Shadow spread (for shadows)"),
+      .describe("Shadow offset in pixels (DROP_SHADOW and INNER_SHADOW only)"),
+    radius: z.coerce
+      .number()
+      .optional()
+      .describe("Blur radius in pixels ≥ 0 (used for all blur types, TEXTURE, and GLASS; higher = more blur)"),
+    spread: z.coerce
+      .number()
+      .optional()
+      .describe(
+        "Shadow expansion in pixels — positive spreads outward, negative contracts (DROP_SHADOW and INNER_SHADOW only)",
+      ),
     visible: mcpBooleanSchema.optional().describe("Whether the effect is visible"),
-    blendMode: z.string().optional().describe("Blend mode"),
+    blendMode: z
+      .string()
+      .optional()
+      .describe("CSS-compatible blend mode string, e.g. 'NORMAL', 'MULTIPLY', 'SCREEN', 'OVERLAY' (default: NORMAL)"),
+    noiseType: z
+      .enum(["MONOTONE", "DUOTONE", "MULTITONE"])
+      .optional()
+      .describe(
+        "Grain color style (NOISE only): MONOTONE = single color grain, DUOTONE = two-color grain (requires secondaryColor), MULTITONE = full color grain (default: MONOTONE)",
+      ),
+    noiseSize: z.coerce
+      .number()
+      .optional()
+      .describe("Grain particle size in pixels — larger = coarser grain (NOISE and TEXTURE; typical range 1–100)"),
+    density: z.coerce
+      .number()
+      .optional()
+      .describe("Grain density 0–1 — higher = more grain particles visible (NOISE only; typical range 0.1–0.9)"),
+    secondaryColor: z
+      .object({
+        r: z.coerce.number().min(0).max(1).describe("Red (0-1)"),
+        g: z.coerce.number().min(0).max(1).describe("Green (0-1)"),
+        b: z.coerce.number().min(0).max(1).describe("Blue (0-1)"),
+        a: z.coerce.number().min(0).max(1).describe("Alpha (0-1)"),
+      })
+      .optional()
+      .describe("Second grain color (NOISE DUOTONE only — ignored for MONOTONE/MULTITONE)"),
+    opacity: z.coerce
+      .number()
+      .min(0)
+      .max(1)
+      .optional()
+      .describe("Effect opacity 0–1 (NOISE MULTITONE only — ignored for MONOTONE/DUOTONE)"),
+    clipToShape: mcpBooleanSchema
+      .optional()
+      .describe(
+        "true = texture is masked to the node's shape; false = texture fills bounding box (TEXTURE only; default: true)",
+      ),
+    lightIntensity: z.coerce
+      .number()
+      .optional()
+      .describe("Simulated light brightness 0–1 (GLASS only; typical range 0–1)"),
+    lightAngle: z.coerce
+      .number()
+      .optional()
+      .describe("Light source direction in degrees 0–360, where 0 = top (GLASS only)"),
+    refraction: z.coerce
+      .number()
+      .optional()
+      .describe(
+        "Background distortion amount ≥ 0 — higher = more bending of background (GLASS only; typical range 0–50)",
+      ),
+    depth: z.coerce
+      .number()
+      .optional()
+      .describe("Perceived 3D depth of the glass surface ≥ 0 (GLASS only; typical range 0–100)"),
+    dispersion: z.coerce
+      .number()
+      .optional()
+      .describe("Chromatic aberration/rainbow fringing amount ≥ 0 (GLASS only; typical range 0–20)"),
   });
 
   // Create Effect Style Tool
@@ -1469,7 +1641,7 @@ export function registerModificationTools(server: McpServer): void {
   // Bind Variable Tool
   server.tool(
     "bind_variable",
-    "Bind a variable to a node property OR a text style field in Figma. For nodes: fills/strokes/opacity/strokeWeight/cornerRadius/etc. For text styles: pass the text style id (e.g. 'S:abc123,') or name (e.g. 'body/md') as nodeId, and a field of fontFamily, fontStyle, fontSize, fontWeight, lineHeight, letterSpacing, paragraphSpacing, or paragraphIndent.",
+    'Bind a variable to a node property OR a text style field in Figma. For nodes: fills/strokes need an index, e.g. "fills/0" or "fills/0/color" (bare "fills" or "strokes" defaults to index 0); other fields are opacity/strokeWeight/cornerRadius/etc with no index. For text styles: pass the text style id (e.g. \'S:abc123,\') or name (e.g. \'body/md\') as nodeId, and a field of fontFamily, fontStyle, fontSize, fontWeight, lineHeight, letterSpacing, paragraphSpacing, or paragraphIndent.',
     {
       nodeId: z.string().describe("The ID of the node, or the ID/name of a text style (e.g. 'body/md')"),
       variableId: z
@@ -1615,10 +1787,22 @@ export function registerModificationTools(server: McpServer): void {
   // Set Image Fill Tool
   server.tool(
     "set_image_fill",
-    "Set an image fill on a node from a URL. Supports PNG, JPEG, and GIF images up to 4096x4096 pixels.",
+    "Set an image fill on a node, either from a URL or from raw image bytes sent directly. Supports PNG, JPEG, and GIF images up to 4096x4096 pixels. Provide exactly one of imageUrl or imageBytes.",
     {
       nodeId: z.string().describe("The ID of the node to modify"),
-      imageUrl: z.string().url().describe("URL of the image (PNG, JPEG, or GIF)"),
+      imageUrl: z
+        .string()
+        .url()
+        .optional()
+        .describe(
+          "URL of the image (PNG, JPEG, or GIF) — fetched by Figma itself, so it must be a public http(s) URL (no loopback/private-network/.local addresses). Use this OR imageBytes, not both.",
+        ),
+      imageBytes: z
+        .string()
+        .optional()
+        .describe(
+          "Base64-encoded image bytes (PNG, JPEG, or GIF), sent directly with no network fetch — use this for images you already have in hand (screenshots, generated assets, local files) instead of hosting them first. A `data:image/...;base64,` prefix is accepted and stripped automatically. Use this OR imageUrl, not both. Capped at 20MB decoded.",
+        ),
       scaleMode: z
         .enum(["FILL", "FIT", "CROP", "TILE"])
         .optional()
@@ -1642,6 +1826,7 @@ export function registerModificationTools(server: McpServer): void {
     async ({
       nodeId,
       imageUrl,
+      imageBytes,
       scaleMode,
       rotation,
       exposure,
@@ -1654,9 +1839,16 @@ export function registerModificationTools(server: McpServer): void {
     }) => {
       nodeId = normalizeNodeId(nodeId);
       try {
+        if (!imageUrl && !imageBytes) {
+          throw new Error("Provide either imageUrl or imageBytes");
+        }
+        if (imageUrl && imageBytes) {
+          throw new Error("Provide only one of imageUrl or imageBytes, not both");
+        }
         const result = await sendCommandToFigma("set_image_fill", {
           nodeId,
           imageUrl,
+          imageBytes,
           scaleMode: scaleMode || "FILL",
           rotation,
           exposure,

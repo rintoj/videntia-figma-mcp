@@ -98,13 +98,63 @@ describe("variable tools integration", () => {
     it("accepts custom default mode", async () => {
       await callTool("create_variable_collection", {
         name: "Theme",
-        default_mode: "light",
+        defaultMode: "light",
       });
 
       expect(mockSendCommand).toHaveBeenCalledWith("create_variable_collection", {
         name: "Theme",
         defaultMode: "light",
       });
+    });
+  });
+
+  describe("create_variable_collection_extension", () => {
+    beforeEach(() => {
+      mockSendCommand.mockResolvedValue({
+        collectionId: "col-ext-123",
+        name: "Brand Theme",
+        modes: [
+          { name: "dark", modeId: "mode-1" },
+          { name: "light", modeId: "mode-2" },
+        ],
+      });
+    });
+
+    it("successfully creates an extended variable collection", async () => {
+      const response = await callTool("create_variable_collection_extension", {
+        parentCollectionId: "col-123",
+        name: "Brand Theme",
+      });
+
+      expect(mockSendCommand).toHaveBeenCalledTimes(1);
+      expect(mockSendCommand).toHaveBeenCalledWith("create_variable_collection_extension", {
+        parentCollectionId: "col-123",
+        name: "Brand Theme",
+      });
+      expect(response.content[0].text).toContain("Brand Theme");
+      expect(response.content[0].text).toContain("col-ext-123");
+      expect(response.content[0].text).toContain("dark (mode-1)");
+    });
+
+    it("requires parentCollectionId parameter", async () => {
+      await expect(
+        callTool("create_variable_collection_extension", {
+          name: "Brand Theme",
+        }),
+      ).rejects.toThrow();
+      expect(mockSendCommand).not.toHaveBeenCalled();
+    });
+
+    it("handles errors gracefully (e.g. non-Enterprise plan)", async () => {
+      mockSendCommand.mockRejectedValue(new Error("Extended collections require a Figma Enterprise plan"));
+
+      const response = await callTool("create_variable_collection_extension", {
+        parentCollectionId: "col-123",
+        name: "Brand Theme",
+      });
+
+      expect(response.content[0].text).toContain("Error creating extended variable collection");
+      expect(response.content[0].text).toContain("Figma Enterprise plan");
     });
   });
 
@@ -148,7 +198,7 @@ describe("variable tools integration", () => {
 
     it("successfully creates a variable", async () => {
       const response = await callTool("create_variable", {
-        collection_id: "col-123",
+        collectionId: "col-123",
         name: "primary",
         type: "COLOR",
         value: { r: 0.5, g: 0.5, b: 0.5 },
@@ -161,6 +211,22 @@ describe("variable tools integration", () => {
         value: { r: 0.5, g: 0.5, b: 0.5 },
         mode: undefined,
       });
+    });
+
+    it("accepts a hex string for a COLOR value", async () => {
+      await callTool("create_variable", {
+        collectionId: "col-123",
+        name: "primary",
+        type: "COLOR",
+        value: "#ff0000",
+      });
+
+      expect(mockSendCommand).toHaveBeenCalledWith(
+        "create_variable",
+        expect.objectContaining({
+          value: { r: 1, g: 0, b: 0, a: 1 },
+        }),
+      );
     });
   });
 
@@ -176,7 +242,7 @@ describe("variable tools integration", () => {
 
     it("successfully creates multiple variables", async () => {
       const response = await callTool("create_variables_batch", {
-        collection_id: "col-123",
+        collectionId: "col-123",
         variables: [
           { name: "primary", type: "COLOR", value: { r: 0.5, g: 0.5, b: 0.5 } },
           { name: "secondary", type: "COLOR", value: { r: 0.2, g: 0.2, b: 0.2 } },
@@ -215,7 +281,7 @@ describe("variable tools integration", () => {
       const response = await callTool("calculate_composite_color", {
         base: { r: 0.639, g: 0.902, b: 0.208 },
         background: { r: 0.059, g: 0.063, b: 0.067 },
-        mix_percentage: 0.5,
+        mixPercentage: 0.5,
       });
 
       expect(response.content[0].text).toContain("Composite Color");
@@ -227,8 +293,8 @@ describe("variable tools integration", () => {
     it("converts normalized to hex", async () => {
       const response = await callTool("convert_color_format", {
         color: { r: 0.639, g: 0.902, b: 0.208 },
-        from_format: "normalized",
-        to_format: "hex",
+        fromFormat: "normalized",
+        toFormat: "hex",
       });
 
       expect(response.content[0].text).toContain("#");
@@ -267,7 +333,7 @@ describe("variable tools integration", () => {
 
     it("successfully audits a collection", async () => {
       const response = await callTool("audit_collection", {
-        collection_id: "col-123",
+        collectionId: "col-123",
       });
 
       expect(mockSendCommand).toHaveBeenCalledWith("audit_collection", {
@@ -315,7 +381,7 @@ describe("variable tools integration", () => {
 
     it("successfully applies default theme", async () => {
       const response = await callTool("apply_default_theme", {
-        collection_id: "col-123",
+        collectionId: "col-123",
       });
 
       expect(mockSendCommand).toHaveBeenCalledWith("apply_default_theme", {
@@ -342,8 +408,8 @@ describe("variable tools integration", () => {
 
     it("successfully creates a color scale set", async () => {
       const response = await callTool("create_color_scale_set", {
-        collection_id: "col-123",
-        color_name: "primary",
+        collectionId: "col-123",
+        colorName: "primary",
         base: { r: 0.639, g: 0.902, b: 0.208 },
         foreground: { r: 0.09, g: 0.102, b: 0.067 },
         background: { r: 0.059, g: 0.063, b: 0.067 },
@@ -370,7 +436,7 @@ describe("variable tools integration", () => {
 
     it("successfully fixes collection to standard", async () => {
       const response = await callTool("fix_collection_to_standard", {
-        collection_id: "col-123",
+        collectionId: "col-123",
       });
 
       expect(mockSendCommand).toHaveBeenCalledWith("fix_collection_to_standard", {
@@ -385,8 +451,8 @@ describe("variable tools integration", () => {
 
     it("supports dry run mode", async () => {
       await callTool("fix_collection_to_standard", {
-        collection_id: "col-123",
-        dry_run: true,
+        collectionId: "col-123",
+        dryRun: true,
       });
 
       expect(mockSendCommand).toHaveBeenCalledWith(

@@ -636,6 +636,7 @@ export async function detachInstance(params: Record<string, unknown>): Promise<R
 
 export async function createComponent(params: Record<string, unknown>): Promise<Record<string, unknown>> {
   const nodeId = params["nodeId"] as string | undefined;
+  const name = params["name"] as string | undefined;
 
   if (!nodeId) {
     throw new Error("Missing nodeId parameter");
@@ -666,6 +667,10 @@ export async function createComponent(params: Record<string, unknown>): Promise<
         | TextNode
         | LineNode,
     );
+
+    if (name !== undefined) {
+      component.name = name;
+    }
 
     return {
       id: component.id,
@@ -727,6 +732,7 @@ export async function addComponentProperty(params: Record<string, unknown>): Pro
   const propertyName = params["propertyName"] as string | undefined;
   const type = params["type"] as string | undefined;
   const defaultValue = params["defaultValue"];
+  const slotSettings = params["slotSettings"] as SlotSettings | undefined;
 
   if (!nodeId) {
     throw new Error("Missing nodeId parameter");
@@ -738,7 +744,7 @@ export async function addComponentProperty(params: Record<string, unknown>): Pro
     throw new Error("Missing type parameter");
   }
 
-  const validTypes = ["BOOLEAN", "TEXT", "INSTANCE_SWAP", "VARIANT"];
+  const validTypes = ["BOOLEAN", "TEXT", "INSTANCE_SWAP", "VARIANT", "SLOT"];
   if (!validTypes.includes(type)) {
     throw new Error(`Invalid type: ${type}. Must be one of: ${validTypes.join(", ")}`);
   }
@@ -763,6 +769,10 @@ export async function addComponentProperty(params: Record<string, unknown>): Pro
       actualDefaultValue = "Default";
     } else if (type === "INSTANCE_SWAP" && actualDefaultValue === undefined) {
       throw new Error("INSTANCE_SWAP type requires a defaultValue (component key)");
+    } else if (type === "SLOT" && actualDefaultValue === undefined) {
+      // SLOT properties don't use a default value, but addComponentProperty's
+      // signature requires one positionally regardless of type.
+      actualDefaultValue = "";
     }
 
     const componentNode = node as ComponentNode | ComponentSetNode;
@@ -770,6 +780,7 @@ export async function addComponentProperty(params: Record<string, unknown>): Pro
       propertyName,
       type as ComponentPropertyType,
       actualDefaultValue as string | boolean,
+      type === "SLOT" && slotSettings !== undefined ? { slotSettings } : undefined,
     );
 
     return {
@@ -778,6 +789,7 @@ export async function addComponentProperty(params: Record<string, unknown>): Pro
       propertyName: fullPropertyName,
       type: type,
       defaultValue: actualDefaultValue,
+      slotSettings: type === "SLOT" ? slotSettings : undefined,
     };
   } catch (error) {
     throw new Error(`Error adding component property: ${(error as Error).message}`);
@@ -790,6 +802,8 @@ export async function editComponentProperty(params: Record<string, unknown>): Pr
   const newName = params["newName"] as string | undefined;
   const newDefaultValue = params["newDefaultValue"];
   const preferredValues = params["preferredValues"];
+  const newDescription = params["newDescription"] as string | undefined;
+  const slotSettings = params["slotSettings"] as SlotSettings | undefined;
 
   if (!nodeId) {
     throw new Error("Missing nodeId parameter");
@@ -819,9 +833,19 @@ export async function editComponentProperty(params: Record<string, unknown>): Pr
     if (preferredValues !== undefined) {
       updateObj["preferredValues"] = preferredValues;
     }
+    // description/slotSettings are only meaningful for SLOT properties — Figma
+    // ignores/rejects them otherwise per editComponentProperty's own docs.
+    if (newDescription !== undefined) {
+      updateObj["description"] = newDescription;
+    }
+    if (slotSettings !== undefined) {
+      updateObj["slotSettings"] = slotSettings;
+    }
 
     if (Object.keys(updateObj).length === 0) {
-      throw new Error("Must provide at least one of: newName, newDefaultValue, or preferredValues");
+      throw new Error(
+        "Must provide at least one of: newName, newDefaultValue, preferredValues, newDescription, or slotSettings",
+      );
     }
 
     const componentNode = node as ComponentNode | ComponentSetNode;

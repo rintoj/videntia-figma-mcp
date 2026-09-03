@@ -325,6 +325,61 @@ describe("new modification tools integration", () => {
     });
   });
 
+  describe("reorder_grid_tracks", () => {
+    beforeEach(() => {
+      mockSendCommand.mockResolvedValue({
+        name: "Grid Frame",
+        moves: [{ from: 0, to: 2 }],
+      });
+    });
+
+    it("successfully reorders grid columns", async () => {
+      const response = await callTool("reorder_grid_tracks", {
+        nodeId: "grid-123",
+        axis: "COLUMN",
+        fromIndices: [0],
+        insertionIndex: 2,
+      });
+
+      expect(mockSendCommand).toHaveBeenCalledTimes(1);
+      expect(mockSendCommand).toHaveBeenCalledWith("reorder_grid_tracks", {
+        nodeId: "grid-123",
+        axis: "COLUMN",
+        fromIndices: [0],
+        insertionIndex: 2,
+      });
+      expect(response.content[0].text).toContain("Reordered columns");
+      expect(response.content[0].text).toContain("Grid Frame");
+      expect(response.content[0].text).toContain("0→2");
+    });
+
+    it("rejects an invalid axis value", async () => {
+      await expect(
+        callTool("reorder_grid_tracks", {
+          nodeId: "grid-123",
+          axis: "DIAGONAL",
+          fromIndices: [0],
+          insertionIndex: 1,
+        }),
+      ).rejects.toThrow();
+      expect(mockSendCommand).not.toHaveBeenCalled();
+    });
+
+    it("handles errors gracefully", async () => {
+      mockSendCommand.mockRejectedValue(new Error("Node is not in GRID mode"));
+
+      const response = await callTool("reorder_grid_tracks", {
+        nodeId: "grid-123",
+        axis: "ROW",
+        fromIndices: [0, 1],
+        insertionIndex: 3,
+      });
+
+      expect(response.content[0].text).toContain("Error reordering grid tracks");
+      expect(response.content[0].text).toContain("Node is not in GRID mode");
+    });
+  });
+
   describe("set_padding", () => {
     beforeEach(() => {
       mockSendCommand.mockResolvedValue({
@@ -837,13 +892,39 @@ describe("new modification tools integration", () => {
       expect(mockSendCommand).not.toHaveBeenCalled();
     });
 
-    it("requires imageUrl parameter", async () => {
-      await expect(
-        callTool("set_image_fill", {
-          nodeId: "rect-123",
-        }),
-      ).rejects.toThrow();
+    it("requires either imageUrl or imageBytes", async () => {
+      const response = await callTool("set_image_fill", {
+        nodeId: "rect-123",
+      });
+      expect(response.content[0].text).toContain("Provide either imageUrl or imageBytes");
       expect(mockSendCommand).not.toHaveBeenCalled();
+    });
+
+    it("rejects both imageUrl and imageBytes together", async () => {
+      const response = await callTool("set_image_fill", {
+        nodeId: "rect-123",
+        imageUrl: "https://picsum.photos/800/600",
+        imageBytes: "aGVsbG8=",
+      });
+      expect(response.content[0].text).toContain("Provide only one of imageUrl or imageBytes");
+      expect(mockSendCommand).not.toHaveBeenCalled();
+    });
+
+    it("successfully sets image fill from imageBytes", async () => {
+      const response = await callTool("set_image_fill", {
+        nodeId: "rect-123",
+        imageBytes: "aGVsbG8=",
+      });
+
+      expect(mockSendCommand).toHaveBeenCalledWith(
+        "set_image_fill",
+        expect.objectContaining({
+          nodeId: "rect-123",
+          imageBytes: "aGVsbG8=",
+          scaleMode: "FILL",
+        }),
+      );
+      expect(response.content[0].text).toContain("Set image fill");
     });
 
     it("requires valid URL for imageUrl", async () => {

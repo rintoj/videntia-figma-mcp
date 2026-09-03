@@ -5,6 +5,39 @@ import { BatchActionsResult } from "../types";
 import { resolveCreateIconParams } from "./icon-tools";
 import { normalizeNodeId } from "../utils/figma-helpers";
 
+const RESULT_REF_PATTERN = /^\$result\[(\d+)\](.*)$/;
+
+/**
+ * Rewrites `$result[N]...` references in action params from the caller's original
+ * (1-per-action) indices to their actual position in `expandedActions`. Needed
+ * because some actions (e.g. create_icon) expand into more than one Figma-native
+ * action, which shifts every subsequent action's index out from under any
+ * $result[N] reference the caller wrote against their own action list.
+ */
+function remapResultIndices(value: unknown, indexMap: number[]): unknown {
+  if (typeof value === "string") {
+    const match = value.match(RESULT_REF_PATTERN);
+    if (match) {
+      const originalIndex = parseInt(match[1], 10);
+      const mapped = indexMap[originalIndex];
+      if (mapped === undefined) return value;
+      return `$result[${mapped}]${match[2]}`;
+    }
+    return value;
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => remapResultIndices(item, indexMap));
+  }
+  if (value !== null && typeof value === "object") {
+    const remapped: Record<string, unknown> = {};
+    for (const key of Object.keys(value as Record<string, unknown>)) {
+      remapped[key] = remapResultIndices((value as Record<string, unknown>)[key], indexMap);
+    }
+    return remapped;
+  }
+  return value;
+}
+
 /**
  * Register batch operation tools to the MCP server.
  * Provides a meta-tool for executing multiple Figma commands in a single round-trip.
@@ -13,7 +46,7 @@ import { normalizeNodeId } from "../utils/figma-helpers";
 export function registerBatchTools(server: McpServer): void {
   server.tool(
     "batch_actions",
-    "Execute multiple Figma commands in a single batch call. Use this to batch operations like clone_node, rename_node, resize_node, set_fill_color, bind_variable etc. for multiple nodes instead of calling them one by one. Supports $result[N].field references to use results from earlier actions (e.g., clone then rename using new ID). Set stopOnError to true to abort remaining actions after the first failure.",
+    "Execute multiple Figma commands in a single batch call. Use this to batch operations like clone_node, rename_node, resize_node, set_fill_color, bind_variable etc. for multiple nodes instead of calling them one by one. Supports $result[N].field references to use results from earlier actions (e.g., clone then rename using new ID) — N is the index of the action as YOU listed it in `actions`, regardless of how any action (e.g. create_icon) expands internally. Set stopOnError to true to abort remaining actions after the first failure.",
     {
       actions: z
         .array(
@@ -35,9 +68,15 @@ export function registerBatchTools(server: McpServer): void {
         // Pre-process: expand server-side-only commands (create_icon) into Figma-native commands.
         // create_icon → create_svg + optional insert_child (icon SVG resolved server-side).
         const expandedActions: typeof actions = [];
+        // indexMap[originalActionIndex] = index in expandedActions holding that
+        // action's primary result (the node create_icon expands to, not its
+        // secondary insert_child step) — used to rewrite $result[N] references
+        // the caller wrote against their own (pre-expansion) action list.
+        const indexMap: number[] = [];
 
         for (let i = 0; i < actions.length; i++) {
-          const { action, params: actionParams } = actions[i];
+          const { action, params: rawParams } = actions[i];
+          const actionParams = remapResultIndices(rawParams, indexMap) as Record<string, unknown>;
 
           if (action === "create_icon") {
             try {
@@ -56,6 +95,10 @@ export function registerBatchTools(server: McpServer): void {
                 action: "create_svg",
                 params: resolved.createSvgParams as Record<string, unknown>,
               });
+              // The icon node itself — created by create_svg — is what a caller's
+              // $result[i] reference means, regardless of whether an insert_child
+              // step follows it.
+              indexMap[i] = expandedActions.length - 1;
 
               if (resolved.insertChildIndex !== undefined) {
                 expandedActions.push({
@@ -76,9 +119,11 @@ export function registerBatchTools(server: McpServer): void {
                   _error: error instanceof Error ? error.message : String(error),
                 },
               });
+              indexMap[i] = expandedActions.length - 1;
             }
           } else {
             expandedActions.push({ action, params: actionParams });
+            indexMap[i] = expandedActions.length - 1;
           }
         }
 

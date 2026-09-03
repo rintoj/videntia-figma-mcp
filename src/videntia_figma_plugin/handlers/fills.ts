@@ -1,6 +1,7 @@
 // Figma MCP plugin.
 
 import { debugLog } from "../utils/helpers";
+import { customBase64Decode } from "../utils/base64";
 
 // ---------------------------------------------------------------------------
 // Hex color parsing
@@ -209,6 +210,7 @@ export async function setStrokeColor(params: Record<string, unknown>): Promise<u
   var paramsObj = params !== null && params !== undefined ? params : {};
   var nodeId = paramsObj["nodeId"] as string | undefined;
   var strokeWeight = paramsObj["strokeWeight"];
+  var dashPattern = paramsObj["dashPattern"] as number[] | undefined;
 
   if (!nodeId) {
     throw new Error("Missing nodeId parameter");
@@ -244,9 +246,23 @@ export async function setStrokeColor(params: Record<string, unknown>): Promise<u
 
   (node as GeometryMixin).strokes = [paintStyle];
 
-  // Set stroke weight if the node supports it
+  // Set stroke weight if the node supports it. When individual side weights are
+  // enabled, writing the uniform `strokeWeight` alone is silently ignored by the
+  // Figma API — the per-side weights still win. Disable that mode first so the
+  // requested uniform weight actually takes effect.
   if ("strokeWeight" in node) {
+    if ("individualStrokeWeightsEnabled" in node) {
+      (node as unknown as { individualStrokeWeightsEnabled: boolean }).individualStrokeWeightsEnabled = false;
+    }
     (node as unknown as { strokeWeight: number }).strokeWeight = strokeWeightParsed;
+  }
+
+  // Set dash pattern if provided, e.g. [4, 4] for an even dash/gap, [] to clear
+  if (dashPattern !== undefined && "dashPattern" in node) {
+    if (!Array.isArray(dashPattern) || dashPattern.some((n) => typeof n !== "number" || isNaN(n) || n < 0)) {
+      throw new Error("Invalid dashPattern - must be an array of non-negative numbers, e.g. [4, 4]");
+    }
+    (node as unknown as { dashPattern: number[] }).dashPattern = dashPattern;
   }
 
   return {
@@ -254,6 +270,7 @@ export async function setStrokeColor(params: Record<string, unknown>): Promise<u
     name: node.name,
     strokes: (node as GeometryMixin).strokes,
     strokeWeight: "strokeWeight" in node ? (node as unknown as { strokeWeight: number }).strokeWeight : undefined,
+    dashPattern: "dashPattern" in node ? (node as unknown as { dashPattern: number[] }).dashPattern : undefined,
   };
 }
 
@@ -261,8 +278,15 @@ export async function setStrokeColor(params: Record<string, unknown>): Promise<u
 // setImageFill
 // ---------------------------------------------------------------------------
 
+// Sanity cap on decoded imageBytes size — Figma itself caps image dimensions at
+// 4096x4096, but a much larger base64 payload would either blow past the relay's
+// message size or take unreasonably long to decode. This just fails fast with a
+// clear message instead of an opaque relay/decode error.
+const MAX_IMAGE_BYTES = 20 * 1024 * 1024;
+
 /**
- * Apply an image fill to a Figma node by fetching the image from a URL.
+ * Apply an image fill to a Figma node, either by fetching it from a URL or by
+ * decoding raw image bytes (base64) sent directly by the MCP client.
  * Supports FILL, FIT, CROP, and TILE scale modes, plus optional image filters.
  */
 export async function setImageFill(params: Record<string, unknown>): Promise<unknown> {
@@ -270,6 +294,7 @@ export async function setImageFill(params: Record<string, unknown>): Promise<unk
 
   const nodeId = paramsObj["nodeId"] as string | undefined;
   const imageUrl = paramsObj["imageUrl"] as string | undefined;
+  const imageBytes = paramsObj["imageBytes"] as string | undefined;
   const scaleMode = paramsObj["scaleMode"] !== undefined ? (paramsObj["scaleMode"] as string) : "FILL";
   const rotation = paramsObj["rotation"] as number | undefined;
   const exposure = paramsObj["exposure"] as number | undefined;
@@ -284,30 +309,35 @@ export async function setImageFill(params: Record<string, unknown>): Promise<unk
     throw new Error("Missing nodeId parameter");
   }
 
-  if (!imageUrl) {
-    throw new Error("Missing imageUrl parameter");
+  if (!imageUrl && !imageBytes) {
+    throw new Error("Provide either imageUrl or imageBytes");
+  }
+  if (imageUrl && imageBytes) {
+    throw new Error("Provide only one of imageUrl or imageBytes, not both");
   }
 
-  // Only allow http/https URLs — reject file://, data:, and internal network addresses.
-  if (!/^https?:\/\//i.test(imageUrl)) {
-    throw new Error("imageUrl must use http:// or https:// scheme");
-  }
-  // Block loopback, private IPv4 ranges (RFC-1918), and link-local addresses.
-  const hostMatch = imageUrl.match(/^https?:\/\/([^/:?#]+)/i);
-  if (hostMatch) {
-    const host = hostMatch[1].toLowerCase();
-    if (host === "localhost" || host === "127.0.0.1" || host === "::1") {
-      throw new Error("imageUrl must not reference a loopback address");
+  if (imageUrl) {
+    // Only allow http/https URLs — reject file://, data:, and internal network addresses.
+    if (!/^https?:\/\//i.test(imageUrl)) {
+      throw new Error("imageUrl must use http:// or https:// scheme");
     }
-    if (host.endsWith(".local")) {
-      throw new Error("imageUrl must not reference a .local domain");
-    }
-    const ipv4 = host.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
-    if (ipv4) {
-      const a = parseInt(ipv4[1], 10);
-      const b = parseInt(ipv4[2], 10);
-      if (a === 10 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || (a === 169 && b === 254)) {
-        throw new Error("imageUrl must not reference a private network address");
+    // Block loopback, private IPv4 ranges (RFC-1918), and link-local addresses.
+    const hostMatch = imageUrl.match(/^https?:\/\/([^/:?#]+)/i);
+    if (hostMatch) {
+      const host = hostMatch[1].toLowerCase();
+      if (host === "localhost" || host === "127.0.0.1" || host === "::1") {
+        throw new Error("imageUrl must not reference a loopback address");
+      }
+      if (host.endsWith(".local")) {
+        throw new Error("imageUrl must not reference a .local domain");
+      }
+      const ipv4 = host.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
+      if (ipv4) {
+        const a = parseInt(ipv4[1], 10);
+        const b = parseInt(ipv4[2], 10);
+        if (a === 10 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || (a === 169 && b === 254)) {
+          throw new Error("imageUrl must not reference a private network address");
+        }
       }
     }
   }
@@ -317,7 +347,7 @@ export async function setImageFill(params: Record<string, unknown>): Promise<unk
     throw new Error(`Invalid scaleMode: ${scaleMode}. Must be one of: ${validScaleModes.join(", ")}`);
   }
 
-  debugLog(`setImageFill: Starting with nodeId=${nodeId}, imageUrl=<redacted>`);
+  debugLog(`setImageFill: Starting with nodeId=${nodeId}, source=${imageUrl ? "url" : "bytes"} (redacted)`);
 
   const node = await figma.getNodeByIdAsync(nodeId);
   if (!node) {
@@ -328,18 +358,44 @@ export async function setImageFill(params: Record<string, unknown>): Promise<unk
     throw new Error(`Node does not support fills: ${nodeId}`);
   }
 
-  debugLog(`setImageFill: Found node "${node.name}", fetching image...`);
+  debugLog(`setImageFill: Found node "${node.name}", loading image...`);
 
-  // Create image from URL - this can fail due to CORS, invalid URL, or unsupported format
   let image: Image;
-  try {
-    image = await figma.createImageAsync(imageUrl);
-  } catch (fetchError) {
-    const errorMsg = fetchError instanceof Error ? fetchError.message : String(fetchError);
-    console.error(`setImageFill: Failed to fetch image: ${errorMsg}`);
-    throw new Error(
-      `Failed to fetch image. This may be due to CORS restrictions, an invalid URL, or an unsupported image format. Error: ${errorMsg}`,
-    );
+  if (imageBytes) {
+    let bytes: Uint8Array;
+    try {
+      bytes = customBase64Decode(imageBytes);
+    } catch (decodeError) {
+      const errorMsg = decodeError instanceof Error ? decodeError.message : String(decodeError);
+      throw new Error(`Failed to decode imageBytes: ${errorMsg}`);
+    }
+    if (bytes.byteLength === 0) {
+      throw new Error("imageBytes decoded to an empty image");
+    }
+    if (bytes.byteLength > MAX_IMAGE_BYTES) {
+      throw new Error(
+        `imageBytes is ${Math.round(bytes.byteLength / 1024 / 1024)}MB, exceeding the ${MAX_IMAGE_BYTES / 1024 / 1024}MB limit`,
+      );
+    }
+    try {
+      image = figma.createImage(bytes);
+    } catch (createError) {
+      const errorMsg = createError instanceof Error ? createError.message : String(createError);
+      throw new Error(
+        `Failed to create image from imageBytes. This may be due to an unsupported or corrupt image format, or dimensions exceeding 4096x4096. Error: ${errorMsg}`,
+      );
+    }
+  } else {
+    // Create image from URL - this can fail due to CORS, invalid URL, or unsupported format
+    try {
+      image = await figma.createImageAsync(imageUrl as string);
+    } catch (fetchError) {
+      const errorMsg = fetchError instanceof Error ? fetchError.message : String(fetchError);
+      console.error(`setImageFill: Failed to fetch image: ${errorMsg}`);
+      throw new Error(
+        `Failed to fetch image. This may be due to CORS restrictions, an invalid URL, or an unsupported image format. Error: ${errorMsg}`,
+      );
+    }
   }
 
   debugLog(`setImageFill: Image fetched, hash=${image.hash}`);

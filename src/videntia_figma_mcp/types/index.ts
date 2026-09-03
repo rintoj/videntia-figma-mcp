@@ -74,6 +74,7 @@ export type FigmaCommand =
   | "set_multiple_text_contents"
   | "set_auto_layout"
   | "set_layout_mode"
+  | "reorder_grid_tracks"
   | "set_padding"
   | "set_axis_align"
   | "set_layout_sizing"
@@ -85,6 +86,7 @@ export type FigmaCommand =
   | "set_line_height"
   | "set_paragraph_spacing"
   | "set_text_case"
+  | "set_text_wrap_style"
   | "set_text_decoration"
   | "get_styled_text_segments"
   | "load_font_async"
@@ -134,6 +136,7 @@ export type FigmaCommand =
   | "set_instance_overrides"
   | "get_variable_collections"
   | "create_variable_collection"
+  | "create_variable_collection_extension"
   | "get_collection_info"
   | "rename_variable_collection"
   | "delete_variable_collection"
@@ -220,7 +223,20 @@ export type BrowserCommand =
   | "close_tab"
   | "close_group"
   | "read_console"
-  | "read_network";
+  | "read_network"
+  | "get_ax_tree"
+  | "highlight_node"
+  | "clear_highlight"
+  | "emulate"
+  | "clear_emulation"
+  | "intercept_start"
+  | "intercept_stop"
+  | "list_pending_requests"
+  | "fulfill_request"
+  | "fail_request"
+  | "continue_request"
+  | "clear_storage"
+  | "capture_mhtml";
 
 // Batch actions types
 export interface BatchActionResult {
@@ -464,6 +480,15 @@ export interface CreateVariableCollectionResult {
   id?: string;
   name?: string;
   defaultMode?: string;
+}
+
+export interface CreateVariableCollectionExtensionResult {
+  collectionId?: string;
+  name?: string;
+  isExtension?: boolean;
+  parentVariableCollectionId?: string;
+  rootVariableCollectionId?: string;
+  modes?: Array<{ modeId: string; name: string; parentModeId: string }>;
 }
 
 export interface GetCollectionInfoResult {

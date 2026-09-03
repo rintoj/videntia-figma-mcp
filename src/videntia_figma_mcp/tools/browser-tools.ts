@@ -219,7 +219,7 @@ export function registerBrowserTools(server: McpServer): void {
 
   server.tool(
     "set_browser_viewport",
-    "Set the browser viewport size. Widths below Chrome's ~500px window minimum (or force_emulation) use CDP device emulation (Emulation.setDeviceMetricsOverride with touch) — a true mobile viewport, like DevTools device mode. Larger sizes resize the OS window. NOTE: CDP emulation resets on navigation — re-apply after every navigate. Requires the Figma Overlay Chrome extension; no Figma plugin needed.",
+    "Set the browser viewport size. Widths below Chrome's ~500px window minimum (or force_emulation) use CDP device emulation (Emulation.setDeviceMetricsOverride with touch) — a true mobile viewport, like DevTools device mode. Larger sizes resize the OS window. CDP emulation does not reliably survive cross-page navigation, but it is automatically re-applied after every browser_navigate/browser_back/browser_forward — no manual re-apply needed. For other overrides (color scheme, network throttling, geolocation, timezone, CPU throttling), use browser_emulate instead. Requires the Figma Overlay Chrome extension; no Figma plugin needed.",
     {
       width: z.number().int().min(1).describe("Viewport width in CSS px (e.g. 390 for iPhone-class mobile)."),
       height: z.number().int().min(1).describe("Viewport height in CSS px (e.g. 844)."),
@@ -256,7 +256,7 @@ export function registerBrowserTools(server: McpServer): void {
           {
             type: "text",
             text: result.emulated
-              ? `Viewport emulated at ${width}×${height} via CDP (tab ${result.tabId}). Touch enabled. ⚠️ Emulation resets on navigation — re-apply after navigate. Use reset_browser_viewport to restore.`
+              ? `Viewport emulated at ${width}×${height} via CDP (tab ${result.tabId}). Touch enabled — automatically re-applied after navigation. Use reset_browser_viewport to restore.`
               : `Window resized to ${width}×${height} (tab ${result.tabId}).`,
           },
         ],
@@ -285,6 +285,98 @@ export function registerBrowserTools(server: McpServer): void {
     async ({ tab_id }) => {
       await sendCommandToChannel(BROWSER_CHANNEL, "clear_figma_overlay", { tabId: tab_id });
       return { content: [{ type: "text", text: "Overlay cleared." }] };
+    },
+  );
+
+  server.tool(
+    "browser_emulate",
+    "Apply one or more device/environment overrides to a browser tab in a single call: viewport, color scheme, reduced motion, network throttling, CPU throttling, geolocation, and timezone. All specified overrides are automatically re-applied after browser_navigate/browser_back/browser_forward. Distinct from set_browser_viewport, which only handles viewport and keeps working unchanged — use that for viewport-only needs, this for anything broader (e.g. diffing a Figma frame that targets a specific breakpoint AND dark mode AND a throttled connection in one shot). Use browser_clear_emulation to remove all overrides at once.",
+    {
+      viewport: z
+        .object({
+          width: z.number().int().min(1).describe("Viewport width in CSS px."),
+          height: z.number().int().min(1).describe("Viewport height in CSS px."),
+          device_scale_factor: z.number().min(1).max(4).optional().describe("Device pixel ratio (default 2)."),
+        })
+        .optional()
+        .describe("Emulated viewport size and pixel ratio, via CDP device metrics override (touch enabled)."),
+      color_scheme: z.enum(["light", "dark", "no-preference"]).optional().describe("Override prefers-color-scheme."),
+      reduced_motion: z.boolean().optional().describe("Override prefers-reduced-motion (true = reduce)."),
+      cpu_throttling_rate: z
+        .number()
+        .min(1)
+        .max(20)
+        .optional()
+        .describe("CPU slowdown multiplier (1 = no throttling, 4 = 4x slower, etc.)."),
+      network_conditions: z
+        .union([
+          z.enum(["offline", "slow-3g", "fast-3g", "slow-4g", "fast-4g", "no-throttling"]),
+          z.object({
+            latency: z.number().min(0).describe("Round-trip latency in ms."),
+            download_throughput: z.number().describe("Download speed in bytes/sec."),
+            upload_throughput: z.number().describe("Upload speed in bytes/sec."),
+          }),
+        ])
+        .optional()
+        .describe(
+          "Named network-throttling preset (approximate — mirrors Chrome DevTools' own published preset values, which shift between Chrome versions), or a custom {latency, download_throughput, upload_throughput} object for precise/reproducible testing.",
+        ),
+      geolocation: z
+        .object({
+          latitude: z.number().min(-90).max(90),
+          longitude: z.number().min(-180).max(180),
+          accuracy: z.number().min(0).optional().describe("Accuracy radius in meters (default 100)."),
+        })
+        .nullable()
+        .optional()
+        .describe("Override geolocation. Pass null to clear just this override."),
+      timezone: z
+        .string()
+        .nullable()
+        .optional()
+        .describe("IANA timezone id (e.g. 'America/Los_Angeles'). Pass null to clear just this override."),
+      tab_id: tabIdSchema,
+    },
+    async ({
+      viewport,
+      color_scheme,
+      reduced_motion,
+      cpu_throttling_rate,
+      network_conditions,
+      geolocation,
+      timezone,
+      tab_id,
+    }) => {
+      const result = await sendCommandToChannel(BROWSER_CHANNEL, "emulate", {
+        viewport: viewport
+          ? { width: viewport.width, height: viewport.height, deviceScaleFactor: viewport.device_scale_factor }
+          : undefined,
+        colorScheme: color_scheme,
+        reducedMotion: reduced_motion,
+        cpuThrottlingRate: cpu_throttling_rate,
+        networkConditions:
+          network_conditions && typeof network_conditions === "object"
+            ? {
+                latency: network_conditions.latency,
+                downloadThroughput: network_conditions.download_throughput,
+                uploadThroughput: network_conditions.upload_throughput,
+              }
+            : network_conditions,
+        geolocation,
+        timezone,
+        tabId: tab_id,
+      });
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.tool(
+    "browser_clear_emulation",
+    "Clear every override applied by browser_emulate (viewport, color scheme, reduced motion, network throttling, CPU throttling, geolocation, timezone) in one call, and detach the debugger if nothing else needs the session.",
+    { tab_id: tabIdSchema },
+    async ({ tab_id }) => {
+      await sendCommandToChannel(BROWSER_CHANNEL, "clear_emulation", { tabId: tab_id });
+      return { content: [{ type: "text", text: "All emulation overrides cleared." }] };
     },
   );
 }

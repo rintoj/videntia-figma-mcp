@@ -183,7 +183,7 @@ describe("set_browser_viewport / reset_browser_viewport tools", () => {
     });
     const text = result.content[0].text;
     expect(text).toMatch(/emulated at 390×844 via CDP/);
-    expect(text).toMatch(/resets on navigation/);
+    expect(text).toMatch(/automatically re-applied after navigation/);
   });
 
   it("reports a plain window resize for desktop widths", async () => {
@@ -210,5 +210,107 @@ describe("set_browser_viewport / reset_browser_viewport tools", () => {
     const result = await callTool("reset_browser_viewport", { tab_id: 42 });
     expect(mockSendToChannel).toHaveBeenCalledWith("browser", "reset_viewport", { tabId: 42 });
     expect(result.content[0].text).toMatch(/cleared/);
+  });
+});
+
+describe("browser_emulate / browser_clear_emulation tools", () => {
+  let server: McpServer;
+  let mockSendToChannel: jest.Mock;
+  let toolHandlers: Map<string, Function>;
+  let toolSchemas: Map<string, z.ZodObject<any>>;
+
+  beforeEach(() => {
+    server = new McpServer({ name: "test-server", version: "1.0.0" }, { capabilities: { tools: {} } });
+    const ws = require("../../src/videntia_figma_mcp/utils/websocket");
+    mockSendToChannel = ws.sendCommandToChannel;
+    mockSendToChannel.mockClear();
+
+    toolHandlers = new Map();
+    toolSchemas = new Map();
+    const originalTool = server.tool.bind(server);
+    jest.spyOn(server, "tool").mockImplementation((...args: any[]) => {
+      if (args.length === 4) {
+        const [name, , schema, handler] = args;
+        toolHandlers.set(name, handler);
+        toolSchemas.set(name, z.object(schema));
+      }
+      return (originalTool as any)(...args);
+    });
+
+    registerBrowserTools(server);
+  });
+
+  async function callTool(toolName: string, args: any = {}) {
+    const schema = toolSchemas.get(toolName);
+    const handler = toolHandlers.get(toolName);
+    if (!schema || !handler) throw new Error(`Tool ${toolName} not found`);
+    return await handler(schema.parse(args), { meta: {} });
+  }
+
+  it("registers both emulation tools", () => {
+    expect(toolHandlers.has("browser_emulate")).toBe(true);
+    expect(toolHandlers.has("browser_clear_emulation")).toBe(true);
+  });
+
+  it("maps a full set of overrides to camelCase wire params", async () => {
+    mockSendToChannel.mockResolvedValueOnce({ applied: ["viewport", "colorScheme"] });
+
+    await callTool("browser_emulate", {
+      viewport: { width: 390, height: 844, device_scale_factor: 3 },
+      color_scheme: "dark",
+      reduced_motion: true,
+      cpu_throttling_rate: 4,
+      network_conditions: "slow-3g",
+      geolocation: { latitude: 37.7749, longitude: -122.4194, accuracy: 50 },
+      timezone: "America/Los_Angeles",
+      tab_id: 7,
+    });
+
+    expect(mockSendToChannel).toHaveBeenCalledWith("browser", "emulate", {
+      viewport: { width: 390, height: 844, deviceScaleFactor: 3 },
+      colorScheme: "dark",
+      reducedMotion: true,
+      cpuThrottlingRate: 4,
+      networkConditions: "slow-3g",
+      geolocation: { latitude: 37.7749, longitude: -122.4194, accuracy: 50 },
+      timezone: "America/Los_Angeles",
+      tabId: 7,
+    });
+  });
+
+  it("maps a custom network_conditions object to camelCase", async () => {
+    mockSendToChannel.mockResolvedValueOnce({ applied: ["networkConditions"] });
+
+    await callTool("browser_emulate", {
+      network_conditions: { latency: 100, download_throughput: 50000, upload_throughput: 20000 },
+    });
+
+    expect(mockSendToChannel.mock.calls[0][2]).toMatchObject({
+      networkConditions: { latency: 100, downloadThroughput: 50000, uploadThroughput: 20000 },
+    });
+  });
+
+  it("passes null geolocation/timezone through to clear just those overrides", async () => {
+    mockSendToChannel.mockResolvedValueOnce({ applied: [] });
+
+    await callTool("browser_emulate", { geolocation: null, timezone: null });
+
+    expect(mockSendToChannel.mock.calls[0][2]).toMatchObject({ geolocation: null, timezone: null });
+  });
+
+  it("rejects an unknown color_scheme at the schema layer", async () => {
+    await expect(callTool("browser_emulate", { color_scheme: "sepia" })).rejects.toThrow();
+  });
+
+  it("rejects an unknown named network_conditions preset", async () => {
+    await expect(callTool("browser_emulate", { network_conditions: "blazing-fast" })).rejects.toThrow();
+  });
+
+  it("browser_clear_emulation sends clear_emulation", async () => {
+    mockSendToChannel.mockResolvedValueOnce({ success: true });
+
+    const result = await callTool("browser_clear_emulation", { tab_id: 7 });
+    expect(mockSendToChannel).toHaveBeenCalledWith("browser", "clear_emulation", { tabId: 7 });
+    expect(result.content[0].text).toMatch(/All emulation overrides cleared/);
   });
 });

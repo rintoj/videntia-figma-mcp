@@ -4,6 +4,7 @@
 
 import { debugLog, sendProgressUpdate, generateCommandId } from "../utils/helpers";
 import { formatVariableValue } from "../utils/color";
+import { parseHexColor } from "./fills";
 import type { RgbaColor, VariableResolvedType, VariableValue } from "../types";
 
 // Default chart color palette (8 entries) shared by applyCustomPalette and addChartColors.
@@ -83,9 +84,19 @@ function coerceValueForType(
   variableNameForError: string,
 ): VariableValue {
   if (variableType === "COLOR") {
+    // Accept a hex string (e.g. "#ff0000", "#f00", "#ff000080") the same way
+    // set_fill_color/set_stroke_color do, in addition to an {r,g,b,a} object
+    // (as a real object or JSON-stringified, since the MCP transport can send
+    // either).
+    if (typeof value === "string") {
+      const hexColor = parseHexColor(value);
+      if (hexColor) return hexColor;
+    }
     const rawColor = typeof value === "string" ? JSON.parse(value) : value;
     if (typeof rawColor !== "object" || rawColor === null || (rawColor as RgbaColor).r === undefined) {
-      throw new Error(`Expected color value with r, g, b properties for COLOR variable "${variableNameForError}"`);
+      throw new Error(
+        `Expected a hex color string (e.g. "#ff0000") or an object with r, g, b properties for COLOR variable "${variableNameForError}"`,
+      );
     }
     const colorValue = rawColor as RgbaColor;
     return {
@@ -103,6 +114,36 @@ function coerceValueForType(
       if (!Number.isNaN(parsed)) return parsed;
     }
     throw new Error(`Expected number value for FLOAT variable "${variableNameForError}", got ${typeof value}`);
+  }
+
+  if (variableType === "TIMING") {
+    if (typeof value === "number") return value;
+    if (typeof value === "string") {
+      const parsed = Number(value);
+      if (!Number.isNaN(parsed)) return parsed;
+    }
+    throw new Error(`Expected a number of seconds for TIMING variable "${variableNameForError}", got ${typeof value}`);
+  }
+
+  if (variableType === "EASING") {
+    const rawEasing = typeof value === "string" ? JSON.parse(value) : value;
+    if (typeof rawEasing !== "object" || rawEasing === null || typeof (rawEasing as MotionEasing).type !== "string") {
+      throw new Error(
+        `Expected a MotionEasing object (e.g. {type: "EASE_IN_AND_OUT"}) for EASING variable "${variableNameForError}"`,
+      );
+    }
+    const easing = rawEasing as MotionEasing;
+    if (easing.type === "CUSTOM_CUBIC_BEZIER" && !easing.easingFunctionCubicBezier) {
+      throw new Error(
+        `EASING variable "${variableNameForError}" of type CUSTOM_CUBIC_BEZIER requires easingFunctionCubicBezier: {x1,y1,x2,y2}`,
+      );
+    }
+    if (easing.type === "CUSTOM_SPRING" && !easing.easingFunctionSpring) {
+      throw new Error(
+        `EASING variable "${variableNameForError}" of type CUSTOM_SPRING requires easingFunctionSpring: {bounce}`,
+      );
+    }
+    return easing;
   }
 
   if (variableType === "STRING") {
@@ -327,7 +368,7 @@ export async function getVariables(): Promise<Record<string, unknown>> {
       description: v.description || "",
       collectionId: v.variableCollectionId,
       values: Object.entries(v.valuesByMode).map(([modeId, value]) => {
-        const knownTypes: VariableResolvedType[] = ["COLOR", "FLOAT", "STRING", "BOOLEAN"];
+        const knownTypes: VariableResolvedType[] = ["COLOR", "FLOAT", "STRING", "BOOLEAN", "EASING", "TIMING"];
         const resolvedType = knownTypes.includes(v.resolvedType as VariableResolvedType)
           ? (v.resolvedType as VariableResolvedType)
           : ("STRING" as VariableResolvedType);
@@ -586,8 +627,8 @@ export async function bindVariable(params: Record<string, unknown>): Promise<Rec
   const fieldParts = field.split("/");
 
   try {
-    if (fieldParts[0] === "fills" && fieldParts.length >= 2) {
-      const fillIndex = parseInt(fieldParts[1]);
+    if (fieldParts[0] === "fills") {
+      const fillIndex = fieldParts.length >= 2 ? parseInt(fieldParts[1]) : 0;
       if (isNaN(fillIndex)) {
         throw new Error(`Invalid fill index: ${fieldParts[1]}`);
       }
@@ -610,8 +651,8 @@ export async function bindVariable(params: Record<string, unknown>): Promise<Rec
         );
         nodeWithFills.fills = updatedFills;
       }
-    } else if (fieldParts[0] === "strokes" && fieldParts.length >= 2) {
-      const strokeIndex = parseInt(fieldParts[1]);
+    } else if (fieldParts[0] === "strokes") {
+      const strokeIndex = fieldParts.length >= 2 ? parseInt(fieldParts[1]) : 0;
       if (isNaN(strokeIndex)) {
         throw new Error(`Invalid stroke index: ${fieldParts[1]}`);
       }
@@ -712,8 +753,8 @@ export async function unbindVariable(params: Record<string, unknown>): Promise<R
   const fieldParts = field.split("/");
 
   try {
-    if (fieldParts[0] === "fills" && fieldParts.length >= 2) {
-      const fillIndex = parseInt(fieldParts[1]);
+    if (fieldParts[0] === "fills") {
+      const fillIndex = fieldParts.length >= 2 ? parseInt(fieldParts[1]) : 0;
       if (isNaN(fillIndex)) {
         throw new Error(`Invalid fill index: ${fieldParts[1]}`);
       }
@@ -732,8 +773,8 @@ export async function unbindVariable(params: Record<string, unknown>): Promise<R
           }
         }
       }
-    } else if (fieldParts[0] === "strokes" && fieldParts.length >= 2) {
-      const strokeIndex = parseInt(fieldParts[1]);
+    } else if (fieldParts[0] === "strokes") {
+      const strokeIndex = fieldParts.length >= 2 ? parseInt(fieldParts[1]) : 0;
       if (isNaN(strokeIndex)) {
         throw new Error(`Invalid stroke index: ${fieldParts[1]}`);
       }
@@ -799,6 +840,46 @@ export async function createVariableCollection(params: Record<string, unknown>):
     collectionId: collection.id,
     name: collection.name,
     defaultMode: defaultMode !== undefined && defaultMode !== null ? defaultMode : "dark",
+    success: true,
+  };
+}
+
+// 2b. create_variable_collection_extension
+export async function createVariableCollectionExtension(
+  params: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
+  const parentCollectionId = params["parentCollectionId"] as string;
+  const name = params["name"] as string;
+
+  if (!parentCollectionId) {
+    throw new Error("Missing parentCollectionId parameter");
+  }
+  if (!name) {
+    throw new Error("Missing name parameter");
+  }
+
+  const parentCollection = await findCollection(parentCollectionId);
+
+  let extended: ExtendedVariableCollection;
+  try {
+    extended = parentCollection.extend(name);
+  } catch (error) {
+    const errMsg = error instanceof Error ? error.message : String(error);
+    if (errMsg.indexOf("Cannot create extended collections outside of enterprise plan") !== -1) {
+      throw new Error(
+        "Extended variable collections require a Figma Enterprise plan. This file's plan does not support them.",
+      );
+    }
+    throw error;
+  }
+
+  return {
+    collectionId: extended.id,
+    name: extended.name,
+    isExtension: extended.isExtension,
+    parentVariableCollectionId: extended.parentVariableCollectionId,
+    rootVariableCollectionId: extended.rootVariableCollectionId,
+    modes: extended.modes.map((m) => ({ modeId: m.modeId, name: m.name, parentModeId: m.parentModeId })),
     success: true,
   };
 }
@@ -877,7 +958,7 @@ export async function createVariable(params: Record<string, unknown>): Promise<R
   const collectionId = params["collectionId"] as string;
   const name = params["name"] as string;
   const type = params["type"] as string | undefined;
-  const value = params["value"] as RgbaColor | number | string | boolean;
+  const value = params["value"] as RgbaColor | MotionEasing | number | string | boolean;
   const mode = params["mode"] as string | undefined;
 
   const collection = await findCollection(collectionId);
@@ -962,17 +1043,26 @@ export async function updateVariableValue(params: Record<string, unknown>): Prom
   const collectionId = params["collectionId"] as string | undefined;
   const value = params["value"];
   const mode = params["mode"] as string | undefined;
+  // Set on an extended collection's own mode (a value from create_variable_collection_extension's
+  // `modes[].modeId`) to write an override for that mode rather than the base collection's value —
+  // no separate API, setValueForMode on an extended mode ID IS how overrides are set.
+  const extendedModeId = params["extendedModeId"] as string | undefined;
 
   // Single parallel fetch — avoids the sequential findVariable() + getVariableCollectionByIdAsync() round-trip
   const { collections, variables } = await fetchVariableData();
   const variable = findVariableIn(variables, collections, variableId, collectionId);
   const collection = findCollectionIn(collections, variable.variableCollectionId);
 
-  const targetMode =
-    mode !== undefined && mode !== null
-      ? collection.modes.find((m: { modeId: string; name: string }) => m.name === mode)
-      : null;
-  const modeId = targetMode !== undefined && targetMode !== null ? targetMode.modeId : collection.modes[0].modeId;
+  let modeId: string;
+  if (extendedModeId !== undefined && extendedModeId !== null) {
+    modeId = extendedModeId;
+  } else {
+    const targetMode =
+      mode !== undefined && mode !== null
+        ? collection.modes.find((m: { modeId: string; name: string }) => m.name === mode)
+        : null;
+    modeId = targetMode !== undefined && targetMode !== null ? targetMode.modeId : collection.modes[0].modeId;
+  }
 
   if (!modeId) {
     throw new Error(`Mode not found: ${mode}`);
@@ -987,6 +1077,8 @@ export async function updateVariableValue(params: Record<string, unknown>): Prom
     variableId: variable.id,
     name: variable.name,
     type: variableType,
+    modeId,
+    isOverride: extendedModeId !== undefined && extendedModeId !== null,
     updated: true,
   };
 }

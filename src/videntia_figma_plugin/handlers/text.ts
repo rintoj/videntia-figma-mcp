@@ -970,13 +970,22 @@ export async function setAutoLayout(params: Record<string, unknown>): Promise<Re
   }
 
   const frameNode = node as FrameNode;
+  // Capture before mutating: drives whether we touch layoutSizing* below, and
+  // guards against reassigning layoutMode to its current value — Figma resets
+  // layoutSizingHorizontal/Vertical (and thus item spacing/padding rendering)
+  // as a side effect of ANY layoutMode write, even a same-value one.
+  const wasAutoLayout = frameNode.layoutMode !== "NONE";
 
   if (layoutMode === "NONE") {
-    frameNode.layoutMode = "NONE";
+    if (frameNode.layoutMode !== "NONE") {
+      frameNode.layoutMode = "NONE";
+    }
   } else {
     // Mode must be assigned before the grid track counts — they are only writable
     // once the frame is actually a grid.
-    frameNode.layoutMode = layoutMode as "HORIZONTAL" | "VERTICAL" | "GRID";
+    if (frameNode.layoutMode !== layoutMode) {
+      frameNode.layoutMode = layoutMode as "HORIZONTAL" | "VERTICAL" | "GRID";
+    }
 
     if (paddingTop !== undefined) frameNode.paddingTop = paddingTop;
     if (paddingBottom !== undefined) frameNode.paddingBottom = paddingBottom;
@@ -999,7 +1008,16 @@ export async function setAutoLayout(params: Record<string, unknown>): Promise<Re
       const gridColumnGap = (
         safeParams.gridColumnGap !== undefined ? safeParams.gridColumnGap : safeParams.columnGap
       ) as number | undefined;
+      const gridAutoTracks = safeParams.gridAutoTracks as string | undefined;
+      const gridItemsPositioning = safeParams.gridItemsPositioning as string | undefined;
 
+      // gridAutoTracks must be set before gridRowCount/gridColumnCount when set
+      // to "ROWS": Figma throws if you write gridRowCount while auto-tracking
+      // rows, since the count becomes automatically managed.
+      if (gridAutoTracks !== undefined) frameNode.gridAutoTracks = gridAutoTracks as "NONE" | "ROWS";
+      if (gridItemsPositioning !== undefined) {
+        frameNode.gridItemsPositioning = gridItemsPositioning as "MANUAL" | "ROW_AUTO_FLOW";
+      }
       if (gridRowCount !== undefined) frameNode.gridRowCount = gridRowCount;
       if (gridColumnCount !== undefined) frameNode.gridColumnCount = gridColumnCount;
 
@@ -1034,19 +1052,28 @@ export async function setAutoLayout(params: Record<string, unknown>): Promise<Re
       frameNode.clipsContent = clipsContent;
     }
 
-    // Determine safe defaults based on whether this frame is inside an auto-layout parent.
-    // FILL is only valid for children of auto-layout frames; default to FIXED otherwise.
-    const parentIsAutoLayout =
-      frameNode.parent !== null &&
-      frameNode.parent !== undefined &&
-      "layoutMode" in frameNode.parent &&
-      (frameNode.parent as FrameNode).layoutMode !== "NONE";
-    const defaultHSizing = parentIsAutoLayout ? "FILL" : "FIXED";
-    const hSizing =
-      layoutSizingHorizontal !== null && layoutSizingHorizontal !== undefined ? layoutSizingHorizontal : defaultHSizing;
-    const vSizing = layoutSizingVertical !== null && layoutSizingVertical !== undefined ? layoutSizingVertical : "HUG";
-    frameNode.layoutSizingHorizontal = hSizing as "FIXED" | "HUG" | "FILL";
-    frameNode.layoutSizingVertical = vSizing as "FIXED" | "HUG" | "FILL";
+    // Only touch layoutSizing* when the caller explicitly asked for it, or when
+    // this frame is newly gaining auto-layout (was NONE before this call) and
+    // therefore has no meaningful existing sizing state to preserve. Applying a
+    // default on every call — including ones that only touch padding/spacing —
+    // silently overwrites whatever set_layout_sizing had already set.
+    if (layoutSizingHorizontal !== null && layoutSizingHorizontal !== undefined) {
+      frameNode.layoutSizingHorizontal = layoutSizingHorizontal as "FIXED" | "HUG" | "FILL";
+    } else if (!wasAutoLayout) {
+      // FILL is only valid for children of auto-layout frames; default to FIXED otherwise.
+      const parentIsAutoLayout =
+        frameNode.parent !== null &&
+        frameNode.parent !== undefined &&
+        "layoutMode" in frameNode.parent &&
+        (frameNode.parent as FrameNode).layoutMode !== "NONE";
+      frameNode.layoutSizingHorizontal = parentIsAutoLayout ? "FILL" : "FIXED";
+    }
+
+    if (layoutSizingVertical !== null && layoutSizingVertical !== undefined) {
+      frameNode.layoutSizingVertical = layoutSizingVertical as "FIXED" | "HUG" | "FILL";
+    } else if (!wasAutoLayout) {
+      frameNode.layoutSizingVertical = "HUG";
+    }
   }
 
   return {
@@ -1067,6 +1094,8 @@ export async function setAutoLayout(params: Record<string, unknown>): Promise<Re
           gridColumnCount: frameNode.gridColumnCount,
           gridRowGap: frameNode.gridRowGap,
           gridColumnGap: frameNode.gridColumnGap,
+          gridAutoTracks: frameNode.gridAutoTracks,
+          gridItemsPositioning: frameNode.gridItemsPositioning,
         }
       : {}),
     strokesIncludedInLayout: frameNode.strokesIncludedInLayout,
@@ -1389,6 +1418,48 @@ export async function setTextCase(params: Record<string, unknown>): Promise<Reco
 }
 
 // ---------------------------------------------------------------------------
+// Public: setTextWrapStyle
+// ---------------------------------------------------------------------------
+
+export async function setTextWrapStyle(params: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const safeParams = params !== null && params !== undefined ? params : {};
+  const nodeId = safeParams.nodeId as string | undefined;
+  const textWrapStyle = safeParams.textWrapStyle;
+
+  if (!nodeId || textWrapStyle === undefined) {
+    throw new Error("Missing nodeId or textWrapStyle");
+  }
+
+  if (!["AUTO", "BALANCE", "PRETTY"].includes(textWrapStyle as string)) {
+    throw new Error("Invalid textWrapStyle value. Must be one of: AUTO, BALANCE, PRETTY");
+  }
+
+  const node = await figma.getNodeByIdAsync(nodeId);
+  if (!node) {
+    throw new Error(`Node not found with ID: ${nodeId}`);
+  }
+
+  if (node.type !== "TEXT") {
+    throw new Error(`Node is not a text node: ${nodeId}`);
+  }
+
+  try {
+    const twsFontName = (node as TextNode).fontName;
+    const twsFont =
+      twsFontName === figma.mixed ? ((node as TextNode).getRangeFontName(0, 1) as FontName) : (twsFontName as FontName);
+    await figma.loadFontAsync(twsFont);
+    (node as TextNode).textWrapStyle = textWrapStyle as TextWrapStyle;
+    return {
+      id: node.id,
+      name: node.name,
+      textWrapStyle: (node as TextNode).textWrapStyle,
+    };
+  } catch (error) {
+    throw new Error(`Error setting text wrap style: ${(error as Error).message}`);
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Public: setTextDecoration
 // ---------------------------------------------------------------------------
 
@@ -1650,6 +1721,14 @@ export async function createTextStyle(params: Record<string, unknown>): Promise<
     textNode.textDecoration === figma.mixed
       ? (textNode.getRangeTextDecoration(0, 1) as TextDecoration)
       : (textNode.textDecoration as TextDecoration);
+  const resolvedParagraphIndent: number =
+    textNode.paragraphIndent === figma.mixed
+      ? (textNode.getRangeParagraphIndent(0, 1) as number)
+      : textNode.paragraphIndent;
+  const resolvedParagraphSpacing: number =
+    textNode.paragraphSpacing === figma.mixed
+      ? (textNode.getRangeParagraphSpacing(0, 1) as number)
+      : textNode.paragraphSpacing;
 
   try {
     // Load both the default new-style font (Inter Regular) and the resolved target font.
@@ -1677,8 +1756,8 @@ export async function createTextStyle(params: Record<string, unknown>): Promise<
     textStyle.fontSize = resolvedFontSize;
     textStyle.letterSpacing = resolvedLetterSpacing;
     textStyle.lineHeight = resolvedLineHeight;
-    textStyle.paragraphIndent = textNode.paragraphIndent;
-    textStyle.paragraphSpacing = textNode.paragraphSpacing;
+    textStyle.paragraphIndent = resolvedParagraphIndent;
+    textStyle.paragraphSpacing = resolvedParagraphSpacing;
     textStyle.textCase = resolvedTextCase;
     textStyle.textDecoration = resolvedTextDecoration;
 
@@ -1713,6 +1792,7 @@ export async function createTextStyleFromProperties(params: Record<string, unkno
   const letterSpacing = safeParams.letterSpacing as LetterSpacing | undefined;
   const textCase = safeParams.textCase as TextCase | undefined;
   const textDecoration = safeParams.textDecoration as TextDecoration | undefined;
+  const textWrapStyle = safeParams.textWrapStyle as TextWrapStyle | undefined;
   const description = safeParams.description as string | undefined;
   const bindings = safeParams.bindings as Record<string, string> | undefined;
 
@@ -1770,6 +1850,10 @@ export async function createTextStyleFromProperties(params: Record<string, unkno
 
     if (textDecoration !== null && textDecoration !== undefined) {
       textStyle.textDecoration = textDecoration;
+    }
+
+    if (textWrapStyle !== null && textWrapStyle !== undefined) {
+      textStyle.textWrapStyle = textWrapStyle;
     }
 
     const { applied, warnings } = await applyTextStyleBindings(textStyle, bindings);
