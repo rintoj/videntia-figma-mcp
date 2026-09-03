@@ -323,6 +323,7 @@ export async function getOpenChannels(): Promise<
     hasExtension: boolean;
     fileName: string | null;
     joinedAt: number | null;
+    browsers?: { id: string; label: string; joinedAt: number }[];
   }>
 > {
   const httpUrl = serverUrl === "localhost" ? `http://localhost:${defaultPort}` : `https://${serverUrl}`;
@@ -348,6 +349,7 @@ export async function getOpenChannels(): Promise<
       hasExtension: boolean;
       fileName: string | null;
       joinedAt: number | null;
+      browsers?: { id: string; label: string; joinedAt: number }[];
     }>
   >;
 }
@@ -521,18 +523,25 @@ async function ensureBrowserChannelJoined(channel: string): Promise<void> {
 /**
  * Send a command to an explicit channel (not currentChannel).
  * Used for non-Figma channels such as "browser".
+ *
+ * @param browserId - Optional routing target. May also be supplied as
+ * `params.browserId`. When set it is emitted as an envelope-level `target`
+ * sibling of `channel`; the relay routes to that client and rejects unknown or
+ * ambiguous targets itself. When unset the envelope is unchanged from a
+ * single-client send.
  */
 export async function sendCommandToChannel<T = unknown>(
   targetChannel: string,
   command: BrowserCommand,
   params: unknown = {},
   timeoutMs: number = 30000,
+  browserId?: string,
 ): Promise<T> {
   await waitForConnection();
   await ensureBrowserChannelJoined(targetChannel);
 
   try {
-    return await _sendCommandToChannel<T>(targetChannel, command, params, timeoutMs);
+    return await _sendCommandToChannel<T>(targetChannel, command, params, timeoutMs, browserId);
   } catch (error) {
     const recoverable =
       error instanceof Error &&
@@ -541,7 +550,7 @@ export async function sendCommandToChannel<T = unknown>(
       logger.warn(`Relay connection dropped during browser command "${command}"; reconnecting and retrying once.`);
       await waitForConnection();
       await ensureBrowserChannelJoined(targetChannel);
-      return await _sendCommandToChannel<T>(targetChannel, command, params, timeoutMs);
+      return await _sendCommandToChannel<T>(targetChannel, command, params, timeoutMs, browserId);
     }
     throw error;
   }
@@ -552,6 +561,7 @@ function _sendCommandToChannel<T = unknown>(
   command: BrowserCommand,
   params: unknown,
   timeoutMs: number,
+  browserId?: string,
 ): Promise<T> {
   if (!ws || ws.readyState !== WebSocket.OPEN) {
     return Promise.reject(new Error("Not connected to WebSocket server."));
@@ -578,14 +588,22 @@ function _sendCommandToChannel<T = unknown>(
       lastActivity: Date.now(),
     });
 
+    // `browserId` is a ROUTING hint, not a command param: it is lifted out of
+    // params into an envelope-level `target` so the extension's command handler
+    // never sees it. With no target the envelope is byte-identical to a
+    // single-client send (no `target` key at all).
+    const { browserId: paramsBrowserId, ...restParams } = (params ?? {}) as Record<string, unknown>;
+    const target = browserId ?? (typeof paramsBrowserId === "string" ? paramsBrowserId : undefined);
+
     const request = {
       id,
       type: "message",
       channel: targetChannel,
-      message: { id, command, params: { ...(params as any), commandId: id } },
+      ...(target ? { target } : {}),
+      message: { id, command, params: { ...restParams, commandId: id } },
     };
 
-    logger.info(`Sending browser command: ${command}`);
+    logger.info(`Sending browser command: ${command}${target ? ` → browser ${target}` : ""}`);
     ws!.send(JSON.stringify(request));
   }) as Promise<T>;
 }

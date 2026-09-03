@@ -83,6 +83,16 @@ Most tools that accept an ID also accept a **name** as an alternative. You do no
 
 Prefer using names over IDs — they are human-readable and don't require a prior lookup call.
 
+# Browser Tools: Browser (Profile) Targeting
+
+Several Chrome profiles can be connected to the relay at once, each running its own copy of the extension. Commands are routed per browser, so you MUST know which one you are driving:
+
+1. Call \`list_connected_browsers\` FIRST in any browser workflow. It returns each connected browser's \`id\` and \`label\` (auto-generated \`Chrome-<id6>\`, editable in the extension popup).
+2. When more than one browser is connected, pass \`browser_id\` to EVERY subsequent browser call (\`browser_*\`, \`get_browser_*\`, \`set_browser_viewport\`, overlay and diff tools). Omitting it makes the relay reject the command as ambiguous ("Multiple browsers are connected: … Pass browser_id to target one.").
+3. When exactly one browser is connected, \`browser_id\` may be omitted — the relay delivers to that one browser.
+4. Keep the SAME \`browser_id\` for a whole workflow: tab IDs, pinned tabs, viewport emulation, and debugger sessions are per-browser, so mixing ids mid-run targets a different profile's tabs.
+5. A stale id (the profile disconnected) fails with \`No browser with id "X" is connected\` — re-run \`list_connected_browsers\` to refresh.
+
 # Browser Tools: Tab Targeting
 
 Browser tools (\`browser_*\`, \`get_browser_*\`, \`set_browser_viewport\`, overlay and diff tools) do NOT require the target tab to be focused or visible — screenshots, input, viewport emulation, and style reads all work on background tabs via the Chrome debugger.

@@ -1,16 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { sendCommandToChannel } from "../utils/websocket.js";
-
-const BROWSER_CHANNEL = "browser";
-
-const tabIdSchema = z
-  .number()
-  .int()
-  .optional()
-  .describe(
-    "Optional Chrome tab ID to target. The tab does NOT need to be focused or visible — all browser tools work on background tabs via CDP. When omitted, the extension uses its pinned tab (set via the popup) or falls back to the active tab in the focused window; pass an explicit tab ID for any multi-step workflow so commands never leak onto whichever tab the user has focused. Use browser_list_tabs to discover tab IDs.",
-  );
+import { browserIdSchema, listConnectedBrowsers, sendBrowserCommand, tabIdSchema } from "./browser-channel.js";
 
 const selectorSchema = z
   .string()
@@ -47,6 +37,35 @@ function textResult(payload: unknown) {
 
 export function registerBrowserControlTools(server: McpServer): void {
   server.tool(
+    "list_connected_browsers",
+    "List every browser (Chrome profile) currently connected to the relay, with its id, label, and connection time. Call this FIRST in any browser workflow: when more than one browser is connected, every subsequent browser call must pass browser_id to pick one, otherwise the relay rejects the command as ambiguous. Labels default to Chrome-<id6> and can be edited in the extension popup.",
+    {},
+    async () => {
+      let browsers: Awaited<ReturnType<typeof listConnectedBrowsers>> = [];
+      try {
+        browsers = await listConnectedBrowsers();
+      } catch (error) {
+        return textResult({
+          browsers: [],
+          count: 0,
+          hint: `Could not reach the socket server to list browsers: ${
+            error instanceof Error ? error.message : String(error)
+          }. Is the socket server running?`,
+        });
+      }
+      return textResult({
+        browsers,
+        count: browsers.length,
+        ...(browsers.length === 0
+          ? { hint: "No browsers are connected. Is the Videntia Browser Connect extension installed and connected?" }
+          : browsers.length > 1
+            ? { hint: "More than one browser is connected — pass browser_id to every browser call." }
+            : {}),
+      });
+    },
+  );
+
+  server.tool(
     "browser_click",
     "Click an element or point in a browser tab via CDP input events (real trusted clicks). Target by CSS selector (scrolled into view automatically), backend_dom_node_id (from browser_snapshot), or viewport x/y coordinates. Requires the Videntia Browser Connect extension.",
     {
@@ -64,10 +83,12 @@ export function registerBrowserControlTools(server: McpServer): void {
         .default(1)
         .describe("1 = single click, 2 = double click, 3 = triple click (selects a paragraph)."),
       tab_id: tabIdSchema,
+      browser_id: browserIdSchema,
     },
-    async ({ selector, backend_dom_node_id, x, y, button, click_count, tab_id }) => {
+    async ({ selector, backend_dom_node_id, x, y, button, click_count, tab_id, browser_id }) => {
       requirePoint(selector, backend_dom_node_id, x, y);
-      const result = await sendCommandToChannel(BROWSER_CHANNEL, "click", {
+      const result = await sendBrowserCommand("click", {
+        browserId: browser_id,
         selector,
         backendDOMNodeId: backend_dom_node_id,
         x,
@@ -89,10 +110,12 @@ export function registerBrowserControlTools(server: McpServer): void {
       x: coordSchema("X"),
       y: coordSchema("Y"),
       tab_id: tabIdSchema,
+      browser_id: browserIdSchema,
     },
-    async ({ selector, backend_dom_node_id, x, y, tab_id }) => {
+    async ({ selector, backend_dom_node_id, x, y, tab_id, browser_id }) => {
       requirePoint(selector, backend_dom_node_id, x, y);
-      const result = await sendCommandToChannel(BROWSER_CHANNEL, "hover", {
+      const result = await sendBrowserCommand("hover", {
+        browserId: browser_id,
         selector,
         backendDOMNodeId: backend_dom_node_id,
         x,
@@ -116,9 +139,11 @@ export function registerBrowserControlTools(server: McpServer): void {
         .default(false)
         .describe("Select the element's existing content first so the typed text replaces it."),
       tab_id: tabIdSchema,
+      browser_id: browserIdSchema,
     },
-    async ({ text, selector, backend_dom_node_id, clear_first, tab_id }) => {
-      const result = await sendCommandToChannel(BROWSER_CHANNEL, "type_text", {
+    async ({ text, selector, backend_dom_node_id, clear_first, tab_id, browser_id }) => {
+      const result = await sendBrowserCommand("type_text", {
+        browserId: browser_id,
         text,
         selector,
         backendDOMNodeId: backend_dom_node_id,
@@ -143,9 +168,10 @@ export function registerBrowserControlTools(server: McpServer): void {
         .optional()
         .describe("Modifier keys held during the press."),
       tab_id: tabIdSchema,
+      browser_id: browserIdSchema,
     },
-    async ({ key, modifiers, tab_id }) => {
-      const result = await sendCommandToChannel(BROWSER_CHANNEL, "press_key", { key, modifiers, tabId: tab_id });
+    async ({ key, modifiers, tab_id, browser_id }) => {
+      const result = await sendBrowserCommand("press_key", { browserId: browser_id, key, modifiers, tabId: tab_id });
       return textResult(result);
     },
   );
@@ -161,9 +187,11 @@ export function registerBrowserControlTools(server: McpServer): void {
       x: coordSchema("X"),
       y: coordSchema("Y"),
       tab_id: tabIdSchema,
+      browser_id: browserIdSchema,
     },
-    async ({ delta_y, delta_x, selector, backend_dom_node_id, x, y, tab_id }) => {
-      const result = await sendCommandToChannel(BROWSER_CHANNEL, "scroll", {
+    async ({ delta_y, delta_x, selector, backend_dom_node_id, x, y, tab_id, browser_id }) => {
+      const result = await sendBrowserCommand("scroll", {
+        browserId: browser_id,
         deltaY: delta_y,
         deltaX: delta_x,
         selector,
@@ -182,9 +210,10 @@ export function registerBrowserControlTools(server: McpServer): void {
     {
       url: z.string().describe("Destination URL. Scheme defaults to https:// when omitted."),
       tab_id: tabIdSchema,
+      browser_id: browserIdSchema,
     },
-    async ({ url, tab_id }) => {
-      const result = await sendCommandToChannel(BROWSER_CHANNEL, "navigate", { url, tabId: tab_id }, 45000);
+    async ({ url, tab_id, browser_id }) => {
+      const result = await sendBrowserCommand("navigate", { browserId: browser_id, url, tabId: tab_id }, 45000);
       return textResult(result);
     },
   );
@@ -192,9 +221,9 @@ export function registerBrowserControlTools(server: McpServer): void {
   server.tool(
     "browser_back",
     "Go back one entry in a browser tab's history and wait for the load to settle.",
-    { tab_id: tabIdSchema },
-    async ({ tab_id }) => {
-      const result = await sendCommandToChannel(BROWSER_CHANNEL, "go_back", { tabId: tab_id }, 30000);
+    { tab_id: tabIdSchema, browser_id: browserIdSchema },
+    async ({ tab_id, browser_id }) => {
+      const result = await sendBrowserCommand("go_back", { browserId: browser_id, tabId: tab_id }, 30000);
       return textResult(result);
     },
   );
@@ -202,9 +231,9 @@ export function registerBrowserControlTools(server: McpServer): void {
   server.tool(
     "browser_forward",
     "Go forward one entry in a browser tab's history and wait for the load to settle.",
-    { tab_id: tabIdSchema },
-    async ({ tab_id }) => {
-      const result = await sendCommandToChannel(BROWSER_CHANNEL, "go_forward", { tabId: tab_id }, 30000);
+    { tab_id: tabIdSchema, browser_id: browserIdSchema },
+    async ({ tab_id, browser_id }) => {
+      const result = await sendBrowserCommand("go_forward", { browserId: browser_id, tabId: tab_id }, 30000);
       return textResult(result);
     },
   );
@@ -212,9 +241,9 @@ export function registerBrowserControlTools(server: McpServer): void {
   server.tool(
     "browser_list_tabs",
     "List all open Chrome tabs with tab ID, URL, title, active state, whether the tab is pinned for this session via the extension popup, and whether it belongs to the agent tab group.",
-    {},
-    async () => {
-      const result = await sendCommandToChannel(BROWSER_CHANNEL, "list_tabs", {});
+    { browser_id: browserIdSchema },
+    async ({ browser_id }) => {
+      const result = await sendBrowserCommand("list_tabs", { browserId: browser_id });
       return textResult(result);
     },
   );
@@ -237,12 +266,12 @@ export function registerBrowserControlTools(server: McpServer): void {
         .describe(
           "Open the tab in a new dedicated Chrome window, isolating window resizes from the user's tabs. Such tabs are not added to the agent tab group (groups are per-window) — close them with browser_close_tab.",
         ),
+      browser_id: browserIdSchema,
     },
-    async ({ url, active, grouped, new_window }) => {
-      const result = await sendCommandToChannel(
-        BROWSER_CHANNEL,
+    async ({ url, active, grouped, new_window, browser_id }) => {
+      const result = await sendBrowserCommand(
         "create_tab",
-        { url, active, grouped, newWindow: new_window },
+        { browserId: browser_id, url, active, grouped, newWindow: new_window },
         45000,
       );
       return textResult(result);
@@ -252,9 +281,9 @@ export function registerBrowserControlTools(server: McpServer): void {
   server.tool(
     "browser_close_group",
     'Close the entire "Videntia" agent tab group — every tab this session created via browser_create_tab — in one shot. Safe when no group exists (no-op). Use for end-of-session cleanup.',
-    {},
-    async () => {
-      const result = await sendCommandToChannel(BROWSER_CHANNEL, "close_group", {});
+    { browser_id: browserIdSchema },
+    async ({ browser_id }) => {
+      const result = await sendBrowserCommand("close_group", { browserId: browser_id });
       return textResult(result);
     },
   );
@@ -264,9 +293,10 @@ export function registerBrowserControlTools(server: McpServer): void {
     "Close a Chrome tab. Requires an explicit tab_id — there is deliberately no implicit fallback to the active tab.",
     {
       tab_id: z.number().int().describe("ID of the tab to close (required)."),
+      browser_id: browserIdSchema,
     },
-    async ({ tab_id }) => {
-      const result = await sendCommandToChannel(BROWSER_CHANNEL, "close_tab", { tabId: tab_id });
+    async ({ tab_id, browser_id }) => {
+      const result = await sendBrowserCommand("close_tab", { browserId: browser_id, tabId: tab_id });
       return textResult(result);
     },
   );
@@ -278,12 +308,12 @@ export function registerBrowserControlTools(server: McpServer): void {
       expression: z.string().describe("JavaScript expression. Wrap object literals in parentheses: '({a: 1})'."),
       timeout_ms: z.number().int().min(100).max(45000).optional().describe("Evaluation timeout in ms (default 15000)."),
       tab_id: tabIdSchema,
+      browser_id: browserIdSchema,
     },
-    async ({ expression, timeout_ms, tab_id }) => {
-      const result = await sendCommandToChannel(
-        BROWSER_CHANNEL,
+    async ({ expression, timeout_ms, tab_id, browser_id }) => {
+      const result = await sendBrowserCommand(
         "evaluate_js",
-        { expression, timeoutMs: timeout_ms, tabId: tab_id },
+        { browserId: browser_id, expression, timeoutMs: timeout_ms, tabId: tab_id },
         (timeout_ms ?? 15000) + 15000,
       );
       return textResult(result);
@@ -302,9 +332,11 @@ export function registerBrowserControlTools(server: McpServer): void {
       limit: z.number().int().min(1).max(500).optional().describe("Max entries to return (default 200, newest kept)."),
       clear: z.boolean().optional().default(false).describe("Clear the buffer after reading."),
       tab_id: tabIdSchema,
+      browser_id: browserIdSchema,
     },
-    async ({ pattern, level, limit, clear, tab_id }) => {
-      const result = await sendCommandToChannel(BROWSER_CHANNEL, "read_console", {
+    async ({ pattern, level, limit, clear, tab_id, browser_id }) => {
+      const result = await sendBrowserCommand("read_console", {
+        browserId: browser_id,
         pattern,
         level,
         limit,
@@ -323,9 +355,11 @@ export function registerBrowserControlTools(server: McpServer): void {
       limit: z.number().int().min(1).max(300).optional().describe("Max requests to return (default 200, newest kept)."),
       clear: z.boolean().optional().default(false).describe("Clear the buffer after reading."),
       tab_id: tabIdSchema,
+      browser_id: browserIdSchema,
     },
-    async ({ url_filter, limit, clear, tab_id }) => {
-      const result = await sendCommandToChannel(BROWSER_CHANNEL, "read_network", {
+    async ({ url_filter, limit, clear, tab_id, browser_id }) => {
+      const result = await sendBrowserCommand("read_network", {
+        browserId: browser_id,
         urlFilter: url_filter,
         limit,
         clear,
@@ -351,9 +385,11 @@ export function registerBrowserControlTools(server: McpServer): void {
         .default(false)
         .describe("Include accessibility-ignored nodes (hidden/presentational elements). Default false."),
       tab_id: tabIdSchema,
+      browser_id: browserIdSchema,
     },
-    async ({ depth, include_ignored, tab_id }) => {
-      const result = await sendCommandToChannel(BROWSER_CHANNEL, "get_ax_tree", {
+    async ({ depth, include_ignored, tab_id, browser_id }) => {
+      const result = await sendBrowserCommand("get_ax_tree", {
+        browserId: browser_id,
         depth,
         includeIgnored: include_ignored,
         tabId: tab_id,
@@ -369,12 +405,14 @@ export function registerBrowserControlTools(server: McpServer): void {
       selector: selectorSchema,
       backend_dom_node_id: backendDOMNodeIdSchema,
       tab_id: tabIdSchema,
+      browser_id: browserIdSchema,
     },
-    async ({ selector, backend_dom_node_id, tab_id }) => {
+    async ({ selector, backend_dom_node_id, tab_id, browser_id }) => {
       if (!selector && typeof backend_dom_node_id !== "number") {
         throw new Error("Provide a selector or backend_dom_node_id.");
       }
-      const result = await sendCommandToChannel(BROWSER_CHANNEL, "highlight_node", {
+      const result = await sendBrowserCommand("highlight_node", {
+        browserId: browser_id,
         selector,
         backendDOMNodeId: backend_dom_node_id,
         tabId: tab_id,
@@ -386,9 +424,9 @@ export function registerBrowserControlTools(server: McpServer): void {
   server.tool(
     "browser_clear_highlight",
     "Remove the highlight box drawn by browser_highlight_node from a browser tab.",
-    { tab_id: tabIdSchema },
-    async ({ tab_id }) => {
-      const result = await sendCommandToChannel(BROWSER_CHANNEL, "clear_highlight", { tabId: tab_id });
+    { tab_id: tabIdSchema, browser_id: browserIdSchema },
+    async ({ tab_id, browser_id }) => {
+      const result = await sendBrowserCommand("clear_highlight", { browserId: browser_id, tabId: tab_id });
       return textResult(result);
     },
   );
@@ -439,9 +477,11 @@ export function registerBrowserControlTools(server: McpServer): void {
         .optional()
         .describe("Auto-continue timeout per paused request in ms (default 8000)."),
       tab_id: tabIdSchema,
+      browser_id: browserIdSchema,
     },
-    async ({ patterns, timeout_ms, tab_id }) => {
-      const result = await sendCommandToChannel(BROWSER_CHANNEL, "intercept_start", {
+    async ({ patterns, timeout_ms, tab_id, browser_id }) => {
+      const result = await sendBrowserCommand("intercept_start", {
+        browserId: browser_id,
         patterns: patterns?.map((p) => ({
           urlPattern: p.url_pattern,
           resourceType: p.resource_type,
@@ -456,9 +496,9 @@ export function registerBrowserControlTools(server: McpServer): void {
   server.tool(
     "browser_intercept_stop",
     "Stop network interception in a browser tab. Any still-pending paused requests are auto-continued unmodified before disabling, so nothing is left hanging.",
-    { tab_id: tabIdSchema },
-    async ({ tab_id }) => {
-      const result = await sendCommandToChannel(BROWSER_CHANNEL, "intercept_stop", { tabId: tab_id });
+    { tab_id: tabIdSchema, browser_id: browserIdSchema },
+    async ({ tab_id, browser_id }) => {
+      const result = await sendBrowserCommand("intercept_stop", { browserId: browser_id, tabId: tab_id });
       return textResult(result);
     },
   );
@@ -466,9 +506,9 @@ export function registerBrowserControlTools(server: McpServer): void {
   server.tool(
     "browser_list_pending_requests",
     "List currently-paused intercepted requests (from browser_intercept_start) awaiting resolution in a browser tab, with how long each has been pending.",
-    { tab_id: tabIdSchema },
-    async ({ tab_id }) => {
-      const result = await sendCommandToChannel(BROWSER_CHANNEL, "list_pending_requests", { tabId: tab_id });
+    { tab_id: tabIdSchema, browser_id: browserIdSchema },
+    async ({ tab_id, browser_id }) => {
+      const result = await sendBrowserCommand("list_pending_requests", { browserId: browser_id, tabId: tab_id });
       return textResult(result);
     },
   );
@@ -490,9 +530,11 @@ export function registerBrowserControlTools(server: McpServer): void {
         .describe("Response headers as a plain object (e.g. {'Content-Type': 'application/json'})."),
       body: z.string().optional().describe("Response body as a plain string (encoded to base64 automatically)."),
       tab_id: tabIdSchema,
+      browser_id: browserIdSchema,
     },
-    async ({ request_id, response_code, response_headers, body, tab_id }) => {
-      const result = await sendCommandToChannel(BROWSER_CHANNEL, "fulfill_request", {
+    async ({ request_id, response_code, response_headers, body, tab_id, browser_id }) => {
+      const result = await sendBrowserCommand("fulfill_request", {
+        browserId: browser_id,
         requestId: request_id,
         responseCode: response_code,
         responseHeaders: response_headers,
@@ -529,9 +571,11 @@ export function registerBrowserControlTools(server: McpServer): void {
         .default("Failed")
         .describe("CDP network error reason (default 'Failed')."),
       tab_id: tabIdSchema,
+      browser_id: browserIdSchema,
     },
-    async ({ request_id, error_reason, tab_id }) => {
-      const result = await sendCommandToChannel(BROWSER_CHANNEL, "fail_request", {
+    async ({ request_id, error_reason, tab_id, browser_id }) => {
+      const result = await sendBrowserCommand("fail_request", {
+        browserId: browser_id,
         requestId: request_id,
         errorReason: error_reason,
         tabId: tab_id,
@@ -550,9 +594,11 @@ export function registerBrowserControlTools(server: McpServer): void {
       headers: z.record(z.string(), z.string()).optional().describe("Override request headers as a plain object."),
       post_data: z.string().optional().describe("Override the request body (plain string)."),
       tab_id: tabIdSchema,
+      browser_id: browserIdSchema,
     },
-    async ({ request_id, url, method, headers, post_data, tab_id }) => {
-      const result = await sendCommandToChannel(BROWSER_CHANNEL, "continue_request", {
+    async ({ request_id, url, method, headers, post_data, tab_id, browser_id }) => {
+      const result = await sendBrowserCommand("continue_request", {
+        browserId: browser_id,
         requestId: request_id,
         overrides: { url, method, headers, postData: post_data },
         tabId: tab_id,
@@ -584,9 +630,11 @@ export function registerBrowserControlTools(server: McpServer): void {
         .optional()
         .describe("Specific storage types to clear. Omit to clear everything."),
       tab_id: tabIdSchema,
+      browser_id: browserIdSchema,
     },
-    async ({ origin, storage_types, tab_id }) => {
-      const result = await sendCommandToChannel(BROWSER_CHANNEL, "clear_storage", {
+    async ({ origin, storage_types, tab_id, browser_id }) => {
+      const result = await sendBrowserCommand("clear_storage", {
+        browserId: browser_id,
         origin,
         storageTypes: storage_types?.join(","),
         tabId: tab_id,
@@ -598,9 +646,12 @@ export function registerBrowserControlTools(server: McpServer): void {
   server.tool(
     "browser_capture_mhtml",
     "Capture a full-page MHTML snapshot of a browser tab — a single portable archive with all resources (images, stylesheets, fonts) inlined, viewable offline. WARNING: on media-heavy pages this can be tens of MB — the entire page's resources are embedded, unlike a screenshot. Prefer get_browser_page_screenshot for routine visual checks; use this only when you need an offline-viewable archive (e.g. attaching repro evidence to a diff report).",
-    { tab_id: tabIdSchema },
-    async ({ tab_id }) => {
-      const result = await sendCommandToChannel<{ data: string }>(BROWSER_CHANNEL, "capture_mhtml", { tabId: tab_id });
+    { tab_id: tabIdSchema, browser_id: browserIdSchema },
+    async ({ tab_id, browser_id }) => {
+      const result = await sendBrowserCommand<{ data: string }>("capture_mhtml", {
+        browserId: browser_id,
+        tabId: tab_id,
+      });
       return {
         content: [
           {
