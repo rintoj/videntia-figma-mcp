@@ -243,3 +243,7 @@ rig in this repo), so verify the wiring by hand after changing `src/socket.ts` o
    payload. Reload the unpacked extension.` and the channel must not list it.
 8. **Figma is unaffected**: with the Figma plugin connected, run any Figma tool (e.g.
    `get_document_info`) and confirm normal broadcast behaviour is unchanged.
+9. **`"browser"` stays reserved**: rename a Figma file to `Browser` and connect the
+   plugin. `/channels` must show it on `browser-figma` (not `browser`), the plugin UI
+   must display that same channel, and both Figma tools and browser tools must keep
+   working side by side.
