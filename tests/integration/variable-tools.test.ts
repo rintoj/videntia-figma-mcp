@@ -108,6 +108,56 @@ describe("variable tools integration", () => {
     });
   });
 
+  describe("create_variable_collection_extension", () => {
+    beforeEach(() => {
+      mockSendCommand.mockResolvedValue({
+        collectionId: "col-ext-123",
+        name: "Brand Theme",
+        modes: [
+          { name: "dark", modeId: "mode-1" },
+          { name: "light", modeId: "mode-2" },
+        ],
+      });
+    });
+
+    it("successfully creates an extended variable collection", async () => {
+      const response = await callTool("create_variable_collection_extension", {
+        parentCollectionId: "col-123",
+        name: "Brand Theme",
+      });
+
+      expect(mockSendCommand).toHaveBeenCalledTimes(1);
+      expect(mockSendCommand).toHaveBeenCalledWith("create_variable_collection_extension", {
+        parentCollectionId: "col-123",
+        name: "Brand Theme",
+      });
+      expect(response.content[0].text).toContain("Brand Theme");
+      expect(response.content[0].text).toContain("col-ext-123");
+      expect(response.content[0].text).toContain("dark (mode-1)");
+    });
+
+    it("requires parentCollectionId parameter", async () => {
+      await expect(
+        callTool("create_variable_collection_extension", {
+          name: "Brand Theme",
+        }),
+      ).rejects.toThrow();
+      expect(mockSendCommand).not.toHaveBeenCalled();
+    });
+
+    it("handles errors gracefully (e.g. non-Enterprise plan)", async () => {
+      mockSendCommand.mockRejectedValue(new Error("Extended collections require a Figma Enterprise plan"));
+
+      const response = await callTool("create_variable_collection_extension", {
+        parentCollectionId: "col-123",
+        name: "Brand Theme",
+      });
+
+      expect(response.content[0].text).toContain("Error creating extended variable collection");
+      expect(response.content[0].text).toContain("Figma Enterprise plan");
+    });
+  });
+
   describe("get_collection_info", () => {
     beforeEach(() => {
       mockSendCommand.mockResolvedValue({
