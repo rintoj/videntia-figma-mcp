@@ -64,6 +64,17 @@ describe("browser control tools", () => {
       "browser_evaluate_js",
       "browser_read_console",
       "browser_read_network",
+      "browser_snapshot",
+      "browser_highlight_node",
+      "browser_clear_highlight",
+      "browser_intercept_start",
+      "browser_intercept_stop",
+      "browser_list_pending_requests",
+      "browser_fulfill_request",
+      "browser_fail_request",
+      "browser_continue_request",
+      "browser_clear_storage",
+      "browser_capture_mhtml",
     ];
     for (const name of expected) {
       expect(toolHandlers.has(name)).toBe(true);
@@ -263,6 +274,190 @@ describe("browser control tools", () => {
       mockSendToChannel.mockResolvedValueOnce({ success: true, closed: 3 });
       await callTool("browser_close_group", {});
       expect(mockSendToChannel).toHaveBeenCalledWith("browser", "close_group", {});
+    });
+  });
+
+  describe("browser_snapshot", () => {
+    it("maps depth and include_ignored to the wire and defaults include_ignored to false", async () => {
+      mockSendToChannel.mockResolvedValueOnce({ nodes: [] });
+      await callTool("browser_snapshot", { depth: 3 });
+      expect(mockSendToChannel).toHaveBeenCalledWith("browser", "get_ax_tree", {
+        depth: 3,
+        includeIgnored: false,
+        tabId: undefined,
+      });
+    });
+
+    it("rejects a negative depth at the schema layer", async () => {
+      await expect(callTool("browser_snapshot", { depth: -1 })).rejects.toThrow();
+    });
+  });
+
+  describe("browser_highlight_node", () => {
+    it("sends highlight_node with a selector", async () => {
+      await callTool("browser_highlight_node", { selector: "#hero" });
+      expect(mockSendToChannel).toHaveBeenCalledWith("browser", "highlight_node", {
+        selector: "#hero",
+        backendDOMNodeId: undefined,
+        tabId: undefined,
+      });
+    });
+
+    it("sends highlight_node with a backend_dom_node_id", async () => {
+      await callTool("browser_highlight_node", { backend_dom_node_id: 55 });
+      expect(mockSendToChannel).toHaveBeenCalledWith("browser", "highlight_node", {
+        selector: undefined,
+        backendDOMNodeId: 55,
+        tabId: undefined,
+      });
+    });
+
+    it("rejects when neither selector nor backend_dom_node_id are given", async () => {
+      await expect(callTool("browser_highlight_node", {})).rejects.toThrow(/selector or backend_dom_node_id/);
+      expect(mockSendToChannel).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("browser_clear_highlight", () => {
+    it("sends clear_highlight", async () => {
+      await callTool("browser_clear_highlight", { tab_id: 3 });
+      expect(mockSendToChannel).toHaveBeenCalledWith("browser", "clear_highlight", { tabId: 3 });
+    });
+  });
+
+  describe("browser_intercept_start", () => {
+    it("maps patterns and timeout_ms to the wire", async () => {
+      await callTool("browser_intercept_start", {
+        patterns: [{ url_pattern: "*/api/*", resource_type: "XHR" }],
+        timeout_ms: 5000,
+      });
+      expect(mockSendToChannel).toHaveBeenCalledWith("browser", "intercept_start", {
+        patterns: [{ urlPattern: "*/api/*", resourceType: "XHR" }],
+        timeoutMs: 5000,
+        tabId: undefined,
+      });
+    });
+
+    it("rejects an unknown resource_type at the schema layer", async () => {
+      await expect(
+        callTool("browser_intercept_start", { patterns: [{ resource_type: "NotAType" }] }),
+      ).rejects.toThrow();
+    });
+
+    it("rejects a timeout_ms below the minimum", async () => {
+      await expect(callTool("browser_intercept_start", { timeout_ms: 10 })).rejects.toThrow();
+    });
+  });
+
+  describe("browser_intercept_stop", () => {
+    it("sends intercept_stop", async () => {
+      await callTool("browser_intercept_stop", {});
+      expect(mockSendToChannel).toHaveBeenCalledWith("browser", "intercept_stop", { tabId: undefined });
+    });
+  });
+
+  describe("browser_list_pending_requests", () => {
+    it("sends list_pending_requests", async () => {
+      mockSendToChannel.mockResolvedValueOnce({ pending: [] });
+      await callTool("browser_list_pending_requests", { tab_id: 9 });
+      expect(mockSendToChannel).toHaveBeenCalledWith("browser", "list_pending_requests", { tabId: 9 });
+    });
+  });
+
+  describe("browser_fulfill_request", () => {
+    it("maps request_id/response fields to the wire with default status 200", async () => {
+      await callTool("browser_fulfill_request", {
+        request_id: "req-1",
+        response_headers: { "Content-Type": "application/json" },
+        body: '{"ok":true}',
+      });
+      expect(mockSendToChannel).toHaveBeenCalledWith("browser", "fulfill_request", {
+        requestId: "req-1",
+        responseCode: 200,
+        responseHeaders: { "Content-Type": "application/json" },
+        body: '{"ok":true}',
+        tabId: undefined,
+      });
+    });
+
+    it("requires request_id", async () => {
+      await expect(callTool("browser_fulfill_request", {})).rejects.toThrow();
+    });
+  });
+
+  describe("browser_fail_request", () => {
+    it("defaults error_reason to Failed", async () => {
+      await callTool("browser_fail_request", { request_id: "req-2" });
+      expect(mockSendToChannel).toHaveBeenCalledWith("browser", "fail_request", {
+        requestId: "req-2",
+        errorReason: "Failed",
+        tabId: undefined,
+      });
+    });
+
+    it("rejects an unknown error_reason", async () => {
+      await expect(
+        callTool("browser_fail_request", { request_id: "req-2", error_reason: "TotallyBroken" }),
+      ).rejects.toThrow();
+    });
+  });
+
+  describe("browser_continue_request", () => {
+    it("wraps overrides and maps post_data to postData", async () => {
+      await callTool("browser_continue_request", {
+        request_id: "req-3",
+        url: "https://example.com/mocked",
+        method: "POST",
+        headers: { Authorization: "Bearer xyz" },
+        post_data: "a=1",
+      });
+      expect(mockSendToChannel).toHaveBeenCalledWith("browser", "continue_request", {
+        requestId: "req-3",
+        overrides: {
+          url: "https://example.com/mocked",
+          method: "POST",
+          headers: { Authorization: "Bearer xyz" },
+          postData: "a=1",
+        },
+        tabId: undefined,
+      });
+    });
+
+    it("requires request_id", async () => {
+      await expect(callTool("browser_continue_request", {})).rejects.toThrow();
+    });
+  });
+
+  describe("browser_clear_storage", () => {
+    it("joins storage_types into a comma-separated string", async () => {
+      await callTool("browser_clear_storage", {
+        origin: "https://example.com",
+        storage_types: ["cookies", "local_storage"],
+      });
+      expect(mockSendToChannel).toHaveBeenCalledWith("browser", "clear_storage", {
+        origin: "https://example.com",
+        storageTypes: "cookies,local_storage",
+        tabId: undefined,
+      });
+    });
+
+    it("requires origin", async () => {
+      await expect(callTool("browser_clear_storage", {})).rejects.toThrow();
+    });
+
+    it("rejects an unknown storage type", async () => {
+      await expect(
+        callTool("browser_clear_storage", { origin: "https://example.com", storage_types: ["not_a_type"] }),
+      ).rejects.toThrow();
+    });
+  });
+
+  describe("browser_capture_mhtml", () => {
+    it("reports the captured snapshot's character length", async () => {
+      mockSendToChannel.mockResolvedValueOnce({ data: "abcde" });
+      const result = await callTool("browser_capture_mhtml", { tab_id: 4 });
+      expect(mockSendToChannel).toHaveBeenCalledWith("browser", "capture_mhtml", { tabId: 4 });
+      expect(result.content[0].text).toMatch(/MHTML snapshot captured \(5 chars/);
     });
   });
 });
