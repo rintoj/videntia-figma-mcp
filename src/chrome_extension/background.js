@@ -12,8 +12,9 @@ let joined = false;
 let currentWsUrl = null;
 
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (area === "local" && changes[SERVER_STORAGE_KEY]) {
-    console.log("[figma-overlay:bg] Server config changed, reconnecting");
+  if (area === "local" && (changes[SERVER_STORAGE_KEY] || changes[BROWSER_LABEL_STORAGE_KEY])) {
+    // Re-joining is how a renamed browser gets its new label to the relay.
+    console.log("[figma-overlay:bg] Server/identity config changed, reconnecting");
     if (inboundWs) {
       try {
         inboundWs.close();
@@ -72,7 +73,10 @@ async function connectInbound() {
     return;
   }
 
-  const serverUrl = await getServerUrl();
+  // Both awaits happen BEFORE the socket is constructed: the relay rejects an
+  // extension join without a browserId, so the identity must be in hand at
+  // join time — never sent late.
+  const [serverUrl, identity] = await Promise.all([getServerUrl(), getBrowserIdentity()]);
   // A second connectInbound() may have raced through the await above and already
   // created a socket. Re-check so we don't clobber inboundWs with a duplicate —
   // the clobbered-but-still-CONNECTING socket is what caused the "Failed to
@@ -95,8 +99,16 @@ async function connectInbound() {
       } catch {}
       return;
     }
-    console.log("[figma-overlay:bg] WS open →", currentWsUrl);
-    ws.send(JSON.stringify({ type: "join", channel: BROWSER_CHANNEL, clientType: "extension" }));
+    console.log("[figma-overlay:bg] WS open →", currentWsUrl, "as", identity.label, `(${identity.id})`);
+    ws.send(
+      JSON.stringify({
+        type: "join",
+        channel: BROWSER_CHANNEL,
+        clientType: "extension",
+        browserId: identity.id,
+        browserLabel: identity.label,
+      }),
+    );
   };
 
   ws.onmessage = async (evt) => {

@@ -668,6 +668,20 @@ async function updateServerUrl(url) {
 serverUrlInput.addEventListener("change", () => updateServerUrl(serverUrlInput.value));
 serverUrlInput.addEventListener("blur", () => updateServerUrl(serverUrlInput.value));
 
+// ---- This browser (per-profile identity) ----
+
+const browserIdInput = document.getElementById("browserIdInput");
+const browserLabelInput = document.getElementById("browserLabelInput");
+
+async function updateBrowserLabel(label) {
+  const saved = await setBrowserLabel(label);
+  browserLabelInput.value = saved;
+  setStatus(`Browser label set to ${saved}.`, "success");
+}
+
+browserLabelInput.addEventListener("change", () => updateBrowserLabel(browserLabelInput.value));
+browserLabelInput.addEventListener("blur", () => updateBrowserLabel(browserLabelInput.value));
+
 // ---- Keyboard shortcuts ----
 
 document.addEventListener("keydown", (e) => {
@@ -696,6 +710,12 @@ document.addEventListener("keydown", (e) => {
   serverUrl = await getServerUrl();
   serverUrlInput.value = serverUrl;
   renderPresets();
+
+  const identity = await getBrowserIdentity();
+  browserIdInput.value = identity.id;
+  browserIdInput.title = identity.id;
+  browserLabelInput.value = identity.label;
+  browserLabelInput.placeholder = defaultLabelFor(identity.id);
 
   const tab = await activeTab();
   if (tab) {
