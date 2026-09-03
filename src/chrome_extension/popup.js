@@ -668,6 +668,33 @@ async function updateServerUrl(url) {
 serverUrlInput.addEventListener("change", () => updateServerUrl(serverUrlInput.value));
 serverUrlInput.addEventListener("blur", () => updateServerUrl(serverUrlInput.value));
 
+// ---- This browser (per-profile identity) ----
+
+const browserIdInput = document.getElementById("browserIdInput");
+const browserLabelInput = document.getElementById("browserLabelInput");
+// Last label known to be persisted, so an unchanged write is skipped.
+let savedBrowserLabel = null;
+
+async function updateBrowserLabel(label) {
+  // Persisting fires chrome.storage.onChanged, which makes the service worker
+  // drop and re-establish the relay socket (that is how the new label reaches
+  // the relay). Writing on an unchanged value — a bare focus/blur, or the
+  // change+blur pair a single edit fires — would tear down a live connection,
+  // and any browser command in flight with it. Only write real changes.
+  const normalized = normalizeLabel(label, browserIdInput.value);
+  if (normalized === savedBrowserLabel) {
+    browserLabelInput.value = normalized;
+    return;
+  }
+  const saved = await setBrowserLabel(normalized);
+  savedBrowserLabel = saved;
+  browserLabelInput.value = saved;
+  setStatus(`Browser label set to ${saved}.`, "success");
+}
+
+browserLabelInput.addEventListener("change", () => updateBrowserLabel(browserLabelInput.value));
+browserLabelInput.addEventListener("blur", () => updateBrowserLabel(browserLabelInput.value));
+
 // ---- Keyboard shortcuts ----
 
 document.addEventListener("keydown", (e) => {
@@ -696,6 +723,13 @@ document.addEventListener("keydown", (e) => {
   serverUrl = await getServerUrl();
   serverUrlInput.value = serverUrl;
   renderPresets();
+
+  const identity = await getBrowserIdentity();
+  browserIdInput.value = identity.id;
+  browserIdInput.title = identity.id;
+  browserLabelInput.value = identity.label;
+  savedBrowserLabel = identity.label;
+  browserLabelInput.placeholder = defaultLabelFor(identity.id);
 
   const tab = await activeTab();
   if (tab) {

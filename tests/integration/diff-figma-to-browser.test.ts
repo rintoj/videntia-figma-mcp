@@ -773,3 +773,130 @@ describe("diff_figma_to_browser — mixed text styling (FM5)", () => {
     expect(parsed.rows[0]).toMatchObject({ property: "font-size", status: "—" });
   });
 });
+
+describe("diff_figma_to_browser — browser_id routing", () => {
+  let server: McpServer;
+  let mockSendToFigma: jest.Mock;
+  let mockSendToChannel: jest.Mock;
+  let mockFindNodeInPage: jest.Mock;
+  let toolHandlers: Map<string, Function>;
+  let toolSchemas: Map<string, z.ZodObject<any>>;
+
+  beforeEach(() => {
+    server = new McpServer({ name: "test", version: "1.0.0" }, { capabilities: { tools: {} } });
+    const ws = require("../../src/videntia_figma_mcp/utils/websocket");
+    mockSendToFigma = ws.sendCommandToFigma;
+    mockSendToChannel = ws.sendCommandToChannel;
+    mockSendToFigma.mockReset();
+    mockSendToChannel.mockReset();
+    mockFindNodeInPage = require("../../src/videntia_figma_mcp/utils/find-node-in-page").findNodeInPage;
+    mockFindNodeInPage.mockReset();
+
+    toolHandlers = new Map();
+    toolSchemas = new Map();
+    const original = server.tool.bind(server);
+    jest.spyOn(server, "tool").mockImplementation((...args: any[]) => {
+      if (args.length === 4) {
+        const [name, , schema, handler] = args;
+        toolHandlers.set(name, handler);
+        toolSchemas.set(name, z.object(schema));
+      }
+      return (original as any)(...args);
+    });
+
+    registerComparisonTools(server);
+  });
+
+  async function callTool(name: string, args: any = {}) {
+    const schema = toolSchemas.get(name);
+    const handler = toolHandlers.get(name);
+    if (!schema || !handler) throw new Error(`Tool ${name} not found`);
+    return await handler(schema.parse(args), { meta: {} });
+  }
+
+  it("pins every browser call of one auto-locate run to the same browser_id", async () => {
+    mockSendToFigma
+      .mockResolvedValueOnce({
+        nodes: [
+          {
+            id: "5:5",
+            type: "TEXT",
+            fontSize: 14,
+            fontWeight: 600,
+            fontFamily: "Inter",
+            fills: [{ type: "SOLID", color: { r: 0, g: 0, b: 0 } }],
+            absoluteBoundingBox: { x: 0, y: 0, width: 100, height: 24 },
+          },
+        ],
+      })
+      .mockResolvedValueOnce({ imageData: Buffer.from("ref").toString("base64") });
+
+    mockSendToChannel
+      .mockResolvedValueOnce({ results: [{ found: false }] }) // fig-id probe
+      .mockResolvedValueOnce({ imageData: Buffer.from("page").toString("base64") }) // screenshot
+      .mockResolvedValueOnce({ selector: ".title", tag: "h2" }) // resolve_selector_at_point
+      .mockResolvedValueOnce({ results: [] }) // batch unavailable
+      .mockResolvedValueOnce({ styles: { "font-size": "14px" } }) // legacy computed styles
+      .mockResolvedValueOnce({ nodes: [{ rect: { width: 100, height: 24 } }] }); // dom nodes
+
+    mockFindNodeInPage.mockResolvedValueOnce({ x: 10, y: 20, width: 100, height: 24, confidence: 0.95 });
+
+    await callTool("diff_figma_to_browser", {
+      figma_node_id: "5:5",
+      properties: ["font-size"],
+      browser_id: "browser-a",
+    });
+
+    expect(mockSendToChannel.mock.calls.length).toBeGreaterThanOrEqual(4);
+    for (const call of mockSendToChannel.mock.calls) {
+      expect(call[0]).toBe("browser");
+      expect(call[2].browserId).toBe("browser-a");
+    }
+  });
+
+  it("omits browserId on every call when browser_id is not passed", async () => {
+    mockSendToFigma.mockResolvedValueOnce({ nodes: [{ id: "1:1", type: "TEXT", fontSize: 14 }] });
+    mockSendToChannel
+      .mockResolvedValueOnce({ results: [] })
+      .mockResolvedValueOnce({ styles: { "font-size": "14px" } })
+      .mockResolvedValueOnce({ nodes: [] });
+
+    await callTool("diff_figma_to_browser", {
+      figma_node_id: "1:1",
+      css_selector: ".item",
+      properties: ["font-size"],
+    });
+
+    for (const call of mockSendToChannel.mock.calls) {
+      expect(call[2].browserId).toBeUndefined();
+    }
+  });
+
+  it("pins every browser call of a frame audit to the same browser_id", async () => {
+    mockSendToFigma.mockResolvedValueOnce({
+      nodes: [
+        {
+          id: "9:1",
+          type: "FRAME",
+          name: "Frame",
+          absoluteBoundingBox: { x: 0, y: 0, width: 100, height: 100 },
+          children: [],
+        },
+      ],
+    });
+    mockSendToChannel.mockResolvedValueOnce({
+      nodes: [{ idx: 0, tag: "div", selector: "#root", depth: 0, rect: { x: 0, y: 0, w: 100, h: 100 } }],
+    });
+
+    await callTool("diff_figma_frame_to_page", {
+      frame_node_id: "9:1",
+      root_selector: "#root",
+      browser_id: "browser-b",
+    });
+
+    expect(mockSendToChannel.mock.calls.length).toBeGreaterThan(0);
+    for (const call of mockSendToChannel.mock.calls) {
+      expect(call[2].browserId).toBe("browser-b");
+    }
+  });
+});

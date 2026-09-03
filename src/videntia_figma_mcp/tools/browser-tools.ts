@@ -1,16 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { sendCommandToChannel, sendCommandToFigma } from "../utils/websocket.js";
-
-const BROWSER_CHANNEL = "browser";
-
-const tabIdSchema = z
-  .number()
-  .int()
-  .optional()
-  .describe(
-    "Optional Chrome tab ID to target. The tab does NOT need to be focused or visible — screenshots, styles, and viewport emulation all work on background tabs via CDP. When omitted, the extension uses its pinned tab (set via the popup) or falls back to the active tab in the focused window; pass an explicit tab ID for any multi-step workflow so commands never leak onto whichever tab the user has focused. Use browser_list_tabs to discover tab IDs.",
-  );
+import { sendCommandToFigma } from "../utils/websocket.js";
+import { browserIdSchema, sendBrowserCommand, tabIdSchema } from "./browser-channel.js";
 
 export function registerBrowserTools(server: McpServer): void {
   server.tool(
@@ -18,13 +9,13 @@ export function registerBrowserTools(server: McpServer): void {
     "Get the URL, title, and tab ID of the target browser tab. Returns the active tab by default; pass tab_id to target a specific tab. Requires the Figma Overlay Chrome extension to be installed and connected.",
     {
       tab_id: tabIdSchema,
+      browser_id: browserIdSchema,
     },
-    async ({ tab_id }) => {
-      const result = await sendCommandToChannel<{ url: string; title: string; tabId: number }>(
-        BROWSER_CHANNEL,
-        "get_page_info",
-        { tabId: tab_id },
-      );
+    async ({ tab_id, browser_id }) => {
+      const result = await sendBrowserCommand<{ url: string; title: string; tabId: number }>("get_page_info", {
+        browserId: browser_id,
+        tabId: tab_id,
+      });
       return {
         content: [{ type: "text", text: `URL: ${result.url}\nTitle: ${result.title}\nTab ID: ${result.tabId}` }],
       };
@@ -41,13 +32,14 @@ export function registerBrowserTools(server: McpServer): void {
         .default(false)
         .describe("Capture the full scrollable page instead of just the visible viewport."),
       tab_id: tabIdSchema,
+      browser_id: browserIdSchema,
     },
-    async ({ full_page, tab_id }) => {
-      const result = await sendCommandToChannel<{ imageData: string; mimeType: string }>(
-        BROWSER_CHANNEL,
-        "get_page_screenshot",
-        { tabId: tab_id, fullPage: full_page },
-      );
+    async ({ full_page, tab_id, browser_id }) => {
+      const result = await sendBrowserCommand<{ imageData: string; mimeType: string }>("get_page_screenshot", {
+        browserId: browser_id,
+        tabId: tab_id,
+        fullPage: full_page,
+      });
       return {
         content: [{ type: "image", data: result.imageData, mimeType: result.mimeType }],
       };
@@ -82,9 +74,11 @@ export function registerBrowserTools(server: McpServer): void {
         .default(true)
         .describe("Include element attributes (id, class, href, src, role, aria-label, etc.)."),
       tab_id: tabIdSchema,
+      browser_id: browserIdSchema,
     },
-    async ({ selector, depth, include_text, include_attributes, tab_id }) => {
-      const result = await sendCommandToChannel(BROWSER_CHANNEL, "get_dom_nodes", {
+    async ({ selector, depth, include_text, include_attributes, tab_id, browser_id }) => {
+      const result = await sendBrowserCommand("get_dom_nodes", {
+        browserId: browser_id,
         selector,
         depth,
         includeText: include_text,
@@ -113,9 +107,11 @@ export function registerBrowserTools(server: McpServer): void {
           "Specific CSS property names to return (e.g. ['color', 'font-size', 'padding']). Omit for a curated set covering color, typography, spacing, layout, and effects.",
         ),
       tab_id: tabIdSchema,
+      browser_id: browserIdSchema,
     },
-    async ({ selector, properties, tab_id }) => {
-      const result = await sendCommandToChannel(BROWSER_CHANNEL, "get_computed_styles", {
+    async ({ selector, properties, tab_id, browser_id }) => {
+      const result = await sendBrowserCommand("get_computed_styles", {
+        browserId: browser_id,
         selector,
         properties,
         tabId: tab_id,
@@ -170,8 +166,9 @@ export function registerBrowserTools(server: McpServer): void {
           "When true, overlay starts with difference blend mode enabled — pixel-perfect matches render black, mismatches render bright. Useful for autonomous visual diffing without human eyeballing.",
         ),
       tab_id: tabIdSchema,
+      browser_id: browserIdSchema,
     },
-    async ({ opacity, scale, cropTop, cropBottom, offsetX, offsetY, blendMode, tab_id }) => {
+    async ({ opacity, scale, cropTop, cropBottom, offsetX, offsetY, blendMode, tab_id, browser_id }) => {
       const exported = await sendCommandToFigma<{
         imageData: string;
         mimeType: string;
@@ -180,7 +177,8 @@ export function registerBrowserTools(server: McpServer): void {
         name?: string;
       }>("export_selection_as_image", { scale });
 
-      await sendCommandToChannel(BROWSER_CHANNEL, "inject_figma_overlay", {
+      await sendBrowserCommand("inject_figma_overlay", {
+        browserId: browser_id,
         imageData: exported.imageData,
         mimeType: exported.mimeType,
         width: exported.originalWidth,
@@ -194,11 +192,10 @@ export function registerBrowserTools(server: McpServer): void {
         tabId: tab_id,
       });
 
-      const browserInfo = await sendCommandToChannel<{ url: string; title: string; tabId: number }>(
-        BROWSER_CHANNEL,
-        "get_page_info",
-        { tabId: tab_id },
-      );
+      const browserInfo = await sendBrowserCommand<{ url: string; title: string; tabId: number }>("get_page_info", {
+        browserId: browser_id,
+        tabId: tab_id,
+      });
 
       return {
         content: [
@@ -237,14 +234,16 @@ export function registerBrowserTools(server: McpServer): void {
           "Use CDP emulation even for widths ≥ 500px (e.g. to emulate a tablet with touch instead of resizing the window).",
         ),
       tab_id: tabIdSchema,
+      browser_id: browserIdSchema,
     },
-    async ({ width, height, device_scale_factor, force_emulation, tab_id }) => {
-      const result = await sendCommandToChannel<{
+    async ({ width, height, device_scale_factor, force_emulation, tab_id, browser_id }) => {
+      const result = await sendBrowserCommand<{
         emulated: boolean;
         windowWidth: number;
         windowHeight: number;
         tabId: number;
-      }>(BROWSER_CHANNEL, "set_viewport", {
+      }>("set_viewport", {
+        browserId: browser_id,
         width,
         height,
         deviceScaleFactor: device_scale_factor,
@@ -269,9 +268,10 @@ export function registerBrowserTools(server: McpServer): void {
     "Clear CDP viewport emulation set by set_browser_viewport (or by a narrow overlay) and detach the debugger from the tab.",
     {
       tab_id: tabIdSchema,
+      browser_id: browserIdSchema,
     },
-    async ({ tab_id }) => {
-      await sendCommandToChannel(BROWSER_CHANNEL, "reset_viewport", { tabId: tab_id });
+    async ({ tab_id, browser_id }) => {
+      await sendBrowserCommand("reset_viewport", { browserId: browser_id, tabId: tab_id });
       return { content: [{ type: "text", text: "Viewport emulation cleared." }] };
     },
   );
@@ -281,9 +281,10 @@ export function registerBrowserTools(server: McpServer): void {
     "Remove the Figma overlay from a browser tab. Targets the pinned/active tab by default, or pass tab_id to clear a specific tab.",
     {
       tab_id: tabIdSchema,
+      browser_id: browserIdSchema,
     },
-    async ({ tab_id }) => {
-      await sendCommandToChannel(BROWSER_CHANNEL, "clear_figma_overlay", { tabId: tab_id });
+    async ({ tab_id, browser_id }) => {
+      await sendBrowserCommand("clear_figma_overlay", { browserId: browser_id, tabId: tab_id });
       return { content: [{ type: "text", text: "Overlay cleared." }] };
     },
   );
@@ -336,6 +337,7 @@ export function registerBrowserTools(server: McpServer): void {
         .optional()
         .describe("IANA timezone id (e.g. 'America/Los_Angeles'). Pass null to clear just this override."),
       tab_id: tabIdSchema,
+      browser_id: browserIdSchema,
     },
     async ({
       viewport,
@@ -346,8 +348,10 @@ export function registerBrowserTools(server: McpServer): void {
       geolocation,
       timezone,
       tab_id,
+      browser_id,
     }) => {
-      const result = await sendCommandToChannel(BROWSER_CHANNEL, "emulate", {
+      const result = await sendBrowserCommand("emulate", {
+        browserId: browser_id,
         viewport: viewport
           ? { width: viewport.width, height: viewport.height, deviceScaleFactor: viewport.device_scale_factor }
           : undefined,
@@ -373,9 +377,9 @@ export function registerBrowserTools(server: McpServer): void {
   server.tool(
     "browser_clear_emulation",
     "Clear every override applied by browser_emulate (viewport, color scheme, reduced motion, network throttling, CPU throttling, geolocation, timezone) in one call, and detach the debugger if nothing else needs the session.",
-    { tab_id: tabIdSchema },
-    async ({ tab_id }) => {
-      await sendCommandToChannel(BROWSER_CHANNEL, "clear_emulation", { tabId: tab_id });
+    { tab_id: tabIdSchema, browser_id: browserIdSchema },
+    async ({ tab_id, browser_id }) => {
+      await sendBrowserCommand("clear_emulation", { browserId: browser_id, tabId: tab_id });
       return { content: [{ type: "text", text: "All emulation overrides cleared." }] };
     },
   );

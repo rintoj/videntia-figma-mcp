@@ -21,4 +21,18 @@ describe("comparison tools registration", () => {
     const tools = (server as any)._registeredTools;
     expect(tools["compare_figma_to_component"]).toBeDefined();
   });
+
+  it("exposes an optional browser_id on both browser-backed diff tools", () => {
+    const tools = (server as any)._registeredTools;
+    for (const name of ["diff_figma_to_browser", "diff_figma_frame_to_page"]) {
+      const shape = tools[name].inputSchema.shape;
+      expect(shape.browser_id).toBeDefined();
+      expect(shape.browser_id.isOptional()).toBe(true);
+    }
+  });
+
+  it("does not add browser_id to the sandpack-only comparison tool", () => {
+    const tools = (server as any)._registeredTools;
+    expect(tools["compare_figma_to_component"].inputSchema.shape.browser_id).toBeUndefined();
+  });
 });

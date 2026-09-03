@@ -1233,6 +1233,32 @@
           <div class="preset-row" id="presetRow"></div>
           <input type="text" id="serverUrlInput" class="url-input" spellcheck="false" autocomplete="off" />
         </div>
+        <div class="setting-row">
+          <div class="setting-row-head">
+            <span class="setting-label">This browser</span>
+            <span class="setting-desc"
+              >Identity this Chrome profile joins with, so commands reach one browser instead of all of them. Open this
+              popup in each profile to map an ID back to a profile.</span
+            >
+          </div>
+          <input
+            type="text"
+            id="browserIdInput"
+            class="url-input"
+            spellcheck="false"
+            autocomplete="off"
+            readonly
+            title="Browser ID (read-only)"
+          />
+          <input
+            type="text"
+            id="browserLabelInput"
+            class="url-input"
+            spellcheck="false"
+            autocomplete="off"
+            placeholder="Label for this browser"
+          />
+        </div>
         <div class="divider"></div>
         <span class="section-title">Target tab</span>
         <div class="setting-row">

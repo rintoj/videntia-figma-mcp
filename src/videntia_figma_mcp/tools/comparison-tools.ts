@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { sendCommandToChannel, sendCommandToFigma } from "../utils/websocket.js";
+import { sendCommandToFigma } from "../utils/websocket.js";
 import { captureUrl } from "../utils/screenshot.js";
 import { diffImages } from "../utils/pixel-diff.js";
 import { startSandpackServer } from "../utils/sandpack-server.js";
@@ -10,8 +10,7 @@ import { auditFrame, DomRect, iou, MatchPair } from "../utils/frame-audit.js";
 import { COLOR_DELTA_E_THRESHOLD, CompareRow } from "../utils/normalize-style.js";
 import { deltaE76 } from "../utils/color-calculations.js";
 import { suggestFix } from "../utils/fix-hints.js";
-
-const BROWSER_CHANNEL = "browser";
+import { browserIdSchema, sendBrowserCommand } from "./browser-channel.js";
 
 // Index every node in a Figma tree by id for O(1) pair lookup.
 function indexFigmaTree(root: FigmaNodeLike): Map<string, FigmaNodeLike> {
@@ -337,8 +336,9 @@ export function registerComparisonTools(server: McpServer): void {
         .record(z.string(), z.number())
         .optional()
         .describe("Per-property numeric tolerance overrides (e.g. { 'line-height': 1 })."),
+      browser_id: browserIdSchema,
     },
-    async ({ figma_node_id, css_selector, properties, tolerance_overrides, min_confidence }) => {
+    async ({ figma_node_id, css_selector, properties, tolerance_overrides, min_confidence, browser_id }) => {
       const warnings: string[] = [];
 
       const nodeInfoRaw = await sendCommandToFigma("get_node_info", { nodeIds: [figma_node_id], depth: 2 });
@@ -367,7 +367,8 @@ export function registerComparisonTools(server: McpServer): void {
       if (!resolvedSelector) {
         const figIdSelector = `[data-fig-id="${figma_node_id}"]`;
         try {
-          const probe = (await sendCommandToChannel(BROWSER_CHANNEL, "get_computed_styles_batch", {
+          const probe = (await sendBrowserCommand("get_computed_styles_batch", {
+            browserId: browser_id,
             selectors: [figIdSelector],
             properties: ["display"],
           })) as { results?: Array<{ found: boolean }> };
@@ -390,7 +391,7 @@ export function registerComparisonTools(server: McpServer): void {
           })) as { imageData: string };
           const referenceBuffer = Buffer.from(figmaExport.imageData, "base64");
 
-          const pageShot = (await sendCommandToChannel(BROWSER_CHANNEL, "get_page_screenshot", {})) as {
+          const pageShot = (await sendBrowserCommand("get_page_screenshot", { browserId: browser_id })) as {
             imageData: string;
           };
           const pageBuffer = Buffer.from(pageShot.imageData, "base64");
@@ -427,7 +428,8 @@ export function registerComparisonTools(server: McpServer): void {
 
           const cx = match.x + match.width / 2;
           const cy = match.y + match.height / 2;
-          const resolved = (await sendCommandToChannel(BROWSER_CHANNEL, "resolve_selector_at_point", {
+          const resolved = (await sendBrowserCommand("resolve_selector_at_point", {
+            browserId: browser_id,
             x: cx,
             y: cy,
             imagePixels: true,
@@ -477,7 +479,8 @@ export function registerComparisonTools(server: McpServer): void {
       let batchSucceeded = false;
 
       try {
-        const batchRaw = (await sendCommandToChannel(BROWSER_CHANNEL, "get_computed_styles_batch", {
+        const batchRaw = (await sendBrowserCommand("get_computed_styles_batch", {
+          browserId: browser_id,
           selectors: [finalSelector],
           ...(properties ? { properties } : {}),
           includeParent: true,
@@ -508,7 +511,8 @@ export function registerComparisonTools(server: McpServer): void {
       }
 
       if (!batchSucceeded) {
-        const computedRaw = (await sendCommandToChannel(BROWSER_CHANNEL, "get_computed_styles", {
+        const computedRaw = (await sendBrowserCommand("get_computed_styles", {
+          browserId: browser_id,
           selector: finalSelector,
           properties,
         })) as Record<string, unknown>;
@@ -526,7 +530,8 @@ export function registerComparisonTools(server: McpServer): void {
         }
 
         try {
-          const domRaw = (await sendCommandToChannel(BROWSER_CHANNEL, "get_dom_nodes", {
+          const domRaw = (await sendBrowserCommand("get_dom_nodes", {
+            browserId: browser_id,
             selector: finalSelector,
             depth: 1,
             includeText: false,
@@ -667,6 +672,7 @@ export function registerComparisonTools(server: McpServer): void {
         .describe(
           "For mismatching color rows, look up the nearest Figma color variable to the browser value and annotate the row (e.g. 'browser ≈ neutral-300'). Adds one variables fetch.",
         ),
+      browser_id: browserIdSchema,
     },
     async ({
       frame_node_id,
@@ -682,6 +688,7 @@ export function registerComparisonTools(server: McpServer): void {
       properties,
       annotation_map,
       include_token_suggestions,
+      browser_id,
     }) => {
       const warnings: string[] = [];
       const nodeInfoRaw = await sendCommandToFigma("get_node_info", { nodeIds: [frame_node_id], depth: 20 });
@@ -704,7 +711,7 @@ export function registerComparisonTools(server: McpServer): void {
             scale: 1,
           })) as { imageData: string };
           const refBuf = Buffer.from(figmaExport.imageData, "base64");
-          const shot = (await sendCommandToChannel(BROWSER_CHANNEL, "get_page_screenshot", {})) as {
+          const shot = (await sendBrowserCommand("get_page_screenshot", { browserId: browser_id })) as {
             imageData: string;
           };
           const pageBuf = Buffer.from(shot.imageData, "base64");
@@ -712,7 +719,8 @@ export function registerComparisonTools(server: McpServer): void {
           if (match) {
             const cx = match.x + match.width / 2;
             const cy = match.y + match.height / 2;
-            const resolved = (await sendCommandToChannel(BROWSER_CHANNEL, "resolve_selector_at_point", {
+            const resolved = (await sendBrowserCommand("resolve_selector_at_point", {
+              browserId: browser_id,
               x: cx,
               y: cy,
               imagePixels: true,
@@ -732,7 +740,8 @@ export function registerComparisonTools(server: McpServer): void {
         }
       }
 
-      const collected = (await sendCommandToChannel(BROWSER_CHANNEL, "collect_all_element_rects", {
+      const collected = (await sendBrowserCommand("collect_all_element_rects", {
+        browserId: browser_id,
         root: rootSelectorResolved,
         maxNodes: max_nodes,
         includeZeroRect: include_zero_rect,
@@ -807,7 +816,8 @@ export function registerComparisonTools(server: McpServer): void {
           warnings.push(`${audit.matched.length - withSelector.length} matched pairs skipped (no selector)`);
         }
 
-        const batch = (await sendCommandToChannel(BROWSER_CHANNEL, "get_computed_styles_batch", {
+        const batch = (await sendBrowserCommand("get_computed_styles_batch", {
+          browserId: browser_id,
           selectors: capped.map((p) => p.selector),
           ...(properties ? { properties } : {}),
           includeParent: true,
