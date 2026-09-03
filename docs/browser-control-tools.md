@@ -40,7 +40,7 @@ extension's command handler never sees it:
 
 ```json
 { "id": "<uuid>", "type": "message", "channel": "browser", "target": "<browserId>",
-  "message": { "id": "<uuid>", "command": "browser_click", "params": { "commandId": "<uuid>" } } }
+  "message": { "id": "<uuid>", "command": "click", "params": { "commandId": "<uuid>" } } }
 ```
 
 With no `browser_id` the envelope carries no `target` key at all, exactly as before.
@@ -52,6 +52,7 @@ The relay then decides:
 | `target` set, unknown/stale | error: `No browser with id "X" is connected. Connected: <list>` |
 | no `target`, exactly 1 browser | delivered normally (unchanged single-profile behaviour) |
 | no `target`, 2+ browsers | error: `Multiple browsers are connected: <list>. Pass browser_id to target one.` |
+| no `target`, channel also holds a Figma plugin | broadcast — a plugin-bearing channel is a Figma channel and is never routed (a file named "Browser" slugs onto the `"browser"` channel) |
 
 Both errors surface verbatim as a failed tool call.
 

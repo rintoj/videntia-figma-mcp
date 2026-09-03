@@ -9,6 +9,7 @@ export type BrowserClientLike = {
   _browserId?: string;
   _browserLabel?: string;
   _isExtension?: boolean;
+  _isPlugin?: boolean;
   _joinedAt?: number;
   readyState: number;
 };
@@ -55,6 +56,13 @@ export type TargetResolution =
  * browser channel at all (every Figma/plugin channel lands here), so the caller
  * keeps its existing broadcast behaviour. With no target and several browsers
  * connected the send is ambiguous — never guess between profiles.
+ *
+ * A channel that holds a Figma plugin is a Figma channel, never a browser
+ * channel, so an untargeted send there always broadcasts. Channel names are not
+ * reserved: the plugin derives its channel from a slugged file name, so a file
+ * called "Browser" joins the very channel the extension hardcodes. Without this
+ * guard a plugin sharing that channel would have every untargeted Figma command
+ * routed away to the extension (which ignores it) and hang until the timeout.
  */
 export function resolveTarget(clients: Iterable<BrowserClientLike>, target?: string): TargetResolution {
   const all = [...clients];
@@ -66,6 +74,9 @@ export function resolveTarget(clients: Iterable<BrowserClientLike>, target?: str
     return { kind: "not-found", available: listBrowsers(all) };
   }
 
+  const hasPlugin = all.some((c) => c._isPlugin === true && c.readyState === OPEN);
+  if (hasPlugin) return { kind: "broadcast" };
+
   if (eligible.length === 0) return { kind: "broadcast" };
   if (eligible.length === 1) return { kind: "single", client: eligible[0]! };
   return { kind: "ambiguous", available: listBrowsers(all) };
@@ -75,4 +86,31 @@ export function resolveTarget(clients: Iterable<BrowserClientLike>, target?: str
 export function formatBrowserList(entries: BrowserEntry[]): string {
   if (entries.length === 0) return "none";
   return entries.map((e) => `${e.id} (${e.label})`).join(", ");
+}
+
+// --- Identity input validation ----------------------------------------------
+//
+// `browserId`, `browserLabel` and a message's `target` all arrive from whatever
+// client opened the socket, so none of them may be trusted. They end up stored
+// on the socket, in `/channels` responses, in server log lines and in error text
+// echoed back to other clients; an unbounded or control-character-laden value
+// would inflate every one of those and let a client smuggle newlines into logs.
+
+/** Max accepted length of a `browserId` and of a message's routing `target`. */
+export const BROWSER_ID_MAX_LENGTH = 128;
+/** Max accepted length of a `browserLabel` (matches the extension's own cap). */
+export const BROWSER_LABEL_MAX_LENGTH = 64;
+
+const CONTROL_CHARS = new RegExp("[\\u0000-\\u001F\\u007F]", "g");
+
+/**
+ * Normalizes an untrusted identity string: non-strings become `undefined`,
+ * control characters are stripped, and the value is trimmed then truncated to
+ * `maxLength`. An empty result is reported as `undefined` so callers treat
+ * "absent" and "blank" identically.
+ */
+export function sanitizeIdentityValue(value: unknown, maxLength: number): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const cleaned = value.replace(CONTROL_CHARS, "").trim().slice(0, maxLength);
+  return cleaned || undefined;
 }

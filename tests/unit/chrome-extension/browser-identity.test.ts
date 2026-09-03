@@ -149,6 +149,18 @@ describe("chrome extension / browser identity", () => {
       expect(label).toBe("User A");
     });
 
+    it("mints exactly one id when concurrent callers race the first run", async () => {
+      // background.js calls getBrowserIdentity() from the top-level connect, the
+      // keep-alive alarm and onStartup; a losing racer that minted its own id
+      // would join under an id the popup and relay never agree on.
+      const store = installFakeStorage();
+      const [a, b, c] = await Promise.all([getBrowserIdentity(), getBrowserIdentity(), getBrowserIdentity()]);
+      expect(a.id).toBe(b.id);
+      expect(b.id).toBe(c.id);
+      expect(store[BROWSER_ID_STORAGE_KEY]).toBe(a.id);
+      expect(await getBrowserIdentity()).toMatchObject({ id: a.id });
+    });
+
     it("falls back to a stable ephemeral identity when storage throws", async () => {
       installThrowingStorage();
       const first = await getBrowserIdentity();

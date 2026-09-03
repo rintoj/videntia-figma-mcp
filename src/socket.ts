@@ -15,7 +15,14 @@ import { createToken, listTokens, revokeToken, validateKey } from "./auth/tokens
 import { signJwt, verifyJwt, parseCookies } from "./auth/session";
 import { sendVerificationEmail } from "./auth/email";
 import { isSameFile } from "./socket-channel-identity";
-import { listBrowsers, resolveTarget, formatBrowserList } from "./socket-browser-registry";
+import {
+  listBrowsers,
+  resolveTarget,
+  formatBrowserList,
+  sanitizeIdentityValue,
+  BROWSER_ID_MAX_LENGTH,
+  BROWSER_LABEL_MAX_LENGTH,
+} from "./socket-browser-registry";
 
 // Enhanced logging system
 const logger = {
@@ -152,8 +159,7 @@ function handleWebSocketMessage(ws: WebSocket, raw: string) {
     // would silently race on every reply. Reject the join outright rather than
     // degrade to non-deterministic broadcast.
     const isExtensionJoin = data.clientType === "extension";
-    const browserId: string | undefined =
-      typeof data.browserId === "string" && data.browserId.trim() ? data.browserId.trim() : undefined;
+    const browserId = sanitizeIdentityValue(data.browserId, BROWSER_ID_MAX_LENGTH);
     if (isExtensionJoin && !browserId) {
       const reason =
         "Extension build is out of date: browserId is required in the join payload. Reload the unpacked extension.";
@@ -163,8 +169,7 @@ function handleWebSocketMessage(ws: WebSocket, raw: string) {
       ws.close(1000, reason);
       return;
     }
-    const browserLabel: string | undefined =
-      typeof data.browserLabel === "string" && data.browserLabel.trim() ? data.browserLabel.trim() : undefined;
+    const browserLabel = sanitizeIdentityValue(data.browserLabel, BROWSER_LABEL_MAX_LENGTH);
 
     // Remove stale plugin connections for the same file (reconnect from the same
     // Figma file, from a *different* socket). Only the plugin's own prior socket
@@ -299,13 +304,16 @@ function handleWebSocketMessage(ws: WebSocket, raw: string) {
     // channel (Figma plugin sessions) has no eligible browser and broadcasts.
     // An extension sending here is replying to a command, not issuing one — those
     // frames always broadcast back to the waiting MCP client.
+    // `target` is attacker-controllable like every other field on the wire: it is
+    // echoed back in the not-found error, so bound it before it is interpolated.
+    const target = sanitizeIdentityValue(data.target, BROWSER_ID_MAX_LENGTH);
     const resolution = (ws as any)._isExtension
       ? ({ kind: "broadcast" } as const)
-      : resolveTarget(channelClients as Iterable<any>, data.target);
+      : resolveTarget(channelClients as Iterable<any>, target);
     if (resolution.kind === "not-found" || resolution.kind === "ambiguous") {
       const error =
         resolution.kind === "not-found"
-          ? `No browser with id "${data.target}" is connected. Connected: ${formatBrowserList(resolution.available)}`
+          ? `No browser with id "${target}" is connected. Connected: ${formatBrowserList(resolution.available)}`
           : `Multiple browsers are connected: ${formatBrowserList(resolution.available)}. Pass browser_id to target one.`;
       ws.send(JSON.stringify({ type: "broadcast", message: { id: data.message?.id, error }, channel: channelName }));
       stats.messagesSent++;

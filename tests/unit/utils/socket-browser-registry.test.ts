@@ -3,6 +3,9 @@ import {
   listBrowsers,
   resolveTarget,
   formatBrowserList,
+  sanitizeIdentityValue,
+  BROWSER_ID_MAX_LENGTH,
+  BROWSER_LABEL_MAX_LENGTH,
   type BrowserClientLike,
 } from "../../../src/socket-browser-registry";
 
@@ -103,6 +106,58 @@ describe("resolveTarget", () => {
     const mcp = browser({ _isExtension: false, _browserId: undefined });
     const only = browser({ _browserId: "a" });
     expect(resolveTarget([mcp, only])).toEqual({ kind: "single", client: only });
+  });
+});
+
+describe("resolveTarget on a channel shared with a Figma plugin", () => {
+  // Channel names are not reserved: the plugin slugs its file name, so a Figma
+  // file called "Browser" joins the same channel the extension hardcodes.
+  const plugin = (): BrowserClientLike => ({ _isPlugin: true, readyState: OPEN });
+
+  it("broadcasts an untargeted send so the plugin still receives it", () => {
+    expect(resolveTarget([plugin(), browser({ _browserId: "a" })])).toEqual({ kind: "broadcast" });
+  });
+
+  it("broadcasts even with several browsers rather than refusing the plugin's traffic", () => {
+    const clients = [plugin(), browser({ _browserId: "a" }), browser({ _browserId: "b" })];
+    expect(resolveTarget(clients)).toEqual({ kind: "broadcast" });
+  });
+
+  it("still honours an explicit target, which only a browser command ever carries", () => {
+    const target = browser({ _browserId: "b" });
+    expect(resolveTarget([plugin(), browser({ _browserId: "a" }), target], "b")).toEqual({
+      kind: "single",
+      client: target,
+    });
+  });
+
+  it("ignores a plugin whose socket is already closed", () => {
+    const only = browser({ _browserId: "a" });
+    expect(resolveTarget([{ _isPlugin: true, readyState: CLOSED }, only])).toEqual({ kind: "single", client: only });
+  });
+});
+
+describe("sanitizeIdentityValue", () => {
+  it("rejects non-strings and blanks", () => {
+    expect(sanitizeIdentityValue(undefined, 10)).toBeUndefined();
+    expect(sanitizeIdentityValue(42, 10)).toBeUndefined();
+    expect(sanitizeIdentityValue({ id: "x" }, 10)).toBeUndefined();
+    expect(sanitizeIdentityValue("   ", 10)).toBeUndefined();
+  });
+
+  it("strips control characters so a client cannot forge log lines", () => {
+    const forged = "abc\n[INFO] Routed message to browser evil";
+    expect(sanitizeIdentityValue(forged, BROWSER_ID_MAX_LENGTH)).toBe("abc[INFO] Routed message to browser evil");
+    expect(sanitizeIdentityValue("a\u0000b\u007Fc", 64)).toBe("abc");
+  });
+
+  it("truncates oversized values", () => {
+    expect(sanitizeIdentityValue("x".repeat(5000), BROWSER_ID_MAX_LENGTH)).toHaveLength(BROWSER_ID_MAX_LENGTH);
+    expect(sanitizeIdentityValue("y".repeat(5000), BROWSER_LABEL_MAX_LENGTH)).toHaveLength(BROWSER_LABEL_MAX_LENGTH);
+  });
+
+  it("trims and preserves an ordinary value", () => {
+    expect(sanitizeIdentityValue("  User A  ", 64)).toBe("User A");
   });
 });
 
