@@ -15,7 +15,10 @@ MCP Server ──ws──▶ Socket relay ──ws──▶ background.js (servi
 ```
 
 - **`src/videntia_figma_mcp/tools/browser-control-tools.ts`** — MCP tool definitions
-  (15 tools, all prefixed `browser_*`).
+  (all prefixed `browser_*`, plus `list_connected_browsers`).
+- **`src/videntia_figma_mcp/tools/browser-channel.ts`** — the shared browser surface:
+  `BROWSER_CHANNEL`, `browserIdSchema`, `tabIdSchema`, `listConnectedBrowsers()`, and
+  `sendBrowserCommand()` (the single entry point every browser tool sends through).
 - **`src/chrome_extension/background.js`** — WebSocket client + command dispatcher.
   Tab-independent commands (`list_tabs`, `create_tab`, `close_tab`, `close_group`)
   run directly; everything else resolves a target tab first.
@@ -23,6 +26,58 @@ MCP Server ──ws──▶ Socket relay ──ws──▶ background.js (servi
   Owns debugger attach/detach state, viewport emulation, input dispatch, JS
   evaluation, and per-tab console/network capture buffers. Pure helpers are
   exported via `module.exports` for unit tests (`tests/unit/chrome-extension/cdp.test.ts`).
+
+### Multi-profile targeting (`browser_id`)
+
+Several Chrome profiles can be connected at once — each runs its own copy of the
+unpacked extension and registers as a separate browser on the `"browser"` channel with
+its own **`browserId`**. Every browser tool therefore accepts an optional `browser_id`
+that selects which one executes the command.
+
+Routing lives in the relay, not in the MCP layer. `browser_id` travels as an
+envelope-level `target` sibling of `channel` — never inside `message.params`, so the
+extension's command handler never sees it:
+
+```json
+{ "id": "<uuid>", "type": "message", "channel": "browser", "target": "<browserId>",
+  "message": { "id": "<uuid>", "command": "browser_click", "params": { "commandId": "<uuid>" } } }
+```
+
+With no `browser_id` the envelope carries no `target` key at all, exactly as before.
+The relay then decides:
+
+| Situation | Outcome |
+|---|---|
+| `target` set, matching browser connected | delivered to that browser only |
+| `target` set, unknown/stale | error: `No browser with id "X" is connected. Connected: <list>` |
+| no `target`, exactly 1 browser | delivered normally (unchanged single-profile behaviour) |
+| no `target`, 2+ browsers | error: `Multiple browsers are connected: <list>. Pass browser_id to target one.` |
+
+Both errors surface verbatim as a failed tool call.
+
+**Labels.** Each browser gets an auto-generated label `Chrome-<first 6 chars of its id>`,
+editable in the extension popup so profiles are recognizable ("Work", "Personal").
+
+**Workflow.** Call `list_connected_browsers` first; if it reports more than one browser,
+pin one `browser_id` and pass the SAME id to every browser call for the whole run —
+tab IDs, pinned tabs, viewport emulation, and debugger sessions are all per-browser.
+`diff_figma_to_browser` and `diff_figma_frame_to_page` issue many browser commands per
+invocation and thread their `browser_id` through all of them, so one invocation always
+stays on one profile.
+
+### Deploying a multi-profile upgrade
+
+The Chrome extension ships **unpacked** and is outside every build step, so upgrading is
+a two-part operation:
+
+```bash
+bun run build && launchctl kickstart -k gui/$(id -u)/com.videntia.figma-socket
+```
+
+then **reload the unpacked extension in every profile** (chrome://extensions → Reload).
+Skipping either half fails quietly rather than loudly: an out-of-date relay ignores the
+`target` field and broadcasts to every connected browser, and an out-of-date extension
+never registers a `browserId` for the relay to route to.
 
 ### Target tab resolution
 
@@ -62,24 +117,25 @@ view; stable selectors prefer `data-fig-id`, then `data-testid`) **or** by viewp
 
 | Tool | Description | Parameters |
 |------|-------------|------------|
-| `browser_click` | Click an element or point (real trusted click) | `selector` or `x`+`y`, `button`, `click_count`, `tab_id` |
-| `browser_hover` | Move the mouse over an element/point — triggers `:hover`, tooltips, dropdowns | `selector` or `x`+`y`, `tab_id` |
-| `browser_type` | Type text (works with controlled inputs). `selector` focuses the element first; `clear_first` replaces its current value; without `selector`, types into the focused element | `text`, `selector`, `clear_first`, `tab_id` |
-| `browser_press_key` | Press a key with optional modifiers — Enter, Tab, Escape, arrows, `ctrl+a`, `meta+r`, … | `key`, `modifiers` (`alt`/`ctrl`/`meta`/`shift`), `tab_id` |
-| `browser_scroll` | Scroll by pixel delta via mouse-wheel event (positive `delta_y` = down). Pass `selector` or `x`/`y` to scroll inner containers | `delta_y`, `delta_x`, `selector`, `x`, `y`, `tab_id` |
-| `browser_evaluate_js` | Evaluate a JS expression in page context via `Runtime.evaluate` — awaits promises, returns by value, results capped at 100 KB | `expression`, `timeout_ms` (default 15000), `tab_id` |
+| `browser_click` | Click an element or point (real trusted click) | `selector` or `x`+`y`, `button`, `click_count`, `tab_id`, `browser_id` |
+| `browser_hover` | Move the mouse over an element/point — triggers `:hover`, tooltips, dropdowns | `selector` or `x`+`y`, `tab_id`, `browser_id` |
+| `browser_type` | Type text (works with controlled inputs). `selector` focuses the element first; `clear_first` replaces its current value; without `selector`, types into the focused element | `text`, `selector`, `clear_first`, `tab_id`, `browser_id` |
+| `browser_press_key` | Press a key with optional modifiers — Enter, Tab, Escape, arrows, `ctrl+a`, `meta+r`, … | `key`, `modifiers` (`alt`/`ctrl`/`meta`/`shift`), `tab_id`, `browser_id` |
+| `browser_scroll` | Scroll by pixel delta via mouse-wheel event (positive `delta_y` = down). Pass `selector` or `x`/`y` to scroll inner containers | `delta_y`, `delta_x`, `selector`, `x`, `y`, `tab_id`, `browser_id` |
+| `browser_evaluate_js` | Evaluate a JS expression in page context via `Runtime.evaluate` — awaits promises, returns by value, results capped at 100 KB | `expression`, `timeout_ms` (default 15000), `tab_id`, `browser_id` |
 
 ## Navigation & tab tools
 
 | Tool | Description | Parameters |
 |------|-------------|------------|
-| `browser_navigate` | Navigate to a URL and wait for load. Only http(s) and `about:blank` allowed; scheme defaults to `https://`. Viewport emulation is re-applied after the load | `url`, `tab_id` |
-| `browser_back` | Go back one history entry, wait for load to settle | `tab_id` |
-| `browser_forward` | Go forward one history entry, wait for load to settle | `tab_id` |
-| `browser_list_tabs` | List all open tabs — ID, URL, title, active state, pinned-for-session flag, agent-group membership | — |
-| `browser_create_tab` | Open a new tab (default `about:blank`), added to the "Videntia" agent group; `new_window` opens a dedicated window instead so viewport resizes never disturb the user's window. Returns the tab ID and window ID | `url`, `active` (default true), `grouped` (default true), `new_window` (default false) |
-| `browser_close_tab` | Close a tab — explicit `tab_id` required | `tab_id` |
-| `browser_close_group` | Close the entire "Videntia" agent tab group | — |
+| `browser_navigate` | Navigate to a URL and wait for load. Only http(s) and `about:blank` allowed; scheme defaults to `https://`. Viewport emulation is re-applied after the load | `url`, `tab_id`, `browser_id` |
+| `browser_back` | Go back one history entry, wait for load to settle | `tab_id`, `browser_id` |
+| `browser_forward` | Go forward one history entry, wait for load to settle | `tab_id`, `browser_id` |
+| `browser_list_tabs` | List all open tabs — ID, URL, title, active state, pinned-for-session flag, agent-group membership | `browser_id` |
+| `browser_create_tab` | Open a new tab (default `about:blank`), added to the "Videntia" agent group; `new_window` opens a dedicated window instead so viewport resizes never disturb the user's window. Returns the tab ID and window ID | `url`, `active` (default true), `grouped` (default true), `new_window` (default false), `browser_id` |
+| `browser_close_tab` | Close a tab — explicit `tab_id` required | `tab_id`, `browser_id` |
+| `browser_close_group` | Close the entire "Videntia" agent tab group | `browser_id` |
+| `list_connected_browsers` | List every connected browser (Chrome profile) — `id`, `label`, `joinedAt` — so a workflow can pick one. Returns an empty list plus a hint when none are connected | — |
 
 ## Observability tools
 
@@ -88,8 +144,8 @@ domains. The **first call on a tab starts monitoring**.
 
 | Tool | Description | Parameters |
 |------|-------------|------------|
-| `browser_read_console` | Read buffered console messages, uncaught exceptions, and auto-handled dialogs. Buffer: last 500 entries, **resets on navigation**; recent messages are usually backfilled on the first call | `pattern` (regex), `level` (`log`/`info`/`warn`/`error`/`debug`), `limit` (default 200), `clear`, `tab_id` |
-| `browser_read_network` | Read buffered requests — URL, method, resource type, status, MIME type, failures. Buffer: last 300 requests, **persists across navigations**; only requests made after monitoring starts are captured | `url_filter` (substring), `limit` (default 200), `clear`, `tab_id` |
+| `browser_read_console` | Read buffered console messages, uncaught exceptions, and auto-handled dialogs. Buffer: last 500 entries, **resets on navigation**; recent messages are usually backfilled on the first call | `pattern` (regex), `level` (`log`/`info`/`warn`/`error`/`debug`), `limit` (default 200), `clear`, `tab_id`, `browser_id` |
+| `browser_read_network` | Read buffered requests — URL, method, resource type, status, MIME type, failures. Buffer: last 300 requests, **persists across navigations**; only requests made after monitoring starts are captured | `url_filter` (substring), `limit` (default 200), `clear`, `tab_id`, `browser_id` |
 
 **JavaScript dialogs are auto-handled** — `beforeunload` prompts are accepted,
 alerts/confirms/prompts are dismissed — and each handled dialog is logged into the
@@ -99,9 +155,9 @@ console buffer, so the agent never deadlocks on a modal.
 
 | Tool | Description | Parameters |
 |------|-------------|------------|
-| `set_browser_viewport` | Set viewport size. Widths below Chrome's ~500 px window minimum (or `force_emulation: true`) use CDP device emulation (`Emulation.setDeviceMetricsOverride` + touch) — a true mobile viewport like DevTools device mode. Larger sizes resize the OS window. Emulation resets on navigation, but `browser_navigate` re-applies it automatically | `width`, `height`, `device_scale_factor` (default 2), `force_emulation`, `tab_id` |
-| `reset_browser_viewport` | Clear CDP viewport emulation and detach the debugger from the tab | `tab_id` |
-| `get_browser_page_screenshot` | Now accepts `full_page: true` to capture the entire scrollable page beyond the viewport. Works on non-focused tabs (debugger-based capture) | `full_page`, `tab_id` |
+| `set_browser_viewport` | Set viewport size. Widths below Chrome's ~500 px window minimum (or `force_emulation: true`) use CDP device emulation (`Emulation.setDeviceMetricsOverride` + touch) — a true mobile viewport like DevTools device mode. Larger sizes resize the OS window. Emulation resets on navigation, but `browser_navigate` re-applies it automatically | `width`, `height`, `device_scale_factor` (default 2), `force_emulation`, `tab_id`, `browser_id` |
+| `reset_browser_viewport` | Clear CDP viewport emulation and detach the debugger from the tab | `tab_id`, `browser_id` |
+| `get_browser_page_screenshot` | Now accepts `full_page: true` to capture the entire scrollable page beyond the viewport. Works on non-focused tabs (debugger-based capture) | `full_page`, `tab_id`, `browser_id` |
 
 ## Extension permission changes (v1.2.0)
 
