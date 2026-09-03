@@ -48,16 +48,17 @@ export type TargetResolution =
 /**
  * Decides who a channel message should be delivered to.
  *
- * With no eligible browser present the channel is not a multi-profile browser
- * channel at all (every Figma/plugin channel lands here), so the caller keeps
- * its existing broadcast behaviour. Otherwise an explicit `target` must match a
- * live browser, and an omitted `target` only resolves when a single browser is
- * connected — never guess between profiles.
+ * An explicit `target` is a hard routing contract: it must match a live browser
+ * or the message is refused — never silently broadcast, which would hand the
+ * command to whatever else shares the channel and stall until the timeout.
+ * With no target and no eligible browser the channel is not a multi-profile
+ * browser channel at all (every Figma/plugin channel lands here), so the caller
+ * keeps its existing broadcast behaviour. With no target and several browsers
+ * connected the send is ambiguous — never guess between profiles.
  */
 export function resolveTarget(clients: Iterable<BrowserClientLike>, target?: string): TargetResolution {
   const all = [...clients];
   const eligible = all.filter(isEligible);
-  if (eligible.length === 0) return { kind: "broadcast" };
 
   if (target) {
     const match = eligible.find((c) => c._browserId === target);
@@ -65,6 +66,7 @@ export function resolveTarget(clients: Iterable<BrowserClientLike>, target?: str
     return { kind: "not-found", available: listBrowsers(all) };
   }
 
+  if (eligible.length === 0) return { kind: "broadcast" };
   if (eligible.length === 1) return { kind: "single", client: eligible[0]! };
   return { kind: "ambiguous", available: listBrowsers(all) };
 }

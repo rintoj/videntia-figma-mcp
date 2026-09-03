@@ -215,7 +215,7 @@ function handleWebSocketMessage(ws: WebSocket, raw: string) {
     // Same profile reconnecting (the extension retries on a 3s timer and a ~24s
     // keep-alive alarm): drop its previous socket so a single browserId never
     // resolves to two live connections.
-    if (browserId) {
+    if (isExtensionJoin && browserId) {
       const superseded = [...channelClients].filter((c) => (c as any)._browserId === browserId && c !== ws);
       superseded.forEach((c) => {
         c.close(1000, "Replaced by new connection");

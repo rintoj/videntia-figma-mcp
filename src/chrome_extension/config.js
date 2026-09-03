@@ -76,7 +76,13 @@ function ephemeralIdentity() {
   return { id: ephemeralBrowserId, label: defaultLabelFor(ephemeralBrowserId) };
 }
 
-async function getBrowserIdentity() {
+// Concurrent callers (the top-level connect, the keep-alive alarm, onStartup)
+// must not each mint an id and race their writes — the loser would keep using an
+// id that no longer matches storage, so the popup and the relay would disagree
+// about which id identifies this profile. One in-flight resolution is shared.
+let browserIdentityPromise = null;
+
+async function resolveBrowserIdentity() {
   try {
     const stored = await chrome.storage.local.get([BROWSER_ID_STORAGE_KEY, BROWSER_LABEL_STORAGE_KEY]);
     let id = stored?.[BROWSER_ID_STORAGE_KEY];
@@ -89,6 +95,17 @@ async function getBrowserIdentity() {
     // Never block the connection on storage failure.
     return ephemeralIdentity();
   }
+}
+
+async function getBrowserIdentity() {
+  // Only the id generation needs to be serialized; the label may change between
+  // calls, so a resolved promise is not cached beyond the in-flight window.
+  if (!browserIdentityPromise) {
+    browserIdentityPromise = resolveBrowserIdentity().finally(() => {
+      browserIdentityPromise = null;
+    });
+  }
+  return browserIdentityPromise;
 }
 
 async function setBrowserLabel(label) {

@@ -49,10 +49,14 @@ describe("listBrowsers", () => {
 });
 
 describe("resolveTarget", () => {
-  it("broadcasts when no eligible browser is connected", () => {
+  it("broadcasts when no target is given and no eligible browser is connected", () => {
     expect(resolveTarget([]).kind).toBe("broadcast");
     expect(resolveTarget([browser({ _isExtension: false })]).kind).toBe("broadcast");
-    expect(resolveTarget([browser({ readyState: CLOSED })], "b1").kind).toBe("broadcast");
+  });
+
+  it("refuses an explicit target when no eligible browser is connected", () => {
+    expect(resolveTarget([browser({ readyState: CLOSED })], "b1")).toEqual({ kind: "not-found", available: [] });
+    expect(resolveTarget([], "b1")).toEqual({ kind: "not-found", available: [] });
   });
 
   it("resolves the only browser when no target is given", () => {
