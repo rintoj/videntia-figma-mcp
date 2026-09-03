@@ -15,6 +15,7 @@ import { createToken, listTokens, revokeToken, validateKey } from "./auth/tokens
 import { signJwt, verifyJwt, parseCookies } from "./auth/session";
 import { sendVerificationEmail } from "./auth/email";
 import { isSameFile } from "./socket-channel-identity";
+import { listBrowsers, resolveTarget, formatBrowserList } from "./socket-browser-registry";
 
 // Enhanced logging system
 const logger = {
@@ -146,6 +147,25 @@ function handleWebSocketMessage(ws: WebSocket, raw: string) {
       return;
     }
 
+    // Chrome extensions must identify their profile: without a browserId the
+    // relay cannot route a command to one specific browser, and two profiles
+    // would silently race on every reply. Reject the join outright rather than
+    // degrade to non-deterministic broadcast.
+    const isExtensionJoin = data.clientType === "extension";
+    const browserId: string | undefined =
+      typeof data.browserId === "string" && data.browserId.trim() ? data.browserId.trim() : undefined;
+    if (isExtensionJoin && !browserId) {
+      const reason =
+        "Extension build is out of date: browserId is required in the join payload. Reload the unpacked extension.";
+      ws.send(JSON.stringify({ type: "error", message: reason }));
+      stats.messagesSent++;
+      logger.warn(`Rejected extension join from client ${clientId}: missing browserId`);
+      ws.close(1000, reason);
+      return;
+    }
+    const browserLabel: string | undefined =
+      typeof data.browserLabel === "string" && data.browserLabel.trim() ? data.browserLabel.trim() : undefined;
+
     // Remove stale plugin connections for the same file (reconnect from the same
     // Figma file, from a *different* socket). Only the plugin's own prior socket
     // is closed here — other clients sharing the channel (e.g. an MCP session
@@ -191,6 +211,24 @@ function handleWebSocketMessage(ws: WebSocket, raw: string) {
 
     if (!channels.has(channelName)) channels.set(channelName, new Set());
     const channelClients = channels.get(channelName)!;
+
+    // Same profile reconnecting (the extension retries on a 3s timer and a ~24s
+    // keep-alive alarm): drop its previous socket so a single browserId never
+    // resolves to two live connections.
+    if (browserId) {
+      const superseded = [...channelClients].filter((c) => (c as any)._browserId === browserId && c !== ws);
+      superseded.forEach((c) => {
+        c.close(1000, "Replaced by new connection");
+        leaveChannel(channelName, c);
+      });
+      if (superseded.length > 0) {
+        logger.info(`Replaced ${superseded.length} stale connection(s) for browser ${browserId} in ${channelName}`);
+      }
+      // leaveChannel drops the channel entirely once it empties; re-register the
+      // same set so the joining socket lands in a live channel.
+      if (!channels.has(channelName)) channels.set(channelName, channelClients);
+    }
+
     channelClients.add(ws);
     (ws as any)._channel = channelName;
     // Mark plugin connections by presence of fileName in the join message
@@ -199,8 +237,11 @@ function handleWebSocketMessage(ws: WebSocket, raw: string) {
     }
     // Mark the Chrome extension's connection to the "browser" channel; it has no
     // fileName (it's not a Figma file) so it needs its own identifying flag.
-    if (data.clientType === "extension") {
+    if (isExtensionJoin) {
       (ws as any)._isExtension = true;
+      (ws as any)._browserId = browserId;
+      (ws as any)._browserLabel = browserLabel;
+      (ws as any)._joinedAt = Date.now();
     }
     logger.info(
       `Client ${clientId} joined channel: ${channelName} (plugin=${!!(ws as any)._isPlugin}, extension=${!!(ws as any)._isExtension})`,
@@ -254,6 +295,33 @@ function handleWebSocketMessage(ws: WebSocket, raw: string) {
       ws.send(JSON.stringify({ type: "error", message: "You must join the channel first" }));
       return;
     }
+    // Multi-profile browser channels route to exactly one extension; every other
+    // channel (Figma plugin sessions) has no eligible browser and broadcasts.
+    // An extension sending here is replying to a command, not issuing one — those
+    // frames always broadcast back to the waiting MCP client.
+    const resolution = (ws as any)._isExtension
+      ? ({ kind: "broadcast" } as const)
+      : resolveTarget(channelClients as Iterable<any>, data.target);
+    if (resolution.kind === "not-found" || resolution.kind === "ambiguous") {
+      const error =
+        resolution.kind === "not-found"
+          ? `No browser with id "${data.target}" is connected. Connected: ${formatBrowserList(resolution.available)}`
+          : `Multiple browsers are connected: ${formatBrowserList(resolution.available)}. Pass browser_id to target one.`;
+      ws.send(JSON.stringify({ type: "broadcast", message: { id: data.message?.id, error }, channel: channelName }));
+      stats.messagesSent++;
+      logger.warn(`Rejected message on channel ${channelName}: ${error}`);
+      return;
+    }
+    if (resolution.kind === "single") {
+      const targetClient = resolution.client as unknown as WebSocket;
+      targetClient.send(
+        JSON.stringify({ type: "broadcast", message: data.message, sender: "User", channel: channelName }),
+      );
+      stats.messagesSent++;
+      logger.info(`Routed message to browser ${(resolution.client as any)._browserId} in channel ${channelName}`);
+      return;
+    }
+
     let broadcastCount = 0;
     channelClients.forEach((c) => {
       if (c !== ws && c.readyState === WebSocket.OPEN) {
@@ -488,6 +556,7 @@ const httpServer = http.createServer(async (reqOrig, res) => {
         hasPlugin: pluginClients > 0,
         extensionClients,
         hasExtension: extensionClients > 0,
+        browsers: listBrowsers(clientArr as unknown as any[]),
         fileName: channelMetadata.get(name)?.fileName ?? null,
         joinedAt: channelMetadata.get(name)?.joinedAt ?? null,
       };
