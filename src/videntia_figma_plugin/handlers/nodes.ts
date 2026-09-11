@@ -250,11 +250,14 @@ export async function resizeNode(params: Record<string, unknown>): Promise<Recor
     // resize() flips a TEXT node to textAutoResize NONE (fixed box, text overflows).
     // Preserve auto-sizing text as wrapping text: keep the new width, let height grow.
     const previousAutoResize = textNode.textAutoResize;
-    // Writing textAutoResize requires the fonts to be loaded; load first so a failure
-    // cannot leave the node resized into a fixed box.
-    await loadTextNodeFonts(textNode);
+    const keepWrapping = previousAutoResize === "HEIGHT" || previousAutoResize === "WIDTH_AND_HEIGHT";
+    // Only the textAutoResize write needs loaded fonts; load before resizing so a failure
+    // cannot leave the node resized into a fixed box. Fixed text resizes without fonts.
+    if (keepWrapping) {
+      await loadTextNodeFonts(textNode);
+    }
     textNode.resize(width, height);
-    if (previousAutoResize === "HEIGHT" || previousAutoResize === "WIDTH_AND_HEIGHT") {
+    if (keepWrapping) {
       textNode.textAutoResize = "HEIGHT";
     }
     return {

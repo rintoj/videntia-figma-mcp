@@ -72,29 +72,4 @@ export function registerDesignKnowledge(server: McpServer): void {
       ],
     };
   });
-
-  // Static resources for discoverability (clients that don't support templates)
-  for (const mod of ALL_MODULES) {
-    try {
-      server.resource(
-        `design_knowledge_${mod.id.replace(/-/g, "_")}`,
-        `figma://design-knowledge/${mod.id}`,
-        {
-          description: mod.description,
-          mimeType: "text/markdown",
-        },
-        async (uri) => ({
-          contents: [
-            {
-              uri: uri.href,
-              mimeType: "text/markdown",
-              text: mod.content,
-            },
-          ],
-        }),
-      );
-    } catch {
-      // SDK may reject static URIs that overlap with a template — safe to skip
-    }
-  }
 }

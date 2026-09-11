@@ -209,6 +209,19 @@ describe("resizeNode on TEXT", () => {
     expect(loadIdx).toBeLessThan(log.indexOf("set:textAutoResize=HEIGHT"));
   });
 
+  it("resizes fixed text without loading fonts (missing fonts must not block it)", async () => {
+    const { resizeNode } = await import("../../../src/videntia_figma_plugin/handlers/nodes");
+    const text = makeTextNode({ textAutoResize: "NONE" });
+    (globalThis as any).figma.loadFontAsync = jest.fn(async () => {
+      throw new Error("font missing");
+    });
+
+    const result = await resizeNode({ nodeId: text.id, width: 90, height: 30 });
+
+    expect(result.width).toBe(90);
+    expect(result.textAutoResize).toBe("NONE");
+  });
+
   it("leaves non-text nodes as a plain resize", async () => {
     const { resizeNode } = await import("../../../src/videntia_figma_plugin/handlers/nodes");
     const frame: any = { id: "f1", type: "FRAME", name: "Card", width: 10, height: 10 };

@@ -307,4 +307,23 @@ describe("Design Knowledge Modules", () => {
       }
     });
   });
+
+  describe("registerDesignKnowledge", () => {
+    it("registers one template that lists each module once and reads its content", async () => {
+      const { registerDesignKnowledge } =
+        await import("../../../src/videntia_figma_mcp/resources/design-knowledge/index.js");
+      const calls: any[][] = [];
+      registerDesignKnowledge({ resource: (...args: any[]) => calls.push(args) } as any);
+
+      expect(calls).toHaveLength(1);
+      const template = calls[0][1];
+      const listed = await template.listCallback({});
+      const uris = listed.resources.map((r: { uri: string }) => r.uri);
+      expect(uris).toHaveLength(ALL_MODULES.length);
+      expect(new Set(uris).size).toBe(uris.length);
+
+      const read = await calls[0][3](new URL("figma://design-knowledge/color"), { module: "color" });
+      expect(read.contents[0].text).toBe(COLOR.content);
+    });
+  });
 });

@@ -152,7 +152,14 @@ export function computeRenderExtent(node: SceneNode, box: Rect): { extent: Rende
     let factor = align === "OUTSIDE" ? 1 : align === "CENTER" ? 0.5 : 0;
     if (factor > 0) {
       let base = readNumberProp(node, "strokeWeight");
+      // A LINE's stroke spreads across the line, not past its ends (caps aside), so an
+      // axis-aligned line only widens on the sides perpendicular to it.
+      let isLine = node.type === "LINE";
+      let lineIsHorizontal = isLine && box.height < 1;
+      let lineIsVertical = isLine && box.width < 1;
       let sideWeight = (prop: string) => {
+        let horizontalSide = prop === "strokeLeftWeight" || prop === "strokeRightWeight";
+        if ((lineIsHorizontal && horizontalSide) || (lineIsVertical && !horizontalSide)) return 0;
         let v = readNumberProp(node, prop);
         return (v !== null ? v : base !== null ? base : 0) * factor;
       };

@@ -174,6 +174,18 @@ describe("lint clipped-content check", () => {
     expect(violations[0].details!.effectSources).toEqual(["OUTSIDE stroke"]);
   });
 
+  it("does not widen a full-width LINE divider's centered stroke past its ends", () => {
+    const divider = node(
+      "1:3",
+      "Divider",
+      { x: 16, y: 60, width: 200, height: 0 },
+      { type: "LINE", strokes: [{ type: "SOLID", visible: true }], strokeAlign: "CENTER", strokeWeight: 4 },
+    );
+    const card = node("1:2", "Card", cardBox, { clipsContent: true, children: [divider] });
+
+    expect(scan(screen([card])).violations).toHaveLength(0);
+  });
+
   it("reports child bounds overflowing a nested clipping card", () => {
     const row = node("1:4", "Row", { x: 32, y: 32, width: 360, height: 40 });
     const card = node(
