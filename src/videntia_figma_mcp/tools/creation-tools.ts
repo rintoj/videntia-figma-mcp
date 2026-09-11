@@ -178,7 +178,9 @@ export function registerCreationTools(server: McpServer): void {
   // Create Text Tool
   server.tool(
     "create_text",
-    "Create a new text element in Figma",
+    "Create a new text element in Figma. Wrapping: without `width` the text auto-sizes to its content on a single line (textAutoResize WIDTH_AND_HEIGHT) and never wraps — right for labels and buttons. " +
+      "With `width` (and no `textAutoResize`) the text gets that fixed width and textAutoResize HEIGHT: it wraps at the width and its height grows — right for paragraphs. " +
+      "Pass `textAutoResize` to override (NONE = fixed box that can overflow; WIDTH_AND_HEIGHT ignores `width`).",
     {
       x: z.coerce.number().describe("X position in pixels on the canvas (or relative to parent if parentId is set)"),
       y: z.coerce.number().describe("Y position in pixels on the canvas (or relative to parent if parentId is set)"),
@@ -205,8 +207,21 @@ export function registerCreationTools(server: McpServer): void {
         .describe("Text color in normalized RGBA (default: black {r:0,g:0,b:0,a:1})"),
       name: z.string().optional().describe("Layer name for the text node (default: the text content itself)"),
       parentId: z.string().optional().describe("ID of the parent frame to insert the text into"),
+      width: z.coerce
+        .number()
+        .positive()
+        .optional()
+        .describe(
+          "Fixed width in pixels. When set without textAutoResize, the text wraps at this width and its height grows (textAutoResize HEIGHT). Omit for single-line text that hugs its content",
+        ),
+      textAutoResize: z
+        .enum(["NONE", "HEIGHT", "WIDTH_AND_HEIGHT"])
+        .optional()
+        .describe(
+          "Text box sizing: HEIGHT = fixed width, wraps, height grows (default when width is set); WIDTH_AND_HEIGHT = single line, hugs content (default when width is omitted); NONE = fixed width and height, text may overflow",
+        ),
     },
-    async ({ x, y, text, fontSize, fontFamily, fontWeight, fontColor, name, parentId }) => {
+    async ({ x, y, text, fontSize, fontFamily, fontWeight, fontColor, name, parentId, width, textAutoResize }) => {
       if (parentId) parentId = normalizeNodeId(parentId);
       try {
         const result = await sendCommandToFigma("create_text", {
@@ -219,13 +234,19 @@ export function registerCreationTools(server: McpServer): void {
           fontColor: fontColor || { r: 0, g: 0, b: 0, a: 1 },
           name: name || "Text",
           parentId,
+          width,
+          textAutoResize,
         });
-        const typedResult = result as { name: string; id: string };
+        const typedResult = result as { name: string; id: string; width?: number; textAutoResize?: string };
+        const sizingText =
+          typedResult.textAutoResize !== undefined
+            ? ` (textAutoResize: ${typedResult.textAutoResize}${typedResult.width !== undefined ? `, width: ${typedResult.width}` : ""})`
+            : "";
         return {
           content: [
             {
               type: "text",
-              text: `Created text "${typedResult.name}" with ID: ${typedResult.id}`,
+              text: `Created text "${typedResult.name}" with ID: ${typedResult.id}${sizingText}`,
             },
           ],
         };

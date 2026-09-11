@@ -386,6 +386,9 @@ export interface FigmaNodeData {
   textAlignHorizontal?: "LEFT" | "CENTER" | "RIGHT" | "JUSTIFIED";
   textCase?: "ORIGINAL" | "UPPER" | "LOWER" | "TITLE";
   textDecoration?: "NONE" | "UNDERLINE" | "STRIKETHROUGH";
+  textAutoResize?: "NONE" | "WIDTH_AND_HEIGHT" | "HEIGHT" | "TRUNCATE";
+  textTruncation?: "DISABLED" | "ENDING";
+  maxLines?: number;
   textStyleName?: string;
   effectStyleName?: string;
   // Appearance

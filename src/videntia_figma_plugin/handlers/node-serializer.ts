@@ -332,6 +332,10 @@ async function processNode(
     if (textNode.textDecoration !== figma.mixed && textNode.textDecoration !== "NONE") {
       info["textDecoration"] = textNode.textDecoration;
     }
+    // Wrapping behaviour: WIDTH_AND_HEIGHT = single line, HEIGHT = wraps at fixed width, NONE = fixed box.
+    if (textNode.textAutoResize) info["textAutoResize"] = textNode.textAutoResize;
+    if (textNode.textTruncation) info["textTruncation"] = textNode.textTruncation;
+    if (typeof textNode.maxLines === "number") info["maxLines"] = textNode.maxLines;
 
     // Resolve text style
     if (textNode.textStyleId && textNode.textStyleId !== "" && textNode.textStyleId !== figma.mixed) {

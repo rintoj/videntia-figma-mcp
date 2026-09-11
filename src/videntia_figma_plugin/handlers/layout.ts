@@ -515,35 +515,92 @@ export async function setLayoutSizing(params: Record<string, unknown>): Promise<
     throw new Error(`Node "${node.name}" does not support layout sizing (type: ${node.type})`);
   }
 
+  type Sizing = "FIXED" | "HUG" | "FILL";
   const sizingNode = node as FrameNode | TextNode;
+  const isText = node.type === "TEXT";
 
-  // TEXT nodes drive their HUG behavior off `textAutoResize`, not layoutSizing*
-  // directly — setting layoutSizingHorizontal/Vertical to HUG without also
-  // updating textAutoResize is silently ignored by the Figma runtime. Resolve
-  // the effective horizontal/vertical intent (falling back to the node's
-  // current sizing for whichever axis wasn't passed) and derive the matching
-  // textAutoResize value before touching layoutSizing*.
-  if (node.type === "TEXT") {
-    const textNode = node as TextNode;
-    const effectiveHorizontal = layoutSizingHorizontal ?? textNode.layoutSizingHorizontal;
-    const effectiveVertical = layoutSizingVertical ?? textNode.layoutSizingVertical;
-    const hugH = effectiveHorizontal === "HUG";
-    const hugV = effectiveVertical === "HUG";
-
-    // Figma's TextAutoResize enum has no "WIDTH"-only value, so a horizontal-only
-    // hug still requires WIDTH_AND_HEIGHT (the vertical axis rides along with it).
-    if (hugH || hugV) {
-      textNode.textAutoResize = hugV && !hugH ? "HEIGHT" : "WIDTH_AND_HEIGHT";
-    } else {
-      textNode.textAutoResize = "NONE";
+  // Validate FILL before touching the node so a rejected call leaves no partial change.
+  const parent = node.parent;
+  const parentLayoutMode =
+    parent && "layoutMode" in parent ? (parent as unknown as { layoutMode: string }).layoutMode : undefined;
+  const parentIsAutoLayout = parentLayoutMode !== undefined && parentLayoutMode !== "NONE";
+  const fillAxes: string[] = [];
+  if (layoutSizingHorizontal === "FILL") fillAxes.push("horizontal");
+  if (layoutSizingVertical === "FILL") fillAxes.push("vertical");
+  if (fillAxes.length > 0) {
+    if (!parentIsAutoLayout) {
+      const parentDesc = parent
+        ? `its parent "${parent.name}" (${parent.type}) has no auto layout`
+        : "it has no parent";
+      throw new Error(
+        `Cannot set ${fillAxes.join(" and ")} sizing to FILL on "${node.name}": FILL only works on children of an auto-layout frame, and ${parentDesc}. Add auto layout to the parent (set_auto_layout) or use FIXED/HUG. No changes were made.`,
+      );
+    }
+    if ("layoutPositioning" in node && (node as FrameNode).layoutPositioning === "ABSOLUTE") {
+      throw new Error(
+        `Cannot set ${fillAxes.join(" and ")} sizing to FILL on "${node.name}": the node is absolutely positioned inside its auto-layout parent. No changes were made.`,
+      );
     }
   }
 
-  if (layoutSizingHorizontal !== undefined) {
-    sizingNode.layoutSizingHorizontal = layoutSizingHorizontal as "FIXED" | "HUG" | "FILL";
+  // TEXT: a fixed or filled width with no vertical intent means "wrap" — height hugs.
+  let verticalToApply = layoutSizingVertical as Sizing | undefined;
+  if (
+    isText &&
+    verticalToApply === undefined &&
+    (layoutSizingHorizontal === "FIXED" || layoutSizingHorizontal === "FILL")
+  ) {
+    verticalToApply = "HUG";
   }
-  if (layoutSizingVertical !== undefined) {
-    sizingNode.layoutSizingVertical = layoutSizingVertical as "FIXED" | "HUG" | "FILL";
+
+  // TEXT nodes drive HUG off `textAutoResize`; writing layoutSizing* HUG without it is
+  // silently ignored. Mapping: HUG width → WIDTH_AND_HEIGHT; FIXED/FILL width + HUG
+  // height → HEIGHT (wraps); no HUG on either axis → NONE (fixed box).
+  let targetAutoResize: "NONE" | "HEIGHT" | "WIDTH_AND_HEIGHT" | undefined;
+  if (isText) {
+    const textNode = node as TextNode;
+    const effectiveHorizontal = layoutSizingHorizontal ?? textNode.layoutSizingHorizontal;
+    const effectiveVertical = verticalToApply ?? textNode.layoutSizingVertical;
+    const hugH = effectiveHorizontal === "HUG";
+    const hugV = effectiveVertical === "HUG";
+    targetAutoResize = hugH ? "WIDTH_AND_HEIGHT" : hugV ? "HEIGHT" : "NONE";
+  }
+
+  const previous = {
+    horizontal: sizingNode.layoutSizingHorizontal,
+    vertical: sizingNode.layoutSizingVertical,
+    textAutoResize: isText ? (node as TextNode).textAutoResize : undefined,
+  };
+
+  try {
+    if (isText && targetAutoResize !== undefined) {
+      (node as TextNode).textAutoResize = targetAutoResize;
+    }
+    if (layoutSizingHorizontal !== undefined) {
+      sizingNode.layoutSizingHorizontal = layoutSizingHorizontal as Sizing;
+    }
+    if (verticalToApply !== undefined) {
+      sizingNode.layoutSizingVertical = verticalToApply;
+    }
+    // Writing layoutSizing* can nudge textAutoResize; the derived value is authoritative.
+    if (isText && targetAutoResize !== undefined && (node as TextNode).textAutoResize !== targetAutoResize) {
+      (node as TextNode).textAutoResize = targetAutoResize;
+    }
+  } catch (error) {
+    try {
+      if (isText && previous.textAutoResize !== undefined) {
+        (node as TextNode).textAutoResize = previous.textAutoResize;
+      }
+      if (sizingNode.layoutSizingHorizontal !== previous.horizontal) {
+        sizingNode.layoutSizingHorizontal = previous.horizontal;
+      }
+      if (sizingNode.layoutSizingVertical !== previous.vertical) {
+        sizingNode.layoutSizingVertical = previous.vertical;
+      }
+    } catch (_restoreError) {
+      // Best-effort rollback; surface the original failure.
+    }
+    throw error;
   }
 
   return {

@@ -275,11 +275,16 @@ export function registerModificationTools(server: McpServer): void {
   // Resize Node Tool
   server.tool(
     "resize_node",
-    "Resize a node in Figma",
+    "Resize a node in Figma. On TEXT nodes that auto-size (textAutoResize HEIGHT or WIDTH_AND_HEIGHT), the new width is kept and textAutoResize becomes HEIGHT, so the text wraps at that width and its height grows to fit (the requested height is not kept). TEXT nodes already fixed (NONE/TRUNCATE) keep the exact width and height. Other node types resize to exactly width × height.",
     {
       nodeId: z.string().describe("Node ID to resize — get from get_selection or get_node_info"),
       width: z.coerce.number().positive().describe("New width in pixels (must be > 0)"),
-      height: z.coerce.number().positive().describe("New height in pixels (must be > 0)"),
+      height: z.coerce
+        .number()
+        .positive()
+        .describe(
+          "New height in pixels (must be > 0). Ignored for auto-sizing TEXT nodes, whose height follows the wrapped text",
+        ),
     },
     async ({ nodeId, width, height }) => {
       nodeId = normalizeNodeId(nodeId);
@@ -289,12 +294,16 @@ export function registerModificationTools(server: McpServer): void {
           width,
           height,
         });
-        const typedResult = result as { name: string };
+        const typedResult = result as { name: string; width?: number; height?: number; textAutoResize?: string };
+        const text =
+          typedResult.textAutoResize !== undefined
+            ? `Resized text node "${typedResult.name}" to width ${typedResult.width ?? width} and height ${typedResult.height ?? height} (textAutoResize: ${typedResult.textAutoResize})`
+            : `Resized node "${typedResult.name}" to width ${width} and height ${height}`;
         return {
           content: [
             {
               type: "text",
-              text: `Resized node "${typedResult.name}" to width ${width} and height ${height}`,
+              text,
             },
           ],
         };
@@ -631,20 +640,24 @@ export function registerModificationTools(server: McpServer): void {
   // Set Layout Sizing Tool
   server.tool(
     "set_layout_sizing",
-    "Set horizontal and vertical sizing modes for an auto-layout frame",
+    "Set horizontal/vertical sizing (FIXED, HUG, FILL) on an auto-layout frame or on a child of one — including TEXT nodes. " +
+      "FILL requires the node's parent to have auto layout; otherwise the call fails and nothing changes. " +
+      "On TEXT nodes sizing maps to textAutoResize: horizontal HUG → WIDTH_AND_HEIGHT (single line, never wraps); " +
+      "horizontal FIXED or FILL with vertical HUG → HEIGHT (wraps at the width, height grows); no HUG on either axis → NONE (fixed box, text can overflow). " +
+      "For TEXT, passing horizontal FIXED or FILL without vertical makes vertical HUG, so the text wraps. The response reports the resulting sizing and textAutoResize.",
     {
-      nodeId: z.string().describe("Frame or text node ID — also works on TEXT nodes for width sizing"),
+      nodeId: z.string().describe("ID of an auto-layout frame, or of a frame/text node inside an auto-layout frame"),
       horizontal: z
         .enum(["FIXED", "HUG", "FILL"])
         .optional()
         .describe(
-          "Horizontal sizing: FIXED = explicit width, HUG = shrink-wrap children, FILL = expand to fill parent (requires node to be inside an auto-layout frame)",
+          "Horizontal sizing: FIXED = explicit width, HUG = shrink-wrap content, FILL = expand to fill parent (parent must have auto layout). On TEXT, HUG = single line; FIXED/FILL = wrap at that width",
         ),
       vertical: z
         .enum(["FIXED", "HUG", "FILL"])
         .optional()
         .describe(
-          "Vertical sizing: FIXED = explicit height, HUG = shrink-wrap children, FILL = expand to fill parent (requires node to be inside an auto-layout frame)",
+          "Vertical sizing: FIXED = explicit height, HUG = shrink-wrap content, FILL = expand to fill parent (parent must have auto layout). On TEXT, omitted with horizontal FIXED/FILL defaults to HUG",
         ),
     },
     async ({ nodeId, horizontal, vertical }) => {
@@ -655,7 +668,12 @@ export function registerModificationTools(server: McpServer): void {
           layoutSizingHorizontal: horizontal,
           layoutSizingVertical: vertical,
         });
-        const typedResult = result as { name: string };
+        const typedResult = result as {
+          name: string;
+          layoutSizingHorizontal?: string;
+          layoutSizingVertical?: string;
+          textAutoResize?: string;
+        };
 
         const sizingMessages = [];
         if (horizontal !== undefined) sizingMessages.push(`horizontal: ${horizontal}`);
@@ -663,11 +681,20 @@ export function registerModificationTools(server: McpServer): void {
 
         const sizingText = sizingMessages.length > 0 ? `layout sizing (${sizingMessages.join(", ")})` : "layout sizing";
 
+        const resultingState: string[] = [];
+        if (typedResult.layoutSizingHorizontal !== undefined)
+          resultingState.push(`layoutSizingHorizontal: ${typedResult.layoutSizingHorizontal}`);
+        if (typedResult.layoutSizingVertical !== undefined)
+          resultingState.push(`layoutSizingVertical: ${typedResult.layoutSizingVertical}`);
+        if (typedResult.textAutoResize !== undefined)
+          resultingState.push(`textAutoResize: ${typedResult.textAutoResize}`);
+        const stateText = resultingState.length > 0 ? ` → ${resultingState.join(", ")}` : "";
+
         return {
           content: [
             {
               type: "text",
-              text: `Set ${sizingText} for frame "${typedResult.name}"`,
+              text: `Set ${sizingText} for node "${typedResult.name}"${stateText}`,
             },
           ],
         };

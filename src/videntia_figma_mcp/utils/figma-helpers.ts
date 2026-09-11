@@ -149,6 +149,10 @@ export function filterFigmaNode(node: any, fields?: NodeField[]): any {
     filtered.absoluteBoundingBox = node.absoluteBoundingBox;
   }
 
+  if (fieldSet.has("characters") && node.textAutoResize) {
+    filtered.textAutoResize = node.textAutoResize;
+  }
+
   if (fieldSet.has("characters") && node.characters) {
     filtered.characters = node.characters;
   }
@@ -235,6 +239,9 @@ const FIELD_PROPERTY_MAP: Record<NodeField, string[]> = {
     "textAlignHorizontal",
     "textCase",
     "textDecoration",
+    "textAutoResize",
+    "textTruncation",
+    "maxLines",
     "textStyleName",
   ],
   children: ["children"],

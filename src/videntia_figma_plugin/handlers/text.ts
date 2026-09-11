@@ -228,6 +228,32 @@ export async function createText(params: Record<string, unknown>): Promise<Recor
       : { r: 0, g: 0, b: 0, a: 1 };
   const name = safeParams.name !== undefined ? (safeParams.name as string) : "Text";
   const parentId = safeParams.parentId !== undefined ? (safeParams.parentId as string) : undefined;
+  const rawWidth = safeParams.width !== null && safeParams.width !== undefined ? Number(safeParams.width) : undefined;
+  if (rawWidth !== undefined && !(rawWidth > 0)) {
+    throw new Error(`Invalid width for create_text: ${String(safeParams.width)} (must be a number > 0)`);
+  }
+  const width = rawWidth;
+  const requestedAutoResize =
+    safeParams.textAutoResize !== null && safeParams.textAutoResize !== undefined
+      ? (safeParams.textAutoResize as string)
+      : undefined;
+  if (
+    requestedAutoResize !== undefined &&
+    requestedAutoResize !== "NONE" &&
+    requestedAutoResize !== "HEIGHT" &&
+    requestedAutoResize !== "WIDTH_AND_HEIGHT"
+  ) {
+    throw new Error(
+      `Invalid textAutoResize for create_text: ${requestedAutoResize} (expected NONE, HEIGHT or WIDTH_AND_HEIGHT)`,
+    );
+  }
+  // A width without an explicit mode means "wrap at this width": fixed width, height grows.
+  const textAutoResize: "NONE" | "HEIGHT" | "WIDTH_AND_HEIGHT" | undefined =
+    requestedAutoResize !== undefined
+      ? (requestedAutoResize as "NONE" | "HEIGHT" | "WIDTH_AND_HEIGHT")
+      : width !== undefined
+        ? "HEIGHT"
+        : undefined;
 
   const textNode = figma.createText();
   textNode.x = x;
@@ -269,6 +295,15 @@ export async function createText(params: Record<string, unknown>): Promise<Recor
     figma.currentPage.appendChild(textNode);
   }
 
+  // Resize after appending (so the parent's auto layout sees the final node), then
+  // set textAutoResize last — resize() on a TEXT node forces textAutoResize to NONE.
+  if (width !== undefined) {
+    textNode.resize(width, Math.max(textNode.height, 1));
+  }
+  if (textAutoResize !== undefined) {
+    textNode.textAutoResize = textAutoResize;
+  }
+
   return {
     id: textNode.id,
     name: textNode.name,
@@ -276,6 +311,7 @@ export async function createText(params: Record<string, unknown>): Promise<Recor
     y: textNode.y,
     width: textNode.width,
     height: textNode.height,
+    textAutoResize: textNode.textAutoResize,
     characters: textNode.characters,
     fontSize: textNode.fontSize,
     fontWeight: fontWeight,

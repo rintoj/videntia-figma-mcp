@@ -244,6 +244,24 @@ export async function resizeNode(params: Record<string, unknown>): Promise<Recor
     throw new Error(`Node does not support resizing: ${nodeId}`);
   }
 
+  if (node.type === "TEXT") {
+    const textNode = node as TextNode;
+    // resize() flips a TEXT node to textAutoResize NONE (fixed box, text overflows).
+    // Preserve auto-sizing text as wrapping text: keep the new width, let height grow.
+    const previousAutoResize = textNode.textAutoResize;
+    textNode.resize(width, height);
+    if (previousAutoResize === "HEIGHT" || previousAutoResize === "WIDTH_AND_HEIGHT") {
+      textNode.textAutoResize = "HEIGHT";
+    }
+    return {
+      id: node.id,
+      name: node.name,
+      width: textNode.width,
+      height: textNode.height,
+      textAutoResize: textNode.textAutoResize,
+    };
+  }
+
   (node as FrameNode).resize(width, height);
 
   return {
