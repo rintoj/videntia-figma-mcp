@@ -4,6 +4,7 @@ import { sendCommandToFigma } from "../utils/websocket";
 import { coerceArray } from "../utils/coerce-array.js";
 import { mcpBooleanSchema } from "../utils/mcp-boolean.js";
 import { normalizeNodeId } from "../utils/figma-helpers.js";
+import { normalizeCommandParams } from "../utils/command-params.js";
 
 /**
  * Register creation tools to the MCP server
@@ -41,16 +42,19 @@ export function registerCreationTools(server: McpServer): void {
     async ({ x, y, width, height, name, parentId, cornerRadius, layoutPositioning }) => {
       if (parentId) parentId = normalizeNodeId(parentId);
       try {
-        const result = await sendCommandToFigma("create_rectangle", {
-          x,
-          y,
-          width,
-          height,
-          name: name || "Rectangle",
-          parentId,
-          cornerRadius,
-          layoutPositioning,
-        });
+        const result = await sendCommandToFigma(
+          "create_rectangle",
+          normalizeCommandParams("create_rectangle", {
+            x,
+            y,
+            width,
+            height,
+            name,
+            parentId,
+            cornerRadius,
+            layoutPositioning,
+          }),
+        );
         return {
           content: [
             {
@@ -139,20 +143,23 @@ export function registerCreationTools(server: McpServer): void {
     }) => {
       if (parentId) parentId = normalizeNodeId(parentId);
       try {
-        const result = await sendCommandToFigma("create_frame", {
-          x,
-          y,
-          width,
-          height,
-          name: name || "Frame",
-          parentId,
-          fillColor: fillColor || { r: 1, g: 1, b: 1, a: 1 },
-          strokeColor: strokeColor,
-          strokeWeight: strokeWeight,
-          clipsContent,
-          cornerRadius,
-          layoutPositioning,
-        });
+        const result = await sendCommandToFigma(
+          "create_frame",
+          normalizeCommandParams("create_frame", {
+            x,
+            y,
+            width,
+            height,
+            name,
+            parentId,
+            fillColor,
+            strokeColor,
+            strokeWeight,
+            clipsContent,
+            cornerRadius,
+            layoutPositioning,
+          }),
+        );
         const typedResult = result as { name: string; id: string };
         return {
           content: [
@@ -224,19 +231,22 @@ export function registerCreationTools(server: McpServer): void {
     async ({ x, y, text, fontSize, fontFamily, fontWeight, fontColor, name, parentId, width, textAutoResize }) => {
       if (parentId) parentId = normalizeNodeId(parentId);
       try {
-        const result = await sendCommandToFigma("create_text", {
-          x,
-          y,
-          text,
-          fontSize: fontSize || 14,
-          fontFamily: fontFamily || "Inter",
-          fontWeight: fontWeight || 400,
-          fontColor: fontColor || { r: 0, g: 0, b: 0, a: 1 },
-          name: name || "Text",
-          parentId,
-          width,
-          textAutoResize,
-        });
+        const result = await sendCommandToFigma(
+          "create_text",
+          normalizeCommandParams("create_text", {
+            x,
+            y,
+            text,
+            fontSize,
+            fontFamily,
+            fontWeight,
+            fontColor,
+            name,
+            parentId,
+            width,
+            textAutoResize,
+          }),
+        );
         const typedResult = result as { name: string; id: string; width?: number; textAutoResize?: string };
         const sizingText =
           typedResult.textAutoResize !== undefined
@@ -460,14 +470,10 @@ export function registerCreationTools(server: McpServer): void {
     async ({ svgString, x, y, name, parentId, flatten }) => {
       if (parentId) parentId = normalizeNodeId(parentId);
       try {
-        const result = await sendCommandToFigma("create_svg", {
-          svgString,
-          x: x ?? 0,
-          y: y ?? 0,
-          name,
-          parentId,
-          flatten: flatten ?? false,
-        });
+        const result = await sendCommandToFigma(
+          "create_svg",
+          normalizeCommandParams("create_svg", { svgString, x, y, name, parentId, flatten }),
+        );
         const typedResult = result as {
           id: string;
           name: string;

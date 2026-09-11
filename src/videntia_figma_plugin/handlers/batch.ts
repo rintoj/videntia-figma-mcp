@@ -141,6 +141,15 @@ export async function batchActions(
     }
 
     try {
+      // The MCP server rejected this action before sending (invalid params, server-only tool).
+      const preflightError =
+        actionParams !== null && actionParams !== undefined
+          ? (actionParams as Record<string, unknown>)["__batchError"]
+          : undefined;
+      if (typeof preflightError === "string") {
+        throw new Error(preflightError);
+      }
+
       // Resolve $result[N].field references
       const resolvedParams = resolveResultReferences(
         actionParams !== null && actionParams !== undefined ? actionParams : {},

@@ -255,10 +255,20 @@ export async function setClipsContent(params: Record<string, unknown>): Promise<
   return { id: frame.id, name: frame.name, clipsContent: frame.clipsContent };
 }
 
+// Layout handlers read their internal param names but also accept the public MCP
+// tool names, so a raw batch action can't silently no-op on a naming mismatch.
+function paramAlias(params: Record<string, unknown>, internalName: string, publicName: string): unknown {
+  return params[internalName] !== undefined ? params[internalName] : params[publicName];
+}
+
 export async function setLayoutMode(params: Record<string, unknown>): Promise<Record<string, unknown>> {
   const nodeId = params["nodeId"] as string;
-  const layoutMode = params["layoutMode"] as string;
-  const layoutWrap = params["layoutWrap"] as string | undefined;
+  const layoutMode = paramAlias(params, "layoutMode", "mode") as string | undefined;
+  const layoutWrap = paramAlias(params, "layoutWrap", "wrap") as string | undefined;
+
+  if (layoutMode === undefined) {
+    throw new Error("Missing layout mode — pass mode (NONE, HORIZONTAL, VERTICAL or GRID). No changes were made.");
+  }
 
   const node = await figma.getNodeByIdAsync(nodeId);
 
@@ -283,8 +293,8 @@ export async function setLayoutMode(params: Record<string, unknown>): Promise<Re
 
   if (layoutMode === "GRID") {
     // layoutWrap is a flex-wrap concept and does not apply to grids.
-    const gridRowCount = params["gridRowCount"] as number | undefined;
-    const gridColumnCount = params["gridColumnCount"] as number | undefined;
+    const gridRowCount = paramAlias(params, "gridRowCount", "rows") as number | undefined;
+    const gridColumnCount = paramAlias(params, "gridColumnCount", "columns") as number | undefined;
     const gridAutoTracks = params["gridAutoTracks"] as string | undefined;
     const gridItemsPositioning = params["gridItemsPositioning"] as string | undefined;
 
@@ -364,10 +374,19 @@ export async function reorderGridTracks(params: Record<string, unknown>): Promis
 
 export async function setPadding(params: Record<string, unknown>): Promise<Record<string, unknown>> {
   const nodeId = params["nodeId"] as string;
-  const paddingTop = params["paddingTop"] as number | undefined;
-  const paddingRight = params["paddingRight"] as number | undefined;
-  const paddingBottom = params["paddingBottom"] as number | undefined;
-  const paddingLeft = params["paddingLeft"] as number | undefined;
+  const paddingTop = paramAlias(params, "paddingTop", "top") as number | undefined;
+  const paddingRight = paramAlias(params, "paddingRight", "right") as number | undefined;
+  const paddingBottom = paramAlias(params, "paddingBottom", "bottom") as number | undefined;
+  const paddingLeft = paramAlias(params, "paddingLeft", "left") as number | undefined;
+
+  if (
+    paddingTop === undefined &&
+    paddingRight === undefined &&
+    paddingBottom === undefined &&
+    paddingLeft === undefined
+  ) {
+    throw new Error("No padding values provided — pass top, right, bottom and/or left. No changes were made.");
+  }
 
   const node = await figma.getNodeByIdAsync(nodeId);
 
@@ -398,8 +417,21 @@ export async function setPadding(params: Record<string, unknown>): Promise<Recor
 
 export async function setItemSpacing(params: Record<string, unknown>): Promise<Record<string, unknown>> {
   const nodeId = params["nodeId"] as string;
-  const itemSpacing = params["itemSpacing"] as number | undefined;
+  const itemSpacing = paramAlias(params, "itemSpacing", "gap") as number | undefined;
   const counterAxisSpacing = params["counterAxisSpacing"] as number | undefined;
+  const gridRowGap = paramAlias(params, "gridRowGap", "rowGap") as number | undefined;
+  const gridColumnGap = paramAlias(params, "gridColumnGap", "columnGap") as number | undefined;
+
+  if (
+    itemSpacing === undefined &&
+    counterAxisSpacing === undefined &&
+    gridRowGap === undefined &&
+    gridColumnGap === undefined
+  ) {
+    throw new Error(
+      "No spacing values provided — pass gap, counterAxisSpacing, rowGap and/or columnGap. No changes were made.",
+    );
+  }
 
   const node = await figma.getNodeByIdAsync(nodeId);
 
@@ -412,8 +444,6 @@ export async function setItemSpacing(params: Record<string, unknown>): Promise<R
   }
 
   const frame = node as FrameNode;
-  const gridRowGap = params["gridRowGap"] as number | undefined;
-  const gridColumnGap = params["gridColumnGap"] as number | undefined;
   const isGrid = frame.layoutMode === "GRID";
 
   // itemSpacing is inert on GRID frames and the grid gaps are inert everywhere
@@ -468,6 +498,12 @@ export async function setAxisAlign(params: Record<string, unknown>): Promise<Rec
   const primaryAxisAlignItems = params["primaryAxisAlignItems"] as string | undefined;
   const counterAxisAlignItems = params["counterAxisAlignItems"] as string | undefined;
 
+  if (primaryAxisAlignItems === undefined && counterAxisAlignItems === undefined) {
+    throw new Error(
+      "No alignment values provided — pass primaryAxisAlignItems and/or counterAxisAlignItems. No changes were made.",
+    );
+  }
+
   const node = await figma.getNodeByIdAsync(nodeId);
 
   if (!node) {
@@ -497,8 +533,14 @@ export async function setAxisAlign(params: Record<string, unknown>): Promise<Rec
 
 export async function setLayoutSizing(params: Record<string, unknown>): Promise<Record<string, unknown>> {
   const nodeId = params["nodeId"] as string;
-  const layoutSizingHorizontal = params["layoutSizingHorizontal"] as string | undefined;
-  const layoutSizingVertical = params["layoutSizingVertical"] as string | undefined;
+  const layoutSizingHorizontal = paramAlias(params, "layoutSizingHorizontal", "horizontal") as string | undefined;
+  const layoutSizingVertical = paramAlias(params, "layoutSizingVertical", "vertical") as string | undefined;
+
+  if (layoutSizingHorizontal === undefined && layoutSizingVertical === undefined) {
+    throw new Error(
+      "No sizing values provided — pass horizontal and/or vertical (FIXED, HUG or FILL). No changes were made.",
+    );
+  }
 
   const node = await figma.getNodeByIdAsync(nodeId);
 

@@ -1,12 +1,11 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { sendCommandToFigma } from "../utils/websocket";
-import { applyColorDefaults, applyDefault, FIGMA_DEFAULTS } from "../utils/defaults";
-import { Color } from "../types/color";
 import { coerceArray } from "../utils/coerce-array.js";
 import { mcpBooleanSchema } from "../utils/mcp-boolean.js";
 import { DeleteMultipleNodesResult, CreateEffectStyleResult, UpdateEffectStyleResult } from "../types";
 import { normalizeNodeId } from "../utils/figma-helpers.js";
+import { normalizeCommandParams } from "../utils/command-params.js";
 
 /**
  * Register modification tools to the MCP server
@@ -44,18 +43,7 @@ export function registerModificationTools(server: McpServer): void {
     async ({ nodeId, color, r, g, b, a }) => {
       nodeId = normalizeNodeId(nodeId);
       try {
-        // Build params for the plugin handler (which handles both hex and rgba)
-        const params: Record<string, unknown> = { nodeId };
-        if (color !== undefined) {
-          params.color = color;
-        } else {
-          if (r === undefined || g === undefined || b === undefined) {
-            throw new Error("Provide either 'color' (hex string) or r, g, b components");
-          }
-          const colorInput: Color = { r, g, b, a };
-          params.color = applyColorDefaults(colorInput);
-        }
-
+        const params = normalizeCommandParams("set_fill_color", { nodeId, color, r, g, b, a });
         const result = await sendCommandToFigma("set_fill_color", params);
         const typedResult = result as { name: string };
         const colorDesc = color !== undefined ? color : `RGBA(${r}, ${g}, ${b}, ${a ?? 1})`;
@@ -114,23 +102,7 @@ export function registerModificationTools(server: McpServer): void {
     async ({ nodeId, color, r, g, b, a, weight, dashPattern }) => {
       nodeId = normalizeNodeId(nodeId);
       try {
-        const params: Record<string, unknown> = { nodeId };
-        if (color !== undefined) {
-          params.color = color;
-        } else {
-          if (r === undefined || g === undefined || b === undefined) {
-            throw new Error("Provide either 'color' (hex string) or r, g, b components");
-          }
-          const colorInput: Color = { r, g, b, a };
-          params.color = applyColorDefaults(colorInput);
-        }
-
-        const strokeWeightWithDefault = applyDefault(weight, FIGMA_DEFAULTS.stroke.weight);
-        params.strokeWeight = strokeWeightWithDefault;
-        if (dashPattern !== undefined) {
-          params.dashPattern = dashPattern;
-        }
-
+        const params = normalizeCommandParams("set_stroke_color", { nodeId, color, r, g, b, a, weight, dashPattern });
         const result = await sendCommandToFigma("set_stroke_color", params);
         const typedResult = result as { name: string };
         const colorDesc = color !== undefined ? color : `RGBA(${r}, ${g}, ${b}, ${a ?? 1})`;
@@ -138,7 +110,7 @@ export function registerModificationTools(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: `Set stroke color of node "${typedResult.name}" to ${colorDesc} with weight ${strokeWeightWithDefault}`,
+              text: `Set stroke color of node "${typedResult.name}" to ${colorDesc} with weight ${params.strokeWeight}`,
             },
           ],
         };
@@ -432,26 +404,15 @@ export function registerModificationTools(server: McpServer): void {
     async ({ nodeId, mode, wrap, rows, columns, gridAutoTracks, gridItemsPositioning }) => {
       nodeId = normalizeNodeId(nodeId);
       try {
-        if (mode !== "GRID" && (rows !== undefined || columns !== undefined)) {
-          throw new Error(`rows/columns apply to GRID mode only (mode is ${mode})`);
-        }
-        if (mode !== "GRID" && (gridAutoTracks !== undefined || gridItemsPositioning !== undefined)) {
-          throw new Error(`gridAutoTracks/gridItemsPositioning apply to GRID mode only (mode is ${mode})`);
-        }
-        if (mode === "GRID" && wrap !== undefined) {
-          throw new Error("wrap does not apply to GRID mode — grid children are placed on tracks, not wrapped");
-        }
-
-        const params: Record<string, unknown> = { nodeId, layoutMode: mode };
-        if (mode === "GRID") {
-          if (gridAutoTracks !== undefined) params.gridAutoTracks = gridAutoTracks;
-          if (gridItemsPositioning !== undefined) params.gridItemsPositioning = gridItemsPositioning;
-          if (rows !== undefined) params.gridRowCount = rows;
-          if (columns !== undefined) params.gridColumnCount = columns;
-        } else {
-          params.layoutWrap = wrap || "NO_WRAP";
-        }
-
+        const params = normalizeCommandParams("set_layout_mode", {
+          nodeId,
+          mode,
+          wrap,
+          rows,
+          columns,
+          gridAutoTracks,
+          gridItemsPositioning,
+        });
         const result = await sendCommandToFigma("set_layout_mode", params);
         const typedResult = result as { name: string; gridRowCount?: number; gridColumnCount?: number };
         const tracks =
@@ -543,13 +504,10 @@ export function registerModificationTools(server: McpServer): void {
     async ({ nodeId, top, right, bottom, left }) => {
       nodeId = normalizeNodeId(nodeId);
       try {
-        const result = await sendCommandToFigma("set_padding", {
-          nodeId,
-          paddingTop: top,
-          paddingRight: right,
-          paddingBottom: bottom,
-          paddingLeft: left,
-        });
+        const result = await sendCommandToFigma(
+          "set_padding",
+          normalizeCommandParams("set_padding", { nodeId, top, right, bottom, left }),
+        );
         const typedResult = result as { name: string };
 
         const paddingMessages = [];
@@ -663,11 +621,10 @@ export function registerModificationTools(server: McpServer): void {
     async ({ nodeId, horizontal, vertical }) => {
       nodeId = normalizeNodeId(nodeId);
       try {
-        const result = await sendCommandToFigma("set_layout_sizing", {
-          nodeId,
-          layoutSizingHorizontal: horizontal,
-          layoutSizingVertical: vertical,
-        });
+        const result = await sendCommandToFigma(
+          "set_layout_sizing",
+          normalizeCommandParams("set_layout_sizing", { nodeId, horizontal, vertical }),
+        );
         const typedResult = result as {
           name: string;
           layoutSizingHorizontal?: string;
@@ -739,12 +696,13 @@ export function registerModificationTools(server: McpServer): void {
     async ({ nodeId, gap, counterAxisSpacing, rowGap, columnGap }) => {
       nodeId = normalizeNodeId(nodeId);
       try {
-        const params: any = { nodeId };
-        if (gap !== undefined) params.itemSpacing = gap;
-        if (counterAxisSpacing !== undefined) params.counterAxisSpacing = counterAxisSpacing;
-        if (rowGap !== undefined) params.gridRowGap = rowGap;
-        if (columnGap !== undefined) params.gridColumnGap = columnGap;
-
+        const params = normalizeCommandParams("set_item_spacing", {
+          nodeId,
+          gap,
+          counterAxisSpacing,
+          rowGap,
+          columnGap,
+        });
         const result = await sendCommandToFigma("set_item_spacing", params);
         const typedResult = result as {
           name: string;
@@ -803,11 +761,10 @@ export function registerModificationTools(server: McpServer): void {
     async ({ nodeId, radius, corners }) => {
       nodeId = normalizeNodeId(nodeId);
       try {
-        const result = await sendCommandToFigma("set_corner_radius", {
-          nodeId,
-          radius,
-          corners: corners || [true, true, true, true],
-        });
+        const result = await sendCommandToFigma(
+          "set_corner_radius",
+          normalizeCommandParams("set_corner_radius", { nodeId, radius, corners }),
+        );
         const typedResult = result as { name: string };
         return {
           content: [
@@ -944,53 +901,29 @@ export function registerModificationTools(server: McpServer): void {
     }) => {
       nodeId = normalizeNodeId(nodeId);
       try {
-        if (
-          mode !== "GRID" &&
-          (rows !== undefined ||
-            columns !== undefined ||
-            rowGap !== undefined ||
-            columnGap !== undefined ||
-            gridAutoTracks !== undefined ||
-            gridItemsPositioning !== undefined)
-        ) {
-          throw new Error(
-            `rows/columns/rowGap/columnGap/gridAutoTracks/gridItemsPositioning apply to GRID mode only (mode is ${mode})`,
-          );
-        }
-        if (mode === "GRID") {
-          // Flex-only parameters would otherwise be accepted and silently dropped.
-          const flexOnly: string[] = [];
-          if (primaryAxisAlignItems !== undefined) flexOnly.push("primaryAxisAlignItems");
-          if (counterAxisAlignItems !== undefined) flexOnly.push("counterAxisAlignItems");
-          if (wrap !== undefined) flexOnly.push("wrap");
-          if (flexOnly.length > 0) {
-            throw new Error(
-              `${flexOnly.join("/")} do not apply to GRID mode — use rows/columns for placement and rowGap/columnGap for spacing`,
-            );
-          }
-        }
-        const result = await sendCommandToFigma("set_auto_layout", {
+        const params = normalizeCommandParams("set_auto_layout", {
           nodeId,
-          layoutMode: mode,
-          paddingTop: top,
-          paddingBottom: bottom,
-          paddingLeft: left,
-          paddingRight: right,
-          itemSpacing: gap,
-          ...(rows !== undefined ? { gridRowCount: rows } : {}),
-          ...(columns !== undefined ? { gridColumnCount: columns } : {}),
-          ...(rowGap !== undefined ? { gridRowGap: rowGap } : {}),
-          ...(columnGap !== undefined ? { gridColumnGap: columnGap } : {}),
-          ...(gridAutoTracks !== undefined ? { gridAutoTracks } : {}),
-          ...(gridItemsPositioning !== undefined ? { gridItemsPositioning } : {}),
+          mode,
+          top,
+          bottom,
+          left,
+          right,
+          gap,
+          rows,
+          columns,
+          rowGap,
+          columnGap,
+          gridAutoTracks,
+          gridItemsPositioning,
           primaryAxisAlignItems,
           counterAxisAlignItems,
-          layoutWrap: wrap,
+          wrap,
           strokesIncludedInLayout,
           clipsContent,
-          layoutSizingHorizontal: horizontal,
-          layoutSizingVertical: vertical,
+          horizontal,
+          vertical,
         });
+        const result = await sendCommandToFigma("set_auto_layout", params);
 
         const typedResult = result as { name: string };
         return {
@@ -1990,13 +1923,10 @@ export function registerModificationTools(server: McpServer): void {
     async ({ nodeId, type, stops, angle, opacity }) => {
       nodeId = normalizeNodeId(nodeId);
       try {
-        const result = await sendCommandToFigma("set_gradient_fill", {
-          nodeId,
-          gradientType: type,
-          stops,
-          angle: angle ?? 0,
-          opacity: opacity ?? 1,
-        });
+        const result = await sendCommandToFigma(
+          "set_gradient_fill",
+          normalizeCommandParams("set_gradient_fill", { nodeId, type, stops, angle, opacity }),
+        );
 
         const typedResult = result as {
           id: string;

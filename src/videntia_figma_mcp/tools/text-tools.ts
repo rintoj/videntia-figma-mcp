@@ -2,6 +2,7 @@ import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { sendCommandToFigma } from "../utils/websocket";
 import { normalizeNodeId } from "../utils/figma-helpers.js";
+import { normalizeCommandParams } from "../utils/command-params.js";
 
 /**
  * Register text-related tools to the MCP server
@@ -204,10 +205,10 @@ export function registerTextTools(server: McpServer): void {
     async ({ nodeId, size }) => {
       nodeId = normalizeNodeId(nodeId);
       try {
-        const result = await sendCommandToFigma("set_font_size", {
-          nodeId,
-          fontSize: size,
-        });
+        const result = await sendCommandToFigma(
+          "set_font_size",
+          normalizeCommandParams("set_font_size", { nodeId, size }),
+        );
         const typedResult = result as { name: string; fontSize: number };
         return {
           content: [
@@ -292,11 +293,10 @@ export function registerTextTools(server: McpServer): void {
     async ({ nodeId, spacing, unit }) => {
       nodeId = normalizeNodeId(nodeId);
       try {
-        const result = await sendCommandToFigma("set_letter_spacing", {
-          nodeId,
-          letterSpacing: spacing,
-          unit: unit || "PIXELS",
-        });
+        const result = await sendCommandToFigma(
+          "set_letter_spacing",
+          normalizeCommandParams("set_letter_spacing", { nodeId, spacing, unit }),
+        );
         const typedResult = result as { name: string; letterSpacing: { value: number; unit: string } };
         return {
           content: [
@@ -338,11 +338,10 @@ export function registerTextTools(server: McpServer): void {
     async ({ nodeId, height, unit }) => {
       nodeId = normalizeNodeId(nodeId);
       try {
-        const result = await sendCommandToFigma("set_line_height", {
-          nodeId,
-          lineHeight: height,
-          unit: unit || "PIXELS",
-        });
+        const result = await sendCommandToFigma(
+          "set_line_height",
+          normalizeCommandParams("set_line_height", { nodeId, height, unit }),
+        );
         const typedResult = result as { name: string; lineHeight: { value: number; unit: string } };
         return {
           content: [
@@ -378,10 +377,10 @@ export function registerTextTools(server: McpServer): void {
     async ({ nodeId, spacing }) => {
       nodeId = normalizeNodeId(nodeId);
       try {
-        const result = await sendCommandToFigma("set_paragraph_spacing", {
-          nodeId,
-          paragraphSpacing: spacing,
-        });
+        const result = await sendCommandToFigma(
+          "set_paragraph_spacing",
+          normalizeCommandParams("set_paragraph_spacing", { nodeId, spacing }),
+        );
         const typedResult = result as { name: string; paragraphSpacing: number };
         return {
           content: [
@@ -497,10 +496,10 @@ export function registerTextTools(server: McpServer): void {
     async ({ nodeId, decoration }) => {
       nodeId = normalizeNodeId(nodeId);
       try {
-        const result = await sendCommandToFigma("set_text_decoration", {
-          nodeId,
-          textDecoration: decoration,
-        });
+        const result = await sendCommandToFigma(
+          "set_text_decoration",
+          normalizeCommandParams("set_text_decoration", { nodeId, decoration }),
+        );
         const typedResult = result as { name: string; textDecoration: string };
         return {
           content: [
@@ -605,10 +604,10 @@ export function registerTextTools(server: McpServer): void {
     },
     async ({ family, style }) => {
       try {
-        const result = await sendCommandToFigma("load_font_async", {
-          family,
-          style: style || "Regular",
-        });
+        const result = await sendCommandToFigma(
+          "load_font_async",
+          normalizeCommandParams("load_font_async", { family, style }),
+        );
         const typedResult = result as { success: boolean; family: string; style: string; message: string };
         return {
           content: [

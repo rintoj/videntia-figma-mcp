@@ -71,7 +71,7 @@ describe("batch_actions tool", () => {
         "batch_actions",
         {
           actions: [
-            { action: "create_rectangle", params: { x: 0, y: 0, width: 100, height: 50 } },
+            { action: "create_rectangle", params: { x: 0, y: 0, width: 100, height: 50, name: "Rectangle" } },
             { action: "set_fill_color", params: { nodeId: "$result[0].id", color: { r: 1, g: 0, b: 0 } } },
             { action: "rename_node", params: { nodeId: "$result[0].id", name: "MyRect" } },
           ],
@@ -252,7 +252,7 @@ describe("batch_actions tool", () => {
       expect(mockSendCommand).toHaveBeenCalledWith(
         "batch_actions",
         {
-          actions: [{ action: "get_node_info", params: { nodeId: "1:2" } }],
+          actions: [{ action: "get_node_info", params: { nodeIds: ["1:2"], depth: 1 } }],
           stopOnError: false,
         },
         expect.any(Number),
@@ -304,10 +304,174 @@ describe("batch_actions tool", () => {
 
       expect(mockSendCommand).toHaveBeenCalledWith(
         "batch_actions",
-        { actions: [{ action: "get_selection", params: {} }], stopOnError: false },
+        { actions: [{ action: "get_selection", params: { depth: 1 } }], stopOnError: false },
         expect.any(Number),
       );
       expect(response.content[0].text).toContain("1/1 succeeded");
+    });
+  });
+
+  describe("param normalization (same names as the individual tools)", () => {
+    const okResult = (count: number) => ({
+      success: true,
+      totalActions: count,
+      succeeded: count,
+      failed: 0,
+      results: [],
+    });
+
+    function sentActions(): Array<{ action: string; params: Record<string, unknown> }> {
+      return mockSendCommand.mock.calls[0][1].actions;
+    }
+
+    it("maps set_layout_sizing horizontal/vertical to the plugin's layoutSizing* names", async () => {
+      mockSendCommand.mockResolvedValue(okResult(1));
+      await callTool("batch_actions", {
+        actions: [{ action: "set_layout_sizing", params: { nodeId: "1:2", horizontal: "FILL", vertical: "HUG" } }],
+      });
+      expect(sentActions()[0]).toEqual({
+        action: "set_layout_sizing",
+        params: { nodeId: "1:2", layoutSizingHorizontal: "FILL", layoutSizingVertical: "HUG" },
+      });
+    });
+
+    it("maps set_layout_mode mode/rows/columns to layoutMode/gridRowCount/gridColumnCount", async () => {
+      mockSendCommand.mockResolvedValue(okResult(1));
+      await callTool("batch_actions", {
+        actions: [{ action: "set_layout_mode", params: { nodeId: "1:2", mode: "GRID", rows: 2, columns: 3 } }],
+      });
+      expect(sentActions()[0].params).toEqual({
+        nodeId: "1:2",
+        layoutMode: "GRID",
+        gridRowCount: 2,
+        gridColumnCount: 3,
+      });
+    });
+
+    it("normalizes URL-style node ids in literal params", async () => {
+      mockSendCommand.mockResolvedValue(okResult(2));
+      await callTool("batch_actions", {
+        actions: [
+          { action: "move_node", params: { nodeId: "12-34", parentId: "5-6", index: 0 } },
+          { action: "delete_multiple_nodes", params: { nodeIds: ["7-8", "9:10"] } },
+        ],
+      });
+      expect(sentActions()[0].params).toEqual({ nodeId: "12:34", parentId: "5:6", index: 0 });
+      expect(sentActions()[1].params).toEqual({ nodeIds: ["7:8", "9:10"] });
+    });
+
+    it("preserves $result references while renaming keys", async () => {
+      mockSendCommand.mockResolvedValue(okResult(3));
+      await callTool("batch_actions", {
+        actions: [
+          { action: "clone_node", params: { nodeId: "1-2" } },
+          { action: "set_layout_sizing", params: { nodeId: "$result[0].id", horizontal: "FILL" } },
+          { action: "set_padding", params: { nodeId: "$result[0].children[0].id", top: "$result[0].y" } },
+        ],
+      });
+      const sent = sentActions();
+      expect(sent[0].params).toEqual({ nodeId: "1:2" });
+      expect(sent[1].params).toEqual({ nodeId: "$result[0].id", layoutSizingHorizontal: "FILL" });
+      expect(sent[2].params).toEqual({ nodeId: "$result[0].children[0].id", paddingTop: "$result[0].y" });
+    });
+
+    it("keeps accepting the plugin's internal param names", async () => {
+      mockSendCommand.mockResolvedValue(okResult(1));
+      await callTool("batch_actions", {
+        actions: [
+          {
+            action: "set_layout_sizing",
+            params: { nodeId: "1:2", layoutSizingHorizontal: "FIXED", layoutSizingVertical: "FILL" },
+          },
+        ],
+      });
+      expect(sentActions()[0].params).toEqual({
+        nodeId: "1:2",
+        layoutSizingHorizontal: "FIXED",
+        layoutSizingVertical: "FILL",
+      });
+    });
+
+    it("fails invalid actions with the direct tool's validation message instead of sending them raw", async () => {
+      mockSendCommand.mockResolvedValue({
+        success: false,
+        totalActions: 1,
+        succeeded: 0,
+        failed: 1,
+        results: [{ index: 0, action: "set_layout_mode", success: false, error: "plugin error" }],
+      });
+      const response = await callTool("batch_actions", {
+        actions: [{ action: "set_layout_mode", params: { nodeId: "1:2", mode: "HORIZONTAL", rows: 2 } }],
+      });
+      expect(sentActions()[0].params).toEqual({
+        __batchError: "rows/columns apply to GRID mode only (mode is HORIZONTAL)",
+      });
+      expect(response.content[0].text).toContain("rows/columns apply to GRID mode only");
+      expect(response.isError).toBe(true);
+    });
+
+    it("rejects server-only tools with a clear message", async () => {
+      mockSendCommand.mockResolvedValue(okResult(0));
+      await callTool("batch_actions", {
+        actions: [{ action: "export_image_fill", params: { nodeId: "1:2", exportPath: "/tmp/a.png" } }],
+      });
+      expect(String(sentActions()[0].params.__batchError)).toContain("cannot be used inside batch_actions");
+    });
+  });
+
+  describe("per-action results", () => {
+    it("lists every action with a compact result so no-ops are visible", async () => {
+      mockSendCommand.mockResolvedValue({
+        success: true,
+        totalActions: 2,
+        succeeded: 2,
+        failed: 0,
+        results: [
+          {
+            index: 0,
+            action: "set_layout_sizing",
+            success: true,
+            result: { nodeId: "1:2", name: "Card", layoutSizingHorizontal: "FILL", layoutSizingVertical: "HUG" },
+          },
+          { index: 1, action: "rename_node", success: true, result: { id: "1:2", name: "A|B" } },
+        ],
+      });
+      const response = await callTool("batch_actions", {
+        actions: [
+          { action: "set_layout_sizing", params: { nodeId: "1:2", horizontal: "FILL" } },
+          { action: "rename_node", params: { nodeId: "1:2", name: "A|B" } },
+        ],
+      });
+      const text = response.content[0].text;
+      expect(text).toContain("| 0 | set_layout_sizing | OK |");
+      expect(text).toContain('"layoutSizingHorizontal":"FILL"');
+      expect(text).toContain("| 1 | rename_node | OK |");
+      expect(text).toContain("A\\|B");
+    });
+
+    it("reports caller indices for expanded create_icon actions", async () => {
+      mockSendCommand.mockResolvedValue({
+        success: true,
+        totalActions: 3,
+        succeeded: 3,
+        failed: 0,
+        results: [
+          { index: 0, action: "create_svg", success: true, result: { id: "9:1" } },
+          { index: 1, action: "insert_child", success: true, result: { id: "9:1" } },
+          { index: 2, action: "rename_node", success: true, result: { id: "9:1" } },
+        ],
+      });
+      const response = await callTool("batch_actions", {
+        actions: [
+          { action: "create_icon", params: { parentId: "1:2", name: "bell", size: 16, index: 0 } },
+          { action: "rename_node", params: { nodeId: "$result[0].id", name: "Bell" } },
+        ],
+      });
+      const text = response.content[0].text;
+      expect(text).toContain("| 0 | create_svg | OK |");
+      expect(text).toContain("| 0 | insert_child | OK |");
+      expect(text).toContain("| 1 | rename_node | OK |");
+      expect(mockSendCommand.mock.calls[0][1].actions[2].params).toEqual({ nodeId: "$result[0].id", name: "Bell" });
     });
   });
 });
