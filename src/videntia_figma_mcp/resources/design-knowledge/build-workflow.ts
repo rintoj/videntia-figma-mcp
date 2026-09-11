@@ -44,7 +44,7 @@ Large builds fail in the middle. Structure the work so every step leaves the fil
 
 **Keep a ledger of IDs.** Every create call returns the new node's ID. Record it with a short note of what it is, and pass those IDs to later calls instead of re-searching by name. The ledger is also your cleanup list if something goes wrong.
 
-**Batch the small stuff.** Many small edits (renames, fills, sizing, variable bindings across a dozen nodes) belong in one \`batch_actions\` call. Later actions can reference outputs of earlier ones with \`$result[N]\`, so a clone-then-rename sequence needs no round trip. Set \`stopOnError: true\` when later steps depend on earlier ones. For replacing many strings inside one container, \`set_multiple_text_contents\` is the direct route.
+**Batch the small stuff.** Many small edits (renames, fills, sizing, variable bindings across a dozen nodes) belong in one \`batch_actions\` call. Later actions can reference outputs of earlier ones with \`$result[N]\`, so a clone-then-rename sequence needs no round trip. Each action takes the same params as the standalone tool (\`set_layout_sizing\` with \`horizontal\`/\`vertical\`, \`set_layout_mode\` with \`mode\`/\`rows\`/\`columns\`), and the reply lists every action's result — check that each one changed what you intended. Set \`stopOnError: true\` when later steps depend on earlier ones. For replacing many strings inside one container, \`set_multiple_text_contents\` is the direct route.
 
 Keep each batch focused on one section: a failure then affects a small, known area.
 
@@ -75,6 +75,7 @@ Work through this on the finished frame. Most items take one read call each.
 
 **System compliance**
 - [ ] Run \`lint_frame\` on the root: it reports unbound colors, spacing and radius, missing text/effect styles, missing auto-layout, child overflow, content cut by clipping ancestors and screen naming by severity. It is a structural check, not a visual review. Resolve CRITICAL and HIGH items before handing off
+- [ ] Intentional exceptions — carousels, cover crops, brand logos, diagram canvases, gradient scrims — are marked, never "fixed": \`set_lint_ignore\` stores the exception in the file (node + subtree), or pass \`ignoreNodeIds\` / \`ignoreRules\` (rule ids from each violation) for one run. Suppressed items drop out of compliance and are listed as counts. Each issue is reported once: content cut by a clipping container is \`clipped-content\`, not also \`overflow\`
 - [ ] If the screen uses a color variable collection, \`validate_color_contrast\` checks its foreground/background pairs against WCAG AA or AAA (per mode)
 
 **Hygiene**

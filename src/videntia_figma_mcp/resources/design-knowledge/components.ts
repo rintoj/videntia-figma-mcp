@@ -77,10 +77,11 @@ Rename a property with \`edit_component_property\` (\`newName\`); remove an unwa
 1. Build and bind one base variant completely (auto-layout, variables, wired properties).
 2. \`clone_node\` it for each combination, adjust only what differs, and \`rename_node\` each copy to its \`Property=Value\` name.
 3. \`create_component\` on each frame (skip if you cloned an existing component), then \`create_component_set\` with all the ids and the set name.
-4. Lay variants out as a readable matrix with \`move_node\` (positions are relative to the set):
+4. Lay variants out as a readable matrix by giving the component set a grid: \`set_auto_layout\` on the set with \`mode: "GRID"\`, \`columns\` and \`rows\` for the matrix, \`rowGap\`/\`columnGap\` for spacing, padding via \`top\`/\`right\`/\`bottom\`/\`left\`, and \`gridItemsPositioning: "ROW_AUTO_FLOW"\` so variants fill cells in child order (reorder with \`insert_child\`):
    - **Columns:** the interaction axis — usually State (Default → Hover → Pressed → Focus → Disabled)
    - **Rows:** the identity axes — usually Size, then Style
    - A consistent 16–40px gap between cells and generous padding inside the set
+   - Only if the set cannot take a grid, fall back to placing each variant with \`move_node\` (positions are relative to the set)
 5. **Check clipping.** \`create_component\` and \`create_component_set\` keep the source frame's \`clipsContent\`. If the component has a shadow, focus ring, glow or a badge hanging past its edge, call \`set_clips_content\` with \`clipsContent: false\` on the component (and on the set, which crops variants near its border). Instances inherit this, but the frames they are placed in can still crop them — check the parent's \`clipsContent\` with \`get_node_info\`.
 6. \`export_node_as_image\` on the set and look at it. Check for overlapping variants, stragglers outside the grid, and values that render identically when they should differ.
 

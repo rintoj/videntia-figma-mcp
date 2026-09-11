@@ -123,6 +123,7 @@ Both lay out many items in two dimensions, but they behave differently:
 
 - **Wrap:** \`set_layout_mode\` with \`wrap: "WRAP"\`, or \`set_auto_layout\` with \`wrap\`. \`set_item_spacing\` \`gap\` spaces items within a line and \`counterAxisSpacing\` spaces the lines. Give the container a fixed or filled width so there is a line length to wrap at.
 - **Grid:** \`set_layout_mode\` or \`set_auto_layout\` with \`mode: "GRID"\` plus \`rows\` and \`columns\`. Space tracks with \`rowGap\`/\`columnGap\`. Use \`gridAutoTracks: "ROWS"\` so rows are added as items are, and \`gridItemsPositioning: "ROW_AUTO_FLOW"\` to place children into the next free cell automatically. Reorder whole rows or columns with \`reorder_grid_tracks\`. Alignment and wrap options do not apply to grid frames. Per-track sizing and spanning a child across several cells are set manually in Figma.
+- Inside \`batch_actions\` use exactly the same params — e.g. \`{ action: "set_layout_mode", params: { nodeId, mode: "GRID", rows: 2, columns: 3 } }\` or \`{ action: "set_layout_sizing", params: { nodeId, horizontal: "FILL" } }\`.
 
 ## Anti-Patterns
 

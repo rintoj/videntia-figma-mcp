@@ -408,7 +408,7 @@ Full Chrome control via CDP — trusted input events, navigation, tab management
 |------|-------------|------------|
 | `batch_actions` | Execute multiple commands in a single batch | `actions[]`, `stopOnError` |
 
-Use `batch_actions` to reduce round-trips when applying many operations at once. Each action in the array is a `{ command, params }` object matching any tool above.
+Use `batch_actions` to reduce round-trips when applying many operations at once. Each action in the array is an `{ action, params }` object where `params` uses the same names as the standalone tool (e.g. `set_layout_sizing` with `horizontal`/`vertical`); the server applies the same defaults, validation and node-id normalization before sending. The response lists every action's status and a compact result.
 
 ---
 
@@ -428,4 +428,5 @@ Use `batch_actions` to reduce round-trips when applying many operations at once.
 | `undo` | Undo the last action in Figma | — |
 | `commit_undo` | Commit an undo checkpoint | — |
 | `save_version_history` | Save a named version to Figma version history | `title`, `description` |
-| `lint_frame` | Run a compliance audit on a frame or node | `node_id`, `fix`, `checks` |
+| `lint_frame` | Run a compliance audit on a frame or node; every violation carries a rule id, suppressed items are excluded from compliance | `node_id`, `fix`, `checks`, `ignoreNodeIds`, `ignoreRules` |
+| `set_lint_ignore` | Persistently mark a node (and its subtree) as an intentional lint exception in the file | `nodeId`, `rules`, `clear` |
