@@ -595,24 +595,43 @@ export async function createFromData(params: Record<string, unknown>): Promise<R
     if (layoutMode && layoutMode !== "NONE") {
       (n as AutoLayoutMixin).layoutMode = layoutMode as AutoLayoutMixin["layoutMode"];
 
-      if (nodeData["primaryAxisAlignItems"]) {
-        (n as AutoLayoutMixin).primaryAxisAlignItems = nodeData[
-          "primaryAxisAlignItems"
-        ] as AutoLayoutMixin["primaryAxisAlignItems"];
-      }
-      if (nodeData["counterAxisAlignItems"]) {
-        (n as AutoLayoutMixin).counterAxisAlignItems = nodeData[
-          "counterAxisAlignItems"
-        ] as AutoLayoutMixin["counterAxisAlignItems"];
-      }
-      if (nodeData["itemSpacing"] !== undefined) {
-        (n as AutoLayoutMixin).itemSpacing = nodeData["itemSpacing"] as number;
-      }
-      if (nodeData["counterAxisSpacing"] !== undefined) {
-        (n as AutoLayoutMixin).counterAxisSpacing = nodeData["counterAxisSpacing"] as number;
-      }
-      if (nodeData["layoutWrap"]) {
-        (n as AutoLayoutMixin).layoutWrap = nodeData["layoutWrap"] as AutoLayoutMixin["layoutWrap"];
+      // Grid and flex layout properties are mutually exclusive: a GRID frame's gaps
+      // live on gridRowGap/gridColumnGap (itemSpacing is inert there), and its
+      // alignment maps to grid placement rather than flex alignment.
+      if (layoutMode === "GRID") {
+        const grid = n as FrameNode;
+        if (nodeData["gridRowCount"] !== undefined) {
+          grid.gridRowCount = nodeData["gridRowCount"] as number;
+        }
+        if (nodeData["gridColumnCount"] !== undefined) {
+          grid.gridColumnCount = nodeData["gridColumnCount"] as number;
+        }
+        if (nodeData["gridRowGap"] !== undefined) {
+          grid.gridRowGap = nodeData["gridRowGap"] as number;
+        }
+        if (nodeData["gridColumnGap"] !== undefined) {
+          grid.gridColumnGap = nodeData["gridColumnGap"] as number;
+        }
+      } else {
+        if (nodeData["primaryAxisAlignItems"]) {
+          (n as AutoLayoutMixin).primaryAxisAlignItems = nodeData[
+            "primaryAxisAlignItems"
+          ] as AutoLayoutMixin["primaryAxisAlignItems"];
+        }
+        if (nodeData["counterAxisAlignItems"]) {
+          (n as AutoLayoutMixin).counterAxisAlignItems = nodeData[
+            "counterAxisAlignItems"
+          ] as AutoLayoutMixin["counterAxisAlignItems"];
+        }
+        if (nodeData["itemSpacing"] !== undefined) {
+          (n as AutoLayoutMixin).itemSpacing = nodeData["itemSpacing"] as number;
+        }
+        if (nodeData["counterAxisSpacing"] !== undefined) {
+          (n as AutoLayoutMixin).counterAxisSpacing = nodeData["counterAxisSpacing"] as number;
+        }
+        if (nodeData["layoutWrap"]) {
+          (n as AutoLayoutMixin).layoutWrap = nodeData["layoutWrap"] as AutoLayoutMixin["layoutWrap"];
+        }
       }
       if (nodeData["paddingTop"] !== undefined) {
         (n as AutoLayoutMixin).paddingTop = nodeData["paddingTop"] as number;

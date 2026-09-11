@@ -703,6 +703,100 @@ export function registerDocumentTools(server: McpServer): void {
     },
   );
 
+  // Get Comments Tool
+  server.tool(
+    "get_comments",
+    "Get all comments in the current Figma file. Returns comment text, author, creation time, replies, and canvas position. Unresolved comments are returned by default.",
+    {
+      includeResolved: mcpBooleanSchema
+        .optional()
+        .default(false)
+        .describe("Whether to include resolved comments (default: false)"),
+    },
+    async ({ includeResolved }) => {
+      try {
+        const result = await sendCommandToFigma<{
+          success: boolean;
+          count: number;
+          totalComments: number;
+          includeResolved: boolean;
+          comments: Array<{
+            id: string;
+            message: string;
+            author: { id: string; name: string };
+            createdAt: string;
+            editedAt: string | null;
+            resolved: boolean;
+            resolvedAt: string | null;
+            position?: Record<string, unknown>;
+            reactions?: Array<{ emoji: string; user: { id: string; name: string } | null; createdAt: string | null }>;
+            replies?: Array<{
+              id: string;
+              message: string;
+              author: { id: string; name: string } | null;
+              createdAt: string | null;
+              editedAt: string | null;
+            }>;
+          }>;
+        }>("get_comments", { includeResolved });
+
+        const comments = result.comments || [];
+
+        if (comments.length === 0) {
+          const scope = includeResolved ? "the file" : "the file (unresolved only)";
+          return { content: [{ type: "text", text: `No comments found in ${scope}.` }] };
+        }
+
+        const lines: string[] = [
+          `Found ${comments.length} comment(s)${result.totalComments !== result.count ? ` (${result.totalComments} total)` : ""}`,
+          "",
+        ];
+
+        const escapeMd = (s: string): string => s.replace(/[\\`*_{}\[\]()#+\-.!|>~]/g, "\\$&");
+        const inlineMessage = (s: string): string => escapeMd(s).replace(/\r?\n/g, " ");
+
+        for (const c of comments) {
+          lines.push(`### ${c.resolved ? "[Resolved] " : ""}Comment ${c.id}`);
+          lines.push(`**Author:** ${escapeMd(c.author.name)}`);
+          lines.push(`**Created:** ${c.createdAt}${c.editedAt ? ` (edited ${c.editedAt})` : ""}`);
+          if (c.position) {
+            const pos = c.position as Record<string, unknown>;
+            if (pos["type"] === "canvas") {
+              lines.push(`**Position:** canvas (${pos["x"]}, ${pos["y"]})`);
+            } else if (pos["type"] === "frame") {
+              const offset = pos["offset"] as Record<string, unknown> | undefined;
+              lines.push(`**Position:** frame ${pos["nodeId"]}${offset ? ` at (${offset["x"]}, ${offset["y"]})` : ""}`);
+            }
+          }
+          lines.push(`**Message:** ${inlineMessage(c.message)}`);
+          if (c.reactions && c.reactions.length > 0) {
+            const emojiSummary = c.reactions.map((r) => r.emoji).join(" ");
+            lines.push(`**Reactions:** ${emojiSummary}`);
+          }
+          if (c.replies && c.replies.length > 0) {
+            lines.push(`**Replies (${c.replies.length}):**`);
+            for (const r of c.replies) {
+              const replyAuthor = r.author?.name ? escapeMd(r.author.name) : "Unknown";
+              lines.push(`  - ${replyAuthor}: ${inlineMessage(r.message)}`);
+            }
+          }
+          lines.push("");
+        }
+
+        return { content: [{ type: "text", text: lines.join("\n") }] };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error getting comments: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
   // Scan Nodes By Types Tool
   server.tool(
     "scan_nodes_by_types",
@@ -1022,7 +1116,7 @@ export function registerDocumentTools(server: McpServer): void {
   // Get Local Components Tool
   server.tool(
     "get_local_components",
-    "Get all local components from the Figma document. Returns JSX+Tailwind markup.",
+    'Get all local components from the Figma document. Returns JSX+Tailwind markup. WARNING: like other tools using `depth`, this defaults to depth=1 (direct children only) — nodes nested deeper (e.g. an icon\'s fill color three levels down) are silently omitted with no truncation notice. Pass depth: "all" when you need the full subtree, e.g. to audit every color/style actually used inside a component.',
     {
       depth: depthSchema,
       output_format: outputFormatSchema,
@@ -1081,7 +1175,7 @@ export function registerDocumentTools(server: McpServer): void {
     "lint_frame",
     "Run a comprehensive compliance audit on a frame (or any node with children). Checks color tokens, spacing tokens, border radius tokens, text styles, effect styles, auto-layout compliance, child overflow, and screen naming conventions in a single traversal. Returns a structured report with violations by severity (CRITICAL/HIGH/MEDIUM/LOW) and compliance percentages across 10 categories. Pass fix=true to auto-fix deterministic violations (root frame sizing: layoutSizingHorizontal→FIXED, layoutSizingVertical→HUG, minHeight→device standard) and report only the remaining issues.",
     {
-      node_id: z.string().describe("The ID of the root node to lint"),
+      nodeId: z.string().describe("The ID of the root node to lint"),
       fix: z
         .boolean()
         .optional()
@@ -1112,12 +1206,12 @@ export function registerDocumentTools(server: McpServer): void {
         .optional()
         .describe("Toggle individual check categories (all enabled by default)"),
     },
-    async ({ node_id, fix, checks }) => {
-      node_id = normalizeNodeId(node_id);
+    async ({ nodeId, fix, checks }) => {
+      nodeId = normalizeNodeId(nodeId);
       try {
         const result = await sendCommandToFigma<LintFrameResult>(
           "lint_frame",
-          { nodeId: node_id, fix: fix ?? false, checks },
+          { nodeId, fix: fix ?? false, checks },
           60000,
         );
 
@@ -1262,7 +1356,7 @@ export function registerDocumentTools(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: `Error running lint_frame on node "${node_id}": ${error instanceof Error ? error.message : String(error)}`,
+              text: `Error running lint_frame on node "${nodeId}": ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };
@@ -1509,12 +1603,30 @@ export function registerDocumentTools(server: McpServer): void {
             ],
           };
         }
-        const channelList = channels.map((ch) => `  - ${ch.channel} (${ch.fileName || "unknown file"})`).join("\n");
+        const channelList = channels
+          .map((ch) => {
+            // The "browser" channel is joined by the Chrome extension, not a Figma file,
+            // so it's judged by hasExtension rather than the Figma-plugin-only hasPlugin flag.
+            const status =
+              ch.channel === "browser"
+                ? ch.hasExtension
+                  ? "Chrome extension connected"
+                  : "NO CHROME EXTENSION — open/reconnect the Figma Overlay extension"
+                : ch.hasPlugin
+                  ? "plugin connected"
+                  : "NO PLUGIN — stale channel";
+            return `  - ${ch.channel} (${ch.fileName || "unknown file"}) [${status}]`;
+          })
+          .join("\n");
+        const hasAnyPlugin = channels.some((ch) => ch.channel !== "browser" && ch.hasPlugin);
+        const warning = hasAnyPlugin
+          ? ""
+          : "\n\nWARNING: No channels have an active Figma plugin. Open the Claude MCP Plugin inside Figma to connect.";
         return {
           content: [
             {
               type: "text",
-              text: `Available channels:\n${channelList}`,
+              text: `Available channels:\n${channelList}${warning}`,
             },
           ],
         };
@@ -1534,24 +1646,85 @@ export function registerDocumentTools(server: McpServer): void {
   // Export Node as Image Tool
   server.tool(
     "export_node_as_image",
-    "Export a node as a base64 image from Figma.",
+    "Export a node as a base64 image (PNG/JPG/SVG/PDF), or as a base64 video (MP4/GIF/WEBM) from Figma. Video export requires the node to be a top-level frame (a direct child of a page) with animated content — a nested animated frame or an individual keyframed layer is rejected.",
     {
       nodeId: z.string().describe("The ID of the node to export"),
       format: z
-        .enum(["PNG", "JPG", "SVG", "PDF", "png", "jpg", "svg", "pdf"])
-        .transform((v) => v.toUpperCase() as "PNG" | "JPG" | "SVG" | "PDF")
+        .enum(["PNG", "JPG", "SVG", "PDF", "MP4", "GIF", "WEBM", "png", "jpg", "svg", "pdf", "mp4", "gif", "webm"])
+        .transform((v) => v.toUpperCase() as "PNG" | "JPG" | "SVG" | "PDF" | "MP4" | "GIF" | "WEBM")
         .optional()
-        .describe("Export format (e.g. 'png' or 'PNG')"),
-      scale: z.coerce.number().positive().optional().describe("Export scale"),
+        .describe("Export format (e.g. 'png' or 'PNG'). MP4/GIF/WEBM export a video instead of an image."),
+      scale: z.coerce.number().positive().optional().describe("Export scale — image formats only (PNG/JPG/SVG/PDF)"),
+      fps: z.coerce
+        .number()
+        .optional()
+        .describe(
+          "Video frame rate — video formats only. GIF: one of 8/12/15/24/30 (default 15). MP4/WEBM: one of 12/24/30/60 (default 30).",
+        ),
+      quality: z
+        .enum(["LOW", "MEDIUM", "HIGH"])
+        .optional()
+        .describe("Video quality preset — MP4/WEBM only (default HIGH). Higher quality produces a larger file."),
+      loopCount: z.coerce
+        .number()
+        .int()
+        .min(0)
+        .max(1000)
+        .optional()
+        .describe("Number of times the GIF loops, 0 = infinite (default 0) — GIF only."),
+      constraintType: z
+        .enum(["SCALE", "WIDTH", "HEIGHT"])
+        .optional()
+        .describe(
+          "Video size constraint type — video formats only (default SCALE at value 1, i.e. 100% of node size).",
+        ),
+      constraintValue: z.coerce
+        .number()
+        .optional()
+        .describe(
+          "Video size constraint value — video formats only. For SCALE, must be one of 0.5/0.75/1/1.5/2/3/4. For WIDTH/HEIGHT, a pixel value (capped at 4K/3840x2160).",
+        ),
     },
-    async ({ nodeId, format, scale }) => {
+    async ({ nodeId, format, scale, fps, quality, loopCount, constraintType, constraintValue }) => {
       nodeId = normalizeNodeId(nodeId);
+      const isVideo = format === "MP4" || format === "GIF" || format === "WEBM";
       try {
         const result = await sendCommandToFigma("export_node_as_image", {
           nodeId,
           format: format || "PNG",
           scale: scale || 1,
+          fps,
+          quality,
+          loopCount,
+          constraintType,
+          constraintValue,
         });
+
+        if (isVideo) {
+          const typedResult = result as {
+            videoData: string;
+            mimeType: string;
+            format: string;
+            byteLength: number;
+          };
+          return {
+            content: [
+              {
+                type: "text",
+                text: `Exported "${nodeId}" as ${typedResult.format} (${(typedResult.byteLength / 1024).toFixed(0)} KB).`,
+              },
+              {
+                type: "resource",
+                resource: {
+                  uri: `figma-export://${nodeId}.${typedResult.format.toLowerCase()}`,
+                  mimeType: typedResult.mimeType,
+                  blob: typedResult.videoData,
+                },
+              },
+            ],
+          };
+        }
+
         const typedResult = result as {
           imageData: string;
           mimeType: string;
@@ -1593,7 +1766,7 @@ export function registerDocumentTools(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: `Error exporting node "${nodeId}" as image (${format || "PNG"}): ${error instanceof Error ? error.message : String(error)}`,
+              text: `Error exporting node "${nodeId}" as ${format || "PNG"}: ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };

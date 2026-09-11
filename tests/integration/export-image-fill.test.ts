@@ -135,10 +135,14 @@ describe("export_image_fill tool", () => {
       fillIndex: 2,
     });
 
-    expect(mockSendCommand).toHaveBeenCalledWith("export_image_fill", {
-      nodeId: "1:2",
-      fillIndex: 2,
-    });
+    expect(mockSendCommand).toHaveBeenCalledWith(
+      "export_image_fill",
+      {
+        nodeId: "1:2",
+        fillIndex: 2,
+      },
+      120000,
+    );
   });
 
   it("defaults fillIndex to 0", async () => {
@@ -159,9 +163,13 @@ describe("export_image_fill tool", () => {
       exportPath,
     });
 
-    expect(mockSendCommand).toHaveBeenCalledWith("export_image_fill", {
-      nodeId: "1:2",
-      fillIndex: 0,
-    });
+    expect(mockSendCommand).toHaveBeenCalledWith(
+      "export_image_fill",
+      {
+        nodeId: "1:2",
+        fillIndex: 0,
+      },
+      120000,
+    );
   });
 });

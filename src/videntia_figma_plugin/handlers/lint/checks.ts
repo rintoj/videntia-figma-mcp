@@ -438,14 +438,19 @@ export function scanNode(
     } catch (_e) {}
 
     if (layoutMode && layoutMode !== "NONE") {
-      // Check itemSpacing
-      let itemSpacing = 0;
-      try {
-        itemSpacing = (node as FrameNode).itemSpacing;
-      } catch (_e) {}
-      if (itemSpacing > 0) {
+      // GRID frames keep a stale itemSpacing from before they became a grid; the
+      // properties that actually render (and that accept variable bindings) are
+      // gridRowGap/gridColumnGap. Checking itemSpacing there is pure noise.
+      let spacingProps = layoutMode === "GRID" ? ["gridRowGap", "gridColumnGap"] : ["itemSpacing"];
+      for (let si = 0; si < spacingProps.length; si++) {
+        let spacingProp = spacingProps[si];
+        let spacingVal = 0;
+        try {
+          spacingVal = (node as any)[spacingProp];
+        } catch (_e) {}
+        if (!(spacingVal > 0)) continue;
         categories.spacing.total++;
-        if (isScalarBound(node, "itemSpacing")) {
+        if (isScalarBound(node, spacingProp)) {
           categories.spacing.bound++;
         } else {
           categories.spacing.unbound++;
@@ -457,8 +462,11 @@ export function scanNode(
             depth,
             "MEDIUM",
             "spacing",
-            "itemSpacing",
-            "Item spacing using raw number (" + itemSpacing + ") — no variable bound",
+            spacingProp,
+            (layoutMode === "GRID" ? "Grid gap" : "Item spacing") +
+              " using raw number (" +
+              spacingVal +
+              ") — no variable bound",
           );
         }
       }

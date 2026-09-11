@@ -14,6 +14,16 @@ import { register, verifyEmail, login } from "./auth/accounts";
 import { createToken, listTokens, revokeToken, validateKey } from "./auth/tokens";
 import { signJwt, verifyJwt, parseCookies } from "./auth/session";
 import { sendVerificationEmail } from "./auth/email";
+import { isSameFile } from "./socket-channel-identity";
+import {
+  listBrowsers,
+  resolveTarget,
+  reserveBrowserChannel,
+  formatBrowserList,
+  sanitizeIdentityValue,
+  BROWSER_ID_MAX_LENGTH,
+  BROWSER_LABEL_MAX_LENGTH,
+} from "./socket-browser-registry";
 
 // Enhanced logging system
 const logger = {
@@ -98,7 +108,7 @@ async function readBody(req: http.IncomingMessage): Promise<string> {
 // ─── Figma relay state ────────────────────────────────────────────────────────
 
 const channels = new Map<string, Set<WebSocket>>();
-const channelMetadata = new Map<string, { fileName?: string; joinedAt: number }>();
+const channelMetadata = new Map<string, { fileName?: string; fileKey?: string; joinedAt: number }>();
 const stats = { totalConnections: 0, activeConnections: 0, messagesSent: 0, messagesReceived: 0, errors: 0 };
 
 function cleanupDeadConnections(): number {
@@ -120,6 +130,19 @@ function cleanupDeadConnections(): number {
   return removed;
 }
 
+// Removes a socket from a channel's client set, closing out the channel
+// entirely once no clients remain.
+function leaveChannel(channelName: string, ws: WebSocket): void {
+  const clients = channels.get(channelName);
+  if (!clients) return;
+  clients.delete(ws);
+  if (clients.size === 0) {
+    channels.delete(channelName);
+    channelMetadata.delete(channelName);
+    logger.info(`Removed empty channel: ${channelName}`);
+  }
+}
+
 function handleWebSocketMessage(ws: WebSocket, raw: string) {
   const clientId: string = (ws as any)._clientId ?? "unknown";
   stats.messagesReceived++;
@@ -132,42 +155,119 @@ function handleWebSocketMessage(ws: WebSocket, raw: string) {
       return;
     }
 
-    // Remove stale channels with same fileName
-    if (data.fileName) {
+    // Chrome extensions must identify their profile: without a browserId the
+    // relay cannot route a command to one specific browser, and two profiles
+    // would silently race on every reply. Reject the join outright rather than
+    // degrade to non-deterministic broadcast.
+    const isExtensionJoin = data.clientType === "extension";
+    const browserId = sanitizeIdentityValue(data.browserId, BROWSER_ID_MAX_LENGTH);
+    if (isExtensionJoin && !browserId) {
+      const reason =
+        "Extension build is out of date: browserId is required in the join payload. Reload the unpacked extension.";
+      ws.send(JSON.stringify({ type: "error", message: reason }));
+      stats.messagesSent++;
+      logger.warn(`Rejected extension join from client ${clientId}: missing browserId`);
+      ws.close(1000, reason);
+      return;
+    }
+    const browserLabel = sanitizeIdentityValue(data.browserLabel, BROWSER_LABEL_MAX_LENGTH);
+
+    // Keep Figma plugins off the channel the extension hardcodes. A file named
+    // "Browser" slugs onto it, and a shared channel makes every untargeted send
+    // ambiguous between two protocols: the plugin answers a browser command with
+    // "Command not permitted" under the same message id (beating the extension's
+    // real reply), and Figma traffic is routed away or duplicated. The dedup pass
+    // below resolves any collision on the reassigned name.
+    const isPluginJoin = !isExtensionJoin && !!(data.fileName || data.fileKey);
+    channelName = reserveBrowserChannel(channelName, isPluginJoin);
+
+    // Remove stale plugin connections for the same file (reconnect from the same
+    // Figma file, from a *different* socket). Only the plugin's own prior socket
+    // is closed here — other clients sharing the channel (e.g. an MCP session
+    // mid-command) are left alone.
+    if (data.fileName || data.fileKey) {
       for (const [existing, clients] of channels) {
         if (existing === channelName) continue;
-        if (channelMetadata.get(existing)?.fileName === data.fileName) {
-          clients.forEach((c) => c.close(1000, "Replaced by new connection"));
-          channels.delete(existing);
-          channelMetadata.delete(existing);
-          logger.info(`Removed stale channel ${existing} for file "${data.fileName}"`);
+        const existingMeta = channelMetadata.get(existing);
+        if (!existingMeta || !isSameFile(existingMeta, data)) continue;
+        const stalePlugins = [...clients].filter((c) => (c as any)._isPlugin);
+        stalePlugins.forEach((c) => {
+          c.close(1000, "Replaced by new connection");
+          leaveChannel(existing, c);
+        });
+        if (stalePlugins.length > 0) {
+          const label = existingMeta.fileName ?? existingMeta.fileKey;
+          logger.info(`Removed stale plugin connection(s) from channel ${existing} for file "${label}"`);
         }
       }
     }
 
-    // Deduplicate channel name
-    if (data.fileName && channels.has(channelName)) {
+    // Deduplicate channel name: only rename if the existing occupant is a *different* file
+    if ((data.fileName || data.fileKey) && channels.has(channelName)) {
       const existingMeta = channelMetadata.get(channelName);
-      if (existingMeta?.fileName && existingMeta.fileName !== data.fileName) {
+      if (existingMeta && (existingMeta.fileName || existingMeta.fileKey) && !isSameFile(existingMeta, data)) {
         let counter = 2;
         let candidate = channelName;
-        while (channels.has(candidate) && channelMetadata.get(candidate)?.fileName !== data.fileName) {
+        while (channels.has(candidate) && !isSameFile(channelMetadata.get(candidate) ?? {}, data)) {
           candidate = `${channelName}-${counter++}`;
         }
         channelName = candidate;
       }
     }
 
+    // A socket belongs to at most one channel: rejoining under a new name (e.g. a
+    // plugin's fallback-channel-to-real-channel handoff, or an MCP session
+    // switching project channels) leaves its previous channel automatically,
+    // rather than relying on every join path to remember to send "leave".
+    const priorChannel = (ws as any)._channel;
+    if (priorChannel && priorChannel !== channelName) {
+      leaveChannel(priorChannel, ws);
+    }
+
     if (!channels.has(channelName)) channels.set(channelName, new Set());
     const channelClients = channels.get(channelName)!;
+
+    // Same profile reconnecting (the extension retries on a 3s timer and a ~24s
+    // keep-alive alarm): drop its previous socket so a single browserId never
+    // resolves to two live connections.
+    if (isExtensionJoin && browserId) {
+      const superseded = [...channelClients].filter((c) => (c as any)._browserId === browserId && c !== ws);
+      superseded.forEach((c) => {
+        c.close(1000, "Replaced by new connection");
+        leaveChannel(channelName, c);
+      });
+      if (superseded.length > 0) {
+        logger.info(`Replaced ${superseded.length} stale connection(s) for browser ${browserId} in ${channelName}`);
+      }
+      // leaveChannel drops the channel entirely once it empties; re-register the
+      // same set so the joining socket lands in a live channel.
+      if (!channels.has(channelName)) channels.set(channelName, channelClients);
+    }
+
     channelClients.add(ws);
     (ws as any)._channel = channelName;
-    logger.info(`Client ${clientId} joined channel: ${channelName}`);
+    // Mark plugin connections by presence of fileName in the join message
+    if (data.fileName) {
+      (ws as any)._isPlugin = true;
+    }
+    // Mark the Chrome extension's connection to the "browser" channel; it has no
+    // fileName (it's not a Figma file) so it needs its own identifying flag.
+    if (isExtensionJoin) {
+      (ws as any)._isExtension = true;
+      (ws as any)._browserId = browserId;
+      (ws as any)._browserLabel = browserLabel;
+      (ws as any)._joinedAt = Date.now();
+    }
+    logger.info(
+      `Client ${clientId} joined channel: ${channelName} (plugin=${!!(ws as any)._isPlugin}, extension=${!!(ws as any)._isExtension})`,
+    );
 
     if (!channelMetadata.has(channelName)) {
-      channelMetadata.set(channelName, { fileName: data.fileName, joinedAt: Date.now() });
-    } else if (data.fileName) {
-      channelMetadata.get(channelName)!.fileName = data.fileName;
+      channelMetadata.set(channelName, { fileName: data.fileName, fileKey: data.fileKey, joinedAt: Date.now() });
+    } else {
+      const meta = channelMetadata.get(channelName)!;
+      if (data.fileName) meta.fileName = data.fileName;
+      if (data.fileKey) meta.fileKey = data.fileKey;
     }
 
     ws.send(JSON.stringify({ type: "system", message: `Joined channel: ${channelName}`, channel: channelName }));
@@ -197,6 +297,12 @@ function handleWebSocketMessage(ws: WebSocket, raw: string) {
     return;
   }
 
+  if (data.type === "leave") {
+    const channelName: string = data.channel;
+    if (channelName) leaveChannel(channelName, ws);
+    return;
+  }
+
   if (data.type === "message") {
     const channelName: string = data.channel;
     const channelClients = channels.get(channelName);
@@ -204,6 +310,36 @@ function handleWebSocketMessage(ws: WebSocket, raw: string) {
       ws.send(JSON.stringify({ type: "error", message: "You must join the channel first" }));
       return;
     }
+    // Multi-profile browser channels route to exactly one extension; every other
+    // channel (Figma plugin sessions) has no eligible browser and broadcasts.
+    // An extension sending here is replying to a command, not issuing one — those
+    // frames always broadcast back to the waiting MCP client.
+    // `target` is attacker-controllable like every other field on the wire: it is
+    // echoed back in the not-found error, so bound it before it is interpolated.
+    const target = sanitizeIdentityValue(data.target, BROWSER_ID_MAX_LENGTH);
+    const resolution = (ws as any)._isExtension
+      ? ({ kind: "broadcast" } as const)
+      : resolveTarget(channelClients as Iterable<any>, target);
+    if (resolution.kind === "not-found" || resolution.kind === "ambiguous") {
+      const error =
+        resolution.kind === "not-found"
+          ? `No browser with id "${target}" is connected. Connected: ${formatBrowserList(resolution.available)}`
+          : `Multiple browsers are connected: ${formatBrowserList(resolution.available)}. Pass browser_id to target one.`;
+      ws.send(JSON.stringify({ type: "broadcast", message: { id: data.message?.id, error }, channel: channelName }));
+      stats.messagesSent++;
+      logger.warn(`Rejected message on channel ${channelName}: ${error}`);
+      return;
+    }
+    if (resolution.kind === "single") {
+      const targetClient = resolution.client as unknown as WebSocket;
+      targetClient.send(
+        JSON.stringify({ type: "broadcast", message: data.message, sender: "User", channel: channelName }),
+      );
+      stats.messagesSent++;
+      logger.info(`Routed message to browser ${(resolution.client as any)._browserId} in channel ${channelName}`);
+      return;
+    }
+
     let broadcastCount = 0;
     channelClients.forEach((c) => {
       if (c !== ws && c.readyState === WebSocket.OPEN) {
@@ -427,12 +563,22 @@ const httpServer = http.createServer(async (reqOrig, res) => {
   // Channels
   if (url.pathname === "/channels") {
     cleanupDeadConnections();
-    const list = [...channels.entries()].map(([name, clients]) => ({
-      channel: name,
-      clients: clients.size,
-      fileName: channelMetadata.get(name)?.fileName ?? null,
-      joinedAt: channelMetadata.get(name)?.joinedAt ?? null,
-    }));
+    const list = [...channels.entries()].map(([name, clients]) => {
+      const clientArr = [...clients];
+      const pluginClients = clientArr.filter((c) => (c as any)._isPlugin).length;
+      const extensionClients = clientArr.filter((c) => (c as any)._isExtension).length;
+      return {
+        channel: name,
+        clients: clients.size,
+        pluginClients,
+        hasPlugin: pluginClients > 0,
+        extensionClients,
+        hasExtension: extensionClients > 0,
+        browsers: listBrowsers(clientArr as unknown as any[]),
+        fileName: channelMetadata.get(name)?.fileName ?? null,
+        joinedAt: channelMetadata.get(name)?.joinedAt ?? null,
+      };
+    });
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify(list));
     return;
@@ -591,7 +737,12 @@ wss.on("connection", (ws, req) => {
   stats.activeConnections++;
   const clientId = `client_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
   (ws as any)._clientId = clientId;
+  (ws as any)._isAlive = true;
   logger.info(`New client connected: ${clientId}`);
+
+  ws.on("pong", () => {
+    (ws as any)._isAlive = true;
+  });
 
   ws.send(JSON.stringify({ type: "system", message: "Please join a channel to start communicating with Figma" }));
   stats.messagesSent++;
@@ -663,3 +814,26 @@ setInterval(() => {
     lastStatsLog = now;
   }
 }, CLEANUP_INTERVAL_MS);
+
+// Heartbeat: some connections (notably the MCP process's own loopback relay
+// client) can end up half-open — readyState stays OPEN with no FIN/RST ever
+// received — leaving in-flight commands to silently time out instead of
+// failing fast so the caller can reconnect. Ping every client each interval
+// and terminate any that missed the previous pong.
+const HEARTBEAT_INTERVAL_MS = 15_000;
+setInterval(() => {
+  const seen = new Set<WebSocket>();
+  for (const clients of channels.values()) {
+    for (const c of clients) {
+      if (seen.has(c)) continue;
+      seen.add(c);
+      if ((c as any)._isAlive === false) {
+        logger.warn(`Terminating unresponsive client ${(c as any)._clientId ?? "unknown"} (missed heartbeat)`);
+        c.terminate();
+        continue;
+      }
+      (c as any)._isAlive = false;
+      c.ping();
+    }
+  }
+}, HEARTBEAT_INTERVAL_MS);

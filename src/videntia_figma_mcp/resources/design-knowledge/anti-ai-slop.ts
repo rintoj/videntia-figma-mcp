@@ -3,7 +3,8 @@ import type { DesignKnowledgeModule } from "./types.js";
 export const ANTI_AI_SLOP: DesignKnowledgeModule = {
   id: "anti-ai-slop",
   name: "Anti-AI-Slop Manifesto",
-  description: "Rules to avoid generic AI-generated design patterns. Banned colors, typography/color/layout/visual tells, and a checklist.",
+  description:
+    "Rules to avoid generic AI-generated design patterns. Banned colors, typography/color/layout/visual tells, and a checklist.",
   content: `# Anti-AI-Slop Manifesto
 
 Avoid the universal fingerprints of AI-generated design. These rules distinguish intentional craft from generic output.

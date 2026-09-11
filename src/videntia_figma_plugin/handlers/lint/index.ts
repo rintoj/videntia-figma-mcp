@@ -65,9 +65,17 @@ export async function lintFrame(params: Record<string, unknown>): Promise<LintRe
   const totalNodesRef = { value: 0 };
 
   // Run the traversal
-  // If the root node itself is a Screen/ frame, start inside screen; otherwise traverse to find screens
-  let rootName = rootNode.name || "";
-  let rootIsScreen = (rootNode.type === "FRAME" || rootNode.type === "COMPONENT") && rootName.indexOf("Screen/") === 0;
+  // The content-quality checks (colors/spacing/radius/textStyles/effectStyles/
+  // autoLayout/overflow) only run while "inside a screen" — this exists so a
+  // whole-PAGE audit doesn't flood results with loose canvas experiments or
+  // component-library definitions that live outside any Screen/ frame. But it
+  // must NOT gate an explicitly targeted node: lint_frame's documented contract
+  // is "audit a frame (or any node with children)", and requiring that exact
+  // node (or an ancestor) be literally named "Screen/..." made every check
+  // silently no-op — reporting a false 100% compliance — for any ordinary
+  // frame that isn't part of the Screen/ naming convention. Only a PAGE root
+  // still waits to discover Screen/ frames as scan entry points.
+  let rootIsScreen = rootNode.type !== "PAGE";
   scanNode(
     rootNode as SceneNode,
     0,

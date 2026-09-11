@@ -26,6 +26,11 @@ export function registerCreationTools(server: McpServer): void {
       height: z.coerce.number().describe("Height in pixels (must be > 0)"),
       name: z.string().optional().describe("Layer name for the rectangle (default: 'Rectangle')"),
       parentId: z.string().optional().describe("ID of the parent frame or group to insert the rectangle into"),
+      cornerRadius: z.coerce
+        .number()
+        .min(0)
+        .optional()
+        .describe("Uniform corner radius in pixels (default: 0, sharp corners)"),
       layoutPositioning: z
         .enum(["ABSOLUTE", "RELATIVE"])
         .optional()
@@ -33,7 +38,7 @@ export function registerCreationTools(server: McpServer): void {
           "How this node positions inside an auto-layout parent: ABSOLUTE = uses x/y coordinates ignoring auto-layout flow, RELATIVE = participates in auto-layout flow (default when inside auto-layout)",
         ),
     },
-    async ({ x, y, width, height, name, parentId, layoutPositioning }) => {
+    async ({ x, y, width, height, name, parentId, cornerRadius, layoutPositioning }) => {
       if (parentId) parentId = normalizeNodeId(parentId);
       try {
         const result = await sendCommandToFigma("create_rectangle", {
@@ -43,6 +48,7 @@ export function registerCreationTools(server: McpServer): void {
           height,
           name: name || "Rectangle",
           parentId,
+          cornerRadius,
           layoutPositioning,
         });
         return {
@@ -105,6 +111,11 @@ export function registerCreationTools(server: McpServer): void {
         .describe(
           "true = hide content that overflows the frame boundary (CSS overflow:hidden); false = show overflow (default: false)",
         ),
+      cornerRadius: z.coerce
+        .number()
+        .min(0)
+        .optional()
+        .describe("Uniform corner radius in pixels (default: 0, sharp corners)"),
       layoutPositioning: z
         .enum(["ABSOLUTE", "RELATIVE"])
         .optional()
@@ -123,6 +134,7 @@ export function registerCreationTools(server: McpServer): void {
       strokeColor,
       strokeWeight,
       clipsContent,
+      cornerRadius,
       layoutPositioning,
     }) => {
       if (parentId) parentId = normalizeNodeId(parentId);
@@ -138,6 +150,7 @@ export function registerCreationTools(server: McpServer): void {
           strokeColor: strokeColor,
           strokeWeight: strokeWeight,
           clipsContent,
+          cornerRadius,
           layoutPositioning,
         });
         const typedResult = result as { name: string; id: string };

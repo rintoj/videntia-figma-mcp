@@ -1,6 +1,6 @@
 # Tool Reference
 
-Complete reference for all 167 MCP tools provided by Videntia Figma MCP.
+Complete reference for all 184 MCP tools provided by Videntia Figma MCP.
 
 ---
 
@@ -25,6 +25,10 @@ Complete reference for all 167 MCP tools provided by Videntia Figma MCP.
 - [Variables — Token Systems](#variables--token-systems)
 - [Variables — Bulk Operations](#variables--bulk-operations)
 - [Icons](#icons)
+- [Documentation](#documentation)
+- [Comparison](#comparison)
+- [Browser Inspection & Overlay](#browser-inspection--overlay)
+- [Browser Control](#browser-control)
 - [Batch](#batch)
 - [Channels](#channels)
 - [History](#history)
@@ -76,6 +80,7 @@ Complete reference for all 167 MCP tools provided by Videntia Figma MCP.
 | `create_annotation_category` | Create a new annotation category | `label`, `color` |
 | `update_annotation_category` | Update a category's label or color | `categoryId`, `label`, `color` |
 | `delete_annotation_category` | Delete a custom annotation category | `categoryId` |
+| `get_comments` | Get all comments in the file — text, author, replies, canvas position (unresolved by default) | `includeResolved` |
 
 ---
 
@@ -327,6 +332,73 @@ Uses the [Lucide](https://lucide.dev) icon library (5 000+ icons).
 | `list_icons` | Paginated listing of icon names | `prefix`, `offset`, `limit` |
 | `create_icon` | Create an icon node in Figma | `parentId`, `index`, `name`, `color`, `colorVariable`, `size` |
 | `update_icon` | Replace an existing icon node with a new one | `nodeId`, `name`, `color`, `colorVariable`, `size` |
+
+---
+
+## Documentation
+
+Tools for generating design documentation from a Figma file.
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `enumerate_all_frames` | List all frames across all pages (or one page) with metadata — name, size, position, prototype links, annotations, child count. Starting point for documentation workflows | `pageId`, `topLevelOnly`, `includeComponents` |
+| `map_prototype_flows` | Build a complete flow graph from prototype reactions — nodes, edges (from→to with trigger/action), and computed entry points | `pageId` |
+| `bulk_export_frames` | Export multiple frames as base64 images in one call; defaults to all top-level frames on the page | `nodeIds`, `format`, `scale`, `pageId` |
+| `get_content_tree` | Extract the full content tree — text with inferred semantic roles (heading, body, cta, …), component types, layout containers | `nodeId`, `pageId`, `maxDepth`, `includeImages` |
+| `get_frame_documentation` | Complete documentation packet for frame(s): metadata, all annotations, anchored comments, prototype links | `nodeId`, `nodeIds`, `includeResolved` |
+
+---
+
+## Comparison
+
+Design-vs-implementation diffing. See [figma-browser-diff.md](figma-browser-diff.md) for the full guide (data-fig-id convention, style audit, fix hints, annotation maps).
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `compare_figma_to_component` | Compare a Figma node to an inline React component (file map served locally, npm via esm.sh) | `nodeId`, `files`, `entry`, `selector`, `tolerance` |
+| `diff_figma_to_browser` | Diff a Figma node's visual properties against a DOM element's computed CSS (✓ / ❌ / — rows). Resolves the element via `css_selector`, `[data-fig-id]` annotation, or image-template matching | `figma_node_id`, `css_selector`, `min_confidence`, `properties`, `tolerance_overrides` |
+| `diff_figma_frame_to_page` | Audit an entire Figma frame against the live DOM via hierarchical Hungarian bounding-box matching; optional batched style audit and annotation plan | `frame_node_id`, `root_selector`, `max_cost`, `min_iou`, `max_nodes`, `crop_top`, `crop_bottom`, `include_zero_rect`, `include_style_diff`, `max_style_nodes`, `properties`, `annotation_map`, `include_token_suggestions` |
+
+---
+
+## Browser Inspection & Overlay
+
+Requires the Videntia Browser Connect Chrome extension. Tools target the pinned/active tab by default; pass `tab_id` for a specific (even non-focused) tab.
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `get_browser_page_info` | Get URL, title, and tab ID of the target tab | `tab_id` |
+| `get_browser_page_screenshot` | Screenshot a tab (PNG); `full_page` captures the entire scrollable page beyond the viewport | `full_page`, `tab_id` |
+| `get_browser_dom_nodes` | Serialized DOM — tags, attributes, text, bounding rects, children | `selector`, `depth`, `include_text`, `include_attributes`, `tab_id` |
+| `get_browser_computed_styles` | Computed CSS for a DOM element | `selector`, `properties`, `tab_id` |
+| `overlay_figma_selection_in_browser` | Inject the selected Figma frame as a semi-transparent overlay on the page | `opacity`, `scale`, `cropTop`, `cropBottom`, `offsetX`, `offsetY`, `blendMode`, `tab_id` |
+| `clear_browser_overlay` | Remove the Figma overlay | `tab_id` |
+| `set_browser_viewport` | Set viewport size — resizes the OS window, or uses CDP device emulation (with touch) below Chrome's ~500 px window minimum or with `force_emulation` | `width`, `height`, `device_scale_factor`, `force_emulation`, `tab_id` |
+| `reset_browser_viewport` | Clear CDP viewport emulation and detach the debugger | `tab_id` |
+
+---
+
+## Browser Control
+
+Full Chrome control via CDP — trusted input events, navigation, tab management, and console/network observability. See [browser-control-tools.md](browser-control-tools.md) for architecture and behavior details.
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `browser_click` | Click an element or point (real trusted click) | `selector` or `x`+`y`, `button`, `click_count`, `tab_id` |
+| `browser_hover` | Hover an element or point — triggers `:hover`, tooltips, menus | `selector` or `x`+`y`, `tab_id` |
+| `browser_type` | Type text (works with React/Vue controlled inputs); `clear_first` replaces existing value | `text`, `selector`, `clear_first`, `tab_id` |
+| `browser_press_key` | Press a key with optional modifiers (Enter, Tab, arrows, `ctrl+a`, …) | `key`, `modifiers`, `tab_id` |
+| `browser_scroll` | Scroll by pixel delta via wheel event; optionally over an element for inner containers | `delta_y`, `delta_x`, `selector`, `x`, `y`, `tab_id` |
+| `browser_evaluate_js` | Evaluate a JS expression in page context (awaits promises, 100 KB result cap) | `expression`, `timeout_ms`, `tab_id` |
+| `browser_navigate` | Navigate to a URL and wait for load (http/https/about:blank only); re-applies viewport emulation | `url`, `tab_id` |
+| `browser_back` | Go back one history entry | `tab_id` |
+| `browser_forward` | Go forward one history entry | `tab_id` |
+| `browser_list_tabs` | List all tabs — ID, URL, title, active/pinned/agent-group state | — |
+| `browser_create_tab` | Open a new tab in the purple "Videntia" agent tab group, or a dedicated window (`new_window`) to isolate viewport resizes; returns tab ID and window ID | `url`, `active`, `grouped`, `new_window` |
+| `browser_close_tab` | Close a tab (explicit `tab_id` required) | `tab_id` |
+| `browser_close_group` | Close the entire "Videntia" agent tab group | — |
+| `browser_read_console` | Read buffered console messages/exceptions/dialogs (500-entry ring buffer, resets on navigation) | `pattern`, `level`, `limit`, `clear`, `tab_id` |
+| `browser_read_network` | Read buffered network requests (300-request ring buffer, persists across navigations) | `url_filter`, `limit`, `clear`, `tab_id` |
 
 ---
 

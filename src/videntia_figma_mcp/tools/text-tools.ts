@@ -445,6 +445,47 @@ export function registerTextTools(server: McpServer): void {
     },
   );
 
+  // Set Text Wrap Style Tool
+  server.tool(
+    "set_text_wrap_style",
+    "Set the paragraph wrap style of a text node in Figma",
+    {
+      nodeId: z.string().describe("The ID of the text node to modify"),
+      textWrapStyle: z
+        .enum(["AUTO", "BALANCE", "PRETTY"])
+        .describe(
+          "Paragraph wrap style: AUTO = normal wrapping (default), BALANCE = even line lengths, PRETTY = avoid short trailing lines",
+        ),
+    },
+    async ({ nodeId, textWrapStyle }) => {
+      nodeId = normalizeNodeId(nodeId);
+      try {
+        const result = await sendCommandToFigma("set_text_wrap_style", {
+          nodeId,
+          textWrapStyle,
+        });
+        const typedResult = result as { name: string; textWrapStyle: string };
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Updated text wrap style of node "${typedResult.name}" to ${typedResult.textWrapStyle}`,
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error setting text wrap style: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
   // Set Text Decoration Tool
   server.tool(
     "set_text_decoration",
@@ -686,6 +727,12 @@ export function registerTextTools(server: McpServer): void {
         .enum(["NONE", "UNDERLINE", "STRIKETHROUGH"])
         .optional()
         .describe("Text decoration: NONE = no decoration, UNDERLINE = underline, STRIKETHROUGH = strikethrough"),
+      textWrapStyle: z
+        .enum(["AUTO", "BALANCE", "PRETTY"])
+        .optional()
+        .describe(
+          "Paragraph wrap style: AUTO = normal wrapping (default), BALANCE = even line lengths, PRETTY = avoid short trailing lines",
+        ),
       description: z.string().optional().describe("Optional description"),
       bindings: z
         .record(z.string())
@@ -704,6 +751,7 @@ export function registerTextTools(server: McpServer): void {
       letterSpacing,
       textCase,
       textDecoration,
+      textWrapStyle,
       description,
       bindings,
     }) => {
@@ -718,6 +766,7 @@ export function registerTextTools(server: McpServer): void {
           letterSpacing,
           textCase,
           textDecoration,
+          textWrapStyle,
           description,
           bindings,
         });

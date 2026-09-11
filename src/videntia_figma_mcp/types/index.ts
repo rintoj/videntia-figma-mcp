@@ -74,6 +74,7 @@ export type FigmaCommand =
   | "set_multiple_text_contents"
   | "set_auto_layout"
   | "set_layout_mode"
+  | "reorder_grid_tracks"
   | "set_padding"
   | "set_axis_align"
   | "set_layout_sizing"
@@ -85,6 +86,7 @@ export type FigmaCommand =
   | "set_line_height"
   | "set_paragraph_spacing"
   | "set_text_case"
+  | "set_text_wrap_style"
   | "set_text_decoration"
   | "get_styled_text_segments"
   | "load_font_async"
@@ -127,12 +129,14 @@ export type FigmaCommand =
   | "scan_nodes_by_types"
   | "search_nodes"
   | "get_reactions"
+  | "get_frame_animations"
   | "set_default_connector"
   | "create_connections"
   | "get_instance_overrides"
   | "set_instance_overrides"
   | "get_variable_collections"
   | "create_variable_collection"
+  | "create_variable_collection_extension"
   | "get_collection_info"
   | "rename_variable_collection"
   | "delete_variable_collection"
@@ -184,7 +188,55 @@ export type FigmaCommand =
   | "set_component_property"
   | "swap_instance"
   | "add_prototype_link"
-  | "remove_prototype_link";
+  | "remove_prototype_link"
+  | "enumerate_all_frames"
+  | "map_prototype_flows"
+  | "bulk_export_frames"
+  | "get_content_tree"
+  | "get_frame_documentation"
+  | "get_comments"
+  | "export_selection_as_image";
+
+export type BrowserCommand =
+  | "get_dom_nodes"
+  | "get_computed_styles"
+  | "get_computed_styles_batch"
+  | "get_page_screenshot"
+  | "get_page_info"
+  | "inject_figma_overlay"
+  | "clear_figma_overlay"
+  | "resolve_selector_at_point"
+  | "collect_all_element_rects"
+  | "set_viewport"
+  | "reset_viewport"
+  | "click"
+  | "hover"
+  | "scroll"
+  | "type_text"
+  | "press_key"
+  | "evaluate_js"
+  | "navigate"
+  | "go_back"
+  | "go_forward"
+  | "list_tabs"
+  | "create_tab"
+  | "close_tab"
+  | "close_group"
+  | "read_console"
+  | "read_network"
+  | "get_ax_tree"
+  | "highlight_node"
+  | "clear_highlight"
+  | "emulate"
+  | "clear_emulation"
+  | "intercept_start"
+  | "intercept_stop"
+  | "list_pending_requests"
+  | "fulfill_request"
+  | "fail_request"
+  | "continue_request"
+  | "clear_storage"
+  | "capture_mhtml";
 
 // Batch actions types
 export interface BatchActionResult {
@@ -284,13 +336,18 @@ export interface FigmaNodeData {
   x?: number;
   y?: number;
   // Layout
-  layoutMode?: "HORIZONTAL" | "VERTICAL" | "NONE";
+  layoutMode?: "HORIZONTAL" | "VERTICAL" | "GRID" | "NONE";
   layoutSizingHorizontal?: "FIXED" | "HUG" | "FILL";
   layoutSizingVertical?: "FIXED" | "HUG" | "FILL";
   primaryAxisAlignItems?: "MIN" | "CENTER" | "MAX" | "SPACE_BETWEEN";
   counterAxisAlignItems?: "MIN" | "CENTER" | "MAX" | "BASELINE";
   itemSpacing?: number;
   counterAxisSpacing?: number;
+  // GRID layout only — itemSpacing is vestigial there, these are the live gaps.
+  gridRowGap?: number;
+  gridColumnGap?: number;
+  gridRowCount?: number;
+  gridColumnCount?: number;
   layoutWrap?: "NO_WRAP" | "WRAP";
   paddingTop?: number;
   paddingRight?: number;
@@ -423,6 +480,15 @@ export interface CreateVariableCollectionResult {
   id?: string;
   name?: string;
   defaultMode?: string;
+}
+
+export interface CreateVariableCollectionExtensionResult {
+  collectionId?: string;
+  name?: string;
+  isExtension?: boolean;
+  parentVariableCollectionId?: string;
+  rootVariableCollectionId?: string;
+  modes?: Array<{ modeId: string; name: string; parentModeId: string }>;
 }
 
 export interface GetCollectionInfoResult {

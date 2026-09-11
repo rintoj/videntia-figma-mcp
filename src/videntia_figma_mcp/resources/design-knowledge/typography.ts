@@ -3,7 +3,8 @@ import type { DesignKnowledgeModule } from "./types.js";
 export const TYPOGRAPHY: DesignKnowledgeModule = {
   id: "typography",
   name: "Typography System",
-  description: "Minor Third scale (1.2x from 16px), font pairings, weights, letter-spacing rules, and text color system for light and dark mode.",
+  description:
+    "Minor Third scale (1.2x from 16px), font pairings, weights, letter-spacing rules, and text color system for light and dark mode.",
   content: `# Typography System
 
 ## Type Scale — Minor Third (1.2x ratio from 16px base)

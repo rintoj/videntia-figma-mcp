@@ -44,7 +44,10 @@ export function NodeRow(props: NodeRowProps) {
     >
       {isChecked && <div class="absolute left-0 top-0 w-[2px] h-full bg-success rounded-l-sm" />}
       {props.filterMode === "color" && node.colorHex ? (
-        <div class="shrink-0 w-[13px] h-[13px] rounded-sm border border-border" style={{ backgroundColor: node.colorHex }} />
+        <div
+          class="shrink-0 w-[13px] h-[13px] rounded-sm border border-border"
+          style={{ backgroundColor: node.colorHex }}
+        />
       ) : (
         <TypeIcon type={node.type} />
       )}
@@ -88,11 +91,16 @@ export function NodeRow(props: NodeRowProps) {
             {node.name}
           </span>
         ) : null}
-        <span class="text-muted-foreground text-[10px] leading-[14px] whitespace-nowrap shrink-0" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+        <span
+          class="text-muted-foreground text-[10px] leading-[14px] whitespace-nowrap shrink-0"
+          style={{ fontFamily: "'JetBrains Mono', monospace" }}
+        >
           {node.id}
         </span>
         {node.type !== "PAGE" && node.pageName ? (
-          <span class="text-muted-foreground text-[11px] leading-4 font-medium whitespace-nowrap shrink-0">{node.pageName}</span>
+          <span class="text-muted-foreground text-[11px] leading-4 font-medium whitespace-nowrap shrink-0">
+            {node.pageName}
+          </span>
         ) : null}
       </div>
       {isHovered || copiedId === node.id ? (
@@ -104,11 +112,29 @@ export function NodeRow(props: NodeRowProps) {
           title="Copy node ID"
         >
           {copiedId === node.id ? (
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ stroke: "var(--color-primary)" }} stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              style={{ stroke: "var(--color-primary)" }}
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
               <polyline points="20 6 9 17 4 12" />
             </svg>
           ) : (
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ stroke: "var(--color-muted-foreground)" }} stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              style={{ stroke: "var(--color-muted-foreground)" }}
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
               <rect x="9" y="9" width="11" height="11" rx="2" />
               <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
             </svg>
@@ -125,11 +151,26 @@ export function NodeRow(props: NodeRowProps) {
         {isChecked ? (
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <rect x="1" y="1" width="14" height="14" rx="3" style={{ fill: "var(--color-success)" }} />
-            <polyline points="4.5 8 7 10.5 11.5 5.5" style={{ stroke: "var(--color-primary-foreground)" }} stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+            <polyline
+              points="4.5 8 7 10.5 11.5 5.5"
+              style={{ stroke: "var(--color-primary-foreground)" }}
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              fill="none"
+            />
           </svg>
         ) : (
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <rect x="1.5" y="1.5" width="13" height="13" rx="2.5" style={{ stroke: "var(--color-border)" }} stroke-width="1" />
+            <rect
+              x="1.5"
+              y="1.5"
+              width="13"
+              height="13"
+              rx="2.5"
+              style={{ stroke: "var(--color-border)" }}
+              stroke-width="1"
+            />
           </svg>
         )}
       </button>

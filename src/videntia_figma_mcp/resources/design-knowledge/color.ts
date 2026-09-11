@@ -3,7 +3,8 @@ import type { DesignKnowledgeModule } from "./types.js";
 export const COLOR: DesignKnowledgeModule = {
   id: "color",
   name: "Color System",
-  description: "60/30/10 distribution rule, neutral scale, primary accent, semantic colors, dark theme principles, and token naming conventions.",
+  description:
+    "60/30/10 distribution rule, neutral scale, primary accent, semantic colors, dark theme principles, and token naming conventions.",
   content: `# Color System
 
 ## 60/30/10 Distribution Rule

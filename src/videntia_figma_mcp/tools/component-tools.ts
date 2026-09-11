@@ -181,11 +181,15 @@ export function registerComponentTools(server: McpServer): void {
     "Convert a frame or group into a component in Figma",
     {
       nodeId: z.string().describe("The ID of the frame or group to convert to a component"),
+      name: z
+        .string()
+        .optional()
+        .describe("Optional name for the resulting component (default: keeps the source node's name)"),
     },
-    async ({ nodeId }) => {
+    async ({ nodeId, name }) => {
       nodeId = normalizeNodeId(nodeId);
       try {
-        const result = await sendCommandToFigma("create_component", { nodeId });
+        const result = await sendCommandToFigma("create_component", { nodeId, name });
         const typedResult = result as { id: string; name: string; key: string };
         return {
           content: [
@@ -588,26 +592,42 @@ export function registerComponentTools(server: McpServer): void {
   // Add Component Property Tool
   server.tool(
     "add_component_property",
-    "Add a new component property (BOOLEAN, TEXT, INSTANCE_SWAP, or VARIANT) to a component. Boolean properties can control layer visibility.",
+    "Add a new component property (BOOLEAN, TEXT, INSTANCE_SWAP, VARIANT, or SLOT) to a component. Boolean properties can control layer visibility. SLOT properties let instance-swappable content areas be defined and constrained via slotSettings.",
     {
       nodeId: z.string().describe("The ID of the component or component set"),
       propertyName: z.string().describe("Name for the property (e.g., 'Show Icon', 'Label Text')"),
-      type: z.enum(["BOOLEAN", "TEXT", "INSTANCE_SWAP", "VARIANT"]).describe("Type of property to create"),
+      type: z.enum(["BOOLEAN", "TEXT", "INSTANCE_SWAP", "VARIANT", "SLOT"]).describe("Type of property to create"),
       defaultValue: z
         .union([z.string(), mcpBooleanSchema])
         .optional()
         .describe(
-          "Default value (boolean for BOOLEAN type, string for TEXT/VARIANT, required component key for INSTANCE_SWAP)",
+          "Default value (boolean for BOOLEAN type, string for TEXT/VARIANT, required component key for INSTANCE_SWAP; ignored for SLOT)",
         ),
+      slotSettings: z
+        .object({
+          stretchChildOnInsert: mcpBooleanSchema.optional().describe("Stretch inserted content to fill the slot"),
+          displayEmptyByDefault: mcpBooleanSchema.optional().describe("Show an empty-state placeholder by default"),
+          minChildren: z.coerce.number().int().nonnegative().optional().describe("Minimum number of slot children"),
+          maxChildren: z.coerce.number().int().nonnegative().optional().describe("Maximum number of slot children"),
+          allowPreferredValuesOnly: mcpBooleanSchema
+            .optional()
+            .describe("Restrict slot content to preferredValues only"),
+        })
+        .optional()
+        .describe("SLOT-type only. Constraints on what can be inserted into the slot."),
     },
-    async ({ nodeId, propertyName, type, defaultValue }) => {
+    async ({ nodeId, propertyName, type, defaultValue, slotSettings }) => {
       nodeId = normalizeNodeId(nodeId);
       try {
+        if (type !== "SLOT" && slotSettings !== undefined) {
+          throw new Error("slotSettings only applies to SLOT-type properties");
+        }
         const result = await sendCommandToFigma("add_component_property", {
           nodeId,
           propertyName,
           type,
           defaultValue,
+          slotSettings,
         });
         const typedResult = result as {
           nodeId: string;
@@ -641,12 +661,15 @@ export function registerComponentTools(server: McpServer): void {
   // Edit Component Property Tool
   server.tool(
     "edit_component_property",
-    "Edit an existing component property's name, default value, or preferred values",
+    "Edit an existing component property's name, default value, preferred values, description, or slot settings",
     {
       nodeId: z.string().describe("The ID of the component or component set"),
       propertyName: z.string().describe("The full property name including the #ID suffix (e.g., 'Show Icon#123:456')"),
       newName: z.string().optional().describe("New name for the property"),
-      newDefaultValue: z.union([z.string(), mcpBooleanSchema]).optional().describe("New default value"),
+      newDefaultValue: z
+        .union([z.string(), mcpBooleanSchema])
+        .optional()
+        .describe("New default value. Not supported for VARIANT or SLOT properties."),
       preferredValues: coerceArray(
         z.array(
           z.object({
@@ -656,9 +679,22 @@ export function registerComponentTools(server: McpServer): void {
         ),
       )
         .optional()
-        .describe("Preferred values for INSTANCE_SWAP properties"),
+        .describe("Preferred values. Supported for INSTANCE_SWAP and SLOT properties only."),
+      newDescription: z.string().optional().describe("New description. SLOT properties only."),
+      slotSettings: z
+        .object({
+          stretchChildOnInsert: mcpBooleanSchema.optional().describe("Stretch inserted content to fill the slot"),
+          displayEmptyByDefault: mcpBooleanSchema.optional().describe("Show an empty-state placeholder by default"),
+          minChildren: z.coerce.number().int().nonnegative().optional().describe("Minimum number of slot children"),
+          maxChildren: z.coerce.number().int().nonnegative().optional().describe("Maximum number of slot children"),
+          allowPreferredValuesOnly: mcpBooleanSchema
+            .optional()
+            .describe("Restrict slot content to preferredValues only"),
+        })
+        .optional()
+        .describe("New slot constraints. SLOT properties only."),
     },
-    async ({ nodeId, propertyName, newName, newDefaultValue, preferredValues }) => {
+    async ({ nodeId, propertyName, newName, newDefaultValue, preferredValues, newDescription, slotSettings }) => {
       nodeId = normalizeNodeId(nodeId);
       try {
         const result = await sendCommandToFigma("edit_component_property", {
@@ -667,6 +703,8 @@ export function registerComponentTools(server: McpServer): void {
           newName,
           newDefaultValue,
           preferredValues,
+          newDescription,
+          slotSettings,
         });
         const typedResult = result as {
           nodeId: string;
@@ -700,7 +738,7 @@ export function registerComponentTools(server: McpServer): void {
   // Delete Component Property Tool
   server.tool(
     "delete_component_property",
-    "Delete a component property from a component. Only supports BOOLEAN, TEXT, and INSTANCE_SWAP types.",
+    "Delete a component property from a component. Only supports BOOLEAN, TEXT, INSTANCE_SWAP, and SLOT types.",
     {
       nodeId: z.string().describe("The ID of the component or component set"),
       propertyName: z.string().describe("The full property name including the #ID suffix (e.g., 'Show Icon#123:456')"),

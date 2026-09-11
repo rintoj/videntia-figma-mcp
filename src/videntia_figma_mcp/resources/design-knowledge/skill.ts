@@ -3,7 +3,8 @@ import type { DesignKnowledgeModule } from "./types.js";
 export const SKILL: DesignKnowledgeModule = {
   id: "skill",
   name: "Research-First Design Methodology",
-  description: "5-phase workflow (Discover→Research→Analyze→Design→Implement), discovery questions, and a quality gate checklist.",
+  description:
+    "5-phase workflow (Discover→Research→Analyze→Design→Implement), discovery questions, and a quality gate checklist.",
   content: `# Research-First Design Methodology
 
 A structured 5-phase workflow that produces intentional design rather than template-filling.

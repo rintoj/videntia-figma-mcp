@@ -134,6 +134,36 @@ describe("Color Calculations", () => {
         expect(result.g).toBeCloseTo(0.0);
         expect(result.b).toBeCloseTo(0.0);
       });
+
+      it("should expand 3-digit shorthand", () => {
+        const result = hexToRgba("#f00");
+
+        expect(result.r).toBeCloseTo(1.0);
+        expect(result.g).toBeCloseTo(0.0);
+        expect(result.b).toBeCloseTo(0.0);
+        expect(result.a).toBe(1);
+      });
+
+      it("should expand 4-digit shorthand with alpha", () => {
+        const result = hexToRgba("#f008");
+
+        expect(result.r).toBeCloseTo(1.0);
+        expect(result.g).toBeCloseTo(0.0);
+        expect(result.b).toBeCloseTo(0.0);
+        expect(result.a).toBeCloseTo(0x88 / 255, 2);
+      });
+
+      it("should parse 8-digit hex with alpha", () => {
+        const result = hexToRgba("#ff000080");
+
+        expect(result.r).toBeCloseTo(1.0);
+        expect(result.a).toBeCloseTo(0x80 / 255, 2);
+      });
+
+      it("should throw on an invalid hex string", () => {
+        expect(() => hexToRgba("not-a-color")).toThrow();
+        expect(() => hexToRgba("#12345")).toThrow();
+      });
     });
 
     describe("convertColorFormat", () => {
@@ -247,5 +277,45 @@ describe("Color Calculations", () => {
         expect(recommendation).toContain("large text only");
       });
     });
+  });
+});
+
+describe("rgbToLab / deltaE76", () => {
+  const { rgbToLab, deltaE76 } = require("../../../src/videntia_figma_mcp/utils/color-calculations");
+
+  it("converts reference colors to Lab (D65)", () => {
+    // White → L=100, a≈0, b≈0
+    const white = rgbToLab({ r: 1, g: 1, b: 1, a: 1 });
+    expect(white.l).toBeCloseTo(100, 0);
+    expect(Math.abs(white.a)).toBeLessThan(0.5);
+    expect(Math.abs(white.b)).toBeLessThan(0.5);
+
+    // Black → L=0
+    const black = rgbToLab({ r: 0, g: 0, b: 0, a: 1 });
+    expect(black.l).toBeCloseTo(0, 0);
+
+    // sRGB red — canonical Lab ≈ (53.24, 80.09, 67.20)
+    const red = rgbToLab({ r: 1, g: 0, b: 0, a: 1 });
+    expect(red.l).toBeCloseTo(53.24, 0);
+    expect(red.a).toBeCloseTo(80.09, 0);
+    expect(red.b).toBeCloseTo(67.2, 0);
+  });
+
+  it("identical colors have ΔE 0", () => {
+    expect(deltaE76("#d0ccc4", "#d0ccc4")).toBe(0);
+  });
+
+  it("the real HomeVault mismatch (gold-200 vs neutral-300) exceeds the JND threshold", () => {
+    // #d0ccc4 vs #e2e1df — a real token drift that must stay flagged.
+    expect(deltaE76("#d0ccc4", "#e2e1df")).toBeGreaterThan(2.5);
+  });
+
+  it("rounding-level differences stay below the threshold", () => {
+    // One-step channel difference from rgb→hex truncation.
+    expect(deltaE76("#083b38", "#083b37")).toBeLessThan(2.5);
+  });
+
+  it("black vs white is maximal", () => {
+    expect(deltaE76("#000000", "#ffffff")).toBeCloseTo(100, 0);
   });
 });

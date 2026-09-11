@@ -18,6 +18,7 @@ import { serializeNodes } from "./handlers/node-serializer";
 import { createPage, renamePage, deletePage } from "./handlers/pages";
 import {
   getReactions,
+  getFrameAnimations,
   setDefaultConnector,
   createConnections,
   addPrototypeLink,
@@ -68,6 +69,7 @@ import {
   setLineHeight,
   setParagraphSpacing,
   setTextCase,
+  setTextWrapStyle,
   setTextDecoration,
   getStyledTextSegments,
   loadFontAsyncWrapper,
@@ -125,6 +127,7 @@ import {
   unbindVariable,
   getVariableCollections,
   createVariableCollection,
+  createVariableCollectionExtension,
   getCollectionInfo,
   renameVariableCollection,
   deleteVariableCollection,
@@ -160,6 +163,7 @@ import {
   createTypographySystem,
   createRadiusSystem,
   setLayoutMode,
+  reorderGridTracks,
   setPadding,
   setItemSpacing,
   setAxisAlign,
@@ -167,7 +171,14 @@ import {
 } from "./handlers/layout";
 
 // Handlers — selection & focus
-import { setFocus, setSelections, scanNodesByTypes, focusNode, softFocusNode } from "./handlers/selection";
+import {
+  setFocus,
+  setSelections,
+  scanNodesByTypes,
+  focusNode,
+  softFocusNode,
+  softFocusNodes,
+} from "./handlers/selection";
 
 // Handlers — annotations
 import {
@@ -188,6 +199,18 @@ import { lintFrame } from "./handlers/lint/index";
 
 // Handlers — batch (injected with handleCommand to avoid circular import)
 import { batchActions } from "./handlers/batch";
+
+// Handlers — documentation
+import {
+  enumerateAllFrames,
+  mapPrototypeFlows,
+  bulkExportFrames,
+  getContentTree,
+  getFrameDocumentation,
+} from "./handlers/documentation";
+
+// Handlers — comments
+import { getComments } from "./handlers/comments";
 
 // ---------------------------------------------------------------------------
 // Plugin state
@@ -237,14 +260,22 @@ var READONLY_COMMANDS = new Set([
   "get_annotations",
   "get_annotation_categories",
   "get_reactions",
+  "get_frame_animations",
   "get_design_system",
   "lint_frame",
   "set_focus",
   "set_selections",
   "export_node_as_image",
+  "export_selection_as_image",
   "export_image_fill",
   "load_font_async",
   "read_my_design",
+  "enumerate_all_frames",
+  "map_prototype_flows",
+  "bulk_export_frames",
+  "get_content_tree",
+  "get_frame_documentation",
+  "get_comments",
 ]);
 
 // ---------------------------------------------------------------------------
@@ -261,6 +292,7 @@ var FOCUS_BEFORE_COMMANDS = new Set([
   "get_styled_text_segments",
   "get_annotations",
   "get_reactions",
+  "get_frame_animations",
   "export_node_as_image",
   "lint_frame",
   // Modify commands with nodeId
@@ -333,7 +365,7 @@ var FOCUS_AFTER_COMMANDS = new Set([
 figma.showUI(__html__, { width: 315, height: 430 });
 
 // Send file name to UI immediately on startup so it's available before WebSocket connects
-figma.ui.postMessage({ type: "file-name", fileName: figma.root.name });
+figma.ui.postMessage({ type: "file-name", fileName: figma.root.name, fileKey: figma.fileKey });
 
 // Auto-connect is triggered after init-settings so saved URL/port are applied first.
 
@@ -466,6 +498,27 @@ function parseDepth(value: unknown): number | undefined {
 // Command dispatch
 // ---------------------------------------------------------------------------
 
+// figma.ui.onmessage fires a fresh async callback per incoming message with no
+// serialization of its own. Multiple agents sharing one plugin channel can
+// send commands close enough together that their execution interleaves at
+// await points inside handleCommand, causing read-modify-write races (e.g.
+// two inserts computed against the same stale children.length). Queue every
+// command through this promise chain so each one — including its post-hooks
+// (auto-focus, auto-commit-undo) — fully completes before the next starts.
+let commandQueue: Promise<unknown> = Promise.resolve();
+
+function enqueueCommand(command: string, params: Record<string, unknown>): Promise<unknown> {
+  const tail = commandQueue.then(
+    () => handleCommand(command, params),
+    () => handleCommand(command, params),
+  );
+  // Swallow rejections here so one failed command doesn't poison the queue
+  // for everything queued behind it; the real rejection still propagates to
+  // whichever caller awaited `tail` below.
+  commandQueue = tail.catch(() => undefined);
+  return tail;
+}
+
 async function handleCommand(command: string, params: Record<string, unknown>): Promise<unknown> {
   debugLog(`handleCommand: ${command}`);
 
@@ -476,10 +529,21 @@ async function handleCommand(command: string, params: Record<string, unknown>): 
 
   // Auto-focus before command
   if (state.autoFocus && FOCUS_BEFORE_COMMANDS.has(command) && params) {
-    var focusId = params["nodeId"] as string;
-    if (focusId) {
+    var focusIdsBefore: string[] = [];
+    var singleId = params["nodeId"] as string | undefined;
+    if (typeof singleId === "string" && singleId) {
+      focusIdsBefore.push(singleId);
+    }
+    var multiIds = params["nodeIds"] as unknown;
+    if (Array.isArray(multiIds)) {
+      for (var fi = 0; fi < multiIds.length; fi++) {
+        var mid = multiIds[fi];
+        if (typeof mid === "string" && mid) focusIdsBefore.push(mid);
+      }
+    }
+    if (focusIdsBefore.length > 0) {
       try {
-        await softFocusNode(focusId);
+        await softFocusNodes(focusIdsBefore);
       } catch (_e) {
         /* silent */
       }
@@ -606,6 +670,12 @@ async function _executeCommand(command: string, params: Record<string, unknown>)
       return await flattenNode(params);
     case "export_node_as_image":
       return await exportNodeAsImage(params);
+    case "export_selection_as_image": {
+      const selection = figma.currentPage.selection;
+      if (!selection.length) throw new Error("No nodes selected. Select a frame in Figma first.");
+      const node = selection[0];
+      return await exportNodeAsImage({ nodeId: node.id, scale: params?.["scale"] ?? 2 });
+    }
     case "export_image_fill":
       return await exportImageFill(params);
     case "set_corner_radius":
@@ -668,6 +738,8 @@ async function _executeCommand(command: string, params: Record<string, unknown>)
       return await setParagraphSpacing(params);
     case "set_text_case":
       return await setTextCase(params);
+    case "set_text_wrap_style":
+      return await setTextWrapStyle(params);
     case "set_text_decoration":
       return await setTextDecoration(params);
     case "get_styled_text_segments":
@@ -744,6 +816,8 @@ async function _executeCommand(command: string, params: Record<string, unknown>)
       return await getVariableCollections();
     case "create_variable_collection":
       return await createVariableCollection(params);
+    case "create_variable_collection_extension":
+      return await createVariableCollectionExtension(params);
     case "get_collection_info":
       return await getCollectionInfo(params);
     case "rename_variable_collection":
@@ -806,6 +880,8 @@ async function _executeCommand(command: string, params: Record<string, unknown>)
       return await createRadiusSystem(params);
     case "set_layout_mode":
       return await setLayoutMode(params);
+    case "reorder_grid_tracks":
+      return await reorderGridTracks(params);
     case "set_padding":
       return await setPadding(params);
     case "set_item_spacing":
@@ -842,6 +918,8 @@ async function _executeCommand(command: string, params: Record<string, unknown>)
     // Prototyping
     case "get_reactions":
       return await getReactions(params);
+    case "get_frame_animations":
+      return await getFrameAnimations(params);
     case "add_prototype_link":
       return await addPrototypeLink(params);
     case "remove_prototype_link":
@@ -895,6 +973,22 @@ async function _executeCommand(command: string, params: Record<string, unknown>)
     case "commit_undo":
       return commitUndoAction();
 
+    // Documentation
+    case "enumerate_all_frames":
+      return await enumerateAllFrames(params);
+    case "map_prototype_flows":
+      return await mapPrototypeFlows(params);
+    case "bulk_export_frames":
+      return await bulkExportFrames(params);
+    case "get_content_tree":
+      return await getContentTree(params);
+    case "get_frame_documentation":
+      return await getFrameDocumentation(params);
+
+    // Comments
+    case "get_comments":
+      return await getComments(params);
+
     default:
       throw new Error("Unknown command");
   }
@@ -941,7 +1035,7 @@ figma.ui.onmessage = async (msg: Record<string, unknown>) => {
       figma.closePlugin();
       break;
     case "get-file-name":
-      figma.ui.postMessage({ type: "file-name", fileName: figma.root.name });
+      figma.ui.postMessage({ type: "file-name", fileName: figma.root.name, fileKey: figma.fileKey });
       break;
     case "save-selection-history": {
       var historyData = msg["nodes"] as Array<Record<string, unknown>>;
@@ -1348,7 +1442,7 @@ figma.ui.onmessage = async (msg: Record<string, unknown>) => {
     }
     case "execute-command":
       try {
-        const result = await handleCommand(msg["command"] as string, (msg["params"] as Record<string, unknown>) || {});
+        const result = await enqueueCommand(msg["command"] as string, (msg["params"] as Record<string, unknown>) || {});
         figma.ui.postMessage({
           type: "command-result",
           id: msg["id"],

@@ -119,8 +119,8 @@ describe("mode management tools", () => {
     it("successfully renames a mode", async () => {
       const response = await callTool("rename_mode", {
         id: "col-123",
-        old_name: "Mode 1",
-        new_name: "Light",
+        oldName: "Mode 1",
+        newName: "Light",
       });
 
       expect(mockSendCommand).toHaveBeenCalledTimes(1);
@@ -138,14 +138,14 @@ describe("mode management tools", () => {
       await expect(
         callTool("rename_mode", {
           id: "col-123",
-          old_name: "Mode 1",
+          oldName: "Mode 1",
         }),
       ).rejects.toThrow();
 
       await expect(
         callTool("rename_mode", {
           id: "col-123",
-          new_name: "Light",
+          newName: "Light",
         }),
       ).rejects.toThrow();
     });
@@ -244,8 +244,8 @@ describe("mode management tools", () => {
         id: "col-123",
         from: "Light",
         to: "Dark",
-        transform_colors: {
-          brightness_adjustment: -0.2,
+        transformColors: {
+          brightnessAdjustment: -0.2,
         },
       });
 
@@ -254,7 +254,7 @@ describe("mode management tools", () => {
         sourceMode: "Light",
         targetMode: "Dark",
         transformColors: {
-          brightness_adjustment: -0.2,
+          brightnessAdjustment: -0.2,
         },
       });
       expect(response.content[0].text).toContain("Copied");
@@ -304,8 +304,8 @@ describe("mode management tools", () => {
 
       const response = await callTool("rename_mode", {
         id: "col-123",
-        old_name: "NonExistent",
-        new_name: "Light",
+        oldName: "NonExistent",
+        newName: "Light",
       });
 
       expect(response.content[0].text).toContain("Error");

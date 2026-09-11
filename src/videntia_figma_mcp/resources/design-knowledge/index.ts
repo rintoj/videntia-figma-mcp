@@ -12,7 +12,17 @@ import { DEPTH_ELEVATION } from "./depth-elevation.js";
 import { SPACING_RADIUS } from "./spacing-radius.js";
 
 // Populate the module map
-const ALL_MODULES = [ANTI_AI_SLOP, TYPOGRAPHY, COLOR, MOTION, ICONS, CRAFT_DETAILS, SKILL, DEPTH_ELEVATION, SPACING_RADIUS];
+const ALL_MODULES = [
+  ANTI_AI_SLOP,
+  TYPOGRAPHY,
+  COLOR,
+  MOTION,
+  ICONS,
+  CRAFT_DETAILS,
+  SKILL,
+  DEPTH_ELEVATION,
+  SPACING_RADIUS,
+];
 for (const mod of ALL_MODULES) {
   DESIGN_KNOWLEDGE_MODULES.set(mod.id, mod);
 }
@@ -33,27 +43,22 @@ export function registerDesignKnowledge(server: McpServer): void {
     },
   });
 
-  server.resource(
-    "design_knowledge_template",
-    template,
-    { mimeType: "text/markdown" },
-    async (uri, { module }) => {
-      const mod = DESIGN_KNOWLEDGE_MODULES.get(module as string);
-      if (!mod) {
-        const available = ALL_MODULES.map((m) => m.id).join(", ");
-        throw new Error(`Unknown design knowledge module: "${module}". Available: ${available}`);
-      }
-      return {
-        contents: [
-          {
-            uri: uri.href,
-            mimeType: "text/markdown",
-            text: mod.content,
-          },
-        ],
-      };
+  server.resource("design_knowledge_template", template, { mimeType: "text/markdown" }, async (uri, { module }) => {
+    const mod = DESIGN_KNOWLEDGE_MODULES.get(module as string);
+    if (!mod) {
+      const available = ALL_MODULES.map((m) => m.id).join(", ");
+      throw new Error(`Unknown design knowledge module: "${module}". Available: ${available}`);
     }
-  );
+    return {
+      contents: [
+        {
+          uri: uri.href,
+          mimeType: "text/markdown",
+          text: mod.content,
+        },
+      ],
+    };
+  });
 
   // Static resources for discoverability (clients that don't support templates)
   for (const mod of ALL_MODULES) {
@@ -73,7 +78,7 @@ export function registerDesignKnowledge(server: McpServer): void {
               text: mod.content,
             },
           ],
-        })
+        }),
       );
     } catch {
       // SDK may reject static URIs that overlap with a template — safe to skip

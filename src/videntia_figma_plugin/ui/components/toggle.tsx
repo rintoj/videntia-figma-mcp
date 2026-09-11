@@ -1,11 +1,11 @@
-import { h } from 'preact'
+import { h } from "preact";
 
 interface ToggleProps {
-  label: string
-  description?: string
-  checked: boolean
-  onChange: (checked: boolean) => void
-  activeColor: string
+  label: string;
+  description?: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  activeColor: string;
 }
 
 export function Toggle({ label, description, checked, onChange, activeColor }: ToggleProps) {
@@ -19,13 +19,21 @@ export function Toggle({ label, description, checked, onChange, activeColor }: T
         <input
           type="checkbox"
           checked={checked}
-          onChange={function (e) { onChange((e.target as HTMLInputElement).checked) }}
+          onChange={function (e) {
+            onChange((e.target as HTMLInputElement).checked);
+          }}
           class="opacity-0 w-0 h-0 absolute"
         />
-        <span class="absolute inset-0 rounded-[13px] transition-colors" style={{ backgroundColor: checked ? activeColor : 'var(--color-secondary)' }}>
-          <span class="absolute h-5 w-5 left-[3px] bottom-[3px] bg-primary-foreground rounded-[10px] transition-transform" style={{ transform: checked ? 'translateX(18px)' : 'translateX(0)' }} />
+        <span
+          class="absolute inset-0 rounded-[13px] transition-colors"
+          style={{ backgroundColor: checked ? activeColor : "var(--color-secondary)" }}
+        >
+          <span
+            class="absolute h-5 w-5 left-[3px] bottom-[3px] bg-primary-foreground rounded-[10px] transition-transform"
+            style={{ transform: checked ? "translateX(18px)" : "translateX(0)" }}
+          />
         </span>
       </label>
     </div>
-  )
+  );
 }

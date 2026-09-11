@@ -43,6 +43,7 @@ export interface AutoConnectMessage extends BaseMessage {
 export interface FileNameMessage extends BaseMessage {
   type: "file-name";
   fileName: string;
+  fileKey?: string;
 }
 
 export interface UpdateSettingsMessage extends BaseMessage {
@@ -154,6 +155,12 @@ export interface SvgRootStroke {
 // Variable value types
 // ---------------------------------------------------------------------------
 
-export type VariableResolvedType = "COLOR" | "FLOAT" | "STRING" | "BOOLEAN";
+export type VariableResolvedType = "COLOR" | "FLOAT" | "STRING" | "BOOLEAN" | "EASING" | "TIMING";
 
-export type VariableValue = RgbaColor | number | string | boolean | { type: "VARIABLE_ALIAS"; id: string };
+export type VariableValue =
+  | RgbaColor
+  | MotionEasing
+  | number
+  | string
+  | boolean
+  | { type: "VARIABLE_ALIAS"; id: string };

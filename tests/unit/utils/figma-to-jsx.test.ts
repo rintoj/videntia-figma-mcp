@@ -1163,6 +1163,85 @@ describe("convertToJsx", () => {
     expect(jsx).toContain("border-[#00FF00]");
   });
 
+  // --- GRID auto-layout ---
+
+  describe("GRID auto-layout", () => {
+    // itemSpacing is vestigial under GRID — the live gaps are gridRowGap/gridColumnGap.
+    const gridNode = (overrides: Partial<FigmaNodeData> = {}) =>
+      makeNode({
+        layoutMode: "GRID",
+        itemSpacing: 8,
+        gridRowGap: 48,
+        gridColumnGap: 48,
+        gridColumnCount: 3,
+        children: [makeNode({ id: "1:2", name: "Child" })],
+        ...overrides,
+      });
+
+    it("emits grid, not relative or flex", () => {
+      const jsx = convertToJsx([gridNode()]);
+      expect(jsx).toContain("grid");
+      expect(jsx).not.toContain("relative");
+      expect(jsx).not.toContain("flex");
+    });
+
+    it("emits grid-cols from gridColumnCount", () => {
+      expect(convertToJsx([gridNode()])).toContain("grid-cols-3");
+    });
+
+    it("uses grid gaps, never the vestigial itemSpacing", () => {
+      const jsx = convertToJsx([gridNode()]);
+      expect(jsx).toContain("gap-[48px]");
+      expect(jsx).not.toContain("gap-[8px]");
+    });
+
+    it("splits into gap-y/gap-x when the axes differ", () => {
+      const jsx = convertToJsx([gridNode({ gridColumnGap: 24 })]);
+      expect(jsx).toContain("gap-y-[48px]");
+      expect(jsx).toContain("gap-x-[24px]");
+    });
+
+    it("prefers bound variable names over raw px", () => {
+      const jsx = convertToJsx([
+        gridNode({ bindings: { gridRowGap: { name: "spacing/12" }, gridColumnGap: { name: "spacing/12" } } as any }),
+      ]);
+      expect(jsx).toContain("gap-spacing-12");
+      expect(jsx).not.toContain("gap-[48px]");
+    });
+
+    it("omits gap classes when the grid has no gaps", () => {
+      const jsx = convertToJsx([gridNode({ gridRowGap: 0, gridColumnGap: 0 })]);
+      expect(jsx).not.toContain("gap-");
+    });
+
+    it("omits a bound gap that resolves to zero, matching the flex path", () => {
+      const jsx = convertToJsx([
+        gridNode({
+          gridRowGap: 0,
+          gridColumnGap: 0,
+          bindings: { gridRowGap: { name: "spacing/0" }, gridColumnGap: { name: "spacing/0" } } as any,
+        }),
+      ]);
+      expect(jsx).not.toContain("gap-");
+    });
+
+    it("uses an arbitrary track list beyond Tailwind's grid-cols-12", () => {
+      expect(convertToJsx([gridNode({ gridColumnCount: 16 })])).toContain("grid-cols-[repeat(16,minmax(0,1fr))]");
+      expect(convertToJsx([gridNode({ gridColumnCount: 12 })])).toContain("grid-cols-12");
+    });
+
+    it("does not emit flex alignment classes for GRID", () => {
+      const jsx = convertToJsx([gridNode({ primaryAxisAlignItems: "CENTER", counterAxisAlignItems: "CENTER" })]);
+      expect(jsx).not.toContain("justify-center");
+      expect(jsx).not.toContain("items-center");
+    });
+
+    it("still uses itemSpacing for non-grid auto-layout", () => {
+      const jsx = convertToJsx([makeNode({ layoutMode: "HORIZONTAL", itemSpacing: 8 })]);
+      expect(jsx).toContain("gap-[8px]");
+    });
+  });
+
   // --- Component tags ---
 
   describe("component tags", () => {

@@ -84,16 +84,19 @@ export async function searchNodes(options: SearchNodesOptions): Promise<unknown>
     return q.toLowerCase();
   });
 
-  let root: BaseNode;
+  // When scoped to a specific node, search just that subtree. Otherwise search
+  // the ENTIRE document as documented — not just the currently active page,
+  // which would silently return nothing for content living on any other page.
+  let roots: readonly BaseNode[];
   if (nodeId) {
     const found = await figma.getNodeByIdAsync(nodeId);
     if (!found) {
       throw new Error("Node not found with ID: " + nodeId);
     }
-    root = found;
+    roots = [found];
   } else {
-    await figma.currentPage.loadAsync();
-    root = figma.currentPage;
+    await figma.loadAllPagesAsync();
+    roots = figma.root.children;
   }
 
   const matchedIds: string[] = [];
@@ -127,7 +130,10 @@ export async function searchNodes(options: SearchNodesOptions): Promise<unknown>
     }
   };
 
-  walk(root);
+  for (const root of roots) {
+    if (matchedIds.length >= limit) break;
+    walk(root);
+  }
 
   if (matchedIds.length === 0) {
     return { count: 0, nodes: [] };

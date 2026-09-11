@@ -13,8 +13,28 @@ import { SPACING_RADIUS } from "../../../src/videntia_figma_mcp/resources/design
 // Trigger module map population by importing the registration index
 import "../../../src/videntia_figma_mcp/resources/design-knowledge/index.js";
 
-const ALL_MODULES = [ANTI_AI_SLOP, TYPOGRAPHY, COLOR, MOTION, ICONS, CRAFT_DETAILS, SKILL, DEPTH_ELEVATION, SPACING_RADIUS];
-const EXPECTED_IDS = ["anti-ai-slop", "typography", "color", "motion", "icons", "craft-details", "skill", "depth-elevation", "spacing-radius"];
+const ALL_MODULES = [
+  ANTI_AI_SLOP,
+  TYPOGRAPHY,
+  COLOR,
+  MOTION,
+  ICONS,
+  CRAFT_DETAILS,
+  SKILL,
+  DEPTH_ELEVATION,
+  SPACING_RADIUS,
+];
+const EXPECTED_IDS = [
+  "anti-ai-slop",
+  "typography",
+  "color",
+  "motion",
+  "icons",
+  "craft-details",
+  "skill",
+  "depth-elevation",
+  "spacing-radius",
+];
 
 describe("Design Knowledge Modules", () => {
   describe("Module map completeness", () => {

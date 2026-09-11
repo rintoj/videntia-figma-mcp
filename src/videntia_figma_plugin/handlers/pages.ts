@@ -113,7 +113,7 @@ export async function deletePage(params: DeletePageParams): Promise<DeletePageRe
   if (figma.currentPage.id === pageId) {
     const nextPage = figma.root.children.find((p) => p.id !== pageId);
     if (nextPage) {
-      figma.currentPage = nextPage as PageNode;
+      await figma.setCurrentPageAsync(nextPage as PageNode);
     }
   }
 

@@ -240,16 +240,94 @@ export async function setLayoutMode(params: Record<string, unknown>): Promise<Re
     throw new Error(`Node "${node.name}" does not support auto layout (type: ${node.type})`);
   }
 
-  (node as FrameNode).layoutMode = layoutMode as "NONE" | "HORIZONTAL" | "VERTICAL";
+  const frame = node as FrameNode;
+  // Mode must be assigned before the grid track counts — they are only writable
+  // once the frame is actually a grid. But only write it when it's actually
+  // changing: reassigning layoutMode — even to its current value — resets the
+  // frame's layoutSizingHorizontal/Vertical (and thus item spacing/padding
+  // rendering) back to their defaults as a side effect, silently clobbering
+  // whatever set_layout_sizing/set_item_spacing already set.
+  if (frame.layoutMode !== layoutMode) {
+    frame.layoutMode = layoutMode as "NONE" | "HORIZONTAL" | "VERTICAL" | "GRID";
+  }
+
+  if (layoutMode === "GRID") {
+    // layoutWrap is a flex-wrap concept and does not apply to grids.
+    const gridRowCount = params["gridRowCount"] as number | undefined;
+    const gridColumnCount = params["gridColumnCount"] as number | undefined;
+    const gridAutoTracks = params["gridAutoTracks"] as string | undefined;
+    const gridItemsPositioning = params["gridItemsPositioning"] as string | undefined;
+
+    // gridAutoTracks must be set before gridRowCount/gridColumnCount when set to
+    // "ROWS": Figma throws if you try to write gridRowCount while auto-tracking
+    // rows, since the count becomes automatically managed.
+    if (gridAutoTracks !== undefined) frame.gridAutoTracks = gridAutoTracks as "NONE" | "ROWS";
+    if (gridItemsPositioning !== undefined)
+      frame.gridItemsPositioning = gridItemsPositioning as "MANUAL" | "ROW_AUTO_FLOW";
+    if (gridRowCount !== undefined) frame.gridRowCount = gridRowCount;
+    if (gridColumnCount !== undefined) frame.gridColumnCount = gridColumnCount;
+
+    return {
+      nodeId: node.id,
+      name: node.name,
+      layoutMode: frame.layoutMode,
+      gridRowCount: frame.gridRowCount,
+      gridColumnCount: frame.gridColumnCount,
+      gridAutoTracks: frame.gridAutoTracks,
+      gridItemsPositioning: frame.gridItemsPositioning,
+      success: true,
+    };
+  }
+
   if (layoutWrap !== undefined) {
-    (node as FrameNode).layoutWrap = layoutWrap as "NO_WRAP" | "WRAP";
+    frame.layoutWrap = layoutWrap as "NO_WRAP" | "WRAP";
   }
 
   return {
     nodeId: node.id,
     name: node.name,
-    layoutMode: (node as FrameNode).layoutMode,
-    layoutWrap: (node as FrameNode).layoutWrap,
+    layoutMode: frame.layoutMode,
+    layoutWrap: frame.layoutWrap,
+    success: true,
+  };
+}
+
+export async function reorderGridTracks(params: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const nodeId = params["nodeId"] as string;
+  const axis = params["axis"] as string;
+  const fromIndices = params["fromIndices"] as number[];
+  const insertionIndex = params["insertionIndex"] as number;
+
+  const node = await figma.getNodeByIdAsync(nodeId);
+  if (!node) {
+    throw new Error(`Node with ID ${nodeId} not found`);
+  }
+  if (!isAutoLayoutNode(node)) {
+    throw new Error(`Node "${node.name}" does not support grid track reordering (type: ${node.type})`);
+  }
+
+  const frame = node as FrameNode;
+  if (frame.layoutMode !== "GRID") {
+    throw new Error(`Node "${node.name}" is not a GRID frame (layoutMode: ${frame.layoutMode})`);
+  }
+  if (axis !== "ROW" && axis !== "COLUMN") {
+    throw new Error(`Invalid axis: ${axis}. Must be "ROW" or "COLUMN"`);
+  }
+  if (!Array.isArray(fromIndices) || fromIndices.length === 0) {
+    throw new Error("fromIndices must be a non-empty array of track indices");
+  }
+  if (typeof insertionIndex !== "number") {
+    throw new Error("Missing insertionIndex parameter");
+  }
+
+  const options = { fromIndices, insertionIndex };
+  const moves = axis === "ROW" ? frame.reorderRows(options) : frame.reorderColumns(options);
+
+  return {
+    nodeId: node.id,
+    name: node.name,
+    axis,
+    moves: moves.map((m) => ({ from: m.from, to: m.to })),
     success: true,
   };
 }
@@ -304,6 +382,45 @@ export async function setItemSpacing(params: Record<string, unknown>): Promise<R
   }
 
   const frame = node as FrameNode;
+  const gridRowGap = params["gridRowGap"] as number | undefined;
+  const gridColumnGap = params["gridColumnGap"] as number | undefined;
+  const isGrid = frame.layoutMode === "GRID";
+
+  // itemSpacing is inert on GRID frames and the grid gaps are inert everywhere
+  // else. Fail loudly naming the right parameter rather than writing a property
+  // that will never render.
+  if (isGrid && counterAxisSpacing !== undefined) {
+    throw new Error(
+      `Frame "${node.name}" has GRID layout — counterAxisSpacing does not apply. Use rowGap/columnGap instead.`,
+    );
+  }
+  if (!isGrid && (gridRowGap !== undefined || gridColumnGap !== undefined)) {
+    throw new Error(
+      `Frame "${node.name}" has ${frame.layoutMode} layout — rowGap/columnGap apply to GRID frames only. Use gap${
+        frame.layoutWrap === "WRAP" ? "/counterAxisSpacing" : ""
+      } instead.`,
+    );
+  }
+
+  if (isGrid) {
+    // `gap` is the CSS shorthand: it sets both axes unless a per-axis value wins.
+    if (itemSpacing !== undefined) {
+      frame.gridRowGap = itemSpacing;
+      frame.gridColumnGap = itemSpacing;
+    }
+    if (gridRowGap !== undefined) frame.gridRowGap = gridRowGap;
+    if (gridColumnGap !== undefined) frame.gridColumnGap = gridColumnGap;
+
+    return {
+      nodeId: node.id,
+      name: node.name,
+      layoutMode: frame.layoutMode,
+      gridRowGap: frame.gridRowGap,
+      gridColumnGap: frame.gridColumnGap,
+      success: true,
+    };
+  }
+
   if (itemSpacing !== undefined) frame.itemSpacing = itemSpacing;
   if (counterAxisSpacing !== undefined) frame.counterAxisSpacing = counterAxisSpacing;
 
@@ -370,6 +487,29 @@ export async function setLayoutSizing(params: Record<string, unknown>): Promise<
   }
 
   const sizingNode = node as FrameNode | TextNode;
+
+  // TEXT nodes drive their HUG behavior off `textAutoResize`, not layoutSizing*
+  // directly — setting layoutSizingHorizontal/Vertical to HUG without also
+  // updating textAutoResize is silently ignored by the Figma runtime. Resolve
+  // the effective horizontal/vertical intent (falling back to the node's
+  // current sizing for whichever axis wasn't passed) and derive the matching
+  // textAutoResize value before touching layoutSizing*.
+  if (node.type === "TEXT") {
+    const textNode = node as TextNode;
+    const effectiveHorizontal = layoutSizingHorizontal ?? textNode.layoutSizingHorizontal;
+    const effectiveVertical = layoutSizingVertical ?? textNode.layoutSizingVertical;
+    const hugH = effectiveHorizontal === "HUG";
+    const hugV = effectiveVertical === "HUG";
+
+    // Figma's TextAutoResize enum has no "WIDTH"-only value, so a horizontal-only
+    // hug still requires WIDTH_AND_HEIGHT (the vertical axis rides along with it).
+    if (hugH || hugV) {
+      textNode.textAutoResize = hugV && !hugH ? "HEIGHT" : "WIDTH_AND_HEIGHT";
+    } else {
+      textNode.textAutoResize = "NONE";
+    }
+  }
+
   if (layoutSizingHorizontal !== undefined) {
     sizingNode.layoutSizingHorizontal = layoutSizingHorizontal as "FIXED" | "HUG" | "FILL";
   }
@@ -382,6 +522,7 @@ export async function setLayoutSizing(params: Record<string, unknown>): Promise<
     name: node.name,
     layoutSizingHorizontal: sizingNode.layoutSizingHorizontal,
     layoutSizingVertical: sizingNode.layoutSizingVertical,
+    textAutoResize: node.type === "TEXT" ? (node as TextNode).textAutoResize : undefined,
     success: true,
   };
 }

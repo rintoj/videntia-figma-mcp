@@ -214,3 +214,36 @@ Claude should be able to communicate with Figma and return information about the
 | Test timeouts | Slow machine or heavy CPU load | Increase timeout in Jest configuration |
 | Mocks not working | Incorrect import paths | Verify mock paths match actual module paths |
 | Type errors in tests | TypeScript configuration issue | Check `tsconfig.json` and Jest TypeScript settings |
+## Multi-profile Browser Control (Manual)
+
+The relay's browser routing has no automated harness (there is no `WebSocketServer` test
+rig in this repo), so verify the wiring by hand after changing `src/socket.ts` or
+`src/socket-browser-registry.ts`.
+
+1. **Start the socket server**: `bun run socket`.
+2. **Load the extension in two Chrome profiles**: in each profile open
+   `chrome://extensions`, enable Developer mode, and load `src/chrome_extension/` unpacked.
+   Give each profile a distinct label in the extension popup.
+3. **Confirm both browsers register**: `curl -s localhost:3055/channels | jq`. The
+   `browser` channel entry must list two `browsers` items with **distinct** `id` values
+   and the labels you set. All pre-existing fields (`channel`, `clients`, `pluginClients`,
+   `hasPlugin`, `extensionClients`, `hasExtension`, `fileName`, `joinedAt`) must still be
+   present.
+4. **Targeted navigation**: run `browser_navigate` twice, once with each `browser_id`,
+   to two different URLs. Only the matching profile moves; the other stays put.
+5. **Ambiguity is refused**: run `browser_navigate` with **no** `browser_id`. The call
+   must fail with `Multiple browsers are connected: … Pass browser_id to target one.`
+   and **neither** profile navigates.
+6. **Dead browser fails fast**: quit one Chrome profile, then run `browser_navigate`
+   with its `browser_id`. The error (`No browser with id "…" is connected. Connected: …`)
+   must come back immediately — well under a second, not after the 30s request timeout.
+7. **Out-of-date build is rejected**: load an extension build whose join payload omits
+   `browserId` (temporarily delete the field in `background.js`). The socket must close
+   with reason `Extension build is out of date: browserId is required in the join
+   payload. Reload the unpacked extension.` and the channel must not list it.
+8. **Figma is unaffected**: with the Figma plugin connected, run any Figma tool (e.g.
+   `get_document_info`) and confirm normal broadcast behaviour is unchanged.
+9. **`"browser"` stays reserved**: rename a Figma file to `Browser` and connect the
+   plugin. `/channels` must show it on `browser-figma` (not `browser`), the plugin UI
+   must display that same channel, and both Figma tools and browser tools must keep
+   working side by side.
