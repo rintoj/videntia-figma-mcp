@@ -451,7 +451,8 @@ const COMMAND_NORMALIZERS: Record<string, Normalizer> = {
     ]);
   },
   set_auto_layout: (p) => {
-    const mode = first(p, "mode", "layoutMode");
+    // Internal name wins, matching rename(): validate the mode that is actually sent.
+    const mode = first(p, "layoutMode", "mode");
     if (mode === undefined) {
       throw new CommandParamsError("set_auto_layout requires mode (HORIZONTAL, VERTICAL, GRID or NONE)");
     }

@@ -449,6 +449,33 @@ describe("batch_actions tool", () => {
       expect(text).toContain("A\\|B");
     });
 
+    it("caps successful rows for large batches but always lists failures", async () => {
+      const total = 250;
+      const results = Array.from({ length: total }, (_, i) =>
+        i === 240
+          ? { index: i, action: "rename_node", success: false, error: "Node not found" }
+          : { index: i, action: "rename_node", success: true, result: { id: `1:${i}`, name: `N${i}` } },
+      );
+      mockSendCommand.mockResolvedValue({
+        success: false,
+        totalActions: total,
+        succeeded: total - 1,
+        failed: 1,
+        results,
+      });
+      const response = await callTool("batch_actions", {
+        actions: Array.from({ length: total }, (_, i) => ({
+          action: "rename_node",
+          params: { nodeId: `1:${i}`, name: `N${i}` },
+        })),
+      });
+      const text: string = response.content[0].text;
+      const okRows = text.split("\n").filter((l) => l.includes("| OK |"));
+      expect(okRows).toHaveLength(100);
+      expect(text).toContain("| 240 | rename_node | FAIL | Node not found |");
+      expect(text).toContain("149 more successful action(s) not listed");
+    });
+
     it("reports caller indices for expanded create_icon actions", async () => {
       mockSendCommand.mockResolvedValue({
         success: true,

@@ -8,6 +8,8 @@ import { normalizeCommandParams } from "../utils/command-params";
 
 const RESULT_REF_PATTERN = /^\$result\[(\d+)\](.*)$/;
 const MAX_DETAIL_LENGTH = 160;
+/** Caps the per-action table so very large batches don't flood the response; failures are always listed. */
+const MAX_SUCCESS_ROWS = 100;
 
 /** Tools that do their work on the MCP server, so the plugin-side batch cannot run them. */
 const SERVER_ONLY_ACTIONS = new Set([
@@ -70,7 +72,7 @@ function errorMessage(error: unknown): string {
 export function registerBatchTools(server: McpServer): void {
   server.tool(
     "batch_actions",
-    "Execute multiple Figma commands in a single batch call. Use this to batch operations like clone_node, rename_node, resize_node, set_fill_color, set_layout_sizing, bind_variable etc. for multiple nodes instead of calling them one by one. Each action's params use the SAME names as the individual tool (e.g. set_layout_sizing {nodeId, horizontal, vertical}; set_layout_mode {nodeId, mode, rows, columns}; set_padding {top, right, bottom, left}) and get the same defaults, validation and node-id normalization ('1-2' → '1:2'). Supports $result[N].field references to use results from earlier actions (e.g., clone then rename using new ID) — N is the index of the action as YOU listed it in `actions`, regardless of how any action (e.g. create_icon) expands internally. The response lists every action with its status and a compact result so you can confirm each one changed what you expected. Set stopOnError to true to abort remaining actions after the first failure.",
+    "Execute multiple Figma commands in a single batch call. Use this to batch operations like clone_node, rename_node, resize_node, set_fill_color, set_layout_sizing, bind_variable etc. for multiple nodes instead of calling them one by one. Each action's params use the SAME names as the individual tool (e.g. set_layout_sizing {nodeId, horizontal, vertical}; set_layout_mode {nodeId, mode, rows, columns}; set_padding {top, right, bottom, left}) and get the same defaults, validation and node-id normalization ('1-2' → '1:2'). Supports $result[N].field references to use results from earlier actions (e.g., clone then rename using new ID) — N is the index of the action as YOU listed it in `actions`, regardless of how any action (e.g. create_icon) expands internally. The response lists each action with its status and a compact result so you can confirm each one changed what you expected (every failure is listed; successful rows are capped at the first 100). Set stopOnError to true to abort remaining actions after the first failure.",
     {
       actions: z
         .array(
@@ -185,12 +187,25 @@ export function registerBatchTools(server: McpServer): void {
         const lines: string[] = [summary];
         if (result.results?.length) {
           lines.push("", "| # | Action | Status | Detail |", "|---|--------|--------|--------|");
+          let okRows = 0;
+          let omittedOk = 0;
           for (const r of result.results) {
+            if (r.success && okRows >= MAX_SUCCESS_ROWS) {
+              omittedOk++;
+              continue;
+            }
+            if (r.success) okRows++;
             const detail = r.success
               ? summarizeResult(r.result)
               : (preflightErrors.get(r.index) ?? r.error ?? "unknown error");
             const index = originalIndexOf[r.index] ?? r.index;
             lines.push(`| ${index} | ${r.action} | ${r.success ? "OK" : "FAIL"} | ${tableCell(detail)} |`);
+          }
+          if (omittedOk > 0) {
+            lines.push(
+              "",
+              `${omittedOk} more successful action(s) not listed (first ${MAX_SUCCESS_ROWS} OK rows shown; failures are always listed).`,
+            );
           }
         }
 

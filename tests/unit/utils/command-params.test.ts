@@ -314,6 +314,15 @@ describe("normalizeCommandParams", () => {
         }),
       ).toEqual({ nodeId: "1:2", layoutSizingHorizontal: "FILL" });
     });
+
+    it("set_auto_layout validates the internal layoutMode it sends when both names are given", () => {
+      expect(
+        normalizeCommandParams("set_auto_layout", { nodeId: "1:2", mode: "HORIZONTAL", layoutMode: "GRID", rows: 2 }),
+      ).toEqual({ nodeId: "1:2", layoutMode: "GRID", gridRowCount: 2 });
+      expect(() =>
+        normalizeCommandParams("set_auto_layout", { nodeId: "1:2", mode: "GRID", layoutMode: "HORIZONTAL", rows: 2 }),
+      ).toThrow("apply to GRID mode only");
+    });
   });
 
   describe("$result references", () => {

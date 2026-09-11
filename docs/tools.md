@@ -408,7 +408,7 @@ Full Chrome control via CDP — trusted input events, navigation, tab management
 |------|-------------|------------|
 | `batch_actions` | Execute multiple commands in a single batch | `actions[]`, `stopOnError` |
 
-Use `batch_actions` to reduce round-trips when applying many operations at once. Each action in the array is an `{ action, params }` object where `params` uses the same names as the standalone tool (e.g. `set_layout_sizing` with `horizontal`/`vertical`); the server applies the same defaults, validation and node-id normalization before sending. The response lists every action's status and a compact result.
+Use `batch_actions` to reduce round-trips when applying many operations at once. Each action in the array is an `{ action, params }` object where `params` uses the same names as the standalone tool (e.g. `set_layout_sizing` with `horizontal`/`vertical`); the server applies the same defaults, validation and node-id normalization before sending. The response lists each action's status and a compact result (all failures, and up to the first 100 successful actions).
 
 ---
 
