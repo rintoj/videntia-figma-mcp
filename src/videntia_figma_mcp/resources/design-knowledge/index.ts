@@ -27,6 +27,11 @@ for (const mod of ALL_MODULES) {
   DESIGN_KNOWLEDGE_MODULES.set(mod.id, mod);
 }
 
+/** Ids of every registered design knowledge module, in display order. */
+export const DESIGN_KNOWLEDGE_MODULE_IDS = ALL_MODULES.map((mod) => mod.id) as [string, ...string[]];
+
+export { DESIGN_KNOWLEDGE_MODULES };
+
 export function registerDesignKnowledge(server: McpServer): void {
   // Dynamic ResourceTemplate for lookup by module ID
   const template = new ResourceTemplate("figma://design-knowledge/{module}", {
