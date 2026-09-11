@@ -806,7 +806,7 @@ export function registerModificationTools(server: McpServer): void {
   // Auto Layout Tool
   server.tool(
     "set_auto_layout",
-    "Configure auto layout properties for a node in Figma. Note: FILL sizing is only valid when the node is a child of another auto-layout frame. For top-level or standalone frames, use FIXED or HUG.",
+    "Configure auto layout properties for a node in Figma. Note: FILL sizing is only valid when the node is a child of another auto-layout frame. For top-level or standalone frames, use FIXED or HUG. clipsContent is applied with any mode, including NONE.",
     {
       nodeId: z.string().describe("Frame node ID to enable/configure auto-layout on"),
       mode: z
@@ -880,7 +880,7 @@ export function registerModificationTools(server: McpServer): void {
       clipsContent: mcpBooleanSchema
         .optional()
         .describe(
-          "true = content outside the frame boundary is hidden (like CSS overflow:hidden); false = content is visible (default: false)",
+          "true = content outside the frame boundary is hidden (like CSS overflow:hidden), including children's drop shadows and focus rings; false = content is visible. Applied with any mode, including NONE. Omit to leave the frame's current value unchanged (Figma frames clip by default). Use set_clips_content to change clipping alone.",
         ),
       horizontal: z
         .enum(["FIXED", "HUG", "FILL"])
@@ -980,6 +980,40 @@ export function registerModificationTools(server: McpServer): void {
             {
               type: "text",
               text: `Error setting auto layout: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  // Clips Content Tool
+  server.tool(
+    "set_clips_content",
+    "Set whether a frame clips its content (CSS overflow:hidden). Clipping also hides children's drop shadows, glows and focus rings, so set false on containers whose children cast effects. Works on any FRAME, COMPONENT, COMPONENT_SET or INSTANCE, with or without auto layout.",
+    {
+      nodeId: z.string().describe("ID of the FRAME, COMPONENT, COMPONENT_SET or INSTANCE node"),
+      clipsContent: mcpBooleanSchema.describe(
+        "true = hide content outside the frame boundary (including children's shadows); false = let content and effects render outside it",
+      ),
+    },
+    async ({ nodeId, clipsContent }) => {
+      nodeId = normalizeNodeId(nodeId);
+      try {
+        const result = (await sendCommandToFigma("set_clips_content", { nodeId, clipsContent })) as {
+          id: string;
+          name: string;
+          clipsContent: boolean;
+        };
+        return {
+          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error setting clipsContent: ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };

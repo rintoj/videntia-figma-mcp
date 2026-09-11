@@ -225,6 +225,35 @@ function isAutoLayoutNode(node: BaseNode): node is AutoLayoutNode {
   );
 }
 
+const CLIPPABLE_NODE_TYPES = new Set(["FRAME", "COMPONENT", "COMPONENT_SET", "INSTANCE"]);
+
+export async function setClipsContent(params: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const nodeId = params ? (params["nodeId"] as string | undefined) : undefined;
+  const clipsContent = params ? params["clipsContent"] : undefined;
+
+  if (!nodeId) {
+    throw new Error("Missing nodeId parameter");
+  }
+  if (typeof clipsContent !== "boolean") {
+    throw new Error("Missing clipsContent parameter (must be a boolean)");
+  }
+
+  const node = await figma.getNodeByIdAsync(nodeId);
+  if (!node) {
+    throw new Error(`Node with ID ${nodeId} not found`);
+  }
+  if (!CLIPPABLE_NODE_TYPES.has(node.type)) {
+    throw new Error(
+      `Node "${node.name}" does not support clipsContent (type: ${node.type}); supported types: FRAME, COMPONENT, COMPONENT_SET, INSTANCE`,
+    );
+  }
+
+  const frame = node as FrameNode;
+  frame.clipsContent = clipsContent;
+
+  return { id: frame.id, name: frame.name, clipsContent: frame.clipsContent };
+}
+
 export async function setLayoutMode(params: Record<string, unknown>): Promise<Record<string, unknown>> {
   const nodeId = params["nodeId"] as string;
   const layoutMode = params["layoutMode"] as string;

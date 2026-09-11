@@ -40,6 +40,7 @@ export const ALLOWED_COMMANDS = new Set([
   "set_text_content",
   "set_multiple_text_contents",
   "set_auto_layout",
+  "set_clips_content",
   "set_font_name",
   "set_font_size",
   "set_font_weight",

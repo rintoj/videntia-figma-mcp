@@ -168,6 +168,7 @@ import {
   setItemSpacing,
   setAxisAlign,
   setLayoutSizing,
+  setClipsContent,
 } from "./handlers/layout";
 
 // Handlers — selection & focus
@@ -313,6 +314,7 @@ var FOCUS_BEFORE_COMMANDS = new Set([
   "set_text_content",
   "set_multiple_text_contents",
   "set_auto_layout",
+  "set_clips_content",
   "set_font_name",
   "set_font_size",
   "set_font_weight",
@@ -880,6 +882,8 @@ async function _executeCommand(command: string, params: Record<string, unknown>)
       return await createRadiusSystem(params);
     case "set_layout_mode":
       return await setLayoutMode(params);
+    case "set_clips_content":
+      return await setClipsContent(params);
     case "reorder_grid_tracks":
       return await reorderGridTracks(params);
     case "set_padding":

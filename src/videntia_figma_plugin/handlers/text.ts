@@ -1048,10 +1048,6 @@ export async function setAutoLayout(params: Record<string, unknown>): Promise<Re
       frameNode.strokesIncludedInLayout = strokesIncludedInLayout;
     }
 
-    if (clipsContent !== undefined) {
-      frameNode.clipsContent = clipsContent;
-    }
-
     // Only touch layoutSizing* when the caller explicitly asked for it, or when
     // this frame is newly gaining auto-layout (was NONE before this call) and
     // therefore has no meaningful existing sizing state to preserve. Applying a
@@ -1074,6 +1070,11 @@ export async function setAutoLayout(params: Record<string, unknown>): Promise<Re
     } else if (!wasAutoLayout) {
       frameNode.layoutSizingVertical = "HUG";
     }
+  }
+
+  // Clipping is independent of auto layout, so it applies for every mode including NONE.
+  if (clipsContent !== undefined) {
+    frameNode.clipsContent = clipsContent;
   }
 
   return {

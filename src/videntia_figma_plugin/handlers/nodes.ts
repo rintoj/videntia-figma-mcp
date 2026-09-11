@@ -124,12 +124,8 @@ export async function createFrame(params: Record<string, unknown>): Promise<Reco
     frame.strokeWeight = strokeWeight;
   }
 
-  // Set clipsContent if provided
-  if (clipsContent !== undefined) {
-    frame.clipsContent = clipsContent;
-  }
-
   // If parentId is provided, append to that node, otherwise append to current page
+  let isNested = false;
   if (parentId) {
     const parentNode = await figma.getNodeByIdAsync(parentId);
     if (!parentNode) {
@@ -139,9 +135,14 @@ export async function createFrame(params: Record<string, unknown>): Promise<Reco
       throw new Error(`Parent node does not support children: ${parentId}`);
     }
     (parentNode as FrameNode).appendChild(frame);
+    isNested = parentNode.type !== "PAGE";
   } else {
     figma.currentPage.appendChild(frame);
   }
+
+  // Figma defaults frames to clipping, which cuts off children's shadows and focus
+  // rings. Nested containers default to unclipped; top-level frames keep clipping.
+  frame.clipsContent = clipsContent !== undefined ? clipsContent : !isNested;
 
   // Set layoutPositioning after appendChild (node must be attached first)
   if (layoutPositioning !== undefined) {
