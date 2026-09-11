@@ -197,6 +197,18 @@ describe("resizeNode on TEXT", () => {
     expect(text.textAutoResize).toBe(after);
   });
 
+  it("loads the node's fonts before writing textAutoResize", async () => {
+    const { resizeNode } = await import("../../../src/videntia_figma_plugin/handlers/nodes");
+    const text = makeTextNode({ textAutoResize: "HEIGHT" });
+
+    await resizeNode({ nodeId: text.id, width: 180, height: 40 });
+
+    const loadIdx = log.indexOf("loadFont");
+    expect(loadIdx).toBeGreaterThanOrEqual(0);
+    expect(loadIdx).toBeLessThan(log.findIndex((e) => e.startsWith("resize:")));
+    expect(loadIdx).toBeLessThan(log.indexOf("set:textAutoResize=HEIGHT"));
+  });
+
   it("leaves non-text nodes as a plain resize", async () => {
     const { resizeNode } = await import("../../../src/videntia_figma_plugin/handlers/nodes");
     const frame: any = { id: "f1", type: "FRAME", name: "Card", width: 10, height: 10 };
@@ -233,6 +245,20 @@ describe("setLayoutSizing on TEXT", () => {
     expect(result.layoutSizingHorizontal).toBe("FILL");
     expect(result.layoutSizingVertical).toBe("HUG");
     expect(result.textAutoResize).toBe("HEIGHT");
+  });
+
+  it("loads the text node's fonts before writing textAutoResize", async () => {
+    const { setLayoutSizing } = await loadLayout();
+    const parent = makeFrame("col", "VERTICAL");
+    const text = makeTextNode({ textAutoResize: "NONE", layoutSizingHorizontal: "FIXED" });
+    parent.appendChild(text);
+    log = [];
+
+    await setLayoutSizing({ nodeId: text.id, layoutSizingHorizontal: "FILL" });
+
+    const loadIdx = log.indexOf("loadFont");
+    expect(loadIdx).toBeGreaterThanOrEqual(0);
+    expect(loadIdx).toBeLessThan(log.findIndex((e) => e.startsWith("set:textAutoResize")));
   });
 
   it("horizontal FIXED alone → vertical HUG and textAutoResize HEIGHT", async () => {

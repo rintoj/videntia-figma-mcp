@@ -39,7 +39,7 @@ Large builds fail in the middle. Structure the work so every step leaves the fil
 
 1. **Wrapper first.** Create the outer frame for the screen or component with \`create_frame\`, placed in clear canvas space away from existing work, sized to the target device, and named properly from the start. Set its auto-layout immediately (see \`auto-layout\`).
 2. **One section per step.** Create each major region (header, hero, list, footer) directly inside the wrapper using \`parentId\`. Building loose frames on the page and moving them in later invites wrong positions and stray leftovers.
-   **Decide clipping as you create.** A top-level \`create_frame\` clips by default, which suits a screen root; frames created with a \`parentId\` do not. Pass \`clipsContent: true\` only to a section that is genuinely a crop, mask or scroll area — clipping anywhere else cuts off shadows, glows and focus rings of the children (see \`auto-layout\`).
+   **Decide clipping as you create.** A top-level \`create_frame\` clips by default, which suits a screen root (so does one placed in a section); frames created inside another frame do not. Pass \`clipsContent: true\` only to a section that is genuinely a crop, mask or scroll area — clipping anywhere else cuts off shadows, glows and focus rings of the children (see \`auto-layout\`).
 3. **Fill content last.** Once the sections exist, place instances, text and imagery inside them, then apply tokens and styles.
 
 **Keep a ledger of IDs.** Every create call returns the new node's ID. Record it with a short note of what it is, and pass those IDs to later calls instead of re-searching by name. The ledger is also your cleanup list if something goes wrong.

@@ -1,4 +1,5 @@
 import { findCollection } from "./variables";
+import { loadTextNodeFonts } from "../utils/helpers";
 
 // ---------------------------------------------------------------------------
 // Layout system creation
@@ -571,6 +572,11 @@ export async function setLayoutSizing(params: Record<string, unknown>): Promise<
     vertical: sizingNode.layoutSizingVertical,
     textAutoResize: isText ? (node as TextNode).textAutoResize : undefined,
   };
+
+  // Writing textAutoResize (and rolling it back) requires the node's fonts to be loaded.
+  if (isText && targetAutoResize !== undefined) {
+    await loadTextNodeFonts(node as TextNode);
+  }
 
   try {
     if (isText && targetAutoResize !== undefined) {

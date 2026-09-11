@@ -109,6 +109,22 @@ export function parseNum(x: unknown, fallback: number): number {
 }
 
 // ---------------------------------------------------------------------------
+// Load every font used by a text node — required before writing layout-affecting
+// text properties such as textAutoResize.
+// ---------------------------------------------------------------------------
+
+export async function loadTextNodeFonts(node: TextNode): Promise<void> {
+  const length = node.characters.length;
+  const fonts: FontName[] =
+    length > 0
+      ? node.getRangeAllFontNames(0, length)
+      : node.fontName !== figma.mixed
+        ? [node.fontName as FontName]
+        : [];
+  await Promise.all(fonts.map((font) => figma.loadFontAsync(font)));
+}
+
+// ---------------------------------------------------------------------------
 // Font weight → Figma font style name mapping
 // ---------------------------------------------------------------------------
 

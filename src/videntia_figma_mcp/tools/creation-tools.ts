@@ -109,7 +109,7 @@ export function registerCreationTools(server: McpServer): void {
       clipsContent: mcpBooleanSchema
         .optional()
         .describe(
-          "true = hide content that overflows the frame boundary (CSS overflow:hidden), which also clips children's drop shadows, glows and focus rings; false = show overflow. Default: false when parentId is a frame/component (nested container), true for top-level frames (no parentId, or parentId is a page). Change later with set_clips_content.",
+          "true = hide content that overflows the frame boundary (CSS overflow:hidden), which also clips children's drop shadows, glows and focus rings; false = show overflow. Default: false when parentId is a frame/component (nested container), true for top-level frames (no parentId, or parentId is a page or section). Change later with set_clips_content.",
         ),
       cornerRadius: z.coerce
         .number()

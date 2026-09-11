@@ -68,6 +68,12 @@ describe("createFrame clipsContent default", () => {
     expect(result.clipsContent).toBe(true);
   });
 
+  it("clips frames whose parentId is a section", async () => {
+    nodes.set("2:1", makeContainer("2:1", "SECTION"));
+    const result = await createFrame({ x: 0, y: 0, width: 10, height: 10, parentId: "2:1" });
+    expect(result.clipsContent).toBe(true);
+  });
+
   it("does not clip nested frames by default", async () => {
     const inFrame = await createFrame({ x: 0, y: 0, width: 10, height: 10, parentId: "1:1" });
     const inComponent = await createFrame({ x: 0, y: 0, width: 10, height: 10, parentId: "1:2" });

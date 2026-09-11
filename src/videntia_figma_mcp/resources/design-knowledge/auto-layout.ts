@@ -86,10 +86,10 @@ A text node's \`textAutoResize\` decides whether it wraps: \`WIDTH_AND_HEIGHT\` 
 
 A frame with \`clipsContent\` hides everything past its bounds — not only overflowing children, but also drop shadows, layer blur glows, strokes aligned outside or centered, and focus rings, all of which render outside a node's own box. Any clipping ancestor cuts them.
 
-- **Defaults:** \`create_frame\` clips top-level frames and does not clip frames created with a \`parentId\`. Pass \`clipsContent\` to override. \`create_component\` and \`create_component_set\` keep the source frame's setting.
+- **Defaults:** \`create_frame\` clips top-level frames (no \`parentId\`, or a page or section as parent) and does not clip frames created inside a frame, component or instance. Pass \`clipsContent\` to override. \`create_component\` and \`create_component_set\` keep the source frame's setting.
 - **Keep clipping** for screen roots, image crops and masks, and scroll areas. **Disable it** on sections, lists, rows and wrappers whose children carry shadows, rings or overhanging badges.
 - **Fix:** \`set_clips_content\` with \`{ nodeId, clipsContent: false }\` (frames, components, sets, instances), or \`clipsContent\` in \`set_auto_layout\`, which works in any mode including NONE.
-- **Verify:** \`get_node_info\` reports \`clipsContent\`; \`lint_frame\`'s \`clipped-content\` rule (category \`clippedContent\`, toggle \`checks.clippedContent\`) raises a HIGH issue when a clipping ancestor cuts a shadow, blur or outside/centered stroke, or a child's bounds. Bounds overflow is not reported under screen-level clips (the linted root, page-level frames, \`Screen/\` frames — content there scrolls) or for image crops; effect clipping is reported everywhere.
+- **Verify:** \`get_node_info\` reports \`clipsContent\`; \`lint_frame\`'s \`clipped-content\` rule (category \`clippedContent\`, toggle \`checks.clippedContent\`) raises a HIGH issue when a clipping ancestor cuts a shadow, blur or outside/centered stroke, or a child's bounds. Bounds overflow is not reported under screen-level clips (the linted root, frames directly on a page or in a section, \`Screen/\` frames — content there scrolls) or for image crops; effect clipping is reported everywhere.
 - A clipping screen root also crops the shadow of a card near its edge. Keep padding between elevated content and the root edge of at least offset + blur + spread of the largest shadow layer.
 
 ## Gap and Padding Come from Tokens

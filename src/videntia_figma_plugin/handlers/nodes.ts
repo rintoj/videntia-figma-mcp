@@ -1,5 +1,5 @@
 import { customBase64Encode } from "../utils/base64";
-import { debugLog, parseNum } from "../utils/helpers";
+import { debugLog, loadTextNodeFonts, parseNum } from "../utils/helpers";
 import { selectAndFocusNode } from "../utils/plugin-state";
 
 function getParam<T>(params: Record<string, unknown>, key: string, defaultVal: T): T {
@@ -135,7 +135,8 @@ export async function createFrame(params: Record<string, unknown>): Promise<Reco
       throw new Error(`Parent node does not support children: ${parentId}`);
     }
     (parentNode as FrameNode).appendChild(frame);
-    isNested = parentNode.type !== "PAGE";
+    // Sections are canvas organisers, so frames directly inside them are top-level screens.
+    isNested = parentNode.type !== "PAGE" && parentNode.type !== "SECTION";
   } else {
     figma.currentPage.appendChild(frame);
   }
@@ -249,6 +250,9 @@ export async function resizeNode(params: Record<string, unknown>): Promise<Recor
     // resize() flips a TEXT node to textAutoResize NONE (fixed box, text overflows).
     // Preserve auto-sizing text as wrapping text: keep the new width, let height grow.
     const previousAutoResize = textNode.textAutoResize;
+    // Writing textAutoResize requires the fonts to be loaded; load first so a failure
+    // cannot leave the node resized into a fixed box.
+    await loadTextNodeFonts(textNode);
     textNode.resize(width, height);
     if (previousAutoResize === "HEIGHT" || previousAutoResize === "WIDTH_AND_HEIGHT") {
       textNode.textAutoResize = "HEIGHT";

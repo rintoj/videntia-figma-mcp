@@ -37,8 +37,8 @@ import {
 //
 // Not reported (intentional crops):
 //   - image layers (visible IMAGE fill or `Image/` name) overflowing via their bounds
-//   - bounds overflow under a screen-level clip (the linted root, a page child,
-//     or a `Screen/` frame) — screen content legitimately scrolls; only effect
+//   - bounds overflow under a screen-level clip (the linted root, a page or
+//     section child, or a `Screen/` frame) — screen content legitimately scrolls; only effect
 //     clipping is reported there
 // A nested clipping container is measured as a whole (bounds + own effects); its
 // contents are checked against it when the scan reaches it. A node reported for
@@ -1077,7 +1077,8 @@ export function scanNode(
   // ── CLIPPED CONTENT check (rule: clipped-content) ──
   if (localInsideScreen && chk.clippedContent && isClippingContainer(node)) {
     let clipParentType = parent !== null && parent !== undefined ? (parent as BaseNode).type : null;
-    let clipIsScreenLevel = clipParentType === null || clipParentType === "PAGE" || isScreenRoot;
+    let clipIsScreenLevel =
+      clipParentType === null || clipParentType === "PAGE" || clipParentType === "SECTION" || isScreenRoot;
     checkClippedContent(node, depth, clipIsScreenLevel, categories, violations, violationsCappedRef);
   }
 
