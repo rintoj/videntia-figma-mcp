@@ -52,16 +52,41 @@ export const TYPOGRAPHY: DesignKnowledgeModule = {
 | Large headings (32px+) | -0.01 to -0.02em | Optical tightening |
 | Display/Hero (48px+) | -0.015 to -0.04em | Tight for impact; tighter as size grows |
 
-## Safe SaaS Font Preset
+**Converting em to Figma:** \`set_letter_spacing\` with \`unit: "PERCENT"\` takes em × 100 — -0.02em → \`spacing: -2\`, 0.08em → \`spacing: 8\`. Percent scales with font size, so it survives size changes; use \`unit: "PIXELS"\` only when matching an absolute reference value.
 
-\`\`\`css
-font-family: Inter, system-ui, sans-serif;
-font-weight: 400 / 500 / 600;
-line-height: 1.55;
-max-width: 65ch; /* Optimal reading line length */
-\`\`\`
+## Choosing the Font Family
 
-## Font Pairing Guidance
+Pick the family in this order — stop at the first that applies:
+
+1. **Brand or user choice.** If the brief, brand guide, or user names a typeface, use it.
+2. **What the file already uses.** Call \`get_text_styles\` to list local text styles (each carries its \`fontName\` family and style). If there are none, sample existing text: \`get_node_info\` reports a text node's \`fontFamily\`, and \`get_styled_text_segments\` with \`property: "fontName"\` returns the exact family + style per run. Match the dominant family rather than introducing a new one.
+3. **Neutral fallback.** Only when the file is empty and no brand exists, choose from the pairing table below (Inter is a safe default for product UI).
+
+Fallback body defaults: weights 400 / 500 / 600, line height ~150–160% (\`{ value: 155, unit: "PERCENT" }\`), and text boxes wide enough for roughly 60–75 characters per line.
+
+### Font style names are file-specific
+
+Figma addresses a font as family + **style string**, and those strings differ between families and font sources: one file has \`"Semi Bold"\`, another \`"SemiBold"\`; some families have \`"Medium"\`, others don't. Copy the style string exactly as reported by \`get_text_styles\` or \`get_styled_text_segments\` — never guess it from a numeric weight.
+
+- Call \`load_font_async\` with \`family\` and \`style\` before creating or editing text in a font that may not be loaded yet; a load error means that exact family/style pair is unavailable.
+- When creating styles, \`create_text_style_from_properties\` accepts \`fontStyle\` (exact string, takes priority) or \`fontWeight\` (resolved to a style) — prefer \`fontStyle\` when you know the name.
+
+### Verify the font actually applied
+
+Unavailable fonts are a common silent failure: text ends up in a different family or a default style. After building, spot-check headings, body, and labels with \`get_styled_text_segments\` (\`property: "fontName"\`) and confirm the family and style match what you intended. Fix mismatches before moving on.
+
+## Text Styles in Figma
+
+Define the type scale once as local text styles and apply them, instead of setting font, size, and line height node by node.
+
+- **Naming:** group with slashes so the style picker nests them — e.g. \`Display/Hero\`, \`Heading/1\`, \`Heading/2\`, \`Body/Large\`, \`Body/Medium\`, \`Label/Small\`. Keep one naming scheme per file; if styles already exist, follow their convention.
+- **Create:** \`create_text_style_from_properties\` (name, \`fontFamily\`, \`fontSize\`, \`fontStyle\`, \`lineHeight\`, \`letterSpacing\`, \`textCase\`) or \`create_text_style\` to capture an existing, already-tuned text node. \`update_text_style\` edits one later.
+- **Apply:** \`apply_text_style\` with \`styleName\` (e.g. \`"Body/Medium"\`) or \`styleId\`. Per-node \`set_font_name\` / \`set_font_size\` overrides break the link to the system — reserve them for true one-offs.
+- **Tokens:** if the file has typography variables, bind them to style fields with \`bind_variable\` — pass the text style name or id as \`nodeId\` and a \`field\` such as \`fontFamily\`, \`fontSize\`, \`fontWeight\`, \`lineHeight\`, or \`letterSpacing\`. Both creation tools also take a \`bindings\` map for the same fields.
+
+## Font Pairing Guidance (Fallback Options)
+
+Use these only when neither the brand nor the file already defines a typeface.
 
 | Context | Primary | Secondary |
 |---------|---------|-----------|
@@ -120,13 +145,15 @@ Developer-facing and technical products consistently use a **three-voice typogra
 - Section labels in uppercase with positive letter-spacing
 
 **Section label treatment (technical credibility signal):**
-\`\`\`
-font-family: monospace (Geist Mono, berkeleyMono, JetBrains Mono)
-font-size: 11–13px
-font-weight: 400–500
-text-transform: uppercase
-letter-spacing: 0.06–0.10em positive (≈0.7–1.3px at 11–13px)  ← opposite of display headings
-\`\`\`
+
+| Property | Value | Figma |
+|----------|-------|-------|
+| Family | Monospace (Geist Mono, berkeleyMono, JetBrains Mono) | \`set_font_name\` or a \`Label/Mono\` text style |
+| Size | 11–13px | \`set_font_size\` |
+| Weight | 400–500 | Style string from the file, e.g. \`"Regular"\` / \`"Medium"\` |
+| Case | Uppercase | \`set_text_case\` with \`UPPER\` |
+| Letter-spacing | +6 to +10% (≈0.7–1.3px at 11–13px), the opposite of display headings | \`set_letter_spacing\` with \`unit: "PERCENT"\` |
+
 Figma applies \`0.54px\` letter-spacing to its monospace section labels at 18px. The combination of mono + uppercase + positive tracking reads as "technical precision" regardless of brand.
 `,
 };

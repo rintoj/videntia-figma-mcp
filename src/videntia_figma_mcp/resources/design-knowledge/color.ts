@@ -78,14 +78,33 @@ Dark mode is **NOT** the inverted light palette. It's a separate, intentional de
 
 | Wrong | Right | Reason |
 |-------|-------|--------|
-| \`--blue-600\` | \`--primary\` | Blue may change; role doesn't |
-| \`--red-500\` | \`--destructive\` | Semantic intent is stable |
-| \`--gray-100\` | \`--surface\` | Gray may not always be surface |
-| \`--purple-400\` | \`--accent\` | Accent color can evolve |
+| \`blue-600\` | \`primary\` | Blue may change; role doesn't |
+| \`red-500\` | \`destructive\` | Semantic intent is stable |
+| \`gray-100\` | \`surface\` | Gray may not always be surface |
+| \`purple-400\` | \`accent\` | Accent color can evolve |
 
 **Naming pattern:** \`{role}\`, \`{role}-foreground\`, \`{role}-{scale}\`
 
 Examples: \`primary\`, \`primary-foreground\`, \`primary-100\`, \`destructive\`, \`destructive-foreground\`
+
+## Figma Variables Setup
+
+**Existing tokens win.** Inspect the file first (\`get_variable_collections\`, \`get_variables\`). If it already has brand tokens and a naming convention, use and extend those. The order is the same as in \`design-system-usage\`: the user's or brand's explicit choices, then what the file defines, then this module's default values, example hex codes and banned-color lists.
+
+**Slash grouping.** Figma turns \`/\` in a variable name into folders in the variables panel, e.g. \`color/bg/primary\` or \`color/text/secondary\`. Slash names and the flat role names above carry the same meaning; only the grouping differs. Pick one style per file and stay consistent. This server's standard theme schema uses flat names (\`background\`, \`primary-foreground\`, \`primary-500\`). \`get_schema_definition\` returns that schema and \`audit_collection\` checks a collection against it, so keep those names when you want a clean audit. \`bind_variable\` accepts a variable's ID or name; it tries the exact name first, then the name with dashes read as slashes, so both styles resolve.
+
+**Two token layers.**
+1. **Primitives:** the raw palette (\`blue-500\`, \`neutral-900\`, or \`blue/500\` in a slash-grouped file) in its own collection with a single mode. They are never bound directly to design nodes.
+2. **Semantic tokens:** role names (\`background\`, \`primary\`, \`border\`) that alias a primitive and never hold a raw hex value of their own. Fills, strokes and text on nodes bind only to semantic tokens (\`bind_variable\`), so a rebrand or theme change is just an edit to the aliases.
+
+Create collections and variables with \`create_variable_collection\`, \`create_variable\` and \`create_variables_batch\`. Those tools (and \`update_variable_value\`) only write raw values. Link a semantic token to its primitive by hand in Figma's variables panel, and until that link exists, treat a semantic token holding a raw value as temporary.
+
+**Light and dark are modes, not copies.** Put Light and Dark as modes on the semantic collection. Never create a separate "Dark" collection or duplicate variables such as \`background-dark\`.
+- Add a mode with \`add_mode_to_collection\` and seed it with \`duplicate_mode_values\`, then change the values that should differ.
+- \`create_variable_collection\` names its first mode \`dark\` unless you pass \`defaultMode\`. Rename any leftover default mode (e.g. "Mode 1") with \`rename_mode\`.
+- How many modes a collection can have depends on the Figma plan, so check your plan's mode limit before designing extra themes (e.g. high contrast).
+
+**Scopes.** Limit where each variable can be applied: background/surface tokens to fills, text tokens to text fills, border tokens to strokes. That keeps the picker free of irrelevant tokens. No tool in this server sets variable scopes, so set them manually in each variable's settings in Figma.
 
 ## Contrast Requirements (WCAG)
 
