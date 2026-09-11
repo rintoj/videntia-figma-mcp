@@ -15,7 +15,7 @@ These colors appear in AI-generated designs due to Tailwind's default training d
 
 - \`#6366f1\` — Tailwind Indigo 500
 - \`#8b5cf6\` — Tailwind Violet 500
-- \`#7c3aed\` — Tailwind Violet 700
+- \`#7c3aed\` — Tailwind Violet 600
 
 **Safe alternatives that signal intentionality:**
 - Blue: \`#2563eb\` (Tailwind Blue 600)
@@ -39,7 +39,7 @@ Signs that color was not intentionally chosen:
 - Default indigo or violet as primary accent
 - Decorative gradients without functional purpose
 - Perfectly even color distribution (no 60/30/10 weighting)
-- Pure black (#000000) or pure white (#ffffff) for text/bg
+- Pure black (#000000) text on pure white (#ffffff), or pure white text on pure black
 
 ## Layout Tells
 
@@ -77,7 +77,7 @@ Signs that spacing and radius were not intentionally designed:
 - **Pill inputs**: Text inputs at 9999px radius always look broken — inputs max at 10–12px
 - **Uniform radius everywhere**: Every element at 8px, including tiny 20px badges — radius should be proportional
 - **Zero radius**: Even the most enterprise product uses 4px minimum — 0px reads as unfinished/broken
-- **Pure #000000 for body text**: Every major brand uses a warm near-black: Vercel \`#171717\`, Cal \`#242424\`, Cursor \`#26251e\`, Expo \`#1c2024\`. Pure black on white creates harsh contrast that fatigues eyes.
+- **Pure #000000 for body text**: Every major brand uses a near-black: Vercel \`#171717\`, Cal \`#242424\`, Cursor \`#26251e\`, Expo \`#1c2024\`. Pure black on white creates harsh contrast that fatigues eyes.
 
 ## Checklist Before Shipping
 
@@ -89,7 +89,7 @@ Signs that spacing and radius were not intentionally designed:
 6. Are gradients and effects functional, not decorative?
 7. Is layout asymmetry used at least once to break predictability?
 8. Do shadows use at least 2 layers with cumulative opacity ≤ 0.25?
-9. Is body text a warm near-black (not #000000)?
+9. Is body text a near-black (not #000000)?
 10. Does border radius reflect a single archetype consistently?
 `,
 };

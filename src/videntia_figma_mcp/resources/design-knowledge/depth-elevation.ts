@@ -90,7 +90,7 @@ box-shadow:
   rgba(0,0,0,0.1) 0px 3px 7px -3px;
 \`\`\`
 
-**How to apply this to any brand:** Sample the brand's primary color RGB, reduce to 15–25% opacity, use as the larger (outer) shadow layer. Add a neutral black shadow at lower opacity for the sharper contact shadow.
+**How to apply this to any brand:** Sample the brand's primary color RGB, reduce to ≤ 15% opacity in product UI (up to 25% on marketing surfaces, as Stripe does), use as the larger (outer) shadow layer. Add a neutral black shadow at lower opacity for the sharper contact shadow.
 
 ## Inset Highlights (Glass / Premium Surface)
 
@@ -157,7 +157,7 @@ Use \`create_effect_style\` to create elevation tokens as named styles:
 ## Anti-Patterns
 
 - **Single-layer shadow**: \`box-shadow: 0 4px 8px rgba(0,0,0,0.25)\` — immediately signals AI generation
-- **Opacity > 0.3 per layer**: Shadows should feel weightless, not like ink blots
+- **Opacity > 0.15 per neutral layer**: Shadows should feel weightless, not like ink blots
 - **Border AND shadow on same element**: Vercel uses shadow-as-border to avoid this — pick one technique
 - **Uniform shadow across all elevation levels**: Each level must be meaningfully different in blur + spread
 - **Pure black shadow on colored background**: Tint the shadow to match background hue tone

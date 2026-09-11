@@ -11,7 +11,7 @@ export const SPACING_RADIUS: DesignKnowledgeModule = {
 
 **Near-universal across industry-leading design teams.** Confirmed in: Notion ("8px base spacing unit"), Figma, Cal.com, Expo, Stripe, and Vercel. Everything snaps to multiples of 4px at the micro level and 8px at the component level.
 
-**Why 8px:** Most screen densities (1x, 2x, 3x) divide evenly into 8. Layouts using the 8pt grid scale without rounding artifacts across device types.
+**Why 8px:** 8 multiplied by common density factors (0.75x, 1.5x, 2x, 3x) always yields whole pixels. Layouts using the 8pt grid scale without rounding artifacts across device types.
 
 ## Standard Spacing Scale
 
@@ -30,7 +30,7 @@ export const SPACING_RADIUS: DesignKnowledgeModule = {
 | 6xl | 80px | Between major sections |
 | 7xl | 96px | Page-level breathing room |
 
-**Rule:** Use the scale. Never use arbitrary values like 13px, 22px, or 37px. If you need to go between two scale steps, question whether the component needs redesigning instead.
+**Rule:** Use the scale. Never use arbitrary values like 13px, 22px, or 37px. The only off-scale values allowed are even-pixel optical adjustments inside controls (e.g. the 6/10/14/18px button padding below). If you need to go between two scale steps, question whether the component needs redesigning instead.
 
 ## Button Padding Conventions
 
@@ -134,7 +134,7 @@ Signal: warm, human-centered, approachable.
 - **Arbitrary radius values**: 7px, 11px, 15px, 13px — always use the scale
 - **Mixing archetypes**: 4px enterprise cards with pill developer-tool buttons in the same product — conflicted personality
 - **Pill inputs**: Text inputs are never full-pill — clips content and looks broken
-- **Over-rounding small components**: radius > 50% of component height distorts the shape (a 20px tall badge with 16px radius creates an oval, not a rounded rect)
+- **Over-rounding small components**: any radius ≥ 50% of component height is clamped (CSS and Figma) and renders as a pill — a 20px tall badge with 16px radius is just a pill. Choose pill (9999px) deliberately, or keep the radius proportionally small
 - **Zero radius everywhere**: Even enterprise products use at minimum 4px — 0px reads as unfinished
 - **Arbitrary spacing**: 13px margin here, 22px padding there — use the scale even when approximating
 `,

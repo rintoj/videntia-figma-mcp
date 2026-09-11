@@ -18,7 +18,7 @@ Every screen should have intentional color distribution:
 
 Breaking this rule creates visual chaos. When in doubt, add more neutral.
 
-## Neutral Scale (70–90% of UI)
+## Neutral Scale (60–80% of UI)
 
 Use 10–12 steps covering the full range:
 
@@ -29,9 +29,9 @@ Use 10–12 steps covering the full range:
 | 200 | \`#e5e5e5\` | \`#1f1f1f\` | Cards, elevated surfaces |
 | 300 | \`#d4d4d4\` | \`#2a2a2a\` | Borders |
 | 400 | \`#a3a3a3\` | \`#404040\` | Disabled borders |
-| 500 | \`#737373\` | \`#525252\` | Icons, secondary text |
-| 600 | \`#525252\` | \`#737373\` | Tertiary text |
-| 700 | \`#404040\` | \`#a3a3a3\` | Secondary text |
+| 500 | \`#737373\` | \`#8a8a8a\` | Icons, tertiary text |
+| 600 | \`#525252\` | \`#a3a3a3\` | Secondary text |
+| 700 | \`#404040\` | \`#bababa\` | Body text |
 | 800 | \`#262626\` | \`#d4d4d4\` | Primary text |
 | 900 | \`#171717\` | \`#e5e5e5\` | Headings |
 | 950 | \`#0a0a0a\` | \`#fafafa\` | Maximum contrast |
@@ -40,14 +40,14 @@ Use 10–12 steps covering the full range:
 
 ## Primary Accent Scale
 
-One brand color, 50–950 scale:
+One brand color as the base \`primary\` token plus a 50–900 scale. In this server (\`calculate_color_scale\`, \`create_color_scale_set\`) each step is the base composited over the background: 50 = 5% base, 500 = 50% base, 900 = 90% base — so every step is lighter (on light backgrounds) than the base itself.
 
-| State | Scale Steps | Notes |
-|-------|-------------|-------|
-| Default | 500–600 | Standard interactive state |
-| Hover | 600–700 | Darker = more intent |
-| Active/Pressed | 700–800 | Darkest interactive |
-| Tints/Backgrounds | 50–100 | Subtle highlight areas |
+| State | Token | Notes |
+|-------|-------|-------|
+| Default | \`primary\` | The full-strength base color |
+| Hover | \`primary-900\` | Subtle shift from base |
+| Active/Pressed | \`primary-800\` | Clearly distinct from hover |
+| Tints/Backgrounds | \`primary-50\`–\`primary-100\` | Subtle highlight areas |
 
 ## Semantic Colors
 
@@ -67,7 +67,7 @@ Dark mode is **NOT** the inverted light palette. It's a separate, intentional de
 | Token | Light | Dark | Why |
 |-------|-------|------|-----|
 | Background | \`#ffffff\` | \`#0f0f0f\` | Not pure black — reduces glare |
-| Foreground | \`#0B0B0B\` | \`#f0f0f0\` | Not pure white — easier on eyes |
+| Foreground | \`#0B0B0B\` | \`#f5f5f5\` | Not pure white — easier on eyes |
 | Card/Surface | \`#f5f5f5\` | \`#1a1a1a\` | Distinct from background |
 | Elevated | \`#ffffff\` | \`#242424\` | Layering depth |
 | Border | \`#e5e5e5\` | \`#2a2a2a\` | Subtle separation |
@@ -91,8 +91,8 @@ Examples: \`primary\`, \`primary-foreground\`, \`primary-100\`, \`destructive\`,
 
 | Text size | Minimum ratio | Target ratio |
 |-----------|---------------|--------------|
-| Normal text (<18px) | 4.5:1 (AA) | 7:1 (AAA) |
-| Large text (18px+ or 14px bold) | 3:1 (AA) | 4.5:1 (AAA) |
+| Normal text (<18pt / 24px, or <14pt / ~18.66px bold) | 4.5:1 (AA) | 7:1 (AAA) |
+| Large text (≥18pt / 24px, or ≥14pt / ~18.66px bold) | 3:1 (AA) | 4.5:1 (AAA) |
 | UI components, icons | 3:1 (AA) | — |
 `,
 };

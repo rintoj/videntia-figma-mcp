@@ -15,7 +15,7 @@ export const ICONS: DesignKnowledgeModule = {
 | Large | 28–32px | Feature cards, section icons, empty states, illustrations |
 | XL | 40–48px | Hero sections, onboarding, modal headers (rare) |
 
-**Rule:** Match icon size to the surrounding text size. A 16px icon next to 13px text, a 24px icon next to 16px text.
+**Rule:** Match icon size to the surrounding text size. A 16px icon next to 13–14px text, a 20px icon next to 16px text.
 
 ## Touch Target Sizing
 
@@ -57,7 +57,7 @@ Pick one library. Use it everywhere. Only exception: a deliberately different st
 
 | Library | Style | Best For | Notes |
 |---------|-------|----------|-------|
-| **Lucide** | Outline, 1.5px stroke | SaaS default | Cleanest, most neutral, largest set |
+| **Lucide** | Outline, 2px stroke | SaaS default | Cleanest, most neutral; the library behind this server's \`search_icon\` / \`create_icon\` |
 | **Heroicons** | Outline + Solid | Tailwind projects | Two weights, well-maintained |
 | **Phosphor** | 6 weights | Design systems needing flexibility | Most versatile |
 | **Material Symbols** | Variable weight | Google-adjacent products | Very large set, distinct style |

@@ -30,7 +30,7 @@ export const TYPOGRAPHY: DesignKnowledgeModule = {
 |------|-------|-------|
 | Primary | \`#0B0B0B\` | Headings, important body |
 | Secondary | \`rgba(0,0,0,0.65)\` | Body text, descriptions |
-| Tertiary | \`rgba(0,0,0,0.45)\` | Captions, helper text |
+| Tertiary | \`rgba(0,0,0,0.55)\` | Captions, helper text |
 | Disabled | \`rgba(0,0,0,0.3)\` | Disabled states |
 
 ## Text Colors — Dark Mode
@@ -50,7 +50,7 @@ export const TYPOGRAPHY: DesignKnowledgeModule = {
 | Small (11–13px) | 0.01–0.02em | **Required** for readability |
 | ALL CAPS | 0.06–0.10em | **Mandatory** — never omit |
 | Large headings (32px+) | -0.01 to -0.02em | Optical tightening |
-| Display/Hero (48px+) | -0.02 to -0.03em | Tight for impact |
+| Display/Hero (48px+) | -0.02 to -0.04em | Tight for impact; tighter as size grows |
 
 ## Safe SaaS Font Preset
 
@@ -71,7 +71,7 @@ max-width: 65ch; /* Optimal reading line length */
 | Editorial | Playfair Display | Georgia |
 | Developer | Geist | Geist Mono |
 
-**Rule:** Max 2 typefaces per product. One for headings/display, one for body/UI. Never mix more than 2.
+**Rule:** Max 2 typefaces per product. One for headings/display, one for body/UI. Never mix more than 2 — the only exception is a monospace companion for code and technical labels (see Mono Companion Voice).
 
 ## Weight System
 
@@ -80,7 +80,7 @@ max-width: 65ch; /* Optimal reading line length */
 - **600** — Headings, buttons, strong emphasis
 - **700+** — Use sparingly: hero titles, maximum-impact statements only
 
-**Rule:** At least 2 distinct weights per screen. A design with only 400 and 600 has no rhythm.
+**Rule:** At least 2 distinct weights per screen. A design with only one weight has no hierarchy.
 
 ## Display Letter-Spacing — Brand-Validated Scale
 
@@ -95,7 +95,7 @@ All 7 brands analyzed (Vercel, Cursor, Figma, Expo, Stripe, Cal, Linear) apply a
 | 24–32px | -0.1px to -0.4px | Cursor: -0.325px at 26px |
 | ≤16px | 0px (normal) | Never tighten body text |
 
-**Rule for Figma:** Use \`letter_spacing\` in PIXELS (not em). At 72px, start at -2.0px and adjust by feel. If it looks like a logotype, it's right.
+**Rule for Figma:** Use \`set_letter_spacing\` with \`unit: "PIXELS"\` for these values. (To apply the em rules above, use \`unit: "PERCENT"\` with em × 100, e.g. 0.06em → 6.) At 72px, start at -2.0px and adjust by feel. If it looks like a logotype, it's right.
 
 ## Light-Weight Display (The "Whispered Authority" Pattern)
 
@@ -125,7 +125,7 @@ font-family: monospace (Geist Mono, berkeleyMono, JetBrains Mono)
 font-size: 11–13px
 font-weight: 400–500
 text-transform: uppercase
-letter-spacing: 0.5–1px positive  ← opposite of display headings
+letter-spacing: 0.06–0.10em positive (≈0.7–1.3px at 11–13px)  ← opposite of display headings
 \`\`\`
 Figma applies \`0.54px\` letter-spacing to its monospace section labels at 18px. The combination of mono + uppercase + positive tracking reads as "technical precision" regardless of brand.
 `,
