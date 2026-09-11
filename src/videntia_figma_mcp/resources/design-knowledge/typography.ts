@@ -50,7 +50,7 @@ export const TYPOGRAPHY: DesignKnowledgeModule = {
 | Small (11–13px) | 0.01–0.02em | **Required** for readability |
 | ALL CAPS | 0.06–0.10em | **Mandatory** — never omit |
 | Large headings (32px+) | -0.01 to -0.02em | Optical tightening |
-| Display/Hero (48px+) | -0.02 to -0.04em | Tight for impact; tighter as size grows |
+| Display/Hero (48px+) | -0.015 to -0.04em | Tight for impact; tighter as size grows |
 
 ## Safe SaaS Font Preset
 

@@ -4,7 +4,7 @@ export const DEPTH_ELEVATION: DesignKnowledgeModule = {
   id: "depth-elevation",
   name: "Depth & Elevation System",
   description:
-    "Multi-layer shadow recipes, shadow-as-border, brand-colored shadows, and elevation hierarchy — sourced from real brand DESIGN.md files (Notion, Stripe, Vercel, Cal, Figma).",
+    "Multi-layer shadow recipes, shadow-as-border, brand-colored shadows, and elevation hierarchy — sourced from real brand DESIGN.md files (Notion, Stripe, Vercel, Cal).",
   content: `# Depth & Elevation System
 
 ## The Multi-Layer Shadow Rule

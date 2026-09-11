@@ -18,7 +18,7 @@ export const SPACING_RADIUS: DesignKnowledgeModule = {
 | Token | Value | Usage |
 |-------|-------|-------|
 | xs | 4px | Icon gaps, tight internal element spacing |
-| sm | 8px | Component internal padding (tight), horizontal input padding |
+| sm | 8px | Component internal padding (tight), vertical input padding |
 | md | 12px | Default gap in compact layouts, button vertical padding |
 | base | 16px | Standard component padding, default flex gap |
 | lg | 20px | Comfortable component padding |
