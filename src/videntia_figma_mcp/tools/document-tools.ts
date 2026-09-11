@@ -1173,7 +1173,7 @@ export function registerDocumentTools(server: McpServer): void {
   // Lint Frame Tool
   server.tool(
     "lint_frame",
-    "Run a comprehensive compliance audit on a frame (or any node with children). Checks color tokens, spacing tokens, border radius tokens, text styles, effect styles, auto-layout compliance, child overflow, and screen naming conventions in a single traversal. Returns a structured report with violations by severity (CRITICAL/HIGH/MEDIUM/LOW) and compliance percentages across 10 categories. Pass fix=true to auto-fix deterministic violations (root frame sizing: layoutSizingHorizontal→FIXED, layoutSizingVertical→HUG, minHeight→device standard) and report only the remaining issues.",
+    "Run a comprehensive compliance audit on a frame (or any node with children). Checks color tokens, spacing tokens, border radius tokens, text styles, effect styles, auto-layout compliance, child overflow, clipped content, and screen naming conventions in a single traversal. Clipped content (rule clipped-content, HIGH): inside any clipsContent=true frame/component/instance, each descendant's render extent (bounds + DROP_SHADOW offset±(radius+spread), LAYER_BLUR radius, OUTSIDE/CENTER strokes) must stay within the clipping bounds — reports the node, the clipping ancestor, sides and px, and cause (effect vs bounds); fix with set_clips_content {nodeId: ancestor, clipsContent: false} or padding ≥ the overflow. Image crops (IMAGE fill / Image/ layers) and bounds overflow under screen-level clips (linted root, page children, Screen/ frames — scrolling content) are not reported. Returns a structured report with violations by severity (CRITICAL/HIGH/MEDIUM/LOW) and compliance percentages per category. Pass fix=true to auto-fix deterministic violations (root frame sizing: layoutSizingHorizontal→FIXED, layoutSizingVertical→HUG, minHeight→device standard) and report only the remaining issues.",
     {
       nodeId: z.string().describe("The ID of the root node to lint"),
       fix: z
@@ -1197,6 +1197,11 @@ export function registerDocumentTools(server: McpServer): void {
           effectStyles: mcpBooleanSchema.optional().describe("Check effect style application (default: true)"),
           autoLayout: mcpBooleanSchema.optional().describe("Check auto-layout on frames (default: true)"),
           overflow: mcpBooleanSchema.optional().describe("Check child overflow beyond parent bounds (default: true)"),
+          clippedContent: mcpBooleanSchema
+            .optional()
+            .describe(
+              "Check for shadows/blurs/outside strokes/children cropped by a clipsContent=true ancestor (default: true)",
+            ),
           screenNaming: mcpBooleanSchema
             .optional()
             .describe(
@@ -1246,11 +1251,13 @@ export function registerDocumentTools(server: McpServer): void {
           { key: "borderRadius", label: "Border Radius" },
           { key: "effectStyles", label: "Effect Styles" },
           { key: "overflow", label: "Overflow" },
+          { key: "clippedContent", label: "Clipped Content" },
           { key: "screenNaming", label: "Screen Naming" },
         ];
 
         for (const { key, label } of catLabels) {
           const cat = result.categories[key];
+          if (!cat) continue;
           const pct = cat.compliance;
           const status = pct === 100 ? "PASS" : pct >= 80 ? "WARN" : "FAIL";
           lines.push(`| ${label} | ${cat.total} | ${cat.bound} | ${cat.unbound} | ${status} ${pct}% |`);

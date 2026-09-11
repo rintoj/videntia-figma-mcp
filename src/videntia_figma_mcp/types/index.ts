@@ -833,6 +833,7 @@ export interface LintFrameResult {
     backgroundFills: LintCategoryResult;
     effectStyles: LintCategoryResult;
     overflow: LintCategoryResult;
+    clippedContent?: LintCategoryResult;
     screenNaming: LintCategoryResult;
   };
   violations: LintViolation[];

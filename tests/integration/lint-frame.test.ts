@@ -63,6 +63,7 @@ describe("lint_frame tool", () => {
         backgroundFills: { total: 4, bound: 3, unbound: 1, compliance: 75 },
         effectStyles: { total: 1, bound: 1, unbound: 0, compliance: 100 },
         overflow: { total: 10, bound: 10, unbound: 0, compliance: 100 },
+        clippedContent: { total: 6, bound: 6, unbound: 0, compliance: 100 },
         screenNaming: { total: 0, bound: 0, unbound: 0, compliance: 100 },
       },
       violations: [],
@@ -521,6 +522,72 @@ describe("lint_frame tool", () => {
 
     expect(text).toContain("| Screen Naming | 1 | 0 | 1 | FAIL 0% |");
     expect(text).toContain("does not follow convention");
+  });
+
+  it("shows Clipped Content category in compliance table", async () => {
+    mockSendCommand.mockResolvedValue(makeResult());
+
+    const response = await callTool("lint_frame", { nodeId: "1:100" });
+    const text = response.content[0].text;
+
+    expect(text).toContain("| Clipped Content | 6 | 6 | 0 | PASS 100% |");
+  });
+
+  it("omits Clipped Content row when an older plugin does not report the category", async () => {
+    const base = makeResult();
+    const { clippedContent: _omit, ...categories } = base.categories;
+    mockSendCommand.mockResolvedValue({ ...base, categories });
+
+    const response = await callTool("lint_frame", { nodeId: "1:100" });
+    const text = response.content[0].text;
+
+    expect(text).not.toContain("| Clipped Content |");
+    expect(text).toContain("| Overflow |");
+  });
+
+  it("reports HIGH clipped content violation with fix guidance", async () => {
+    const result = makeResult({
+      violations: [
+        {
+          nodeId: "1:300",
+          nodeName: "Button",
+          nodeType: "FRAME",
+          depth: 3,
+          severity: "HIGH",
+          category: "clippedContent",
+          property: "clipsContent",
+          message:
+            'DROP_SHADOW clipped by ancestor "Card" (1:200, clipsContent=true) — crosses bottom 12px. Fix: set_clips_content {nodeId: "1:200", clipsContent: false} on the ancestor, or add padding ≥ 12px on the clipped side',
+          details: {
+            clippingNodeId: "1:200",
+            clippingNodeName: "Card",
+            clippedSides: { bottom: 12 },
+            cause: "effect",
+            effectSources: ["DROP_SHADOW"],
+            overflowAmount: 12,
+          },
+        },
+      ],
+      summary: { total: 1, critical: 0, high: 1, medium: 0, low: 0, compliance: 95 },
+    });
+    mockSendCommand.mockResolvedValue(result);
+
+    const response = await callTool("lint_frame", { nodeId: "1:100" });
+    const text = response.content[0].text;
+
+    expect(text).toContain("### HIGH (1)");
+    expect(text).toContain("| clippedContent | clipsContent |");
+    expect(text).toContain("crosses bottom 12px");
+    expect(text).toContain("set_clips_content");
+  });
+
+  it("passes clippedContent check toggle through to plugin", async () => {
+    mockSendCommand.mockResolvedValue(makeResult());
+
+    const checks = { clippedContent: false };
+    await callTool("lint_frame", { nodeId: "1:100", checks });
+
+    expect(mockSendCommand).toHaveBeenCalledWith("lint_frame", { nodeId: "1:100", fix: false, checks }, 60000);
   });
 
   it("passes screenNaming check toggle through to plugin", async () => {

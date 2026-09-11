@@ -13,6 +13,7 @@ function makeChecks(): ActiveChecks {
     effectStyles: false,
     autoLayout: false,
     overflow: false,
+    clippedContent: false,
     screenNaming: false,
   };
 }

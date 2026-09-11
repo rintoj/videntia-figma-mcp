@@ -27,9 +27,11 @@ export async function lintFrame(params: Record<string, unknown>): Promise<LintRe
     effectStyles: true,
     autoLayout: true,
     overflow: true,
+    clippedContent: true,
     screenNaming: true,
   };
   if (checks) {
+    if (checks.clippedContent === false) chk.clippedContent = false;
     if (checks.rootFrame === false) chk.rootFrame = false;
     if (checks.rootFrame === true) chk.rootFrame = true;
     if (checks.colors === false) chk.colors = false;
@@ -56,6 +58,7 @@ export async function lintFrame(params: Record<string, unknown>): Promise<LintRe
     backgroundFills: { total: 0, bound: 0, unbound: 0, compliance: 100 },
     effectStyles: { total: 0, bound: 0, unbound: 0, compliance: 100 },
     overflow: { total: 0, bound: 0, unbound: 0, compliance: 100 },
+    clippedContent: { total: 0, bound: 0, unbound: 0, compliance: 100 },
     autoLayout: { total: 0, bound: 0, unbound: 0, compliance: 100 },
     screenNaming: { total: 0, bound: 0, unbound: 0, compliance: 100 },
   };
@@ -105,6 +108,7 @@ export async function lintFrame(params: Record<string, unknown>): Promise<LintRe
     "backgroundFills",
     "effectStyles",
     "overflow",
+    "clippedContent",
     "autoLayout",
     "screenNaming",
   ];

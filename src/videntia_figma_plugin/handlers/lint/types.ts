@@ -10,6 +10,7 @@ export type ViolationCategory =
   | "backgroundFills"
   | "effectStyles"
   | "overflow"
+  | "clippedContent"
   | "autoLayout"
   | "screenNaming";
 
@@ -20,6 +21,15 @@ export interface ViolationDetails {
   parentRight?: number;
   childBottom?: number;
   parentBottom?: number;
+  /** clippedContent: the clipsContent=true ancestor that crops the node. */
+  clippingNodeId?: string;
+  clippingNodeName?: string;
+  /** clippedContent: px the render extent crosses the clipping bounds, per side. */
+  clippedSides?: { top?: number; right?: number; bottom?: number; left?: number };
+  /** clippedContent: whether an effect/stroke or the node's own bounds cross the clip. */
+  cause?: "effect" | "bounds" | "bounds+effect";
+  /** clippedContent: render-extent contributors, e.g. DROP_SHADOW, LAYER_BLUR, OUTSIDE stroke. */
+  effectSources?: string[];
 }
 
 export interface Violation {
@@ -53,6 +63,7 @@ export interface LintCategories {
   backgroundFills: CategoryStats;
   effectStyles: CategoryStats;
   overflow: CategoryStats;
+  clippedContent: CategoryStats;
   autoLayout: CategoryStats;
   screenNaming: CategoryStats;
 }
@@ -87,6 +98,7 @@ export interface LintChecks {
   effectStyles?: boolean;
   autoLayout?: boolean;
   overflow?: boolean;
+  clippedContent?: boolean;
   screenNaming?: boolean;
 }
 
@@ -105,6 +117,7 @@ export interface ActiveChecks {
   effectStyles: boolean;
   autoLayout: boolean;
   overflow: boolean;
+  clippedContent: boolean;
   screenNaming: boolean;
 }
 

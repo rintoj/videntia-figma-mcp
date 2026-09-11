@@ -20,6 +20,313 @@ import {
   VALID_BREAKPOINTS,
 } from "./constants";
 
+// ── CLIPPED CONTENT (rule: clipped-content, category: clippedContent) ─────────
+//
+// A frame with clipsContent=true silently crops anything rendered past its
+// bounds — drop shadows, glows, focus rings, outside strokes and overflowing
+// children vanish without any bounding-box overflow being visible.
+//
+// For every clipping FRAME/COMPONENT/COMPONENT_SET/INSTANCE, each visible
+// descendant (ABSOLUTE-positioned ones included) down to the next clipping
+// container is measured by its render extent — absoluteBoundingBox expanded by:
+//   - DROP_SHADOW:  offset ± (radius + spread)
+//   - LAYER_BLUR:   radius on every side (INNER_SHADOW / BACKGROUND_BLUR: none)
+//   - strokes:      strokeWeight (OUTSIDE) or strokeWeight / 2 (CENTER)
+// Any side crossing the clipping bounds by more than 1px is reported HIGH, with
+// the clipping ancestor, per-side px, and cause (effect vs the node's own bounds).
+//
+// Not reported (intentional crops):
+//   - image layers (visible IMAGE fill or `Image/` name) overflowing via their bounds
+//   - bounds overflow under a screen-level clip (the linted root, a page child,
+//     or a `Screen/` frame) — screen content legitimately scrolls; only effect
+//     clipping is reported there
+// A nested clipping container is measured as a whole (bounds + own effects); its
+// contents are checked against it when the scan reaches it. A node reported for
+// bounds overflow is not descended into (its children are clipped as a consequence).
+
+type ClipSide = "top" | "right" | "bottom" | "left";
+const CLIP_SIDES: ClipSide[] = ["top", "right", "bottom", "left"];
+const CLIP_TOLERANCE = 1;
+
+interface RenderExtent {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+}
+
+export function isClippingContainer(node: SceneNode): boolean {
+  let t = node.type;
+  if (t !== "FRAME" && t !== "COMPONENT" && t !== "COMPONENT_SET" && t !== "INSTANCE") return false;
+  try {
+    return (node as FrameNode).clipsContent === true;
+  } catch (_e) {
+    return false;
+  }
+}
+
+function readBBox(node: SceneNode): Rect | null {
+  try {
+    let b = (node as SceneNode & { absoluteBoundingBox?: Rect | null }).absoluteBoundingBox;
+    return b ? b : null;
+  } catch (_e) {
+    return null;
+  }
+}
+
+function hasImageFill(node: SceneNode): boolean {
+  try {
+    let fills = (node as GeometryMixin).fills;
+    if (!Array.isArray(fills)) return false;
+    for (let i = 0; i < fills.length; i++) {
+      if (fills[i] && fills[i].type === "IMAGE" && fills[i].visible !== false) return true;
+    }
+  } catch (_e) {}
+  return false;
+}
+
+function readNumberProp(node: SceneNode, prop: string): number | null {
+  try {
+    let v = (node as unknown as Record<string, unknown>)[prop];
+    return typeof v === "number" ? v : null;
+  } catch (_e) {
+    return null;
+  }
+}
+
+export function computeRenderExtent(node: SceneNode, box: Rect): { extent: RenderExtent; sources: string[] } {
+  let boxRight = box.x + box.width;
+  let boxBottom = box.y + box.height;
+  let extent: RenderExtent = { top: box.y, right: boxRight, bottom: boxBottom, left: box.x };
+  let sources: string[] = [];
+
+  let grow = (source: string, top: number, right: number, bottom: number, left: number) => {
+    if (top < box.y || right > boxRight || bottom > boxBottom || left < box.x) {
+      if (sources.indexOf(source) === -1) sources.push(source);
+    }
+    if (top < extent.top) extent.top = top;
+    if (right > extent.right) extent.right = right;
+    if (bottom > extent.bottom) extent.bottom = bottom;
+    if (left < extent.left) extent.left = left;
+  };
+
+  let effects: ReadonlyArray<Effect> | null = null;
+  try {
+    effects = (node as BlendMixin).effects;
+  } catch (_e) {}
+  if (effects && Array.isArray(effects)) {
+    for (let i = 0; i < effects.length; i++) {
+      let ef = effects[i];
+      if (!ef || ef.visible === false) continue;
+      if (ef.type === "DROP_SHADOW") {
+        let ds = ef as DropShadowEffect;
+        let reach = (typeof ds.radius === "number" ? ds.radius : 0) + (typeof ds.spread === "number" ? ds.spread : 0);
+        let ox = ds.offset && typeof ds.offset.x === "number" ? ds.offset.x : 0;
+        let oy = ds.offset && typeof ds.offset.y === "number" ? ds.offset.y : 0;
+        grow("DROP_SHADOW", box.y + oy - reach, boxRight + ox + reach, boxBottom + oy + reach, box.x + ox - reach);
+      } else if (ef.type === "LAYER_BLUR") {
+        let r = typeof (ef as BlurEffect).radius === "number" ? (ef as BlurEffect).radius : 0;
+        grow("LAYER_BLUR", box.y - r, boxRight + r, boxBottom + r, box.x - r);
+      }
+    }
+  }
+
+  let strokes: ReadonlyArray<Paint> | null = null;
+  try {
+    strokes = (node as GeometryMixin).strokes;
+  } catch (_e) {}
+  let hasVisibleStroke = false;
+  if (strokes && Array.isArray(strokes)) {
+    for (let si = 0; si < strokes.length; si++) {
+      if (strokes[si] && strokes[si].visible !== false) {
+        hasVisibleStroke = true;
+        break;
+      }
+    }
+  }
+  if (hasVisibleStroke) {
+    let align = "";
+    try {
+      align = String((node as GeometryMixin & { strokeAlign?: string }).strokeAlign || "");
+    } catch (_e) {}
+    let factor = align === "OUTSIDE" ? 1 : align === "CENTER" ? 0.5 : 0;
+    if (factor > 0) {
+      let base = readNumberProp(node, "strokeWeight");
+      let sideWeight = (prop: string) => {
+        let v = readNumberProp(node, prop);
+        return (v !== null ? v : base !== null ? base : 0) * factor;
+      };
+      grow(
+        align + " stroke",
+        box.y - sideWeight("strokeTopWeight"),
+        boxRight + sideWeight("strokeRightWeight"),
+        boxBottom + sideWeight("strokeBottomWeight"),
+        box.x - sideWeight("strokeLeftWeight"),
+      );
+    }
+  }
+
+  return { extent, sources };
+}
+
+export function checkClippedContent(
+  clipNode: SceneNode,
+  clipDepth: number,
+  screenLevel: boolean,
+  categories: LintCategories,
+  violations: Violation[],
+  violationsCappedRef: { value: boolean },
+): void {
+  let clipBox = readBBox(clipNode);
+  if (!clipBox) return;
+  let children: ReadonlyArray<SceneNode> | null = null;
+  try {
+    children = (clipNode as ChildrenMixin).children;
+  } catch (_e) {}
+  if (!children) return;
+  for (let i = 0; i < children.length; i++) {
+    visitClippedDescendant(
+      children[i],
+      clipDepth + 1,
+      clipNode,
+      clipBox,
+      screenLevel,
+      categories,
+      violations,
+      violationsCappedRef,
+    );
+  }
+}
+
+function visitClippedDescendant(
+  node: SceneNode,
+  depth: number,
+  clipNode: SceneNode,
+  clipBox: Rect,
+  screenLevel: boolean,
+  categories: LintCategories,
+  violations: Violation[],
+  violationsCappedRef: { value: boolean },
+): void {
+  if ((node as SceneNode & { visible?: boolean }).visible === false) return;
+  if (depth > MAX_LINT_DEPTH) return;
+
+  let nodeType = node.type;
+  let reportedBounds = false;
+  let box = readBBox(node);
+
+  if (box) {
+    let rendered = computeRenderExtent(node, box);
+    let clipRight = clipBox.x + clipBox.width;
+    let clipBottom = clipBox.y + clipBox.height;
+    let extentOver: Record<ClipSide, number> = {
+      top: clipBox.y - rendered.extent.top,
+      right: rendered.extent.right - clipRight,
+      bottom: rendered.extent.bottom - clipBottom,
+      left: clipBox.x - rendered.extent.left,
+    };
+    let boundsOver: Record<ClipSide, number> = {
+      top: clipBox.y - box.y,
+      right: box.x + box.width - clipRight,
+      bottom: box.y + box.height - clipBottom,
+      left: clipBox.x - box.x,
+    };
+
+    let name = "";
+    try {
+      name = node.name || "";
+    } catch (_e) {}
+    // GROUP bounds are just the union of its children, which are checked individually.
+    let ignoreBoundsCause = screenLevel || nodeType === "GROUP" || name.indexOf("Image/") === 0 || hasImageFill(node);
+
+    let clippedSides: { top?: number; right?: number; bottom?: number; left?: number } = {};
+    let sideLabels: string[] = [];
+    let anyBounds = false;
+    let anyEffect = false;
+    let maxAmount = 0;
+    for (let si = 0; si < CLIP_SIDES.length; si++) {
+      let side = CLIP_SIDES[si];
+      if (extentOver[side] <= CLIP_TOLERANCE) continue;
+      let boundsCause = boundsOver[side] > CLIP_TOLERANCE;
+      if (boundsCause && ignoreBoundsCause) continue;
+      let amount = Math.ceil(extentOver[side] - 0.001);
+      clippedSides[side] = amount;
+      sideLabels.push(side + " " + amount + "px");
+      if (amount > maxAmount) maxAmount = amount;
+      if (boundsCause) anyBounds = true;
+      else anyEffect = true;
+    }
+
+    categories.clippedContent.total++;
+    if (sideLabels.length === 0) {
+      categories.clippedContent.bound++;
+    } else {
+      categories.clippedContent.unbound++;
+      let clipId = clipNode.id;
+      let clipName = "";
+      try {
+        clipName = clipNode.name || "";
+      } catch (_e) {}
+      let sourceLabel = rendered.sources.length > 0 ? rendered.sources.join("/") : "Render extent";
+      let what = anyBounds ? (anyEffect ? "Node bounds and " + sourceLabel : "Node bounds") : sourceLabel;
+      let message =
+        what +
+        ' clipped by ancestor "' +
+        clipName +
+        '" (' +
+        clipId +
+        ", clipsContent=true) — crosses " +
+        sideLabels.join(", ") +
+        '. Fix: set_clips_content {nodeId: "' +
+        clipId +
+        '", clipsContent: false} on the ancestor, or add padding ≥ ' +
+        maxAmount +
+        "px on the clipped side" +
+        (sideLabels.length > 1 ? "s" : "");
+      let details: ViolationDetails = {
+        overflowAmount: maxAmount,
+        clippingNodeId: clipId,
+        clippingNodeName: clipName,
+        clippedSides: clippedSides,
+        cause: anyBounds && anyEffect ? "bounds+effect" : anyBounds ? "bounds" : "effect",
+        effectSources: rendered.sources,
+      };
+      addViolation(
+        violations,
+        violationsCappedRef,
+        MAX_LINT_VIOLATIONS,
+        node,
+        depth,
+        "HIGH",
+        "clippedContent",
+        "clipsContent",
+        message,
+        details,
+      );
+      reportedBounds = anyBounds;
+    }
+  }
+
+  if (reportedBounds || isClippingContainer(node) || nodeType === "BOOLEAN_OPERATION") return;
+  let kids: ReadonlyArray<SceneNode> | null = null;
+  try {
+    if ("children" in node) kids = (node as ChildrenMixin).children;
+  } catch (_e) {}
+  if (!kids) return;
+  for (let k = 0; k < kids.length; k++) {
+    visitClippedDescendant(
+      kids[k],
+      depth + 1,
+      clipNode,
+      clipBox,
+      screenLevel,
+      categories,
+      violations,
+      violationsCappedRef,
+    );
+  }
+}
+
 export function scanNode(
   node: SceneNode,
   depth: number,
@@ -765,6 +1072,13 @@ export function scanNode(
         }
       }
     }
+  }
+
+  // ── CLIPPED CONTENT check (rule: clipped-content) ──
+  if (localInsideScreen && chk.clippedContent && isClippingContainer(node)) {
+    let clipParentType = parent !== null && parent !== undefined ? (parent as BaseNode).type : null;
+    let clipIsScreenLevel = clipParentType === null || clipParentType === "PAGE" || isScreenRoot;
+    checkClippedContent(node, depth, clipIsScreenLevel, categories, violations, violationsCappedRef);
   }
 
   // ── Recurse into children ──
