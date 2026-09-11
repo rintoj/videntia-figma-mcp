@@ -1,15 +1,33 @@
-import type { Violation, ViolationDetails, ActiveChecks, LintCategories } from "./types";
+import type {
+  Violation,
+  ViolationDetails,
+  ViolationSeverity,
+  ViolationCategory,
+  ActiveChecks,
+  LintCategories,
+  LintRuleId,
+  LintScope,
+  IgnoreSet,
+  ScanInherited,
+} from "./types";
 import {
   addViolation,
   isFillBound,
   isScalarBound,
   isIconLike,
   isColorFill,
+  isImageLayer,
   hasFillPaintStyle,
   hasStrokePaintStyle,
   hasTextStyle,
   hasEffectStyle,
   hasFontVariableBindings,
+  readNodeIgnore,
+  mergeIgnore,
+  isSuppressed,
+  countSuppressed,
+  readInstanceOverrides,
+  isPaintOverridden,
 } from "./helpers";
 import {
   MAX_LINT_DEPTH,
@@ -19,6 +37,23 @@ import {
   SCREEN_NAME_PATTERN,
   VALID_BREAKPOINTS,
 } from "./constants";
+
+// ── Rules, suppression and instance paints ────────────────────────────────────
+//
+// Every violation carries a stable kebab-case `rule` id (LINT_RULE_IDS). A rule
+// is suppressed for a node — and its whole subtree — by `ignoreNodeIds` (all
+// rules), `ignoreRules` (rule ids or category names, scan-wide), shared plugin
+// data `videntia` / `lint-ignore` ("*" or comma-separated rules) or a name token
+// `[lint-ignore]` / `[lint-ignore:rule1,rule2]`. A suppressed item is excluded
+// from category tallies (so from compliance) and counted in `suppressed`.
+//
+// Fill/stroke color rules (hardcoded-color, gradient-without-style,
+// invisible-paint) skip paints inside an INSTANCE (the instance itself included)
+// that are inherited from the main component; only paints listed as overridden
+// (`fills`/`fillStyleId`, `strokes`/`strokeStyleId`) in the outermost enclosing
+// instance's `overrides` are checked. The main component, when inside the linted
+// subtree, is reported once like any other node. Other checks keep their
+// instance behaviour.
 
 // ── CLIPPED CONTENT (rule: clipped-content, category: clippedContent) ─────────
 //
@@ -43,6 +78,10 @@ import {
 // A nested clipping container is measured as a whole (bounds + own effects); its
 // contents are checked against it when the scan reaches it. A node reported for
 // bounds overflow is not descended into (its children are clipped as a consequence).
+//
+// Dedup with overflow: while clippedContent is enabled, the overflow rule skips
+// direct children of a non-screen-level clipping container — clipped-content
+// owns that case, so a carousel item is reported once.
 
 type ClipSide = "top" | "right" | "bottom" | "left";
 const CLIP_SIDES: ClipSide[] = ["top", "right", "bottom", "left"];
@@ -72,17 +111,6 @@ function readBBox(node: SceneNode): Rect | null {
   } catch (_e) {
     return null;
   }
-}
-
-function hasImageFill(node: SceneNode): boolean {
-  try {
-    let fills = (node as GeometryMixin).fills;
-    if (!Array.isArray(fills)) return false;
-    for (let i = 0; i < fills.length; i++) {
-      if (fills[i] && fills[i].type === "IMAGE" && fills[i].visible !== false) return true;
-    }
-  } catch (_e) {}
-  return false;
 }
 
 function readNumberProp(node: SceneNode, prop: string): number | null {
@@ -183,6 +211,8 @@ export function checkClippedContent(
   categories: LintCategories,
   violations: Violation[],
   violationsCappedRef: { value: boolean },
+  scope?: LintScope,
+  clipIgnore?: IgnoreSet | null,
 ): void {
   let clipBox = readBBox(clipNode);
   if (!clipBox) return;
@@ -201,6 +231,8 @@ export function checkClippedContent(
       categories,
       violations,
       violationsCappedRef,
+      scope,
+      clipIgnore || null,
     );
   }
 }
@@ -214,9 +246,14 @@ function visitClippedDescendant(
   categories: LintCategories,
   violations: Violation[],
   violationsCappedRef: { value: boolean },
+  scope: LintScope | undefined,
+  parentIgnore: IgnoreSet | null,
 ): void {
   if ((node as SceneNode & { visible?: boolean }).visible === false) return;
   if (depth > MAX_LINT_DEPTH) return;
+
+  let ignore = parentIgnore && parentIgnore.all ? parentIgnore : mergeIgnore(parentIgnore, readNodeIgnore(node, scope));
+  let suppressed = isSuppressed(ignore, scope, "clippedContent", "clipped-content");
 
   let nodeType = node.type;
   let reportedBounds = false;
@@ -239,12 +276,8 @@ function visitClippedDescendant(
       left: clipBox.x - box.x,
     };
 
-    let name = "";
-    try {
-      name = node.name || "";
-    } catch (_e) {}
     // GROUP bounds are just the union of its children, which are checked individually.
-    let ignoreBoundsCause = screenLevel || nodeType === "GROUP" || name.indexOf("Image/") === 0 || hasImageFill(node);
+    let ignoreBoundsCause = screenLevel || nodeType === "GROUP" || isImageLayer(node);
 
     let clippedSides: { top?: number; right?: number; bottom?: number; left?: number } = {};
     let sideLabels: string[] = [];
@@ -264,53 +297,61 @@ function visitClippedDescendant(
       else anyEffect = true;
     }
 
-    categories.clippedContent.total++;
-    if (sideLabels.length === 0) {
-      categories.clippedContent.bound++;
+    if (suppressed) {
+      if (sideLabels.length > 0) {
+        countSuppressed(scope, "clipped-content");
+        reportedBounds = anyBounds;
+      }
     } else {
-      categories.clippedContent.unbound++;
-      let clipId = clipNode.id;
-      let clipName = "";
-      try {
-        clipName = clipNode.name || "";
-      } catch (_e) {}
-      let sourceLabel = rendered.sources.length > 0 ? rendered.sources.join("/") : "Render extent";
-      let what = anyBounds ? (anyEffect ? "Node bounds and " + sourceLabel : "Node bounds") : sourceLabel;
-      let message =
-        what +
-        ' clipped by ancestor "' +
-        clipName +
-        '" (' +
-        clipId +
-        ", clipsContent=true) — crosses " +
-        sideLabels.join(", ") +
-        '. Fix: set_clips_content {nodeId: "' +
-        clipId +
-        '", clipsContent: false} on the ancestor, or add padding ≥ ' +
-        maxAmount +
-        "px on the clipped side" +
-        (sideLabels.length > 1 ? "s" : "");
-      let details: ViolationDetails = {
-        overflowAmount: maxAmount,
-        clippingNodeId: clipId,
-        clippingNodeName: clipName,
-        clippedSides: clippedSides,
-        cause: anyBounds && anyEffect ? "bounds+effect" : anyBounds ? "bounds" : "effect",
-        effectSources: rendered.sources,
-      };
-      addViolation(
-        violations,
-        violationsCappedRef,
-        MAX_LINT_VIOLATIONS,
-        node,
-        depth,
-        "HIGH",
-        "clippedContent",
-        "clipsContent",
-        message,
-        details,
-      );
-      reportedBounds = anyBounds;
+      categories.clippedContent.total++;
+      if (sideLabels.length === 0) {
+        categories.clippedContent.bound++;
+      } else {
+        categories.clippedContent.unbound++;
+        let clipId = clipNode.id;
+        let clipName = "";
+        try {
+          clipName = clipNode.name || "";
+        } catch (_e) {}
+        let sourceLabel = rendered.sources.length > 0 ? rendered.sources.join("/") : "Render extent";
+        let what = anyBounds ? (anyEffect ? "Node bounds and " + sourceLabel : "Node bounds") : sourceLabel;
+        let message =
+          what +
+          ' clipped by ancestor "' +
+          clipName +
+          '" (' +
+          clipId +
+          ", clipsContent=true) — crosses " +
+          sideLabels.join(", ") +
+          '. Fix: set_clips_content {nodeId: "' +
+          clipId +
+          '", clipsContent: false} on the ancestor, or add padding ≥ ' +
+          maxAmount +
+          "px on the clipped side" +
+          (sideLabels.length > 1 ? "s" : "");
+        let details: ViolationDetails = {
+          overflowAmount: maxAmount,
+          clippingNodeId: clipId,
+          clippingNodeName: clipName,
+          clippedSides: clippedSides,
+          cause: anyBounds && anyEffect ? "bounds+effect" : anyBounds ? "bounds" : "effect",
+          effectSources: rendered.sources,
+        };
+        addViolation(
+          violations,
+          violationsCappedRef,
+          MAX_LINT_VIOLATIONS,
+          node,
+          depth,
+          "HIGH",
+          "clippedContent",
+          "clipped-content",
+          "clipsContent",
+          message,
+          details,
+        );
+        reportedBounds = anyBounds;
+      }
     }
   }
 
@@ -330,6 +371,8 @@ function visitClippedDescendant(
       categories,
       violations,
       violationsCappedRef,
+      scope,
+      ignore,
     );
   }
 }
@@ -345,6 +388,8 @@ export function scanNode(
   violationsCappedRef: { value: boolean },
   totalNodesRef: { value: number },
   insideScreen: boolean,
+  scope?: LintScope,
+  inherited?: ScanInherited,
 ): void {
   // Skip invisible nodes
   if ((node as SceneNode & { visible?: boolean }).visible === false) return;
@@ -354,6 +399,55 @@ export function scanNode(
 
   totalNodesRef.value++;
   let nodeType = node.type;
+
+  // Suppression inherited from ancestors plus this node's own lint-ignore markers
+  let inheritedIgnore = inherited ? inherited.ignore : null;
+  let ignore =
+    inheritedIgnore && inheritedIgnore.all
+      ? inheritedIgnore
+      : mergeIgnore(inheritedIgnore, readNodeIgnore(node, scope));
+
+  // Inside an instance, paints not overridden on the outermost instance are inherited
+  let instanceOverrides = inherited ? inherited.instanceOverrides : null;
+  if (!instanceOverrides && nodeType === "INSTANCE") instanceOverrides = readInstanceOverrides(node);
+
+  let pass = (category: ViolationCategory, rule: LintRuleId) => {
+    if (isSuppressed(ignore, scope, category, rule)) return;
+    categories[category].total++;
+    categories[category].bound++;
+  };
+  // tally=false: the violation does not own a category tally item (it annotates a passing or untallied check)
+  let fail = (
+    severity: ViolationSeverity,
+    category: ViolationCategory,
+    rule: LintRuleId,
+    property: string,
+    message: string,
+    details?: ViolationDetails,
+    tally?: boolean,
+  ) => {
+    if (isSuppressed(ignore, scope, category, rule)) {
+      countSuppressed(scope, rule);
+      return;
+    }
+    if (tally !== false) {
+      categories[category].total++;
+      categories[category].unbound++;
+    }
+    addViolation(
+      violations,
+      violationsCappedRef,
+      MAX_LINT_VIOLATIONS,
+      node,
+      depth,
+      severity,
+      category,
+      rule,
+      property,
+      message,
+      details,
+    );
+  };
 
   // Detect if this node is a Screen/ frame (screen root)
   let nodeName = "";
@@ -397,19 +491,13 @@ export function scanNode(
       try {
         rfSizingH = (node as FrameNode).layoutSizingHorizontal;
       } catch (_e) {}
-      categories.rootFrame.total++;
       if (rfSizingH === "FIXED") {
-        categories.rootFrame.bound++;
+        pass("rootFrame", "root-frame-width-fixed");
       } else {
-        categories.rootFrame.unbound++;
-        addViolation(
-          violations,
-          violationsCappedRef,
-          MAX_LINT_VIOLATIONS,
-          node,
-          depth,
+        fail(
           "CRITICAL",
           "rootFrame",
+          "root-frame-width-fixed",
           "layoutSizingHorizontal",
           "Root frame width must be FIXED (currently: " +
             (rfSizingH !== null && rfSizingH !== undefined ? rfSizingH : "unknown") +
@@ -419,19 +507,13 @@ export function scanNode(
     }
 
     // Check 2: width must match a standard device width
-    categories.rootFrame.total++;
     if (rfDevice) {
-      categories.rootFrame.bound++;
+      pass("rootFrame", "root-frame-device-width");
     } else {
-      categories.rootFrame.unbound++;
-      addViolation(
-        violations,
-        violationsCappedRef,
-        MAX_LINT_VIOLATIONS,
-        node,
-        depth,
+      fail(
         "HIGH",
         "rootFrame",
+        "root-frame-device-width",
         "width",
         "Root frame width (" +
           rfWidth +
@@ -445,19 +527,13 @@ export function scanNode(
       try {
         rfSizingV = (node as FrameNode).layoutSizingVertical;
       } catch (_e) {}
-      categories.rootFrame.total++;
       if (rfSizingV === "HUG") {
-        categories.rootFrame.bound++;
+        pass("rootFrame", "root-frame-height-hug");
       } else {
-        categories.rootFrame.unbound++;
-        addViolation(
-          violations,
-          violationsCappedRef,
-          MAX_LINT_VIOLATIONS,
-          node,
-          depth,
+        fail(
           "HIGH",
           "rootFrame",
+          "root-frame-height-hug",
           "layoutSizingVertical",
           "Root frame height must be HUG (currently: " +
             (rfSizingV !== null && rfSizingV !== undefined ? rfSizingV : "unknown") +
@@ -473,18 +549,13 @@ export function scanNode(
       let rfMinHeightNum = rfMinHeight !== null && rfMinHeight !== undefined ? rfMinHeight : 0;
       let rfExpectedMinH = rfDevice ? rfDevice.minHeight : 0;
 
-      categories.rootFrame.total++;
       if (rfMinHeightNum > 0) {
-        categories.rootFrame.bound++;
+        pass("rootFrame", "root-frame-min-height");
         if (rfDevice && Math.abs(rfMinHeightNum - rfExpectedMinH) > DIM_TOL) {
-          addViolation(
-            violations,
-            violationsCappedRef,
-            MAX_LINT_VIOLATIONS,
-            node,
-            depth,
+          fail(
             "MEDIUM",
             "rootFrame",
+            "root-frame-min-height",
             "minHeight",
             "Root frame minHeight (" +
               rfMinHeightNum +
@@ -493,39 +564,27 @@ export function scanNode(
               " height (" +
               rfExpectedMinH +
               "px)",
+            undefined,
+            false,
           );
         }
       } else {
-        categories.rootFrame.unbound++;
         let rfMinHMsg = "Root frame minHeight not set";
         if (rfDevice) {
           rfMinHMsg += " — expected " + rfExpectedMinH + "px for " + rfDevice.name;
         } else {
           rfMinHMsg += " — set to the device viewport height";
         }
-        addViolation(
-          violations,
-          violationsCappedRef,
-          MAX_LINT_VIOLATIONS,
-          node,
-          depth,
-          "HIGH",
-          "rootFrame",
-          "minHeight",
-          rfMinHMsg,
-        );
+        fail("HIGH", "rootFrame", "root-frame-min-height", "minHeight", rfMinHMsg);
       }
     }
   }
 
   // ── SCREEN NAMING checks (any frame starting with "Screen/") ──
   if (chk.screenNaming && isScreenRoot) {
-    categories.screenNaming.total++;
-
     if (SCREEN_NAME_PATTERN.test(nodeName)) {
-      categories.screenNaming.bound++;
+      pass("screenNaming", "screen-naming");
     } else {
-      categories.screenNaming.unbound++;
       // Provide specific feedback about what's wrong
       let snMsg =
         'Screen name "' +
@@ -565,74 +624,48 @@ export function scanNode(
           }
         }
       }
-      addViolation(
-        violations,
-        violationsCappedRef,
-        MAX_LINT_VIOLATIONS,
-        node,
-        depth,
-        "HIGH",
-        "screenNaming",
-        "name",
-        snMsg,
-      );
+      fail("HIGH", "screenNaming", "screen-naming", "name", snMsg);
     }
   }
 
   // ── TEXT STYLE checks ──
   if (localInsideScreen && chk.textStyles && nodeType === "TEXT") {
-    categories.typography.total++;
-
     if (hasTextStyle(node)) {
-      categories.typography.bound++;
+      pass("typography", "missing-text-style");
       try {
         if ((node as TextNode).textStyleId === figma.mixed) {
-          addViolation(
-            violations,
-            violationsCappedRef,
-            MAX_LINT_VIOLATIONS,
-            node,
-            depth,
+          fail(
             "LOW",
             "typography",
+            "mixed-text-style",
             "textStyleId",
             "Text style override present (mixed styles in segments)",
+            undefined,
+            false,
           );
         }
       } catch (_e) {}
     } else {
-      categories.typography.unbound++;
-      addViolation(
-        violations,
-        violationsCappedRef,
-        MAX_LINT_VIOLATIONS,
-        node,
-        depth,
-        "HIGH",
-        "typography",
-        "textStyleId",
-        "Text node without textStyleId applied",
-      );
+      fail("HIGH", "typography", "missing-text-style", "textStyleId", "Text node without textStyleId applied");
     }
 
     // Check for direct font variable bindings (CRITICAL)
     if (hasFontVariableBindings(node)) {
-      addViolation(
-        violations,
-        violationsCappedRef,
-        MAX_LINT_VIOLATIONS,
-        node,
-        depth,
+      fail(
         "CRITICAL",
         "typography",
+        "font-variable-binding",
         "fontVariables",
         "Font variable bound directly to text (should use text style instead)",
+        undefined,
+        false,
       );
     }
   }
 
   // ── FILL / COLOR checks ──
-  if (localInsideScreen && chk.colors) {
+  let fillsInherited = instanceOverrides !== null && !isPaintOverridden(instanceOverrides, node.id, "fills");
+  if (localInsideScreen && chk.colors && !fillsInherited) {
     let fills: ReadonlyArray<Paint> | null = null;
     if ("fills" in node) {
       fills = (node as GeometryMixin).fills as ReadonlyArray<Paint>;
@@ -646,52 +679,35 @@ export function scanNode(
 
         // Check for zero-opacity fill (invisible — should be removed)
         if (fills[fi].opacity === 0) {
-          categories[catName].total++;
-          categories[catName].unbound++;
-          addViolation(
-            violations,
-            violationsCappedRef,
-            MAX_LINT_VIOLATIONS,
-            node,
-            depth,
+          fail(
             "MEDIUM",
             catName,
+            "invisible-paint",
             "fills[" + fi + "]",
             "Fill with 0% opacity (invisible) — should be removed",
           );
           continue;
         }
 
-        categories[catName].total++;
-
+        let fillType = fills[fi].type;
+        let isGradient = fillType !== "SOLID" && typeof fillType === "string" && fillType.indexOf("GRADIENT_") === 0;
+        let fillRule: LintRuleId = isGradient ? "gradient-without-style" : "hardcoded-color";
         let fillBound = isFillBound(node, "fills", fi) || hasFillPaintStyle(node);
         if (fillBound) {
-          categories[catName].bound++;
+          pass(catName, fillRule);
         } else {
-          categories[catName].unbound++;
-          let fillType = fills[fi].type;
-          let isGradient = fillType !== "SOLID" && typeof fillType === "string" && fillType.indexOf("GRADIENT_") === 0;
           let fillMsg = isGradient
             ? "Gradient fill without a color style applied — create a color style with create_color_style and apply via set_color_style_id"
             : "Color using raw hex value (no variable or paint style bound)";
-          addViolation(
-            violations,
-            violationsCappedRef,
-            MAX_LINT_VIOLATIONS,
-            node,
-            depth,
-            "HIGH",
-            catName,
-            "fills[" + fi + "]",
-            fillMsg,
-          );
+          fail("HIGH", catName, fillRule, "fills[" + fi + "]", fillMsg);
         }
       }
     }
   }
 
   // ── STROKE checks ──
-  if (localInsideScreen && chk.colors) {
+  let strokesInherited = instanceOverrides !== null && !isPaintOverridden(instanceOverrides, node.id, "strokes");
+  if (localInsideScreen && chk.colors && !strokesInherited) {
     let strokes: ReadonlyArray<Paint> | null = null;
     if ("strokes" in node) {
       strokes = (node as GeometryMixin).strokes as ReadonlyArray<Paint>;
@@ -702,36 +718,24 @@ export function scanNode(
 
         // Check for zero-opacity stroke (invisible — should be removed)
         if (strokes[si].opacity === 0) {
-          categories.strokesBorders.total++;
-          categories.strokesBorders.unbound++;
-          addViolation(
-            violations,
-            violationsCappedRef,
-            MAX_LINT_VIOLATIONS,
-            node,
-            depth,
+          fail(
             "MEDIUM",
             "strokesBorders",
+            "invisible-paint",
             "strokes[" + si + "]",
             "Stroke with 0% opacity (invisible) — should be removed",
           );
           continue;
         }
 
-        categories.strokesBorders.total++;
         let strokeBound = isFillBound(node, "strokes", si) || hasStrokePaintStyle(node);
         if (strokeBound) {
-          categories.strokesBorders.bound++;
+          pass("strokesBorders", "hardcoded-color");
         } else {
-          categories.strokesBorders.unbound++;
-          addViolation(
-            violations,
-            violationsCappedRef,
-            MAX_LINT_VIOLATIONS,
-            node,
-            depth,
+          fail(
             "HIGH",
             "strokesBorders",
+            "hardcoded-color",
             "strokes[" + si + "]",
             "Stroke color using raw hex value (no variable or paint style bound)",
           );
@@ -763,19 +767,13 @@ export function scanNode(
           spacingVal = (node as any)[spacingProp];
         } catch (_e) {}
         if (!(spacingVal > 0)) continue;
-        categories.spacing.total++;
         if (isScalarBound(node, spacingProp)) {
-          categories.spacing.bound++;
+          pass("spacing", "unbound-spacing");
         } else {
-          categories.spacing.unbound++;
-          addViolation(
-            violations,
-            violationsCappedRef,
-            MAX_LINT_VIOLATIONS,
-            node,
-            depth,
+          fail(
             "MEDIUM",
             "spacing",
+            "unbound-spacing",
             spacingProp,
             (layoutMode === "GRID" ? "Grid gap" : "Item spacing") +
               " using raw number (" +
@@ -793,19 +791,13 @@ export function scanNode(
           padVal = (node as FrameNode)[paddingProps[ppi] as keyof FrameNode] as number;
         } catch (_e) {}
         if (padVal > 0) {
-          categories.spacing.total++;
           if (isScalarBound(node, paddingProps[ppi])) {
-            categories.spacing.bound++;
+            pass("spacing", "unbound-spacing");
           } else {
-            categories.spacing.unbound++;
-            addViolation(
-              violations,
-              violationsCappedRef,
-              MAX_LINT_VIOLATIONS,
-              node,
-              depth,
+            fail(
               "MEDIUM",
               "spacing",
+              "unbound-spacing",
               paddingProps[ppi],
               paddingProps[ppi] + " using raw number (" + padVal + ") — no variable bound",
             );
@@ -831,7 +823,6 @@ export function scanNode(
     } catch (_e) {}
 
     if (cornerRadius && cornerRadius !== figma.mixed && (cornerRadius as number) > 0) {
-      categories.borderRadius.total++;
       if (
         isScalarBound(node, "topLeftRadius") ||
         isScalarBound(node, "topRightRadius") ||
@@ -839,17 +830,12 @@ export function scanNode(
         isScalarBound(node, "bottomRightRadius") ||
         isScalarBound(node, "cornerRadius")
       ) {
-        categories.borderRadius.bound++;
+        pass("borderRadius", "unbound-radius");
       } else {
-        categories.borderRadius.unbound++;
-        addViolation(
-          violations,
-          violationsCappedRef,
-          MAX_LINT_VIOLATIONS,
-          node,
-          depth,
+        fail(
           "MEDIUM",
           "borderRadius",
+          "unbound-radius",
           "cornerRadius",
           "Border radius using raw number (" + (cornerRadius as number) + ") — no variable bound",
         );
@@ -863,19 +849,13 @@ export function scanNode(
           rVal = (node as RectangleNode)[radiusProps[ri] as keyof RectangleNode] as number;
         } catch (_e) {}
         if (rVal > 0) {
-          categories.borderRadius.total++;
           if (isScalarBound(node, radiusProps[ri])) {
-            categories.borderRadius.bound++;
+            pass("borderRadius", "unbound-radius");
           } else {
-            categories.borderRadius.unbound++;
-            addViolation(
-              violations,
-              violationsCappedRef,
-              MAX_LINT_VIOLATIONS,
-              node,
-              depth,
+            fail(
               "MEDIUM",
               "borderRadius",
+              "unbound-radius",
               radiusProps[ri],
               radiusProps[ri] + " using raw number (" + rVal + ") — no variable bound",
             );
@@ -900,25 +880,19 @@ export function scanNode(
         }
       }
       if (hasVisibleEffects) {
-        categories.effectStyles.total++;
         if (hasEffectStyle(node)) {
-          categories.effectStyles.bound++;
+          pass("effectStyles", "missing-effect-style");
         } else {
-          categories.effectStyles.unbound++;
           let effectTypes: string[] = [];
           for (let eti = 0; eti < effects.length; eti++) {
             if (effects[eti].visible !== false && effectTypes.indexOf(effects[eti].type) === -1) {
               effectTypes.push(effects[eti].type);
             }
           }
-          addViolation(
-            violations,
-            violationsCappedRef,
-            MAX_LINT_VIOLATIONS,
-            node,
-            depth,
+          fail(
             "CRITICAL",
             "effectStyles",
+            "missing-effect-style",
             "effectStyleId",
             "Raw " + effectTypes.join("/") + " effect (no effect style applied)",
           );
@@ -949,16 +923,14 @@ export function scanNode(
         childCount = childrenArr ? childrenArr.length : 0;
       }
       if (childCount > 0) {
-        addViolation(
-          violations,
-          violationsCappedRef,
-          MAX_LINT_VIOLATIONS,
-          node,
-          depth,
+        fail(
           "MEDIUM",
           "autoLayout",
+          "no-auto-layout",
           "layoutMode",
           "Frame has " + childCount + " children but no auto-layout set",
+          undefined,
+          false,
         );
       }
     } else {
@@ -979,20 +951,18 @@ export function scanNode(
           }
         }
         if (absChildCount > 0) {
-          addViolation(
-            violations,
-            violationsCappedRef,
-            MAX_LINT_VIOLATIONS,
-            node,
-            depth,
+          fail(
             "LOW",
             "autoLayout",
+            "absolute-in-auto-layout",
             "layoutPositioning",
             "Auto-layout frame has " +
               absChildCount +
               " absolute-positioned " +
               (absChildCount === 1 ? "child" : "children") +
               " — verify intentional",
+            undefined,
+            false,
           );
         }
       }
@@ -1005,11 +975,10 @@ export function scanNode(
     try {
       ovPositioning = (node as SceneNode & { layoutPositioning?: string }).layoutPositioning as string;
     } catch (_e) {}
-    let ovName = "";
-    try {
-      ovName = node.name || "";
-    } catch (_e) {}
-    let skipOv = ovPositioning === "ABSOLUTE" || ovName.indexOf("Icon/") === 0 || ovName.indexOf("Image/") === 0;
+    // Image crops are intentional; a clipping (non-screen) parent hands the case to clipped-content.
+    let clipOwnsOverflow = chk.clippedContent && inherited !== undefined && inherited.clipCoversOverflow;
+    let skipOv =
+      ovPositioning === "ABSOLUTE" || nodeName.indexOf("Icon/") === 0 || isImageLayer(node) || clipOwnsOverflow;
     if (!skipOv) {
       let childBBox: Rect | null = null;
       try {
@@ -1017,7 +986,6 @@ export function scanNode(
       } catch (_e) {}
       if (childBBox && parentBBox) {
         let OV_TOL = 1;
-        categories.overflow.total++;
         let hOverflow = childBBox.x + childBBox.width - (parentBBox.x + parentBBox.width);
         let hasHOv = hOverflow > OV_TOL;
         let hasVOv = false;
@@ -1031,7 +999,6 @@ export function scanNode(
           hasVOv = vOverflow > OV_TOL;
         }
         if (hasHOv || hasVOv) {
-          categories.overflow.unbound++;
           if (hasHOv) {
             let hAmt = Math.ceil(hOverflow);
             let hDetails: ViolationDetails = {
@@ -1040,13 +1007,9 @@ export function scanNode(
               childRight: Math.round(childBBox.x + childBBox.width),
               parentRight: Math.round(parentBBox.x + parentBBox.width),
             };
-            addViolation(
-              violations,
-              violationsCappedRef,
-              MAX_LINT_VIOLATIONS,
-              node,
-              depth,
+            fail(
               "CRITICAL",
+              "overflow",
               "overflow",
               "absoluteBoundingBox",
               "Horizontal overflow: child extends " + hAmt + "px beyond parent right edge",
@@ -1061,32 +1024,31 @@ export function scanNode(
               childBottom: Math.round(childBBox.y + childBBox.height),
               parentBottom: Math.round(parentBBox.y + parentBBox.height),
             };
-            addViolation(
-              violations,
-              violationsCappedRef,
-              MAX_LINT_VIOLATIONS,
-              node,
-              depth,
+            fail(
               "CRITICAL",
+              "overflow",
               "overflow",
               "absoluteBoundingBox",
               "Vertical overflow: child extends " + vAmt + "px beyond parent bottom edge",
               vDetails,
+              !hasHOv,
             );
           }
         } else {
-          categories.overflow.bound++;
+          pass("overflow", "overflow");
         }
       }
     }
   }
 
   // ── CLIPPED CONTENT check (rule: clipped-content) ──
-  if (localInsideScreen && chk.clippedContent && isClippingContainer(node)) {
+  let clipIsScreenLevel = false;
+  let nodeClips = localInsideScreen && chk.clippedContent && isClippingContainer(node);
+  if (nodeClips) {
     let clipParentType = parent !== null && parent !== undefined ? (parent as BaseNode).type : null;
-    let clipIsScreenLevel =
+    clipIsScreenLevel =
       clipParentType === null || clipParentType === "PAGE" || clipParentType === "SECTION" || isScreenRoot;
-    checkClippedContent(node, depth, clipIsScreenLevel, categories, violations, violationsCappedRef);
+    checkClippedContent(node, depth, clipIsScreenLevel, categories, violations, violationsCappedRef, scope, ignore);
   }
 
   // ── Recurse into children ──
@@ -1097,6 +1059,11 @@ export function scanNode(
         nodeBBox = (node as SceneNode & { absoluteBoundingBox?: Rect }).absoluteBoundingBox as Rect;
       } catch (_e) {}
     }
+    let childInherited: ScanInherited = {
+      ignore: ignore,
+      instanceOverrides: instanceOverrides,
+      clipCoversOverflow: nodeClips && !clipIsScreenLevel,
+    };
     let nodeChildren = (node as ChildrenMixin).children;
     for (let ci = 0; ci < nodeChildren.length; ci++) {
       scanNode(
@@ -1110,6 +1077,8 @@ export function scanNode(
         violationsCappedRef,
         totalNodesRef,
         localInsideScreen,
+        scope,
+        childInherited,
       );
     }
   }

@@ -174,6 +174,7 @@ export type FigmaCommand =
   | "create_from_data"
   | "batch_actions"
   | "lint_frame"
+  | "set_lint_ignore"
   | "get_design_system"
   | "setup_design_system"
   | "update_icon"
@@ -802,6 +803,8 @@ export interface LintViolation {
   depth: number;
   severity: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
   category: string;
+  /** Stable kebab-case rule id (e.g. overflow, clipped-content, hardcoded-color). Absent from older plugins. */
+  rule?: string;
   property: string;
   message: string;
   details?: Record<string, unknown>;
@@ -838,6 +841,8 @@ export interface LintFrameResult {
   };
   violations: LintViolation[];
   violationsCapped?: boolean;
+  /** Violations suppressed via ignoreNodeIds / ignoreRules / in-file lint-ignore; excluded from compliance. */
+  suppressed?: { total: number; byRule: Record<string, number> };
   summary: {
     total: number;
     critical: number;

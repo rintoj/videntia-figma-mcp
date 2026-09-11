@@ -1,7 +1,19 @@
-import type { LintOptions, LintResult, LintCategories, ActiveChecks } from "./types";
+import type { LintOptions, LintResult, LintCategories, ActiveChecks, LintScope } from "./types";
 import { scanNode } from "./checks";
 import { applyFixes } from "./fix";
-import { buildLookupMaps } from "./helpers";
+import { buildLookupMaps, normalizeLintNodeId } from "./helpers";
+
+function readStringList(value: unknown): string[] {
+  if (typeof value === "string") value = value.split(",");
+  if (!Array.isArray(value)) return [];
+  let out: string[] = [];
+  for (let i = 0; i < value.length; i++) {
+    if (typeof value[i] !== "string") continue;
+    let s = (value[i] as string).trim();
+    if (s !== "" && out.indexOf(s) === -1) out.push(s);
+  }
+  return out;
+}
 
 export async function lintFrame(params: Record<string, unknown>): Promise<LintResult> {
   const lintParams = params as unknown as LintOptions;
@@ -10,6 +22,16 @@ export async function lintFrame(params: Record<string, unknown>): Promise<LintRe
   const fix = lintParams ? lintParams.fix === true : false;
 
   if (!nodeId) throw new Error("nodeId is required");
+
+  const scope: LintScope = {
+    ignoreNodeIds: {},
+    ignoreRules: readStringList(lintParams.ignoreRules),
+    suppressed: { total: 0, byRule: {} },
+  };
+  const ignoreIds = readStringList(lintParams.ignoreNodeIds);
+  for (let ii = 0; ii < ignoreIds.length; ii++) {
+    scope.ignoreNodeIds[normalizeLintNodeId(ignoreIds[ii])] = true;
+  }
 
   const rootNode = await figma.getNodeByIdAsync(nodeId);
   if (!rootNode) throw new Error("Node not found: " + String(nodeId).substring(0, 50));
@@ -90,6 +112,7 @@ export async function lintFrame(params: Record<string, unknown>): Promise<LintRe
     violationsCappedRef,
     totalNodesRef,
     rootIsScreen,
+    scope,
   );
 
   // Auto-fix pass (only when fix=true)
@@ -175,5 +198,6 @@ export async function lintFrame(params: Record<string, unknown>): Promise<LintRe
       compliance: overallCompliance,
       fixed: summaryFixed,
     },
+    suppressed: scope.suppressed,
   };
 }

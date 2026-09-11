@@ -14,6 +14,57 @@ export type ViolationCategory =
   | "autoLayout"
   | "screenNaming";
 
+/** Stable, kebab-case rule id carried by every violation (see LINT_RULE_IDS). */
+export type LintRuleId =
+  | "root-frame-width-fixed"
+  | "root-frame-device-width"
+  | "root-frame-height-hug"
+  | "root-frame-min-height"
+  | "screen-naming"
+  | "missing-text-style"
+  | "mixed-text-style"
+  | "font-variable-binding"
+  | "hardcoded-color"
+  | "gradient-without-style"
+  | "invisible-paint"
+  | "unbound-spacing"
+  | "unbound-radius"
+  | "missing-effect-style"
+  | "no-auto-layout"
+  | "absolute-in-auto-layout"
+  | "overflow"
+  | "clipped-content";
+
+export interface SuppressedStats {
+  total: number;
+  byRule: Record<string, number>;
+}
+
+/** Per-node suppression: `all` ignores every rule; `rules` holds rule ids and/or category names. */
+export interface IgnoreSet {
+  all: boolean;
+  rules: string[];
+}
+
+/** Scan-wide suppression state shared by every node of one lint run. */
+export interface LintScope {
+  ignoreNodeIds: Record<string, true>;
+  ignoreRules: string[];
+  suppressed: SuppressedStats;
+}
+
+/** Inherited per-branch scan state. */
+export interface ScanInherited {
+  ignore: IgnoreSet | null;
+  /**
+   * Set while inside an INSTANCE: sublayer id → fields overridden on the outermost
+   * enclosing instance. Paints not listed here are inherited from the main component.
+   */
+  instanceOverrides: Record<string, string[]> | null;
+  /** The scan parent is a non-screen-level clipping container checked by clipped-content, which owns child overflow. */
+  clipCoversOverflow: boolean;
+}
+
 export interface ViolationDetails {
   axis?: "horizontal" | "vertical";
   overflowAmount?: number;
@@ -39,6 +90,7 @@ export interface Violation {
   depth: number;
   severity: ViolationSeverity;
   category: ViolationCategory;
+  rule: LintRuleId;
   property: string;
   message: string;
   details?: ViolationDetails;
@@ -87,6 +139,8 @@ export interface LintResult {
   violations: Violation[];
   violationsCapped: boolean;
   summary: LintSummary;
+  /** Violations dropped by ignoreNodeIds / ignoreRules / in-file lint-ignore; excluded from compliance. */
+  suppressed: SuppressedStats;
 }
 
 export interface LintChecks {
@@ -106,6 +160,8 @@ export interface LintOptions {
   nodeId: string;
   checks?: LintChecks;
   fix?: boolean;
+  ignoreNodeIds?: string[];
+  ignoreRules?: string[];
 }
 
 export interface ActiveChecks {

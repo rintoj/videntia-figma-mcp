@@ -625,4 +625,93 @@ describe("lint_frame tool", () => {
     expect(text).not.toContain("### HIGH");
     expect(text).not.toContain("### LOW");
   });
+
+  it("passes normalized ignoreNodeIds and ignoreRules through to plugin", async () => {
+    mockSendCommand.mockResolvedValue(makeResult());
+
+    await callTool("lint_frame", { nodeId: "1-100", ignoreNodeIds: ["3082-47270", "1:5"], ignoreRules: ["overflow"] });
+
+    expect(mockSendCommand).toHaveBeenCalledWith(
+      "lint_frame",
+      {
+        nodeId: "1:100",
+        fix: false,
+        checks: undefined,
+        ignoreNodeIds: ["3082:47270", "1:5"],
+        ignoreRules: ["overflow"],
+      },
+      60000,
+    );
+  });
+
+  it("renders rule ids and suppressed counts", async () => {
+    const result = makeResult({
+      violations: [
+        {
+          nodeId: "1:200",
+          nodeName: "Slide",
+          nodeType: "FRAME",
+          depth: 2,
+          severity: "HIGH",
+          category: "clippedContent",
+          rule: "clipped-content",
+          property: "clipsContent",
+          message: "Node bounds clipped",
+        },
+      ],
+      suppressed: { total: 3, byRule: { "hardcoded-color": 2, overflow: 1 } },
+      summary: { total: 1, critical: 0, high: 1, medium: 0, low: 0, compliance: 94 },
+    });
+    mockSendCommand.mockResolvedValue(result);
+
+    const text = (await callTool("lint_frame", { nodeId: "1:100" })).content[0].text;
+
+    expect(text).toContain("| Node | Type | Rule | Category | Property | Message |");
+    expect(text).toContain("| Slide (1:200) | FRAME | clipped-content | clippedContent | clipsContent |");
+    expect(text).toContain("Suppressed (excluded from compliance): 3 — hardcoded-color: 2, overflow: 1");
+  });
+
+  it("omits the suppressed line when nothing was suppressed", async () => {
+    mockSendCommand.mockResolvedValue(makeResult({ suppressed: { total: 0, byRule: {} } }));
+
+    const text = (await callTool("lint_frame", { nodeId: "1:100" })).content[0].text;
+
+    expect(text).not.toContain("Suppressed");
+  });
+
+  describe("set_lint_ignore tool", () => {
+    it("is registered", () => {
+      expect(toolHandlers.has("set_lint_ignore")).toBe(true);
+    });
+
+    it('defaults rules to "*" and normalizes the node id', async () => {
+      mockSendCommand.mockResolvedValue({ id: "1:2", name: "Logo", lintIgnore: "*", cleared: false });
+
+      const response = await callTool("set_lint_ignore", { nodeId: "1-2" });
+
+      expect(mockSendCommand).toHaveBeenCalledWith("set_lint_ignore", { nodeId: "1:2", rules: "*", clear: false });
+      expect(response.content[0].text).toContain('"lintIgnore": "*"');
+    });
+
+    it("passes rule lists and clear through", async () => {
+      mockSendCommand.mockResolvedValue({ id: "1:2", name: "Logo", lintIgnore: null, cleared: true });
+
+      await callTool("set_lint_ignore", { nodeId: "1:2", rules: ["overflow", "clipped-content"], clear: true });
+
+      expect(mockSendCommand).toHaveBeenCalledWith("set_lint_ignore", {
+        nodeId: "1:2",
+        rules: ["overflow", "clipped-content"],
+        clear: true,
+      });
+    });
+
+    it("reports plugin errors", async () => {
+      mockSendCommand.mockRejectedValue(new Error("Node not found: 9:9"));
+
+      const response = await callTool("set_lint_ignore", { nodeId: "9:9" });
+
+      expect(response.content[0].text).toContain("Error setting lint-ignore");
+      expect(response.content[0].text).toContain("Node not found");
+    });
+  });
 });

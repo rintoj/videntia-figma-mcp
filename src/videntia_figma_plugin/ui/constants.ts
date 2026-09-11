@@ -135,6 +135,7 @@ export const ALLOWED_COMMANDS = new Set([
   "setup_design_system",
   "batch_actions",
   "lint_frame",
+  "set_lint_ignore",
   "get_instance_overrides",
   "set_instance_overrides",
   "save_version_history",

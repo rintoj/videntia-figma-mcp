@@ -197,6 +197,7 @@ import { createFromData, getDesignSystem, setupDesignSystem } from "./handlers/d
 
 // Handlers — lint
 import { lintFrame } from "./handlers/lint/index";
+import { setLintIgnore } from "./handlers/lint/ignore";
 
 // Handlers — batch (injected with handleCommand to avoid circular import)
 import { batchActions } from "./handlers/batch";
@@ -961,6 +962,8 @@ async function _executeCommand(command: string, params: Record<string, unknown>)
         );
       }
       return await lintFrame(params);
+    case "set_lint_ignore":
+      return await setLintIgnore(params);
 
     case "get_instance_overrides":
       return await getInstanceOverrides(params);
