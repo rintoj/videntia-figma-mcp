@@ -81,7 +81,8 @@ Rename a property with \`edit_component_property\` (\`newName\`); remove an unwa
    - **Columns:** the interaction axis — usually State (Default → Hover → Pressed → Focus → Disabled)
    - **Rows:** the identity axes — usually Size, then Style
    - A consistent 16–40px gap between cells and generous padding inside the set
-5. \`export_node_as_image\` on the set and look at it. Check for overlapping variants, stragglers outside the grid, and values that render identically when they should differ.
+5. **Check clipping.** \`create_component\` and \`create_component_set\` keep the source frame's \`clipsContent\`. If the component has a shadow, focus ring, glow or a badge hanging past its edge, call \`set_clips_content\` with \`clipsContent: false\` on the component (and on the set, which crops variants near its border). Instances inherit this, but the frames they are placed in can still crop them — check the parent's \`clipsContent\` with \`get_node_info\`.
+6. \`export_node_as_image\` on the set and look at it. Check for overlapping variants, stragglers outside the grid, and values that render identically when they should differ.
 
 ## 7. Interactive States
 
@@ -132,5 +133,6 @@ Rename a property with \`edit_component_property\` (\`newName\`); remove an unwa
 - **Detached instances** used to work around a missing option
 - **Hardcoded hex, padding, or radius** inside a main component
 - **Unchecked grids** — never skip the visual check after combining variants
+- **Clipping components with shadows, focus rings or badges** — the effect is cropped in every instance
 `,
 };

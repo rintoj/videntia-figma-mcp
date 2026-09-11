@@ -4,7 +4,7 @@ export const DEPTH_ELEVATION: DesignKnowledgeModule = {
   id: "depth-elevation",
   name: "Depth & Elevation System",
   description:
-    "Multi-layer shadow recipes, shadow-as-border, brand-colored shadows, and elevation hierarchy — sourced from real brand DESIGN.md files (Notion, Stripe, Vercel, Cal).",
+    "Multi-layer shadow recipes, shadow-as-border, brand-colored shadows, elevation hierarchy, and keeping Figma shadows from being clipped — sourced from real brand DESIGN.md files (Notion, Stripe, Vercel, Cal).",
   content: `# Depth & Elevation System
 
 ## The Multi-Layer Shadow Rule
@@ -154,8 +154,17 @@ Use \`create_effect_style\` to create elevation tokens as named styles:
 ]}
 \`\`\`
 
+### Applying Shadows and Keeping Them Visible
+
+- Apply elevation with \`set_effect_style_id\` (style name or id). Reserve \`set_effects\` for one-off effects that should not become tokens.
+- Drop shadows and layer blur render **outside** the node's bounds. Any ancestor with \`clipsContent\` true crops them at its edge — a card in a clipping list loses its lower shadow, a card near a screen root's edge loses its side.
+- Fix it on the container: \`set_clips_content\` with \`clipsContent: false\`, or give the container padding of at least offset-y + blur + spread of the largest layer (\`elevation/3-modal\` needs about 80px below).
+- Keep clipping only where cropping is the point: screen roots, image crops, scroll areas.
+- Verify with \`lint_frame\`, whose \`clipped-content\` rule flags shadow and blur extents cut by a clipping ancestor (including a screen root), and \`export_node_as_image\` at \`scale: 2\` on the elevated section.
+
 ## Anti-Patterns
 
+- **Elevation on a card inside a clipping container**: the shadow is sliced off at the container edge — disable clipping or add padding
 - **Single-layer shadow**: \`box-shadow: 0 4px 8px rgba(0,0,0,0.25)\` — immediately signals AI generation
 - **Opacity > 0.15 per neutral layer**: Shadows should feel weightless, not like ink blots
 - **Border AND shadow on same element**: Vercel uses shadow-as-border to avoid this — pick one technique

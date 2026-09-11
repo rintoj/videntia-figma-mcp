@@ -4,7 +4,7 @@ export const AUTO_LAYOUT: DesignKnowledgeModule = {
   id: "auto-layout",
   name: "Auto Layout & Sizing",
   description:
-    "Building resilient Figma layouts: when to use auto layout vs absolute positioning, FIXED/HUG/FILL legality and ordering, text wrapping, stretch, tokenized gap/padding, canvas placement, and grid vs wrap.",
+    "Building resilient Figma layouts: when to use auto layout vs absolute positioning, FIXED/HUG/FILL legality and ordering, text wrapping, clipping, stretch, tokenized gap/padding, canvas placement, and grid vs wrap.",
   content: `# Auto Layout & Sizing
 
 Auto layout is what keeps a Figma design honest when copy gets longer, a label is translated, or a card gains a row. A frame full of hand-placed children looks identical on the day it is drawn and falls apart the first time anything changes. This module covers how to structure layouts in Figma with this server's tools, and the ordering traps that silently produce broken sizing.
@@ -23,7 +23,7 @@ Keep a child out of the flow only when it genuinely overlaps or is pinned rather
 
 - A notification dot or count badge on the corner of an avatar or icon
 - A close button pinned to the top-right of a modal or sheet
-- Decorative shapes or glows sitting behind content
+- Decorative shapes or glows sitting behind content (a clipping ancestor crops them at its edge — see Clipping)
 - An overlay label on top of an image
 
 \`create_frame\` and \`create_rectangle\` accept \`layoutPositioning: "ABSOLUTE"\` when creating a node inside an auto layout parent. To switch an existing child to absolute (or back), set it manually in Figma. An absolute child is not part of the flow, so it cannot use FILL — give it an explicit size.
@@ -40,7 +40,7 @@ Keep a child out of the flow only when it genuinely overlaps or is pinned rather
 
 Consequences:
 
-- **Parent first, then sizing.** A node that is not yet inside an auto layout parent cannot be FILL. Create it with a \`parentId\`, or move it in with \`insert_child\`, and only then call \`set_layout_sizing\`.
+- **Parent first, then sizing.** A node that is not yet inside an auto layout parent cannot be FILL. Create it with a \`parentId\`, or move it in with \`insert_child\`, and only then call \`set_layout_sizing\`. \`set_layout_sizing\` checks FILL before changing anything: on any node — frame or text — whose parent has no auto layout, or that is absolutely positioned, the call fails and neither axis changes.
 - **Plain frames cannot HUG.** A frame without auto layout has nothing to hug; enable layout on it first.
 - **Rectangles and other shapes never HUG.** They have no content — use FIXED or FILL.
 - When \`set_auto_layout\` first enables layout on a frame and you omit sizing, it picks FILL width inside an auto layout parent (FIXED otherwise) and HUG height. Pass \`horizontal\`/\`vertical\` explicitly whenever that default is not what you want.
@@ -62,7 +62,7 @@ The same starvation shows up as squeezing: a child set to FILL along the directi
 
 \`resize_node\` sets both width and height, and on an auto layout frame it switches both axes to FIXED as a side effect. Calling it after \`set_layout_sizing\` quietly undoes HUG or FILL — and a throwaway value for the axis you did not care about becomes permanent.
 
-Order: \`resize_node\` first to establish the dimension you need, then \`set_layout_sizing\` for any axis that should hug or fill. Confirm the result with \`get_node_info\`, which reports \`layoutSizingHorizontal\` and \`layoutSizingVertical\`.
+Order: \`resize_node\` first to establish the dimension you need, then \`set_layout_sizing\` for any axis that should hug or fill. Confirm the result with \`get_node_info\`, which reports \`layoutSizingHorizontal\` and \`layoutSizingVertical\`. Text nodes are the exception: resizing keeps their wrapping behavior (see Text That Wraps).
 
 ### There is no "stretch" alignment
 
@@ -70,15 +70,27 @@ Counter-axis alignment in \`set_auto_layout\` is MIN, CENTER or MAX (\`set_axis_
 
 ## Text That Wraps
 
-Paragraphs, descriptions and multi-line labels need a width to wrap at and a height that follows the content.
+A text node's \`textAutoResize\` decides whether it wraps: \`WIDTH_AND_HEIGHT\` grows sideways on one line and never wraps, \`HEIGHT\` keeps its width and grows downward (wraps), \`NONE\` is a fixed box that longer copy overflows.
 
-- **Right:** width FIXED (or FILL inside a parent with a definite width) and height HUG. With \`set_layout_sizing\` this is \`horizontal: "FIXED"\` or \`"FILL"\` plus \`vertical: "HUG"\`; the server switches the text node to grow vertically.
-- **Wrong:** width HUG. The text grows sideways on a single line and never wraps.
-- **Wrong:** both axes FIXED for content that can change. Longer copy overflows the box instead of pushing siblings down.
+- **Single-line labels** (buttons, tags, nav items): \`create_text\` without \`width\`. It stays on one line.
+- **Paragraphs and descriptions:** \`create_text\` with \`width\` — giving a width alone makes it wrap at that width and grow in height. Inside an auto layout parent, \`set_layout_sizing\` with \`horizontal: "FILL"\` or \`"FIXED"\` and no \`vertical\` does the same: height hugs and the text wraps. Passing \`textAutoResize: "WIDTH_AND_HEIGHT"\` together with \`width\` keeps it single-line — the width snaps to the content.
+- **Verify:** \`get_node_info\` should report \`textAutoResize: "HEIGHT"\` on every multi-line text. \`WIDTH_AND_HEIGHT\` on a paragraph means one runaway line.
+- \`resize_node\` on text keeps wrapping: auto-resizing text becomes \`HEIGHT\` at the new width and the requested height is ignored (height follows the wrapped lines); \`NONE\` text keeps the exact width and height.
+- **Wrong:** both axes FIXED for copy that can change — it overflows the box instead of pushing siblings down.
 
-Recipe for a fixed-width paragraph: \`create_text\` with the container as \`parentId\` → \`resize_node\` to the target width → \`set_layout_sizing\` with FIXED width and HUG height. Then check \`get_node_info\`: a width near zero or a height far larger than expected means the text is wrapping per character and the sizing did not take.
+**FILL text needs a parent with a definite width.** A horizontal row that hugs its width has nothing to hand out, so FILL text collapses to one character per line. \`set_layout_mode\` changes direction only and leaves sizing untouched — give the parent a FIXED or FILL width with \`set_layout_sizing\` or \`set_auto_layout\`. FILL outside an auto layout parent is rejected and nothing changes.
 
 \`set_text_wrap_style\` (AUTO, BALANCE, PRETTY) only changes how lines are broken once wrapping happens — it does not make text wrap.
+
+## Clipping
+
+A frame with \`clipsContent\` hides everything past its bounds — not only overflowing children, but also drop shadows, layer blur glows, strokes aligned outside or centered, and focus rings, all of which render outside a node's own box. Any clipping ancestor cuts them.
+
+- **Defaults:** \`create_frame\` clips top-level frames and does not clip frames created with a \`parentId\`. Pass \`clipsContent\` to override. \`create_component\` and \`create_component_set\` keep the source frame's setting.
+- **Keep clipping** for screen roots, image crops and masks, and scroll areas. **Disable it** on sections, lists, rows and wrappers whose children carry shadows, rings or overhanging badges.
+- **Fix:** \`set_clips_content\` with \`{ nodeId, clipsContent: false }\` (frames, components, sets, instances), or \`clipsContent\` in \`set_auto_layout\`, which works in any mode including NONE.
+- **Verify:** \`get_node_info\` reports \`clipsContent\`; \`lint_frame\`'s \`clipped-content\` rule (category \`clippedContent\`, toggle \`checks.clippedContent\`) raises a HIGH issue when a clipping ancestor cuts a shadow, blur or outside/centered stroke, or a child's bounds. Bounds overflow is not reported under screen-level clips (the linted root, page-level frames, \`Screen/\` frames — content there scrolls) or for image crops; effect clipping is reported everywhere.
+- A clipping screen root also crops the shadow of a card near its edge. Keep padding between elevated content and the root edge of at least offset + blur + spread of the largest shadow layer.
 
 ## Gap and Padding Come from Tokens
 
@@ -118,8 +130,10 @@ Both lay out many items in two dimensions, but they behave differently:
 - **FILL before the node has an auto layout parent** — insert or create inside the parent first
 - **HUG on a shape or a plain frame** — only auto layout frames and text can hug
 - **FILL children in a hugging parent** — collapsed or squeezed content
-- **resize_node after set_layout_sizing** — HUG and FILL silently become FIXED
-- **Hugging paragraph width** — text never wraps
+- **resize_node after set_layout_sizing** on a frame — HUG and FILL silently become FIXED
+- **Paragraph text created without \`width\` or sizing** — one line that never wraps
+- **FILL text in a row that hugs its width** — collapses to a character per line
+- **Shadowed children inside a clipping container** — shadows, glows and focus rings get cut off
 - **Raw gap and padding numbers** — bind spacing variables instead
 - **New top-level frames at 0,0** — overlaps existing work
 - **Wrap for aligned card grids** — use GRID so columns line up

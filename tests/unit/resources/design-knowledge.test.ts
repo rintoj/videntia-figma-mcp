@@ -233,6 +233,12 @@ describe("Design Knowledge Modules", () => {
       expect(AUTO_LAYOUT.content).toContain("bind_variable");
       expect(AUTO_LAYOUT.content).toContain("spacing-radius");
     });
+
+    it("covers clipping and reliable text wrapping", () => {
+      expect(AUTO_LAYOUT.content).toContain("## Clipping");
+      expect(AUTO_LAYOUT.content).toContain("set_clips_content");
+      expect(AUTO_LAYOUT.content).toContain("textAutoResize");
+    });
   });
 
   describe("components content", () => {

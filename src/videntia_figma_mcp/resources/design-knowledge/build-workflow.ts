@@ -39,6 +39,7 @@ Large builds fail in the middle. Structure the work so every step leaves the fil
 
 1. **Wrapper first.** Create the outer frame for the screen or component with \`create_frame\`, placed in clear canvas space away from existing work, sized to the target device, and named properly from the start. Set its auto-layout immediately (see \`auto-layout\`).
 2. **One section per step.** Create each major region (header, hero, list, footer) directly inside the wrapper using \`parentId\`. Building loose frames on the page and moving them in later invites wrong positions and stray leftovers.
+   **Decide clipping as you create.** A top-level \`create_frame\` clips by default, which suits a screen root; frames created with a \`parentId\` do not. Pass \`clipsContent: true\` only to a section that is genuinely a crop, mask or scroll area — clipping anywhere else cuts off shadows, glows and focus rings of the children (see \`auto-layout\`).
 3. **Fill content last.** Once the sections exist, place instances, text and imagery inside them, then apply tokens and styles.
 
 **Keep a ledger of IDs.** Every create call returns the new node's ID. Record it with a short note of what it is, and pass those IDs to later calls instead of re-searching by name. The ledger is also your cleanup list if something goes wrong.
@@ -62,6 +63,8 @@ Work through this on the finished frame. Most items take one read call each.
 
 **Layout**
 - [ ] No clipped or truncated text — line height and frame sizing leave room for ascenders, descenders and every line
+- [ ] Text boxes wrap correctly: every multi-line text reports \`textAutoResize: "HEIGHT"\` in \`get_node_info\`, no paragraph runs off as one line or collapses to a character per line, nothing overflows a fixed box. \`lint_frame\` does not inspect wrapping — check it directly
+- [ ] No clipped shadows, glows or focus rings: \`lint_frame\`'s \`clipped-content\` rule flags content cut by a \`clipsContent\` ancestor; also \`export_node_as_image\` at \`scale: 2\` on each elevated section, and fix with \`set_clips_content\` or padding
 - [ ] No overlapping layers that should sit side by side; nothing spilling past its parent (\`lint_frame\` flags child overflow)
 - [ ] Sizing modes are intentional: fixed vs hug vs fill on each container
 
@@ -71,7 +74,7 @@ Work through this on the finished frame. Most items take one read call each.
 - [ ] Font family and weight match the file's type system, not a fallback — confirm with \`get_styled_text_segments\` (\`fontName\`, \`fontWeight\`)
 
 **System compliance**
-- [ ] Run \`lint_frame\` on the root: it reports unbound colors, spacing and radius, missing text/effect styles, missing auto-layout, overflow and screen naming by severity. Resolve CRITICAL and HIGH items before handing off
+- [ ] Run \`lint_frame\` on the root: it reports unbound colors, spacing and radius, missing text/effect styles, missing auto-layout, child overflow, content cut by clipping ancestors and screen naming by severity. It is a structural check, not a visual review. Resolve CRITICAL and HIGH items before handing off
 - [ ] If the screen uses a color variable collection, \`validate_color_contrast\` checks its foreground/background pairs against WCAG AA or AAA (per mode)
 
 **Hygiene**
