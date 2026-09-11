@@ -12,6 +12,10 @@ const EXPECTED_IDS = [
   "skill",
   "depth-elevation",
   "spacing-radius",
+  "auto-layout",
+  "components",
+  "design-system-usage",
+  "build-workflow",
 ];
 
 interface ToolResult {

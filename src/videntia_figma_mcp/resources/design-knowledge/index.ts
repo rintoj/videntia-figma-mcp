@@ -10,6 +10,10 @@ import { CRAFT_DETAILS } from "./craft-details.js";
 import { SKILL } from "./skill.js";
 import { DEPTH_ELEVATION } from "./depth-elevation.js";
 import { SPACING_RADIUS } from "./spacing-radius.js";
+import { AUTO_LAYOUT } from "./auto-layout.js";
+import { COMPONENTS } from "./components.js";
+import { DESIGN_SYSTEM_USAGE } from "./design-system-usage.js";
+import { BUILD_WORKFLOW } from "./build-workflow.js";
 
 // Populate the module map
 const ALL_MODULES = [
@@ -22,6 +26,10 @@ const ALL_MODULES = [
   SKILL,
   DEPTH_ELEVATION,
   SPACING_RADIUS,
+  AUTO_LAYOUT,
+  COMPONENTS,
+  DESIGN_SYSTEM_USAGE,
+  BUILD_WORKFLOW,
 ];
 for (const mod of ALL_MODULES) {
   DESIGN_KNOWLEDGE_MODULES.set(mod.id, mod);

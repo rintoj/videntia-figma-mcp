@@ -9,9 +9,13 @@ import { CRAFT_DETAILS } from "../../../src/videntia_figma_mcp/resources/design-
 import { SKILL } from "../../../src/videntia_figma_mcp/resources/design-knowledge/skill.js";
 import { DEPTH_ELEVATION } from "../../../src/videntia_figma_mcp/resources/design-knowledge/depth-elevation.js";
 import { SPACING_RADIUS } from "../../../src/videntia_figma_mcp/resources/design-knowledge/spacing-radius.js";
+import { AUTO_LAYOUT } from "../../../src/videntia_figma_mcp/resources/design-knowledge/auto-layout.js";
+import { COMPONENTS } from "../../../src/videntia_figma_mcp/resources/design-knowledge/components.js";
+import { DESIGN_SYSTEM_USAGE } from "../../../src/videntia_figma_mcp/resources/design-knowledge/design-system-usage.js";
+import { BUILD_WORKFLOW } from "../../../src/videntia_figma_mcp/resources/design-knowledge/build-workflow.js";
 
 // Trigger module map population by importing the registration index
-import "../../../src/videntia_figma_mcp/resources/design-knowledge/index.js";
+import { DESIGN_KNOWLEDGE_MODULE_IDS } from "../../../src/videntia_figma_mcp/resources/design-knowledge/index.js";
 
 const ALL_MODULES = [
   ANTI_AI_SLOP,
@@ -23,6 +27,10 @@ const ALL_MODULES = [
   SKILL,
   DEPTH_ELEVATION,
   SPACING_RADIUS,
+  AUTO_LAYOUT,
+  COMPONENTS,
+  DESIGN_SYSTEM_USAGE,
+  BUILD_WORKFLOW,
 ];
 const EXPECTED_IDS = [
   "anti-ai-slop",
@@ -34,12 +42,20 @@ const EXPECTED_IDS = [
   "skill",
   "depth-elevation",
   "spacing-radius",
+  "auto-layout",
+  "components",
+  "design-system-usage",
+  "build-workflow",
 ];
 
 describe("Design Knowledge Modules", () => {
   describe("Module map completeness", () => {
-    it("contains all 9 modules", () => {
-      expect(DESIGN_KNOWLEDGE_MODULES.size).toBe(9);
+    it("contains all 13 modules", () => {
+      expect(DESIGN_KNOWLEDGE_MODULES.size).toBe(13);
+    });
+
+    it("exports module ids in registration order", () => {
+      expect(DESIGN_KNOWLEDGE_MODULE_IDS).toEqual(EXPECTED_IDS);
     });
 
     it.each(EXPECTED_IDS)("contains module '%s'", (id) => {
@@ -193,6 +209,96 @@ describe("Design Knowledge Modules", () => {
 
     it("includes discovery questions", () => {
       expect(SKILL.content.toLowerCase()).toContain("job-to-be-done");
+    });
+  });
+
+  describe("auto-layout content", () => {
+    it("covers FIXED, HUG and FILL sizing", () => {
+      expect(AUTO_LAYOUT.content).toContain("FIXED");
+      expect(AUTO_LAYOUT.content).toContain("HUG");
+      expect(AUTO_LAYOUT.content).toContain("FILL");
+      expect(AUTO_LAYOUT.content).toContain("set_layout_sizing");
+    });
+
+    it("warns that resize_node pins sizing to FIXED", () => {
+      expect(AUTO_LAYOUT.content).toContain("resize_node");
+    });
+
+    it("distinguishes grid from wrap", () => {
+      expect(AUTO_LAYOUT.content).toContain("GRID");
+      expect(AUTO_LAYOUT.content).toContain("WRAP");
+    });
+
+    it("points to spacing tokens", () => {
+      expect(AUTO_LAYOUT.content).toContain("bind_variable");
+      expect(AUTO_LAYOUT.content).toContain("spacing-radius");
+    });
+  });
+
+  describe("components content", () => {
+    it("sets a variant budget", () => {
+      expect(COMPONENTS.content).toContain("30 variants");
+    });
+
+    it("uses one instance-swap property for icons", () => {
+      expect(COMPONENTS.content).toContain("INSTANCE_SWAP");
+      expect(COMPONENTS.content).toContain("set_component_property_references");
+    });
+
+    it("documents Property=Value variant naming", () => {
+      expect(COMPONENTS.content).toContain("Property=Value");
+    });
+
+    it("treats detaching as a last resort", () => {
+      expect(COMPONENTS.content).toContain("detach_instance");
+      expect(COMPONENTS.content.toLowerCase()).toContain("last resort");
+    });
+  });
+
+  describe("design-system-usage content", () => {
+    it("defines precedence between user, file and generic guidance", () => {
+      expect(DESIGN_SYSTEM_USAGE.content).toContain("Who Wins When Guidance Conflicts");
+    });
+
+    it("discovers the existing system before building", () => {
+      expect(DESIGN_SYSTEM_USAGE.content).toContain("get_design_system");
+      expect(DESIGN_SYSTEM_USAGE.content).toContain("get_local_components");
+    });
+
+    it("binds tokens instead of hardcoding", () => {
+      expect(DESIGN_SYSTEM_USAGE.content).toContain("bind_variable");
+      expect(DESIGN_SYSTEM_USAGE.content).toContain("apply_text_style");
+    });
+
+    it("verifies with lint and contrast checks", () => {
+      expect(DESIGN_SYSTEM_USAGE.content).toContain("lint_frame");
+      expect(DESIGN_SYSTEM_USAGE.content).toContain("validate_color_contrast");
+    });
+  });
+
+  describe("build-workflow content", () => {
+    it("classifies the edit mode first", () => {
+      expect(BUILD_WORKFLOW.content).toContain("Edit in place");
+      expect(BUILD_WORKFLOW.content).toContain("Create new");
+    });
+
+    it("includes a QA checklist", () => {
+      expect(BUILD_WORKFLOW.content).toContain("QA Checklist");
+      expect(BUILD_WORKFLOW.content).toContain("export_node_as_image");
+    });
+
+    it("recovers by node id", () => {
+      expect(BUILD_WORKFLOW.content).toContain("delete_multiple_nodes");
+      expect(BUILD_WORKFLOW.content).toContain("save_version_history");
+    });
+  });
+
+  describe("cross-module references", () => {
+    it.each(ALL_MODULES)("$id only references registered module ids", (mod) => {
+      const refs = [...mod.content.matchAll(/`([a-z]+(?:-[a-z]+)*)` module/g)].map((m) => m[1]);
+      for (const ref of refs) {
+        expect(EXPECTED_IDS).toContain(ref);
+      }
     });
   });
 });
