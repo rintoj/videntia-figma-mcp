@@ -95,14 +95,14 @@ Examples: \`primary\`, \`primary-foreground\`, \`primary-100\`, \`destructive\`,
 
 **Two token layers.**
 1. **Primitives:** the raw palette (\`blue-500\`, \`neutral-900\`, or \`blue/500\` in a slash-grouped file) in its own collection with a single mode. They are never bound directly to design nodes.
-2. **Semantic tokens:** role names (\`background\`, \`primary\`, \`border\`) that alias a primitive and never hold a raw hex value of their own. Fills, strokes and text on nodes bind only to semantic tokens (\`bind_variable\`), so a rebrand or theme change is just an edit to the aliases.
+2. **Semantic tokens:** role names (\`background\`, \`primary\`, \`border\`) that alias a primitive and never hold a raw hex value of their own. Fills, strokes and text on nodes bind only to semantic tokens (\`bind_variable\`), so a rebrand or theme change is just an edit to the aliases. The same goes for shadow and focus-ring colours (\`effects/N/color\`, or \`colorVariable\` in \`set_effects\` / \`create_effect_style\`) and gradient stops (\`fills/N/gradientStops/M/color\`, or \`colorVariable\` per stop in \`set_gradient_fill\`).
 
 Create collections and variables with \`create_variable_collection\`, \`create_variable\` and \`create_variables_batch\`. Those tools (and \`update_variable_value\`) only write raw values. Link a semantic token to its primitive by hand in Figma's variables panel, and until that link exists, treat a semantic token holding a raw value as temporary.
 
 **Light and dark are modes, not copies.** Put Light and Dark as modes on the semantic collection. Never create a separate "Dark" collection or duplicate variables such as \`background-dark\`.
 - Add a mode with \`add_mode_to_collection\` and seed it with \`duplicate_mode_values\`, then change the values that should differ.
 - \`create_variable_collection\` names its first mode \`dark\` unless you pass \`defaultMode\`. Rename any leftover default mode (e.g. "Mode 1") with \`rename_mode\`.
-- How many modes a collection can have depends on the Figma plan, so check your plan's mode limit before designing extra themes (e.g. high contrast).
+- How many modes a collection can have depends on the Figma plan (Starter/free = 1 mode per collection), so check your plan's mode limit before designing extra themes (e.g. high contrast). When the limit is hit, \`add_mode_to_collection\` returns a mode-limit error and \`create_complete_design_system\` skips the refused modes and lists them in its result. On a single-mode plan, put each theme in its own collection with \`create_variable_collection\` and \`defaultMode\`.
 
 **Scopes.** Limit where each variable can be applied: background/surface tokens to fills, text tokens to text fills, border tokens to strokes. That keeps the picker free of irrelevant tokens. No tool in this server sets variable scopes, so set them manually in each variable's settings in Figma.
 

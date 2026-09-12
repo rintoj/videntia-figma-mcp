@@ -67,6 +67,7 @@ Work through this on the finished frame. Most items take one read call each.
 - [ ] No clipped shadows, glows or focus rings: \`lint_frame\`'s \`clipped-content\` rule flags content cut by a \`clipsContent\` ancestor; also \`export_node_as_image\` at \`scale: 2\` on each elevated section, and fix with \`set_clips_content\` or padding
 - [ ] No overlapping layers that should sit side by side; nothing spilling past its parent (\`lint_frame\` flags child overflow)
 - [ ] Sizing modes are intentional: fixed vs hug vs fill on each container
+- [ ] Absolutely positioned layers and children of non-auto-layout frames in resizable components have intentional constraints (\`get_node_info\` with \`output_format: "json"\` reports \`constraints\`): STRETCH for image slots and backgrounds, CENTER/MIN/MAX for fixed icons and badges, SCALE only for art that should grow. Fix with \`set_constraints\`, then resize a test instance to confirm
 
 **Content**
 - [ ] No leftover placeholder copy ("Title", "Label", "Lorem ipsum", "Button") — scan with \`get_content_tree\`
@@ -79,7 +80,7 @@ Work through this on the finished frame. Most items take one read call each.
 - [ ] If the screen uses a color variable collection, \`validate_color_contrast\` checks its foreground/background pairs against WCAG AA or AAA (per mode)
 
 **Hygiene**
-- [ ] No hidden, empty or orphaned layers left over from experiments
+- [ ] No hidden, empty or orphaned layers left over from experiments — delete leftovers with \`delete_multiple_nodes\`; keep \`set_visible\` for layers hidden on purpose (inside components, a BOOLEAN property instead)
 - [ ] Layers and frames carry meaningful names — no "Frame 427" or "Rectangle 12"; fix with \`rename_node\` (batched)
 - [ ] Nothing stray left on the page outside the wrapper
 

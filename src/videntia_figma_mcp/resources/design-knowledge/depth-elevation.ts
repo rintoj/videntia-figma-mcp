@@ -157,6 +157,7 @@ Use \`create_effect_style\` to create elevation tokens as named styles:
 ### Applying Shadows and Keeping Them Visible
 
 - Apply elevation with \`set_effect_style_id\` (style name or id). Reserve \`set_effects\` for one-off effects that should not become tokens.
+- Bind shadow colours to variables instead of typing RGBA, so a dark mode can deepen them without new styles. Add \`colorVariable\` (and \`radiusVariable\`, \`spreadVariable\`, \`offsetXVariable\`, \`offsetYVariable\` if the system has elevation tokens) to each effect entry in \`create_effect_style\`, \`update_effect_style\` or \`set_effects\`. For an existing style, use \`bind_variable\` with the style name as \`nodeId\` and a field such as \`effects/0/color\`.
 - Drop shadows and layer blur render **outside** the node's bounds. Any ancestor with \`clipsContent\` true crops them at its edge — a card in a clipping list loses its lower shadow, a card near a screen root's edge loses its side.
 - Fix it on the container: \`set_clips_content\` with \`clipsContent: false\`, or give the container padding of at least offset-y + blur + spread of the largest layer (\`elevation/3-modal\` needs about 80px below).
 - Keep clipping only where cropping is the point: screen roots, image crops, scroll areas.

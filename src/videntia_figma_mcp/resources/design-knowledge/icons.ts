@@ -39,6 +39,7 @@ Even if the icon is 20px, its touch target must be at least 44×44px (iOS HIG) o
 - \`create_icon\` and \`create_svg\` produce plain layers, not components. Convert each icon you will reuse into a component once (\`create_component\`) so it can be instanced and swapped.
 - Expose the icon as **one \`INSTANCE_SWAP\` property** (\`add_component_property\`, linked to the nested icon instance via \`set_component_property_references\` with \`mainComponent\`) — never one variant per icon. Pair it with a \`BOOLEAN\` property if the icon is optional. See the \`components\` module for property strategy.
 - Keep the swappable instance inside the fixed-size container frame so every swapped icon occupies the same box.
+- **Stop glyphs from stretching.** Imported SVG layers get Figma's SCALE constraints, so a glyph distorts when its frame or the component around it is resized. Pass \`constraints: { horizontal: "CENTER", vertical: "CENTER" }\` to \`create_icon\` / \`create_svg\` (or run \`set_constraints\` on the vector layers afterwards) so the glyph keeps its drawn size. Keep SCALE only for illustrations that should grow. Check with \`get_node_info\` (\`output_format: "json"\`) on the icon's children.
 
 ## Optical Corrections
 
