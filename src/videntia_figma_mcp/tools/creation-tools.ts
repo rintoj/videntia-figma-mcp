@@ -5,6 +5,7 @@ import { coerceArray } from "../utils/coerce-array.js";
 import { mcpBooleanSchema } from "../utils/mcp-boolean.js";
 import { normalizeNodeId } from "../utils/figma-helpers.js";
 import { normalizeCommandParams } from "../utils/command-params.js";
+import { svgConstraintsSchema } from "../utils/constraints-schema.js";
 
 /**
  * Register creation tools to the MCP server
@@ -510,13 +511,22 @@ export function registerCreationTools(server: McpServer): void {
         .describe(
           "true = merge all SVG paths into a single vector node (loses individual path structure but simplifies the layer); false = preserve path hierarchy as separate nodes (default: false)",
         ),
+      constraints: svgConstraintsSchema.optional(),
     },
-    async ({ svgString, x, y, name, parentId, flatten }) => {
+    async ({ svgString, x, y, name, parentId, flatten, constraints }) => {
       if (parentId) parentId = normalizeNodeId(parentId);
       try {
         const result = await sendCommandToFigma(
           "create_svg",
-          normalizeCommandParams("create_svg", { svgString, x, y, name, parentId, flatten }),
+          normalizeCommandParams("create_svg", {
+            svgString,
+            x,
+            y,
+            name,
+            parentId,
+            flatten,
+            ...(constraints ? { constraints } : {}),
+          }),
         );
         const typedResult = result as {
           id: string;
@@ -528,12 +538,18 @@ export function registerCreationTools(server: McpServer): void {
           height: number;
           childCount: number;
           parentId?: string;
+          constraints?: { horizontal?: string; vertical?: string };
+          constraintsAppliedTo?: number;
         };
+        const c = typedResult.constraints;
+        const constraintsText = c
+          ? `; constraints (${[c.horizontal && `horizontal: ${c.horizontal}`, c.vertical && `vertical: ${c.vertical}`].filter(Boolean).join(", ")}) applied to ${typedResult.constraintsAppliedTo ?? 0} layer(s)`
+          : "";
         return {
           content: [
             {
               type: "text",
-              text: `Created SVG node "${typedResult.name}" (ID: ${typedResult.id}, ${typedResult.width}x${typedResult.height}px, ${typedResult.childCount} children)${typedResult.parentId ? ` inside parent ${typedResult.parentId}` : ""}`,
+              text: `Created SVG node "${typedResult.name}" (ID: ${typedResult.id}, ${typedResult.width}x${typedResult.height}px, ${typedResult.childCount} children)${typedResult.parentId ? ` inside parent ${typedResult.parentId}` : ""}${constraintsText}`,
             },
           ],
         };

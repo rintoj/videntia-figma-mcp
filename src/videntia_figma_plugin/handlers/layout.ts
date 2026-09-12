@@ -660,3 +660,119 @@ export async function setLayoutSizing(params: Record<string, unknown>): Promise<
     success: true,
   };
 }
+
+// ---------------------------------------------------------------------------
+// Constraints
+// ---------------------------------------------------------------------------
+
+export const CONSTRAINT_TYPES = ["MIN", "CENTER", "MAX", "STRETCH", "SCALE"] as const;
+export type ConstraintValue = (typeof CONSTRAINT_TYPES)[number];
+export interface ConstraintsInput {
+  horizontal?: ConstraintValue;
+  vertical?: ConstraintValue;
+}
+
+function checkConstraintValue(axis: string, value: unknown): ConstraintValue | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (typeof value !== "string" || CONSTRAINT_TYPES.indexOf(value as ConstraintValue) === -1) {
+    throw new Error(`Invalid ${axis} constraint: ${String(value)}. Must be one of ${CONSTRAINT_TYPES.join(", ")}.`);
+  }
+  return value as ConstraintValue;
+}
+
+/** Validates an optional `{ horizontal?, vertical? }` param; undefined when absent. */
+export function parseConstraintsParam(value: unknown): ConstraintsInput | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (typeof value !== "object" || Array.isArray(value)) {
+    throw new Error("constraints must be an object: { horizontal?, vertical? }");
+  }
+  const obj = value as Record<string, unknown>;
+  const horizontal = checkConstraintValue("horizontal", obj["horizontal"]);
+  const vertical = checkConstraintValue("vertical", obj["vertical"]);
+  if (horizontal === undefined && vertical === undefined) {
+    throw new Error(`constraints needs horizontal and/or vertical (${CONSTRAINT_TYPES.join(", ")})`);
+  }
+  return { horizontal, vertical };
+}
+
+/** Writes the given axes, keeping the current value of an omitted axis. False when the node has no constraints. */
+export function applyConstraints(node: BaseNode, input: ConstraintsInput): boolean {
+  if (!("constraints" in node)) return false;
+  const target = node as SceneNode & ConstraintMixin;
+  const current = target.constraints;
+  target.constraints = {
+    horizontal: input.horizontal ?? current.horizontal,
+    vertical: input.vertical ?? current.vertical,
+  };
+  return true;
+}
+
+function constraintsWarning(node: SceneNode): string | undefined {
+  const parent = node.parent;
+  if (!parent || parent.type === "PAGE" || parent.type === "DOCUMENT") {
+    return `"${node.name}" sits directly on the page; constraints only take effect inside a frame, component or instance.`;
+  }
+  const parentLayoutMode =
+    "layoutMode" in parent ? (parent as unknown as { layoutMode: string }).layoutMode : undefined;
+  const positioning = "layoutPositioning" in node ? (node as FrameNode).layoutPositioning : undefined;
+  if (parentLayoutMode !== undefined && parentLayoutMode !== "NONE" && positioning !== "ABSOLUTE") {
+    return `"${node.name}" is an auto-layout child of "${parent.name}" (layoutPositioning AUTO): constraints are stored but ignored until the node is absolutely positioned or the parent's auto layout is removed. Use set_layout_sizing for children in the flow.`;
+  }
+  return undefined;
+}
+
+export async function setConstraints(params: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const ids: string[] = [];
+  const rawIds = params["nodeIds"];
+  if (Array.isArray(rawIds)) {
+    for (const id of rawIds) if (typeof id === "string" && ids.indexOf(id) === -1) ids.push(id);
+  }
+  const nodeId = params["nodeId"];
+  if (typeof nodeId === "string" && ids.indexOf(nodeId) === -1) ids.unshift(nodeId);
+  if (ids.length === 0) {
+    throw new Error("Missing nodeId or nodeIds parameter");
+  }
+
+  const horizontal = checkConstraintValue("horizontal", params["horizontal"]);
+  const vertical = checkConstraintValue("vertical", params["vertical"]);
+  if (horizontal === undefined && vertical === undefined) {
+    throw new Error(
+      `No constraint values provided — pass horizontal and/or vertical (${CONSTRAINT_TYPES.join(", ")}). No changes were made.`,
+    );
+  }
+
+  const results: Array<Record<string, unknown>> = [];
+  for (const id of ids) {
+    try {
+      const node = await figma.getNodeByIdAsync(id);
+      if (!node) throw new Error(`Node with ID ${id} not found`);
+      if (!applyConstraints(node, { horizontal, vertical })) {
+        throw new Error(`Node "${node.name}" does not support constraints (type: ${node.type})`);
+      }
+      const constraints = (node as SceneNode & ConstraintMixin).constraints;
+      const entry: Record<string, unknown> = {
+        nodeId: node.id,
+        name: node.name,
+        success: true,
+        constraints: { horizontal: constraints.horizontal, vertical: constraints.vertical },
+      };
+      const warning = constraintsWarning(node as SceneNode);
+      if (warning) entry["warning"] = warning;
+      results.push(entry);
+    } catch (error) {
+      results.push({ nodeId: id, success: false, error: error instanceof Error ? error.message : String(error) });
+    }
+  }
+
+  const failed = results.filter((r) => r["success"] !== true);
+  if (failed.length === results.length) {
+    throw new Error(failed.map((r) => r["error"]).join("; "));
+  }
+
+  return {
+    success: failed.length === 0,
+    updated: results.length - failed.length,
+    failed: failed.length,
+    results,
+  };
+}

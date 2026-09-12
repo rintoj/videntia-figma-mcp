@@ -6,6 +6,7 @@ import { mcpBooleanSchema } from "../utils/mcp-boolean.js";
 import { DeleteMultipleNodesResult, CreateEffectStyleResult, UpdateEffectStyleResult } from "../types";
 import { normalizeNodeId } from "../utils/figma-helpers.js";
 import { normalizeCommandParams } from "../utils/command-params.js";
+import { constraintTypeSchema } from "../utils/constraints-schema.js";
 
 /**
  * Register modification tools to the MCP server
@@ -605,6 +606,70 @@ export function registerModificationTools(server: McpServer): void {
             {
               type: "text",
               text: `Error setting axis alignment: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  // Set Constraints Tool
+  server.tool(
+    "set_constraints",
+    "Set resize constraints on one or more nodes — how a layer follows its parent when the parent (or an instance of its component) is resized. " +
+      "MIN = keep distance to left/top, MAX = keep distance to right/bottom, CENTER = stay centred at its size, STRETCH = keep both edge distances (grows with the parent), SCALE = scale proportionally. " +
+      "An omitted axis keeps its current value. Constraints only take effect on absolutely positioned children and children of frames/components without auto layout; the result warns for auto-layout children in the flow (use set_layout_sizing there) and for nodes directly on the page. " +
+      "Nodes that do not support constraints (e.g. groups) fail individually. Typical: STRETCH for image slots and backgrounds, CENTER or MIN/MAX for fixed icons and badges, SCALE for illustrations. Read back with get_node_info (output_format json).",
+    {
+      nodeId: z.string().optional().describe("ID of a single node (combine with nodeIds or use alone)"),
+      nodeIds: coerceArray(z.array(z.string())).optional().describe("IDs of the nodes to update"),
+      horizontal: constraintTypeSchema
+        .optional()
+        .describe("Horizontal constraint: MIN | CENTER | MAX | STRETCH | SCALE"),
+      vertical: constraintTypeSchema.optional().describe("Vertical constraint: MIN | CENTER | MAX | STRETCH | SCALE"),
+    },
+    async ({ nodeId, nodeIds, horizontal, vertical }) => {
+      try {
+        const result = (await sendCommandToFigma(
+          "set_constraints",
+          normalizeCommandParams("set_constraints", {
+            ...(nodeId !== undefined ? { nodeId } : {}),
+            ...(nodeIds !== undefined ? { nodeIds } : {}),
+            ...(horizontal !== undefined ? { horizontal } : {}),
+            ...(vertical !== undefined ? { vertical } : {}),
+          }),
+        )) as {
+          updated?: number;
+          failed?: number;
+          results?: Array<{
+            nodeId: string;
+            name?: string;
+            success: boolean;
+            constraints?: { horizontal: string; vertical: string };
+            warning?: string;
+            error?: string;
+          }>;
+        };
+        const results = result.results ?? [];
+        const total = (result.updated ?? 0) + (result.failed ?? 0);
+        const lines = [`Updated constraints on ${result.updated ?? 0} of ${total} node(s)`];
+        for (const r of results) {
+          if (r.success) {
+            lines.push(
+              `- ${r.name ?? r.nodeId} (${r.nodeId}): horizontal ${r.constraints?.horizontal}, vertical ${r.constraints?.vertical}`,
+            );
+            if (r.warning) lines.push(`  warning: ${r.warning}`);
+          } else {
+            lines.push(`- ${r.nodeId} failed: ${r.error}`);
+          }
+        }
+        return { content: [{ type: "text", text: lines.join("\n") }] };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error setting constraints: ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };

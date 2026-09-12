@@ -3,6 +3,9 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { searchIcons, getIcon, listIcons } from "../utils/icon-search.js";
 import { sendCommandToFigma } from "../utils/websocket.js";
 import { normalizeNodeId } from "../utils/figma-helpers.js";
+import { svgConstraintsSchema } from "../utils/constraints-schema.js";
+
+type IconConstraints = { horizontal?: string; vertical?: string };
 
 /**
  * Allowlist for CSS color values — permits only safe characters used in hex, rgb/rgba/hsl/hsla,
@@ -238,12 +241,13 @@ export function resolveCreateIconParams(params: {
   color?: string;
   colorVariable?: string;
   size: number;
+  constraints?: IconConstraints;
 }): {
   createSvgParams: Record<string, unknown>;
   insertChildIndex?: number;
   iconName: string;
 } {
-  const { parentId, index, name: iconName, color, colorVariable, size } = params;
+  const { parentId, index, name: iconName, color, colorVariable, size, constraints } = params;
   const icon = getIcon(iconName);
   if (!icon) {
     const suggestions = searchIcons(iconName, 5);
@@ -267,6 +271,7 @@ export function resolveCreateIconParams(params: {
       parentId,
       flatten: false,
       colorVariable: effectiveColorVar,
+      ...(constraints ? { constraints } : {}),
     },
     insertChildIndex: index,
     iconName: icon.name,
@@ -462,7 +467,8 @@ export function registerIconTools(server: McpServer): void {
    */
   server.tool(
     "create_icon",
-    "Create a Lucide icon in Figma with a specific color and size. Resolves the SVG server-side and places it inside the given parent node at the specified index. Note: when the parent is an Icon/* placeholder frame, the icon is resized to fill the frame and the size parameter controls the SVG dimensions only.",
+    "Create a Lucide icon in Figma with a specific color and size. Resolves the SVG server-side and places it inside the given parent node at the specified index. Note: when the parent is an Icon/* placeholder frame, the icon is resized to fill the frame and the size parameter controls the SVG dimensions only. " +
+      'The icon\'s vector layers keep Figma\'s SCALE constraints unless you pass constraints — use { horizontal: "CENTER", vertical: "CENTER" } so the glyph keeps its drawn size when the icon frame or its component is resized.',
     {
       parentId: z.string().describe("Parent node ID to insert the icon into"),
       index: z
@@ -485,8 +491,9 @@ export function registerIconTools(server: McpServer): void {
           'Explicit Figma variable name for the icon stroke color. Only needed if color is also a valid CSS color and you still want variable binding. Supports Tailwind-style ("gray-500"), semantic paths ("text/secondary"), or exact names.',
         ),
       size: z.coerce.number().positive().describe("Icon size in pixels applied to both width and height"),
+      constraints: svgConstraintsSchema.optional(),
     },
-    async ({ parentId, index, name: iconName, color, colorVariable, size }) => {
+    async ({ parentId, index, name: iconName, color, colorVariable, size, constraints }) => {
       parentId = normalizeNodeId(parentId);
       const icon = getIcon(iconName);
       if (!icon) {
@@ -527,6 +534,7 @@ export function registerIconTools(server: McpServer): void {
           parentId,
           flatten: false,
           colorVariable: effectiveColorVar,
+          ...(constraints ? { constraints } : {}),
         });
 
         const typedResult = createResult as {
@@ -536,6 +544,8 @@ export function registerIconTools(server: McpServer): void {
           height: number;
           colorVariableBound?: boolean;
           colorVariableWarning?: string;
+          constraints?: IconConstraints;
+          constraintsAppliedTo?: number;
         };
 
         let finalIndex: number | null = null;
@@ -572,6 +582,10 @@ export function registerIconTools(server: McpServer): void {
         }
         if (typedResult.colorVariableWarning !== undefined) {
           responsePayload.colorVariableWarning = typedResult.colorVariableWarning;
+        }
+        if (typedResult.constraints !== undefined) {
+          responsePayload.constraints = typedResult.constraints;
+          responsePayload.constraintsAppliedTo = typedResult.constraintsAppliedTo;
         }
 
         return {

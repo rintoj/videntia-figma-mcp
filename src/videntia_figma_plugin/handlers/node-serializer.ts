@@ -263,6 +263,10 @@ async function processNode(
     const la = (node as SceneNode & { layoutAlign: string }).layoutAlign;
     if (la && la !== "INHERIT" && la !== "STRETCH") info["layoutAlign"] = la;
   }
+  if ("constraints" in node) {
+    const c = (node as SceneNode & ConstraintMixin).constraints;
+    if (c) info["constraints"] = { horizontal: c.horizontal, vertical: c.vertical };
+  }
 
   // Fills
   const fills = extractFills(node);
