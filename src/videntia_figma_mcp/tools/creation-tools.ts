@@ -187,7 +187,8 @@ export function registerCreationTools(server: McpServer): void {
     "create_text",
     "Create a new text element in Figma. Wrapping: without `width` the text auto-sizes to its content on a single line (textAutoResize WIDTH_AND_HEIGHT) and never wraps — right for labels and buttons. " +
       "With `width` (and no `textAutoResize`) the text gets that fixed width and textAutoResize HEIGHT: it wraps at the width and its height grows — right for paragraphs. " +
-      "Pass `textAutoResize` to override (NONE = fixed box that can overflow; WIDTH_AND_HEIGHT ignores `width`).",
+      "Pass `textAutoResize` to override (NONE = fixed box that can overflow; WIDTH_AND_HEIGHT ignores `width`). " +
+      'Alignment: `textAlignHorizontal` only visibly matters when the text box is wider than its content (a `width` / textAutoResize HEIGHT or NONE, or FILL sizing) — WIDTH_AND_HEIGHT text hugs its content, so for centred text pass `textAlignHorizontal: "CENTER"` together with `width`.',
     {
       x: z.coerce.number().describe("X position in pixels on the canvas (or relative to parent if parentId is set)"),
       y: z.coerce.number().describe("Y position in pixels on the canvas (or relative to parent if parentId is set)"),
@@ -227,8 +228,34 @@ export function registerCreationTools(server: McpServer): void {
         .describe(
           "Text box sizing: HEIGHT = fixed width, wraps, height grows (default when width is set); WIDTH_AND_HEIGHT = single line, hugs content (default when width is omitted); NONE = fixed width and height, text may overflow",
         ),
+      textAlignHorizontal: z
+        .enum(["LEFT", "CENTER", "RIGHT", "JUSTIFIED"])
+        .optional()
+        .describe(
+          "Horizontal text alignment (Figma default LEFT). Only visible when the box is wider than the text — combine with `width` (or FILL sizing); WIDTH_AND_HEIGHT text hugs its content",
+        ),
+      textAlignVertical: z
+        .enum(["TOP", "CENTER", "BOTTOM"])
+        .optional()
+        .describe(
+          "Vertical text alignment within the box (Figma default TOP). Only visible when the box is taller than the text (textAutoResize NONE or a fixed/FILL height)",
+        ),
     },
-    async ({ x, y, text, fontSize, fontFamily, fontWeight, fontColor, name, parentId, width, textAutoResize }) => {
+    async ({
+      x,
+      y,
+      text,
+      fontSize,
+      fontFamily,
+      fontWeight,
+      fontColor,
+      name,
+      parentId,
+      width,
+      textAutoResize,
+      textAlignHorizontal,
+      textAlignVertical,
+    }) => {
       if (parentId) parentId = normalizeNodeId(parentId);
       try {
         const result = await sendCommandToFigma(
@@ -245,12 +272,29 @@ export function registerCreationTools(server: McpServer): void {
             parentId,
             width,
             textAutoResize,
+            textAlignHorizontal,
+            textAlignVertical,
           }),
         );
-        const typedResult = result as { name: string; id: string; width?: number; textAutoResize?: string };
+        const typedResult = result as {
+          name: string;
+          id: string;
+          width?: number;
+          textAutoResize?: string;
+          textAlignHorizontal?: string;
+          textAlignVertical?: string;
+        };
+        const alignText = [
+          textAlignHorizontal !== undefined && typedResult.textAlignHorizontal !== undefined
+            ? `, textAlignHorizontal: ${typedResult.textAlignHorizontal}`
+            : "",
+          textAlignVertical !== undefined && typedResult.textAlignVertical !== undefined
+            ? `, textAlignVertical: ${typedResult.textAlignVertical}`
+            : "",
+        ].join("");
         const sizingText =
           typedResult.textAutoResize !== undefined
-            ? ` (textAutoResize: ${typedResult.textAutoResize}${typedResult.width !== undefined ? `, width: ${typedResult.width}` : ""})`
+            ? ` (textAutoResize: ${typedResult.textAutoResize}${typedResult.width !== undefined ? `, width: ${typedResult.width}` : ""}${alignText})`
             : "";
         return {
           content: [

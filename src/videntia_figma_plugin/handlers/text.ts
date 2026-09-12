@@ -12,6 +12,26 @@ import { resolveColor } from "./fills";
 import { resolveColorVariable } from "./icons";
 
 // ---------------------------------------------------------------------------
+// Text alignment helpers
+// ---------------------------------------------------------------------------
+
+const TEXT_ALIGN_HORIZONTAL = ["LEFT", "CENTER", "RIGHT", "JUSTIFIED"] as const;
+const TEXT_ALIGN_VERTICAL = ["TOP", "CENTER", "BOTTOM"] as const;
+
+function readTextAlign<T extends string>(
+  value: unknown,
+  allowed: readonly T[],
+  label: string,
+  command: string,
+): T | undefined {
+  if (value === null || value === undefined) return undefined;
+  if (typeof value !== "string" || !(allowed as readonly string[]).includes(value)) {
+    throw new Error(`Invalid ${label} for ${command}: ${String(value)} (expected ${allowed.join(", ")})`);
+  }
+  return value as T;
+}
+
+// ---------------------------------------------------------------------------
 // setCharacters helpers
 // ---------------------------------------------------------------------------
 
@@ -257,6 +277,18 @@ export async function createText(params: Record<string, unknown>): Promise<Recor
       : width !== undefined
         ? "HEIGHT"
         : undefined;
+  const textAlignHorizontal = readTextAlign(
+    safeParams.textAlignHorizontal,
+    TEXT_ALIGN_HORIZONTAL,
+    "textAlignHorizontal",
+    "create_text",
+  );
+  const textAlignVertical = readTextAlign(
+    safeParams.textAlignVertical,
+    TEXT_ALIGN_VERTICAL,
+    "textAlignVertical",
+    "create_text",
+  );
 
   const textNode = figma.createText();
   textNode.x = x;
@@ -306,6 +338,12 @@ export async function createText(params: Record<string, unknown>): Promise<Recor
   if (textAutoResize !== undefined) {
     textNode.textAutoResize = textAutoResize;
   }
+  if (textAlignHorizontal !== undefined) {
+    textNode.textAlignHorizontal = textAlignHorizontal;
+  }
+  if (textAlignVertical !== undefined) {
+    textNode.textAlignVertical = textAlignVertical;
+  }
 
   return {
     id: textNode.id,
@@ -315,6 +353,8 @@ export async function createText(params: Record<string, unknown>): Promise<Recor
     width: textNode.width,
     height: textNode.height,
     textAutoResize: textNode.textAutoResize,
+    textAlignHorizontal: textNode.textAlignHorizontal,
+    textAlignVertical: textNode.textAlignVertical,
     characters: textNode.characters,
     fontSize: textNode.fontSize,
     fontWeight: fontWeight,
@@ -1497,6 +1537,92 @@ export async function setTextWrapStyle(params: Record<string, unknown>): Promise
   } catch (error) {
     throw new Error(`Error setting text wrap style: ${(error as Error).message}`);
   }
+}
+
+// ---------------------------------------------------------------------------
+// Public: setTextAlign
+// ---------------------------------------------------------------------------
+
+export async function setTextAlign(params: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const safeParams = params !== null && params !== undefined ? params : {};
+  const ids: string[] = [];
+  const pushId = (value: unknown) => {
+    if (typeof value === "string" && value && !ids.includes(value)) ids.push(value);
+  };
+  pushId(safeParams.nodeId);
+  if (Array.isArray(safeParams.nodeIds)) safeParams.nodeIds.forEach(pushId);
+  else pushId(safeParams.nodeIds);
+  if (ids.length === 0) {
+    throw new Error("set_text_align requires nodeId or nodeIds (at least one TEXT node)");
+  }
+
+  const horizontal = readTextAlign(
+    safeParams.textAlignHorizontal ?? safeParams.horizontal,
+    TEXT_ALIGN_HORIZONTAL,
+    "horizontal",
+    "set_text_align",
+  );
+  const vertical = readTextAlign(
+    safeParams.textAlignVertical ?? safeParams.vertical,
+    TEXT_ALIGN_VERTICAL,
+    "vertical",
+    "set_text_align",
+  );
+  if (horizontal === undefined && vertical === undefined) {
+    throw new Error("set_text_align requires horizontal and/or vertical alignment");
+  }
+
+  const results: Array<Record<string, unknown>> = [];
+  for (const id of ids) {
+    const node = await figma.getNodeByIdAsync(id);
+    if (!node) {
+      results.push({ nodeId: id, success: false, error: `Node not found with ID: ${id}` });
+      continue;
+    }
+    if (node.type !== "TEXT") {
+      results.push({
+        nodeId: id,
+        name: node.name,
+        success: false,
+        error: `Node is not a text node (type ${node.type})`,
+      });
+      continue;
+    }
+    const textNode = node as TextNode;
+    try {
+      await loadTextNodeFonts(textNode);
+      if (horizontal !== undefined) textNode.textAlignHorizontal = horizontal;
+      if (vertical !== undefined) textNode.textAlignVertical = vertical;
+      const entry: Record<string, unknown> = {
+        nodeId: id,
+        name: textNode.name,
+        success: true,
+        textAlignHorizontal: textNode.textAlignHorizontal,
+        textAlignVertical: textNode.textAlignVertical,
+        textAutoResize: textNode.textAutoResize,
+      };
+      if (horizontal !== undefined && textNode.textAutoResize === "WIDTH_AND_HEIGHT") {
+        entry.note =
+          "Text hugs its content (textAutoResize WIDTH_AND_HEIGHT), so horizontal alignment has no visible effect until it has a fixed width or FILL sizing.";
+      }
+      results.push(entry);
+    } catch (error) {
+      results.push({
+        nodeId: id,
+        name: textNode.name,
+        success: false,
+        error: `Error setting text alignment: ${(error as Error).message}`,
+      });
+    }
+  }
+
+  const updated = results.filter((r) => r.success === true).length;
+  return {
+    success: updated === results.length,
+    updated,
+    failed: results.length - updated,
+    results,
+  };
 }
 
 // ---------------------------------------------------------------------------

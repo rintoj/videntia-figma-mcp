@@ -326,6 +326,7 @@ async function processNode(
       if ((textNode.letterSpacing as LetterSpacing).unit === "PERCENT") info["letterSpacingUnit"] = "percent";
     }
     if (textNode.textAlignHorizontal) info["textAlignHorizontal"] = textNode.textAlignHorizontal;
+    if (textNode.textAlignVertical) info["textAlignVertical"] = textNode.textAlignVertical;
     if (textNode.textCase !== figma.mixed && textNode.textCase !== "ORIGINAL") {
       info["textCase"] = textNode.textCase;
     }

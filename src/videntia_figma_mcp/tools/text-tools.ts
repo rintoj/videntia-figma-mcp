@@ -545,6 +545,62 @@ export function registerTextTools(server: McpServer): void {
     },
   );
 
+  // Set Text Align Tool
+  server.tool(
+    "set_text_align",
+    "Set horizontal and/or vertical text alignment on one or more TEXT nodes. Provide nodeId or nodeIds and at least one of horizontal/vertical. " +
+      "Horizontal alignment only visibly matters when the text box is wider than its content — fixed width (textAutoResize HEIGHT or NONE) or FILL sizing; WIDTH_AND_HEIGHT text hugs its content, so give it a width first (create_text `width`, resize_node, or set_layout_sizing FILL). " +
+      "Vertical alignment only matters when the box is taller than the text (textAutoResize NONE or a fixed/FILL height). Non-text nodes are reported per node and skipped.",
+    {
+      nodeId: z.string().optional().describe("ID of a single TEXT node to align"),
+      nodeIds: coerceArray(z.array(z.string()))
+        .optional()
+        .describe("IDs of TEXT nodes to align (combined with nodeId when both are given)"),
+      horizontal: z
+        .enum(["LEFT", "CENTER", "RIGHT", "JUSTIFIED"])
+        .optional()
+        .describe("textAlignHorizontal: LEFT (Figma default), CENTER, RIGHT or JUSTIFIED"),
+      vertical: z
+        .enum(["TOP", "CENTER", "BOTTOM"])
+        .optional()
+        .describe("textAlignVertical: TOP (Figma default), CENTER or BOTTOM"),
+    },
+    async ({ nodeId, nodeIds, horizontal, vertical }) => {
+      try {
+        const result = await sendCommandToFigma(
+          "set_text_align",
+          normalizeCommandParams("set_text_align", { nodeId, nodeIds, horizontal, vertical }),
+        );
+        const typedResult = result as {
+          updated?: number;
+          failed?: number;
+          results?: Array<Record<string, unknown>>;
+        };
+        const total = typedResult.results ? typedResult.results.length : 0;
+        const summary = `Aligned ${typedResult.updated ?? 0} of ${total} text node(s)${
+          typedResult.failed ? ` (${typedResult.failed} failed)` : ""
+        }`;
+        return {
+          content: [
+            {
+              type: "text",
+              text: `${summary}\n${JSON.stringify(typedResult.results ?? [], null, 2)}`,
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error setting text alignment: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
   // Set Text Decoration Tool
   server.tool(
     "set_text_decoration",

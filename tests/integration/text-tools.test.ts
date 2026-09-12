@@ -89,4 +89,54 @@ describe("text tools integration", () => {
       expect(response.content[0].text).toContain("Node is not a text node");
     });
   });
+
+  describe("set_text_align", () => {
+    it("forwards normalized params for multiple nodes and reports per-node results", async () => {
+      mockSendCommand.mockResolvedValue({
+        success: false,
+        updated: 1,
+        failed: 1,
+        results: [
+          { nodeId: "1:2", name: "Title", success: true, textAlignHorizontal: "CENTER", textAlignVertical: "TOP" },
+          { nodeId: "3:4", name: "Card", success: false, error: "Node is not a text node (type FRAME)" },
+        ],
+      });
+
+      const response = await callTool("set_text_align", { nodeIds: "1-2,3-4", horizontal: "CENTER" });
+
+      expect(mockSendCommand).toHaveBeenCalledWith(
+        "set_text_align",
+        expect.objectContaining({ nodeIds: ["1:2", "3:4"], textAlignHorizontal: "CENTER" }),
+      );
+      const params = mockSendCommand.mock.calls[0][1];
+      expect(params).not.toHaveProperty("horizontal");
+      expect(response.content[0].text).toContain("Aligned 1 of 2 text node(s) (1 failed)");
+      expect(response.content[0].text).toContain("Node is not a text node (type FRAME)");
+    });
+
+    it("accepts a single nodeId with vertical only", async () => {
+      mockSendCommand.mockResolvedValue({ success: true, updated: 1, failed: 0, results: [{ nodeId: "1:2" }] });
+
+      await callTool("set_text_align", { nodeId: "1-2", vertical: "BOTTOM" });
+
+      expect(mockSendCommand.mock.calls[0][1]).toEqual(
+        expect.objectContaining({ nodeId: "1:2", textAlignVertical: "BOTTOM" }),
+      );
+    });
+
+    it("returns a clear error without calling Figma when nodes or alignment are missing", async () => {
+      const noNodes = await callTool("set_text_align", { horizontal: "LEFT" });
+      expect(noNodes.content[0].text).toContain("set_text_align requires nodeId or nodeIds");
+
+      const noAlign = await callTool("set_text_align", { nodeId: "1:2" });
+      expect(noAlign.content[0].text).toContain("set_text_align requires horizontal and/or vertical");
+
+      expect(mockSendCommand).not.toHaveBeenCalled();
+    });
+
+    it("rejects invalid enum values at the schema", async () => {
+      await expect(callTool("set_text_align", { nodeId: "1:2", horizontal: "MIDDLE" })).rejects.toThrow();
+      await expect(callTool("set_text_align", { nodeId: "1:2", vertical: "LEFT" })).rejects.toThrow();
+    });
+  });
 });
