@@ -10,6 +10,7 @@ import {
 } from "../utils/helpers";
 import { resolveColor } from "./fills";
 import { resolveColorVariable } from "./icons";
+import { validateGridTrackSizes, assertTrackSizesFit, applyGridTrackSizes, serializeGridTrackSizes } from "./layout";
 
 // ---------------------------------------------------------------------------
 // Text alignment helpers
@@ -1049,6 +1050,27 @@ export async function setAutoLayout(params: Record<string, unknown>): Promise<Re
   }
 
   const frameNode = node as FrameNode;
+  const gridRowSizes = validateGridTrackSizes(
+    safeParams.gridRowSizes !== undefined ? safeParams.gridRowSizes : safeParams.rowSizes,
+    "rowSizes",
+  );
+  const gridColumnSizes = validateGridTrackSizes(
+    safeParams.gridColumnSizes !== undefined ? safeParams.gridColumnSizes : safeParams.columnSizes,
+    "columnSizes",
+  );
+  if (layoutMode !== "GRID" && (gridRowSizes || gridColumnSizes)) {
+    throw new Error(`rowSizes/columnSizes apply to GRID mode only (mode is ${layoutMode}). No changes were made.`);
+  }
+  if (layoutMode === "GRID") {
+    const rowsParam = (safeParams.gridRowCount !== undefined ? safeParams.gridRowCount : safeParams.rows) as
+      | number
+      | undefined;
+    const columnsParam = (
+      safeParams.gridColumnCount !== undefined ? safeParams.gridColumnCount : safeParams.columns
+    ) as number | undefined;
+    assertTrackSizesFit(frameNode, gridRowSizes, rowsParam, "rowSizes");
+    assertTrackSizesFit(frameNode, gridColumnSizes, columnsParam, "columnSizes");
+  }
   // Capture before mutating: drives whether we touch layoutSizing* below, and
   // guards against reassigning layoutMode to its current value — Figma resets
   // layoutSizingHorizontal/Vertical (and thus item spacing/padding rendering)
@@ -1099,6 +1121,8 @@ export async function setAutoLayout(params: Record<string, unknown>): Promise<Re
       }
       if (gridRowCount !== undefined) frameNode.gridRowCount = gridRowCount;
       if (gridColumnCount !== undefined) frameNode.gridColumnCount = gridColumnCount;
+      // Track sizes index into the tracks, so they go after the counts.
+      applyGridTrackSizes(frameNode, gridRowSizes, gridColumnSizes);
 
       // `gap` is the CSS shorthand: it sets both axes unless a per-axis value wins.
       if (itemSpacing !== undefined) {
@@ -1176,6 +1200,8 @@ export async function setAutoLayout(params: Record<string, unknown>): Promise<Re
           gridColumnGap: frameNode.gridColumnGap,
           gridAutoTracks: frameNode.gridAutoTracks,
           gridItemsPositioning: frameNode.gridItemsPositioning,
+          ...(gridRowSizes ? { gridRowSizes: serializeGridTrackSizes(frameNode.gridRowSizes) } : {}),
+          ...(gridColumnSizes ? { gridColumnSizes: serializeGridTrackSizes(frameNode.gridColumnSizes) } : {}),
         }
       : {}),
     strokesIncludedInLayout: frameNode.strokesIncludedInLayout,

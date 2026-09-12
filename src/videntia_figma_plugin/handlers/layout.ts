@@ -281,6 +281,16 @@ export async function setLayoutMode(params: Record<string, unknown>): Promise<Re
   }
 
   const frame = node as FrameNode;
+  const rowSizes = validateGridTrackSizes(paramAlias(params, "gridRowSizes", "rowSizes"), "rowSizes");
+  const columnSizes = validateGridTrackSizes(paramAlias(params, "gridColumnSizes", "columnSizes"), "columnSizes");
+  if (layoutMode !== "GRID" && (rowSizes || columnSizes)) {
+    throw new Error(`rowSizes/columnSizes apply to GRID mode only (mode is ${layoutMode}). No changes were made.`);
+  }
+  const gridRowCount = paramAlias(params, "gridRowCount", "rows") as number | undefined;
+  const gridColumnCount = paramAlias(params, "gridColumnCount", "columns") as number | undefined;
+  assertTrackSizesFit(frame, rowSizes, gridRowCount, "rowSizes");
+  assertTrackSizesFit(frame, columnSizes, gridColumnCount, "columnSizes");
+
   // Mode must be assigned before the grid track counts — they are only writable
   // once the frame is actually a grid. But only write it when it's actually
   // changing: reassigning layoutMode — even to its current value — resets the
@@ -293,8 +303,6 @@ export async function setLayoutMode(params: Record<string, unknown>): Promise<Re
 
   if (layoutMode === "GRID") {
     // layoutWrap is a flex-wrap concept and does not apply to grids.
-    const gridRowCount = paramAlias(params, "gridRowCount", "rows") as number | undefined;
-    const gridColumnCount = paramAlias(params, "gridColumnCount", "columns") as number | undefined;
     const gridAutoTracks = params["gridAutoTracks"] as string | undefined;
     const gridItemsPositioning = params["gridItemsPositioning"] as string | undefined;
 
@@ -306,6 +314,8 @@ export async function setLayoutMode(params: Record<string, unknown>): Promise<Re
       frame.gridItemsPositioning = gridItemsPositioning as "MANUAL" | "ROW_AUTO_FLOW";
     if (gridRowCount !== undefined) frame.gridRowCount = gridRowCount;
     if (gridColumnCount !== undefined) frame.gridColumnCount = gridColumnCount;
+    // Track sizes index into the tracks, so they go after the counts.
+    applyGridTrackSizes(frame, rowSizes, columnSizes);
 
     return {
       nodeId: node.id,
@@ -315,6 +325,8 @@ export async function setLayoutMode(params: Record<string, unknown>): Promise<Re
       gridColumnCount: frame.gridColumnCount,
       gridAutoTracks: frame.gridAutoTracks,
       gridItemsPositioning: frame.gridItemsPositioning,
+      ...(rowSizes ? { gridRowSizes: serializeGridTrackSizes(frame.gridRowSizes) } : {}),
+      ...(columnSizes ? { gridColumnSizes: serializeGridTrackSizes(frame.gridColumnSizes) } : {}),
       success: true,
     };
   }
@@ -368,6 +380,274 @@ export async function reorderGridTracks(params: Record<string, unknown>): Promis
     name: node.name,
     axis,
     moves: moves.map((m) => ({ from: m.from, to: m.to })),
+    success: true,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Grid track sizes
+// ---------------------------------------------------------------------------
+
+const GRID_TRACK_TYPES = new Set(["FIXED", "FLEX", "HUG"]);
+
+export interface GridTrackSizeInput {
+  type: "FIXED" | "FLEX" | "HUG";
+  value?: number;
+}
+
+/** Shape-checks a rowSizes/columnSizes array. Throws before any node is touched. */
+export function validateGridTrackSizes(sizes: unknown, label: string): GridTrackSizeInput[] | undefined {
+  if (sizes === undefined || sizes === null) return undefined;
+  if (!Array.isArray(sizes) || sizes.length === 0) {
+    throw new Error(`${label} must be a non-empty array of { type: "FIXED" | "FLEX" | "HUG", value? }`);
+  }
+  return sizes.map((entry, i) => {
+    const track = entry as Record<string, unknown> | null;
+    if (!track || typeof track !== "object" || !GRID_TRACK_TYPES.has(track.type as string)) {
+      throw new Error(`${label}[${i}].type must be FIXED, FLEX or HUG`);
+    }
+    const type = track.type as GridTrackSizeInput["type"];
+    const value = track.value;
+    if (value !== undefined && value !== null && (typeof value !== "number" || !Number.isFinite(value) || value <= 0)) {
+      throw new Error(`${label}[${i}].value must be a positive number`);
+    }
+    if (type === "FIXED" && (value === undefined || value === null)) {
+      throw new Error(`${label}[${i}] is FIXED and needs a value in pixels`);
+    }
+    if (type === "HUG" && value !== undefined && value !== null) {
+      throw new Error(`${label}[${i}] is HUG — omit value (HUG tracks size to their content)`);
+    }
+    return value === undefined || value === null ? { type } : { type, value: value as number };
+  });
+}
+
+export function assertTrackSizeCount(sizes: GridTrackSizeInput[] | undefined, count: number, label: string): void {
+  if (sizes && sizes.length !== count) {
+    throw new Error(`${label} has ${sizes.length} entries but the grid has ${count} — pass one entry per track`);
+  }
+}
+
+/**
+ * Pre-mutation length check. The resulting track count is known only from the count param
+ * or an existing GRID frame, so converting to GRID with sizes but no count is rejected here
+ * instead of failing after layoutMode has already changed.
+ */
+export function assertTrackSizesFit(
+  frame: FrameNode,
+  sizes: GridTrackSizeInput[] | undefined,
+  count: number | undefined,
+  label: "rowSizes" | "columnSizes",
+): void {
+  if (!sizes) return;
+  if (count !== undefined) return assertTrackSizeCount(sizes, count, label);
+  if (frame.layoutMode === "GRID") {
+    return assertTrackSizeCount(sizes, label === "rowSizes" ? frame.gridRowCount : frame.gridColumnCount, label);
+  }
+  const countParam = label === "rowSizes" ? "rows" : "columns";
+  throw new Error(
+    `${label} needs ${countParam} when converting a ${frame.layoutMode} frame to GRID, so the track count is known up front. No changes were made.`,
+  );
+}
+
+/** Writes validated track sizes through the GridTrackSize setters. Counts must already be applied. */
+export function applyGridTrackSizes(
+  frame: FrameNode,
+  rowSizes: GridTrackSizeInput[] | undefined,
+  columnSizes: GridTrackSizeInput[] | undefined,
+): void {
+  assertTrackSizeCount(rowSizes, frame.gridRowCount, "rowSizes");
+  assertTrackSizeCount(columnSizes, frame.gridColumnCount, "columnSizes");
+  const write = (tracks: GridTrackSize[], sizes: GridTrackSizeInput[]) => {
+    sizes.forEach((size, i) => {
+      tracks[i].type = size.type;
+      if (size.value !== undefined) tracks[i].value = size.value;
+    });
+  };
+  if (rowSizes) write(frame.gridRowSizes, rowSizes);
+  if (columnSizes) write(frame.gridColumnSizes, columnSizes);
+}
+
+export function serializeGridTrackSizes(tracks: ReadonlyArray<GridTrackSize> | undefined): GridTrackSizeInput[] {
+  return (tracks || []).map((t) =>
+    t.type === "HUG" || t.value === undefined ? { type: t.type } : { type: t.type, value: t.value },
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Grid children
+// ---------------------------------------------------------------------------
+
+const GRID_PARENT_TYPES = new Set(["FRAME", "COMPONENT", "COMPONENT_SET"]);
+const GRID_CHILD_ALIGNS = new Set(["MIN", "CENTER", "MAX", "AUTO"]);
+
+type GridChild = SceneNode & GridChildrenMixin;
+
+function readNonNegativeInt(params: Record<string, unknown>, key: string, min: number): number | undefined {
+  const value = params[key];
+  if (value === undefined || value === null) return undefined;
+  if (typeof value !== "number" || !Number.isInteger(value) || value < min) {
+    throw new Error(`${key} must be an integer ≥ ${min}. No changes were made.`);
+  }
+  return value;
+}
+
+function gridChildState(child: GridChild) {
+  return {
+    row: child.gridRowAnchorIndex,
+    column: child.gridColumnAnchorIndex,
+    rowSpan: child.gridRowSpan,
+    columnSpan: child.gridColumnSpan,
+    horizontalAlign: child.gridChildHorizontalAlign,
+    verticalAlign: child.gridChildVerticalAlign,
+  };
+}
+
+export async function setGridChild(params: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const nodeId = params["nodeId"] as string | undefined;
+  if (!nodeId) throw new Error("Missing nodeId parameter");
+
+  const row = readNonNegativeInt(params, "row", 0);
+  const column = readNonNegativeInt(params, "column", 0);
+  const rowSpan = readNonNegativeInt(params, "rowSpan", 1);
+  const columnSpan = readNonNegativeInt(params, "columnSpan", 1);
+  const horizontalAlign = params["horizontalAlign"] as string | undefined;
+  const verticalAlign = params["verticalAlign"] as string | undefined;
+
+  for (const [key, value] of [
+    ["horizontalAlign", horizontalAlign],
+    ["verticalAlign", verticalAlign],
+  ] as const) {
+    if (value !== undefined && !GRID_CHILD_ALIGNS.has(value)) {
+      throw new Error(`${key} must be MIN, CENTER, MAX or AUTO. No changes were made.`);
+    }
+  }
+  if ([row, column, rowSpan, columnSpan, horizontalAlign, verticalAlign].every((v) => v === undefined)) {
+    throw new Error(
+      "Nothing to set — pass row, column, rowSpan, columnSpan, horizontalAlign and/or verticalAlign. No changes were made.",
+    );
+  }
+
+  const node = await figma.getNodeByIdAsync(nodeId);
+  if (!node) throw new Error(`Node with ID ${nodeId} not found`);
+
+  const parent = node.parent as (BaseNode & { layoutMode?: string }) | null;
+  if (!parent || !GRID_PARENT_TYPES.has(parent.type) || parent.layoutMode !== "GRID") {
+    throw new Error(
+      `Node "${node.name}" is not a child of a GRID auto-layout frame (parent: ${
+        parent ? `${parent.type}${parent.layoutMode ? ` layoutMode ${parent.layoutMode}` : ""}` : "none"
+      }). Set the parent to GRID with set_layout_mode first. No changes were made.`,
+    );
+  }
+  if (!("gridRowSpan" in node) || typeof (node as GridChild).setGridChildPosition !== "function") {
+    throw new Error(`Node "${node.name}" (type: ${node.type}) cannot be placed in a grid. No changes were made.`);
+  }
+
+  const child = node as GridChild;
+  const grid = parent as unknown as FrameNode;
+  if ((child as SceneNode & { layoutPositioning?: string }).layoutPositioning === "ABSOLUTE") {
+    throw new Error(
+      `Node "${node.name}" is absolutely positioned inside the grid and has no cell. No changes were made.`,
+    );
+  }
+
+  const autoFlow = grid.gridItemsPositioning === "ROW_AUTO_FLOW";
+  const positionRequested = row !== undefined || column !== undefined;
+  if (autoFlow && positionRequested) {
+    throw new Error(
+      `Grid "${grid.name}" uses gridItemsPositioning ROW_AUTO_FLOW, so cell positions are automatic — reorder with insert_child, or set gridItemsPositioning to MANUAL first. No changes were made.`,
+    );
+  }
+
+  const before = gridChildState(child);
+  const target = {
+    row: row !== undefined ? row : before.row,
+    column: column !== undefined ? column : before.column,
+    rowSpan: rowSpan !== undefined ? rowSpan : before.rowSpan,
+    columnSpan: columnSpan !== undefined ? columnSpan : before.columnSpan,
+  };
+
+  // Rows are added on demand when gridAutoTracks is ROWS, so only columns are hard-bounded then.
+  const rowsBounded = grid.gridAutoTracks !== "ROWS";
+  if (rowsBounded && target.row + target.rowSpan > grid.gridRowCount) {
+    throw new Error(
+      `Row ${target.row} with rowSpan ${target.rowSpan} does not fit grid "${grid.name}" (${grid.gridRowCount} rows, indices 0-${
+        grid.gridRowCount - 1
+      }). No changes were made.`,
+    );
+  }
+  if (target.column + target.columnSpan > grid.gridColumnCount) {
+    throw new Error(
+      `Column ${target.column} with columnSpan ${target.columnSpan} does not fit grid "${grid.name}" (${
+        grid.gridColumnCount
+      } columns, indices 0-${grid.gridColumnCount - 1}). No changes were made.`,
+    );
+  }
+
+  if (!autoFlow) {
+    const overlaps = (grid.children || []).filter((sibling) => {
+      const s = sibling as GridChild & { layoutPositioning?: string };
+      if (s === child || s.visible === false || s.layoutPositioning === "ABSOLUTE") return false;
+      if (typeof s.gridRowAnchorIndex !== "number" || typeof s.gridColumnAnchorIndex !== "number") return false;
+      const sRowSpan = s.gridRowSpan || 1;
+      const sColSpan = s.gridColumnSpan || 1;
+      return (
+        target.row < s.gridRowAnchorIndex + sRowSpan &&
+        s.gridRowAnchorIndex < target.row + target.rowSpan &&
+        target.column < s.gridColumnAnchorIndex + sColSpan &&
+        s.gridColumnAnchorIndex < target.column + target.columnSpan
+      );
+    });
+    if (overlaps.length > 0) {
+      throw new Error(
+        `Cell area row ${target.row}-${target.row + target.rowSpan - 1}, column ${target.column}-${
+          target.column + target.columnSpan - 1
+        } overlaps ${overlaps.map((s) => `"${s.name}" (${s.id})`).join(", ")}. Move or shrink those first. No changes were made.`,
+      );
+    }
+  }
+
+  const spansChanging = target.rowSpan !== before.rowSpan || target.columnSpan !== before.columnSpan;
+  const positionChanging = target.row !== before.row || target.column !== before.column;
+
+  try {
+    // Collapse to one cell before moving so the intermediate state never overlaps
+    // a sibling, then grow to the requested spans at the new anchor.
+    if (positionChanging && spansChanging) {
+      if (child.gridRowSpan !== 1) child.gridRowSpan = 1;
+      if (child.gridColumnSpan !== 1) child.gridColumnSpan = 1;
+    }
+    if (positionChanging) child.setGridChildPosition(target.row, target.column);
+    if (child.gridRowSpan !== target.rowSpan) child.gridRowSpan = target.rowSpan;
+    if (child.gridColumnSpan !== target.columnSpan) child.gridColumnSpan = target.columnSpan;
+    if (horizontalAlign !== undefined) {
+      child.gridChildHorizontalAlign = horizontalAlign as GridChildrenMixin["gridChildHorizontalAlign"];
+    }
+    if (verticalAlign !== undefined) {
+      child.gridChildVerticalAlign = verticalAlign as GridChildrenMixin["gridChildVerticalAlign"];
+    }
+  } catch (error) {
+    try {
+      if (child.gridRowSpan !== 1) child.gridRowSpan = 1;
+      if (child.gridColumnSpan !== 1) child.gridColumnSpan = 1;
+      if (!autoFlow && (child.gridRowAnchorIndex !== before.row || child.gridColumnAnchorIndex !== before.column)) {
+        child.setGridChildPosition(before.row, before.column);
+      }
+      child.gridRowSpan = before.rowSpan;
+      child.gridColumnSpan = before.columnSpan;
+      child.gridChildHorizontalAlign = before.horizontalAlign;
+      child.gridChildVerticalAlign = before.verticalAlign;
+    } catch {
+      /* best-effort rollback; report the original failure */
+    }
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Figma rejected the grid placement for "${node.name}": ${message}. Changes were rolled back.`);
+  }
+
+  return {
+    nodeId: child.id,
+    name: child.name,
+    parentId: grid.id,
+    ...gridChildState(child),
     success: true,
   };
 }

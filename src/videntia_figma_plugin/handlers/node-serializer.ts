@@ -252,6 +252,33 @@ async function processNode(
     if (grid.gridColumnGap !== undefined) info["gridColumnGap"] = grid.gridColumnGap;
     if (grid.gridRowCount !== undefined) info["gridRowCount"] = grid.gridRowCount;
     if (grid.gridColumnCount !== undefined) info["gridColumnCount"] = grid.gridColumnCount;
+    const trackSizes = function (tracks: ReadonlyArray<GridTrackSize> | undefined) {
+      return Array.isArray(tracks)
+        ? tracks.map(function (t) {
+            return t.type === "HUG" || t.value === undefined ? { type: t.type } : { type: t.type, value: t.value };
+          })
+        : undefined;
+    };
+    const rowSizes = trackSizes(grid.gridRowSizes);
+    const columnSizes = trackSizes(grid.gridColumnSizes);
+    if (rowSizes) info["gridRowSizes"] = rowSizes;
+    if (columnSizes) info["gridColumnSizes"] = columnSizes;
+  }
+  // Cell placement for direct children of a GRID frame (absolute children have no cell).
+  const gridParent = node.parent as (BaseNode & { layoutMode?: string }) | null;
+  if (
+    gridParent &&
+    gridParent.layoutMode === "GRID" &&
+    (node as SceneNode & { layoutPositioning?: string }).layoutPositioning !== "ABSOLUTE" &&
+    typeof (node as LayoutMixin).gridRowAnchorIndex === "number"
+  ) {
+    const cell = node as LayoutMixin;
+    info["gridRowAnchorIndex"] = cell.gridRowAnchorIndex;
+    info["gridColumnAnchorIndex"] = cell.gridColumnAnchorIndex;
+    info["gridRowSpan"] = cell.gridRowSpan;
+    info["gridColumnSpan"] = cell.gridColumnSpan;
+    info["gridChildHorizontalAlign"] = cell.gridChildHorizontalAlign;
+    info["gridChildVerticalAlign"] = cell.gridChildVerticalAlign;
   }
   if ("layoutWrap" in node) info["layoutWrap"] = (node as FrameNode).layoutWrap;
   if ("paddingTop" in node) info["paddingTop"] = (node as FrameNode).paddingTop;

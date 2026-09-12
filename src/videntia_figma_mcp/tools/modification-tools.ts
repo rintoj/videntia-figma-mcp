@@ -377,6 +377,21 @@ export function registerModificationTools(server: McpServer): void {
     },
   );
 
+  const gridTrackSizesSchema = coerceArray(
+    z.array(
+      z.object({
+        type: z
+          .enum(["FIXED", "FLEX", "HUG"])
+          .describe("FIXED = pixel size, FLEX = fractional share (CSS fr), HUG = fit content"),
+        value: z.coerce
+          .number()
+          .positive()
+          .optional()
+          .describe("Pixels for FIXED (required), fr weight for FLEX (optional), omit for HUG"),
+      }),
+    ),
+  );
+
   // Set Layout Mode Tool
   server.tool(
     "set_layout_mode",
@@ -418,8 +433,18 @@ export function registerModificationTools(server: McpServer): void {
         .describe(
           "GRID mode only. MANUAL = children stay at their explicitly assigned cell (default); ROW_AUTO_FLOW = children auto-place into the next free cell in row-major order as they're added — reorder via insert_child, not manual cell assignment, in this mode.",
         ),
+      rowSizes: gridTrackSizesSchema
+        .optional()
+        .describe(
+          'GRID mode only. One { type, value? } per row, top to bottom, applied after rows — length must equal the row count. E.g. [{"type":"FIXED","value":64},{"type":"FLEX"}]. FLEX tracks are invalid on an axis whose container sizing is HUG.',
+        ),
+      columnSizes: gridTrackSizesSchema
+        .optional()
+        .describe(
+          "GRID mode only. One { type, value? } per column, left to right, applied after columns — length must equal the column count.",
+        ),
     },
-    async ({ nodeId, mode, wrap, rows, columns, gridAutoTracks, gridItemsPositioning }) => {
+    async ({ nodeId, mode, wrap, rows, columns, gridAutoTracks, gridItemsPositioning, rowSizes, columnSizes }) => {
       nodeId = normalizeNodeId(nodeId);
       try {
         const params = normalizeCommandParams("set_layout_mode", {
@@ -430,6 +455,8 @@ export function registerModificationTools(server: McpServer): void {
           columns,
           gridAutoTracks,
           gridItemsPositioning,
+          rowSizes,
+          columnSizes,
         });
         const result = await sendCommandToFigma("set_layout_mode", params);
         const typedResult = result as { name: string; gridRowCount?: number; gridColumnCount?: number };
@@ -501,6 +528,82 @@ export function registerModificationTools(server: McpServer): void {
             {
               type: "text",
               text: `Error reordering grid tracks: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  // Set Grid Child Tool
+  server.tool(
+    "set_grid_child",
+    "Place a child of a GRID auto-layout frame (FRAME, COMPONENT or COMPONENT_SET) in a specific cell, span it across rows/columns, and align it inside its cell. Indices are 0-based. Everything is validated before any change: the parent must be GRID, the cell area must fit the grid's row/column counts and must not overlap another visible child. Positions cannot be set when the grid uses gridItemsPositioning ROW_AUTO_FLOW (spans and alignment still can). Returns the applied row, column, spans and alignment.",
+    {
+      nodeId: z.string().describe("ID of a direct child of a GRID-mode frame"),
+      row: z.coerce.number().int().nonnegative().optional().describe("0-based row index of the child's top-left cell"),
+      column: z.coerce
+        .number()
+        .int()
+        .nonnegative()
+        .optional()
+        .describe("0-based column index of the child's top-left cell"),
+      rowSpan: z.coerce
+        .number()
+        .int()
+        .positive()
+        .optional()
+        .describe("Number of rows the child covers (≥ 1; row + rowSpan must not exceed the row count)"),
+      columnSpan: z.coerce
+        .number()
+        .int()
+        .positive()
+        .optional()
+        .describe("Number of columns the child covers (≥ 1; column + columnSpan must not exceed the column count)"),
+      horizontalAlign: z
+        .enum(["MIN", "CENTER", "MAX", "AUTO"])
+        .optional()
+        .describe("Horizontal alignment inside the cell area: MIN = left, CENTER, MAX = right, AUTO = grid default"),
+      verticalAlign: z
+        .enum(["MIN", "CENTER", "MAX", "AUTO"])
+        .optional()
+        .describe("Vertical alignment inside the cell area: MIN = top, CENTER, MAX = bottom, AUTO = grid default"),
+    },
+    async ({ nodeId, row, column, rowSpan, columnSpan, horizontalAlign, verticalAlign }) => {
+      nodeId = normalizeNodeId(nodeId);
+      try {
+        const params = normalizeCommandParams("set_grid_child", {
+          nodeId,
+          row,
+          column,
+          rowSpan,
+          columnSpan,
+          horizontalAlign,
+          verticalAlign,
+        });
+        const result = (await sendCommandToFigma("set_grid_child", params)) as {
+          name: string;
+          row: number;
+          column: number;
+          rowSpan: number;
+          columnSpan: number;
+          horizontalAlign: string;
+          verticalAlign: string;
+        };
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Placed "${result.name}" at row ${result.row}, column ${result.column} (span ${result.rowSpan}×${result.columnSpan}, align ${result.horizontalAlign}/${result.verticalAlign})`,
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error setting grid child: ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };
@@ -922,6 +1025,16 @@ export function registerModificationTools(server: McpServer): void {
         .describe(
           "GRID mode only. MANUAL = children stay at their explicitly assigned cell (default); ROW_AUTO_FLOW = children auto-place into the next free cell in row-major order as they're added — reorder via insert_child, not manual cell assignment, in this mode.",
         ),
+      rowSizes: gridTrackSizesSchema
+        .optional()
+        .describe(
+          'GRID mode only. One { type, value? } per row, top to bottom, applied after rows — length must equal the row count. E.g. [{"type":"FIXED","value":64},{"type":"FLEX"}]. FLEX tracks are invalid on an axis whose container sizing is HUG.',
+        ),
+      columnSizes: gridTrackSizesSchema
+        .optional()
+        .describe(
+          "GRID mode only. One { type, value? } per column, left to right, applied after columns — length must equal the column count.",
+        ),
       primaryAxisAlignItems: z
         .enum(["MIN", "CENTER", "MAX", "SPACE_BETWEEN"])
         .optional()
@@ -973,6 +1086,8 @@ export function registerModificationTools(server: McpServer): void {
       columnGap,
       gridAutoTracks,
       gridItemsPositioning,
+      rowSizes,
+      columnSizes,
       primaryAxisAlignItems,
       counterAxisAlignItems,
       wrap,
@@ -997,6 +1112,8 @@ export function registerModificationTools(server: McpServer): void {
           columnGap,
           gridAutoTracks,
           gridItemsPositioning,
+          rowSizes,
+          columnSizes,
           primaryAxisAlignItems,
           counterAxisAlignItems,
           wrap,
