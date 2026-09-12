@@ -2009,12 +2009,22 @@ export function registerVariableTools(server: McpServer): void {
         });
         const collectionId = collection.collectionId ?? "";
 
-        // 2. Add additional modes
+        // 2. Add additional modes; a refused mode (e.g. plan limit) is skipped, not fatal
+        const createdModes: string[] = [modes[0]];
+        const skippedModes: { mode: string; reason: string }[] = [];
         for (let i = 1; i < modes.length; i++) {
-          await sendCommandToFigma<AddModeResult>("add_mode_to_collection", {
-            collectionId,
-            modeName: modes[i],
-          });
+          try {
+            await sendCommandToFigma<AddModeResult>("add_mode_to_collection", {
+              collectionId,
+              modeName: modes[i],
+            });
+            createdModes.push(modes[i]);
+          } catch (modeError) {
+            skippedModes.push({
+              mode: modes[i],
+              reason: modeError instanceof Error ? modeError.message : String(modeError),
+            });
+          }
         }
 
         // 3. Create color system (use existing tools)
@@ -2060,7 +2070,7 @@ export function registerVariableTools(server: McpServer): void {
         breakdown.radius = radiusResult.totalVariables || 0;
 
         // 7. If dark mode was created, duplicate values with adjustments
-        if (modes.length > 1 && modes.includes("Dark")) {
+        if (createdModes.length > 1 && createdModes.includes("Dark")) {
           await sendCommandToFigma<DuplicateModeValuesResult>("duplicate_mode_values", {
             collectionId,
             sourceMode: modes[0],
@@ -2075,6 +2085,11 @@ export function registerVariableTools(server: McpServer): void {
         const totalVariables = Object.values(breakdown).reduce((a: number, b: number) => a + b, 0);
 
         const duration = Date.now() - startTime;
+
+        const skippedModesText =
+          skippedModes.length > 0
+            ? `\nSkipped Modes (${skippedModes.length}):\n${skippedModes.map((s) => `- ${s.mode}: ${s.reason}`).join("\n")}\n`
+            : "";
 
         return {
           content: [
@@ -2091,8 +2106,8 @@ Summary:
 - Typography: ${breakdown.typography}
 - Border Radius: ${breakdown.radius}
 
-Modes: ${modes.join(", ")}
-
+Modes: ${createdModes.join(", ")}
+${skippedModesText}
 Configuration:
 - Spacing: ${params.spacingPreset}
 - Typography: ${params.typographyPreset}

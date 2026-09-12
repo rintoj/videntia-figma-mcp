@@ -1968,13 +1968,32 @@ export async function addChartColors(params: Record<string, unknown>): Promise<R
 // Mode management handlers
 // -------------------------------------------------------------------------
 
+const MODE_LIMIT_PATTERN = /\blimit|\bplans?\b|\bmaximum\b|\bexceed|\bupgrade|\btoo many\b/i;
+
+export function isModeLimitError(message: string): boolean {
+  return MODE_LIMIT_PATTERN.test(message);
+}
+
 export async function addModeToCollection(params: Record<string, unknown>): Promise<Record<string, unknown>> {
   const collectionId = params["collectionId"] as string;
   const modeName = params["modeName"] as string;
 
   const collection = await findCollection(collectionId);
 
-  const newModeId = collection.addMode(modeName);
+  let newModeId: string;
+  try {
+    newModeId = collection.addMode(modeName);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (!isModeLimitError(message)) throw error;
+    const count = collection.modes.length;
+    throw new Error(
+      `Mode limit reached: collection "${collection.name}" already has ${count} mode${count === 1 ? "" : "s"}, ` +
+        `and Figma refused to add "${modeName}". The Figma plan limits how many modes a collection can have ` +
+        `(Starter/free plan = 1 mode per collection). Workaround: create a separate collection for this mode with ` +
+        `create_variable_collection, passing defaultMode: "${modeName}". (Figma: ${message})`,
+    );
+  }
 
   const newMode = collection.modes.find((m: { modeId: string; name: string }) => m.modeId === newModeId);
 
