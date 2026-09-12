@@ -1,4 +1,5 @@
 import { debugLog } from "../utils/helpers";
+import { applyEffectVariables, VariableLookupCache } from "./variable-bindings";
 
 export async function setEffects(params: Record<string, unknown>): Promise<Record<string, unknown>> {
   const nodeId = params["nodeId"] as string | undefined;
@@ -100,8 +101,14 @@ export async function setEffects(params: Record<string, unknown>): Promise<Recor
       }
     });
 
-    // Apply the effects to the node
-    (node as BlendMixin).effects = validEffects;
+    const cache: VariableLookupCache = {};
+    const boundEffects: Effect[] = [];
+    for (let i = 0; i < validEffects.length; i++) {
+      const entry = (effects as Array<Record<string, unknown>>)[i];
+      boundEffects.push(await applyEffectVariables(validEffects[i] as Effect, entry, `effects[${i}]`, cache));
+    }
+
+    (node as BlendMixin).effects = boundEffects;
 
     const effectNode = node as BlendMixin;
     return {
@@ -294,6 +301,15 @@ function buildValidStyleEffect(effect: Record<string, unknown>): Effect {
   }
 }
 
+async function buildStyleEffects(effects: Array<Record<string, unknown>>): Promise<Effect[]> {
+  const cache: VariableLookupCache = {};
+  const result: Effect[] = [];
+  for (let i = 0; i < effects.length; i++) {
+    result.push(await applyEffectVariables(buildValidStyleEffect(effects[i]), effects[i], `effects[${i}]`, cache));
+  }
+  return result;
+}
+
 export async function createEffectStyle(params: Record<string, unknown>): Promise<Record<string, unknown>> {
   const name = params["name"] as string | undefined;
   const effects = params["effects"] as unknown[] | undefined;
@@ -308,7 +324,7 @@ export async function createEffectStyle(params: Record<string, unknown>): Promis
   }
 
   try {
-    const validEffects = (effects as Array<Record<string, unknown>>).map(buildValidStyleEffect);
+    const validEffects = await buildStyleEffects(effects as Array<Record<string, unknown>>);
 
     const effectStyle = figma.createEffectStyle();
     effectStyle.name = name;
@@ -363,6 +379,15 @@ export async function updateEffectStyle(params: Record<string, unknown>): Promis
     const effectStyle = style as EffectStyle;
     const updatedProperties: string[] = [];
 
+    // Build (and resolve variables for) effects before touching the style, so a bad entry changes nothing.
+    let builtEffects: Effect[] | undefined;
+    if (effects !== undefined) {
+      if (!Array.isArray(effects) || effects.length === 0) {
+        throw new Error("effects must be a non-empty array");
+      }
+      builtEffects = await buildStyleEffects(effects as Array<Record<string, unknown>>);
+    }
+
     if (name !== undefined) {
       effectStyle.name = name;
       updatedProperties.push("name");
@@ -373,12 +398,8 @@ export async function updateEffectStyle(params: Record<string, unknown>): Promis
       updatedProperties.push("description");
     }
 
-    if (effects !== undefined) {
-      if (!Array.isArray(effects) || effects.length === 0) {
-        throw new Error("effects must be a non-empty array");
-      }
-
-      effectStyle.effects = (effects as Array<Record<string, unknown>>).map(buildValidStyleEffect);
+    if (builtEffects !== undefined) {
+      effectStyle.effects = builtEffects;
       updatedProperties.push("effects");
     }
 

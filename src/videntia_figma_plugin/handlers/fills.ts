@@ -2,6 +2,7 @@
 
 import { debugLog } from "../utils/helpers";
 import { customBase64Decode } from "../utils/base64";
+import { bindGradientStops, resolveVariableByIdOrName, VariableLookupCache } from "./variable-bindings";
 
 // ---------------------------------------------------------------------------
 // Hex color parsing
@@ -509,18 +510,32 @@ export async function setGradientFill(params: Record<string, unknown>): Promise<
     throw new Error(`Node does not support fills: ${nodeId}`);
   }
 
-  const figmaStops: ColorStop[] = stops.map((stop) => {
-    const stopColor = stop["color"] as Record<string, unknown>;
+  let figmaStops: ColorStop[] = stops.map((stop, i) => {
+    const stopColor = stop["color"] as Record<string, unknown> | undefined;
+    if (!stopColor && !stop["colorVariable"]) {
+      throw new Error(`stops[${i}] needs a color or a colorVariable`);
+    }
     return {
-      color: {
-        r: stopColor["r"] as number,
-        g: stopColor["g"] as number,
-        b: stopColor["b"] as number,
-        a: stopColor["a"] !== undefined ? (stopColor["a"] as number) : 1,
-      },
+      color: stopColor
+        ? {
+            r: stopColor["r"] as number,
+            g: stopColor["g"] as number,
+            b: stopColor["b"] as number,
+            a: stopColor["a"] !== undefined ? (stopColor["a"] as number) : 1,
+          }
+        : { r: 0, g: 0, b: 0, a: 1 },
       position: stop["position"] as number,
     };
   });
+
+  const variableCache: VariableLookupCache = {};
+  for (let i = 0; i < stops.length; i++) {
+    const ref = stops[i]["colorVariable"];
+    if (ref === undefined || ref === null || ref === "") continue;
+    if (typeof ref !== "string") throw new Error(`stops[${i}].colorVariable must be a variable name or id`);
+    const variable = await resolveVariableByIdOrName(ref, variableCache);
+    figmaStops = bindGradientStops(figmaStops, i, variable, `stops[${i}].colorVariable`);
+  }
 
   // Figma gradients use a 2x3 affine transform matrix in normalised [0,1] space.
   // For LINEAR: rotate around centre (0.5, 0.5) by the specified angle.

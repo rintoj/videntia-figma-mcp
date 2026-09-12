@@ -12,6 +12,23 @@ import { normalizeCommandParams } from "../utils/command-params.js";
  * This module contains tools for modifying existing elements in Figma
  * @param server - The MCP server instance
  */
+const variableRef = (field: string) =>
+  z
+    .string()
+    .optional()
+    .describe(
+      `Variable name or ID to bind the effect's ${field} to (e.g. 'shadow/color'); the raw value is the fallback`,
+    );
+
+/** Optional per-effect variable bindings shared by set_effects and the effect style tools. */
+const effectVariableParams = {
+  colorVariable: variableRef("color (COLOR variable; DROP_SHADOW/INNER_SHADOW)"),
+  radiusVariable: variableRef("radius (FLOAT variable; shadows and LAYER_BLUR/BACKGROUND_BLUR)"),
+  spreadVariable: variableRef("spread (FLOAT variable; shadows only)"),
+  offsetXVariable: variableRef("offset.x (FLOAT variable; shadows only)"),
+  offsetYVariable: variableRef("offset.y (FLOAT variable; shadows only)"),
+};
+
 export function registerModificationTools(server: McpServer): void {
   // Set Fill Color Tool
   server.tool(
@@ -984,7 +1001,7 @@ export function registerModificationTools(server: McpServer): void {
   // Set Effects Tool
   server.tool(
     "set_effects",
-    "Set the visual effects of a node in Figma. Supports DROP_SHADOW, INNER_SHADOW, LAYER_BLUR, BACKGROUND_BLUR, and beta types NOISE (grain overlay), TEXTURE (frosted texture), GLASS (frosted glass with refraction, frame-only).",
+    "Set the visual effects of a node in Figma. Supports DROP_SHADOW, INNER_SHADOW, LAYER_BLUR, BACKGROUND_BLUR, and beta types NOISE (grain overlay), TEXTURE (frosted texture), GLASS (frosted glass with refraction, frame-only). Bind effect values to variables per effect with colorVariable/radiusVariable/spreadVariable/offsetXVariable/offsetYVariable (e.g. a focus ring colour bound to 'ring').",
     {
       nodeId: z.string().describe("The ID of the node to modify"),
       effects: coerceArray(
@@ -1088,6 +1105,7 @@ export function registerModificationTools(server: McpServer): void {
               .number()
               .optional()
               .describe("Chromatic aberration/rainbow fringing amount ≥ 0 (GLASS only; typical range 0–20)"),
+            ...effectVariableParams,
           }),
         ),
       ).describe("Array of effects to apply"),
@@ -1266,12 +1284,13 @@ export function registerModificationTools(server: McpServer): void {
       .number()
       .optional()
       .describe("Chromatic aberration/rainbow fringing amount ≥ 0 (GLASS only; typical range 0–20)"),
+    ...effectVariableParams,
   });
 
   // Create Effect Style Tool
   server.tool(
     "create_effect_style",
-    "Create a new effect style in Figma (e.g., shadow, blur). The style can then be applied to nodes using set_effect_style_id.",
+    "Create a new effect style in Figma (e.g., shadow, blur). The style can then be applied to nodes using set_effect_style_id. Each effect can bind its colour/radius/spread/offsets to variables with colorVariable/radiusVariable/spreadVariable/offsetXVariable/offsetYVariable.",
     {
       name: z.string().describe("Name of the effect style (e.g., 'shadow/sm', 'shadow/md', 'blur/overlay')"),
       effects: coerceArray(z.array(effectStyleEntrySchema)).describe("Array of effects for the style"),
@@ -1308,7 +1327,7 @@ export function registerModificationTools(server: McpServer): void {
   // Update Effect Style Tool
   server.tool(
     "update_effect_style",
-    "Update an existing effect style's properties (name, effects, description)",
+    "Update an existing effect style's properties (name, effects, description). Effects accept the same per-effect variable params as create_effect_style (colorVariable, radiusVariable, spreadVariable, offsetXVariable, offsetYVariable).",
     {
       styleId: z
         .string()
@@ -1635,9 +1654,13 @@ export function registerModificationTools(server: McpServer): void {
   // Bind Variable Tool
   server.tool(
     "bind_variable",
-    'Bind a variable to a node property OR a text style field in Figma. For nodes: fills/strokes need an index, e.g. "fills/0" or "fills/0/color" (bare "fills" or "strokes" defaults to index 0); other fields are opacity/strokeWeight/cornerRadius/etc with no index. For text styles: pass the text style id (e.g. \'S:abc123,\') or name (e.g. \'body/md\') as nodeId, and a field of fontFamily, fontStyle, fontSize, fontWeight, lineHeight, letterSpacing, paragraphSpacing, or paragraphIndent.',
+    'Bind a variable to a node property, a text style field or an effect style field in Figma. For nodes: SOLID fills/strokes use "fills/0/color" or "strokes/0/color" (bare "fills" or "strokes" defaults to index 0); gradient paints bind per stop with "fills/0/gradientStops/1/color"; effects bind with "effects/0/color", "effects/0/radius", "effects/0/spread", "effects/0/offsetX" or "effects/0/offsetY" (shadows; blurs support radius only); other fields are opacity/strokeWeight/cornerRadius/etc with no index. For text styles: pass the text style id (e.g. \'S:abc123,\') or name (e.g. \'body/md\') as nodeId, and a field of fontFamily, fontStyle, fontSize, fontWeight, lineHeight, letterSpacing, paragraphSpacing, or paragraphIndent. For effect styles: pass the effect style id or name (e.g. \'shadow/md\') as nodeId and an effects/N/<field> path.',
     {
-      nodeId: z.string().describe("The ID of the node, or the ID/name of a text style (e.g. 'body/md')"),
+      nodeId: z
+        .string()
+        .describe(
+          "The ID of the node, or the ID/name of a text style (e.g. 'body/md') or an effect style (e.g. 'shadow/md', effects/N/* fields only)",
+        ),
       variableId: z
         .string()
         .describe(
@@ -1646,7 +1669,7 @@ export function registerModificationTools(server: McpServer): void {
       field: z
         .string()
         .describe(
-          'Property field path to bind to. Examples: "fills/0/color" for fill color, "strokes/0/color" for stroke color, "opacity", "width", "height", "strokeWeight", "cornerRadius", "topLeftRadius", "topRightRadius", "bottomLeftRadius", "bottomRightRadius", "paddingLeft", "paddingRight", "paddingTop", "paddingBottom", "itemSpacing", "counterAxisSpacing"',
+          'Property field path to bind to. Examples: "fills/0/color" for a SOLID fill color, "strokes/0/color" for stroke color, "fills/0/gradientStops/1/color" for a gradient stop, "effects/0/color" / "effects/0/radius" / "effects/0/spread" / "effects/0/offsetX" / "effects/0/offsetY" for a shadow, "opacity", "width", "height", "strokeWeight", "cornerRadius", "topLeftRadius", "topRightRadius", "bottomLeftRadius", "bottomRightRadius", "paddingLeft", "paddingRight", "paddingTop", "paddingBottom", "itemSpacing", "counterAxisSpacing"',
         ),
     },
     async ({ nodeId, variableId, field }) => {
@@ -1671,7 +1694,7 @@ export function registerModificationTools(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: `Successfully bound variable "${typedResult.variableName}" (${typedResult.variableType}) to "${typedResult.field}" on node "${typedResult.name}"`,
+              text: `Successfully bound variable "${typedResult.variableName}" (${typedResult.variableType}) to "${typedResult.field}" on ${typedResult.nodeId ? "node" : "style"} "${typedResult.name}"`,
             },
           ],
         };
@@ -1691,13 +1714,17 @@ export function registerModificationTools(server: McpServer): void {
   // Unbind Variable Tool
   server.tool(
     "unbind_variable",
-    "Remove a variable binding from a node property or a text style field in Figma. Pass a node id, or a text style id/name as nodeId.",
+    "Remove a variable binding from a node property, a text style field or an effect style field in Figma. Pass a node id, or a text/effect style id or name as nodeId. Accepts the same field paths as bind_variable, including gradient stops and effects.",
     {
-      nodeId: z.string().describe("The ID of the node, or the ID/name of a text style (e.g. 'body/md')"),
+      nodeId: z
+        .string()
+        .describe(
+          "The ID of the node, or the ID/name of a text style (e.g. 'body/md') or an effect style (e.g. 'shadow/md', effects/N/* fields only)",
+        ),
       field: z
         .string()
         .describe(
-          'Property field path to unbind. Examples: "fills/0/color" for fill color, "strokes/0/color" for stroke color, "opacity", "strokeWeight", etc.',
+          'Property field path to unbind. Examples: "fills/0/color" for fill color, "strokes/0/color" for stroke color, "fills/0/gradientStops/1/color" for a gradient stop, "effects/0/color" or "effects/0/radius" for a shadow, "opacity", "strokeWeight", etc.',
         ),
     },
     async ({ nodeId, field }) => {
@@ -1884,7 +1911,7 @@ export function registerModificationTools(server: McpServer): void {
   // Set Gradient Fill Tool
   server.tool(
     "set_gradient_fill",
-    "Set a gradient fill on a node. Supports LINEAR, RADIAL, ANGULAR, and DIAMOND gradient types.",
+    "Set a gradient fill on a node. Supports LINEAR, RADIAL, ANGULAR, and DIAMOND gradient types. Each stop can bind its colour to a COLOR variable with colorVariable (bind later with bind_variable field fills/0/gradientStops/M/color).",
     {
       nodeId: z.string().describe("Node ID to apply the gradient fill to"),
       type: z
@@ -1895,15 +1922,26 @@ export function registerModificationTools(server: McpServer): void {
       stops: coerceArray(
         z
           .array(
-            z.object({
-              color: z.object({
-                r: z.coerce.number().min(0).max(1).describe("Red channel (0-1)"),
-                g: z.coerce.number().min(0).max(1).describe("Green channel (0-1)"),
-                b: z.coerce.number().min(0).max(1).describe("Blue channel (0-1)"),
-                a: z.coerce.number().min(0).max(1).optional().describe("Alpha channel (0-1, default 1)"),
+            z
+              .object({
+                color: z
+                  .object({
+                    r: z.coerce.number().min(0).max(1).describe("Red channel (0-1)"),
+                    g: z.coerce.number().min(0).max(1).describe("Green channel (0-1)"),
+                    b: z.coerce.number().min(0).max(1).describe("Blue channel (0-1)"),
+                    a: z.coerce.number().min(0).max(1).optional().describe("Alpha channel (0-1, default 1)"),
+                  })
+                  .optional()
+                  .describe("Stop color (required unless colorVariable is given)"),
+                colorVariable: z
+                  .string()
+                  .optional()
+                  .describe("COLOR variable name or ID to bind this stop's color to (e.g. 'brand/primary')"),
+                position: z.coerce.number().min(0).max(1).describe("Stop position (0-1)"),
+              })
+              .refine((stop) => stop.color !== undefined || !!stop.colorVariable, {
+                message: "Each stop needs a color or a colorVariable",
               }),
-              position: z.coerce.number().min(0).max(1).describe("Stop position (0-1)"),
-            }),
           )
           .min(2),
       ).describe("Array of gradient color stops (minimum 2)"),
