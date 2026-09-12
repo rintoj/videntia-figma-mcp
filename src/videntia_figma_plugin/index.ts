@@ -41,6 +41,7 @@ import {
   ungroupNodes,
   flattenNode,
   renameNode,
+  setVisible,
   insertChild,
 } from "./handlers/nodes";
 
@@ -70,7 +71,9 @@ import {
   setParagraphSpacing,
   setTextCase,
   setTextWrapStyle,
+  setTextAlign,
   setTextDecoration,
+  setTextRangeStyle,
   getStyledTextSegments,
   loadFontAsyncWrapper,
   createTextStyle,
@@ -164,11 +167,13 @@ import {
   createRadiusSystem,
   setLayoutMode,
   reorderGridTracks,
+  setGridChild,
   setPadding,
   setItemSpacing,
   setAxisAlign,
   setLayoutSizing,
   setClipsContent,
+  setConstraints,
 } from "./handlers/layout";
 
 // Handlers — selection & focus
@@ -309,6 +314,7 @@ var FOCUS_BEFORE_COMMANDS = new Set([
   "delete_node",
   "clone_node",
   "rename_node",
+  "set_visible",
   "insert_child",
   "flatten_node",
   "set_corner_radius",
@@ -323,7 +329,9 @@ var FOCUS_BEFORE_COMMANDS = new Set([
   "set_line_height",
   "set_paragraph_spacing",
   "set_text_case",
+  "set_text_align",
   "set_text_decoration",
+  "set_text_range_style",
   "apply_text_style",
   "set_effects",
   "set_effect_style_id",
@@ -331,6 +339,8 @@ var FOCUS_BEFORE_COMMANDS = new Set([
   "bind_variable",
   "unbind_variable",
   "set_layout_mode",
+  "set_grid_child",
+  "set_constraints",
   "set_padding",
   "set_item_spacing",
   "set_axis_align",
@@ -663,6 +673,8 @@ async function _executeCommand(command: string, params: Record<string, unknown>)
       return await cloneNode(params);
     case "rename_node":
       return await renameNode(params);
+    case "set_visible":
+      return await setVisible(params);
     case "insert_child":
       return await insertChild(params);
     case "group_nodes":
@@ -743,8 +755,12 @@ async function _executeCommand(command: string, params: Record<string, unknown>)
       return await setTextCase(params);
     case "set_text_wrap_style":
       return await setTextWrapStyle(params);
+    case "set_text_align":
+      return await setTextAlign(params);
     case "set_text_decoration":
       return await setTextDecoration(params);
+    case "set_text_range_style":
+      return await setTextRangeStyle(params);
     case "get_styled_text_segments":
       return await getStyledTextSegments(params);
     case "load_font_async":
@@ -885,8 +901,12 @@ async function _executeCommand(command: string, params: Record<string, unknown>)
       return await setLayoutMode(params);
     case "set_clips_content":
       return await setClipsContent(params);
+    case "set_constraints":
+      return await setConstraints(params);
     case "reorder_grid_tracks":
       return await reorderGridTracks(params);
+    case "set_grid_child":
+      return await setGridChild(params);
     case "set_padding":
       return await setPadding(params);
     case "set_item_spacing":

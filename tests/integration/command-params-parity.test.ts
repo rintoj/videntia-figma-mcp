@@ -36,7 +36,15 @@ const CASES: ParityCase[] = [
   { tool: "create_rectangle", args: { x: 1, y: 2, width: 10, height: 20, parentId: "1-2" } },
   { tool: "create_frame", args: { x: 1, y: 2, width: 10, height: 20, parentId: "1-2", clipsContent: false } },
   { tool: "create_text", args: { x: 0, y: 0, text: "Hi", parentId: "1-2" } },
+  {
+    tool: "create_text",
+    args: { x: 0, y: 0, text: "Hi", width: 200, textAlignHorizontal: "CENTER", textAlignVertical: "BOTTOM" },
+  },
   { tool: "create_svg", args: { svgString: "<svg></svg>", parentId: "1-2" } },
+  {
+    tool: "create_svg",
+    args: { svgString: "<svg></svg>", parentId: "1-2", constraints: { horizontal: "CENTER", vertical: "CENTER" } },
+  },
   { tool: "clone_node", args: { nodeId: "1-2", parentId: "3-4", index: 0 } },
   { tool: "insert_child", args: { parentId: "1-2", childId: "3-4", index: 1 } },
   { tool: "group_nodes", args: { nodeIds: ["1-2", "3-4"], name: "G" } },
@@ -94,16 +102,80 @@ const CASES: ParityCase[] = [
       ],
     },
   },
+  {
+    tool: "set_gradient_fill",
+    args: {
+      nodeId: "1-2",
+      type: "RADIAL",
+      stops: [
+        { colorVariable: "brand/primary", position: 0 },
+        { color: { r: 0, g: 0, b: 1, a: 1 }, colorVariable: "brand/secondary", position: 1 },
+      ],
+    },
+  },
+  {
+    tool: "set_effects",
+    args: {
+      nodeId: "1-2",
+      effects: [
+        {
+          type: "DROP_SHADOW",
+          radius: 4,
+          colorVariable: "shadow/color",
+          radiusVariable: "shadow/blur",
+          spreadVariable: "shadow/spread",
+          offsetXVariable: "shadow/x",
+          offsetYVariable: "shadow/y",
+        },
+      ],
+    },
+  },
+  {
+    tool: "create_effect_style",
+    args: { name: "focus/ring", effects: [{ type: "DROP_SHADOW", spread: 2, colorVariable: "ring" }] },
+  },
+  {
+    tool: "update_effect_style",
+    args: { styleId: "shadow/md", effects: [{ type: "LAYER_BLUR", radiusVariable: "blur/md" }] },
+  },
+  {
+    tool: "bind_variable",
+    args: { nodeId: "1-2", variableId: "brand/primary", field: "fills/0/gradientStops/1/color" },
+  },
+  { tool: "bind_variable", args: { nodeId: "shadow/md", variableId: "shadow/color", field: "effects/0/color" } },
+  { tool: "unbind_variable", args: { nodeId: "1-2", field: "effects/0/radius" } },
   { tool: "set_effect_style_id", args: { nodeId: "1-2", styleName: "shadow/md" } },
   { tool: "set_color_style_id", args: { nodeId: "1-2", styleName: "color/primary" } },
   { tool: "move_node", args: { nodeId: "1-2", x: 5, parentId: "3-4" } },
+  { tool: "set_constraints", args: { nodeIds: ["1-2", "3-4"], horizontal: "STRETCH" } },
+  { tool: "set_constraints", args: { nodeId: "1-2", vertical: "CENTER" } },
   { tool: "resize_node", args: { nodeId: "1-2", width: 10, height: 20 } },
   { tool: "rename_node", args: { nodeId: "1-2", name: "A" } },
+  { tool: "set_visible", args: { nodeId: "1-2", visible: false } },
+  { tool: "set_visible", args: { nodeIds: ["1-2", "3-4"], visible: "true" } },
   { tool: "delete_multiple_nodes", args: { nodeIds: ["1-2", "3-4"] } },
   // Layout
   { tool: "set_layout_mode", args: { nodeId: "1-2", mode: "GRID", rows: 2, columns: 3 } },
   { tool: "set_layout_mode", args: { nodeId: "1-2", mode: "HORIZONTAL" } },
   { tool: "set_layout_mode", args: { nodeId: "1-2", mode: "VERTICAL", wrap: "WRAP" } },
+  {
+    tool: "set_layout_mode",
+    args: {
+      nodeId: "1-2",
+      mode: "GRID",
+      columns: 2,
+      columnSizes: [{ type: "FIXED", value: 240 }, { type: "FLEX" }],
+      rowSizes: '[{"type":"HUG"}]',
+    },
+  },
+  {
+    tool: "set_grid_child",
+    args: { nodeId: "1-2", row: 1, column: "2", rowSpan: 2, columnSpan: 1, verticalAlign: "MAX" },
+  },
+  {
+    tool: "set_auto_layout",
+    args: { nodeId: "1-2", mode: "GRID", rows: 2, rowSizes: [{ type: "FLEX", value: 2 }, { type: "HUG" }] },
+  },
   { tool: "set_padding", args: { nodeId: "1-2", top: 8, left: 4 } },
   { tool: "set_layout_sizing", args: { nodeId: "1-2", horizontal: "FILL", vertical: "HUG" } },
   { tool: "set_item_spacing", args: { nodeId: "1-2", gap: 8, rowGap: 4 } },
@@ -124,6 +196,19 @@ const CASES: ParityCase[] = [
   { tool: "set_line_height", args: { nodeId: "1-2", height: 20 } },
   { tool: "set_paragraph_spacing", args: { nodeId: "1-2", spacing: 4 } },
   { tool: "set_text_decoration", args: { nodeId: "1-2", decoration: "UNDERLINE" } },
+  {
+    tool: "set_text_range_style",
+    args: {
+      nodeId: "1-2",
+      ranges: [
+        { start: 0, end: 5, fontWeight: 600, color: "#ff0000" },
+        { start: 6, end: 11, colorVariable: "text/link", textDecoration: "UNDERLINE", lineHeight: "AUTO" },
+        { start: 12, end: 14, color: { r: 1, g: 0, b: 0, a: 0.5 }, letterSpacing: { value: 2, unit: "PERCENT" } },
+      ],
+    },
+  },
+  { tool: "set_text_align", args: { nodeId: "1-2", horizontal: "CENTER" } },
+  { tool: "set_text_align", args: { nodeIds: ["1-2", "3-4"], vertical: "BOTTOM", horizontal: "RIGHT" } },
   { tool: "load_font_async", args: { family: "Inter" } },
   { tool: "apply_text_style", args: { nodeId: "1-2", styleName: "Body" } },
   // Variables

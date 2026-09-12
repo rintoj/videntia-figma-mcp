@@ -237,6 +237,7 @@ const FIELD_PROPERTY_MAP: Record<NodeField, string[]> = {
     "letterSpacing",
     "letterSpacingUnit",
     "textAlignHorizontal",
+    "textAlignVertical",
     "textCase",
     "textDecoration",
     "textAutoResize",
@@ -248,7 +249,7 @@ const FIELD_PROPERTY_MAP: Record<NodeField, string[]> = {
   effects: ["effects", "effectStyleName"],
   opacity: ["opacity", "rotation"],
   blendMode: [],
-  constraints: [],
+  constraints: ["constraints"],
   style: [],
   layoutMode: [
     "layoutMode",

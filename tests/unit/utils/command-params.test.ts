@@ -103,13 +103,31 @@ const CASES: Case[] = [
     { nodeId: "1-2", type: "LINEAR", stops: [] },
     { nodeId: "1:2", gradientType: "LINEAR", stops: [], angle: 0, opacity: 1 },
   ],
+  [
+    "set_gradient_fill",
+    { nodeId: "1-2", type: "LINEAR", stops: '[{"colorVariable":"brand/primary","position":0}]' },
+    {
+      nodeId: "1:2",
+      gradientType: "LINEAR",
+      stops: [{ colorVariable: "brand/primary", position: 0 }],
+      angle: 0,
+      opacity: 1,
+    },
+  ],
   ["set_effect_style_id", { nodeId: "1-2", styleName: "shadow/md" }, { nodeId: "1:2", effectStyleId: "shadow/md" }],
   ["set_color_style_id", { nodeId: "1-2", styleName: "color/primary" }, { nodeId: "1:2", styleId: "color/primary" }],
   ["move_node", { nodeId: "1-2", x: "10" }, { nodeId: "1:2", x: 10 }],
+  ["set_constraints", { nodeIds: "1-2,3-4", horizontal: "CENTER" }, { nodeIds: ["1:2", "3:4"], horizontal: "CENTER" }],
+  ["set_constraints", { nodeId: "1-2", vertical: "STRETCH" }, { nodeId: "1:2", vertical: "STRETCH" }],
   [
     "set_layout_mode",
     { nodeId: "1-2", mode: "GRID", rows: 2, columns: 3 },
     { nodeId: "1:2", layoutMode: "GRID", gridRowCount: 2, gridColumnCount: 3 },
+  ],
+  [
+    "set_grid_child",
+    { nodeId: "1-2", row: "1", column: 0, rowSpan: "2", horizontalAlign: "CENTER" },
+    { nodeId: "1:2", row: 1, column: 0, rowSpan: 2, horizontalAlign: "CENTER" },
   ],
   ["set_padding", { nodeId: "1-2", top: 8, left: "4" }, { nodeId: "1:2", paddingTop: 8, paddingLeft: 4 }],
   [
@@ -169,6 +187,25 @@ const CASES: Case[] = [
   ],
   ["set_paragraph_spacing", { nodeId: "1-2", spacing: 4 }, { nodeId: "1:2", paragraphSpacing: 4 }],
   ["set_text_decoration", { nodeId: "1-2", decoration: "UNDERLINE" }, { nodeId: "1:2", textDecoration: "UNDERLINE" }],
+  [
+    "set_text_range_style",
+    {
+      nodeId: "1-2",
+      ranges: '[{"start":"0","end":"5","fontWeight":"600","color":"#f00"},{"start":6,"end":11,"lineHeight":"AUTO"}]',
+    },
+    {
+      nodeId: "1:2",
+      ranges: [
+        { start: 0, end: 5, fontWeight: 600, color: "#f00" },
+        { start: 6, end: 11, lineHeight: "AUTO" },
+      ],
+    },
+  ],
+  [
+    "set_text_align",
+    { nodeIds: '["1-2","3-4"]', horizontal: "CENTER", vertical: "BOTTOM" },
+    { nodeIds: ["1:2", "3:4"], textAlignHorizontal: "CENTER", textAlignVertical: "BOTTOM" },
+  ],
   ["load_font_async", { family: "Inter" }, { family: "Inter", style: "Regular" }],
   ["apply_text_style", { nodeId: "1-2", styleName: "Body" }, { nodeId: "1:2", styleId: "Body" }],
   ["create_variable_collection", { name: "Theme" }, { name: "Theme", defaultMode: "dark" }],
@@ -265,6 +302,9 @@ const CASES: Case[] = [
     },
   ],
   ["create_radius_system", { collectionId: "c1", preset: "standard" }, { collection_id: "c1", preset: "standard" }],
+  ["set_visible", { nodeId: "1-2", visible: "false" }, { nodeId: "1:2", visible: false }],
+  ["set_visible", { nodeIds: '["1-2","3-4"]', visible: "TRUE" }, { nodeIds: ["1:2", "3:4"], visible: true }],
+  ["set_visible", { nodeId: "$result[0].id", nodeIds: [], visible: 0 }, { nodeId: "$result[0].id", visible: false }],
 ];
 
 describe("normalizeCommandParams", () => {
@@ -367,9 +407,17 @@ describe("normalizeCommandParams", () => {
       ["set_fill_color", { nodeId: "1:2", r: 1 }, "Provide either 'color'"],
       ["set_stroke_color", { nodeId: "1:2" }, "Provide either 'color'"],
       ["apply_text_style", { nodeId: "1:2" }, "either styleId or styleName is required"],
+      ["set_text_range_style", { nodeId: "1:2", ranges: [] }, "requires a non-empty ranges array"],
+      ["set_text_range_style", { nodeId: "1:2" }, "requires a non-empty ranges array"],
+      ["set_text_align", { horizontal: "CENTER" }, "set_text_align requires nodeId or nodeIds"],
+      ["set_text_align", { nodeIds: [], horizontal: "CENTER" }, "set_text_align requires nodeId or nodeIds"],
+      ["set_text_align", { nodeId: "1:2" }, "set_text_align requires horizontal and/or vertical"],
       ["set_effect_style_id", { nodeId: "1:2" }, "provide either effectStyleId or styleName"],
       ["set_color_style_id", { nodeId: "1:2" }, "provide either styleId or styleName"],
       ["move_node", { nodeId: "1:2" }, "provide x/y for repositioning or parentId for reparenting"],
+      ["set_constraints", { horizontal: "MIN" }, "set_constraints requires nodeId or nodeIds"],
+      ["set_constraints", { nodeIds: [], horizontal: "MIN" }, "set_constraints requires nodeId or nodeIds"],
+      ["set_constraints", { nodeId: "1:2" }, "set_constraints requires horizontal and/or vertical"],
       ["set_image_fill", { nodeId: "1:2" }, "Provide either imageUrl or imageBytes"],
       [
         "set_image_fill",
@@ -377,6 +425,11 @@ describe("normalizeCommandParams", () => {
         "Provide only one of imageUrl or imageBytes",
       ],
       ["get_frame_documentation", {}, "Provide nodeId or nodeIds"],
+      [
+        "set_gradient_fill",
+        { nodeId: "1:2", type: "LINEAR", stops: [{ position: 0 }, { color: RGB, position: 1 }] },
+        "stops[0] needs a color or a colorVariable",
+      ],
       ["create_component_instance", { componentKey: "k", parentId: "1:2", replaceNodeId: "3:4" }, "mutually exclusive"],
       [
         "create_component_instance",
