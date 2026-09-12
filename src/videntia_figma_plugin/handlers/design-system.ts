@@ -761,6 +761,14 @@ export async function createFromData(params: Record<string, unknown>): Promise<R
       (n as BlendMixin).opacity = nodeData["opacity"] as number;
     }
 
+    // Visibility (also applied to nodes updated in place)
+    const visibleValue = nodeData["visible"];
+    if (typeof visibleValue === "boolean") {
+      n.visible = visibleValue;
+    } else if (visibleValue === "true" || visibleValue === "false") {
+      n.visible = visibleValue === "true";
+    }
+
     // Rotation
     if (nodeData["rotation"]) {
       (n as LayoutMixin).rotation = nodeData["rotation"] as number;

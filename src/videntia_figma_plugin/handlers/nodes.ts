@@ -913,6 +913,56 @@ export async function renameNode(params: Record<string, unknown>): Promise<Recor
   }
 }
 
+function isInsideInstance(node: BaseNode): boolean {
+  let current = node.parent;
+  while (current) {
+    if (current.type === "INSTANCE") return true;
+    current = current.parent;
+  }
+  return false;
+}
+
+export async function setVisible(params: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const nodeId = getOptParam<string>(params, "nodeId");
+  const nodeIds = getOptParam<unknown>(params, "nodeIds");
+  const visible = getOptParam<unknown>(params, "visible");
+
+  const ids: string[] = [];
+  for (const id of [nodeId, ...(Array.isArray(nodeIds) ? nodeIds : [])]) {
+    if (typeof id === "string" && id && ids.indexOf(id) === -1) ids.push(id);
+  }
+  if (ids.length === 0) throw new Error("Missing nodeId or nodeIds parameter");
+  if (typeof visible !== "boolean") throw new Error("visible must be true or false");
+
+  const results: Array<Record<string, unknown>> = [];
+  for (const id of ids) {
+    const node = await figma.getNodeByIdAsync(id);
+    if (!node) {
+      results.push({ id, error: `Node not found with ID: ${id}` });
+      continue;
+    }
+    if (!("visible" in node)) {
+      results.push({ id, name: node.name, error: `${node.type} nodes have no visibility` });
+      continue;
+    }
+    try {
+      const scene = node as SceneNode;
+      scene.visible = visible;
+      const entry: Record<string, unknown> = { id: scene.id, name: scene.name, visible: scene.visible };
+      if (isInsideInstance(scene)) entry["instanceOverride"] = true;
+      results.push(entry);
+    } catch (error) {
+      results.push({ id, name: node.name, error: (error as Error).message });
+    }
+  }
+
+  const failed = results.filter((r) => r["error"] !== undefined);
+  if (failed.length === results.length) {
+    throw new Error(failed.map((r) => r["error"]).join("; "));
+  }
+  return { visible, updated: results.length - failed.length, failed: failed.length, results };
+}
+
 export async function insertChild(params: Record<string, unknown>): Promise<Record<string, unknown>> {
   const parentId = getOptParam<string>(params, "parentId");
   const childId = getOptParam<string>(params, "childId");

@@ -1870,6 +1870,37 @@ export function registerModificationTools(server: McpServer): void {
     },
   );
 
+  // Set Visible Tool
+  server.tool(
+    "set_visible",
+    "Show or hide one or more layers (node.visible, the eye toggle in the Layers panel). Works on any scene node; pass nodeId, nodeIds, or both. Returns per-node {id, name, visible}; a node that can't be updated (e.g. not found) is listed with an error while the rest still apply. Hidden layers stay in the tree but take no space in auto layout. Note: hiding a layer inside an INSTANCE sets an override on that one instance only. For a show/hide toggle designers control per instance, add a BOOLEAN component property on the main component and wire it with set_component_property_references { visible } instead.",
+    {
+      nodeId: z.string().optional().describe("ID of a single node to show or hide"),
+      nodeIds: coerceArray(z.array(z.string())).optional().describe("IDs of several nodes to show or hide"),
+      visible: mcpBooleanSchema.describe("true = show the layer, false = hide it"),
+    },
+    async ({ nodeId, nodeIds, visible }) => {
+      try {
+        const result = await sendCommandToFigma(
+          "set_visible",
+          normalizeCommandParams("set_visible", { nodeId, nodeIds, visible }),
+        );
+        return {
+          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error setting visibility: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
   // Set Image Fill Tool
   server.tool(
     "set_image_fill",

@@ -205,7 +205,8 @@ async function processNode(
   maxDepth: number | undefined,
   maps: LookupMaps,
 ): Promise<Record<string, unknown> | null> {
-  if (node.visible === false) return null;
+  // Hidden descendants are skipped; a hidden node requested directly is still reported (visible: false).
+  if (node.visible === false && currentDepth > 0) return null;
 
   const info: Record<string, unknown> = {
     id: node.id,
