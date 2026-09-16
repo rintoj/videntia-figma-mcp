@@ -23,6 +23,10 @@ import { aliasKeysFor, applyParamAliases, PARAM_ALIASES, widenEnumCasing } from 
 
 export interface RegisteredToolEntry {
   name: string;
+  /** The one-line description the tool declared. Used by `find_figma_tools`. */
+  description: string;
+  /** Registrar-derived category (e.g. "text", "variable"). Set by `setRegistrationCategory`. */
+  category: string;
   /** The raw zod shape the tool declared — re-assembled into an object schema. */
   schema: z.ZodObject<ZodRawShape>;
   /** The tool's own handler, invoked with ALREADY-PARSED args. */
@@ -30,6 +34,60 @@ export interface RegisteredToolEntry {
 }
 
 const registry = new Map<string, RegisteredToolEntry>();
+
+/**
+ * Progressive-discovery support.
+ *
+ * The registry already sees EVERY tool. That makes it the natural place to gate which
+ * of them are additionally handed to the MCP SDK (and therefore billed to every agent
+ * session as a JSON-Schema in `tools/list`). A gate that returns false still records
+ * the tool here in full, so `find_figma_tools`, `describe_figma_tools`, `figma_call`
+ * and `batch_actions` all keep working on it — it is simply not advertised up front.
+ */
+type RegistrationGate = (name: string, category: string) => boolean;
+let registrationGate: RegistrationGate = () => true;
+let currentCategory = "uncategorized";
+/** Deferred tools: name -> a thunk that performs the real SDK registration. */
+const deferred = new Map<string, () => void>();
+const sdkRegistered = new Set<string>();
+
+/** Install the gate deciding which tools reach the SDK. Call before `registerTools`. */
+export function setRegistrationGate(gate: RegistrationGate): void {
+  registrationGate = gate;
+}
+
+/** Tag subsequent registrations with a category. Called around each registrar. */
+export function setRegistrationCategory(category: string): void {
+  currentCategory = category;
+}
+
+/** Every recorded entry (all tools, registered with the SDK or not). */
+export function listRegistryEntries(): RegisteredToolEntry[] {
+  return [...registry.values()].sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/** Tool names recorded but NOT (yet) advertised to the MCP client. */
+export function listDeferredToolNames(): string[] {
+  return [...deferred.keys()].sort();
+}
+
+/** True when the tool has been handed to the SDK and appears in `tools/list`. */
+export function isSdkRegistered(name: string): boolean {
+  return sdkRegistered.has(name);
+}
+
+/**
+ * Advertise a previously deferred tool to the MCP client. Returns true when this call
+ * actually registered it (so the caller knows whether to emit `tools/list_changed`).
+ */
+export function activateDeferredTool(name: string): boolean {
+  const thunk = deferred.get(name);
+  if (!thunk) return false;
+  deferred.delete(name);
+  thunk();
+  sdkRegistered.add(name);
+  return true;
+}
 
 /** Look up a tool by its MCP name. */
 export function getRegisteredTool(name: string): RegisteredToolEntry | undefined {
@@ -44,6 +102,10 @@ export function listCapturedToolNames(): string[] {
 /** Test/bootstrap helper — drop everything captured so far. */
 export function clearToolRegistry(): void {
   registry.clear();
+  deferred.clear();
+  sdkRegistered.clear();
+  registrationGate = () => true;
+  currentCategory = "uncategorized";
 }
 
 /**
@@ -128,8 +190,23 @@ export function instrumentToolRegistry(server: McpServer): McpServer {
             extra,
           );
 
-        registry.set(name, { name, schema: z.object(shape), handler: wrapped });
-        args = [args[0], args[1], shape, wrapped];
+        const category = currentCategory;
+        registry.set(name, {
+          name,
+          description: typeof args[1] === "string" ? args[1] : "",
+          category,
+          schema: z.object(shape),
+          handler: wrapped,
+        });
+        const finalArgs = [args[0], args[1], shape, wrapped];
+        if (!registrationGate(name, category)) {
+          // Recorded, reachable, but not advertised. Keep the exact SDK call around so
+          // `describe_figma_tools` / `load_figma_tools` can perform it verbatim later.
+          deferred.set(name, () => (original as (...a: unknown[]) => unknown)(...finalArgs));
+          return undefined;
+        }
+        sdkRegistered.add(name);
+        return (original as (...a: unknown[]) => unknown)(...finalArgs);
       }
     }
     return (original as (...a: unknown[]) => unknown)(...args);

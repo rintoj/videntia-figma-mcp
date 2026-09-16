@@ -472,7 +472,15 @@ export type FigmaCommand =
 
 5. **Add to `READONLY_COMMANDS`** (`src/videntia_figma_plugin/index.ts`) — if the tool is read-only (does not modify design data). Without this, the command is blocked when readonly mode is active.
 
-6. **Write tests** (`tests/integration/`)
+6. **Progressive tool discovery** — nothing to do. `registerTools` tags the tool with its
+   registrar category and records its schema + description in the registry, so
+   `find_figma_tools` indexes it automatically and `figma_call`/`batch_actions` can invoke
+   it. The tool is NOT advertised in `tools/list` by default (see `utils/tool-modes.ts`);
+   add it to `ENTRY_SURFACE_TOOLS` only if every session needs it. Optionally add recall
+   words to `SYNONYMS` in `utils/tool-search.ts` — a test asserts every synonym target is a
+   real tool. Set `VIDENTIA_FIGMA_TOOLS=all` to advertise everything (pre-0.8 behaviour).
+
+7. **Write tests** (`tests/integration/`)
 ```typescript
 describe("tool_name", () => {
   it("successfully performs operation", async () => {

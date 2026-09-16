@@ -14,7 +14,16 @@ import { registerBrowserControlTools } from "./browser-control-tools.js";
 import { registerVerificationTools } from "./verification-tools.js";
 import { registerCompositeTools } from "./composite-tools.js";
 import { registerCapabilityTools } from "./capability-tools.js";
-import { instrumentToolRegistry } from "../utils/tool-registry.js";
+import { registerDiscoveryTools } from "./discovery-tools.js";
+import { instrumentToolRegistry, setRegistrationCategory, setRegistrationGate } from "../utils/tool-registry.js";
+import {
+  getActiveToolModeLabel,
+  makeRegistrationGate,
+  resolveToolMode,
+  setActiveToolModeLabel,
+  TOOL_MODE_ENV_VAR,
+} from "../utils/tool-modes.js";
+import { resetToolIndex } from "../utils/tool-search.js";
 
 /**
  * Register all Figma tools to the MCP server
@@ -26,26 +35,48 @@ export function registerTools(server: McpServer): void {
   // standalone call uses. Must happen before the first registration.
   instrumentToolRegistry(server);
 
-  // Register all tool categories
-  registerDocumentTools(server);
-  registerCreationTools(server);
-  registerModificationTools(server);
-  registerTextTools(server);
-  registerComponentTools(server);
-  registerVariableTools(server);
-  registerBatchTools(server);
-  registerIconTools(server);
-  registerComparisonTools(server);
-  registerDocumentationTools(server);
-  registerBrowserTools(server);
-  registerBrowserControlTools(server);
-  registerCompositeTools(server);
-  registerVerificationTools(server);
-  // Registered last so the derived tool list in get_capabilities sees every tool.
-  registerCapabilityTools(server);
+  // Decide which of those recorded tools are additionally advertised to the MCP
+  // client. Everything stays in the registry either way — see utils/tool-modes.ts.
+  const resolved = resolveToolMode(process.env[TOOL_MODE_ENV_VAR]);
+  if (resolved.warning) {
+    // Never crash on a bad env value; degrade to the pre-progressive behaviour.
+    process.stderr.write(`[videntia-figma-mcp] ${resolved.warning}\n`);
+  }
+  setActiveToolModeLabel(resolved.label);
+  setRegistrationGate(makeRegistrationGate(resolved.mode));
+  resetToolIndex();
+
+  const categories: [string, (s: McpServer) => void][] = [
+    ["document", registerDocumentTools],
+    ["creation", registerCreationTools],
+    ["modification", registerModificationTools],
+    ["text", registerTextTools],
+    ["component", registerComponentTools],
+    ["variable", registerVariableTools],
+    ["batch", registerBatchTools],
+    ["icon", registerIconTools],
+    ["comparison", registerComparisonTools],
+    ["documentation", registerDocumentationTools],
+    ["browser", registerBrowserTools],
+    ["browser-control", registerBrowserControlTools],
+    ["composite", registerCompositeTools],
+    ["verification", registerVerificationTools],
+    // Registered last so the derived tool list in get_capabilities sees every tool.
+    ["discovery", registerDiscoveryTools],
+    ["capability", registerCapabilityTools],
+  ];
+
+  for (const [category, register] of categories) {
+    setRegistrationCategory(category);
+    register(server);
+  }
+  setRegistrationCategory("uncategorized");
+  resetToolIndex();
 }
 
 // Export all tool registration functions for individual usage if needed
+export { getActiveToolModeLabel };
+
 export {
   registerDocumentTools,
   registerCreationTools,
@@ -62,4 +93,5 @@ export {
   registerCompositeTools,
   registerVerificationTools,
   registerCapabilityTools,
+  registerDiscoveryTools,
 };

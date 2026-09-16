@@ -49,7 +49,9 @@ describe("get_capabilities (#45)", () => {
     // importing it here.
     const index = readFileSync(join(__dirname, "../../src/videntia_figma_mcp/tools/index.ts"), "utf8");
     expect(index).toContain('import { registerCapabilityTools } from "./capability-tools.js"');
-    expect(index).toMatch(/registerCapabilityTools\(server\);/);
+    // registerTools drives its registrars from a category table (progressive tool
+    // discovery tags each tool with its category as it registers).
+    expect(index).toMatch(/\["capability", registerCapabilityTools\]/);
 
     // Pure server-side: no FigmaCommand / ALLOWED_COMMANDS / plugin switch entry.
     const types = readFileSync(join(__dirname, "../../src/videntia_figma_mcp/types/index.ts"), "utf8");
@@ -65,7 +67,7 @@ describe("get_capabilities (#45)", () => {
     const text = res.content[0].text as string;
     expect(text).toContain("zz_probe_tool");
     expect(text).toContain("get_capabilities");
-    expect(text).toMatch(/Registered tools \(\d+, derived from the live registry\)/);
+    expect(text).toMatch(/Tools advertised in your tool list \(\d+, derived from the live registry\)/);
   });
 
   it("reflects LIVE session modes - flipping strict mode changes the manifest", async () => {

@@ -29,7 +29,9 @@ async function buildActionCommands(
     return {
       error:
         `Unknown command '${action}': no MCP tool of that name is registered. ` +
-        `A batched action must name a tool exactly as it is spelled standalone.`,
+        `A batched action must name a tool exactly as it is spelled standalone. ` +
+        `This server uses progressive tool discovery, so a tool absent from your tool list still exists here — ` +
+        `call find_figma_tools({query:"${action.replace(/_/g, " ")}"}) to get the right name, then describe_figma_tools first for its schema.`,
     };
   }
 

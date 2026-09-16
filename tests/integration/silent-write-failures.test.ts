@@ -1,3 +1,8 @@
+// This suite asserts on the FULL standalone tool surface (it captures handlers by
+// spying on `server.tool`), so it opts out of progressive tool discovery — see
+// src/videntia_figma_mcp/utils/tool-modes.ts.
+process.env.VIDENTIA_FIGMA_TOOLS = "all";
+
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { registerTools } from "../../src/videntia_figma_mcp/tools";

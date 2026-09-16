@@ -3,6 +3,8 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { mcpBooleanSchema } from "../utils/mcp-boolean.js";
 import { sendCommandToFigma, getCurrentChannel } from "../utils/websocket.js";
 import { MANIFEST_SECTIONS, ManifestEntry } from "../utils/capabilities-manifest.js";
+import { getActiveToolModeLabel } from "../utils/tool-modes.js";
+import { describeProgressiveMode } from "./discovery-tools.js";
 
 /**
  * Read the tool names the MCP server actually has registered. Derived, not
@@ -75,7 +77,7 @@ function renderEntries(title: string, entries: ManifestEntry[]): string[] {
 export function registerCapabilityTools(server: McpServer): void {
   server.tool(
     "get_capabilities",
-    "Read-only manifest of this server's capabilities and limitations. Call it ONCE at the start of a session instead of discovering the same constraints by trial and error: hard Figma platform limits that cannot be worked around, capabilities agents commonly assume are missing but which exist (bulk/plural tools, disk-based image export and import, one-call frame+layout creation, return_state), preconditions that cause a write to be silently discarded, the live list of registered tool names, and the current session modes (strict, return_state).",
+    "Read-only manifest of this server's capabilities and limitations. Call it ONCE at the start of a session instead of discovering the same constraints by trial and error: hard Figma platform limits that cannot be worked around, capabilities agents commonly assume are missing but which exist (bulk/plural tools, disk-based image export and import, one-call frame+layout creation, return_state), preconditions that cause a write to be silently discarded, the live list of registered tool names, the progressive tool-discovery mode (how to reach tools that are not in your tool list), and the current session modes (strict, return_state).",
     {
       section: z
         .enum(["all", "platformLimits", "existingCapabilities", "writePreconditions", "tools"])
@@ -100,14 +102,20 @@ export function registerCapabilityTools(server: McpServer): void {
       if (modes.note) lines.push(`- note: ${modes.note}`);
       lines.push("");
 
+      lines.push(...describeProgressiveMode(getActiveToolModeLabel()));
+
       for (const s of MANIFEST_SECTIONS) {
         if (section && section !== "all" && section !== s.key) continue;
         lines.push(...renderEntries(s.title, s.entries as unknown as ManifestEntry[]));
       }
 
       if (wantTools && (!section || section === "all" || section === "tools")) {
-        lines.push(`### Registered tools (${toolNames.length}, derived from the live registry)`, "");
+        lines.push(`### Tools advertised in your tool list (${toolNames.length}, derived from the live registry)`, "");
         lines.push(toolNames.join(", "));
+        lines.push("");
+        lines.push(
+          `Not an exhaustive list of what this server can do — see "Progressive tool discovery" above and use find_figma_tools to reach the rest.`,
+        );
         lines.push("");
       }
 
