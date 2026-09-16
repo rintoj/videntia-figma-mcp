@@ -29,6 +29,45 @@ const channelParam = z.preprocess(
  * This module contains tools for modifying existing elements in Figma
  * @param server - The MCP server instance
  */
+/**
+ * Widen the shapes callers actually write for gradient stops into the canonical
+ * `{color, position}` array.
+ *
+ * These coercions used to live in the batch-only param normaliser, which meant a
+ * gradient written one way worked in a batch and failed standalone. They belong on the
+ * schema, where both call paths get them.
+ */
+function normalizeGradientStops(value: unknown): unknown {
+  let stops = value;
+  if (typeof stops === "string") {
+    try {
+      const parsed = JSON.parse(stops);
+      if (Array.isArray(parsed)) stops = parsed;
+    } catch {
+      return value; // leave it; zod reports a precise error
+    }
+  }
+  if (!Array.isArray(stops)) return stops;
+  const all = stops as unknown[];
+  const evenly = (i: number) => (all.length > 1 ? i / (all.length - 1) : 0);
+  return all.map((stop, i) => {
+    if (typeof stop === "string") return { color: stop, position: evenly(i) };
+    if (stop === null || typeof stop !== "object") return stop;
+    const o = { ...(stop as Record<string, unknown>) };
+    if (o.color === undefined && o.hex !== undefined) o.color = o.hex;
+    if (o.color === undefined && o.r !== undefined) {
+      o.color = { r: o.r, g: o.g, b: o.b, ...(o.a !== undefined ? { a: o.a } : {}) };
+      delete o.r;
+      delete o.g;
+      delete o.b;
+      delete o.a;
+    }
+    if (o.position === undefined && o.offset !== undefined) o.position = o.offset;
+    if (o.position === undefined) o.position = evenly(i);
+    return o;
+  });
+}
+
 export function registerModificationTools(server: McpServer): void {
   // Strict Mode Tool
   server.tool(
@@ -989,7 +1028,20 @@ export function registerModificationTools(server: McpServer): void {
         .number()
         .min(0)
         .describe("Corner radius in pixels (≥ 0; applies to all corners unless 'corners' overrides specific ones)"),
-      corners: coerceArray(z.array(mcpBooleanSchema).length(4))
+      corners: z
+        .preprocess(
+          // Accept {topLeft, topRight, bottomRight, bottomLeft} as well as the positional
+          // array. Batch used to widen this on its own; the widening belongs here so both
+          // call paths accept it.
+          (value) => {
+            if (value === null || typeof value !== "object" || Array.isArray(value)) return value;
+            const c = value as Record<string, unknown>;
+            const named = ["topLeft", "topRight", "bottomRight", "bottomLeft"];
+            if (!named.some((k) => k in c)) return value;
+            return named.map((k) => c[k] !== false);
+          },
+          coerceArray(z.array(mcpBooleanSchema).length(4)),
+        )
         .optional()
         .describe(
           "Array of exactly 4 booleans controlling which corners are rounded: [topLeft, topRight, bottomRight, bottomLeft]. E.g. [true, true, false, false] rounds top corners only. Omit to round all corners.",
@@ -2297,25 +2349,39 @@ export function registerModificationTools(server: McpServer): void {
       nodeId: z.string().describe("Node ID to apply the gradient fill to"),
       type: z
         .enum(["LINEAR", "RADIAL", "ANGULAR", "DIAMOND"])
+        .optional()
         .describe(
           "Gradient shape: LINEAR = straight line between two points, RADIAL = circular/elliptical from center outward, ANGULAR = conic/sweep around a center point, DIAMOND = diamond-shaped four-directional",
         ),
-      stops: coerceArray(
-        z
-          .array(
-            z.object({
-              color: colorParam("Color for this gradient stop.").optional(),
-              colorVariable: z
-                .string()
-                .optional()
-                .describe(
-                  'COLOR variable name or id to BIND this stop to (e.g. "brand/primary"). Binds via ColorStop.boundVariables.color — the only supported way to token-drive a gradient. When given, `color` is optional and defaults to the variable\'s own value. An unresolvable name throws.',
-                ),
-              position: z.coerce.number().min(0).max(1).describe("Stop position (0-1)"),
-            }),
-          )
-          .min(2),
-      ).describe("Array of gradient color stops (minimum 2)"),
+      stops: z
+        .preprocess(
+          normalizeGradientStops,
+          coerceArray(
+            z
+              .array(
+                z.object({
+                  color: colorParam("Color for this gradient stop.").optional(),
+                  colorVariable: z
+                    .string()
+                    .optional()
+                    .describe(
+                      'COLOR variable name or id to BIND this stop to (e.g. "brand/primary"). Binds via ColorStop.boundVariables.color — the only supported way to token-drive a gradient. When given, `color` is optional and defaults to the variable\'s own value. An unresolvable name throws.',
+                    ),
+                  position: z.coerce.number().min(0).max(1).describe("Stop position (0-1)"),
+                }),
+              )
+              .min(2),
+          ),
+        )
+        .describe(
+          'Array of gradient color stops (minimum 2). Also accepts the loose spellings agents reach for: a JSON-encoded array, bare colours ("#fff") or flat {r,g,b} stops, `hex`/`offset` keys, and omitted positions (spaced evenly).',
+        )
+        .optional() as unknown as z.ZodType<
+        Array<{ color?: unknown; colorVariable?: string; position: number }> | undefined
+      >,
+      colors: coerceArray(z.array(z.unknown()))
+        .optional()
+        .describe('Shorthand for evenly-spaced stops: ["#ffffff", "#000000"]. Ignored when `stops` is given.'),
       angle: z.coerce
         .number()
         .optional()
@@ -2334,13 +2400,24 @@ export function registerModificationTools(server: McpServer): void {
         .optional()
         .describe("Overall fill opacity 0–1 applied on top of individual stop alphas (default: 1)"),
     },
-    async ({ nodeId, type, stops, angle, opacity, aspect_correct }) => {
+    async ({ nodeId, type, stops, colors, angle, opacity, aspect_correct }) => {
       nodeId = normalizeNodeId(nodeId);
       try {
+        // `colors: ["#a", "#b"]` is the shorthand callers reach for; it used to work only
+        // inside a batch. Positions are spaced evenly, exactly as the batch did.
+        const resolvedStops: Array<{ color?: unknown; colorVariable?: string; position: number }> =
+          stops ??
+          (colors ?? []).map((color, i, all) => ({
+            color,
+            position: all.length > 1 ? i / (all.length - 1) : 0,
+          }));
+        if (resolvedStops.length < 2) {
+          throw new Error("A gradient needs at least 2 stops — pass `stops` or the `colors` shorthand.");
+        }
         const result = await sendCommandToFigma("set_gradient_fill", {
           nodeId,
-          gradientType: type,
-          stops: stops.map((stop) => {
+          gradientType: type ?? "LINEAR",
+          stops: resolvedStops.map((stop) => {
             if (stop.color === undefined && stop.colorVariable === undefined) {
               throw new Error("Each gradient stop needs a `color`, a `colorVariable`, or both.");
             }

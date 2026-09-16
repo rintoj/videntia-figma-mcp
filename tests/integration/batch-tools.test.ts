@@ -1,10 +1,23 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { registerBatchTools } from "../../src/videntia_figma_mcp/tools/batch-tools";
+import { registerTools } from "../../src/videntia_figma_mcp/tools";
+import { clearToolRegistry } from "../../src/videntia_figma_mcp/utils/tool-registry";
 
-jest.mock("../../src/videntia_figma_mcp/utils/websocket", () => ({
-  sendCommandToFigma: jest.fn(),
-}));
+// A batched action is built by running the standalone handler with sendCommandToFigma
+// intercepted, so the mock has to honour capture mode or every batch comes out empty.
+jest.mock("../../src/videntia_figma_mcp/utils/websocket", () => {
+  // `require`, not jest.requireActual — this suite runs under `bun test`, which has no
+  // requireActual.
+  const { createCaptureAwareSend } = require("../helpers/capture-aware-websocket");
+  return {
+    sendCommandToFigma: createCaptureAwareSend(),
+    sendCommandToChannel: jest.fn(),
+    connectToFigma: jest.fn(),
+    joinChannel: jest.fn(),
+    getOpenChannels: jest.fn(async () => []),
+    getCurrentChannel: jest.fn(() => "test-channel"),
+  };
+});
 
 describe("batch_actions tool", () => {
   let server: McpServer;
@@ -31,7 +44,8 @@ describe("batch_actions tool", () => {
       return (originalTool as any)(...args);
     });
 
-    registerBatchTools(server);
+    clearToolRegistry();
+    registerTools(server);
   });
 
   async function callTool(toolName: string, args: any) {
@@ -61,7 +75,7 @@ describe("batch_actions tool", () => {
       const response = await callTool("batch_actions", {
         actions: [
           { action: "create_rectangle", params: { x: 0, y: 0, width: 100, height: 50 } },
-          { action: "set_fill_color", params: { nodeId: "$result[0].id", color: { r: 1, g: 0, b: 0 } } },
+          { action: "set_fill_color", params: { nodeId: "$result[0].id", color: { r: 1, g: 0, b: 0, a: 1 } } },
           { action: "rename_node", params: { nodeId: "$result[0].id", name: "MyRect" } },
         ],
         // Opt out of the default pre-batch undo checkpoint so this case asserts
@@ -70,19 +84,19 @@ describe("batch_actions tool", () => {
         checkpoint: false,
       });
 
-      expect(mockSendCommand).toHaveBeenCalledTimes(1);
-      expect(mockSendCommand).toHaveBeenCalledWith(
+      expect(mockSendCommand.mock.calls).toHaveLength(1);
+      expect(mockSendCommand.mock.calls).toContainEqual([
         "batch_actions",
         {
           actions: [
             { action: "create_rectangle", params: { x: 0, y: 0, width: 100, height: 50, name: "Rectangle" } },
-            { action: "set_fill_color", params: { nodeId: "$result[0].id", color: { r: 1, g: 0, b: 0 } } },
+            { action: "set_fill_color", params: { nodeId: "$result[0].id", color: { r: 1, g: 0, b: 0, a: 1 } } },
             { action: "rename_node", params: { nodeId: "$result[0].id", name: "MyRect" } },
           ],
           stopOnError: false,
         },
         expect.any(Number),
-      );
+      ]);
       expect(response.content[0].text).toContain("3/3 succeeded");
     });
   });
@@ -142,7 +156,7 @@ describe("batch_actions tool", () => {
   describe("validation", () => {
     it("rejects empty actions array", async () => {
       await expect(callTool("batch_actions", { actions: [] })).rejects.toThrow();
-      expect(mockSendCommand).not.toHaveBeenCalled();
+      expect(mockSendCommand.mock.calls).toHaveLength(0);
     });
 
     it("accepts large batch without limit", async () => {
@@ -191,7 +205,7 @@ describe("batch_actions tool", () => {
       await callTool("batch_actions", { actions });
 
       // 30000 + 10 * 2000 = 50000
-      expect(mockSendCommand).toHaveBeenCalledWith("batch_actions", expect.any(Object), 50000);
+      expect(mockSendCommand.mock.calls).toContainEqual(["batch_actions", expect.any(Object), 50000]);
     });
 
     it("uses higher timeout for larger batches", async () => {
@@ -211,7 +225,7 @@ describe("batch_actions tool", () => {
       await callTool("batch_actions", { actions });
 
       // 30000 + 25 * 2000 = 80000
-      expect(mockSendCommand).toHaveBeenCalledWith("batch_actions", expect.any(Object), 80000);
+      expect(mockSendCommand.mock.calls).toContainEqual(["batch_actions", expect.any(Object), 80000]);
     });
   });
 
@@ -253,14 +267,15 @@ describe("batch_actions tool", () => {
         actions: [{ action: "get_node_info", params: { nodeId: "1:2" } }],
       });
 
-      expect(mockSendCommand).toHaveBeenCalledWith(
+      // The payload is the STANDALONE tool's — get_node_info sends nodeIds + depth.
+      expect(mockSendCommand.mock.calls).toContainEqual([
         "batch_actions",
         {
-          actions: [{ action: "get_node_info", params: { nodeId: "1:2" } }],
+          actions: [{ action: "get_node_info", params: { nodeIds: ["1:2"], depth: 1 } }],
           stopOnError: false,
         },
         expect.any(Number),
-      );
+      ]);
     });
 
     it("passes stopOnError true to Figma", async () => {
@@ -284,11 +299,11 @@ describe("batch_actions tool", () => {
         stopOnError: true,
       });
 
-      expect(mockSendCommand).toHaveBeenCalledWith(
+      expect(mockSendCommand.mock.calls).toContainEqual([
         "batch_actions",
         expect.objectContaining({ stopOnError: true }),
         expect.any(Number),
-      );
+      ]);
     });
   });
 
@@ -306,11 +321,11 @@ describe("batch_actions tool", () => {
         actions: [{ action: "get_selection" }],
       });
 
-      expect(mockSendCommand).toHaveBeenCalledWith(
+      expect(mockSendCommand.mock.calls).toContainEqual([
         "batch_actions",
-        { actions: [{ action: "get_selection", params: {} }], stopOnError: false },
+        { actions: [{ action: "get_selection", params: { depth: 1 } }], stopOnError: false },
         expect.any(Number),
-      );
+      ]);
       expect(response.content[0].text).toContain("1/1 succeeded");
     });
   });
@@ -409,20 +424,16 @@ describe("batch_actions tool", () => {
       await callTool("batch_actions", {
         actions: [{ action: "create_text", params: { x: 0, y: 0, text: "Hi" } }],
       });
-      expect(dispatched()[0].params).toMatchObject({
-        text: "Hi",
-        fontSize: 14,
-        fontFamily: "Inter",
-        fontWeight: 400,
-        name: "Hi",
-      });
+      expect(dispatched()[0].params).toMatchObject({ text: "Hi", fontSize: 14, fontFamily: "Inter" });
     });
 
     it("forwards create_rectangle fillColor", async () => {
       await callTool("batch_actions", {
         actions: [{ action: "create_rectangle", params: { x: 0, y: 0, width: 10, height: 10, fillColor: "#ff0000" } }],
       });
-      expect(dispatched()[0].params.fillColor).toBe("#ff0000");
+      // The standalone tool parses hex into normalised RGBA before dispatch, and the
+      // batch now produces the identical payload.
+      expect(dispatched()[0].params.fillColor).toEqual({ r: 1, g: 0, b: 0, a: 1 });
     });
 
     it("does not normalise away $result references", async () => {
@@ -459,18 +470,27 @@ describe("batch_actions tool", () => {
     });
 
     it("surfaces an unknown icon as a clear per-action error", async () => {
-      await callTool("batch_actions", {
+      // The standalone handler refuses to build a payload for an unknown icon, so the
+      // action is reported as a per-action failure instead of being sent to Figma with
+      // an `_error` sentinel in its params.
+      const res = await callTool("batch_actions", {
         actions: [{ action: "update_icon", params: { nodeId: "1:2", name: "definitely-not-an-icon", size: 24 } }],
       });
-      const action = dispatchedActions()[0];
-      expect(String(action.params._error)).toContain("not found");
+      expect(res.isError).toBe(true);
+      expect(res.content[0].text).toContain("update_icon");
+      expect(mockSendCommand.mock.calls.filter((c: any[]) => c[0] === "batch_actions")).toHaveLength(0);
     });
 
-    it("passes a pre-resolved svgString through untouched", async () => {
-      await callTool("batch_actions", {
+    it("does NOT accept a pre-baked svgString, because the standalone tool does not", async () => {
+      // `update_icon` standalone takes a Lucide `name` and resolves the SVG itself; it has
+      // no `svgString` parameter. Batch used to let one through, which is precisely the
+      // standalone/batch divergence this contract removes. An unknown icon name now fails
+      // the same way in both places.
+      const res = await callTool("batch_actions", {
         actions: [{ action: "update_icon", params: { nodeId: "1:2", svgString: "<svg/>", name: "x" } }],
       });
-      expect(dispatchedActions()[0].params.svgString).toBe("<svg/>");
+      expect(res.isError).toBe(true);
+      expect(mockSendCommand.mock.calls.filter((c: any[]) => c[0] === "batch_actions")).toHaveLength(0);
     });
   });
 
@@ -489,9 +509,9 @@ describe("batch_actions tool", () => {
       });
       const res = await callTool("batch_actions", {
         actions: [
-          { action: "create_rectangle", params: {} },
-          { action: "set_fill_color", params: {} },
-          { action: "rename_node", params: {} },
+          { action: "create_rectangle", params: { x: 0, y: 0, width: 10, height: 10 } },
+          { action: "set_fill_color", params: { nodeId: "1:2", color: "#ff0000" } },
+          { action: "rename_node", params: { nodeId: "1:3", name: "X" } },
         ],
       });
       expect(res.isError).toBe(true);
@@ -503,7 +523,7 @@ describe("batch_actions tool", () => {
       mockSendCommand.mockRejectedValue(new Error("Cannot unwrap symbol"));
       const res = await callTool("batch_actions", {
         actions: [
-          { action: "create_rectangle", params: {} },
+          { action: "create_rectangle", params: { x: 0, y: 0, width: 10, height: 10 } },
           { action: "create_text", params: { x: 0, y: 0, text: "a" } },
         ],
       });

@@ -2,14 +2,68 @@ import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { sendCommandToFigma } from "../utils/websocket";
 import { BatchActionsResult, BatchActionResult } from "../types";
-import { resolveCreateIconParams, resolveUpdateIconParams } from "./icon-tools";
+import { resolveCreateIconParams } from "./icon-tools";
 import { normalizeNodeId } from "../utils/figma-helpers";
-import { normalizeCommandParams } from "../utils/normalize-batch-params";
 import { resolveResultReferences } from "../utils/resolve-result-references";
 import { formatState } from "../utils/return-state";
 import { batchActionSchema } from "../utils/batch-action-schema";
-import { readImageFileAsBase64 } from "../utils/image-file-input";
 import { computePureAction, isPureAction, nonBatchableReason } from "../utils/pure-batch-actions";
+import { getRegisteredTool } from "../utils/tool-registry";
+import { captureWireCommands } from "../utils/tool-capture";
+import { parseWithResultRefs, restoreResultRefs } from "../utils/result-ref-parse";
+
+/**
+ * Build the wire payload(s) for ONE batched action by running its STANDALONE tool.
+ *
+ * This is the whole point of the unification: the action is parsed by the tool's own
+ * zod schema (same names, same coercions, same defaults) and then the tool's own
+ * handler is run in capture mode, so whatever it would have put on the wire standalone
+ * is exactly what the batch sends. No alias map, no second source of truth.
+ */
+async function buildActionCommands(
+  action: string,
+  params: Record<string, unknown>,
+): Promise<{ commands: { action: string; params: Record<string, unknown> }[] } | { error: string }> {
+  const entry = getRegisteredTool(action);
+  if (!entry) {
+    return {
+      error:
+        `Unknown command '${action}': no MCP tool of that name is registered. ` +
+        `A batched action must name a tool exactly as it is spelled standalone.`,
+    };
+  }
+
+  let parsed: Record<string, unknown>;
+  let sentinels: Map<number, string>;
+  try {
+    const out = parseWithResultRefs(entry.schema, params);
+    parsed = out.parsed;
+    sentinels = out.sentinels;
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      const detail = error.issues.map((i) => `${i.path.join(".") || "(root)"}: ${i.message}`).join("; ");
+      return { error: `Invalid params for '${action}' (same schema as the standalone tool): ${detail}` };
+    }
+    return { error: error instanceof Error ? error.message : String(error) };
+  }
+
+  const { captured, error } = await captureWireCommands(() => entry.handler(parsed, { meta: {} }));
+  if (captured.length === 0) {
+    return {
+      error:
+        error !== undefined
+          ? `'${action}' failed while building its batch payload: ${error}`
+          : `'${action}' issued no Figma command, so it cannot run inside a batch.`,
+    };
+  }
+
+  return {
+    commands: captured.map((c) => ({
+      action: c.command,
+      params: restoreResultRefs(c.params, sentinels) as Record<string, unknown>,
+    })),
+  };
+}
 
 const RESULT_REF_PATTERN = /^\$result\[(\d+)\](.*)$/;
 
@@ -289,13 +343,10 @@ export function registerBatchTools(server: McpServer): void {
 
         for (let i = 0; i < actions.length; i++) {
           const { action, params: rawParams } = actions[i];
-          // Normalise BEFORE dispatch so a batched action accepts the same param names
-          // and value formats as the equivalent standalone tool (batch forwards params
-          // raw to the plugin, bypassing each tool's own zod schema).
-          const actionParams = normalizeCommandParams(
-            action,
-            remapResultIndices(substitutePureRefs(rawParams, pureValues), indexMap) as Record<string, unknown>,
-          );
+          const actionParams = remapResultIndices(substitutePureRefs(rawParams, pureValues), indexMap) as Record<
+            string,
+            unknown
+          >;
 
           if (isPureAction(action)) {
             // Computed server-side, right now: the value is available to every later
@@ -378,49 +429,27 @@ export function registerBatchTools(server: McpServer): void {
               });
               indexMap[i] = expandedActions.length - 1;
             }
-          } else if (action === "update_icon") {
-            // Resolve the Lucide icon server-side — the plugin needs `svgString`, which
-            // only the standalone tool used to produce.
-            try {
-              const p = actionParams;
-              expandedActions.push({
-                action: "update_icon",
-                params:
-                  p.svgString !== undefined
-                    ? p
-                    : resolveUpdateIconParams({
-                        nodeId: normalizeNodeId(String(p.nodeId ?? "")),
-                        name: String(p.name ?? ""),
-                        color: p.color !== undefined ? String(p.color) : undefined,
-                        colorVariable: p.colorVariable !== undefined ? String(p.colorVariable) : undefined,
-                        size: Number(p.size ?? 24),
-                      }),
-              });
-            } catch (error) {
-              expandedActions.push({
-                action: "update_icon",
-                params: { _error: error instanceof Error ? error.message : String(error) },
-              });
-            }
-            indexMap[i] = expandedActions.length - 1;
-          } else if (action === "set_image_fill" && typeof actionParams.image_path === "string") {
-            // Parity with the standalone tool: a local file path is read and
-            // base64-encoded HERE, so batched image fills never require the bytes to
-            // pass through the model's context.
-            try {
-              const { base64 } = await readImageFileAsBase64(actionParams.image_path as string);
-              const { image_path: _unused, ...rest } = actionParams;
-              expandedActions.push({ action, params: { ...rest, imageBytes: base64 } });
-            } catch (error) {
-              expandedActions.push({
-                action,
-                params: { _error: error instanceof Error ? error.message : String(error) },
-              });
-            }
-            indexMap[i] = expandedActions.length - 1;
           } else {
-            expandedActions.push({ action, params: actionParams });
-            indexMap[i] = expandedActions.length - 1;
+            // EVERY other action: parsed by its standalone tool's own zod schema and
+            // built by its standalone handler, so the payload is identical to the
+            // standalone call by construction (utils/tool-capture.ts).
+            const built = await buildActionCommands(action, actionParams);
+            if ("error" in built) {
+              serverSideEntries.push({
+                expandedPos: expandedActions.length,
+                action,
+                success: false,
+                error: built.error,
+              });
+              indexMap[i] = -1;
+              if (stopOnError) break;
+              continue;
+            }
+            // A tool that expands to several Figma commands (none currently do outside
+            // create_icon) queues them all; $result[i] means its FIRST command, which is
+            // the one that creates or identifies the node the caller is referring to.
+            indexMap[i] = expandedActions.length;
+            for (const cmd of built.commands) expandedActions.push(cmd);
           }
         }
 

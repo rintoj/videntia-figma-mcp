@@ -13,8 +13,10 @@
  * about what reaches the plugin:
  *  - `type` is accepted as an alias for `action`;
  *  - params written FLAT alongside `action` are folded into `params`.
- * Per-command parameter names are then normalised by `normalize-batch-params.ts`,
- * so a batched action accepts exactly what its standalone tool accepts.
+ * Once the envelope is understood, the action is parsed by its STANDALONE tool's own
+ * zod schema and built by that tool's own handler (see `utils/tool-registry.ts` and
+ * `utils/tool-capture.ts`), so a batched action accepts exactly what the standalone
+ * tool accepts — by construction, not by a parallel alias map.
  */
 
 import { z } from "zod";

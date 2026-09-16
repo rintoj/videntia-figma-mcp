@@ -3,16 +3,21 @@ import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { registerBatchTools } from "../../src/videntia_figma_mcp/tools/batch-tools";
-import { registerModificationTools } from "../../src/videntia_figma_mcp/tools/modification-tools";
-import { registerTextTools } from "../../src/videntia_figma_mcp/tools/text-tools";
-import { registerVariableTools } from "../../src/videntia_figma_mcp/tools/variable-tools";
-import { registerIconTools } from "../../src/videntia_figma_mcp/tools/icon-tools";
+import { registerTools } from "../../src/videntia_figma_mcp/tools";
+import { clearToolRegistry } from "../../src/videntia_figma_mcp/utils/tool-registry";
 import { ALLOWED_COMMANDS } from "../../src/videntia_figma_plugin/ui/constants";
 
-jest.mock("../../src/videntia_figma_mcp/utils/websocket", () => ({
-  sendCommandToFigma: jest.fn(),
-}));
+jest.mock("../../src/videntia_figma_mcp/utils/websocket", () => {
+  const { createCaptureAwareSend } = require("../helpers/capture-aware-websocket");
+  return {
+    sendCommandToFigma: createCaptureAwareSend(),
+    sendCommandToChannel: jest.fn(),
+    connectToFigma: jest.fn(),
+    joinChannel: jest.fn(),
+    getOpenChannels: jest.fn(async () => []),
+    getCurrentChannel: jest.fn(() => "test-channel"),
+  };
+});
 
 /**
  * Regression cover for three production-session bugs:
@@ -66,11 +71,8 @@ describe("single-mode tools, image paths, and batch recovery", () => {
       }
       return (originalTool as any)(...args);
     });
-    registerBatchTools(server);
-    registerModificationTools(server);
-    registerTextTools(server);
-    registerVariableTools(server);
-    registerIconTools(server);
+    clearToolRegistry();
+    registerTools(server);
   });
 
   const call = async (tool: string, args: any) =>
@@ -150,7 +152,7 @@ describe("single-mode tools, image paths, and batch recovery", () => {
       expect(text).toContain("load_from_path");
       expect(text).toContain("imageUrl");
       expect(text).toContain("imageBytes");
-      expect(mockSend).not.toHaveBeenCalledWith("set_image_fill", expect.anything(), expect.anything());
+      expect(mockSend.mock.calls.filter((c: any[]) => c[0] === "set_image_fill")).toHaveLength(0);
     });
 
     it("rejects a path combined with another source instead of silently picking one", async () => {
@@ -165,7 +167,7 @@ describe("single-mode tools, image paths, and batch recovery", () => {
     it("surfaces a missing file as an actionable error, not a plugin round trip", async () => {
       const res = await call("set_image_fill", { nodeId: "1:2", image_path: path.join(tmpDir, "nope.png") });
       expect(textOf(res)).toContain("File does not exist");
-      expect(mockSend).not.toHaveBeenCalled();
+      expect(mockSend.mock.calls).toHaveLength(0);
     });
 
     it("reads the file server-side inside a batch too", async () => {
@@ -251,9 +253,11 @@ describe("single-mode tools, image paths, and batch recovery", () => {
         ],
       });
       expect(batchParams().gradientType).toBe("RADIAL");
+      // Hex is normalised to RGBA by the standalone tool, and the batch now produces the
+      // identical payload.
       expect(batchParams().stops).toEqual([
-        { color: "#ff0000", position: 0 },
-        { color: "#0000ff", position: 1 },
+        { color: { r: 1, g: 0, b: 0, a: 1 }, position: 0 },
+        { color: { r: 0, g: 0, b: 1, a: 1 }, position: 1 },
       ]);
     });
 

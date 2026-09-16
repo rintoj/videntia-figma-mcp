@@ -1,10 +1,23 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { registerBatchTools } from "../../src/videntia_figma_mcp/tools/batch-tools";
+import { registerTools } from "../../src/videntia_figma_mcp/tools";
+import { clearToolRegistry } from "../../src/videntia_figma_mcp/utils/tool-registry";
 
-jest.mock("../../src/videntia_figma_mcp/utils/websocket", () => ({
-  sendCommandToFigma: jest.fn(),
-}));
+// A batched action is built by running the standalone handler with sendCommandToFigma
+// intercepted, so the mock has to honour capture mode or every batch comes out empty.
+jest.mock("../../src/videntia_figma_mcp/utils/websocket", () => {
+  // `require`, not jest.requireActual — this suite runs under `bun test`, which has no
+  // requireActual.
+  const { createCaptureAwareSend } = require("../helpers/capture-aware-websocket");
+  return {
+    sendCommandToFigma: createCaptureAwareSend(),
+    sendCommandToChannel: jest.fn(),
+    connectToFigma: jest.fn(),
+    joinChannel: jest.fn(),
+    getOpenChannels: jest.fn(async () => []),
+    getCurrentChannel: jest.fn(() => "test-channel"),
+  };
+});
 
 /**
  * #16 — pure server-side computation tools inside batch_actions.
@@ -31,7 +44,8 @@ describe("batch_actions with server-side-only actions (#16)", () => {
       }
       return (originalTool as any)(...args);
     });
-    registerBatchTools(server);
+    clearToolRegistry();
+    registerTools(server);
   });
 
   async function callBatch(args: any) {

@@ -66,6 +66,8 @@ const NON_BATCHABLE_REASONS: Record<string, string> = {
   overlay_figma_selection_in_browser: "browser-session tool — runs over the browser channel, not the Figma plugin",
   clear_browser_overlay: "browser-session tool — runs over the browser channel, not the Figma plugin",
   create_complete_design_system: "server-side orchestrator that already issues its own batches — call it standalone",
+  setup_design_system: "server-side orchestrator that issues several dependent commands — call it standalone",
+  batch_actions: "a batch cannot contain another batch — list the inner actions directly in this one",
 };
 
 /** True when `action` is computed server-side and can be evaluated inside a batch. */

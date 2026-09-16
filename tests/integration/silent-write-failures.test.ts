@@ -1,13 +1,21 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { registerModificationTools } from "../../src/videntia_figma_mcp/tools/modification-tools";
-import { normalizeCommandParams } from "../../src/videntia_figma_mcp/utils/normalize-batch-params";
+import { registerTools } from "../../src/videntia_figma_mcp/tools";
+import { clearToolRegistry } from "../../src/videntia_figma_mcp/utils/tool-registry";
 import { fontStyleCandidates } from "../../src/videntia_figma_plugin/handlers/text";
 import { isStrictModeEnabled, resolveStrict } from "../../src/videntia_figma_plugin/utils/write-verify";
 
-jest.mock("../../src/videntia_figma_mcp/utils/websocket", () => ({
-  sendCommandToFigma: jest.fn(),
-}));
+jest.mock("../../src/videntia_figma_mcp/utils/websocket", () => {
+  const { createCaptureAwareSend } = require("../helpers/capture-aware-websocket");
+  return {
+    sendCommandToFigma: createCaptureAwareSend(),
+    sendCommandToChannel: jest.fn(),
+    connectToFigma: jest.fn(),
+    joinChannel: jest.fn(),
+    getOpenChannels: jest.fn(async () => []),
+    getCurrentChannel: jest.fn(() => "test-channel"),
+  };
+});
 
 /**
  * Regression guards for the "tool reports success, nothing changed" class of bug
@@ -37,7 +45,8 @@ describe("silent write failures", () => {
       }
       return (originalTool as any)(...args);
     });
-    registerModificationTools(server);
+    clearToolRegistry();
+    registerTools(server);
   });
 
   async function callTool(toolName: string, args: any) {
@@ -101,8 +110,8 @@ describe("silent write failures", () => {
       expect(wire().opacity).toBe(1);
     });
 
-    it("normalises the batch form to the same wire shape as standalone", () => {
-      const out = normalizeCommandParams("set_gradient_fill", {
+    it("accepts a lowercase type and defaults angle/opacity/aspect_correct", async () => {
+      await callTool("set_gradient_fill", {
         nodeId: "1-1",
         type: "linear",
         stops: [
@@ -110,59 +119,47 @@ describe("silent write failures", () => {
           { color: "#0000ff", position: 1 },
         ],
       });
-      expect(out).toEqual({
+      expect(wire()).toMatchObject({
         nodeId: "1:1",
         gradientType: "LINEAR",
         angle: 0,
         opacity: 1,
-        // Contract change (bug #30): aspect_correct defaults to true on the standalone
-        // tool, so the batch normaliser emits it too - that IS the "same wire shape".
         aspect_correct: true,
-        stops: [
-          { color: "#ff0000", position: 0 },
-          { color: "#0000ff", position: 1 },
-        ],
       });
     });
 
-    it("accepts the colors shorthand and bare colour stops in a batch", () => {
-      expect(normalizeCommandParams("set_gradient_fill", { nodeId: "1:1", colors: ["#fff", "#000"] }).stops).toEqual([
-        { color: "#fff", position: 0 },
-        { color: "#000", position: 1 },
+    it("accepts the colors shorthand and bare colour stops", async () => {
+      // These loose spellings used to be accepted ONLY inside a batch (the old
+      // normaliser widened them there). They now live on the schema, so standalone and
+      // batch take the same input.
+      await callTool("set_gradient_fill", { nodeId: "1:1", colors: ["#ffffff", "#000000"] });
+      expect(wire().stops).toEqual([
+        { color: { r: 1, g: 1, b: 1, a: 1 }, position: 0 },
+        { color: { r: 0, g: 0, b: 0, a: 1 }, position: 1 },
       ]);
-      expect(normalizeCommandParams("set_gradient_fill", { nodeId: "1:1", stops: ["#fff", "#000"] }).stops).toEqual([
-        { color: "#fff", position: 0 },
-        { color: "#000", position: 1 },
-      ]);
+
+      mockSendCommand.mockClear();
+      await callTool("set_gradient_fill", { nodeId: "1:1", stops: ["#ffffff", "#000000"] });
+      expect(wire().stops.map((s: any) => s.position)).toEqual([0, 1]);
     });
 
-    it("parses a JSON-string stops array and flat rgba stops", () => {
-      expect(
-        normalizeCommandParams("set_gradient_fill", {
-          nodeId: "1:1",
-          stops: '[{"color":"#fff","position":0},{"color":"#000","position":1}]',
-        }).stops,
-      ).toEqual([
-        { color: "#fff", position: 0 },
-        { color: "#000", position: 1 },
-      ]);
-      expect(
-        normalizeCommandParams("set_gradient_fill", {
-          nodeId: "1:1",
-          stops: [
-            { r: 1, g: 0, b: 0, position: 0 },
-            { r: 0, g: 0, b: 1, position: 1 },
-          ],
-        }).stops,
-      ).toEqual([
-        { color: { r: 1, g: 0, b: 0 }, position: 0 },
-        { color: { r: 0, g: 0, b: 1 }, position: 1 },
-      ]);
-    });
+    it("parses a JSON-string stops array and flat rgba stops", async () => {
+      await callTool("set_gradient_fill", {
+        nodeId: "1:1",
+        stops: '[{"color":"#ffffff","position":0},{"color":"#000000","position":1}]',
+      });
+      expect(wire().stops).toHaveLength(2);
 
-    it("is idempotent on already-canonical params", () => {
-      const canonical = { nodeId: "1:1", gradientType: "ANGULAR", angle: 90, opacity: 0.5, stops: [] as unknown[] };
-      expect(normalizeCommandParams("set_gradient_fill", canonical)).toEqual({ ...canonical, aspect_correct: true });
+      mockSendCommand.mockClear();
+      await callTool("set_gradient_fill", {
+        nodeId: "1:1",
+        stops: [
+          { r: 1, g: 0, b: 0, position: 0 },
+          { r: 0, g: 0, b: 1, position: 1 },
+        ],
+      });
+      expect(wire().stops[0].color).toEqual({ r: 1, g: 0, b: 0, a: 1 });
+      expect(wire().stops[1].color).toEqual({ r: 0, g: 0, b: 1, a: 1 });
     });
   });
 

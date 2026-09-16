@@ -10,6 +10,7 @@ import {
   ProgressMessage,
   BrowserCommand,
 } from "../types";
+import { interceptForCapture } from "./tool-capture";
 
 class ChannelValidationError extends Error {
   constructor(message: string) {
@@ -406,6 +407,12 @@ export async function sendCommandToFigma<T = unknown>(
   params: unknown = {},
   timeoutMs: number = 30000,
 ): Promise<T> {
+  // Capture mode (batch_actions): record what this handler WOULD send and hand back a
+  // placeholder instead of touching the socket. This is what lets a batched action BE
+  // the standalone handler, so the two can never drift. See utils/tool-capture.ts.
+  const captured = interceptForCapture(command, params);
+  if (captured) return captured.value as T;
+
   await waitForConnection();
 
   // This connection can only be a member of one channel at a time — a browser
