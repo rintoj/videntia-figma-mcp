@@ -102,6 +102,14 @@ The project implements a comprehensive theme variable management system with 106
 - `get_collection_info` - Get collection metadata
 
 **Variable CRUD (6 tools)**
+
+> `delete_variable` takes `id` and accepts `variableId` / `variable` / `name` as aliases;
+> `delete_variables_batch` takes `ids` and accepts `variableIds` / `variables` / `names`.
+> Either an ID or a variable NAME works, with no `collectionId` needed unless the name
+> exists in more than one collection. Lookup failures now name the actual problem —
+> "Missing variable identifier: pass …" for a wrong param, "No variable found with id or
+> name X" for a real miss, and an explicit "ambiguous — it exists in N collections".
+
 - `create_variable` - Create single variable
 - `create_variables_batch` - Bulk creation
 - `update_variable_value` - Update values
@@ -268,6 +276,14 @@ emulation or monitoring needs the attachment to persist.
   `{path,width,height,bytes,format}`. **Prefer this for every "does this look right"
   visual check** — it costs a few tokens instead of tens of thousands. Parent dir must
   exist; overwrites. Also works for video formats.
+- `output_directory` (+ optional `filename`) — choose a folder instead of an exact path.
+  The directory is created when missing; the file name defaults to
+  `<node name>-<node id>@<scale>x.<ext>` and the extension implied by `format` is
+  appended when `filename` omits it. `filename` must be a bare name (no separators).
+  If `save_to_path` is also given it wins and a `warnings` entry says so.
+- **`export_node_as_image` is strict**: an unknown/misspelled parameter is REJECTED
+  rather than silently stripped (allowlist: `STRICT_PARAM_TOOLS` in
+  `src/videntia_figma_mcp/utils/tool-registry.ts`).
 - `max_width` / `max_height` — server-side downscale (image formats only).
 - `region` `{x,y,width,height}` — crop, in exported-image pixels (i.e. after `scale`),
   origin at the node's top-left. PNG/JPG only.
@@ -283,6 +299,13 @@ Post-processing lives in `src/videntia_figma_mcp/utils/export-image-post.ts`.
 
 - `format: "compact"` on `get_node_info` / `get_nodes_info` / `scan_nodes_by_types`
   (`format` is an alias for `output_format`, which now accepts `jsx | json | compact`).
+- **PAGE nodes read like real nodes.** A page has no x/y/w/h and carries its canvas paint
+  on `backgrounds` (never `fills`), so compact used to render it as an all-dashes shell.
+  Now `formatCompact` / `formatSummary` print `children=<n>` in place of the coordinates
+  and a `background=<token>` style token, `extractGeometry` (`measure_node`) returns
+  `childCount` + `backgrounds` instead of an empty object, and the plugin serializer
+  emits `backgrounds` (`extractBackgrounds`) plus an always-accurate `_childCount`.
+  Same fix reaches `get_nodes_info` and `get_node_summary` — they share the renderers.
 - `measure_node` — geometry ONLY (x, y, width, height, rotation, absoluteBoundingBox).
   Use instead of `get_node_info` whenever you just need coordinates or sizes.
   `include_children` + `depth`, `output_format: json | compact`.
@@ -372,6 +395,17 @@ Suppression logic: `src/videntia_figma_plugin/handlers/lint/suppress.ts`.
 - `set_strict_mode { enabled }` — global toggle. Off by default: no-ops are reported as
   warnings on the result. On: the first detected no-op throws.
 - Any command may override the global toggle with a per-call `strict` param.
+- **Intentional side effects** — the parent-size guard reports knock-on changes
+  ("changed its parent's height from 140 to 113 — a side effect you did not request").
+  When the side effect IS the point of the edit, acknowledge it instead of turning strict
+  off: `allow_side_effects: true` (every kind) or `expect_side_effects: ["parentResize"]`
+  (targeted) on `set_layout_sizing` / `set_auto_layout`. An acknowledged side effect is
+  KEPT (never restored), never throws, and comes back on `warnings` +
+  `acknowledgedSideEffects`, with `success` still true. `set_strict_mode
+  { allow_side_effects }` sets the session default; a per-call value overrides it (including
+  `false`, which narrows back to "acknowledge nothing"). camelCase spellings
+  (`allowSideEffects` / `expectSideEffects`) are accepted in `batch_actions` too.
+  Silent-no-op detection is unaffected.
 - `set_padding` / `set_item_spacing` / `set_layout_sizing` require `layoutMode != NONE`
   on the target (or, for FILL sizing, on the parent). On a `layoutMode: NONE` frame Figma
   accepts the assignment, throws nothing, and never persists it — these now throw with
@@ -410,9 +444,27 @@ Suppression logic: `src/videntia_figma_plugin/handlers/lint/suppress.ts`.
   the batch, so one undo in Figma reverts exactly that batch. Set `false` only to
   deliberately merge into the preceding undo group.
 
+## Batch Results
+
+`src/videntia_figma_mcp/utils/batch-result-digest.ts`. `batch_actions` is **informative by
+default** — it used to answer with nothing but `Batch completed: 3/3 succeeded`, which made
+it effectively write-only.
+
+- Every batch now returns **one compact row per action**:
+  `| # | Action | OK\|FAIL | Detail |`. `Detail` is a short digest — `id=…`/`name=…`/`type=…`
+  when the result carries identity, otherwise truncated JSON (capped at 160 chars), so
+  **read-style actions surface their natural return value** and failures surface their error.
+  Never a full node dump.
+- The failure report (first-failure line, committed-actions note, machine-readable JSON
+  recovery manifest) is unchanged and still only printed when something failed.
+- `return_state: true` remains the **verbose opt-in**: on top of those rows, each action
+  reports the node's ACTUAL post-write state (summary line + touched properties) and any
+  silently discarded writes under `noops` (`utils/return-state.ts`).
+
 ## Batch Param Normalisation
 
-`src/videntia_figma_mcp/utils/normalize-batch-params.ts`. `batch_actions` forwards params
+`src/videntia_figma_mcp/utils/param-aliases.ts` (the old `normalize-batch-params.ts` is gone).
+`batch_actions` forwards params
 raw to the plugin, bypassing each standalone tool's zod schema — so calls that worked
 standalone used to fail inside a batch. Params are now normalised per command before
 dispatch, so **a batched action accepts the same param names and value formats as the
@@ -420,6 +472,26 @@ equivalent standalone tool**. Aliases are accepted (e.g. `mode` → `layoutMode`
 canonical plugin-facing name wins when both are present. Normalisation is idempotent and
 never throws — unknown commands pass through untouched. Node-id keys accept the URL
 `12-34` form. `create_icon` / `update_icon` are also expanded server-side inside batches.
+
+## Padding Shorthand (one dialect everywhere)
+
+`src/videntia_figma_mcp/utils/frame-layout.ts` owns the ONLY `padding` dialect —
+`paddingShorthandSchema` + `expandPadding`, shared by `set_padding`, `set_auto_layout`,
+`create_frame`, `create_autolayout_frame` and `create_card`:
+
+- a number → all four sides
+- a CSS-style array → `[all]`, `[vertical, horizontal]`, `[top, horizontal, bottom]`,
+  `[top, right, bottom, left]`
+- an object → `{top,right,bottom,left}` and/or `{vertical,horizontal}`
+
+Explicit per-side params (`top`/`paddingTop`, …) always override the shorthand. The
+server expands the shorthand before dispatch, so the plugin only ever sees the
+four-sided form (`handlers/composites.ts::normalizePadding` also accepts arrays for
+older callers). `gap` is accepted as an alias for `itemSpacing` on
+`create_autolayout_frame` / `create_card`, matching every other layout tool.
+
+`set_auto_layout` is in `STRICT_PARAM_TOOLS`: an undeclared or misspelled param on it is
+an error, never a silent strip.
 
 ## Development Guidelines
 

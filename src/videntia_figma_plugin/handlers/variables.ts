@@ -47,21 +47,70 @@ function findCollectionIn(collections: VariableCollection[], collectionIdOrName:
   return collection;
 }
 
+/** Variable names are slash-paths; callers routinely type the dashed spelling. */
+function normalizeVariableName(name: string): string {
+  return name.trim().replace(/-/g, "/").toLowerCase();
+}
+
 function findVariableIn(
   variables: Variable[],
   collections: VariableCollection[],
   variableIdOrName: string,
   collectionId?: string,
 ): Variable {
+  // A missing/blank lookup key is a CALLER mistake, not missing data — say so, and name
+  // the parameter, instead of reporting "Variable not found: undefined".
+  if (variableIdOrName === undefined || variableIdOrName === null || `${variableIdOrName}`.trim() === "") {
+    throw new Error(
+      'Missing variable identifier: pass "id" (aliases: variableId, variable, name) — a variable id or a variable name.',
+    );
+  }
+
   let variable = variables.find((v) => v.id === variableIdOrName);
 
-  if (!variable && collectionId !== undefined && collectionId !== null) {
+  // Name lookup, scoped to a collection when one was given.
+  if (!variable && collectionId !== undefined && collectionId !== null && `${collectionId}`.trim() !== "") {
     const collection = findCollectionIn(collections, collectionId);
-    variable = variables.find((v) => v.name === variableIdOrName && v.variableCollectionId === collection.id);
+    const inCollection = variables.filter((v) => v.variableCollectionId === collection.id);
+    variable =
+      inCollection.find((v) => v.name === variableIdOrName) ??
+      inCollection.find((v) => normalizeVariableName(v.name) === normalizeVariableName(variableIdOrName));
+    if (!variable) {
+      throw new Error(
+        `No variable found with id or name "${variableIdOrName}" in collection "${collection.name}". ` +
+          `That collection has ${inCollection.length} variable(s); call get_variables to list them.`,
+      );
+    }
+  }
+
+  // No collection given — a name is still a perfectly good key as long as it is unique
+  // across the file (name-based lookup is supported across the variable tools).
+  if (!variable) {
+    let matches = variables.filter((v) => v.name === variableIdOrName);
+    if (matches.length === 0) {
+      matches = variables.filter((v) => normalizeVariableName(v.name) === normalizeVariableName(variableIdOrName));
+    }
+    if (matches.length === 1) {
+      variable = matches[0];
+    } else if (matches.length > 1) {
+      const where = matches
+        .map((m) => {
+          const c = collections.find((col) => col.id === m.variableCollectionId);
+          return c ? c.name : m.variableCollectionId;
+        })
+        .join(", ");
+      throw new Error(
+        `Variable name "${variableIdOrName}" is ambiguous — it exists in ${matches.length} collections (${where}). ` +
+          `Pass collectionId to disambiguate, or use the variable id.`,
+      );
+    }
   }
 
   if (!variable) {
-    throw new Error(`Variable not found: ${variableIdOrName}`);
+    throw new Error(
+      `No variable found with id or name "${variableIdOrName}". ` +
+        `Call get_variables to list variable ids and names.`,
+    );
   }
 
   return variable;
@@ -1104,7 +1153,9 @@ export async function renameVariable(params: Record<string, unknown>): Promise<R
 
 // 8. delete_variable
 export async function deleteVariable(params: Record<string, unknown>): Promise<Record<string, unknown>> {
-  const variableId = params["variableId"] as string;
+  // `id` is the tool's own parameter name, `variableId` the wire name every other
+  // variable command uses — accept either so neither spelling can 404 the caller.
+  const variableId = (params["variableId"] ?? params["id"] ?? params["variable"] ?? params["name"]) as string;
   const collectionId = params["collectionId"] as string | undefined;
 
   const variable = await findVariable(variableId, collectionId);
@@ -1122,8 +1173,17 @@ export async function deleteVariable(params: Record<string, unknown>): Promise<R
 
 // 9. delete_variables_batch
 export async function deleteVariablesBatch(params: Record<string, unknown>): Promise<Record<string, unknown>> {
-  const variableIds = params["variableIds"] as string[];
+  const rawIds = params["variableIds"] ?? params["ids"] ?? params["variables"] ?? params["names"];
+  const variableIds = (
+    Array.isArray(rawIds) ? rawIds : rawIds === undefined || rawIds === null ? [] : [rawIds]
+  ) as string[];
   const collectionId = params["collectionId"] as string | undefined;
+
+  if (variableIds.length === 0) {
+    throw new Error(
+      'Missing variable identifiers: pass "ids" (aliases: variableIds, variables, names) — an array of variable ids or names.',
+    );
+  }
 
   let deleted = 0;
   let failed = 0;

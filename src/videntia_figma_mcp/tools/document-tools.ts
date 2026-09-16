@@ -22,7 +22,7 @@ import { convertToJsx } from "../utils/figma-to-jsx.js";
 import { formatCompact, formatSummary, extractGeometry, violationId } from "../utils/compact-node.js";
 import { filterNodeData, normalizeNodeId } from "../utils/figma-helpers.js";
 import { recordLintRun, getLintRun } from "../utils/lint-runs.js";
-import { postProcessExport, writeExportToPath, defaultExportPath } from "../utils/export-image-post.js";
+import { postProcessExport, writeExportToPath, resolveExportDestination } from "../utils/export-image-post.js";
 import { exportCacheKey, getCachedExport, setCachedExport, approximateImageTokens } from "../utils/export-cache.js";
 import { ColorInputSchema, colorParam, toRgba } from "../utils/color-input.js";
 import type {
@@ -1995,7 +1995,7 @@ export function registerDocumentTools(server: McpServer): void {
     "Export a node as an image (PNG/JPG/SVG/PDF) or video (MP4/GIF/WEBM) from Figma. " +
       "BY DEFAULT the render is written to a file and only {path,width,height,bytes,format} is returned — a few tokens instead of tens of thousands. " +
       "Pass `inline: true` ONLY when you genuinely need to SEE the pixels in this conversation; structural checks ('did it render', 'is it clipped') never do. " +
-      "Pass `save_to_path` to choose the file location; otherwise a session temp file is used. " +
+      "Pass `save_to_path` for an exact file path, or `output_directory` (plus an optional `filename`) to choose a folder; otherwise a session temp file is used. " +
       "Identical re-exports of an unchanged node are served from a session cache (bypass with `force_refresh: true`). " +
       "`scale` defaults to 1 — that is almost always right; 2 doubles the pixel cost, so only use it when you are inspecting fine detail. " +
       "Inline returns are capped at 1200px on the longest edge unless `allow_full_resolution`, `max_width` or `max_height` is set. " +
@@ -2049,6 +2049,18 @@ export function registerDocumentTools(server: McpServer): void {
         .optional()
         .describe(
           "Absolute file path to write the export to. STRONGLY PREFERRED for visual checks: returns only {path,width,height,bytes,format} instead of an inline base64 image. Parent directory must exist; overwrites.",
+        ),
+      output_directory: z
+        .string()
+        .optional()
+        .describe(
+          "Absolute directory to write the export into; created when missing. The file name is derived from the node name, id, scale and format unless `filename` is given. Ignored (with a warning) when `save_to_path` is also passed.",
+        ),
+      filename: z
+        .string()
+        .optional()
+        .describe(
+          "File name for the export (no path separators). The extension implied by `format` is appended when missing. Used with `output_directory`; falls back to the session temp directory when that is omitted.",
         ),
       max_width: z.coerce
         .number()
@@ -2106,6 +2118,8 @@ export function registerDocumentTools(server: McpServer): void {
       constraintType,
       constraintValue,
       save_to_path,
+      output_directory,
+      filename,
       max_width,
       max_height,
       allow_full_resolution,
@@ -2134,15 +2148,30 @@ export function registerDocumentTools(server: McpServer): void {
             mimeType: string;
             format: string;
             byteLength: number;
+            name?: string;
           };
-          if (save_to_path) {
-            const written = await writeExportToPath(save_to_path, typedResult.videoData);
+          if (save_to_path || output_directory || filename) {
+            const destination = await resolveExportDestination({
+              saveToPath: save_to_path,
+              outputDirectory: output_directory,
+              filename,
+              nodeId,
+              nodeName: typedResult.name,
+              scale: scale || 1,
+              format: typedResult.format,
+            });
+            const written = await writeExportToPath(destination.path, typedResult.videoData);
             return {
               content: [
                 {
                   type: "text" as const,
                   text: JSON.stringify(
-                    { path: written.path, bytes: written.bytes, format: typedResult.format },
+                    {
+                      path: written.path,
+                      bytes: written.bytes,
+                      format: typedResult.format,
+                      ...(destination.warnings.length ? { warnings: destination.warnings } : {}),
+                    },
                     null,
                     2,
                   ),
@@ -2178,11 +2207,26 @@ export function registerDocumentTools(server: McpServer): void {
           exportedWidth: number;
           exportedHeight: number;
           subtreeHash?: string | null;
+          name?: string;
         };
 
         const resolvedFormat = format || "PNG";
         const resolvedScale = scale || 1;
         const wantsInline = inline === true;
+
+        // Where the file goes. Resolved even for inline renders so an explicit
+        // destination still participates in the cache key.
+        const destination = wantsInline
+          ? { path: "", warnings: [] as string[] }
+          : await resolveExportDestination({
+              saveToPath: save_to_path,
+              outputDirectory: output_directory,
+              filename,
+              nodeId,
+              nodeName: typedResult.name,
+              scale: resolvedScale,
+              format: resolvedFormat,
+            });
 
         // Session render cache. Keyed on the plugin-computed subtree version
         // hash — when that is missing we simply never cache (a false miss costs
@@ -2198,6 +2242,7 @@ export function registerDocumentTools(server: McpServer): void {
           jpegQuality: jpeg_quality,
           allowFullResolution: allow_full_resolution === true,
           inline: wantsInline,
+          destination: destination.path || null,
         });
         const cached = force_refresh === true ? undefined : getCachedExport(cacheKey);
 
@@ -2266,8 +2311,7 @@ export function registerDocumentTools(server: McpServer): void {
         // A2: writing a file is the DEFAULT. Pixels come back inline only when
         // the caller explicitly asks for them.
         if (!wantsInline) {
-          const targetPath = save_to_path ?? (await defaultExportPath(nodeId, resolvedScale, resolvedFormat));
-          const written = await writeExportToPath(targetPath, processed.base64);
+          const written = await writeExportToPath(destination.path, processed.base64);
           setCachedExport(cacheKey, {
             path: written.path,
             width,
@@ -2288,8 +2332,10 @@ export function registerDocumentTools(server: McpServer): void {
                     bytes: written.bytes,
                     format: resolvedFormat,
                     cached: false,
+                    ...(destination.warnings.length ? { warnings: destination.warnings } : {}),
                     note: [
                       ...processed.notes,
+                      ...destination.warnings,
                       "Pass inline: true if you need to see the pixels in the conversation.",
                     ].join(" "),
                   },

@@ -662,13 +662,21 @@ export function registerVariableTools(server: McpServer): void {
    */
   server.tool(
     "delete_variable",
-    "Delete a single variable",
+    "Delete a single variable. The identifier parameter is `id` and also accepts the spelling `variableId`; either a variable ID or a variable name works.",
     {
-      id: z.string().describe("Variable ID or name"),
-      collectionId: z.string().optional().describe("Collection ID (required if using variable name)"),
+      id: z.string().describe("Variable ID or name (alias: variableId)"),
+      collectionId: z
+        .string()
+        .optional()
+        .describe("Collection ID or name — only needed to disambiguate a name used in more than one collection"),
     },
     async ({ id: variableId, collectionId }) => {
       try {
+        if (variableId === undefined || variableId === null || `${variableId}`.trim() === "") {
+          throw new Error(
+            'Missing variable identifier: pass "id" (aliases: variableId, variable, name) — a variable id or a variable name.',
+          );
+        }
         const result = await sendCommandToFigma<DeleteVariableResult>("delete_variable", {
           variableId,
           collectionId,
@@ -699,13 +707,21 @@ export function registerVariableTools(server: McpServer): void {
    */
   server.tool(
     "delete_variables_batch",
-    "Delete multiple variables at once",
+    "Delete multiple variables at once. The identifier parameter is `ids` and also accepts the spelling `variableIds`; entries may be variable IDs or names.",
     {
-      ids: coerceArray(z.array(z.string())).describe("Array of variable IDs or names"),
-      collectionId: z.string().optional().describe("Collection ID (required if using names)"),
+      ids: coerceArray(z.array(z.string())).describe("Array of variable IDs or names (alias: variableIds)"),
+      collectionId: z
+        .string()
+        .optional()
+        .describe("Collection ID or name — only needed to disambiguate names used in more than one collection"),
     },
     async ({ ids: variableIds, collectionId }) => {
       try {
+        if (!Array.isArray(variableIds) || variableIds.length === 0) {
+          throw new Error(
+            'Missing variable identifiers: pass "ids" (aliases: variableIds, variables, names) — an array of variable ids or names.',
+          );
+        }
         const result = await sendCommandToFigma<DeleteVariablesBatchResult>("delete_variables_batch", {
           variableIds,
           collectionId,
@@ -724,7 +740,7 @@ export function registerVariableTools(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: `Error deleting variables batch (${variableIds.length} variables): ${error instanceof Error ? error.message : String(error)}`,
+              text: `Error deleting variables batch (${Array.isArray(variableIds) ? variableIds.length : 0} variables): ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };

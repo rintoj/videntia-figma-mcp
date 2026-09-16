@@ -8,7 +8,7 @@ import {
   parseNum,
   describeError,
 } from "../utils/helpers";
-import { guardParentSize, resolveStrict, snapshotParentSize } from "../utils/write-verify";
+import { guardParentSize, resolveSideEffectAllowance, resolveStrict, snapshotParentSize } from "../utils/write-verify";
 
 // ---------------------------------------------------------------------------
 // Font style resolution
@@ -1251,6 +1251,7 @@ export async function setAutoLayout(params: Record<string, unknown>): Promise<Re
     label: "set_auto_layout",
     strict: resolveStrict(safeParams),
     childName: frameNode.name,
+    allowSideEffects: resolveSideEffectAllowance(safeParams),
   });
   const allWarnings = childWarnings.concat(parentReport.warnings);
 
@@ -1259,6 +1260,9 @@ export async function setAutoLayout(params: Record<string, unknown>): Promise<Re
     name: frameNode.name,
     ...(allWarnings.length > 0
       ? { success: childWarnings.length === 0 && parentReport.noops.length === 0 ? true : false, warnings: allWarnings }
+      : {}),
+    ...(parentReport.acknowledged !== undefined && parentReport.acknowledged.length > 0
+      ? { acknowledgedSideEffects: parentReport.acknowledged }
       : {}),
     layoutMode: frameNode.layoutMode,
     paddingTop: frameNode.paddingTop,

@@ -24,6 +24,8 @@ export interface ExportCacheKeyInput {
   jpegQuality?: number;
   allowFullResolution?: boolean;
   inline: boolean;
+  /** Resolved destination path — a render aimed at a different file is a miss. */
+  destination?: string | null;
 }
 
 export interface ExportCacheEntry {
@@ -56,6 +58,7 @@ export function exportCacheKey(input: ExportCacheKeyInput): string | null {
     input.jpegQuality ?? null,
     input.allowFullResolution === true,
     input.inline,
+    input.destination ?? null,
   ]);
 }
 

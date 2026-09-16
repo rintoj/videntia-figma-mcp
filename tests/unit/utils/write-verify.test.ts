@@ -1,5 +1,10 @@
 import {
   applyWrites,
+  guardParentSize,
+  isSideEffectAllowed,
+  resolveSideEffectAllowance,
+  setSideEffectAllowanceDefault,
+  snapshotParentSize,
   mergeWriteResults,
   isStrictModeEnabled,
   resolveStrict,
@@ -27,7 +32,123 @@ function makeNode(props: Record<string, unknown>, readonlyProps: string[] = []):
   );
 }
 
-afterEach(() => setStrictModeEnabled(true));
+afterEach(() => {
+  setStrictModeEnabled(true);
+  setSideEffectAllowanceDefault(false);
+});
+
+/**
+ * Auto-layout parent that hugs on both axes and whose height Figma recomputes the
+ * moment a child is sized — i.e. the exact shape that made the guard fire on an
+ * intentional edit. `resize` is refused, like a hugging parent refuses it.
+ */
+function makeHuggingParent(width: number, height: number) {
+  return {
+    id: "1:2",
+    name: "Bar",
+    layoutMode: "VERTICAL",
+    primaryAxisSizingMode: "AUTO",
+    counterAxisSizingMode: "AUTO",
+    width,
+    height,
+    resize() {
+      /* a hugging parent re-hugs: the write never sticks */
+    },
+  };
+}
+
+describe("side-effect acknowledgement", () => {
+  it("parses allow_side_effects true as the wildcard and false as nothing", () => {
+    expect(isSideEffectAllowed(resolveSideEffectAllowance({ allow_side_effects: true }), "parentResize")).toBe(true);
+    expect(isSideEffectAllowed(resolveSideEffectAllowance({ allow_side_effects: false }), "parentResize")).toBe(false);
+    expect(isSideEffectAllowed(resolveSideEffectAllowance({}), "parentResize")).toBe(false);
+  });
+
+  it("accepts targeted kinds, camelCase spellings and comma strings", () => {
+    expect(
+      isSideEffectAllowed(resolveSideEffectAllowance({ expect_side_effects: ["parentResize"] }), "parentResize"),
+    ).toBe(true);
+    expect(
+      isSideEffectAllowed(resolveSideEffectAllowance({ expectSideEffects: "parent_resize" }), "parentResize"),
+    ).toBe(true);
+    expect(
+      isSideEffectAllowed(resolveSideEffectAllowance({ expect_side_effects: ["somethingElse"] }), "parentResize"),
+    ).toBe(false);
+  });
+
+  it("falls back to the session default and lets a per-call value override it", () => {
+    setSideEffectAllowanceDefault(true);
+    expect(isSideEffectAllowed(resolveSideEffectAllowance(undefined), "parentResize")).toBe(true);
+    expect(isSideEffectAllowed(resolveSideEffectAllowance({ allow_side_effects: false }), "parentResize")).toBe(false);
+  });
+});
+
+describe("guardParentSize", () => {
+  it("throws in strict mode when the parent resize was not acknowledged", () => {
+    const parent = makeHuggingParent(343, 140);
+    const snapshot = snapshotParentSize(parent)!;
+    parent.height = 113;
+
+    expect(() => guardParentSize(snapshot, { label: "set_layout_sizing", strict: true, childName: "Row" })).toThrow(
+      /changed its parent "Bar" \(1:2\) height from 140 to 113/,
+    );
+  });
+
+  it("keeps and reports an acknowledged parent resize instead of throwing", () => {
+    const parent = makeHuggingParent(343, 140);
+    const snapshot = snapshotParentSize(parent)!;
+    parent.height = 113;
+
+    const report = guardParentSize(snapshot, {
+      label: "set_layout_sizing",
+      strict: true,
+      childName: "Row",
+      allowSideEffects: resolveSideEffectAllowance({ allow_side_effects: true }),
+    });
+
+    expect(report.noops).toEqual([]);
+    expect(report.acknowledged).toEqual([
+      { kind: "parentResize", property: "parent.height", requested: 140, actual: 113 },
+    ]);
+    expect(report.warnings[0]).toContain("height from 140 to 113");
+    expect(report.warnings[0]).toContain("acknowledged");
+    // The point of the edit is kept — the guard must not restore the old height.
+    expect(parent.height).toBe(113);
+  });
+
+  it("acknowledging a different kind still throws for parentResize", () => {
+    const parent = makeHuggingParent(343, 140);
+    const snapshot = snapshotParentSize(parent)!;
+    parent.height = 113;
+
+    expect(() =>
+      guardParentSize(snapshot, {
+        label: "set_layout_sizing",
+        strict: true,
+        childName: "Row",
+        allowSideEffects: resolveSideEffectAllowance({ expect_side_effects: ["somethingElse"] }),
+      }),
+    ).toThrow(/side effect you did not request/);
+  });
+
+  it("withWriteReport surfaces acknowledged side effects without failing the result", () => {
+    const parent = makeHuggingParent(343, 140);
+    const snapshot = snapshotParentSize(parent)!;
+    parent.height = 113;
+
+    const report = guardParentSize(snapshot, {
+      label: "set_layout_sizing",
+      strict: true,
+      childName: "Row",
+      allowSideEffects: ["*"],
+    });
+    const result = withWriteReport({ nodeId: "1:3" }, report);
+
+    expect(result.success).toBe(true);
+    expect((result.acknowledgedSideEffects as unknown[]).length).toBe(1);
+    expect((result.warnings as string[])[0]).toContain("acknowledged");
+  });
+});
 
 describe("applyWrites", () => {
   it("reports writes that land as applied", () => {

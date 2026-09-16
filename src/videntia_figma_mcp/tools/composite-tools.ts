@@ -2,7 +2,7 @@ import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { sendCommandToFigma } from "../utils/websocket";
 import { normalizeNodeId } from "../utils/figma-helpers.js";
-import { expandPadding } from "../utils/frame-layout.js";
+import { expandPadding, paddingShorthandSchema, PADDING_SHORTHAND_DESCRIPTION } from "../utils/frame-layout.js";
 import { ColorInputSchema } from "../utils/color-input.js";
 
 /**
@@ -16,17 +16,8 @@ import { ColorInputSchema } from "../utils/color-input.js";
 // 0-1 or 0-255, or [r,g,b(,a)]. See utils/color-input.ts.
 const colorSchema = ColorInputSchema;
 
-const paddingSchema = z.union([
-  z.coerce.number().describe("Uniform padding in pixels"),
-  z.object({
-    top: z.coerce.number().optional(),
-    right: z.coerce.number().optional(),
-    bottom: z.coerce.number().optional(),
-    left: z.coerce.number().optional(),
-    vertical: z.coerce.number().optional(),
-    horizontal: z.coerce.number().optional(),
-  }),
-]);
+// The one shared padding dialect — see utils/frame-layout.ts.
+const paddingSchema = paddingShorthandSchema;
 
 function textResult(result: unknown) {
   return {
@@ -63,9 +54,7 @@ export function registerCompositeTools(server: McpServer): void {
         .enum(["HORIZONTAL", "VERTICAL", "NONE"])
         .optional()
         .describe("Auto-layout direction (default VERTICAL). NONE disables auto-layout."),
-      padding: paddingSchema
-        .optional()
-        .describe("Padding: a number, or {top,right,bottom,left} / {vertical,horizontal}"),
+      padding: paddingSchema.optional().describe(PADDING_SHORTHAND_DESCRIPTION),
       paddingVariable: z
         .string()
         .optional()
@@ -136,6 +125,7 @@ export function registerCompositeTools(server: McpServer): void {
       const { size, layout, ...rest } = args;
       const params = { ...rest } as Record<string, unknown>;
       if (typeof params.parentId === "string") params.parentId = normalizeNodeId(params.parentId);
+      if (params.padding !== undefined) params.padding = expandPadding(params.padding as never);
 
       // Fold the nested spelling down onto the flat params the plugin handler reads.
       if (size?.width !== undefined) params.width = size.width;
@@ -270,6 +260,8 @@ export function registerCompositeTools(server: McpServer): void {
     async (args) => {
       const params = { ...args } as Record<string, unknown>;
       if (typeof params.parentId === "string") params.parentId = normalizeNodeId(params.parentId);
+      // Expand the shorthand here so the plugin only ever sees the four-sided form.
+      if (params.padding !== undefined) params.padding = expandPadding(params.padding as never);
       try {
         return textResult(await sendCommandToFigma("create_card", params));
       } catch (error) {

@@ -4,7 +4,7 @@ import { sendCommandToFigma } from "../utils/websocket";
 import { coerceArray } from "../utils/coerce-array.js";
 import { mcpBooleanSchema } from "../utils/mcp-boolean.js";
 import { normalizeNodeId } from "../utils/figma-helpers.js";
-import { resolveFrameLayout } from "../utils/frame-layout.js";
+import { resolveFrameLayout, paddingShorthandSchema, PADDING_SHORTHAND_DESCRIPTION } from "../utils/frame-layout.js";
 import { colorParam, toRgba } from "../utils/color-input.js";
 
 /**
@@ -114,20 +114,7 @@ export function registerCreationTools(server: McpServer): void {
             ])
             .optional()
             .describe("Layout sizing: one value for both axes, or { horizontal, vertical }"),
-          padding: z
-            .union([
-              z.coerce.number().describe("Uniform padding"),
-              z.object({
-                top: z.coerce.number().optional(),
-                right: z.coerce.number().optional(),
-                bottom: z.coerce.number().optional(),
-                left: z.coerce.number().optional(),
-                vertical: z.coerce.number().optional(),
-                horizontal: z.coerce.number().optional(),
-              }),
-            ])
-            .optional()
-            .describe("Padding: a number, or { top, right, bottom, left } / { vertical, horizontal }"),
+          padding: paddingShorthandSchema.optional().describe(PADDING_SHORTHAND_DESCRIPTION),
           gap: z.coerce.number().min(0).optional().describe("Spacing between children in pixels"),
           align: z
             .object({
@@ -181,11 +168,7 @@ export function registerCreationTools(server: McpServer): void {
         .optional()
         .describe("Wrap children onto multiple lines (requires layoutMode HORIZONTAL)"),
       gap: z.coerce.number().min(0).optional().describe("Spacing between children in pixels (requires layoutMode)"),
-      padding: z.coerce
-        .number()
-        .min(0)
-        .optional()
-        .describe("Padding on all four sides in pixels (requires layoutMode)"),
+      padding: paddingShorthandSchema.optional().describe(`${PADDING_SHORTHAND_DESCRIPTION} (requires layoutMode)`),
       top: z.coerce
         .number()
         .min(0)

@@ -71,10 +71,28 @@ export const PARAM_ALIASES: Record<string, Record<string, string>> = {
   set_font_weight: { fontWeight: "weight" },
   set_font_name: { fontFamily: "family", fontStyle: "style" },
   set_item_spacing: { gap: "itemSpacing", spacing: "itemSpacing" },
-  set_layout_sizing: { horizontal: "layoutSizingHorizontal", vertical: "layoutSizingVertical" },
+  // `gap` is what every sibling layout tool calls this (set_gap, create_frame,
+  // set_auto_layout). Undeclared here it was stripped by zod and the composite was
+  // built with the house default instead of the caller's spacing.
+  create_autolayout_frame: { gap: "itemSpacing" },
+  create_card: { gap: "itemSpacing" },
+  // `allowSideEffects`/`expectSideEffects` are the camelCase spellings a caller reaches
+  // for; the tool's own parameters are snake_case like `return_state`.
+  set_layout_sizing: {
+    horizontal: "layoutSizingHorizontal",
+    vertical: "layoutSizingVertical",
+    allowSideEffects: "allow_side_effects",
+    expectSideEffects: "expect_side_effects",
+  },
+  set_auto_layout: { allowSideEffects: "allow_side_effects", expectSideEffects: "expect_side_effects" },
+  set_strict_mode: { allowSideEffects: "allow_side_effects", returnState: "return_state" },
   set_axis_align: { primary: "primaryAxisAlignItems", counter: "counterAxisAlignItems" },
   set_opacity: { alpha: "opacity" },
-  delete_variable: { variable: "id", name: "id" },
+  // `variableId` is what the other variable tools call this parameter, and it is the
+  // first spelling a caller reaches for. Accepting it here means the caller never sees a
+  // schema error that reads as if the VARIABLE were the problem.
+  delete_variable: { variable: "id", name: "id", variableId: "id", variableName: "id" },
+  delete_variables_batch: { variableIds: "ids", variables: "ids", names: "ids", variableId: "ids" },
   update_variable_value: { variable: "variableId", variableName: "variableId", id: "variableId" },
   delete_variable_collection: { collection: "id" },
 };
