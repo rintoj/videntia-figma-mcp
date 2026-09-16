@@ -54,6 +54,16 @@ const DECODE_LOOKUP = (() => {
  * character outside the base64 alphabet so callers get a clear error instead of
  * silently truncated/garbage image data.
  */
+/**
+ * Shared decode failure message. Points the caller at the path-based tool,
+ * because the usual cause is an agent trying to inline a real image file
+ * (or shell-substituting `$(cat file)`, which arrives literally).
+ */
+export const INVALID_BASE64_MESSAGE =
+  "Invalid base64 string: imageBytes must be base64 text. If the image is a file on local disk, " +
+  "use set_image_fill_from_path (pass the absolute file path — the server reads and encodes it) " +
+  "instead of inlining the bytes or shell-substituting the file contents.";
+
 export function customBase64Decode(input: string): Uint8Array {
   const commaIndex = input.indexOf(",");
   const raw = input.startsWith("data:") && commaIndex !== -1 ? input.slice(commaIndex + 1) : input;
@@ -61,7 +71,7 @@ export function customBase64Decode(input: string): Uint8Array {
 
   if (clean.length === 0) return new Uint8Array(0);
   if (clean.length % 4 !== 0 || /[^A-Za-z0-9+/=]/.test(clean)) {
-    throw new Error("Invalid base64 string");
+    throw new Error(INVALID_BASE64_MESSAGE);
   }
 
   let padding = 0;
@@ -81,7 +91,7 @@ export function customBase64Decode(input: string): Uint8Array {
     const c3 = clean[i + 3] === "=" ? 0 : DECODE_LOOKUP[c3Char];
 
     if (c0 < 0 || c1 < 0 || c2 < 0 || c3 < 0) {
-      throw new Error("Invalid base64 string");
+      throw new Error(INVALID_BASE64_MESSAGE);
     }
 
     const triple = (c0 << 18) | (c1 << 12) | (c2 << 6) | c3;

@@ -48,16 +48,32 @@ src/
 │   │   ├── creation-tools.ts        # Node creation
 │   │   ├── modification-tools.ts    # Node modification
 │   │   ├── text-tools.ts            # Text operations
-│   │   └── component-tools.ts       # Component operations
+│   │   ├── component-tools.ts       # Component operations
+│   │   ├── composite-tools.ts       # One-round-trip composites
+│   │   └── verification-tools.ts    # Contrast/overlap/assert/token checks
 │   ├── utils/
 │   │   ├── color-calculations.ts    # Color math & WCAG
 │   │   ├── theme-schema.ts          # Theme schema definitions
 │   │   ├── websocket.ts             # Figma plugin communication
-│   │   └── figma-helpers.ts         # Helper functions
+│   │   ├── figma-helpers.ts         # Helper functions
+│   │   ├── compact-node.ts          # Compact/summary/geometry formatting
+│   │   ├── export-image-post.ts     # Crop/downscale/save-to-disk exports
+│   │   ├── normalize-batch-params.ts# Batch ↔ standalone param aliasing
+│   │   └── verification-math.ts     # Contrast/overlap/diff math
 │   └── types/
 │       └── index.ts                 # TypeScript definitions
 ├── videntia_figma_plugin/
-│   └── code.js                      # Figma plugin code (4777 lines)
+│   ├── index.ts                     # Command dispatch + READONLY_COMMANDS
+│   ├── handlers/                    # Per-domain command handlers
+│   │   ├── composites.ts
+│   │   ├── verification.ts
+│   │   ├── sections.ts
+│   │   └── lint/suppress.ts         # ignore_rules + per-node roles
+│   ├── utils/
+│   │   ├── write-verify.ts          # Strict mode / silent no-op detection
+│   │   └── document-guard.ts        # __expectedFile cross-file guard
+│   └── code.js                      # Generated plugin bundle (bun run build)
+├── socket-channel-guard.ts          # Stale-channel hard fail
 └── socket.ts                        # WebSocket server
 
 tests/
@@ -244,9 +260,183 @@ console buffer.
 capture. The debugger session is shared: screenshots detach afterwards only when no
 emulation or monitoring needs the attachment to persist.
 
+## Token-Efficient Exports
+
+`export_node_as_image` no longer has to return a wall of base64:
+
+- `save_to_path` — absolute path; writes the file and returns only
+  `{path,width,height,bytes,format}`. **Prefer this for every "does this look right"
+  visual check** — it costs a few tokens instead of tens of thousands. Parent dir must
+  exist; overwrites. Also works for video formats.
+- `max_width` / `max_height` — server-side downscale (image formats only).
+- `region` `{x,y,width,height}` — crop, in exported-image pixels (i.e. after `scale`),
+  origin at the node's top-left. PNG/JPG only.
+- `jpeg_quality` (1–100, `format: "JPG"` only) — cheap review screenshots. Unrelated to
+  the video `quality` preset.
+- **Inline returns are capped at 1200px on the longest edge**, unless
+  `allow_full_resolution`, `max_width` or `max_height` is set. `save_to_path` always
+  keeps full resolution — the cap only guards token-costly inline returns.
+
+Post-processing lives in `src/videntia_figma_mcp/utils/export-image-post.ts`.
+
+## Token-Efficient Reads
+
+- `format: "compact"` on `get_node_info` / `get_nodes_info` / `scan_nodes_by_types`
+  (`format` is an alias for `output_format`, which now accepts `jsx | json | compact`).
+- `measure_node` — geometry ONLY (x, y, width, height, rotation, absoluteBoundingBox).
+  Use instead of `get_node_info` whenever you just need coordinates or sizes.
+  `include_children` + `depth`, `output_format: json | compact`.
+- `get_node_summary` — one line per node: name, type, id, child count, key styles.
+  Use to orient inside a frame before drilling in. `include_children` for direct children.
+- `lint_frame`:
+  - `summary_only: true` — per-category scores and severity counts, no violation rows.
+  - every violation now carries a **stable `id`** (derived from nodeId + category +
+    property + severity, so repeat runs diff cleanly) and it is the first table column.
+- `scan_nodes_by_types` contract is now explicit:
+  - `topLevelOnly: true` — direct children only, no recursion (default `false` = full subtree).
+  - the response is prefixed with `returned of totalFound … truncated: <bool>`, and a
+    **WARNING line when truncated** — a truncated scan is NOT a full sweep; raise `limit`.
+
+Formatting helpers: `src/videntia_figma_mcp/utils/compact-node.ts`.
+
+## Composite Commands
+
+`src/videntia_figma_mcp/tools/composite-tools.ts` (plugin side:
+`handlers/composites.ts`). **Prefer these over multi-call sequences** — each is one
+round trip and applies operations in the order Figma actually requires.
+
+| Tool | Replaces |
+|------|----------|
+| `create_autolayout_frame` | create_frame + set_layout_mode + set_padding + set_item_spacing + set_layout_sizing + set_fill_color + set_corner_radius |
+| `create_styled_text` | load_font_async + create_text + apply_text_style + set_fill_color/bind_variable (font loading is internal — never call `load_font_async` first) |
+| `set_gap` | set_item_spacing; also auto-relaxes `SPACE_BETWEEN` (which silently overrides itemSpacing). Never fake gaps with spacer rectangles |
+| `create_card` | frame + fill + radius + effect style + padding, using the house `card` preset |
+| `bulk_bind_variables` | repeated `bind_variable` — many `{nodeId, field, variable}` triples in one call; bindings are independent |
+| `clone_and_place` | clone_node + rename_node + move_node + insert_child (switches to ABSOLUTE positioning when x/y are given inside auto-layout) |
+| `apply_role_preset` | hand-picking tokens per node. Roles: `card`, `pill`, `sheet`, `tap-target` (44x44 min per WCAG 2.5.5) |
+
+Token-name params (`fillVariable`, `radiusVariable`, `paddingVariable`,
+`itemSpacingVariable`, `colorVariable`) bind a variable; raw `fill` / `cornerRadius` /
+`padding` set literal values. Missing tokens fall back to literal house values and are
+reported in `warnings`.
+
+## Verification Tools
+
+`src/videntia_figma_mcp/tools/verification-tools.ts` (plugin: `handlers/verification.ts`,
+math: `utils/verification-math.ts`). Use these instead of eyeballing dumps.
+
+- `contrast_check_frame` — sweeps EVERY text node in a frame for WCAG contrast against
+  its *resolved* backdrop (walks ancestors, composites translucent paints, interpolates
+  gradients at the text node's position). `failures_only`, `standard: AA | AAA`,
+  `include_hidden`.
+- `find_overlaps` — sibling bounding boxes that intersect. `tolerance`,
+  `min_overlap_ratio`, `ignore_hidden`, `limit`.
+- `assert_node_state` — reads a node back and diffs `expected` against actual, tolerating
+  float rounding and accepting colours as hex or RGBA. Use after any mutation you need to
+  be certain about.
+- `find_unbound` — every fill/stroke/radius/spacing/typography/effect still on a raw
+  value, grouped by role. Honours the same suppression rules as `lint_frame`.
+  `ignore_rules`, `limit_per_role`.
+- `check_token_collisions` — the same token name defined in more than one collection with
+  DIFFERENT values (e.g. `theme/radius/3xl` = 28 vs `Radius/radius/3xl` = 24). Run before
+  trusting any binding audit. `include_identical`, `name_filter`.
+
+## Lint Ergonomics
+
+Suppression logic: `src/videntia_figma_plugin/handlers/lint/suppress.ts`.
+
+- `lint_frame` / `find_unbound` accept `ignore_rules` — category names
+  (`"backgroundFills"`), check names (`"colors"`), `"category:property"` pairs
+  (`"backgroundFills:fills[0]"`), or `"*"`.
+- Per-node annotations, **inherited by descendants**, via plugin data or a name suffix:
+  - `lint.ignore` / `lintIgnore` plugin data, or `[lint-ignore: backgroundFills, radius]`
+    / `Lint/ignore: backgroundFills` in the layer name.
+  - `lint.role` / `lintRole`, or `[role: artwork]` — `artwork` (also `art`,
+    `illustration`, `logo`) exempts bespoke artwork from every token-binding rule.
+- Suppressed violations are removed from the verdict but **reported separately**
+  (`summary.suppressed` / `suppressedViolations`, with `suppressedBy`), so a stale
+  exception stays visible.
+- **Gradients are exempt** from variable binding: `setBoundVariableForPaint` only accepts
+  `SolidPaint` and `ColorStop.color` carries no `boundVariables` — the rule is
+  unsatisfiable. Counted as compliant with a LOW nudge toward
+  `create_color_style` + `set_color_style_id`.
+- **Blur must use an effect style**: `setBoundVariableForEffect` does not cover blur
+  radius, but `createEffectStyle` accepts `BlurEffect` — the fix is
+  `create_effect_style` + `set_effect_style_id`.
+
+## Strict Mode
+
+`src/videntia_figma_plugin/utils/write-verify.ts`. Writes that Figma silently discards
+("silent no-ops") can now fail loudly.
+
+- `set_strict_mode { enabled }` — global toggle. Off by default: no-ops are reported as
+  warnings on the result. On: the first detected no-op throws.
+- Any command may override the global toggle with a per-call `strict` param.
+- `set_padding` / `set_item_spacing` / `set_layout_sizing` require `layoutMode != NONE`
+  on the target (or, for FILL sizing, on the parent). On a `layoutMode: NONE` frame Figma
+  accepts the assignment, throws nothing, and never persists it — these now throw with
+  the fix in the message instead. `create_frame` likewise errors when gap/padding/
+  alignment/sizing params are passed without a `layoutMode`.
+
+## New Primitives
+
+- `set_page_background` — pages use `backgrounds`, not `fills`, so `set_fill_color` fails
+  on a PAGE node. Accepts `color` hex or `r,g,b,a`; `pageId` defaults to the current page.
+  Do not fake the canvas with a full-bleed rectangle.
+- `set_clips_content` — toggle `clipsContent` on FRAME/COMPONENT/COMPONENT_SET/INSTANCE.
+  Required for rounded containers to actually clip children. Not supported on SECTION.
+- `set_opacity` — node `opacity` (0–1) and/or `blendMode`. Prefer over baking alpha into
+  8-digit hex fills.
+- `create_section` / `set_section_status` — Figma Sections (parented only to a PAGE or
+  another SECTION); dev status `READY_FOR_DEV | COMPLETED | NONE`.
+  Handlers: `src/videntia_figma_plugin/handlers/sections.ts`.
+- `move_node_absolute` — move to ABSOLUTE canvas coordinates (the frame of reference of
+  `absoluteBoundingBox` and the Figma inspector). `move_node`'s x/y are PARENT-relative,
+  so use this whenever you have canvas coordinates or have just reparented a node.
+
+## Safety Guards
+
+- **Stale channel hard-fail** (`src/socket-channel-guard.ts`): a command sent to a channel
+  with no plugin (or extension) peer is rejected immediately with a reopen-the-plugin
+  message, instead of being broadcast into a dead channel where it times out or, mid-batch,
+  half-applies.
+- **Cross-file node-id guard**: node ids are unique only *within* a file, so `join_channel`
+  captures the document identity (`get_file_key` → fileKey/rootId/fileName) and every
+  subsequent command carries it as `__expectedFile`. The plugin refuses commands addressed
+  to a file it is not attached to (`assertExpectedDocument` in
+  `src/videntia_figma_plugin/utils/document-guard.ts`). An older plugin that cannot report
+  identity falls back to unpinned commands rather than blocking the session.
+- **`batch_actions` `checkpoint`** (default `true`): commits an undo checkpoint *before*
+  the batch, so one undo in Figma reverts exactly that batch. Set `false` only to
+  deliberately merge into the preceding undo group.
+
+## Batch Param Normalisation
+
+`src/videntia_figma_mcp/utils/normalize-batch-params.ts`. `batch_actions` forwards params
+raw to the plugin, bypassing each standalone tool's zod schema — so calls that worked
+standalone used to fail inside a batch. Params are now normalised per command before
+dispatch, so **a batched action accepts the same param names and value formats as the
+equivalent standalone tool**. Aliases are accepted (e.g. `mode` → `layoutMode`); the
+canonical plugin-facing name wins when both are present. Normalisation is idempotent and
+never throws — unknown commands pass through untouched. Node-id keys accept the URL
+`12-34` form. `create_icon` / `update_icon` are also expanded server-side inside batches.
+
 ## Development Guidelines
 
 ### Adding New MCP Tools
+
+> ⚠️ **The registration lists are not tied together — nothing fails at compile time.**
+> Both of these bit us during this work:
+> - A tool missing from `ALLOWED_COMMANDS` (`src/videntia_figma_plugin/ui/constants.ts`)
+>   fails **silently at runtime** with `"Command not permitted"` — the build is green and
+>   the TypeScript is correct.
+> - A registrar that is imported into `src/videntia_figma_mcp/tools/index.ts` but never
+>   **called** in `registerAllTools` is silently dead — the tools simply never appear.
+>
+> After adding a tool, verify all of: the `server.tool` registration, the registrar call
+> in `tools/index.ts`, the plugin `case`, `FigmaCommand` in `types/index.ts`,
+> `ALLOWED_COMMANDS`, and `READONLY_COMMANDS` (read-only tools only).
+
 
 1. **Define tool in appropriate file** (`src/videntia_figma_mcp/tools/*.ts`)
 ```typescript
@@ -282,7 +472,15 @@ export type FigmaCommand =
 
 5. **Add to `READONLY_COMMANDS`** (`src/videntia_figma_plugin/index.ts`) — if the tool is read-only (does not modify design data). Without this, the command is blocked when readonly mode is active.
 
-6. **Write tests** (`tests/integration/`)
+6. **Progressive tool discovery** — nothing to do. `registerTools` tags the tool with its
+   registrar category and records its schema + description in the registry, so
+   `find_figma_tools` indexes it automatically and `figma_call`/`batch_actions` can invoke
+   it. The tool is NOT advertised in `tools/list` by default (see `utils/tool-modes.ts`);
+   add it to `ENTRY_SURFACE_TOOLS` only if every session needs it. Optionally add recall
+   words to `SYNONYMS` in `utils/tool-search.ts` — a test asserts every synonym target is a
+   real tool. Set `VIDENTIA_FIGMA_TOOLS=all` to advertise everything (pre-0.8 behaviour).
+
+7. **Write tests** (`tests/integration/`)
 ```typescript
 describe("tool_name", () => {
   it("successfully performs operation", async () => {
@@ -370,14 +568,14 @@ bun run pub:release
 After every merge to `main`, **switch to main, pull the latest, build, and reload the launchd socket**:
 
 ```bash
-git checkout main && git pull && bun run build && launchctl kickstart -k gui/$(id -u)/com.videntia.figma-socket
+git checkout main && git pull && bun run build && launchctl kickstart -k gui/$(id -u)/videntia-figma-mcp.socket
 ```
 
 `bun run build` does two things:
 1. **Regenerates `src/videntia_figma_plugin/code.js`** from the TypeScript source modules — this is what Figma loads.
 2. **Rebuilds the MCP server** (`dist/`) — this is what Claude connects to.
 
-`launchctl kickstart -k` restarts the local launchd socket agent (`com.videntia.figma-socket`, plist at `~/Library/LaunchAgents/com.videntia.figma-socket.plist`) so it picks up the new `dist/socket.js`. The agent autostarts on login via `RunAtLoad` + `KeepAlive`.
+`launchctl kickstart -k` restarts the local launchd socket agent (`videntia-figma-mcp.socket`, plist at `~/Library/LaunchAgents/videntia-figma-mcp.socket.plist`) so it picks up the new `dist/socket.js`. The agent autostarts on login via `RunAtLoad` + `KeepAlive`.
 
 > **Reload in Figma:** After deploying, re-run the plugin in Figma (close and reopen from Plugins menu) to load the new `code.js`.
 

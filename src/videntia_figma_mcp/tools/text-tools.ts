@@ -266,6 +266,7 @@ export function registerTextTools(server: McpServer): void {
               text: `Error setting font weight: ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
+          isError: true,
         };
       }
     },
@@ -438,6 +439,72 @@ export function registerTextTools(server: McpServer): void {
             {
               type: "text",
               text: `Error setting text case: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  // Set Text Align Tool
+  server.tool(
+    "set_text_align",
+    "Set the horizontal and/or vertical text alignment of an EXISTING text node in Figma. This is the only way to centre (or right-align) text after creation — do not wrap the text in an auto-layout frame to fake alignment.",
+    {
+      nodeId: z.string().describe("The ID of the text node to modify"),
+      horizontal: z
+        .enum(["LEFT", "CENTER", "RIGHT", "JUSTIFIED"])
+        .optional()
+        .describe("Horizontal alignment (textAlignHorizontal). Aliases accepted: align, textAlignHorizontal."),
+      align: z.enum(["LEFT", "CENTER", "RIGHT", "JUSTIFIED"]).optional().describe("Alias for `horizontal`."),
+      textAlignHorizontal: z
+        .enum(["LEFT", "CENTER", "RIGHT", "JUSTIFIED"])
+        .optional()
+        .describe("Alias for `horizontal` (matches the Figma property name)."),
+      vertical: z
+        .enum(["TOP", "CENTER", "BOTTOM"])
+        .optional()
+        .describe("Vertical alignment (textAlignVertical). Alias accepted: textAlignVertical."),
+      textAlignVertical: z
+        .enum(["TOP", "CENTER", "BOTTOM"])
+        .optional()
+        .describe("Alias for `vertical` (matches the Figma property name)."),
+    },
+    async ({ nodeId, horizontal, align, textAlignHorizontal, vertical, textAlignVertical }) => {
+      nodeId = normalizeNodeId(nodeId);
+      const resolvedHorizontal = horizontal ?? textAlignHorizontal ?? align;
+      const resolvedVertical = vertical ?? textAlignVertical;
+      if (!resolvedHorizontal && !resolvedVertical) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: "Error setting text alignment: provide `horizontal` (LEFT/CENTER/RIGHT/JUSTIFIED) and/or `vertical` (TOP/CENTER/BOTTOM)",
+            },
+          ],
+        };
+      }
+      try {
+        const result = await sendCommandToFigma("set_text_align", {
+          nodeId,
+          horizontal: resolvedHorizontal,
+          vertical: resolvedVertical,
+        });
+        const typedResult = result as { name: string; textAlignHorizontal: string; textAlignVertical: string };
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Updated alignment of node "${typedResult.name}" to horizontal=${typedResult.textAlignHorizontal}, vertical=${typedResult.textAlignVertical}`,
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error setting text alignment: ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };

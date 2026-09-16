@@ -10,6 +10,7 @@ import {
   ProgressMessage,
   BrowserCommand,
 } from "../types";
+import { interceptForCapture } from "./tool-capture";
 
 class ChannelValidationError extends Error {
   constructor(message: string) {
@@ -30,6 +31,13 @@ let currentChannel: string | null = null;
 // switches to the "browser" channel so we know what to silently rejoin before
 // the next Figma command.
 let lastChannelName: string | null = null;
+// Identity of the Figma document behind `lastChannelName`, captured at join time.
+// Figma node ids are unique only WITHIN a file — the same "3082:47270" resolves in
+// every open document — so a session that joined the wrong channel and then wrote to
+// a remembered node id would silently mutate an unrelated file. Every command carries
+// this identity as `__expectedFile`; the plugin refuses commands addressed to a file
+// it is not attached to (see assertExpectedDocument in the plugin entry point).
+let expectedFile: { fileKey: string | null; rootId: string | null; fileName: string | null } | null = null;
 let heartbeatInterval: ReturnType<typeof setInterval> | null = null;
 
 // Map of pending requests for promise tracking
@@ -294,6 +302,30 @@ export async function joinChannel(channelName: string): Promise<void> {
     await sendCommandToFigma("join", { channel: channelName });
     currentChannel = channelName;
     lastChannelName = channelName;
+    // Capture which document this channel's plugin is actually attached to, so every
+    // later command can be pinned to it. Cleared first so a failed capture can never
+    // leave the previous file's identity stamped on the new channel's commands.
+    expectedFile = null;
+    try {
+      const identity =
+        (await _sendCommandToFigma<{
+          fileKey?: string | null;
+          rootId?: string | null;
+          fileName?: string | null;
+        }>("get_file_key", {}, 10000)) ?? {};
+      expectedFile = {
+        fileKey: identity.fileKey ?? null,
+        rootId: identity.rootId ?? null,
+        fileName: identity.fileName ?? null,
+      };
+      logger.info(`Channel ${channelName} is file "${expectedFile.fileName}" (fileKey=${expectedFile.fileKey})`);
+    } catch (error) {
+      // An older plugin build may not report rootId. Fall back to unpinned commands
+      // rather than blocking the session outright.
+      logger.warn(
+        `Could not capture file identity for channel "${channelName}": ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
     logger.info(`Joined channel: ${channelName}`);
   } catch (error) {
     logger.error(`Failed to join channel: ${error instanceof Error ? error.message : String(error)}`);
@@ -307,6 +339,15 @@ export async function joinChannel(channelName: string): Promise<void> {
  */
 export function getCurrentChannel(): string | null {
   return currentChannel;
+}
+
+/**
+ * Identity of the Figma document the current channel's plugin is attached to,
+ * captured at join time. Null when no channel has been joined or the plugin did
+ * not report one.
+ */
+export function getExpectedFile(): { fileKey: string | null; rootId: string | null; fileName: string | null } | null {
+  return expectedFile;
 }
 
 /**
@@ -366,6 +407,12 @@ export async function sendCommandToFigma<T = unknown>(
   params: unknown = {},
   timeoutMs: number = 30000,
 ): Promise<T> {
+  // Capture mode (batch_actions): record what this handler WOULD send and hand back a
+  // placeholder instead of touching the socket. This is what lets a batched action BE
+  // the standalone handler, so the two can never drift. See utils/tool-capture.ts.
+  const captured = interceptForCapture(command, params);
+  if (captured) return captured.value as T;
+
   await waitForConnection();
 
   // This connection can only be a member of one channel at a time — a browser
@@ -453,6 +500,10 @@ function _sendCommandToFigma<T = unknown>(
         params: {
           ...(params as any),
           commandId: id, // Include the command ID in params
+          // Pin this command to the document we believe we are talking to. The
+          // plugin rejects it outright on mismatch instead of applying it to a
+          // same-numbered node in a different file.
+          ...(command !== "join" && command !== "get_file_key" && expectedFile ? { __expectedFile: expectedFile } : {}),
         },
       },
     };

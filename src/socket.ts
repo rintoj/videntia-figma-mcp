@@ -15,6 +15,7 @@ import { createToken, listTokens, revokeToken, validateKey } from "./auth/tokens
 import { signJwt, verifyJwt, parseCookies } from "./auth/session";
 import { sendVerificationEmail } from "./auth/email";
 import { isSameFile } from "./socket-channel-identity";
+import { isStaleChannelSend, staleChannelError } from "./socket-channel-guard";
 import {
   listBrowsers,
   resolveTarget,
@@ -340,6 +341,18 @@ function handleWebSocketMessage(ws: WebSocket, raw: string) {
       return;
     }
 
+    // Nothing but a Figma plugin can execute a Figma command: if this channel has no
+    // plugin (nor extension) peer, fail the command NOW rather than broadcasting it
+    // into a stale channel where it times out or, mid-batch, half-applies.
+    const peers = [...channelClients].filter((c) => c !== ws && c.readyState === WebSocket.OPEN);
+    if (isStaleChannelSend(ws as any, peers as unknown as any[])) {
+      const error = staleChannelError(channelName);
+      ws.send(JSON.stringify({ type: "broadcast", message: { id: data.message?.id, error }, channel: channelName }));
+      stats.messagesSent++;
+      logger.warn(`Rejected message on stale channel ${channelName}: no plugin attached`);
+      return;
+    }
+
     let broadcastCount = 0;
     channelClients.forEach((c) => {
       if (c !== ws && c.readyState === WebSocket.OPEN) {
@@ -576,6 +589,7 @@ const httpServer = http.createServer(async (reqOrig, res) => {
         hasExtension: extensionClients > 0,
         browsers: listBrowsers(clientArr as unknown as any[]),
         fileName: channelMetadata.get(name)?.fileName ?? null,
+        fileKey: channelMetadata.get(name)?.fileKey ?? null,
         joinedAt: channelMetadata.get(name)?.joinedAt ?? null,
       };
     });

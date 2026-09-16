@@ -51,8 +51,8 @@ describe("MCP capability gap fixes", () => {
       mockSendCommand.mockResolvedValue({
         nodeId: "text-001",
         nodeName: "Label",
-        horizontal: "FILL",
-        vertical: "HUG",
+        layoutSizingHorizontal: "FILL",
+        layoutSizingVertical: "HUG",
         success: true,
       });
 
@@ -73,8 +73,8 @@ describe("MCP capability gap fixes", () => {
       mockSendCommand.mockResolvedValue({
         nodeId: "text-002",
         nodeName: "Paragraph",
-        horizontal: "FILL",
-        vertical: "FIXED",
+        layoutSizingHorizontal: "FILL",
+        layoutSizingVertical: "FIXED",
         success: true,
       });
 

@@ -44,7 +44,7 @@ function resolveResultReferences(params: unknown, results: BatchActionResult[]):
       let value: unknown = referencedResult.result;
 
       if (fieldPath) {
-        const segments = fieldPath.match(/\.([a-zA-Z_]\w*)|(\[\d+\])/g);
+        const segments = fieldPath.match(/\.(\w+)|(\[\d+\])/g); // \w+ so numeric object keys work too, e.g. $result[0].scale.500
         if (segments) {
           if (segments.length > RESOLVE_MAX_PATH_DEPTH) {
             throw new Error(
@@ -97,6 +97,87 @@ function resolveResultReferences(params: unknown, results: BatchActionResult[]):
   return params;
 }
 
+/**
+ * Deep-converts a handler result into plain, structured-cloneable JSON.
+ *
+ * WHY: batch results are posted back across the Figma plugin sandbox boundary. If a
+ * handler returns anything the sandbox cannot serialise — `figma.mixed` (a Symbol),
+ * a live SceneNode / Variable proxy, a function — the WHOLE batch response fails with
+ * "Cannot unwrap symbol" and the caller loses every per-action result, with no idea
+ * which action failed or whether earlier actions were committed. Sanitising here
+ * guarantees the results array is always serialisable.
+ */
+export function sanitizeResult(value: unknown, depth?: number): unknown {
+  const d = depth === undefined ? 0 : depth;
+  if (d > 8) return "[max depth]";
+
+  if (value === null || value === undefined) return value;
+
+  const t = typeof value;
+  if (t === "string" || t === "number" || t === "boolean") {
+    return t === "number" && !isFinite(value as number) ? null : value;
+  }
+  // figma.mixed is a Symbol — the direct cause of "Cannot unwrap symbol".
+  if (t === "symbol") return "MIXED";
+  if (t === "function") return undefined;
+  if (t === "bigint") return String(value);
+
+  if (Array.isArray(value)) {
+    const out: unknown[] = [];
+    for (let i = 0; i < value.length; i++) out.push(sanitizeResult(value[i], d + 1));
+    return out;
+  }
+
+  if (t === "object") {
+    // A live Figma node/variable proxy cannot cross the boundary — reduce it to an id ref.
+    const maybeNode = value as { id?: unknown; type?: unknown; name?: unknown; remove?: unknown };
+    if (typeof maybeNode.remove === "function" && typeof maybeNode.id === "string") {
+      return {
+        id: maybeNode.id,
+        name: typeof maybeNode.name === "string" ? maybeNode.name : undefined,
+        type: typeof maybeNode.type === "string" ? maybeNode.type : undefined,
+      };
+    }
+    const out: Record<string, unknown> = {};
+    let keys: string[];
+    try {
+      keys = Object.keys(value as object);
+    } catch (_e) {
+      return String(value);
+    }
+    for (let k = 0; k < keys.length; k++) {
+      try {
+        const sanitized = sanitizeResult((value as Record<string, unknown>)[keys[k]], d + 1);
+        if (sanitized !== undefined) out[keys[k]] = sanitized;
+      } catch (_e) {
+        out[keys[k]] = "[unserializable]";
+      }
+    }
+    return out;
+  }
+
+  return String(value);
+}
+
+/**
+ * Describes which actions have actually been committed to the document at the point a
+ * failure is reported. Counts SUCCEEDED actions, never indices — an action that failed
+ * committed nothing, so a failure at index 2 after two failures must not claim
+ * "actions 0..1 already committed".
+ */
+export function describeCommitted(committedIndices: number[]): string {
+  if (committedIndices.length === 0) return "no actions were committed";
+  if (committedIndices.length === 1) return "action #" + committedIndices[0] + " already committed";
+  const contiguous =
+    committedIndices[committedIndices.length - 1] - committedIndices[0] + 1 === committedIndices.length;
+  if (contiguous) {
+    return (
+      "actions " + committedIndices[0] + ".." + committedIndices[committedIndices.length - 1] + " already committed"
+    );
+  }
+  return "actions " + committedIndices.join(", ") + " already committed";
+}
+
 export async function batchActions(
   params: Record<string, unknown>,
   handleCommand: HandleCommandFn,
@@ -111,8 +192,18 @@ export async function batchActions(
     throw new Error("batch_actions requires a non-empty 'actions' array");
   }
 
+  // `return_state: true` turns batch_actions into apply-and-verify: every action's
+  // result carries the post-write state of the node it touched, so an agent can
+  // write AND verify in one round trip (no follow-up get_node_info).
+  const returnState =
+    params !== null && params !== undefined && (params["return_state"] === true || params["return_state"] === "true");
+
   const actions = rawActions as BatchAction[];
   const results: BatchActionResult[] = [];
+  // Indices of actions that actually SUCCEEDED (and so mutated the document).
+  // Never derive "what committed" from the failing action's index: a batch whose
+  // action #0 fails has committed nothing, no matter what index we are on.
+  const committedIndices: number[] = [];
   let succeeded = 0;
   let failed = 0;
   const commandId =
@@ -147,15 +238,30 @@ export async function batchActions(
         results,
       ) as Record<string, unknown>;
 
+      if (returnState && resolvedParams["return_state"] === undefined) {
+        resolvedParams["return_state"] = true;
+      }
+
       const result = await handleCommand(action, resolvedParams);
-      results.push({ index: i, action, success: true, result });
+      // Sanitise before it enters `results` — both so the batch response can cross the
+      // sandbox boundary, and so $result[N].field lookups navigate plain data.
+      results.push({ index: i, action, success: true, result: sanitizeResult(result) });
+      committedIndices.push(i);
       succeeded++;
     } catch (error) {
       results.push({
         index: i,
         action,
         success: false,
-        error: error instanceof Error ? error.message : String(error),
+        error:
+          (error instanceof Error ? error.message : String(error)) +
+          " [action #" +
+          i +
+          " of " +
+          totalActions +
+          "; " +
+          describeCommitted(committedIndices) +
+          "]",
       });
       failed++;
 

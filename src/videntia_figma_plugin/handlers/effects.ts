@@ -1,4 +1,22 @@
-import { debugLog } from "../utils/helpers";
+import { debugLog, describeError } from "../utils/helpers";
+
+/**
+ * GLASS `lightIntensity`, `refraction` and `dispersion` are 0–1 NORMALISED in
+ * Figma's API (see GlassEffect in @figma/plugin-typings) — they are not 0–20 or
+ * 0–50 scales. Reject out-of-range values loudly rather than letting Figma throw
+ * an opaque error.
+ */
+function clampUnit(value: unknown, fallback: number, field: string): number {
+  if (value === undefined || value === null) return fallback;
+  const n = Number(value);
+  if (!isFinite(n) || n < 0 || n > 1) {
+    throw new Error(
+      `GLASS ${field} must be a number between 0 and 1 (normalised), got ${JSON.stringify(value)}. ` +
+        `These GLASS fields are 0–1 — they are NOT 0–20 or 0–50 scales.`,
+    );
+  }
+  return n;
+}
 
 export async function setEffects(params: Record<string, unknown>): Promise<Record<string, unknown>> {
   const nodeId = params["nodeId"] as string | undefined;
@@ -87,11 +105,11 @@ export async function setEffects(params: Record<string, unknown>): Promise<Recor
         case "GLASS":
           return {
             type: "GLASS",
-            lightIntensity: effect["lightIntensity"] !== undefined ? effect["lightIntensity"] : 0.5,
+            lightIntensity: clampUnit(effect["lightIntensity"], 0.5, "lightIntensity"),
             lightAngle: effect["lightAngle"] !== undefined ? effect["lightAngle"] : 0,
-            refraction: effect["refraction"] !== undefined ? effect["refraction"] : 0.5,
-            depth: effect["depth"] !== undefined ? effect["depth"] : 0.5,
-            dispersion: effect["dispersion"] !== undefined ? effect["dispersion"] : 0,
+            refraction: clampUnit(effect["refraction"], 0.5, "refraction"),
+            depth: effect["depth"] !== undefined ? effect["depth"] : 1,
+            dispersion: clampUnit(effect["dispersion"], 0, "dispersion"),
             radius: effect["radius"] !== undefined ? effect["radius"] : 0,
             visible: effect["visible"] !== undefined ? effect["visible"] : true,
           } as unknown as Effect;
@@ -110,7 +128,7 @@ export async function setEffects(params: Record<string, unknown>): Promise<Recor
       effects: effectNode.effects,
     };
   } catch (error) {
-    throw new Error(`Error setting effects: ${(error as Error).message}`);
+    throw new Error(describeError(error));
   }
 }
 
@@ -220,7 +238,7 @@ export async function setEffectStyleId(params: Record<string, unknown>): Promise
         `The selected node type does not support effect styles. Only certain node types like frames, components, and instances can have effect styles.`,
       );
     } else {
-      throw new Error(`Error setting effect style ID: ${err.message}`);
+      throw new Error(`Error setting effect style ID: ${describeError(err)}`);
     }
   }
 }
@@ -279,11 +297,11 @@ function buildValidStyleEffect(effect: Record<string, unknown>): Effect {
     case "GLASS":
       return {
         type: "GLASS",
-        lightIntensity: effect["lightIntensity"] !== undefined ? effect["lightIntensity"] : 0.5,
+        lightIntensity: clampUnit(effect["lightIntensity"], 0.5, "lightIntensity"),
         lightAngle: effect["lightAngle"] !== undefined ? effect["lightAngle"] : 0,
-        refraction: effect["refraction"] !== undefined ? effect["refraction"] : 0.5,
-        depth: effect["depth"] !== undefined ? effect["depth"] : 0.5,
-        dispersion: effect["dispersion"] !== undefined ? effect["dispersion"] : 0,
+        refraction: clampUnit(effect["refraction"], 0.5, "refraction"),
+        depth: effect["depth"] !== undefined ? effect["depth"] : 1,
+        dispersion: clampUnit(effect["dispersion"], 0, "dispersion"),
         radius: effect["radius"] !== undefined ? effect["radius"] : 0,
         visible: effect["visible"] !== undefined ? effect["visible"] : true,
       } as unknown as Effect;
@@ -324,7 +342,7 @@ export async function createEffectStyle(params: Record<string, unknown>): Promis
       effects: effectStyle.effects,
     };
   } catch (error) {
-    throw new Error(`Error creating effect style: ${(error as Error).message}`);
+    throw new Error(`Error creating effect style: ${describeError(error)}`);
   }
 }
 
@@ -390,7 +408,7 @@ export async function updateEffectStyle(params: Record<string, unknown>): Promis
       updatedProperties,
     };
   } catch (error) {
-    throw new Error(`Error updating effect style: ${(error as Error).message}`);
+    throw new Error(`Error updating effect style: ${describeError(error)}`);
   }
 }
 
@@ -433,6 +451,6 @@ export async function deleteEffectStyle(params: Record<string, unknown>): Promis
       name: styleName,
     };
   } catch (error) {
-    throw new Error(`Error deleting effect style: ${(error as Error).message}`);
+    throw new Error(describeError(error));
   }
 }

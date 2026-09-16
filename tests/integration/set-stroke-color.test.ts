@@ -101,20 +101,37 @@ describe("set_stroke_color tool integration", () => {
   });
 
   describe("stroke weight handling (the other critical fix)", () => {
-    it("defaults strokeWeight to 1 when undefined", async () => {
+    it("omits strokeWeight from the payload entirely when weight is undefined", async () => {
       const response = await callToolWithValidation({
         nodeId: "nodeD",
         r: 0.5,
         g: 0.5,
         b: 0.5,
         a: 1,
-        // strokeWeight is undefined
+        // weight is undefined
       });
 
       expect(mockSendCommand).toHaveBeenCalledTimes(1);
       const [command, payload] = mockSendCommand.mock.calls[0];
-      expect(payload.strokeWeight).toBe(1); // Should default to 1
-      expect(response.content[0].text).toContain("weight 1");
+      // Regression: the MCP layer must NOT invent a weight — the plugin can
+      // only preserve the node's existing strokeWeight if the key is absent.
+      expect(Object.prototype.hasOwnProperty.call(payload, "strokeWeight")).toBe(false);
+      expect(payload).toEqual({ nodeId: "nodeD", color: { r: 0.5, g: 0.5, b: 0.5, a: 1 } });
+      expect(response.content[0].text).not.toContain("weight");
+    });
+
+    it("reports the weight the plugin actually returned, not a locally assumed one", async () => {
+      mockSendCommand.mockResolvedValueOnce({ name: "MockNode", strokeWeight: 4 });
+      const response = await callToolWithValidation({
+        nodeId: "nodeD2",
+        color: "#0000ff",
+        // weight omitted — node already has weight 4
+      });
+
+      const [, payload] = mockSendCommand.mock.calls[0];
+      expect(payload.strokeWeight).toBeUndefined();
+      expect(response.content[0].text).toContain("weight 4");
+      expect(response.content[0].text).not.toContain("weight 1");
     });
 
     it("preserves provided strokeWeight values", async () => {
@@ -334,7 +351,7 @@ describe("set_stroke_color tool integration", () => {
       await expect(
         callToolWithValidation({
           nodeId: "nodeI7",
-          r: 1.5, // Out of 0-1 range
+          r: 300, // Out of 0-255 range
           g: 0.5,
           b: 0.8,
           a: 1,
@@ -422,10 +439,9 @@ describe("set_stroke_color tool integration", () => {
       });
 
       const [command, payload] = mockSendCommand.mock.calls[0];
-      expect(payload.color.a).toBe(1); // Default opacity
-      expect(payload.strokeWeight).toBe(1); // Default weight
+      expect(payload.color.a).toBe(1); // Default opacity (colour channel, safe to default)
+      expect(Object.prototype.hasOwnProperty.call(payload, "strokeWeight")).toBe(false);
       expect(response.content[0].text).toContain("RGBA(0.8, 0.2, 0.4, 1)");
-      expect(response.content[0].text).toContain("weight 1");
     });
   });
 
@@ -454,7 +470,7 @@ describe("set_stroke_color tool integration", () => {
       expect(mockSendCommand).toHaveBeenCalledTimes(1);
       const [, payload] = mockSendCommand.mock.calls[0];
       expect(payload.color).toBe("#33415580");
-      expect(payload.strokeWeight).toBe(1); // default weight
+      expect(Object.prototype.hasOwnProperty.call(payload, "strokeWeight")).toBe(false);
     });
 
     it("rejects missing both color and r,g,b", async () => {

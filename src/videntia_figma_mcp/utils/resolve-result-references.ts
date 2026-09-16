@@ -39,7 +39,7 @@ export function resolveResultReferences(params: unknown, results: BatchActionRes
       let value: any = referencedResult.result;
 
       if (fieldPath) {
-        const segments = fieldPath.match(/\.([a-zA-Z_]\w*)|(\[\d+\])/g);
+        const segments = fieldPath.match(/\.(\w+)|(\[\d+\])/g); // \w+ so numeric object keys work too, e.g. $result[0].scale.500
         if (segments) {
           if (segments.length > MAX_PATH_DEPTH) {
             throw new Error(`Field path exceeds maximum depth of ${MAX_PATH_DEPTH}: $result[${refIndex}]${fieldPath}`);

@@ -531,6 +531,7 @@ describe("new document tools integration", () => {
         types: ["FRAME", "COMPONENT"],
         limit: undefined,
         depth: 1,
+        topLevelOnly: false,
       });
       expect(response.content[0].text).toContain("frame-1");
       expect(response.content[0].text).toContain("comp-1");
@@ -559,6 +560,7 @@ describe("new document tools integration", () => {
         types: ["FRAME"],
         limit: undefined,
         depth: 1,
+        topLevelOnly: false,
       });
     });
 
