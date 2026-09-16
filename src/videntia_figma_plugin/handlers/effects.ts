@@ -1,4 +1,4 @@
-import { debugLog } from "../utils/helpers";
+import { debugLog, describeError } from "../utils/helpers";
 
 export async function setEffects(params: Record<string, unknown>): Promise<Record<string, unknown>> {
   const nodeId = params["nodeId"] as string | undefined;
@@ -110,7 +110,7 @@ export async function setEffects(params: Record<string, unknown>): Promise<Recor
       effects: effectNode.effects,
     };
   } catch (error) {
-    throw new Error(`Error setting effects: ${(error as Error).message}`);
+    throw new Error(describeError(error));
   }
 }
 
@@ -220,7 +220,7 @@ export async function setEffectStyleId(params: Record<string, unknown>): Promise
         `The selected node type does not support effect styles. Only certain node types like frames, components, and instances can have effect styles.`,
       );
     } else {
-      throw new Error(`Error setting effect style ID: ${err.message}`);
+      throw new Error(`Error setting effect style ID: ${describeError(err)}`);
     }
   }
 }
@@ -324,7 +324,7 @@ export async function createEffectStyle(params: Record<string, unknown>): Promis
       effects: effectStyle.effects,
     };
   } catch (error) {
-    throw new Error(`Error creating effect style: ${(error as Error).message}`);
+    throw new Error(`Error creating effect style: ${describeError(error)}`);
   }
 }
 
@@ -390,7 +390,7 @@ export async function updateEffectStyle(params: Record<string, unknown>): Promis
       updatedProperties,
     };
   } catch (error) {
-    throw new Error(`Error updating effect style: ${(error as Error).message}`);
+    throw new Error(`Error updating effect style: ${describeError(error)}`);
   }
 }
 
@@ -433,6 +433,6 @@ export async function deleteEffectStyle(params: Record<string, unknown>): Promis
       name: styleName,
     };
   } catch (error) {
-    throw new Error(`Error deleting effect style: ${(error as Error).message}`);
+    throw new Error(describeError(error));
   }
 }

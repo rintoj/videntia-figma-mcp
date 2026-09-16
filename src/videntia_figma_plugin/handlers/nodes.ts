@@ -1,5 +1,5 @@
 import { customBase64Encode } from "../utils/base64";
-import { debugLog, parseNum } from "../utils/helpers";
+import { debugLog, describeError, parseNum } from "../utils/helpers";
 import { selectAndFocusNode } from "../utils/plugin-state";
 import { resolveColor } from "./fills";
 
@@ -583,7 +583,7 @@ export async function exportNodeAsImage(params: Record<string, unknown>): Promis
       imageData: base64,
     };
   } catch (error) {
-    throw new Error(`Error exporting node as image: ${(error as Error).message}`);
+    throw new Error(`Error exporting node as image: ${describeError(error)}`);
   }
 }
 
@@ -771,7 +771,7 @@ export async function exportImageFill(params: Record<string, unknown>): Promise<
       imageData: base64,
     };
   } catch (error) {
-    throw new Error(`Error exporting image fill: ${(error as Error).message}`);
+    throw new Error(`Error exporting image fill: ${describeError(error)}`);
   }
 }
 
@@ -952,7 +952,7 @@ export async function groupNodes(params: Record<string, unknown>): Promise<Recor
       children: group.children.map((child) => ({ id: child.id, name: child.name, type: child.type })),
     };
   } catch (error) {
-    throw new Error(`Error grouping nodes: ${(error as Error).message}`);
+    throw new Error(describeError(error));
   }
 }
 
@@ -983,7 +983,7 @@ export async function ungroupNodes(params: Record<string, unknown>): Promise<Rec
       items: ungroupedItems.map((item) => ({ id: item.id, name: item.name, type: item.type })),
     };
   } catch (error) {
-    throw new Error(`Error ungrouping node: ${(error as Error).message}`);
+    throw new Error(describeError(error));
   }
 }
 
@@ -1034,7 +1034,7 @@ export async function flattenNode(params: Record<string, unknown>): Promise<Reco
         "The flatten operation timed out. This usually happens with complex nodes. Try simplifying the node first or breaking it into smaller parts.",
       );
     } else {
-      throw new Error(`Error flattening node: ${(error as Error).message}`);
+      throw new Error(describeError(error));
     }
   }
 }
@@ -1066,7 +1066,7 @@ export async function renameNode(params: Record<string, unknown>): Promise<Recor
       newName: node.name,
     };
   } catch (error) {
-    throw new Error(`Error renaming node: ${(error as Error).message}`);
+    throw new Error(describeError(error));
   }
 }
 
@@ -1125,7 +1125,7 @@ export async function insertChild(params: Record<string, unknown>): Promise<Reco
     };
   } catch (error) {
     console.error(`Error inserting child: ${(error as Error).message}`, error);
-    throw new Error(`Error inserting child: ${(error as Error).message}`);
+    throw new Error(`Error inserting child: ${describeError(error)}`);
   }
 }
 

@@ -195,9 +195,15 @@ export function registerBatchTools(server: McpServer): void {
               lines.push(`| ${r.index} | ${r.action} | FAIL | ${r.error || "unknown error"} |`);
             }
             const firstFailure = failedResults[0];
+            // Only actions that SUCCEEDED mutated the document. When the very first
+            // action failed, nothing was committed — saying otherwise sends the caller
+            // hunting for a node that was never created.
+            const committedBefore = (result.results ?? []).filter((r) => r.success && r.index < firstFailure.index);
             lines.push(
               "",
-              `First failure: action #${firstFailure.index} (${firstFailure.action}). Actions before it are committed in the document.`,
+              committedBefore.length === 0
+                ? `First failure: action #${firstFailure.index} (${firstFailure.action}). No actions were committed to the document.`
+                : `First failure: action #${firstFailure.index} (${firstFailure.action}). ${committedBefore.length} earlier action(s) succeeded and ARE committed in the document (${committedBefore.map((r) => `#${r.index}`).join(", ")}).`,
             );
           }
         }

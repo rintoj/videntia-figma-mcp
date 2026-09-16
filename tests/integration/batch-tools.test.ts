@@ -515,4 +515,57 @@ describe("batch_actions tool", () => {
       expect(text).toContain("stopOnError: true");
     });
   });
+
+  describe("failure footer accuracy", () => {
+    it("says nothing was committed when action #0 failed", async () => {
+      mockSendCommand.mockResolvedValue({
+        success: false,
+        totalActions: 3,
+        succeeded: 0,
+        failed: 3,
+        results: [
+          { index: 0, action: "create_text", success: false, error: "Parent node not found with ID: 0:1" },
+          { index: 1, action: "set_font_size", success: false, error: "$result[0] references a failed action" },
+          { index: 2, action: "rename_node", success: false, error: "$result[0] references a failed action" },
+        ],
+      });
+
+      const response = await callTool("batch_actions", {
+        actions: [
+          { action: "create_text", params: {} },
+          { action: "set_font_size", params: {} },
+          { action: "rename_node", params: {} },
+        ],
+      });
+
+      const text = response.content[0].text as string;
+      expect(text).toContain("No actions were committed to the document.");
+      expect(text).not.toContain("Actions before it are committed");
+    });
+
+    it("reports only the succeeded earlier actions as committed", async () => {
+      mockSendCommand.mockResolvedValue({
+        success: false,
+        totalActions: 3,
+        succeeded: 1,
+        failed: 2,
+        results: [
+          { index: 0, action: "create_frame", success: true, result: { id: "1:1" } },
+          { index: 1, action: "rename_node", success: false, error: "boom" },
+          { index: 2, action: "resize_node", success: false, error: "boom" },
+        ],
+      });
+
+      const response = await callTool("batch_actions", {
+        actions: [
+          { action: "create_frame", params: {} },
+          { action: "rename_node", params: {} },
+          { action: "resize_node", params: {} },
+        ],
+      });
+
+      const text = response.content[0].text as string;
+      expect(text).toContain("1 earlier action(s) succeeded and ARE committed in the document (#0)");
+    });
+  });
 });

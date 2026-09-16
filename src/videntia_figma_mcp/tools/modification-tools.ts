@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { sendCommandToFigma } from "../utils/websocket";
-import { applyColorDefaults, applyDefault, FIGMA_DEFAULTS } from "../utils/defaults";
+import { applyColorDefaults } from "../utils/defaults";
 import { Color } from "../types/color";
 import { coerceArray } from "../utils/coerce-array.js";
 import { mcpBooleanSchema } from "../utils/mcp-boolean.js";
@@ -111,7 +111,7 @@ export function registerModificationTools(server: McpServer): void {
   // Set Stroke Color Tool
   server.tool(
     "set_stroke_color",
-    "Set the stroke color of a node in Figma. Accepts either a hex color string (e.g. '#ff0000', '#ff000080' with alpha) or individual r,g,b,a channels (0–1). Defaults: opacity 1, weight 1. Optionally set dashPattern for a dashed/dotted stroke.",
+    "Set the stroke color of a node in Figma. Accepts either a hex color string (e.g. '#ff0000', '#ff000080' with alpha) or individual r,g,b,a channels (0–1). Opacity defaults to 1; omitting weight keeps the node's existing stroke weight. Optionally set dashPattern for a dashed/dotted stroke.",
     {
       nodeId: z.string().describe("Node ID (e.g. '123:456') — get from get_selection or get_node_info"),
       color: z
@@ -131,7 +131,9 @@ export function registerModificationTools(server: McpServer): void {
         .number()
         .min(0)
         .optional()
-        .describe("Stroke thickness in pixels ≥ 0 (default: 1; use 0 for invisible stroke)"),
+        .describe(
+          "Stroke thickness in pixels ≥ 0. Omit to keep the node's current stroke weight; use 0 for an invisible stroke.",
+        ),
       dashPattern: z
         .array(z.coerce.number().min(0))
         .optional()
@@ -153,20 +155,29 @@ export function registerModificationTools(server: McpServer): void {
           params.color = applyColorDefaults(colorInput);
         }
 
-        const strokeWeightWithDefault = applyDefault(weight, FIGMA_DEFAULTS.stroke.weight);
-        params.strokeWeight = strokeWeightWithDefault;
+        // Do NOT substitute a default weight here. Omitting `weight` means
+        // "only change the colour" — the plugin preserves the node's existing
+        // strokeWeight (and falls back to Figma's own default for a node that
+        // has none). Sending a synthetic 1 silently destroyed thick strokes.
+        if (weight !== undefined) {
+          params.strokeWeight = weight;
+        }
         if (dashPattern !== undefined) {
           params.dashPattern = dashPattern;
         }
 
         const result = await sendCommandToFigma("set_stroke_color", params);
-        const typedResult = result as { name: string };
+        const typedResult = result as { name: string; strokeWeight?: number };
         const colorDesc = color !== undefined ? color : `RGBA(${r}, ${g}, ${b}, ${a ?? 1})`;
+        // Report the weight the plugin actually ended up with, never a locally
+        // assumed one.
+        const resultingWeight = typedResult.strokeWeight !== undefined ? typedResult.strokeWeight : weight;
+        const weightDesc = resultingWeight !== undefined ? ` with weight ${resultingWeight}` : "";
         return {
           content: [
             {
               type: "text",
-              text: `Set stroke color of node "${typedResult.name}" to ${colorDesc} with weight ${strokeWeightWithDefault}`,
+              text: `Set stroke color of node "${typedResult.name}" to ${colorDesc}${weightDesc}`,
             },
           ],
         };
@@ -463,14 +474,19 @@ export function registerModificationTools(server: McpServer): void {
       nodeId: z.string().describe("Frame node ID — must be a FRAME type, not a group"),
       mode: z
         .enum(["NONE", "HORIZONTAL", "VERTICAL", "GRID"])
+        .optional()
         .describe(
           "Layout direction: NONE = no auto-layout, HORIZONTAL = children flow left-to-right, VERTICAL = children flow top-to-bottom, GRID = children placed on a row/column grid",
         ),
+      layoutMode: z
+        .enum(["NONE", "HORIZONTAL", "VERTICAL", "GRID"])
+        .optional()
+        .describe("Alias for `mode` (the Figma property name); `mode` wins if both are given"),
       wrap: z
         .enum(["NO_WRAP", "WRAP"])
         .optional()
         .describe(
-          "WRAP = children wrap to next row/column when they overflow (only applies in HORIZONTAL or VERTICAL mode; ignored for GRID; default: NO_WRAP)",
+          "WRAP = children wrap to next row/column when they overflow (only applies in HORIZONTAL or VERTICAL mode; ignored for GRID). Omit to keep the frame's current wrap setting.",
         ),
       rows: z.coerce
         .number()
@@ -497,8 +513,28 @@ export function registerModificationTools(server: McpServer): void {
           "GRID mode only. MANUAL = children stay at their explicitly assigned cell (default); ROW_AUTO_FLOW = children auto-place into the next free cell in row-major order as they're added — reorder via insert_child, not manual cell assignment, in this mode.",
         ),
     },
-    async ({ nodeId, mode, wrap, rows, columns, gridAutoTracks, gridItemsPositioning }) => {
+    async ({
+      nodeId,
+      mode: modeArg,
+      layoutMode: layoutModeAlias,
+      wrap,
+      rows,
+      columns,
+      gridAutoTracks,
+      gridItemsPositioning,
+    }) => {
       nodeId = normalizeNodeId(nodeId);
+      const mode = modeArg !== undefined ? modeArg : layoutModeAlias;
+      if (mode === undefined) {
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: "Error setting layout mode: missing `mode` (alias: layoutMode) — NONE, HORIZONTAL, VERTICAL or GRID",
+            },
+          ],
+        };
+      }
       try {
         if (mode !== "GRID" && (rows !== undefined || columns !== undefined)) {
           throw new Error(`rows/columns apply to GRID mode only (mode is ${mode})`);
@@ -517,7 +553,9 @@ export function registerModificationTools(server: McpServer): void {
           if (rows !== undefined) params.gridRowCount = rows;
           if (columns !== undefined) params.gridColumnCount = columns;
         } else {
-          params.layoutWrap = wrap || "NO_WRAP";
+          // Only send layoutWrap when the caller asked for it — defaulting to
+          // NO_WRAP here would silently un-wrap an existing wrapping frame.
+          if (wrap !== undefined) params.layoutWrap = wrap;
         }
 
         const result = await sendCommandToFigma("set_layout_mode", params);
@@ -607,24 +645,51 @@ export function registerModificationTools(server: McpServer): void {
       right: z.coerce.number().optional().describe("Right padding in pixels (≥ 0; omit to leave unchanged)"),
       bottom: z.coerce.number().optional().describe("Bottom padding in pixels (≥ 0; omit to leave unchanged)"),
       left: z.coerce.number().optional().describe("Left padding in pixels (≥ 0; omit to leave unchanged)"),
+      padding: z.coerce.number().optional().describe("CSS-style shorthand applied to all four sides"),
+      paddingTop: z.coerce.number().optional().describe("Alias for `top` (the Figma property name)"),
+      paddingRight: z.coerce.number().optional().describe("Alias for `right` (the Figma property name)"),
+      paddingBottom: z.coerce.number().optional().describe("Alias for `bottom` (the Figma property name)"),
+      paddingLeft: z.coerce.number().optional().describe("Alias for `left` (the Figma property name)"),
     },
-    async ({ nodeId, top, right, bottom, left }) => {
+    async ({ nodeId, top, right, bottom, left, padding, paddingTop, paddingRight, paddingBottom, paddingLeft }) => {
       nodeId = normalizeNodeId(nodeId);
       try {
+        const pick = (short?: number, long?: number) =>
+          short !== undefined ? short : long !== undefined ? long : padding;
+        const wantTop = pick(top, paddingTop);
+        const wantRight = pick(right, paddingRight);
+        const wantBottom = pick(bottom, paddingBottom);
+        const wantLeft = pick(left, paddingLeft);
+        if (wantTop === undefined && wantRight === undefined && wantBottom === undefined && wantLeft === undefined) {
+          throw new Error("Nothing to set — pass padding, or any of top/right/bottom/left (aliases: padding*).");
+        }
+
         const result = await sendCommandToFigma("set_padding", {
           nodeId,
-          paddingTop: top,
-          paddingRight: right,
-          paddingBottom: bottom,
-          paddingLeft: left,
+          paddingTop: wantTop,
+          paddingRight: wantRight,
+          paddingBottom: wantBottom,
+          paddingLeft: wantLeft,
         });
-        const typedResult = result as { name: string };
+        const typedResult = result as {
+          name: string;
+          paddingTop?: number;
+          paddingRight?: number;
+          paddingBottom?: number;
+          paddingLeft?: number;
+        };
 
-        const paddingMessages = [];
-        if (top !== undefined) paddingMessages.push(`top: ${top}`);
-        if (right !== undefined) paddingMessages.push(`right: ${right}`);
-        if (bottom !== undefined) paddingMessages.push(`bottom: ${bottom}`);
-        if (left !== undefined) paddingMessages.push(`left: ${left}`);
+        // Echo values read back from the node so a discarded write can't read as success.
+        const echo = (label: string, readBack?: number, requested?: number) => {
+          const value = readBack !== undefined ? readBack : requested;
+          return value !== undefined ? `${label}: ${value}` : undefined;
+        };
+        const paddingMessages = [
+          echo("top", typedResult.paddingTop, wantTop),
+          echo("right", typedResult.paddingRight, wantRight),
+          echo("bottom", typedResult.paddingBottom, wantBottom),
+          echo("left", typedResult.paddingLeft, wantLeft),
+        ].filter((entry): entry is string => entry !== undefined);
 
         const paddingText = paddingMessages.length > 0 ? `padding (${paddingMessages.join(", ")})` : "padding";
 
@@ -723,22 +788,47 @@ export function registerModificationTools(server: McpServer): void {
         .describe(
           "Vertical sizing: FIXED = explicit height, HUG = shrink-wrap children, FILL = expand to fill parent (requires node to be inside an auto-layout frame)",
         ),
+      layoutSizingHorizontal: z
+        .enum(["FIXED", "HUG", "FILL"])
+        .optional()
+        .describe("Alias for `horizontal` (the Figma property name); `horizontal` wins if both are given"),
+      layoutSizingVertical: z
+        .enum(["FIXED", "HUG", "FILL"])
+        .optional()
+        .describe("Alias for `vertical` (the Figma property name); `vertical` wins if both are given"),
     },
-    async ({ nodeId, horizontal, vertical }) => {
+    async ({ nodeId, horizontal, vertical, layoutSizingHorizontal, layoutSizingVertical }) => {
       nodeId = normalizeNodeId(nodeId);
       try {
+        const wantHorizontal = horizontal !== undefined ? horizontal : layoutSizingHorizontal;
+        const wantVertical = vertical !== undefined ? vertical : layoutSizingVertical;
+        if (wantHorizontal === undefined && wantVertical === undefined) {
+          throw new Error(
+            "Nothing to set — pass horizontal and/or vertical (aliases: layoutSizingHorizontal/layoutSizingVertical) with FIXED, HUG or FILL.",
+          );
+        }
+
         const result = await sendCommandToFigma("set_layout_sizing", {
           nodeId,
-          layoutSizingHorizontal: horizontal,
-          layoutSizingVertical: vertical,
+          layoutSizingHorizontal: wantHorizontal,
+          layoutSizingVertical: wantVertical,
         });
-        const typedResult = result as { name: string };
+        const typedResult = result as {
+          name: string;
+          layoutSizingHorizontal?: string;
+          layoutSizingVertical?: string;
+        };
 
+        // Echo the values READ BACK from the node, never the requested ones — a
+        // write Figma discarded must never be reported as a success with no values.
         const sizingMessages = [];
-        if (horizontal !== undefined) sizingMessages.push(`horizontal: ${horizontal}`);
-        if (vertical !== undefined) sizingMessages.push(`vertical: ${vertical}`);
+        if (typedResult.layoutSizingHorizontal !== undefined)
+          sizingMessages.push(`horizontal: ${typedResult.layoutSizingHorizontal}`);
+        if (typedResult.layoutSizingVertical !== undefined)
+          sizingMessages.push(`vertical: ${typedResult.layoutSizingVertical}`);
 
-        const sizingText = sizingMessages.length > 0 ? `layout sizing (${sizingMessages.join(", ")})` : "layout sizing";
+        const sizingText =
+          sizingMessages.length > 0 ? `layout sizing (${sizingMessages.join(", ")})` : "layout sizing (unreported)";
 
         return {
           content: [
@@ -773,6 +863,7 @@ export function registerModificationTools(server: McpServer): void {
         .describe(
           "Gap between children in pixels (≥ 0; equivalent to CSS gap). On HORIZONTAL/VERTICAL frames this is the primary-axis spacing; on GRID frames it is the shorthand and sets both axes",
         ),
+      itemSpacing: z.coerce.number().optional().describe("Alias for `gap` (the Figma property name)"),
       counterAxisSpacing: z.coerce
         .number()
         .optional()
@@ -786,11 +877,20 @@ export function registerModificationTools(server: McpServer): void {
         .optional()
         .describe("Gap between grid columns in pixels (GRID frames only; overrides gap for this axis)"),
     },
-    async ({ nodeId, gap, counterAxisSpacing, rowGap, columnGap }) => {
+    async ({ nodeId, gap, itemSpacing, counterAxisSpacing, rowGap, columnGap }) => {
       nodeId = normalizeNodeId(nodeId);
       try {
+        const wantGap = gap !== undefined ? gap : itemSpacing;
+        if (
+          wantGap === undefined &&
+          counterAxisSpacing === undefined &&
+          rowGap === undefined &&
+          columnGap === undefined
+        ) {
+          throw new Error("Nothing to set — pass gap (alias: itemSpacing), counterAxisSpacing, rowGap or columnGap.");
+        }
         const params: any = { nodeId };
-        if (gap !== undefined) params.itemSpacing = gap;
+        if (wantGap !== undefined) params.itemSpacing = wantGap;
         if (counterAxisSpacing !== undefined) params.counterAxisSpacing = counterAxisSpacing;
         if (rowGap !== undefined) params.gridRowGap = rowGap;
         if (columnGap !== undefined) params.gridColumnGap = columnGap;
@@ -888,6 +988,7 @@ export function registerModificationTools(server: McpServer): void {
       nodeId: z.string().describe("Frame node ID to enable/configure auto-layout on"),
       mode: z
         .enum(["HORIZONTAL", "VERTICAL", "GRID", "NONE"])
+        .optional()
         .describe(
           "Layout direction: HORIZONTAL = children flow left-to-right, VERTICAL = children flow top-to-bottom, GRID = children placed on a row/column grid, NONE = disable auto-layout",
         ),
@@ -969,10 +1070,35 @@ export function registerModificationTools(server: McpServer): void {
         .enum(["FIXED", "HUG", "FILL"])
         .optional()
         .describe("Vertical sizing mode. FILL only works inside an auto-layout parent; defaults to HUG."),
+      layoutMode: z
+        .enum(["NONE", "HORIZONTAL", "VERTICAL", "GRID"])
+        .optional()
+        .describe("Alias for `mode` (the Figma property name); `mode` wins if both are given"),
+      itemSpacing: z.coerce.number().optional().describe("Alias for `gap` (the Figma property name)"),
+      paddingTop: z.coerce.number().optional().describe("Alias for `top`"),
+      paddingBottom: z.coerce.number().optional().describe("Alias for `bottom`"),
+      paddingLeft: z.coerce.number().optional().describe("Alias for `left`"),
+      paddingRight: z.coerce.number().optional().describe("Alias for `right`"),
+      layoutSizingHorizontal: z
+        .enum(["FIXED", "HUG", "FILL"])
+        .optional()
+        .describe("Alias for `horizontal` (the Figma property name)"),
+      layoutSizingVertical: z
+        .enum(["FIXED", "HUG", "FILL"])
+        .optional()
+        .describe("Alias for `vertical` (the Figma property name)"),
     },
     async ({
       nodeId,
-      mode,
+      mode: modeArg,
+      layoutMode: layoutModeAlias,
+      itemSpacing,
+      paddingTop,
+      paddingBottom,
+      paddingLeft,
+      paddingRight,
+      layoutSizingHorizontal,
+      layoutSizingVertical,
       top,
       bottom,
       left,
@@ -989,10 +1115,28 @@ export function registerModificationTools(server: McpServer): void {
       wrap,
       strokesIncludedInLayout,
       clipsContent,
-      horizontal,
-      vertical,
+      horizontal: horizontalArg,
+      vertical: verticalArg,
     }) => {
       nodeId = normalizeNodeId(nodeId);
+      const mode = modeArg !== undefined ? modeArg : layoutModeAlias;
+      if (mode === undefined) {
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: "Error setting auto layout: missing `mode` (alias: layoutMode) — NONE, HORIZONTAL, VERTICAL or GRID",
+            },
+          ],
+        };
+      }
+      const horizontal = horizontalArg !== undefined ? horizontalArg : layoutSizingHorizontal;
+      const vertical = verticalArg !== undefined ? verticalArg : layoutSizingVertical;
+      top = top !== undefined ? top : paddingTop;
+      bottom = bottom !== undefined ? bottom : paddingBottom;
+      left = left !== undefined ? left : paddingLeft;
+      right = right !== undefined ? right : paddingRight;
+      gap = gap !== undefined ? gap : itemSpacing;
       try {
         if (
           mode !== "GRID" &&

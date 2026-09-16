@@ -1,4 +1,4 @@
-import { debugLog } from "../utils/helpers";
+import { debugLog, describeError } from "../utils/helpers";
 import { selectAndFocusNode } from "../utils/plugin-state";
 import { setCharacters } from "./text";
 
@@ -601,7 +601,7 @@ export async function getRemoteComponents(): Promise<Record<string, unknown>> {
     );
     console.error(`Stack trace: ${err.stack !== undefined ? err.stack : "Not available"}`);
 
-    throw new Error(`Error retrieving remote components: ${err.message}`);
+    throw new Error(`Error retrieving remote components: ${describeError(err)}`);
   }
 }
 
@@ -630,7 +630,7 @@ export async function detachInstance(params: Record<string, unknown>): Promise<R
       type: detached.type,
     };
   } catch (error) {
-    throw new Error(`Error detaching instance: ${(error as Error).message}`);
+    throw new Error(describeError(error));
   }
 }
 
@@ -678,7 +678,7 @@ export async function createComponent(params: Record<string, unknown>): Promise<
       key: component.key,
     };
   } catch (error) {
-    throw new Error(`Error creating component: ${(error as Error).message}`);
+    throw new Error(describeError(error));
   }
 }
 
@@ -723,7 +723,7 @@ export async function createComponentSet(params: Record<string, unknown>): Promi
       variantCount: components.length,
     };
   } catch (error) {
-    throw new Error(`Error creating component set: ${(error as Error).message}`);
+    throw new Error(describeError(error));
   }
 }
 
@@ -792,7 +792,7 @@ export async function addComponentProperty(params: Record<string, unknown>): Pro
       slotSettings: type === "SLOT" ? slotSettings : undefined,
     };
   } catch (error) {
-    throw new Error(`Error adding component property: ${(error as Error).message}`);
+    throw new Error(describeError(error));
   }
 }
 
@@ -862,7 +862,7 @@ export async function editComponentProperty(params: Record<string, unknown>): Pr
       updates: updateObj,
     };
   } catch (error) {
-    throw new Error(`Error editing component property: ${(error as Error).message}`);
+    throw new Error(describeError(error));
   }
 }
 
@@ -896,7 +896,7 @@ export async function deleteComponentProperty(params: Record<string, unknown>): 
       deletedPropertyName: propertyName,
     };
   } catch (error) {
-    throw new Error(`Error deleting component property: ${(error as Error).message}`);
+    throw new Error(describeError(error));
   }
 }
 
@@ -937,7 +937,7 @@ export async function setComponentPropertyReferences(
       references: refNode.componentPropertyReferences,
     };
   } catch (error) {
-    throw new Error(`Error setting component property references: ${(error as Error).message}`);
+    throw new Error(describeError(error));
   }
 }
 
@@ -1115,7 +1115,7 @@ export async function setComponentProperty(params: Record<string, unknown>): Pro
       value,
     };
   } catch (error) {
-    throw new Error(`Error setting component property: ${(error as Error).message}`);
+    throw new Error(describeError(error));
   }
 }
 
@@ -1213,7 +1213,7 @@ export async function swapInstance(params: Record<string, unknown>): Promise<Rec
     }
     return resultObj;
   } catch (error) {
-    throw new Error(`Error swapping instance: ${(error as Error).message}`);
+    throw new Error(describeError(error));
   }
 }
 
@@ -1245,6 +1245,6 @@ export async function getComponentProperties(params: Record<string, unknown>): P
       properties: definitions,
     };
   } catch (error) {
-    throw new Error(`Error getting component properties: ${(error as Error).message}`);
+    throw new Error(`Error getting component properties: ${describeError(error)}`);
   }
 }

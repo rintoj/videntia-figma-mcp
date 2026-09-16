@@ -181,8 +181,28 @@ export function registerCreationTools(server: McpServer): void {
         .describe("Alignment perpendicular to the layout direction (requires layoutMode)"),
       horizontal: z.enum(["FIXED", "HUG", "FILL"]).optional().describe("Horizontal sizing mode (requires layoutMode)"),
       vertical: z.enum(["FIXED", "HUG", "FILL"]).optional().describe("Vertical sizing mode (requires layoutMode)"),
+      itemSpacing: z.coerce.number().min(0).optional().describe("Alias for `gap` (the Figma property name)"),
+      paddingTop: z.coerce.number().optional().describe("Alias for `top`"),
+      paddingRight: z.coerce.number().optional().describe("Alias for `right`"),
+      paddingBottom: z.coerce.number().optional().describe("Alias for `bottom`"),
+      paddingLeft: z.coerce.number().optional().describe("Alias for `left`"),
+      layoutSizingHorizontal: z
+        .enum(["FIXED", "HUG", "FILL"])
+        .optional()
+        .describe("Alias for `horizontal` (the Figma property name)"),
+      layoutSizingVertical: z
+        .enum(["FIXED", "HUG", "FILL"])
+        .optional()
+        .describe("Alias for `vertical` (the Figma property name)"),
     },
     async ({
+      itemSpacing,
+      paddingTop,
+      paddingRight,
+      paddingBottom,
+      paddingLeft,
+      layoutSizingHorizontal,
+      layoutSizingVertical,
       x,
       y,
       width,
@@ -225,16 +245,16 @@ export function registerCreationTools(server: McpServer): void {
           layoutPositioning,
           layoutMode,
           layoutWrap,
-          itemSpacing: gap,
+          itemSpacing: gap !== undefined ? gap : itemSpacing,
           padding,
-          paddingTop: top,
-          paddingRight: right,
-          paddingBottom: bottom,
-          paddingLeft: left,
+          paddingTop: top !== undefined ? top : paddingTop,
+          paddingRight: right !== undefined ? right : paddingRight,
+          paddingBottom: bottom !== undefined ? bottom : paddingBottom,
+          paddingLeft: left !== undefined ? left : paddingLeft,
           primaryAxisAlignItems,
           counterAxisAlignItems,
-          layoutSizingHorizontal: horizontal,
-          layoutSizingVertical: vertical,
+          layoutSizingHorizontal: horizontal !== undefined ? horizontal : layoutSizingHorizontal,
+          layoutSizingVertical: vertical !== undefined ? vertical : layoutSizingVertical,
         });
         const typedResult = result as { name: string; id: string };
         return {

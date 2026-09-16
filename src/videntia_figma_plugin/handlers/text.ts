@@ -6,6 +6,7 @@ import {
   generateCommandId,
   getFontStyle,
   parseNum,
+  describeError,
 } from "../utils/helpers";
 
 // ---------------------------------------------------------------------------
@@ -333,7 +334,7 @@ export async function setTextContent(params: Record<string, unknown>): Promise<R
       fontName: (node as TextNode).fontName,
     };
   } catch (error) {
-    throw new Error(`Error setting text content: ${(error as Error).message}`);
+    throw new Error(describeError(error));
   }
 }
 
@@ -555,7 +556,7 @@ export async function scanTextNodes(params: Record<string, unknown>): Promise<Re
         { error: (error as Error).message },
       );
 
-      throw new Error(`Error scanning text nodes: ${(error as Error).message}`);
+      throw new Error(`Error scanning text nodes: ${describeError(error)}`);
     }
   }
 
@@ -1182,7 +1183,7 @@ export async function setFontName(params: Record<string, unknown>): Promise<Reco
       fontName: (node as TextNode).fontName,
     };
   } catch (error) {
-    throw new Error(`Error setting font name: ${error instanceof Error ? error.message : String(error)}`);
+    throw new Error(describeError(error));
   }
 }
 
@@ -1217,7 +1218,7 @@ export async function setFontSize(params: Record<string, unknown>): Promise<Reco
       fontSize: (node as TextNode).fontSize,
     };
   } catch (error) {
-    throw new Error(`Error setting font size: ${(error as Error).message}`);
+    throw new Error(describeError(error));
   }
 }
 
@@ -1251,7 +1252,22 @@ export async function setFontWeight(params: Record<string, unknown>): Promise<Re
       rawFontName === figma.mixed ? ((node as TextNode).getRangeFontName(0, 1) as FontName) : (rawFontName as FontName);
     const resolvedFamily = (family as FontName).family;
     const style = getFontStyle(weight as number);
-    await figma.loadFontAsync({ family: resolvedFamily, style });
+    try {
+      await figma.loadFontAsync({ family: resolvedFamily, style });
+    } catch (loadError) {
+      // The family simply has no face for this weight. Say exactly that, and list the
+      // styles that DO exist — a bare "undefined" (loadFontAsync can reject with a
+      // non-Error value) leaves the caller with nothing to act on.
+      const available = await listStylesForFamily(resolvedFamily);
+      throw new Error(
+        `Font "${resolvedFamily}" has no style "${style}" (requested weight ${weight}). ` +
+          (available.length > 0
+            ? `Available styles for "${resolvedFamily}": ${available.join(", ")}. ` +
+              `Use set_font_name to switch to a family that has the weight you need, or pick one of these styles.`
+            : `No styles could be listed for "${resolvedFamily}". Use set_font_name to switch to an available family.`) +
+          (describeError(loadError) !== "Unknown error" ? ` (Figma said: ${describeError(loadError)})` : ""),
+      );
+    }
     (node as TextNode).fontName = { family: resolvedFamily, style };
     return {
       id: node.id,
@@ -1260,7 +1276,23 @@ export async function setFontWeight(params: Record<string, unknown>): Promise<Re
       weight,
     };
   } catch (error) {
-    throw new Error(`Error setting font weight: ${(error as Error).message}`);
+    throw new Error(describeError(error));
+  }
+}
+
+/** Lists the style names available for a font family (best effort). */
+async function listStylesForFamily(family: string): Promise<string[]> {
+  try {
+    const fonts = await figma.listAvailableFontsAsync();
+    const styles: string[] = [];
+    for (let i = 0; i < fonts.length; i++) {
+      if (fonts[i].fontName.family === family && styles.indexOf(fonts[i].fontName.style) === -1) {
+        styles.push(fonts[i].fontName.style);
+      }
+    }
+    return styles;
+  } catch (_e) {
+    return [];
   }
 }
 
@@ -1302,7 +1334,7 @@ export async function setLetterSpacing(params: Record<string, unknown>): Promise
       letterSpacing: (node as TextNode).letterSpacing,
     };
   } catch (error) {
-    throw new Error(`Error setting letter spacing: ${(error as Error).message}`);
+    throw new Error(describeError(error));
   }
 }
 
@@ -1344,7 +1376,7 @@ export async function setLineHeight(params: Record<string, unknown>): Promise<Re
       lineHeight: (node as TextNode).lineHeight,
     };
   } catch (error) {
-    throw new Error(`Error setting line height: ${(error as Error).message}`);
+    throw new Error(describeError(error));
   }
 }
 
@@ -1382,7 +1414,7 @@ export async function setParagraphSpacing(params: Record<string, unknown>): Prom
       paragraphSpacing: (node as TextNode).paragraphSpacing,
     };
   } catch (error) {
-    throw new Error(`Error setting paragraph spacing: ${(error as Error).message}`);
+    throw new Error(describeError(error));
   }
 }
 
@@ -1424,7 +1456,7 @@ export async function setTextCase(params: Record<string, unknown>): Promise<Reco
       textCase: (node as TextNode).textCase,
     };
   } catch (error) {
-    throw new Error(`Error setting text case: ${(error as Error).message}`);
+    throw new Error(describeError(error));
   }
 }
 
@@ -1466,7 +1498,7 @@ export async function setTextWrapStyle(params: Record<string, unknown>): Promise
       textWrapStyle: (node as TextNode).textWrapStyle,
     };
   } catch (error) {
-    throw new Error(`Error setting text wrap style: ${(error as Error).message}`);
+    throw new Error(describeError(error));
   }
 }
 
@@ -1508,7 +1540,7 @@ export async function setTextDecoration(params: Record<string, unknown>): Promis
       textDecoration: (node as TextNode).textDecoration,
     };
   } catch (error) {
-    throw new Error(`Error setting text decoration: ${(error as Error).message}`);
+    throw new Error(describeError(error));
   }
 }
 
@@ -1601,7 +1633,7 @@ export async function getStyledTextSegments(params: Record<string, unknown>): Pr
       segments: safeSegments,
     };
   } catch (error) {
-    throw new Error(`Error getting styled text segments: ${(error as Error).message}`);
+    throw new Error(describeError(error));
   }
 }
 
@@ -1627,7 +1659,7 @@ export async function loadFontAsyncWrapper(params: Record<string, unknown>): Pro
       message: `Successfully loaded ${family} ${style}`,
     };
   } catch (error) {
-    throw new Error(`Error loading font: ${(error as Error).message}`);
+    throw new Error(describeError(error));
   }
 }
 
@@ -1784,7 +1816,7 @@ export async function createTextStyle(params: Record<string, unknown>): Promise<
       bindingWarnings: warnings,
     };
   } catch (error) {
-    throw new Error(`Error creating text style: ${(error as Error).message}`);
+    throw new Error(describeError(error));
   }
 }
 
@@ -1879,7 +1911,7 @@ export async function createTextStyleFromProperties(params: Record<string, unkno
       bindingWarnings: warnings,
     };
   } catch (error) {
-    throw new Error(`Error creating text style from properties: ${(error as Error).message}`);
+    throw new Error(describeError(error));
   }
 }
 
@@ -1935,7 +1967,7 @@ export async function applyTextStyle(params: Record<string, unknown>): Promise<R
       styleName: resolvedStyle.name,
     };
   } catch (error) {
-    throw new Error(`Error applying text style: ${(error as Error).message}`);
+    throw new Error(describeError(error));
   }
 }
 
@@ -1965,7 +1997,7 @@ export async function getTextStyles(): Promise<Record<string, unknown>> {
       })),
     };
   } catch (error) {
-    throw new Error(`Error getting text styles: ${(error as Error).message}`);
+    throw new Error(describeError(error));
   }
 }
 
@@ -2013,7 +2045,7 @@ export async function deleteTextStyle(params: Record<string, unknown>): Promise<
       id: styleIdCopy,
     };
   } catch (error) {
-    throw new Error(`Error deleting text style: ${(error as Error).message}`);
+    throw new Error(describeError(error));
   }
 }
 
@@ -2160,6 +2192,6 @@ export async function updateTextStyle(params: Record<string, unknown>): Promise<
       bindingWarnings: warnings,
     };
   } catch (error) {
-    throw new Error(`Error updating text style: ${(error as Error).message}`);
+    throw new Error(describeError(error));
   }
 }

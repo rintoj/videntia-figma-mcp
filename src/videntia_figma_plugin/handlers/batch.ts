@@ -159,6 +159,25 @@ export function sanitizeResult(value: unknown, depth?: number): unknown {
   return String(value);
 }
 
+/**
+ * Describes which actions have actually been committed to the document at the point a
+ * failure is reported. Counts SUCCEEDED actions, never indices — an action that failed
+ * committed nothing, so a failure at index 2 after two failures must not claim
+ * "actions 0..1 already committed".
+ */
+export function describeCommitted(committedIndices: number[]): string {
+  if (committedIndices.length === 0) return "no actions were committed";
+  if (committedIndices.length === 1) return "action #" + committedIndices[0] + " already committed";
+  const contiguous =
+    committedIndices[committedIndices.length - 1] - committedIndices[0] + 1 === committedIndices.length;
+  if (contiguous) {
+    return (
+      "actions " + committedIndices[0] + ".." + committedIndices[committedIndices.length - 1] + " already committed"
+    );
+  }
+  return "actions " + committedIndices.join(", ") + " already committed";
+}
+
 export async function batchActions(
   params: Record<string, unknown>,
   handleCommand: HandleCommandFn,
@@ -175,6 +194,10 @@ export async function batchActions(
 
   const actions = rawActions as BatchAction[];
   const results: BatchActionResult[] = [];
+  // Indices of actions that actually SUCCEEDED (and so mutated the document).
+  // Never derive "what committed" from the failing action's index: a batch whose
+  // action #0 fails has committed nothing, no matter what index we are on.
+  const committedIndices: number[] = [];
   let succeeded = 0;
   let failed = 0;
   const commandId =
@@ -213,6 +236,7 @@ export async function batchActions(
       // Sanitise before it enters `results` — both so the batch response can cross the
       // sandbox boundary, and so $result[N].field lookups navigate plain data.
       results.push({ index: i, action, success: true, result: sanitizeResult(result) });
+      committedIndices.push(i);
       succeeded++;
     } catch (error) {
       results.push({
@@ -226,7 +250,7 @@ export async function batchActions(
           " of " +
           totalActions +
           "; " +
-          (i === 0 ? "no prior actions ran" : "actions 0.." + (i - 1) + " already committed") +
+          describeCommitted(committedIndices) +
           "]",
       });
       failed++;

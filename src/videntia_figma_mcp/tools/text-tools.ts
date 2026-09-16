@@ -266,6 +266,7 @@ export function registerTextTools(server: McpServer): void {
               text: `Error setting font weight: ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
+          isError: true,
         };
       }
     },
