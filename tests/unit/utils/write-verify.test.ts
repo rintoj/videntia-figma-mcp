@@ -27,7 +27,7 @@ function makeNode(props: Record<string, unknown>, readonlyProps: string[] = []):
   );
 }
 
-afterEach(() => setStrictModeEnabled(false));
+afterEach(() => setStrictModeEnabled(true));
 
 describe("applyWrites", () => {
   it("reports writes that land as applied", () => {
@@ -96,7 +96,13 @@ describe("applyWrites", () => {
 });
 
 describe("strict mode toggle", () => {
-  it("defaults to off", () => {
+  it("defaults to ON — a silently discarded write must throw, not report success", () => {
+    expect(isStrictModeEnabled()).toBe(true);
+    expect(resolveStrict({})).toBe(true);
+  });
+
+  it("can be turned off explicitly", () => {
+    setStrictModeEnabled(false);
     expect(isStrictModeEnabled()).toBe(false);
     expect(resolveStrict({})).toBe(false);
   });

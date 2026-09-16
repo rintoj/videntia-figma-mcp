@@ -32,11 +32,17 @@ export function parseHexColor(hex: string): { r: number; g: number; b: number; a
 }
 
 /**
- * Resolve color from params. Supports:
- *  - hex string: { color: "#ff0000" } or { color: "#ff000080" }
+ * Resolve color from params. Mirrors the MCP-side `toRgba` helper
+ * (src/videntia_figma_mcp/utils/color-input.ts) — keep the two in step.
+ * Supports:
+ *  - hex string: { color: "#ff0000" } / "#f00" / "#ff000080" / "#f008"
  *  - wrapped object: { color: { r, g, b, a } }
+ *  - array: { color: [r, g, b] } or [r, g, b, a]
  *  - flat: { r, g, b, a }
- * Returns { r, g, b, a } with values 0–1, or throws.
+ * Channels may be 0–1 OR 0–255: if any of r/g/b is > 1 the triple is read as
+ * 0–255, otherwise as already-normalized 0–1 (so { r: 1, g: 1, b: 1 } is
+ * white, not near-black rgb(1,1,1)).
+ * Returns { r, g, b, a } with values 0–1, or throws — never NaN.
  */
 export function resolveColor(params: Record<string, unknown>): { r: number; g: number; b: number; a: number } {
   var colorParam = params["color"];
@@ -50,33 +56,61 @@ export function resolveColor(params: Record<string, unknown>): { r: number; g: n
     return parsed;
   }
 
-  // Wrapped object { color: { r, g, b, a } } or flat { r, g, b, a }
-  var source: Record<string, unknown> =
-    colorParam !== null && colorParam !== undefined && typeof colorParam === "object"
-      ? (colorParam as Record<string, unknown>)
-      : params;
+  var r: unknown;
+  var g: unknown;
+  var b: unknown;
+  var a: unknown;
 
-  var r = source["r"];
-  var g = source["g"];
-  var b = source["b"];
-  var a = source["a"];
-
-  if (r === undefined || g === undefined || b === undefined) {
-    throw new Error('Color must be a hex string (e.g. "#ff0000") or provide r, g, b components.');
+  if (Object.prototype.toString.call(colorParam) === "[object Array]") {
+    var arr = colorParam as unknown[];
+    if (arr.length < 3 || arr.length > 4) {
+      throw new Error("Color array must have 3 or 4 entries: [r, g, b] or [r, g, b, a].");
+    }
+    r = arr[0];
+    g = arr[1];
+    b = arr[2];
+    a = arr.length === 4 ? arr[3] : undefined;
+  } else {
+    // Wrapped object { color: { r, g, b, a } } or flat { r, g, b, a }
+    var source: Record<string, unknown> =
+      colorParam !== null && colorParam !== undefined && typeof colorParam === "object"
+        ? (colorParam as Record<string, unknown>)
+        : params;
+    r = source["r"];
+    g = source["g"];
+    b = source["b"];
+    a = source["a"];
   }
 
-  var result = {
-    r: parseFloat(r as string),
-    g: parseFloat(g as string),
-    b: parseFloat(b as string),
-    a: a !== undefined ? parseFloat(a as string) : 1,
-  };
+  if (r === undefined || g === undefined || b === undefined) {
+    throw new Error(
+      'Color must be a hex string (e.g. "#ff0000"), an { r, g, b, a } object (channels 0–1 or 0–255), or an [r, g, b(, a)] array.',
+    );
+  }
 
-  if (isNaN(result.r) || isNaN(result.g) || isNaN(result.b) || isNaN(result.a)) {
+  var rn = parseFloat(r as string);
+  var gn = parseFloat(g as string);
+  var bn = parseFloat(b as string);
+  var an = a !== undefined && a !== null ? parseFloat(a as string) : 1;
+
+  if (isNaN(rn) || isNaN(gn) || isNaN(bn) || isNaN(an)) {
     throw new Error("Invalid color values - all components must be valid numbers");
   }
 
-  return result;
+  // Disambiguate 0–255 from 0–1: any channel above 1 means the caller used 0–255.
+  var div = rn > 1 || gn > 1 || bn > 1 ? 255 : 1;
+  if (an > 1) an = an / 255;
+
+  var clamp = function (n: number): number {
+    return Math.max(0, Math.min(1, n));
+  };
+
+  return {
+    r: clamp(rn / div),
+    g: clamp(gn / div),
+    b: clamp(bn / div),
+    a: clamp(an),
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -529,16 +563,47 @@ export async function setGradientFill(params: Record<string, unknown>): Promise<
     throw new Error(`Node does not support fills: ${nodeId}`);
   }
 
-  const figmaStops: ColorStop[] = stops.map((stop) => {
-    const stopColor = stop["color"] as Record<string, unknown>;
+  // Stops must accept exactly what every other colour tool accepts. Standalone,
+  // zod coerces the caller into {r,g,b,a}; inside batch_actions params are
+  // forwarded RAW, so a hex stop ("#fff" — the form set_fill_color takes) landed
+  // here as `undefined` channels and produced NaN colours. Parse here instead,
+  // and throw a precise error rather than writing a garbage paint.
+  const figmaStops: ColorStop[] = stops.map((stop, index) => {
+    const raw = stop !== null && stop !== undefined ? stop : {};
+    const source = raw["color"] !== undefined ? raw["color"] : raw;
+    let rgba: { r: number; g: number; b: number; a: number } | null = null;
+
+    if (typeof source === "string") {
+      rgba = parseHexColor(source);
+      if (!rgba) {
+        throw new Error(`stops[${index}].color: "${source}" is not a valid hex colour (e.g. "#ff0000" or "#f00").`);
+      }
+    } else if (source !== null && typeof source === "object") {
+      const c = source as Record<string, unknown>;
+      const r = Number(c["r"]);
+      const g = Number(c["g"]);
+      const b = Number(c["b"]);
+      if (!isFinite(r) || !isFinite(g) || !isFinite(b)) {
+        throw new Error(
+          `stops[${index}].color must be a hex string or {r,g,b,a} with 0-1 channels, got ${JSON.stringify(source)}.`,
+        );
+      }
+      const a = c["a"] !== undefined && c["a"] !== null ? Number(c["a"]) : 1;
+      // 0-255 channels are a common mistake and silently render as pure white.
+      const scale = r > 1 || g > 1 || b > 1 ? 255 : 1;
+      rgba = { r: r / scale, g: g / scale, b: b / scale, a: isFinite(a) ? a : 1 };
+    } else {
+      throw new Error(`stops[${index}] must be an object with a color, got ${JSON.stringify(stop)}.`);
+    }
+
+    const position = Number(raw["position"]);
+    if (!isFinite(position)) {
+      throw new Error(`stops[${index}].position must be a number 0-1, got ${JSON.stringify(raw["position"])}.`);
+    }
+
     return {
-      color: {
-        r: stopColor["r"] as number,
-        g: stopColor["g"] as number,
-        b: stopColor["b"] as number,
-        a: stopColor["a"] !== undefined ? (stopColor["a"] as number) : 1,
-      },
-      position: stop["position"] as number,
+      color: { r: rgba.r, g: rgba.g, b: rgba.b, a: rgba.a },
+      position,
     };
   });
 

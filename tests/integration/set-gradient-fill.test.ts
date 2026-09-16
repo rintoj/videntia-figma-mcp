@@ -104,12 +104,12 @@ describe("set_gradient_fill tool integration", () => {
   });
 
   describe("gradient stops", () => {
-    it("passes stops through without alpha defaulting (plugin handles defaults)", async () => {
+    it("normalizes stops and defaults a missing alpha to fully opaque", async () => {
       mockSendCommand.mockResolvedValue({ id: "1:2", name: "Rect", gradientType: "LINEAR", stopsCount: 2 });
       await callTool("set_gradient_fill", { nodeId: "1:2", type: "LINEAR", stops: twoStops });
       const call = mockSendCommand.mock.calls[0][1];
-      expect(call.stops[0].color.a).toBeUndefined();
-      expect(call.stops[1].color.a).toBeUndefined();
+      expect(call.stops[0].color.a).toBe(1);
+      expect(call.stops[1].color.a).toBe(1);
     });
 
     it("preserves explicit alpha values", async () => {

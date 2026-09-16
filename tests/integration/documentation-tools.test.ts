@@ -153,6 +153,8 @@ describe("documentation tools integration", () => {
   });
 
   describe("get_content_tree", () => {
+    // Default lowered 5 -> 2: 186/186 measured calls passed no depth or
+    // projection at all, so the shallow tree is now the default.
     it("applies maxDepth default", async () => {
       mockSendCommand.mockResolvedValue({ tree: {} });
 
@@ -161,7 +163,7 @@ describe("documentation tools integration", () => {
       expect(mockSendCommand).toHaveBeenCalledWith("get_content_tree", {
         nodeId: "frame-1",
         pageId: undefined,
-        maxDepth: 5,
+        maxDepth: 2,
         includeImages: false,
       });
     });

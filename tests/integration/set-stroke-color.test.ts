@@ -351,7 +351,7 @@ describe("set_stroke_color tool integration", () => {
       await expect(
         callToolWithValidation({
           nodeId: "nodeI7",
-          r: 1.5, // Out of 0-1 range
+          r: 300, // Out of 0-255 range
           g: 0.5,
           b: 0.8,
           a: 1,

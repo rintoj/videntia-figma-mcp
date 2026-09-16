@@ -128,13 +128,14 @@ describe("missing primitives (§5)", () => {
         color: "#f5f5f5",
         parentId: "0:1",
       });
+      // `color` is normalized from hex to RGBA components server-side (unified colour contract).
       expect(mockSendCommand).toHaveBeenCalledWith("create_section", {
         name: "Foundations",
         x: 0,
         y: 0,
         width: 800,
         height: 600,
-        color: "#f5f5f5",
+        color: { r: 0.9607843137254902, g: 0.9607843137254902, b: 0.9607843137254902, a: 1 },
         parentId: "0:1",
       });
       expect(res.content[0].text).toContain("Foundations");

@@ -10,6 +10,87 @@ import {
 } from "../utils/helpers";
 
 // ---------------------------------------------------------------------------
+// Font style resolution
+// ---------------------------------------------------------------------------
+//
+// Figma font faces are named per-family and the spelling is NOT consistent:
+// some families ship "Semi Bold", others "SemiBold". Normalising to one spelling
+// (as this code used to) makes `set_font_name`/`set_font_weight` fail on every
+// family that uses the other one. Instead, generate BOTH spellings (plus the
+// caller's own) and pick whichever `loadFontAsync` actually accepts.
+
+const FIGMA_STYLE_MAP: Record<string, string> = {
+  thin: "Thin",
+  extralight: "Extra Light",
+  ultralight: "Extra Light",
+  light: "Light",
+  regular: "Regular",
+  normal: "Regular",
+  medium: "Medium",
+  semibold: "Semi Bold",
+  demibold: "Semi Bold",
+  bold: "Bold",
+  extrabold: "Extra Bold",
+  ultrabold: "Extra Bold",
+  black: "Black",
+  heavy: "Black",
+  thinitalic: "Thin Italic",
+  extralightitalic: "Extra Light Italic",
+  lightitalic: "Light Italic",
+  italic: "Italic",
+  mediumitalic: "Medium Italic",
+  semibolditalic: "Semi Bold Italic",
+  bolditalic: "Bold Italic",
+  extrabolditalic: "Extra Bold Italic",
+  blackitalic: "Black Italic",
+};
+
+/**
+ * All plausible Figma face names for a requested style, most-likely first.
+ * e.g. "SemiBold" -> ["SemiBold", "Semi Bold"]; "Semi Bold" -> ["Semi Bold", "SemiBold"].
+ */
+export function fontStyleCandidates(requested: string): string[] {
+  const out: string[] = [];
+  const push = (value: string | undefined): void => {
+    if (value !== undefined && value !== null && value !== "" && out.indexOf(value) === -1) out.push(value);
+  };
+  const raw = String(requested).trim();
+  push(raw);
+  const compact = raw.replace(/\s+/g, "");
+  const mapped = FIGMA_STYLE_MAP[compact.toLowerCase()];
+  push(mapped);
+  push(raw.replace(/([a-z])([A-Z])/g, "$1 $2"));
+  push(compact);
+  if (mapped !== undefined) push(mapped.replace(/\s+/g, ""));
+  return out;
+}
+
+/**
+ * Loads the first face of `family` that matches any spelling of `requested`.
+ * Returns the face name that actually loaded, or throws naming the real styles.
+ */
+export async function resolveAndLoadFontStyle(family: string, requested: string, context: string): Promise<string> {
+  const candidates = fontStyleCandidates(requested);
+  let lastError: unknown;
+  for (let i = 0; i < candidates.length; i++) {
+    try {
+      await figma.loadFontAsync({ family, style: candidates[i] });
+      return candidates[i];
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  const available = await listStylesForFamily(family);
+  throw new Error(
+    `${context}: font "${family}" has no style matching "${requested}" (tried ${candidates.join(", ")}). ` +
+      (available.length > 0
+        ? `Available styles for "${family}": ${available.join(", ")}.`
+        : `No styles could be listed for "${family}" — check the family name.`) +
+      (describeError(lastError) !== "Unknown error" ? ` (Figma said: ${describeError(lastError)})` : ""),
+  );
+}
+
+// ---------------------------------------------------------------------------
 // setCharacters helpers
 // ---------------------------------------------------------------------------
 
@@ -230,21 +311,27 @@ export async function createText(params: Record<string, unknown>): Promise<Recor
   const name = safeParams.name !== undefined ? (safeParams.name as string) : "Text";
   const parentId = safeParams.parentId !== undefined ? (safeParams.parentId as string) : undefined;
 
+  // Resolve the face BEFORE creating the node: a failure here must not leave a
+  // stray Figtree/Inter Regular text node behind. The old code swallowed the
+  // load error, so a missing 600/700 face silently produced Regular text AND
+  // dropped the requested fontSize (it was assigned after the throwing line).
+  const resolvedStyle = await resolveAndLoadFontStyle(fontFamily, getFontStyle(fontWeight), "create_text");
+
   const textNode = figma.createText();
   textNode.x = x;
   textNode.y = y;
   textNode.name = name;
-  try {
-    await figma.loadFontAsync({
-      family: fontFamily,
-      style: getFontStyle(fontWeight),
-    });
-    textNode.fontName = { family: fontFamily, style: getFontStyle(fontWeight) };
-    textNode.fontSize = parseInt(String(fontSize));
-  } catch (error) {
-    console.error("Error setting font name/size", error);
+  textNode.fontName = { family: fontFamily, style: resolvedStyle };
+  const requestedFontSize = Number(fontSize);
+  if (!isFinite(requestedFontSize) || requestedFontSize <= 0) {
+    throw new Error(`create_text: invalid fontSize ${JSON.stringify(fontSize)} — expected a positive number.`);
   }
-  await setCharacters(textNode, text);
+  textNode.fontSize = requestedFontSize;
+  await setCharacters(textNode, text, { fallbackFont: { family: fontFamily, style: resolvedStyle } });
+  // setCharacters can replace the font when the node had mixed fonts; re-assert
+  // the caller's intent so a success response is never a lie about either field.
+  textNode.fontName = { family: fontFamily, style: resolvedStyle };
+  textNode.fontSize = requestedFontSize;
 
   const paintStyle: SolidPaint = {
     type: "SOLID",
@@ -982,6 +1069,35 @@ export async function setAutoLayout(params: Record<string, unknown>): Promise<Re
   }
 
   const frameNode = node as FrameNode;
+
+  // Snapshot every child's sizing BEFORE touching layoutMode. Figma resets a
+  // child's layoutGrow/layoutAlign/layoutSizing* (collapsing fixed-size buttons
+  // to ~20px and body frames to their hug height) as a side effect of the
+  // parent gaining or changing auto layout — damage the caller never asked for.
+  interface ChildSizingSnapshot {
+    id: string;
+    name: string;
+    horizontal?: string;
+    vertical?: string;
+    width: number;
+    height: number;
+  }
+  const childSnapshots: ChildSizingSnapshot[] = [];
+  if ("children" in frameNode) {
+    const kids = frameNode.children;
+    for (let i = 0; i < kids.length; i++) {
+      const kid = kids[i] as SceneNode & { layoutSizingHorizontal?: string; layoutSizingVertical?: string };
+      childSnapshots.push({
+        id: kid.id,
+        name: kid.name,
+        horizontal: "layoutSizingHorizontal" in kid ? (kid.layoutSizingHorizontal as string) : undefined,
+        vertical: "layoutSizingVertical" in kid ? (kid.layoutSizingVertical as string) : undefined,
+        width: "width" in kid ? (kid as SceneNode & { width: number }).width : 0,
+        height: "height" in kid ? (kid as SceneNode & { height: number }).height : 0,
+      });
+    }
+  }
+
   // Capture before mutating: drives whether we touch layoutSizing* below, and
   // guards against reassigning layoutMode to its current value — Figma resets
   // layoutSizingHorizontal/Vertical (and thus item spacing/padding rendering)
@@ -1088,9 +1204,48 @@ export async function setAutoLayout(params: Record<string, unknown>): Promise<Re
     }
   }
 
+  // Restore each child's pre-call sizing. `preserveChildSizing: false` opts out
+  // for callers who genuinely want Figma's defaults.
+  const childWarnings: string[] = [];
+  if (safeParams.preserveChildSizing !== false && childSnapshots.length > 0) {
+    for (let i = 0; i < childSnapshots.length; i++) {
+      const snap = childSnapshots[i];
+      const kid = (frameNode.children as readonly SceneNode[])[i] as SceneNode & {
+        layoutSizingHorizontal?: string;
+        layoutSizingVertical?: string;
+        width?: number;
+        height?: number;
+      };
+      if (!kid || kid.id !== snap.id) continue;
+      const axes: Array<["layoutSizingHorizontal" | "layoutSizingVertical", string | undefined, number]> = [
+        ["layoutSizingHorizontal", snap.horizontal, snap.width],
+        ["layoutSizingVertical", snap.vertical, snap.height],
+      ];
+      for (let a = 0; a < axes.length; a++) {
+        const [prop, wanted, originalSize] = axes[a];
+        if (wanted === undefined || !(prop in kid)) continue;
+        if ((kid as unknown as Record<string, unknown>)[prop] === wanted) continue;
+        try {
+          (kid as unknown as Record<string, unknown>)[prop] = wanted;
+        } catch {
+          // fall through to the warning below
+        }
+        const actual = (kid as unknown as Record<string, unknown>)[prop];
+        if (actual !== wanted) {
+          childWarnings.push(
+            `set_auto_layout changed child "${snap.name}" (${snap.id}) ${prop} from ${wanted} to ` +
+              `${String(actual)} and Figma refused to restore it — this frame's layout forces it. ` +
+              `Original size was ${snap.width}x${snap.height}; resize_node it if that matters.`,
+          );
+        }
+      }
+    }
+  }
+
   return {
     id: frameNode.id,
     name: frameNode.name,
+    ...(childWarnings.length > 0 ? { success: false, warnings: childWarnings } : {}),
     layoutMode: frameNode.layoutMode,
     paddingTop: frameNode.paddingTop,
     paddingBottom: frameNode.paddingBottom,
@@ -1127,40 +1282,6 @@ export async function setFontName(params: Record<string, unknown>): Promise<Reco
   const family = safeParams.family as string | undefined;
   const rawStyle =
     safeParams.style !== null && safeParams.style !== undefined ? (safeParams.style as string) : "Regular";
-  // Normalize camelCase/compound weight names to Figma's space-separated format.
-  // The lookup table covers all standard Figma weight names exactly; the regex fallback
-  // handles edge cases (e.g. custom styles) but may not always produce a valid Figma name.
-  const FIGMA_STYLE_MAP: Record<string, string> = {
-    thin: "Thin",
-    extralight: "Extra Light",
-    ultralight: "Extra Light",
-    light: "Light",
-    regular: "Regular",
-    normal: "Regular",
-    medium: "Medium",
-    semibold: "Semi Bold",
-    demibold: "Semi Bold",
-    bold: "Bold",
-    extrabold: "Extra Bold",
-    ultrabold: "Extra Bold",
-    black: "Black",
-    heavy: "Black",
-    thinitalic: "Thin Italic",
-    extralightitalic: "Extra Light Italic",
-    lightitalic: "Light Italic",
-    italic: "Italic",
-    mediumitalic: "Medium Italic",
-    semibolditalic: "Semi Bold Italic",
-    bolditalic: "Bold Italic",
-    extrabolditalic: "Extra Bold Italic",
-    blackitalic: "Black Italic",
-  };
-  const normalized = rawStyle.trim().toLowerCase().replace(/\s+/g, "");
-  const style =
-    FIGMA_STYLE_MAP[normalized] !== undefined
-      ? FIGMA_STYLE_MAP[normalized]
-      : rawStyle.replace(/([a-z])([A-Z])/g, "$1 $2");
-
   if (!nodeId || !family) {
     throw new Error("Missing nodeId or font family");
   }
@@ -1174,17 +1295,17 @@ export async function setFontName(params: Record<string, unknown>): Promise<Reco
     throw new Error(`Node is not a text node: ${nodeId}`);
   }
 
-  try {
-    await figma.loadFontAsync({ family, style });
-    (node as TextNode).fontName = { family, style };
-    return {
-      id: node.id,
-      name: node.name,
-      fontName: (node as TextNode).fontName,
-    };
-  } catch (error) {
-    throw new Error(describeError(error));
-  }
+  // Try every spelling of the requested face ("SemiBold" AND "Semi Bold", …) and
+  // use whichever the family actually ships; error naming the real styles if none.
+  const style = await resolveAndLoadFontStyle(family, rawStyle, "set_font_name");
+  (node as TextNode).fontName = { family, style };
+  return {
+    id: node.id,
+    name: node.name,
+    fontName: (node as TextNode).fontName,
+    requestedStyle: rawStyle,
+    resolvedStyle: style,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -1251,23 +1372,14 @@ export async function setFontWeight(params: Record<string, unknown>): Promise<Re
     const family =
       rawFontName === figma.mixed ? ((node as TextNode).getRangeFontName(0, 1) as FontName) : (rawFontName as FontName);
     const resolvedFamily = (family as FontName).family;
-    const style = getFontStyle(weight as number);
-    try {
-      await figma.loadFontAsync({ family: resolvedFamily, style });
-    } catch (loadError) {
-      // The family simply has no face for this weight. Say exactly that, and list the
-      // styles that DO exist — a bare "undefined" (loadFontAsync can reject with a
-      // non-Error value) leaves the caller with nothing to act on.
-      const available = await listStylesForFamily(resolvedFamily);
-      throw new Error(
-        `Font "${resolvedFamily}" has no style "${style}" (requested weight ${weight}). ` +
-          (available.length > 0
-            ? `Available styles for "${resolvedFamily}": ${available.join(", ")}. ` +
-              `Use set_font_name to switch to a family that has the weight you need, or pick one of these styles.`
-            : `No styles could be listed for "${resolvedFamily}". Use set_font_name to switch to an available family.`) +
-          (describeError(loadError) !== "Unknown error" ? ` (Figma said: ${describeError(loadError)})` : ""),
-      );
-    }
+    // Try both "Semi Bold" and "SemiBold" spellings (and the other compound
+    // variants) — families disagree, and normalising to one of them was the
+    // cause of 9 spurious "font has no style" failures.
+    const style = await resolveAndLoadFontStyle(
+      resolvedFamily,
+      getFontStyle(weight as number),
+      `set_font_weight (weight ${weight})`,
+    );
     (node as TextNode).fontName = { family: resolvedFamily, style };
     return {
       id: node.id,

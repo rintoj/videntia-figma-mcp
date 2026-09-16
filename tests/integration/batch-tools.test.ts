@@ -147,17 +147,17 @@ describe("batch_actions tool", () => {
 
     it("accepts large batch without limit", async () => {
       const count = 50;
-      mockSendCommand.mockResolvedValue({
-        success: true,
-        totalActions: count,
-        succeeded: count,
-        failed: 0,
-        results: Array.from({ length: count }, (_, i) => ({
+      // Batches longer than BATCH_CHUNK_SIZE are auto-chunked, so the mock must answer
+      // per dispatch — echoing the chunk it was actually given.
+      mockSendCommand.mockImplementation(async (command: string, params: any) => {
+        if (command !== "batch_actions") return {};
+        const results = params.actions.map((a: any, i: number) => ({
           index: i,
-          action: "get_node_info",
+          action: a.action,
           success: true,
           result: { id: `node-${i}` },
-        })),
+        }));
+        return { success: true, totalActions: results.length, succeeded: results.length, failed: 0, results };
       });
 
       const manyActions = Array.from({ length: count }, (_, i) => ({

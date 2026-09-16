@@ -178,6 +178,12 @@ import {
 
 // Strict mode (silent no-op detection)
 import { setStrictModeEnabled, isStrictModeEnabled } from "./utils/write-verify";
+import {
+  attachPostWriteState,
+  isReturnStateDefault,
+  resolveReturnState,
+  setReturnStateDefault,
+} from "./utils/post-write-state";
 
 // Handlers — selection & focus
 import {
@@ -256,6 +262,8 @@ var READONLY_COMMANDS = new Set([
   "get_node_info",
   "get_nodes_info",
   "search_nodes",
+  "get_color_style",
+  "get_color_styles",
   "get_styles",
   "get_local_components",
   "get_remote_components",
@@ -310,6 +318,11 @@ import {
   bulkBindVariables,
   cloneAndPlace,
   applyRolePreset,
+  bindMany,
+  createTexts,
+  createSvgs,
+  insertChildren,
+  moveNodes,
 } from "./handlers/composites";
 
 // ---------------------------------------------------------------------------
@@ -399,6 +412,8 @@ var FOCUS_AFTER_COMMANDS = new Set([
   "create_from_data",
   "create_section",
   "create_autolayout_frame",
+  "create_texts",
+  "create_svgs",
   "create_styled_text",
   "create_card",
   "clone_and_place",
@@ -604,6 +619,20 @@ async function handleCommand(command: string, params: Record<string, unknown>): 
 
   var result = await _executeCommand(command, params);
 
+  // `return_state` — answer a mutating command with the node's ACTUAL post-write
+  // state so the caller never needs a follow-up get_node_info. Applied once here,
+  // for every mutating command, rather than in each handler. Best-effort: a state
+  // capture failure must never fail a write that already landed.
+  if (!READONLY_COMMANDS.has(command) && command !== "batch_actions" && resolveReturnState(params)) {
+    try {
+      result = await attachPostWriteState(params, result, function (id: string) {
+        return figma.getNodeByIdAsync(id) as Promise<any>;
+      });
+    } catch (_e) {
+      /* silent */
+    }
+  }
+
   // Auto-focus after create commands
   if (state.autoFocus && FOCUS_AFTER_COMMANDS.has(command) && result && typeof result === "object") {
     var created = result as Record<string, unknown>;
@@ -644,7 +673,12 @@ async function _executeCommand(command: string, params: Record<string, unknown>)
       if (requested !== undefined && requested !== null) {
         setStrictModeEnabled(requested === true || requested === "true");
       }
-      return { strict: isStrictModeEnabled(), success: true };
+      // Session default for post-write state (see utils/post-write-state).
+      const wantState = params ? params["return_state"] : undefined;
+      if (wantState !== undefined && wantState !== null) {
+        setReturnStateDefault(wantState === true || wantState === "true");
+      }
+      return { strict: isStrictModeEnabled(), returnState: isReturnStateDefault(), success: true };
     }
 
     // Document
@@ -1094,6 +1128,16 @@ async function _executeCommand(command: string, params: Record<string, unknown>)
       return await cloneAndPlace(params || {});
     case "apply_role_preset":
       return await applyRolePreset(params || {});
+    case "bind_many":
+      return await bindMany(params || {});
+    case "create_texts":
+      return await createTexts(params || {});
+    case "create_svgs":
+      return await createSvgs(params || {});
+    case "insert_children":
+      return await insertChildren(params || {});
+    case "move_nodes":
+      return await moveNodes(params || {});
 
     default:
       throw new Error("Unknown command");

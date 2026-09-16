@@ -2,6 +2,8 @@ import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { sendCommandToFigma } from "../utils/websocket";
 import { normalizeNodeId } from "../utils/figma-helpers.js";
+import { expandPadding } from "../utils/frame-layout.js";
+import { ColorInputSchema } from "../utils/color-input.js";
 
 /**
  * Composite tools — single-round-trip versions of the multi-call sequences that
@@ -10,15 +12,9 @@ import { normalizeNodeId } from "../utils/figma-helpers.js";
  * directly on the node inside the plugin, so nothing can half-apply.
  */
 
-const colorSchema = z.union([
-  z.string().describe("Hex colour, e.g. '#ff0000' or '#ff000080'"),
-  z.object({
-    r: z.coerce.number().min(0).max(1),
-    g: z.coerce.number().min(0).max(1),
-    b: z.coerce.number().min(0).max(1),
-    a: z.coerce.number().min(0).max(1).optional(),
-  }),
-]);
+// One shared colour contract for every fill param here — hex, {r,g,b,a} in
+// 0-1 or 0-255, or [r,g,b(,a)]. See utils/color-input.ts.
+const colorSchema = ColorInputSchema;
 
 const paddingSchema = z.union([
   z.coerce.number().describe("Uniform padding in pixels"),
@@ -55,7 +51,7 @@ export function registerCompositeTools(server: McpServer): void {
   // -------------------------------------------------------------------------
   server.tool(
     "create_autolayout_frame",
-    "PREFERRED over create_frame + set_layout_mode + set_padding + set_item_spacing + set_layout_sizing + set_fill_color + set_corner_radius. Creates a frame and applies auto-layout, padding, spacing, sizing, fill and corner radius in ONE round trip, in the order Figma actually requires (layout mode before padding/spacing, parenting before FILL sizing). Fill and radius accept either a design-token name (bound as a variable) or a raw value. Use this for every container you build.",
+    "Alias of the one-call `create_frame` form — both spellings do the same thing, so use whichever you reach for. PREFERRED over create_frame + set_layout_mode + set_padding + set_item_spacing + set_layout_sizing + set_fill_color + set_corner_radius. Creates a frame and applies auto-layout, padding, spacing, sizing, fill and corner radius in ONE round trip, in the order Figma actually requires (layout mode before padding/spacing, parenting before FILL sizing). Fill and radius accept either a design-token name (bound as a variable) or a raw value. Use this for every container you build.",
     {
       x: z.coerce.number().optional().describe("X position (default 0). Ignored inside an auto-layout parent."),
       y: z.coerce.number().optional().describe("Y position (default 0). Ignored inside an auto-layout parent."),
@@ -107,10 +103,60 @@ export function registerCompositeTools(server: McpServer): void {
       cornerRadius: z.coerce.number().min(0).optional().describe("Raw uniform corner radius in pixels"),
       effectStyle: z.string().optional().describe("Effect style name or id to apply, e.g. 'shadow/sm'"),
       clipsContent: z.boolean().optional().describe("Whether the frame clips overflowing children"),
+      size: z
+        .object({ width: z.coerce.number().optional(), height: z.coerce.number().optional() })
+        .optional()
+        .describe("Frame size in one object — the same nested spelling create_frame accepts"),
+      layout: z
+        .object({
+          mode: z.enum(["NONE", "HORIZONTAL", "VERTICAL"]).optional(),
+          sizing: z
+            .union([
+              z.enum(["FIXED", "HUG", "FILL"]),
+              z.object({
+                horizontal: z.enum(["FIXED", "HUG", "FILL"]).optional(),
+                vertical: z.enum(["FIXED", "HUG", "FILL"]).optional(),
+              }),
+            ])
+            .optional(),
+          padding: paddingSchema.optional(),
+          gap: z.coerce.number().min(0).optional(),
+          align: z
+            .object({
+              primary: z.enum(["MIN", "CENTER", "MAX", "SPACE_BETWEEN"]).optional(),
+              counter: z.enum(["MIN", "CENTER", "MAX", "BASELINE"]).optional(),
+            })
+            .optional(),
+          wrap: z.union([z.enum(["NO_WRAP", "WRAP"]), z.boolean()]).optional(),
+        })
+        .optional()
+        .describe("Everything auto-layout in one object — the same nested spelling create_frame accepts"),
     },
     async (args) => {
-      const params = { ...args } as Record<string, unknown>;
+      const { size, layout, ...rest } = args;
+      const params = { ...rest } as Record<string, unknown>;
       if (typeof params.parentId === "string") params.parentId = normalizeNodeId(params.parentId);
+
+      // Fold the nested spelling down onto the flat params the plugin handler reads.
+      if (size?.width !== undefined) params.width = size.width;
+      if (size?.height !== undefined) params.height = size.height;
+      if (layout) {
+        if (layout.mode !== undefined) params.layoutMode = layout.mode;
+        if (layout.gap !== undefined) params.itemSpacing = layout.gap;
+        if (layout.padding !== undefined) params.padding = expandPadding(layout.padding as never);
+        if (layout.align?.primary !== undefined) params.primaryAxisAlignItems = layout.align.primary;
+        if (layout.align?.counter !== undefined) params.counterAxisAlignItems = layout.align.counter;
+        if (layout.wrap !== undefined) {
+          params.layoutWrap = typeof layout.wrap === "boolean" ? (layout.wrap ? "WRAP" : "NO_WRAP") : layout.wrap;
+        }
+        if (layout.sizing !== undefined) {
+          const h = typeof layout.sizing === "string" ? layout.sizing : layout.sizing.horizontal;
+          const v = typeof layout.sizing === "string" ? layout.sizing : layout.sizing.vertical;
+          if (h !== undefined) params.layoutSizingHorizontal = h;
+          if (v !== undefined) params.layoutSizingVertical = v;
+        }
+      }
+
       try {
         return textResult(await sendCommandToFigma("create_autolayout_frame", params));
       } catch (error) {
@@ -306,6 +352,195 @@ export function registerCompositeTools(server: McpServer): void {
         return textResult(await sendCommandToFigma("apply_role_preset", { nodeId: normalizeNodeId(nodeId), role }));
       } catch (error) {
         return errorResult("applying role preset", error);
+      }
+    },
+  );
+
+  // -------------------------------------------------------------------------
+  // bind_many — many fields on ONE node
+  // -------------------------------------------------------------------------
+  server.tool(
+    "bind_many",
+    "Bind SEVERAL fields on ONE node in a single round trip. ALWAYS PREFER this over calling bind_variable two, three or four times in a row on the same node — that hand-loop is the single most repeated sequence in Figma sessions. Pass nodeId once and a list of {field, variable}. `variable` accepts a variable NAME ('background/primary', dashes normalised to slashes) or an id. `field` accepts 'fills'/'strokes' (bound as paint colour), 'cornerRadius' (binds all four corners), or any bindable field (itemSpacing, paddingLeft, width, height...). Bindings are independent — one bad entry never aborts the rest. For fields spread across MANY nodes use bulk_bind_variables instead (a per-entry nodeId here also works and overrides the top-level one).",
+    {
+      nodeId: z.string().describe("Id of the node to bind every field on"),
+      bindings: z
+        .array(
+          z.object({
+            field: z
+              .string()
+              .describe("Field to bind: 'fills', 'strokes', 'cornerRadius', 'itemSpacing', 'paddingLeft', ..."),
+            variable: z.string().describe("Variable name (e.g. 'background/primary') or variable id"),
+            nodeId: z.string().optional().describe("Override the top-level nodeId for this one binding"),
+          }),
+        )
+        .min(1)
+        .describe("Fields to bind on the node, applied in order"),
+    },
+    async ({ nodeId, bindings }) => {
+      const params = {
+        nodeId: normalizeNodeId(nodeId),
+        bindings: bindings.map((b) => (b.nodeId ? { ...b, nodeId: normalizeNodeId(b.nodeId) } : { ...b })),
+      };
+      try {
+        return textResult(await sendCommandToFigma("bind_many", params));
+      } catch (error) {
+        return errorResult("binding variables", error);
+      }
+    },
+  );
+
+  // -------------------------------------------------------------------------
+  // create_texts
+  // -------------------------------------------------------------------------
+  server.tool(
+    "create_texts",
+    "Create SEVERAL text nodes inside one parent in a single round trip. ALWAYS PREFER this over repeated create_text / create_styled_text calls — a label + value pair, a list of menu items or a stack of rows drops from N round trips to one. Fonts are loaded internally, so never call load_font_async first. Each item takes the same parameters as create_styled_text. Returns `ids` in the same order as the items you passed.",
+    {
+      parentId: z
+        .string()
+        .optional()
+        .describe("Parent frame/group id every item is appended into (per-item parentId wins)"),
+      items: z
+        .array(
+          z.object({
+            text: z.string().describe("The text content"),
+            x: z.coerce.number().optional().describe("X position (default 0). Ignored inside an auto-layout parent."),
+            y: z.coerce.number().optional().describe("Y position (default 0)"),
+            name: z.string().optional().describe("Layer name (defaults to the text content)"),
+            parentId: z.string().optional().describe("Override the shared parentId for this item"),
+            textStyle: z
+              .string()
+              .optional()
+              .describe("Text style name or id, e.g. 'text/body/md'. Font loaded automatically."),
+            fontFamily: z.string().optional().describe("Font family when no textStyle is given (default 'Inter')"),
+            fontWeight: z.coerce.number().optional().describe("Font weight when no textStyle is given"),
+            fontSize: z.coerce.number().optional().describe("Font size when no textStyle is given"),
+            fillVariable: z.string().optional().describe("Colour token name to bind the text fill to"),
+            fill: colorSchema.optional().describe("Raw text colour when no token applies"),
+            textAlignHorizontal: z
+              .enum(["LEFT", "CENTER", "RIGHT", "JUSTIFIED"])
+              .optional()
+              .describe("Horizontal text alignment"),
+            layoutSizingHorizontal: z
+              .enum(["FIXED", "HUG", "FILL"])
+              .optional()
+              .describe("Horizontal sizing inside an auto-layout parent"),
+          }),
+        )
+        .min(1)
+        .describe("Text nodes to create, in order"),
+    },
+    async ({ parentId, items }) => {
+      const params: Record<string, unknown> = {
+        parentId: parentId ? normalizeNodeId(parentId) : undefined,
+        items: items.map((i) => (i.parentId ? { ...i, parentId: normalizeNodeId(i.parentId) } : { ...i })),
+      };
+      try {
+        return textResult(await sendCommandToFigma("create_texts", params));
+      } catch (error) {
+        return errorResult("creating texts", error);
+      }
+    },
+  );
+
+  // -------------------------------------------------------------------------
+  // create_svgs
+  // -------------------------------------------------------------------------
+  server.tool(
+    "create_svgs",
+    "Create SEVERAL SVG nodes inside one parent in a single round trip. ALWAYS PREFER this over repeated create_svg calls — icon rows, toolbars and tab bars routinely need two to four icons at once. Each item takes the same parameters as create_svg. Returns `ids` in the same order as the items you passed.",
+    {
+      parentId: z.string().optional().describe("Parent node id every item is inserted into (per-item parentId wins)"),
+      items: z
+        .array(
+          z.object({
+            svgString: z.string().describe("The SVG markup string (must start with <svg or <?xml)"),
+            x: z.coerce.number().optional().describe("X position (default 0)"),
+            y: z.coerce.number().optional().describe("Y position (default 0)"),
+            name: z.string().optional().describe("Name for the created node"),
+            parentId: z.string().optional().describe("Override the shared parentId for this item"),
+            flatten: z.boolean().optional().describe("Merge all SVG paths into one vector node (default false)"),
+          }),
+        )
+        .min(1)
+        .describe("SVG nodes to create, in order"),
+    },
+    async ({ parentId, items }) => {
+      const params: Record<string, unknown> = {
+        parentId: parentId ? normalizeNodeId(parentId) : undefined,
+        items: items.map((i) => (i.parentId ? { ...i, parentId: normalizeNodeId(i.parentId) } : { ...i })),
+      };
+      try {
+        return textResult(await sendCommandToFigma("create_svgs", params));
+      } catch (error) {
+        return errorResult("creating SVGs", error);
+      }
+    },
+  );
+
+  // -------------------------------------------------------------------------
+  // insert_children
+  // -------------------------------------------------------------------------
+  server.tool(
+    "insert_children",
+    "Reparent SEVERAL nodes into one parent in a single round trip, preserving the order you pass them in. ALWAYS PREFER this over repeated insert_child calls. With `index` the children are inserted consecutively starting at that position; without it they are appended.",
+    {
+      parentId: z.string().describe("Id of the parent to insert into"),
+      childIds: z.array(z.string()).min(1).describe("Ids of the nodes to insert, in the order they should appear"),
+      index: z.coerce
+        .number()
+        .int()
+        .min(0)
+        .optional()
+        .describe("Start index; children are inserted consecutively from here"),
+    },
+    async ({ parentId, childIds, index }) => {
+      const params: Record<string, unknown> = {
+        parentId: normalizeNodeId(parentId),
+        childIds: childIds.map((id) => normalizeNodeId(id)),
+        index,
+      };
+      try {
+        return textResult(await sendCommandToFigma("insert_children", params));
+      } catch (error) {
+        return errorResult("inserting children", error);
+      }
+    },
+  );
+
+  // -------------------------------------------------------------------------
+  // move_nodes
+  // -------------------------------------------------------------------------
+  server.tool(
+    "move_nodes",
+    "Move and/or reparent SEVERAL nodes in a single round trip. ALWAYS PREFER this over repeated move_node calls — laying out a row of siblings drops from N round trips to one. Each move takes the same parameters as move_node; reparenting happens before the x/y write so coordinates land in the new parent's space. Moves are independent — one failure never aborts the rest.",
+    {
+      moves: z
+        .array(
+          z.object({
+            nodeId: z.string().describe("Id of the node to move"),
+            x: z.coerce.number().optional().describe("New X position, relative to the parent"),
+            y: z.coerce.number().optional().describe("New Y position, relative to the parent"),
+            parentId: z.string().optional().describe("Reparent into this node before positioning"),
+            index: z.coerce.number().int().min(0).optional().describe("Child index inside the new parent"),
+          }),
+        )
+        .min(1)
+        .describe("The moves to apply, in order"),
+    },
+    async ({ moves }) => {
+      const params = {
+        moves: moves.map((m) => ({
+          ...m,
+          nodeId: normalizeNodeId(m.nodeId),
+          parentId: m.parentId ? normalizeNodeId(m.parentId) : undefined,
+        })),
+      };
+      try {
+        return textResult(await sendCommandToFigma("move_nodes", params));
+      } catch (error) {
+        return errorResult("moving nodes", error);
       }
     },
   );

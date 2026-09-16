@@ -1,6 +1,38 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { sendCommandToFigma } from "../utils/websocket.js";
+import { mcpBooleanSchema } from "../utils/mcp-boolean.js";
+import { cursorSchema, paginate, pageNotice } from "../utils/output-format.js";
+
+/**
+ * Outline projection of one content-tree node.
+ *
+ * Measured rationale: 186/186 `get_content_tree` calls in one production
+ * session passed no projection at all (2,258 tokens mean). A never-used option
+ * is a default problem, so the projection is now the default and the full tree
+ * is opt-in via view:"full".
+ */
+function projectContentNode(node: Record<string, any>): Record<string, any> {
+  const out: Record<string, any> = {
+    id: node.id,
+    name: node.name,
+    type: node.type,
+  };
+  if (node.role !== undefined) out.role = node.role;
+  if (node.text !== undefined && node.text !== "") out.text = node.text;
+  if (node.boundVariables !== undefined) out.boundVariables = node.boundVariables;
+  if (node.bindings !== undefined) out.bindings = node.bindings;
+  if (Array.isArray(node.children)) {
+    out.children = node.children.map(projectContentNode);
+  } else if (
+    "children" in node === false &&
+    (node.type === "FRAME" || node.type === "GROUP" || node.type === "INSTANCE" || node.type === "COMPONENT")
+  ) {
+    // Container reached the depth cut-off: say so rather than implying it is a leaf.
+    out.truncatedChildren = true;
+  }
+  return out;
+}
 
 export function registerDocumentationTools(server: McpServer): void {
   server.tool(
@@ -130,17 +162,42 @@ export function registerDocumentationTools(server: McpServer): void {
 
   server.tool(
     "get_content_tree",
-    "Extract the complete content tree from a frame, page, or node — including all text content with inferred semantic roles (heading, subheading, body, cta, label, hint), component types, and layout containers. Also returns a flat text inventory for easy copy auditing.",
+    'Extract the content tree from a frame, page, or node — text content with inferred semantic roles (heading, subheading, body, cta, label, hint), component types, and layout containers, plus a flat text inventory for copy auditing. Returns a SHALLOW, PROJECTED tree by default (maxDepth 2, outline view) — pass view:"full" and a larger maxDepth for everything.',
     {
       nodeId: z
         .string()
         .optional()
         .describe("Root node ID to extract content from. Omit to extract from all top-level frames on the page."),
       pageId: z.string().optional().describe("Page to extract from when nodeId is omitted."),
-      maxDepth: z.number().min(1).max(20).optional().default(5).describe("Maximum depth to traverse the node tree."),
-      includeImages: z.boolean().optional().default(false).describe("Include image fill indicators in the output."),
+      maxDepth: z.coerce
+        .number()
+        .min(1)
+        .max(20)
+        .optional()
+        .default(2)
+        .describe(
+          "Maximum depth to traverse the node tree. Default: 2 (was 5) — deeper levels are collapsed to a child count, not silently dropped. Raise it when you actually need the deep structure.",
+        ),
+      view: z
+        .enum(["outline", "full"])
+        .optional()
+        .default("outline")
+        .describe(
+          'Projection. "outline" (default) keeps id/name/type/role/text/bound variables and drops geometry, font metrics and image markers. "full" returns every field the plugin produced.',
+        ),
+      includeImages: mcpBooleanSchema
+        .optional()
+        .default(false)
+        .describe("Include image fill indicators in the output."),
+      text_limit: z.coerce
+        .number()
+        .int()
+        .min(0)
+        .optional()
+        .describe("Max text-inventory entries per page. Default: 100. Remaining entries are PAGED via next_cursor."),
+      cursor: cursorSchema,
     },
-    async ({ nodeId, pageId, maxDepth, includeImages }) => {
+    async ({ nodeId, pageId, maxDepth, includeImages, view, text_limit, cursor }) => {
       try {
         const result = await sendCommandToFigma<Record<string, unknown>>("get_content_tree", {
           nodeId,
@@ -148,8 +205,34 @@ export function registerDocumentationTools(server: McpServer): void {
           maxDepth,
           includeImages,
         });
+
+        const tree = (result?.tree as any[]) ?? [];
+        const projected = view === "full" ? tree : tree.map(projectContentNode);
+        const inventory = (result?.textInventory as any[]) ?? [];
+        const page = paginate(inventory, cursor, text_limit ?? 100);
+
+        const notices: string[] = [
+          `get_content_tree: view=${view}, maxDepth=${maxDepth}.`,
+          view === "full"
+            ? "Tree is the FULL plugin projection."
+            : 'Tree is the OUTLINE projection: id, name, type, role, text and bound variables only. Node geometry (width/height), font size/weight and image-fill markers are OMITTED — pass view:"full" for them.',
+          `Nodes deeper than maxDepth=${maxDepth} are NOT included; a node cut off there carries "truncatedChildren": true. Raise maxDepth (max 20) to see them.`,
+          pageNotice("textInventory", page),
+        ];
+
+        const payload: Record<string, unknown> = {
+          _notice: notices,
+          nodeCount: result?.nodeCount,
+          view,
+          maxDepth,
+          tree: projected,
+          textInventory: page.items,
+          textInventoryTotal: page.total,
+        };
+        if (page.nextCursor !== undefined) payload.next_cursor = page.nextCursor;
+
         return {
-          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          content: [{ type: "text", text: JSON.stringify(payload, null, 2) }],
         };
       } catch (error) {
         return {

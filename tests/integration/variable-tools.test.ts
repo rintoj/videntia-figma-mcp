@@ -208,7 +208,8 @@ describe("variable tools integration", () => {
         collectionId: "col-123",
         name: "primary",
         type: "COLOR",
-        value: { r: 0.5, g: 0.5, b: 0.5 },
+        // Normalized by the shared colour helper — alpha defaults to opaque.
+        value: { r: 0.5, g: 0.5, b: 0.5, a: 1 },
         mode: undefined,
       });
     });

@@ -1,6 +1,8 @@
 import { customBase64Encode } from "../utils/base64";
+import { resolveStrict } from "../utils/write-verify";
 import { debugLog, describeError, parseNum } from "../utils/helpers";
 import { selectAndFocusNode } from "../utils/plugin-state";
+import { computeSubtreeHash } from "../utils/subtree-hash";
 import { resolveColor } from "./fills";
 
 function getParam<T>(params: Record<string, unknown>, key: string, defaultVal: T): T {
@@ -315,7 +317,23 @@ export async function moveNodeAbsolute(params: Record<string, unknown>): Promise
   const parent = positioned.parent as (BaseNode & { layoutMode?: string }) | null;
   const autoLayoutParent = !!parent && !!parent.layoutMode && parent.layoutMode !== "NONE";
 
+  // D2: the handler already KNOWS the write was discarded. Returning success
+  // with a `warning` field is exactly the silent-failure shape that forces a
+  // read-back loop — throw instead (opt out per call with strict:false).
+  const requestedMove =
+    (x !== undefined && Math.abs(x - currentAbsX) > 0.001) || (y !== undefined && Math.abs(y - currentAbsY) > 0.001);
+  const discarded = autoLayoutParent && !applied && requestedMove;
+  const discardedMessage = discarded
+    ? `Cannot position "${positioned.name}": its parent uses auto layout (${parent?.layoutMode}), which positions ` +
+      `its children — Figma accepted and discarded the x/y write. Reorder the child (insert_child with an index), ` +
+      `change the parent's layout, or set layoutPositioning ABSOLUTE on this node first.`
+    : undefined;
+  if (discarded && resolveStrict(params)) {
+    throw new Error(discardedMessage);
+  }
+
   return {
+    warning: discardedMessage,
     id: positioned.id,
     name: positioned.name,
     x: positioned.x,
@@ -324,13 +342,6 @@ export async function moveNodeAbsolute(params: Record<string, unknown>): Promise
     absoluteY: afterBox ? afterBox.y : undefined,
     parentId: positioned.parent ? positioned.parent.id : undefined,
     applied,
-    ...(autoLayoutParent && !applied
-      ? {
-          warning:
-            "Parent uses auto layout, which positions its children — absolute x/y were ignored by Figma. " +
-            "Reorder the child or change the parent's layout instead.",
-        }
-      : {}),
   };
 }
 
@@ -529,10 +540,12 @@ export async function exportNodeAsImage(params: Record<string, unknown>): Promis
     const scaledWidth = nodeWidth * scale;
     const scaledHeight = nodeHeight * scale;
 
-    // Auto-reduce scale if dimensions would exceed max
+    // Auto-reduce scale if dimensions would exceed max. This may only ever
+    // REDUCE the requested scale — clamping must never enlarge a deliberately
+    // small export.
     if (scaledWidth > MAX_DIMENSION || scaledHeight > MAX_DIMENSION) {
-      const maxDimension = Math.max(scaledWidth, scaledHeight);
-      finalScale = (MAX_DIMENSION / maxDimension) * scale;
+      const longestNodeEdge = Math.max(nodeWidth, nodeHeight) || 1;
+      finalScale = Math.min(scale, MAX_DIMENSION / longestNodeEdge);
       debugLog(
         `exportNodeAsImage: Auto-reducing scale from ${scale} to ${finalScale.toFixed(3)} to fit within ${MAX_DIMENSION}px limit`,
       );
@@ -579,6 +592,10 @@ export async function exportNodeAsImage(params: Record<string, unknown>): Promis
       originalHeight: nodeHeight,
       exportedWidth: Math.round(nodeWidth * finalScale),
       exportedHeight: Math.round(nodeHeight * finalScale),
+      // Subtree version hash so the MCP server can skip re-inlining an
+      // identical render. `null` means "could not compute" — the server must
+      // treat that as a cache miss, never as "unchanged".
+      subtreeHash: computeSubtreeHash(node),
       mimeType,
       imageData: base64,
     };

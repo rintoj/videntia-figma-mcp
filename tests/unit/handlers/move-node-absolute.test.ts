@@ -64,7 +64,7 @@ describe("move_node_absolute", () => {
     expect(node.y).toBe(20);
   });
 
-  it("warns when an auto-layout parent silently ignores the move", async () => {
+  it("throws by default, and warns with strict:false, when an auto-layout parent ignores the move", async () => {
     const node: any = { id: "1:4", name: "Child", x: 0, y: 0, parent: { id: "0:1", layoutMode: "VERTICAL" } };
     // Auto layout parents reject direct x/y writes.
     Object.defineProperty(node, "x", { get: () => 0, set: () => {} });
@@ -78,7 +78,11 @@ describe("move_node_absolute", () => {
     Object.defineProperty(node, "absoluteBoundingBox", { get: () => ({ x: 0, y: 0 }) });
     nodes.set(node.id, node);
 
-    const result = await moveNodeAbsolute({ nodeId: "1:4", x: 300, y: 300 });
+    // Strict mode is now default-on: a discarded write throws rather than
+    // returning a soft `warning` the caller can miss.
+    await expect(moveNodeAbsolute({ nodeId: "1:4", x: 300, y: 300 })).rejects.toThrow("auto layout");
+
+    const result = await moveNodeAbsolute({ nodeId: "1:4", x: 300, y: 300, strict: false });
     expect(result.applied).toBe(false);
     expect(String(result.warning)).toContain("auto layout");
   });

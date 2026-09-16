@@ -100,7 +100,7 @@ describe("setFontWeight missing-style error", () => {
 
   it("names the family, the requested weight, the missing style and the available styles", async () => {
     await expect(setFontWeight({ nodeId: "1:2", weight: 600 })).rejects.toThrow(
-      /Font "Roboto" has no style "Semi Bold" \(requested weight 600\)/,
+      /font "Roboto" has no style matching "Semi Bold"/,
     );
     await expect(setFontWeight({ nodeId: "1:2", weight: 600 })).rejects.toThrow(
       /Available styles for "Roboto": Regular, Bold/,

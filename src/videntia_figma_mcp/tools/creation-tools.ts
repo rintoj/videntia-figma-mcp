@@ -4,6 +4,8 @@ import { sendCommandToFigma } from "../utils/websocket";
 import { coerceArray } from "../utils/coerce-array.js";
 import { mcpBooleanSchema } from "../utils/mcp-boolean.js";
 import { normalizeNodeId } from "../utils/figma-helpers.js";
+import { resolveFrameLayout } from "../utils/frame-layout.js";
+import { colorParam, toRgba } from "../utils/color-input.js";
 
 /**
  * Register creation tools to the MCP server
@@ -31,18 +33,7 @@ export function registerCreationTools(server: McpServer): void {
         .min(0)
         .optional()
         .describe("Uniform corner radius in pixels (default: 0, sharp corners)"),
-      fillColor: z
-        .union([
-          z.string(),
-          z.object({
-            r: z.coerce.number().min(0).max(1),
-            g: z.coerce.number().min(0).max(1),
-            b: z.coerce.number().min(0).max(1),
-            a: z.coerce.number().min(0).max(1).optional(),
-          }),
-        ])
-        .optional()
-        .describe("Solid fill: hex string (e.g. '#ff0000', '#ff000080') or normalized RGBA components 0–1"),
+      fillColor: colorParam("Solid fill.").optional(),
       layoutPositioning: z
         .enum(["ABSOLUTE", "RELATIVE"])
         .optional()
@@ -61,7 +52,7 @@ export function registerCreationTools(server: McpServer): void {
           name: name || "Rectangle",
           parentId,
           cornerRadius,
-          fillColor,
+          fillColor: fillColor === undefined ? undefined : toRgba(fillColor),
           layoutPositioning,
         });
         return {
@@ -88,32 +79,76 @@ export function registerCreationTools(server: McpServer): void {
   // Create Frame Tool
   server.tool(
     "create_frame",
-    "Create a new frame in Figma",
+    "Create a frame AND finish it in ONE call. Pass `layout` and `size` and this tool applies auto-layout, padding, gap, alignment, wrap and sizing in the order Figma actually requires (layoutMode before padding/gap, parenting before FILL sizing) — so you should NEVER follow a create_frame with set_auto_layout, set_layout_sizing, set_padding, set_item_spacing or resize_node. Preferred form: create_frame({ name, parentId, size: { width, height }, layout: { mode: 'VERTICAL', sizing: { horizontal: 'FILL', vertical: 'HUG' }, padding: 16, gap: 8, align: { primary: 'MIN', counter: 'CENTER' } } }). The flat spellings (layoutMode, padding, gap, horizontal/vertical, width/height, ...) are still accepted; `create_autolayout_frame` is an alias of this same one-call form.",
     {
-      x: z.coerce.number().describe("X position in pixels on the canvas (or relative to parent if parentId is set)"),
-      y: z.coerce.number().describe("Y position in pixels on the canvas (or relative to parent if parentId is set)"),
-      width: z.coerce.number().describe("Width in pixels (must be > 0)"),
-      height: z.coerce.number().describe("Height in pixels (must be > 0)"),
+      x: z.coerce
+        .number()
+        .optional()
+        .describe("X position in pixels on the canvas (default 0; ignored inside an auto-layout parent)"),
+      y: z.coerce
+        .number()
+        .optional()
+        .describe("Y position in pixels on the canvas (default 0; ignored inside an auto-layout parent)"),
+      width: z.coerce.number().optional().describe("Width in pixels (default 100). Or pass size.width."),
+      height: z.coerce.number().optional().describe("Height in pixels (default 100). Or pass size.height."),
+      size: z
+        .object({
+          width: z.coerce.number().optional().describe("Width in pixels"),
+          height: z.coerce.number().optional().describe("Height in pixels"),
+        })
+        .optional()
+        .describe("Frame size in one object — wins over the flat width/height"),
+      layout: z
+        .object({
+          mode: z
+            .enum(["NONE", "HORIZONTAL", "VERTICAL", "GRID"])
+            .optional()
+            .describe("Auto-layout direction. Required before padding/gap/align/sizing have any effect."),
+          sizing: z
+            .union([
+              z.enum(["FIXED", "HUG", "FILL"]).describe("Same sizing on both axes"),
+              z.object({
+                horizontal: z.enum(["FIXED", "HUG", "FILL"]).optional(),
+                vertical: z.enum(["FIXED", "HUG", "FILL"]).optional(),
+              }),
+            ])
+            .optional()
+            .describe("Layout sizing: one value for both axes, or { horizontal, vertical }"),
+          padding: z
+            .union([
+              z.coerce.number().describe("Uniform padding"),
+              z.object({
+                top: z.coerce.number().optional(),
+                right: z.coerce.number().optional(),
+                bottom: z.coerce.number().optional(),
+                left: z.coerce.number().optional(),
+                vertical: z.coerce.number().optional(),
+                horizontal: z.coerce.number().optional(),
+              }),
+            ])
+            .optional()
+            .describe("Padding: a number, or { top, right, bottom, left } / { vertical, horizontal }"),
+          gap: z.coerce.number().min(0).optional().describe("Spacing between children in pixels"),
+          align: z
+            .object({
+              primary: z.enum(["MIN", "CENTER", "MAX", "SPACE_BETWEEN"]).optional().describe("Along the layout axis"),
+              counter: z.enum(["MIN", "CENTER", "MAX", "BASELINE"]).optional().describe("Across the layout axis"),
+            })
+            .optional()
+            .describe("Axis alignment"),
+          wrap: z
+            .union([z.enum(["NO_WRAP", "WRAP"]), z.boolean()])
+            .optional()
+            .describe("Wrap children onto multiple lines (HORIZONTAL layout only)"),
+        })
+        .optional()
+        .describe(
+          "Everything auto-layout, in one object — applied in Figma's required order. Use this instead of following up with set_auto_layout / set_padding / set_item_spacing / set_layout_sizing.",
+        ),
       name: z.string().optional().describe("Layer name for the frame (default: 'Frame')"),
       parentId: z.string().optional().describe("ID of the parent frame to nest this frame inside"),
-      fillColor: z
-        .object({
-          r: z.coerce.number().min(0).max(1).describe("Red channel 0–1"),
-          g: z.coerce.number().min(0).max(1).describe("Green channel 0–1"),
-          b: z.coerce.number().min(0).max(1).describe("Blue channel 0–1"),
-          a: z.coerce.number().min(0).max(1).optional().describe("Alpha 0–1 (default: 1)"),
-        })
-        .optional()
-        .describe("Background fill color (default: white {r:1,g:1,b:1,a:1})"),
-      strokeColor: z
-        .object({
-          r: z.coerce.number().min(0).max(1).describe("Red channel 0–1"),
-          g: z.coerce.number().min(0).max(1).describe("Green channel 0–1"),
-          b: z.coerce.number().min(0).max(1).describe("Blue channel 0–1"),
-          a: z.coerce.number().min(0).max(1).optional().describe("Alpha 0–1 (default: 1)"),
-        })
-        .optional()
-        .describe("Border/stroke color — omit for no stroke"),
+      fillColor: colorParam("Background fill color (default: white).").optional(),
+      strokeColor: colorParam("Border/stroke color — omit for no stroke.").optional(),
       strokeWeight: z.coerce
         .number()
         .positive()
@@ -227,34 +262,64 @@ export function registerCreationTools(server: McpServer): void {
       counterAxisAlignItems,
       horizontal,
       vertical,
+      size,
+      layout,
     }) => {
       if (parentId) parentId = normalizeNodeId(parentId);
+
+      // Nested `size` / `layout` are the preferred one-call spelling; the flat
+      // params stay supported and are used wherever the nested form is silent.
+      const resolved = resolveFrameLayout({
+        size,
+        layout,
+        width,
+        height,
+        layoutMode,
+        layoutWrap,
+        gap,
+        itemSpacing,
+        padding,
+        top,
+        right,
+        bottom,
+        left,
+        paddingTop,
+        paddingRight,
+        paddingBottom,
+        paddingLeft,
+        primaryAxisAlignItems,
+        counterAxisAlignItems,
+        horizontal,
+        vertical,
+        layoutSizingHorizontal,
+        layoutSizingVertical,
+      });
+
       try {
         const result = await sendCommandToFigma("create_frame", {
-          x,
-          y,
-          width,
-          height,
+          x: x ?? 0,
+          y: y ?? 0,
+          width: resolved.width,
+          height: resolved.height,
           name: name || "Frame",
           parentId,
-          fillColor: fillColor || { r: 1, g: 1, b: 1, a: 1 },
-          strokeColor: strokeColor,
+          fillColor: fillColor === undefined ? { r: 1, g: 1, b: 1, a: 1 } : toRgba(fillColor),
+          strokeColor: strokeColor === undefined ? undefined : toRgba(strokeColor),
           strokeWeight: strokeWeight,
           clipsContent,
           cornerRadius,
           layoutPositioning,
-          layoutMode,
-          layoutWrap,
-          itemSpacing: gap !== undefined ? gap : itemSpacing,
-          padding,
-          paddingTop: top !== undefined ? top : paddingTop,
-          paddingRight: right !== undefined ? right : paddingRight,
-          paddingBottom: bottom !== undefined ? bottom : paddingBottom,
-          paddingLeft: left !== undefined ? left : paddingLeft,
-          primaryAxisAlignItems,
-          counterAxisAlignItems,
-          layoutSizingHorizontal: horizontal !== undefined ? horizontal : layoutSizingHorizontal,
-          layoutSizingVertical: vertical !== undefined ? vertical : layoutSizingVertical,
+          layoutMode: resolved.layoutMode,
+          layoutWrap: resolved.layoutWrap,
+          itemSpacing: resolved.itemSpacing,
+          paddingTop: resolved.paddingTop,
+          paddingRight: resolved.paddingRight,
+          paddingBottom: resolved.paddingBottom,
+          paddingLeft: resolved.paddingLeft,
+          primaryAxisAlignItems: resolved.primaryAxisAlignItems,
+          counterAxisAlignItems: resolved.counterAxisAlignItems,
+          layoutSizingHorizontal: resolved.layoutSizingHorizontal,
+          layoutSizingVertical: resolved.layoutSizingVertical,
         });
         const typedResult = result as { name: string; id: string };
         return {
@@ -297,15 +362,7 @@ export function registerCreationTools(server: McpServer): void {
         .describe(
           "Font weight as a number: 100=Thin, 200=ExtraLight, 300=Light, 400=Regular, 500=Medium, 600=SemiBold, 700=Bold, 800=ExtraBold, 900=Black (default: 400)",
         ),
-      fontColor: z
-        .object({
-          r: z.coerce.number().min(0).max(1).describe("Red channel 0–1"),
-          g: z.coerce.number().min(0).max(1).describe("Green channel 0–1"),
-          b: z.coerce.number().min(0).max(1).describe("Blue channel 0–1"),
-          a: z.coerce.number().min(0).max(1).optional().describe("Alpha 0–1 (default: 1)"),
-        })
-        .optional()
-        .describe("Text color in normalized RGBA (default: black {r:0,g:0,b:0,a:1})"),
+      fontColor: colorParam("Text color (default: black).").optional(),
       name: z.string().optional().describe("Layer name for the text node (default: the text content itself)"),
       parentId: z.string().optional().describe("ID of the parent frame to insert the text into"),
     },
@@ -319,7 +376,7 @@ export function registerCreationTools(server: McpServer): void {
           fontSize: fontSize || 14,
           fontFamily: fontFamily || "Inter",
           fontWeight: fontWeight || 400,
-          fontColor: fontColor || { r: 0, g: 0, b: 0, a: 1 },
+          fontColor: fontColor === undefined ? { r: 0, g: 0, b: 0, a: 1 } : toRgba(fontColor),
           name: name || "Text",
           parentId,
         });
@@ -631,7 +688,7 @@ export function registerCreationTools(server: McpServer): void {
       y: z.coerce.number().optional().describe("Y position on canvas"),
       width: z.coerce.number().optional().describe("Section width (applied via resizeWithoutConstraints)"),
       height: z.coerce.number().optional().describe("Section height"),
-      color: z.string().optional().describe("Section background as a hex color (e.g. '#f5f5f5')"),
+      color: colorParam("Section background color.").optional(),
       parentId: z.string().optional().describe("Parent PAGE or SECTION id. Defaults to the current page."),
     },
     async ({ name, x, y, width, height, color, parentId }) => {
@@ -642,7 +699,7 @@ export function registerCreationTools(server: McpServer): void {
           y,
           width,
           height,
-          color,
+          color: color === undefined ? undefined : toRgba(color),
           parentId: parentId ? normalizeNodeId(parentId) : undefined,
         });
         const typed = result as { id: string; name: string; width: number; height: number };

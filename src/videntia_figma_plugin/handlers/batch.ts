@@ -192,6 +192,12 @@ export async function batchActions(
     throw new Error("batch_actions requires a non-empty 'actions' array");
   }
 
+  // `return_state: true` turns batch_actions into apply-and-verify: every action's
+  // result carries the post-write state of the node it touched, so an agent can
+  // write AND verify in one round trip (no follow-up get_node_info).
+  const returnState =
+    params !== null && params !== undefined && (params["return_state"] === true || params["return_state"] === "true");
+
   const actions = rawActions as BatchAction[];
   const results: BatchActionResult[] = [];
   // Indices of actions that actually SUCCEEDED (and so mutated the document).
@@ -231,6 +237,10 @@ export async function batchActions(
         actionParams !== null && actionParams !== undefined ? actionParams : {},
         results,
       ) as Record<string, unknown>;
+
+      if (returnState && resolvedParams["return_state"] === undefined) {
+        resolvedParams["return_state"] = true;
+      }
 
       const result = await handleCommand(action, resolvedParams);
       // Sanitise before it enters `results` — both so the batch response can cross the

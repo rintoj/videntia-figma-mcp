@@ -120,9 +120,14 @@ const NORMALIZERS: Record<string, (p: Params) => void> = {
   },
 
   bind_variable: (p) => {
+    // The plugin resolves an id OR a name from the single `variableId` param, so
+    // every name-shaped spelling folds into it.
     alias(p, "variable", "variableId");
     alias(p, "variableName", "variableId");
+    alias(p, "name", "variableId");
     alias(p, "property", "field");
+    alias(p, "fieldName", "field");
+    alias(p, "prop", "field");
   },
 
   unbind_variable: (p) => {
@@ -133,21 +138,75 @@ const NORMALIZERS: Record<string, (p: Params) => void> = {
     // The plugin resolves an id OR a name from the single `styleId` param.
     alias(p, "styleName", "styleId");
     alias(p, "style", "styleId");
+    alias(p, "textStyleId", "styleId");
+    alias(p, "textStyle", "styleId");
+    alias(p, "name", "styleId");
   },
 
   set_color_style_id: (p) => {
     alias(p, "styleName", "styleId");
+    alias(p, "style", "styleId");
+    alias(p, "colorStyleId", "styleId");
   },
 
   set_effect_style_id: (p) => {
-    alias(p, "styleName", "styleId");
+    // The plugin handler reads `effectStyleId` — NOT `styleId`. Aliasing to `styleId`
+    // here was the direct cause of "Missing effectStyleId parameter" in batch.
+    alias(p, "styleName", "effectStyleId");
+    alias(p, "styleId", "effectStyleId");
+    alias(p, "style", "effectStyleId");
   },
 
   set_gradient_fill: (p) => {
     alias(p, "type", "gradientType");
     upper(p, "gradientType");
+    defaultTo(p, "gradientType", "LINEAR");
     defaultTo(p, "angle", 0);
     defaultTo(p, "opacity", 1);
+    // Standalone, `stops` goes through coerceArray + zod. Batch forwards params
+    // raw, so mirror the same coercions here: a JSON-encoded array, and the
+    // `colors: ["#a", "#b"]` shorthand agents reach for inside a batch.
+    if (typeof p.stops === "string") {
+      try {
+        const parsed = JSON.parse(p.stops as string);
+        if (Array.isArray(parsed)) p.stops = parsed;
+      } catch {
+        // leave as-is; the plugin reports a precise error
+      }
+    }
+    if (!Array.isArray(p.stops) && Array.isArray(p.colors)) {
+      const colors = p.colors as unknown[];
+      p.stops = colors.map((color, i) => ({
+        color,
+        position: colors.length > 1 ? i / (colors.length - 1) : 0,
+      }));
+      delete p.colors;
+    }
+    if (Array.isArray(p.stops)) {
+      p.stops = (p.stops as unknown[]).map((stop, i, all) => {
+        // A bare colour (string or {r,g,b}) with no wrapper is the most common
+        // batch shape; give it an evenly-spaced position.
+        if (typeof stop === "string") {
+          return { color: stop, position: all.length > 1 ? i / (all.length - 1) : 0 };
+        }
+        if (stop !== null && typeof stop === "object") {
+          const o = { ...(stop as Record<string, unknown>) };
+          if (o.color === undefined && o.hex !== undefined) o.color = o.hex;
+          if (o.color === undefined && o.r !== undefined) {
+            o.color = { r: o.r, g: o.g, b: o.b, ...(o.a !== undefined ? { a: o.a } : {}) };
+            delete o.r;
+            delete o.g;
+            delete o.b;
+            delete o.a;
+          }
+          if (o.position === undefined && o.offset !== undefined) o.position = o.offset;
+          if (o.position === undefined) o.position = all.length > 1 ? i / (all.length - 1) : 0;
+          if (typeof o.position === "string" && !Number.isNaN(Number(o.position))) o.position = Number(o.position);
+          return o;
+        }
+        return stop;
+      });
+    }
   },
 
   set_corner_radius: (p) => {
@@ -210,6 +269,123 @@ const NORMALIZERS: Record<string, (p: Params) => void> = {
     num(p, "x");
     num(p, "y");
   },
+
+  // --- Added from the standalone-zod vs plugin-handler contract audit -------------
+  // Each of these standalone tools RENAMES a param before putting it on the wire, so
+  // the documented (caller-facing) spelling was rejected inside a batch.
+
+  set_paragraph_spacing: (p) => {
+    alias(p, "spacing", "paragraphSpacing");
+    alias(p, "value", "paragraphSpacing");
+    num(p, "paragraphSpacing");
+  },
+
+  set_text_decoration: (p) => {
+    alias(p, "decoration", "textDecoration");
+    upper(p, "textDecoration");
+  },
+
+  set_text_case: (p) => {
+    alias(p, "case", "textCase");
+    upper(p, "textCase");
+  },
+
+  set_text_wrap_style: (p) => {
+    alias(p, "wrap", "textWrapStyle");
+    alias(p, "wrapStyle", "textWrapStyle");
+    upper(p, "textWrapStyle");
+  },
+
+  set_font_weight: (p) => {
+    alias(p, "fontWeight", "weight");
+    num(p, "weight");
+  },
+
+  set_font_name: (p) => {
+    alias(p, "fontFamily", "family");
+    alias(p, "fontStyle", "style");
+  },
+
+  set_padding: (p) => {
+    // The plugin accepts both spellings, but fold the shorthand here so the wire
+    // payload is identical to the standalone tool's.
+    alias(p, "top", "paddingTop");
+    alias(p, "right", "paddingRight");
+    alias(p, "bottom", "paddingBottom");
+    alias(p, "left", "paddingLeft");
+    const all = p.padding;
+    if (typeof all === "number" || (typeof all === "string" && all.trim() !== "" && !Number.isNaN(Number(all)))) {
+      const v = Number(all);
+      for (const k of ["paddingTop", "paddingRight", "paddingBottom", "paddingLeft"]) defaultTo(p, k, v);
+      delete p.padding;
+    }
+    for (const k of ["paddingTop", "paddingRight", "paddingBottom", "paddingLeft"]) num(p, k);
+  },
+
+  set_item_spacing: (p) => {
+    alias(p, "gap", "itemSpacing");
+    alias(p, "spacing", "itemSpacing");
+    alias(p, "rowGap", "gridRowGap");
+    alias(p, "columnGap", "gridColumnGap");
+    for (const k of ["itemSpacing", "counterAxisSpacing", "gridRowGap", "gridColumnGap"]) num(p, k);
+  },
+
+  set_layout_sizing: (p) => {
+    alias(p, "horizontal", "layoutSizingHorizontal");
+    alias(p, "vertical", "layoutSizingVertical");
+    upper(p, "layoutSizingHorizontal");
+    upper(p, "layoutSizingVertical");
+  },
+
+  set_axis_align: (p) => {
+    alias(p, "primary", "primaryAxisAlignItems");
+    alias(p, "counter", "counterAxisAlignItems");
+    upper(p, "primaryAxisAlignItems");
+    upper(p, "counterAxisAlignItems");
+  },
+
+  set_opacity: (p) => {
+    alias(p, "alpha", "opacity");
+    num(p, "opacity");
+  },
+
+  // Variable/collection commands whose standalone schema uses a bare `id`.
+  delete_variable: (p) => {
+    alias(p, "id", "variableId");
+    alias(p, "variable", "variableId");
+    alias(p, "name", "variableId");
+  },
+
+  update_variable_value: (p) => {
+    alias(p, "id", "variableId");
+    alias(p, "variable", "variableId");
+    alias(p, "variableName", "variableId");
+  },
+
+  delete_variable_collection: (p) => {
+    alias(p, "id", "collectionId");
+    alias(p, "collection", "collectionId");
+  },
+
+  add_chart_colors: (p) => {
+    alias(p, "id", "collectionId");
+  },
+
+  add_mode_to_collection: (p) => {
+    alias(p, "id", "collectionId");
+    alias(p, "name", "modeName");
+  },
+
+  delete_mode: (p) => {
+    alias(p, "id", "collectionId");
+    alias(p, "name", "modeName");
+  },
+
+  rename_mode: (p) => {
+    alias(p, "id", "collectionId");
+    alias(p, "oldName", "modeName");
+    alias(p, "newName", "newModeName");
+  },
 };
 
 /**
@@ -224,6 +400,12 @@ export function normalizeCommandParams(command: string, params: Params | undefin
   // Universal: Figma URL-style node ids ("65-7554") → API form ("65:7554").
   for (const key of NODE_ID_KEYS) {
     const v = out[key];
+    // A stringified `undefined`/`null` is a marshalling accident upstream, not an id —
+    // dropping it surfaces "missing nodeId" instead of "Node with ID undefined not found".
+    if (v === "undefined" || v === "null") {
+      delete out[key];
+      continue;
+    }
     if (typeof v === "string" && !v.startsWith("$result[")) out[key] = normalizeNodeId(v);
   }
   if (Array.isArray(out.nodeIds)) {
@@ -238,6 +420,19 @@ export function normalizeCommandParams(command: string, params: Params | undefin
       // Normalisation is best-effort — never block an action from reaching the plugin.
     }
   }
+
+  // A bare `id`/`node` is what callers reach for when the command's own param is
+  // `nodeId` — one source of "Node with ID undefined not found", where the real id sat
+  // in a key the plugin never read. Runs AFTER the per-command normaliser so commands
+  // whose `id` means a variable/collection/mode have already claimed it.
+  if (!isPresent(out.nodeId) && !isPresent(out.variableId) && !isPresent(out.collectionId)) {
+    if (isPresent(out.node)) alias(out, "node", "nodeId");
+    else if (isPresent(out.id)) alias(out, "id", "nodeId");
+    if (typeof out.nodeId === "string" && !out.nodeId.startsWith("$result[")) {
+      out.nodeId = normalizeNodeId(out.nodeId);
+    }
+  }
+
   return out;
 }
 

@@ -11,10 +11,10 @@ import {
   getWCAGCompliance,
   getContrastRecommendation,
   rgbaToHex,
-  hexToRgba,
   SCALE_MIX_PERCENTAGES,
   RGBAColor,
 } from "../utils/color-calculations.js";
+import { colorParam, toRgba, NormalizedRgba } from "../utils/color-input.js";
 import {
   getStandardSchema,
   getAllStandardVariableNames,
@@ -35,6 +35,7 @@ import {
   generateSemanticTypography,
 } from "../utils/token-presets.js";
 import { formatColorValue, formatVariableValue } from "../utils/format-helpers.js";
+import { BATCH_ACTION_SCHEMA_DOC } from "../utils/batch-action-schema.js";
 import type {
   VariablesResponse,
   CreateVariableCollectionResult,
@@ -71,7 +72,8 @@ import type {
 // Zod schemas for color validation
 const coerceColorChannel = z.preprocess(
   (v) => (typeof v === "boolean" || v === null ? undefined : v),
-  z.coerce.number().min(0).max(1),
+  // Range is 0–255: a channel > 1 is read as 0–255 by toRgba, <= 1 as 0–1.
+  z.coerce.number().min(0).max(255),
 );
 
 const RGBAColorSchema = z.object({
@@ -80,6 +82,22 @@ const RGBAColorSchema = z.object({
   b: coerceColorChannel.describe("Blue component (0-1)"),
   a: coerceColorChannel.optional().describe("Alpha component (0-1, default: 1.0)"),
 });
+
+/**
+ * Resolve any accepted colour form to normalized 0-1 RGBA. `inputFormat` is
+ * legacy/explicit: when the caller says "rgb255" we honour it even for
+ * channels that happen to all be <= 1; otherwise toRgba auto-detects.
+ */
+function resolveColorInput(value: unknown, inputFormat?: "normalized" | "rgb255"): NormalizedRgba {
+  const c = toRgba(value);
+  if (inputFormat === "rgb255" && typeof value === "object" && value !== null) {
+    const raw = Array.isArray(value) ? value : [(value as any).r, (value as any).g, (value as any).b];
+    if (raw.every((n: any) => Number(n) <= 1)) {
+      return { r: c.r / 255, g: c.g / 255, b: c.b / 255, a: c.a };
+    }
+  }
+  return c;
+}
 
 // MotionEasing — value shape for EASING-typed variables. `type` is a discriminant;
 // CUSTOM_CUBIC_BEZIER/CUSTOM_SPRING additionally require their matching sub-field.
@@ -122,7 +140,14 @@ const MotionEasingSchema = z.object({
 type MotionEasingValue = z.infer<typeof MotionEasingSchema>;
 
 const VariableTypeSchema = z.enum(["COLOR", "FLOAT", "STRING", "BOOLEAN", "EASING", "TIMING"]);
-const VariableInputValueSchema = z.union([RGBAColorSchema, MotionEasingSchema, z.string(), z.number(), z.boolean()]);
+const VariableInputValueSchema = z.union([
+  RGBAColorSchema,
+  MotionEasingSchema,
+  z.array(z.coerce.number()).min(3).max(4),
+  z.string(),
+  z.number(),
+  z.boolean(),
+]);
 
 function normalizeVariableValueByType(
   type: z.infer<typeof VariableTypeSchema>,
@@ -131,16 +156,8 @@ function normalizeVariableValueByType(
   if (type === "COLOR") {
     // Accept a hex string (e.g. "#ff0000", "#f00", "#ff000080") the same way
     // set_fill_color/set_stroke_color do, in addition to an {r,g,b,a} object.
-    if (typeof value === "string") {
-      try {
-        return hexToRgba(value);
-      } catch {
-        throw new Error(
-          `Invalid COLOR value: "${value}". Pass a hex string (e.g. "#ff0000") or an {r,g,b,a} object with 0-1 channels.`,
-        );
-      }
-    }
-    return RGBAColorSchema.parse(value);
+    // Accepts hex, {r,g,b,a} in 0-1 or 0-255, and [r,g,b(,a)] arrays.
+    return toRgba(value);
   }
 
   if (type === "FLOAT") {
@@ -726,11 +743,9 @@ export function registerVariableTools(server: McpServer): void {
     "calculate_color_scale",
     "Calculate all 10 scale variants (-50 to -900) for a base color",
     {
-      base: RGBAColorSchema.describe(
-        "The primary/brand color to build a scale from — provided as normalized RGB {r,g,b} where each channel is 0–1",
-      ),
-      background: RGBAColorSchema.describe(
-        "The dark background color to blend against (e.g. page background) — provided as normalized RGB {r,g,b} 0–1. Scale level 900 is closest to this base color, level 50 is closest to background.",
+      base: colorParam("The primary/brand color to build a scale from."),
+      background: colorParam(
+        "The dark background color to blend against (e.g. page background). Scale level 900 is closest to the base color, level 50 is closest to this background.",
       ),
       inputFormat: z
         .enum(["normalized", "rgb255"])
@@ -739,7 +754,10 @@ export function registerVariableTools(server: McpServer): void {
     },
     async ({ base, background, inputFormat }) => {
       try {
-        const scale = calculateColorScale(base, background);
+        const scale = calculateColorScale(
+          resolveColorInput(base, inputFormat),
+          resolveColorInput(background, inputFormat),
+        );
 
         const lines: string[] = [
           "## Color Scale",
@@ -784,12 +802,8 @@ export function registerVariableTools(server: McpServer): void {
     "calculate_composite_color",
     "Calculate a single composited color at a specific mix percentage",
     {
-      base: RGBAColorSchema.describe(
-        "Primary color as normalized RGB {r,g,b} 0–1 — at mixPercentage=1.0, result equals this color",
-      ),
-      background: RGBAColorSchema.describe(
-        "Background color as normalized RGB {r,g,b} 0–1 — at mixPercentage=0.0, result equals this color",
-      ),
+      base: colorParam("Primary color — at mixPercentage=1.0, result equals this color."),
+      background: colorParam("Background color — at mixPercentage=0.0, result equals this color."),
       mixPercentage: z.coerce
         .number()
         .min(0)
@@ -802,7 +816,11 @@ export function registerVariableTools(server: McpServer): void {
     },
     async ({ base, background, mixPercentage, inputFormat }) => {
       try {
-        const result = calculateCompositeColor(base, background, mixPercentage);
+        const result = calculateCompositeColor(
+          resolveColorInput(base, inputFormat),
+          resolveColorInput(background, inputFormat),
+          mixPercentage,
+        );
         const hex = rgbaToHex(result);
 
         return {
@@ -833,11 +851,7 @@ export function registerVariableTools(server: McpServer): void {
     "convert_color_format",
     "Convert color between different formats",
     {
-      color: z
-        .union([RGBAColorSchema, z.string()])
-        .describe(
-          "Color value to convert — object {r,g,b,a} for normalized/rgb255 formats, or string '#RRGGBB' / '#RRGGBBAA' for hex format",
-        ),
+      color: colorParam("Color value to convert."),
       fromFormat: z
         .enum(["normalized", "rgb255", "hex"])
         .describe(
@@ -849,7 +863,8 @@ export function registerVariableTools(server: McpServer): void {
     },
     async ({ color, fromFormat, toFormat }) => {
       try {
-        const output = convertColorFormat(color as any, fromFormat, toFormat);
+        const normalized = resolveColorInput(color, fromFormat === "hex" ? undefined : fromFormat);
+        const output = convertColorFormat(normalized, "normalized", toFormat);
         const outputStr = typeof output === "object" ? formatColorValue(output) : String(output);
         const inputStr = typeof color === "object" ? formatColorValue(color) : String(color);
 
@@ -881,13 +896,16 @@ export function registerVariableTools(server: McpServer): void {
     "calculate_contrast_ratio",
     "Calculate WCAG contrast ratio between two colors",
     {
-      foreground: RGBAColorSchema.describe("Foreground color RGB"),
-      background: RGBAColorSchema.describe("Background color RGB"),
+      foreground: colorParam("Foreground color."),
+      background: colorParam("Background color."),
       inputFormat: z.enum(["normalized", "rgb255"]).optional().describe("Input format (default: normalized)"),
     },
     async ({ foreground, background, inputFormat }) => {
       try {
-        const ratio = calculateContrastRatio(foreground, background);
+        const ratio = calculateContrastRatio(
+          resolveColorInput(foreground, inputFormat),
+          resolveColorInput(background, inputFormat),
+        );
         const wcag = getWCAGCompliance(ratio);
         const recommendation = getContrastRecommendation(ratio);
 
@@ -912,6 +930,71 @@ export function registerVariableTools(server: McpServer): void {
           ],
         };
       }
+    },
+  );
+
+  /**
+   * calculate_contrast_ratios - Vectorized WCAG contrast for many pairs.
+   * Pure server-side maths: no Figma round trip, so no plugin handler needed.
+   */
+  server.tool(
+    "calculate_contrast_ratios",
+    "Calculate WCAG contrast ratios for MANY foreground/background pairs in one call. Pure server-side maths (no Figma round trip) — always prefer this over repeated calculate_contrast_ratio calls.",
+    {
+      pairs: coerceArray(
+        z
+          .array(
+            z.object({
+              label: z.string().optional().describe("Optional label for this pair, echoed in the result row"),
+              foreground: colorParam("Foreground color."),
+              background: colorParam("Background color."),
+            }),
+          )
+          .min(1),
+      ).describe("Foreground/background pairs to evaluate"),
+      standard: z
+        .enum(["AA", "AAA"])
+        .optional()
+        .describe("WCAG standard used for the recommendation column (default: AA)"),
+      inputFormat: z.enum(["normalized", "rgb255"]).optional().describe("Input format (default: auto-detected)"),
+    },
+    async ({ pairs, standard, inputFormat }) => {
+      const std = standard || "AA";
+      const lines: string[] = [
+        `## Contrast Ratios (${std}) — ${pairs.length} pair${pairs.length === 1 ? "" : "s"}`,
+        "",
+        "| # | Label | Ratio | AA normal | AA large | AAA normal | Recommendation |",
+        "|---|-------|-------|-----------|----------|------------|----------------|",
+      ];
+      let index = 0;
+      let failures = 0;
+      for (const pair of pairs) {
+        index++;
+        try {
+          const ratio = calculateContrastRatio(
+            resolveColorInput(pair.foreground, inputFormat),
+            resolveColorInput(pair.background, inputFormat),
+          );
+          const wcag = getWCAGCompliance(ratio);
+          const rec = getContrastRecommendation(ratio, std);
+          if (std === "AA" ? !wcag.aa_normal : !wcag.aaa_normal) failures++;
+          lines.push(
+            `| ${index} | ${pair.label || "-"} | ${ratio.toFixed(2)}:1 | ${wcag.aa_normal ? "Pass" : "Fail"} | ${
+              wcag.aa_large ? "Pass" : "Fail"
+            } | ${wcag.aaa_normal ? "Pass" : "Fail"} | ${rec} |`,
+          );
+        } catch (error) {
+          failures++;
+          lines.push(
+            `| ${index} | ${pair.label || "-"} | - | - | - | - | Error: ${
+              error instanceof Error ? error.message : String(error)
+            } |`,
+          );
+        }
+      }
+      lines.push("");
+      lines.push(`${pairs.length - failures}/${pairs.length} pass WCAG ${std} for normal text.`);
+      return { content: [{ type: "text", text: lines.join("\n") }] };
     },
   );
 
@@ -1078,8 +1161,14 @@ export function registerVariableTools(server: McpServer): void {
    */
   server.tool(
     "get_schema_definition",
-    "Return this project's built-in standard design-token variable schema (the 106-variable theme: surfaces, brand, states, interactive, feedback, color scales, optional chart colors). Takes no tool name — it is unrelated to any MCP tool's parameter schema. Used by audit_collection/fix_collection_to_standard as the reference to compare a Figma variable collection against.",
+    'Return a schema definition. target:"design_tokens" (default) returns this project\'s built-in standard design-token variable schema (the 106-variable theme: surfaces, brand, states, interactive, feedback, color scales, optional chart colors), used by audit_collection/fix_collection_to_standard as the reference to compare a Figma variable collection against. target:"batch_actions" returns the exact `actions[]` envelope `batch_actions` expects, its aliases, its $result[N] rules and a worked example — call it before writing a batch if you are unsure of the shape.',
     {
+      target: z
+        .enum(["design_tokens", "batch_actions"])
+        .optional()
+        .describe(
+          "Which schema to return: 'design_tokens' (default) = the standard variable/theme schema; 'batch_actions' = the batch_actions actions[] envelope schema",
+        ),
       chartColors: mcpBooleanSchema
         .optional()
         .describe(
@@ -1092,8 +1181,18 @@ export function registerVariableTools(server: McpServer): void {
           "Output format: 'structured' = full schema with categories and metadata (default), 'flat' = simple list of variable names only",
         ),
     },
-    async ({ chartColors, format }) => {
+    async ({ target, chartColors, format }) => {
       try {
+        if (target === "batch_actions") {
+          return {
+            content: [
+              {
+                type: "text" as const,
+                text: JSON.stringify(BATCH_ACTION_SCHEMA_DOC, null, 2),
+              },
+            ],
+          };
+        }
         const schema = getStandardSchema(chartColors || false);
 
         if (format === "flat") {
@@ -1258,14 +1357,12 @@ export function registerVariableTools(server: McpServer): void {
         .describe(
           "Semantic color name used as a prefix for all generated variables (e.g. 'primary' → creates 'primary', 'primary-foreground', 'primary-50', 'primary-100', ..., 'primary-900')",
         ),
-      base: RGBAColorSchema.describe(
-        "The main brand/accent color as normalized RGB {r,g,b} 0–1 — used as the '500' level of the scale and the base variable",
+      base: colorParam("The main brand/accent color — used as the '500' level of the scale and the base variable."),
+      foreground: colorParam(
+        "Text/icon color that sits on top of this color — stored as the '<name>-foreground' variable.",
       ),
-      foreground: RGBAColorSchema.describe(
-        "Text/icon color that sits on top of this color as normalized RGB {r,g,b} 0–1 — stored as the '<name>-foreground' variable",
-      ),
-      background: RGBAColorSchema.describe(
-        "Page/canvas background color as normalized RGB {r,g,b} 0–1 — used as the blend target for generating scale levels 50–900",
+      background: colorParam(
+        "Page/canvas background color — used as the blend target for generating scale levels 50–900.",
       ),
       mode: z
         .string()
@@ -1277,9 +1374,9 @@ export function registerVariableTools(server: McpServer): void {
         const result = await sendCommandToFigma<CreateColorScaleSetResult>("create_color_scale_set", {
           collectionId,
           colorName,
-          baseColor: base,
-          foregroundColor: foreground,
-          backgroundColor: background,
+          baseColor: toRgba(base),
+          foregroundColor: toRgba(foreground),
+          backgroundColor: toRgba(background),
           mode,
         });
         const created = result.created ?? result.variables?.length ?? "-";
@@ -1315,16 +1412,14 @@ export function registerVariableTools(server: McpServer): void {
       palette: z
         .record(
           z.object({
-            base: RGBAColorSchema.describe("Main color as normalized RGB {r,g,b} 0–1"),
-            foreground: RGBAColorSchema.describe("On-color text/icon color as normalized RGB {r,g,b} 0–1"),
+            base: colorParam("Main color."),
+            foreground: colorParam("On-color text/icon color."),
           }),
         )
         .describe(
           "Map of color names to base+foreground pairs — keys should be semantic names matching existing variable prefixes in the collection (e.g. {'primary': {base:{r,g,b}, foreground:{r,g,b}}, 'success': {...}})",
         ),
-      background: RGBAColorSchema.describe(
-        "Page background color as normalized RGB {r,g,b} 0–1 — used as the blend target for regenerating scale levels 50–900",
-      ),
+      background: colorParam("Page background color — used as the blend target for regenerating scale levels 50–900."),
       regenerateScales: mcpBooleanSchema
         .optional()
         .describe(
@@ -1335,8 +1430,13 @@ export function registerVariableTools(server: McpServer): void {
       try {
         await sendCommandToFigma("apply_custom_palette", {
           collectionId,
-          palette,
-          backgroundColor: background,
+          palette: Object.fromEntries(
+            Object.entries(palette).map(([key, entry]) => [
+              key,
+              { base: toRgba(entry.base), foreground: toRgba(entry.foreground) },
+            ]),
+          ),
+          backgroundColor: toRgba(background),
           regenerateScales: regenerateScales !== false,
         });
         const colorCount = Object.keys(palette).length;
@@ -1539,15 +1639,15 @@ export function registerVariableTools(server: McpServer): void {
     "Create all 7 color scales at once (70 variants total)",
     {
       collectionId: z.string().describe("Collection ID or name"),
-      colors: z.record(RGBAColorSchema).describe("Base colors for each scale"),
-      background: RGBAColorSchema.describe("Background color for calculations"),
+      colors: z.record(colorParam("Base color for this scale.")).describe("Base colors for each scale"),
+      background: colorParam("Background color for calculations."),
     },
     async ({ collectionId, colors, background }) => {
       try {
         const result = await sendCommandToFigma<CreateAllScalesResult>("create_all_scales", {
           collectionId,
-          baseColors: colors,
-          backgroundColor: background,
+          baseColors: Object.fromEntries(Object.entries(colors).map(([key, value]) => [key, toRgba(value)])),
+          backgroundColor: toRgba(background),
         });
         const colorNames = Object.keys(colors);
         const totalVars = result.totalVariables ?? result.created ?? colorNames.length * 10;
@@ -1643,17 +1743,17 @@ export function registerVariableTools(server: McpServer): void {
     "Add 8 chart colors to collection",
     {
       id: z.string().describe("Collection ID or name to add chart colors to"),
-      chartColors: coerceArray(z.array(RGBAColorSchema))
+      chartColors: coerceArray(z.array(colorParam()))
         .optional()
         .describe(
-          "Array of exactly 8 custom chart colors as normalized RGB objects {r,g,b,a} 0–1 — omit to use the built-in standard chart color palette",
+          "Array of exactly 8 custom chart colors (hex strings or {r,g,b,a} objects) — omit to use the built-in standard chart color palette",
         ),
     },
     async ({ id: collectionId, chartColors }) => {
       try {
         const result = await sendCommandToFigma<AddChartColorsResult>("add_chart_colors", {
           collectionId,
-          chartColors,
+          chartColors: chartColors ? chartColors.map((c) => toRgba(c)) : undefined,
         });
         const count = result.created ?? result.colors?.length ?? 8;
         return {

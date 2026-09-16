@@ -370,7 +370,9 @@ function assertAutoLayoutEnabled(node: BaseNode, command: string, property: stri
   if (frame.layoutMode === "NONE") {
     throw new Error(
       `Frame "${node.name}" has layoutMode NONE, so ${property} is inert — Figma accepts the write and discards it. ` +
-        `Call set_layout_mode (or set_auto_layout) with HORIZONTAL/VERTICAL/GRID on this frame before ${command}.`,
+        `Fix it in ONE call with set_auto_layout — it sets layoutMode, padding and itemSpacing/gap together ` +
+        `and applies them exactly (e.g. {mode:"VERTICAL", gap:37, left:21, top:13, right:21, bottom:13}). ` +
+        `Otherwise call set_layout_mode with HORIZONTAL/VERTICAL/GRID on this frame first, then ${command}.`,
     );
   }
   return frame;

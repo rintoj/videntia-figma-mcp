@@ -10,18 +10,21 @@
 // `applyWrites` centralises the "write, read back, compare" check so the eight
 // affected handlers do not each reimplement it:
 //
-//   - non-strict (default): a discarded write is reported in `noops` /
-//     `warnings` on the command result, so the caller can see it.
-//   - strict: a discarded write throws immediately.
+//   - strict (DEFAULT): a discarded write throws immediately.
+//   - non-strict: a discarded write is reported in `noops` / `warnings` on the
+//     command result, so the caller can see it but the call still "succeeds".
 //
+// Strict is the default because silent success is the worst failure mode here:
+// a reported-success-but-discarded write forces the caller into an export-image
+// verification loop to discover it (47 such loops were measured in one session).
 // Strict mode is a global toggle (`set_strict_mode`) that individual commands
 // can override with a `strict` param.
 //
 // This module deliberately has no imports so any handler can use it without
 // creating a circular module dependency with index.ts.
 
-/** Global strict-mode flag, toggled by the `set_strict_mode` command. */
-const strictState = { enabled: false };
+/** Global strict-mode flag, toggled by the `set_strict_mode` command. Default ON. */
+const strictState = { enabled: true };
 
 export function setStrictModeEnabled(enabled: boolean): void {
   strictState.enabled = enabled;

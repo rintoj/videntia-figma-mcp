@@ -1,12 +1,28 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { sendCommandToFigma } from "../utils/websocket";
-import { applyColorDefaults } from "../utils/defaults";
-import { Color } from "../types/color";
 import { coerceArray } from "../utils/coerce-array.js";
 import { mcpBooleanSchema } from "../utils/mcp-boolean.js";
 import { DeleteMultipleNodesResult, CreateEffectStyleResult, UpdateEffectStyleResult } from "../types";
 import { normalizeNodeId } from "../utils/figma-helpers.js";
+import { formatState, returnStateParam } from "../utils/return-state.js";
+import { readImageFileAsBase64 } from "../utils/image-file-input.js";
+import { colorParam, toRgba, COLOR_INPUT_DESCRIPTION } from "../utils/color-input.js";
+
+/** Normalize the `color` on each effect entry to 0-1 {r,g,b,a}. */
+function normalizeEffectColors<T extends { color?: unknown; secondaryColor?: unknown }>(effects: T[]): T[] {
+  return effects.map((effect) => {
+    const next: T = { ...effect };
+    if (next.color !== undefined) next.color = toRgba(next.color);
+    if (next.secondaryColor !== undefined) next.secondaryColor = toRgba(next.secondaryColor);
+    return next;
+  });
+}
+
+const channelParam = z.preprocess(
+  (v) => (typeof v === "boolean" || v === null ? undefined : v),
+  z.coerce.number().min(0).max(255),
+);
 
 /**
  * Register modification tools to the MCP server
@@ -17,17 +33,28 @@ export function registerModificationTools(server: McpServer): void {
   // Strict Mode Tool
   server.tool(
     "set_strict_mode",
-    "Toggle strict mode. When on, any write that Figma silently discards (a 'silent no-op') throws an error instead of reporting success — use it when a change appears to have no effect and you need the real reason.",
+    "Toggle strict mode. Strict mode is ON by default: any write that Figma silently discards (a 'silent no-op') throws an error instead of reporting success, so you never have to read a node back to find out whether a change landed. Turn it OFF only if you deliberately want discarded writes reported as warnings instead of errors (individual commands can also opt out per call with strict:false).",
     {
       enabled: mcpBooleanSchema.describe(
-        "true = silent no-ops throw; false = they are reported as warnings on the result (default)",
+        "true = silent no-ops throw (DEFAULT); false = they are only reported as warnings on the result",
+      ),
+      return_state: returnStateParam.describe(
+        "Session default for post-write state: when on, EVERY mutating command answers with the node's actual state after the write, so a follow-up get_node_info is never needed.",
       ),
     },
-    async ({ enabled }) => {
+    async ({ enabled, return_state }) => {
       try {
-        const result = (await sendCommandToFigma("set_strict_mode", { enabled })) as { strict: boolean };
+        const result = (await sendCommandToFigma("set_strict_mode", { enabled, return_state })) as {
+          strict: boolean;
+          returnState?: boolean;
+        };
         return {
-          content: [{ type: "text", text: `Strict mode is now ${result.strict ? "ON" : "OFF"}.` }],
+          content: [
+            {
+              type: "text",
+              text: `Strict mode is now ${result.strict ? "ON" : "OFF"}. Post-write state is ${result.returnState ? "ON" : "OFF"}.`,
+            },
+          ],
         };
       } catch (error) {
         return {
@@ -45,53 +72,47 @@ export function registerModificationTools(server: McpServer): void {
   // Set Fill Color Tool
   server.tool(
     "set_fill_color",
-    "Set the fill color of a node in Figma. Accepts either a hex color string (e.g. '#ff0000', '#ff000080' with alpha) or individual r,g,b,a channels (0–1). Alpha defaults to 1 (fully opaque) if not specified.",
+    `Set the fill color of a node in Figma. ${COLOR_INPUT_DESCRIPTION} Alternatively pass individual r,g,b,a channels. Alpha defaults to 1 (fully opaque).`,
     {
       nodeId: z.string().describe("Node ID (e.g. '123:456') — get from get_selection or get_node_info"),
-      color: z
-        .string()
-        .optional()
-        .describe("Hex color string (e.g. '#ff0000', '#f00', '#ff000080' for alpha). Use this OR r,g,b,a — not both."),
-      r: z
-        .preprocess((v) => (typeof v === "boolean" || v === null ? undefined : v), z.coerce.number().min(0).max(1))
-        .optional()
-        .describe("Red channel, normalized 0–1 (e.g. 1 = full red)"),
-      g: z
-        .preprocess((v) => (typeof v === "boolean" || v === null ? undefined : v), z.coerce.number().min(0).max(1))
-        .optional()
-        .describe("Green channel, normalized 0–1"),
-      b: z
-        .preprocess((v) => (typeof v === "boolean" || v === null ? undefined : v), z.coerce.number().min(0).max(1))
-        .optional()
-        .describe("Blue channel, normalized 0–1"),
-      a: z
-        .preprocess((v) => (typeof v === "boolean" || v === null ? undefined : v), z.coerce.number().min(0).max(1))
-        .optional()
-        .describe("Alpha/opacity, normalized 0–1 (default: 1 = fully opaque; 0 = fully transparent)"),
+      color: colorParam("Fill color. Use this OR r,g,b,a — not both.").optional(),
+      r: channelParam.optional().describe("Red channel (0–1 normalized, or 0–255)"),
+      g: channelParam.optional().describe("Green channel (0–1 normalized, or 0–255)"),
+      b: channelParam.optional().describe("Blue channel (0–1 normalized, or 0–255)"),
+      a: channelParam.optional().describe("Alpha/opacity (0–1 normalized, or 0–255; default: 1 = fully opaque)"),
+      return_state: returnStateParam,
     },
-    async ({ nodeId, color, r, g, b, a }) => {
+    async ({ nodeId, color, r, g, b, a, return_state }) => {
       nodeId = normalizeNodeId(nodeId);
       try {
         // Build params for the plugin handler (which handles both hex and rgba)
-        const params: Record<string, unknown> = { nodeId };
+        const params: Record<string, unknown> = { nodeId, return_state };
         if (color !== undefined) {
-          params.color = color;
+          // Validate every accepted form here so a bad value never reaches the
+          // plugin. Hex strings go through verbatim (the plugin parses them);
+          // objects/arrays are normalized to 0–1 {r,g,b,a}.
+          const normalized = toRgba(color);
+          params.color = typeof color === "string" ? color : normalized;
         } else {
           if (r === undefined || g === undefined || b === undefined) {
             throw new Error("Provide either 'color' (hex string) or r, g, b components");
           }
-          const colorInput: Color = { r, g, b, a };
-          params.color = applyColorDefaults(colorInput);
+          params.color = toRgba({ r, g, b, a });
         }
 
         const result = await sendCommandToFigma("set_fill_color", params);
         const typedResult = result as { name: string };
-        const colorDesc = color !== undefined ? color : `RGBA(${r}, ${g}, ${b}, ${a ?? 1})`;
+        const colorDesc =
+          color !== undefined
+            ? typeof color === "string"
+              ? color
+              : JSON.stringify(params.color)
+            : `RGBA(${r}, ${g}, ${b}, ${a ?? 1})`;
         return {
           content: [
             {
               type: "text",
-              text: `Set fill color of node "${typedResult.name}" to ${colorDesc}`,
+              text: `Set fill color of node "${typedResult.name}" to ${colorDesc}${formatState(result)}`,
             },
           ],
         };
@@ -114,19 +135,11 @@ export function registerModificationTools(server: McpServer): void {
     "Set the stroke color of a node in Figma. Accepts either a hex color string (e.g. '#ff0000', '#ff000080' with alpha) or individual r,g,b,a channels (0–1). Opacity defaults to 1; omitting weight keeps the node's existing stroke weight. Optionally set dashPattern for a dashed/dotted stroke.",
     {
       nodeId: z.string().describe("Node ID (e.g. '123:456') — get from get_selection or get_node_info"),
-      color: z
-        .string()
-        .optional()
-        .describe("Hex color string (e.g. '#ff0000', '#f00', '#ff000080' for alpha). Use this OR r,g,b,a — not both."),
-      r: z.coerce.number().min(0).max(1).optional().describe("Red channel, normalized 0–1"),
-      g: z.coerce.number().min(0).max(1).optional().describe("Green channel, normalized 0–1"),
-      b: z.coerce.number().min(0).max(1).optional().describe("Blue channel, normalized 0–1"),
-      a: z.coerce
-        .number()
-        .min(0)
-        .max(1)
-        .optional()
-        .describe("Alpha/opacity, normalized 0–1 (default: 1 = fully opaque; 0 = fully transparent)"),
+      color: colorParam("Stroke color. Use this OR r,g,b,a — not both.").optional(),
+      r: channelParam.optional().describe("Red channel (0–1 normalized, or 0–255)"),
+      g: channelParam.optional().describe("Green channel (0–1 normalized, or 0–255)"),
+      b: channelParam.optional().describe("Blue channel (0–1 normalized, or 0–255)"),
+      a: channelParam.optional().describe("Alpha/opacity (0–1 normalized, or 0–255; default: 1 = fully opaque)"),
       weight: z.coerce
         .number()
         .min(0)
@@ -146,13 +159,16 @@ export function registerModificationTools(server: McpServer): void {
       try {
         const params: Record<string, unknown> = { nodeId };
         if (color !== undefined) {
-          params.color = color;
+          // Validate every accepted form here so a bad value never reaches the
+          // plugin. Hex strings go through verbatim (the plugin parses them);
+          // objects/arrays are normalized to 0–1 {r,g,b,a}.
+          const normalized = toRgba(color);
+          params.color = typeof color === "string" ? color : normalized;
         } else {
           if (r === undefined || g === undefined || b === undefined) {
             throw new Error("Provide either 'color' (hex string) or r, g, b components");
           }
-          const colorInput: Color = { r, g, b, a };
-          params.color = applyColorDefaults(colorInput);
+          params.color = toRgba({ r, g, b, a });
         }
 
         // Do NOT substitute a default weight here. Omitting `weight` means
@@ -168,7 +184,12 @@ export function registerModificationTools(server: McpServer): void {
 
         const result = await sendCommandToFigma("set_stroke_color", params);
         const typedResult = result as { name: string; strokeWeight?: number };
-        const colorDesc = color !== undefined ? color : `RGBA(${r}, ${g}, ${b}, ${a ?? 1})`;
+        const colorDesc =
+          color !== undefined
+            ? typeof color === "string"
+              ? color
+              : JSON.stringify(params.color)
+            : `RGBA(${r}, ${g}, ${b}, ${a ?? 1})`;
         // Report the weight the plugin actually ended up with, never a locally
         // assumed one.
         const resultingWeight = typedResult.strokeWeight !== undefined ? typedResult.strokeWeight : weight;
@@ -650,8 +671,21 @@ export function registerModificationTools(server: McpServer): void {
       paddingRight: z.coerce.number().optional().describe("Alias for `right` (the Figma property name)"),
       paddingBottom: z.coerce.number().optional().describe("Alias for `bottom` (the Figma property name)"),
       paddingLeft: z.coerce.number().optional().describe("Alias for `left` (the Figma property name)"),
+      return_state: returnStateParam,
     },
-    async ({ nodeId, top, right, bottom, left, padding, paddingTop, paddingRight, paddingBottom, paddingLeft }) => {
+    async ({
+      nodeId,
+      top,
+      right,
+      bottom,
+      left,
+      padding,
+      paddingTop,
+      paddingRight,
+      paddingBottom,
+      paddingLeft,
+      return_state,
+    }) => {
       nodeId = normalizeNodeId(nodeId);
       try {
         const pick = (short?: number, long?: number) =>
@@ -670,6 +704,7 @@ export function registerModificationTools(server: McpServer): void {
           paddingRight: wantRight,
           paddingBottom: wantBottom,
           paddingLeft: wantLeft,
+          return_state,
         });
         const typedResult = result as {
           name: string;
@@ -697,7 +732,7 @@ export function registerModificationTools(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: `Set ${paddingText} for frame "${typedResult.name}"`,
+              text: `Set ${paddingText} for frame "${typedResult.name}"${formatState(result)}`,
             },
           ],
         };
@@ -796,8 +831,9 @@ export function registerModificationTools(server: McpServer): void {
         .enum(["FIXED", "HUG", "FILL"])
         .optional()
         .describe("Alias for `vertical` (the Figma property name); `vertical` wins if both are given"),
+      return_state: returnStateParam,
     },
-    async ({ nodeId, horizontal, vertical, layoutSizingHorizontal, layoutSizingVertical }) => {
+    async ({ nodeId, horizontal, vertical, layoutSizingHorizontal, layoutSizingVertical, return_state }) => {
       nodeId = normalizeNodeId(nodeId);
       try {
         const wantHorizontal = horizontal !== undefined ? horizontal : layoutSizingHorizontal;
@@ -812,6 +848,7 @@ export function registerModificationTools(server: McpServer): void {
           nodeId,
           layoutSizingHorizontal: wantHorizontal,
           layoutSizingVertical: wantVertical,
+          return_state,
         });
         const typedResult = result as {
           name: string;
@@ -834,7 +871,7 @@ export function registerModificationTools(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: `Set ${sizingText} for frame "${typedResult.name}"`,
+              text: `Set ${sizingText} for frame "${typedResult.name}"${formatState(result)}`,
             },
           ],
         };
@@ -876,8 +913,9 @@ export function registerModificationTools(server: McpServer): void {
         .number()
         .optional()
         .describe("Gap between grid columns in pixels (GRID frames only; overrides gap for this axis)"),
+      return_state: returnStateParam,
     },
-    async ({ nodeId, gap, itemSpacing, counterAxisSpacing, rowGap, columnGap }) => {
+    async ({ nodeId, gap, itemSpacing, counterAxisSpacing, rowGap, columnGap, return_state }) => {
       nodeId = normalizeNodeId(nodeId);
       try {
         const wantGap = gap !== undefined ? gap : itemSpacing;
@@ -889,7 +927,7 @@ export function registerModificationTools(server: McpServer): void {
         ) {
           throw new Error("Nothing to set — pass gap (alias: itemSpacing), counterAxisSpacing, rowGap or columnGap.");
         }
-        const params: any = { nodeId };
+        const params: any = { nodeId, return_state };
         if (wantGap !== undefined) params.itemSpacing = wantGap;
         if (counterAxisSpacing !== undefined) params.counterAxisSpacing = counterAxisSpacing;
         if (rowGap !== undefined) params.gridRowGap = rowGap;
@@ -917,7 +955,7 @@ export function registerModificationTools(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: message,
+              text: `${message}${formatState(result)}`,
             },
           ],
         };
@@ -949,21 +987,23 @@ export function registerModificationTools(server: McpServer): void {
         .describe(
           "Array of exactly 4 booleans controlling which corners are rounded: [topLeft, topRight, bottomRight, bottomLeft]. E.g. [true, true, false, false] rounds top corners only. Omit to round all corners.",
         ),
+      return_state: returnStateParam,
     },
-    async ({ nodeId, radius, corners }) => {
+    async ({ nodeId, radius, corners, return_state }) => {
       nodeId = normalizeNodeId(nodeId);
       try {
         const result = await sendCommandToFigma("set_corner_radius", {
           nodeId,
           radius,
           corners: corners || [true, true, true, true],
+          return_state,
         });
         const typedResult = result as { name: string };
         return {
           content: [
             {
               type: "text",
-              text: `Set corner radius of node "${typedResult.name}" to ${radius}px`,
+              text: `Set corner radius of node "${typedResult.name}" to ${radius}px${formatState(result)}`,
             },
           ],
         };
@@ -1060,6 +1100,11 @@ export function registerModificationTools(server: McpServer): void {
         .describe(
           "true = content outside the frame boundary is hidden (like CSS overflow:hidden); false = content is visible (default: false)",
         ),
+      preserveChildSizing: mcpBooleanSchema
+        .optional()
+        .describe(
+          "Keep every existing child's layoutSizingHorizontal/Vertical across this call (DEFAULT: true). Figma otherwise resets children to grow/hug when the parent gains auto layout, collapsing fixed-size buttons and frames. Set false only if you want Figma's defaults.",
+        ),
       horizontal: z
         .enum(["FIXED", "HUG", "FILL"])
         .optional()
@@ -1115,6 +1160,7 @@ export function registerModificationTools(server: McpServer): void {
       wrap,
       strokesIncludedInLayout,
       clipsContent,
+      preserveChildSizing,
       horizontal: horizontalArg,
       vertical: verticalArg,
     }) => {
@@ -1182,6 +1228,7 @@ export function registerModificationTools(server: McpServer): void {
           layoutWrap: wrap,
           strokesIncludedInLayout,
           clipsContent,
+          ...(preserveChildSizing !== undefined ? { preserveChildSizing } : {}),
           layoutSizingHorizontal: horizontal,
           layoutSizingVertical: vertical,
         });
@@ -1222,15 +1269,7 @@ export function registerModificationTools(server: McpServer): void {
               .describe(
                 "Effect type: DROP_SHADOW = shadow cast outward, INNER_SHADOW = shadow inside the shape, LAYER_BLUR = blurs the node itself, BACKGROUND_BLUR = blurs content behind the node, NOISE = grain/film grain overlay, TEXTURE = frosted texture surface, GLASS = frosted glass with refraction (frames only)",
               ),
-            color: z
-              .object({
-                r: z.coerce.number().min(0).max(1).describe("Red (0-1)"),
-                g: z.coerce.number().min(0).max(1).describe("Green (0-1)"),
-                b: z.coerce.number().min(0).max(1).describe("Blue (0-1)"),
-                a: z.coerce.number().min(0).max(1).describe("Alpha (0-1)"),
-              })
-              .optional()
-              .describe("Effect color (for shadows and NOISE)"),
+            color: colorParam("Effect color (for shadows and NOISE).").optional(),
             offset: z
               .object({
                 x: z.coerce.number().describe("X offset"),
@@ -1273,15 +1312,9 @@ export function registerModificationTools(server: McpServer): void {
               .describe(
                 "Grain density 0–1 — higher = more grain particles visible (NOISE only; typical range 0.1–0.9)",
               ),
-            secondaryColor: z
-              .object({
-                r: z.coerce.number().min(0).max(1).describe("Red (0-1)"),
-                g: z.coerce.number().min(0).max(1).describe("Green (0-1)"),
-                b: z.coerce.number().min(0).max(1).describe("Blue (0-1)"),
-                a: z.coerce.number().min(0).max(1).describe("Alpha (0-1)"),
-              })
-              .optional()
-              .describe("Second grain color (NOISE DUOTONE only — ignored for MONOTONE/MULTITONE)"),
+            secondaryColor: colorParam(
+              "Second grain color (NOISE DUOTONE only — ignored for MONOTONE/MULTITONE).",
+            ).optional(),
             opacity: z.coerce
               .number()
               .min(0)
@@ -1324,7 +1357,7 @@ export function registerModificationTools(server: McpServer): void {
       try {
         const result = await sendCommandToFigma("set_effects", {
           nodeId,
-          effects,
+          effects: effects === undefined ? undefined : normalizeEffectColors(effects),
         });
 
         const typedResult = result as { name: string; effects: any[] };
@@ -1406,15 +1439,7 @@ export function registerModificationTools(server: McpServer): void {
       .describe(
         "Effect type: DROP_SHADOW = shadow cast outward, INNER_SHADOW = shadow inside the shape, LAYER_BLUR = blurs the node itself, BACKGROUND_BLUR = blurs content behind the node, NOISE = grain/film grain overlay, TEXTURE = frosted texture surface, GLASS = frosted glass with refraction (frames only)",
       ),
-    color: z
-      .object({
-        r: z.coerce.number().min(0).max(1).describe("Red (0-1)"),
-        g: z.coerce.number().min(0).max(1).describe("Green (0-1)"),
-        b: z.coerce.number().min(0).max(1).describe("Blue (0-1)"),
-        a: z.coerce.number().min(0).max(1).describe("Alpha (0-1)"),
-      })
-      .optional()
-      .describe("Effect color (for shadows and NOISE)"),
+    color: colorParam("Effect color (for shadows and NOISE).").optional(),
     offset: z
       .object({
         x: z.coerce.number().describe("X offset"),
@@ -1451,15 +1476,7 @@ export function registerModificationTools(server: McpServer): void {
       .number()
       .optional()
       .describe("Grain density 0–1 — higher = more grain particles visible (NOISE only; typical range 0.1–0.9)"),
-    secondaryColor: z
-      .object({
-        r: z.coerce.number().min(0).max(1).describe("Red (0-1)"),
-        g: z.coerce.number().min(0).max(1).describe("Green (0-1)"),
-        b: z.coerce.number().min(0).max(1).describe("Blue (0-1)"),
-        a: z.coerce.number().min(0).max(1).describe("Alpha (0-1)"),
-      })
-      .optional()
-      .describe("Second grain color (NOISE DUOTONE only — ignored for MONOTONE/MULTITONE)"),
+    secondaryColor: colorParam("Second grain color (NOISE DUOTONE only — ignored for MONOTONE/MULTITONE).").optional(),
     opacity: z.coerce
       .number()
       .min(0)
@@ -1508,7 +1525,7 @@ export function registerModificationTools(server: McpServer): void {
       try {
         const result = await sendCommandToFigma<CreateEffectStyleResult>("create_effect_style", {
           name,
-          effects,
+          effects: effects === undefined ? undefined : normalizeEffectColors(effects),
           description,
         });
         return {
@@ -1549,7 +1566,7 @@ export function registerModificationTools(server: McpServer): void {
         const result = await sendCommandToFigma<UpdateEffectStyleResult>("update_effect_style", {
           styleId,
           name,
-          effects,
+          effects: effects === undefined ? undefined : normalizeEffectColors(effects),
           description,
         });
         return {
@@ -1612,7 +1629,7 @@ export function registerModificationTools(server: McpServer): void {
 
   // Shared schema for gradient stops (reused in create and update)
   const gradientStopSchema = z.object({
-    color: z.string().describe("Hex color for this stop (e.g. '#ff0000')"),
+    color: colorParam("Color for this stop."),
     position: z.coerce.number().min(0).max(1).describe("Position along gradient 0–1"),
   });
 
@@ -1629,10 +1646,7 @@ export function registerModificationTools(server: McpServer): void {
     "Create a new paint (color) style in Figma — solid color or gradient. The style can then be applied to nodes using set_color_style_id. Provide either 'color' for a solid fill OR 'gradient' for a gradient fill.",
     {
       name: z.string().describe("Name of the color style (e.g., 'color/primary', 'brand/blue')"),
-      color: z
-        .string()
-        .optional()
-        .describe("Hex color string for solid fill (e.g. '#ff0000'). Use this OR gradient, not both."),
+      color: colorParam("Solid fill color. Use this OR gradient, not both.").optional(),
       gradient: gradientSchema.optional().describe("Gradient definition. Use this OR color, not both."),
       description: z.string().optional().describe("Description of the color style"),
     },
@@ -1739,10 +1753,7 @@ export function registerModificationTools(server: McpServer): void {
           "The ID or name of the color style to update (e.g. 'S:abc123,' or 'color/primary' or 'color-primary')",
         ),
       name: z.string().optional().describe("New name for the color style"),
-      color: z
-        .string()
-        .optional()
-        .describe("New hex color string for solid fill (e.g. '#ff0000'). Use this OR gradient, not both."),
+      color: colorParam("New solid fill color. Use this OR gradient, not both.").optional(),
       gradient: gradientSchema.optional().describe("New gradient definition. Use this OR color, not both."),
       description: z.string().optional().describe("New description for the color style"),
     },
@@ -2008,7 +2019,7 @@ export function registerModificationTools(server: McpServer): void {
   // Set Image Fill Tool
   server.tool(
     "set_image_fill",
-    "Set an image fill on a node, either from a URL or from raw image bytes sent directly. Supports PNG, JPEG, and GIF images up to 4096x4096 pixels. Provide exactly one of imageUrl or imageBytes.",
+    "Set an image fill on a node from a public URL or from raw base64 image bytes. Supports PNG, JPEG, and GIF images up to 4096x4096 pixels. Provide exactly one of imageUrl or imageBytes. IMPORTANT: for an image that already exists on local disk, use `set_image_fill_from_path` instead — it takes a file path and reads the bytes server-side. Inlining a real image as `imageBytes` is usually impossible (a 705KB file is ~176,000 tokens of tool argument) and shell substitution like $(cat file) arrives literally and fails with 'Invalid base64 string'.",
     {
       nodeId: z.string().describe("The ID of the node to modify"),
       imageUrl: z
@@ -2022,7 +2033,7 @@ export function registerModificationTools(server: McpServer): void {
         .string()
         .optional()
         .describe(
-          "Base64-encoded image bytes (PNG, JPEG, or GIF), sent directly with no network fetch — use this for images you already have in hand (screenshots, generated assets, local files) instead of hosting them first. A `data:image/...;base64,` prefix is accepted and stripped automatically. Use this OR imageUrl, not both. Capped at 20MB decoded.",
+          "Base64-encoded image bytes (PNG, JPEG, or GIF), sent directly with no network fetch. Only practical for tiny images you can literally emit — for a file on disk use `set_image_fill_from_path` (path in, bytes read server-side). A `data:image/...;base64,` prefix is accepted and stripped automatically. Use this OR imageUrl, not both. Capped at 20MB decoded.",
         ),
       scaleMode: z
         .enum(["FILL", "FIT", "CROP", "TILE"])
@@ -2108,6 +2119,99 @@ export function registerModificationTools(server: McpServer): void {
     },
   );
 
+  // Set Image Fill From Local File Path Tool
+  server.tool(
+    "set_image_fill_from_path",
+    "Set an image fill on a node from an image file on the local disk. The server reads and base64-encodes the file itself, so the image bytes never pass through the conversation — this is the ONLY practical way to apply a real local image (a 705KB file inlined as `imageBytes` would be ~176,000 tokens). Accepts PNG, JPG, GIF, and WEBP up to 20MB.",
+    {
+      nodeId: z.string().describe("The ID of the node to modify"),
+      path: z
+        .string()
+        .describe(
+          "Absolute path to a local image file (PNG, JPG, GIF, or WEBP). The file is read and encoded server-side; do not paste file contents.",
+        ),
+      scaleMode: z
+        .enum(["FILL", "FIT", "CROP", "TILE"])
+        .optional()
+        .describe(
+          "How the image scales within the node (default: FILL): FILL = cover the entire area (may crop), FIT = fit entirely inside (may letterbox), CROP = manual crop with transform handles, TILE = repeat/tile the image",
+        ),
+      rotation: z.coerce
+        .number()
+        .optional()
+        .describe(
+          "Image rotation in degrees — must be a multiple of 90 (0, 90, 180, 270). Only applies to FILL, FIT, and TILE modes; ignored for CROP.",
+        ),
+      exposure: z.coerce.number().min(-1).max(1).optional().describe("Exposure adjustment (-1 to 1, default: 0)"),
+      contrast: z.coerce.number().min(-1).max(1).optional().describe("Contrast adjustment (-1 to 1, default: 0)"),
+      saturation: z.coerce.number().min(-1).max(1).optional().describe("Saturation adjustment (-1 to 1, default: 0)"),
+      temperature: z.coerce.number().min(-1).max(1).optional().describe("Temperature adjustment (-1 to 1, default: 0)"),
+      tint: z.coerce.number().min(-1).max(1).optional().describe("Tint adjustment (-1 to 1, default: 0)"),
+      highlights: z.coerce.number().min(-1).max(1).optional().describe("Highlights adjustment (-1 to 1, default: 0)"),
+      shadows: z.coerce.number().min(-1).max(1).optional().describe("Shadows adjustment (-1 to 1, default: 0)"),
+    },
+    async ({
+      nodeId,
+      path: imagePath,
+      scaleMode,
+      rotation,
+      exposure,
+      contrast,
+      saturation,
+      temperature,
+      tint,
+      highlights,
+      shadows,
+    }) => {
+      nodeId = normalizeNodeId(nodeId);
+      try {
+        const { base64, bytes, mimeType } = await readImageFileAsBase64(imagePath);
+
+        const result = await sendCommandToFigma(
+          "set_image_fill",
+          {
+            nodeId,
+            imageBytes: base64,
+            scaleMode: scaleMode || "FILL",
+            rotation,
+            exposure,
+            contrast,
+            saturation,
+            temperature,
+            tint,
+            highlights,
+            shadows,
+          },
+          120000,
+        );
+        const typedResult = result as {
+          id: string;
+          name: string;
+          imageHash: string;
+          imageSize: { width: number; height: number };
+          scaleMode: string;
+        };
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Set image fill on "${typedResult.name}" from ${imagePath} (${mimeType}, ${bytes} bytes, ${typedResult.imageSize.width}x${typedResult.imageSize.height}px, scaleMode: ${typedResult.scaleMode})`,
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error setting image fill from path: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
   // Set Gradient Fill Tool
   server.tool(
     "set_gradient_fill",
@@ -2123,12 +2227,7 @@ export function registerModificationTools(server: McpServer): void {
         z
           .array(
             z.object({
-              color: z.object({
-                r: z.coerce.number().min(0).max(1).describe("Red channel (0-1)"),
-                g: z.coerce.number().min(0).max(1).describe("Green channel (0-1)"),
-                b: z.coerce.number().min(0).max(1).describe("Blue channel (0-1)"),
-                a: z.coerce.number().min(0).max(1).optional().describe("Alpha channel (0-1, default 1)"),
-              }),
+              color: colorParam("Color for this gradient stop."),
               position: z.coerce.number().min(0).max(1).describe("Stop position (0-1)"),
             }),
           )
@@ -2153,7 +2252,7 @@ export function registerModificationTools(server: McpServer): void {
         const result = await sendCommandToFigma("set_gradient_fill", {
           nodeId,
           gradientType: type,
-          stops,
+          stops: stops.map((stop) => ({ ...stop, color: toRgba(stop.color) })),
           angle: angle ?? 0,
           opacity: opacity ?? 1,
         });

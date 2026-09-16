@@ -22,6 +22,13 @@ export interface PostProcessOptions {
   region?: { x: number; y: number; width: number; height: number };
   /** JPEG quality 0-100 (JPG output only). */
   jpegQuality?: number;
+  /**
+   * Hard ceiling on the longest edge, applied on BOTH the inline and
+   * save-to-disk paths. Used to guarantee that a fractional `scale` actually
+   * shrinks the returned pixels even if the export itself came back larger
+   * than the requested scale implies.
+   */
+  hardMaxEdge?: number;
 }
 
 export interface PostProcessResult {
@@ -44,8 +51,17 @@ export function isRasterFormat(format: string): boolean {
  * Non-raster formats are returned untouched (byte size still reported).
  */
 export async function postProcessExport(options: PostProcessOptions): Promise<PostProcessResult> {
-  const { base64, format, maxWidth, maxHeight, allowFullResolution, explicitlyConstrained, region, jpegQuality } =
-    options;
+  const {
+    base64,
+    format,
+    maxWidth,
+    maxHeight,
+    allowFullResolution,
+    explicitlyConstrained,
+    region,
+    jpegQuality,
+    hardMaxEdge,
+  } = options;
 
   const inputBuffer = Buffer.from(base64, "base64");
   const notes: string[] = [];
@@ -83,6 +99,14 @@ export async function postProcessExport(options: PostProcessOptions): Promise<Po
   // Resolve the target box.
   let targetWidth = maxWidth;
   let targetHeight = maxHeight;
+
+  // Scale guarantee: never return more pixels than the requested `scale` asked
+  // for, whatever the export path handed back.
+  if (hardMaxEdge !== undefined && hardMaxEdge > 0 && Math.max(width, height) > hardMaxEdge) {
+    if (width >= height) targetWidth = Math.min(targetWidth ?? hardMaxEdge, hardMaxEdge);
+    else targetHeight = Math.min(targetHeight ?? hardMaxEdge, hardMaxEdge);
+    notes.push(`Constrained to a ${hardMaxEdge}px longest edge to honour the requested scale.`);
+  }
   if (targetWidth === undefined && targetHeight === undefined && !allowFullResolution && !explicitlyConstrained) {
     const longest = Math.max(width, height);
     if (longest > DEFAULT_MAX_EDGE) {
@@ -151,4 +175,27 @@ export async function writeExportToPath(exportPath: string, base64: string): Pro
   const buffer = Buffer.from(base64, "base64");
   fs.writeFileSync(exportPath, buffer);
   return { path: exportPath, bytes: buffer.length };
+}
+
+/**
+ * Directory used for renders when the caller did not choose a path.
+ * One directory per server process, so a session's exports stay together and
+ * are easy to clean up.
+ */
+export async function sessionExportDir(): Promise<string> {
+  const os = await import("os");
+  const path = await import("path");
+  const fs = await import("fs");
+  const dir = path.join(os.tmpdir(), `figma-exports-${process.pid}`);
+  fs.mkdirSync(dir, { recursive: true });
+  return dir;
+}
+
+/** Deterministic default file path for a render. */
+export async function defaultExportPath(nodeId: string, scale: number, format: string): Promise<string> {
+  const path = await import("path");
+  const dir = await sessionExportDir();
+  const safeId = nodeId.replace(/[^a-zA-Z0-9_-]/g, "-");
+  const ext = format.toLowerCase() === "jpg" ? "jpg" : format.toLowerCase();
+  return path.join(dir, `${safeId}@${scale}x.${ext}`);
 }

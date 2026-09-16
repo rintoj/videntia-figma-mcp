@@ -7,6 +7,7 @@
 import { getFontStyle, parseNum } from "../utils/helpers";
 import { selectAndFocusNode } from "../utils/plugin-state";
 import { resolveColor } from "./fills";
+import { createSvg } from "./shapes";
 
 function getParam<T>(params: Record<string, unknown>, key: string, defaultVal: T): T {
   const p = params !== null && params !== undefined ? params[key] : undefined;
@@ -935,4 +936,208 @@ export async function applyRolePreset(params: Record<string, unknown>): Promise<
     applied,
     warnings,
   };
+}
+
+// ---------------------------------------------------------------------------
+// bind_many — many fields on ONE node, in one round trip.
+//
+// Ergonomic sibling of bulk_bind_variables: the measured agent pattern is
+// binding 2-4 fields on a single node (fills + cornerRadius + itemSpacing),
+// not one field across many nodes. Both spellings funnel into `bindOne`.
+// ---------------------------------------------------------------------------
+
+export async function bindMany(params: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const safe = params !== null && params !== undefined ? params : {};
+  const defaultNodeId = getOptParam<string>(safe, "nodeId");
+  const raw = safe["bindings"];
+  if (!Array.isArray(raw) || raw.length === 0) {
+    throw new Error("Missing or empty bindings array — pass [{ field, variable }, ...] with a nodeId");
+  }
+
+  const normalized = raw.map(function (entry) {
+    const b = entry as Record<string, unknown>;
+    return {
+      nodeId: b["nodeId"] !== undefined && b["nodeId"] !== null ? b["nodeId"] : defaultNodeId,
+      field: b["field"],
+      variable: b["variable"] !== undefined ? b["variable"] : b["variableId"],
+    } as Record<string, unknown>;
+  });
+
+  return await bulkBindVariables({ bindings: normalized });
+}
+
+// ---------------------------------------------------------------------------
+// create_texts — N styled text nodes into one parent, one round trip.
+// ---------------------------------------------------------------------------
+
+export async function createTexts(params: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const safe = params !== null && params !== undefined ? params : {};
+  const parentId = getOptParam<string>(safe, "parentId");
+  const items = safe["items"] !== undefined ? safe["items"] : safe["texts"];
+  if (!Array.isArray(items) || items.length === 0) {
+    throw new Error("Missing or empty items array — pass [{ text, ... }, ...]");
+  }
+
+  const ids: string[] = [];
+  const results: Record<string, unknown>[] = [];
+  for (let i = 0; i < items.length; i++) {
+    const item = Object.assign({}, items[i] as Record<string, unknown>);
+    if (item["parentId"] === undefined || item["parentId"] === null) item["parentId"] = parentId;
+    try {
+      const created = await createStyledText(item);
+      ids.push(created["id"] as string);
+      results.push({ index: i, success: true, id: created["id"], name: created["name"] });
+    } catch (err) {
+      results.push({ index: i, success: false, error: err instanceof Error ? err.message : String(err) });
+    }
+  }
+
+  const succeeded = results.filter(function (r) {
+    return r["success"] === true;
+  }).length;
+  return { total: results.length, succeeded, failed: results.length - succeeded, ids, results };
+}
+
+// ---------------------------------------------------------------------------
+// create_svgs — N SVG nodes into one parent, one round trip.
+// ---------------------------------------------------------------------------
+
+export async function createSvgs(params: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const safe = params !== null && params !== undefined ? params : {};
+  const parentId = getOptParam<string>(safe, "parentId");
+  const items = safe["items"] !== undefined ? safe["items"] : safe["svgs"];
+  if (!Array.isArray(items) || items.length === 0) {
+    throw new Error("Missing or empty items array — pass [{ svgString, ... }, ...]");
+  }
+
+  const ids: string[] = [];
+  const results: Record<string, unknown>[] = [];
+  for (let i = 0; i < items.length; i++) {
+    const item = Object.assign({}, items[i] as Record<string, unknown>);
+    if (item["parentId"] === undefined || item["parentId"] === null) item["parentId"] = parentId;
+    try {
+      const created = (await createSvg(item)) as Record<string, unknown>;
+      ids.push(created["id"] as string);
+      results.push({ index: i, success: true, id: created["id"], name: created["name"] });
+    } catch (err) {
+      results.push({ index: i, success: false, error: err instanceof Error ? err.message : String(err) });
+    }
+  }
+
+  const succeeded = results.filter(function (r) {
+    return r["success"] === true;
+  }).length;
+  return { total: results.length, succeeded, failed: results.length - succeeded, ids, results };
+}
+
+// ---------------------------------------------------------------------------
+// insert_children — reparent N nodes into one parent, one round trip.
+// ---------------------------------------------------------------------------
+
+export async function insertChildren(params: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const safe = params !== null && params !== undefined ? params : {};
+  const parentId = getOptParam<string>(safe, "parentId");
+  if (!parentId) throw new Error("Missing parentId parameter");
+  const raw = safe["childIds"] !== undefined ? safe["childIds"] : safe["ids"];
+  if (!Array.isArray(raw) || raw.length === 0) {
+    throw new Error("Missing or empty childIds array");
+  }
+  const startIndex = getOptParam<number>(safe, "index");
+
+  const parent = await figma.getNodeByIdAsync(parentId);
+  if (!parent) throw new Error(`Parent node not found with ID: ${parentId}`);
+  if (!("appendChild" in parent)) throw new Error(`Parent node does not support children: ${parentId}`);
+  const container = parent as FrameNode;
+
+  const results: Record<string, unknown>[] = [];
+  const inserted: string[] = [];
+  for (let i = 0; i < raw.length; i++) {
+    const childId = String(raw[i]);
+    try {
+      const child = await figma.getNodeByIdAsync(childId);
+      if (!child) throw new Error(`Child node not found with ID: ${childId}`);
+      const scene = child as SceneNode;
+      if (startIndex !== undefined && startIndex >= 0) {
+        const at = Math.min(startIndex + i, container.children.length);
+        container.insertChild(at, scene);
+      } else {
+        container.appendChild(scene);
+      }
+      inserted.push(childId);
+      results.push({ index: i, success: true, childId, name: scene.name });
+    } catch (err) {
+      results.push({ index: i, success: false, childId, error: err instanceof Error ? err.message : String(err) });
+    }
+  }
+
+  const succeeded = inserted.length;
+  return {
+    parentId,
+    parentName: container.name,
+    total: results.length,
+    succeeded,
+    failed: results.length - succeeded,
+    inserted,
+    results,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// move_nodes — reposition / reparent N nodes, one round trip.
+// ---------------------------------------------------------------------------
+
+export async function moveNodes(params: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const safe = params !== null && params !== undefined ? params : {};
+  const moves = safe["moves"];
+  if (!Array.isArray(moves) || moves.length === 0) {
+    throw new Error("Missing or empty moves array — pass [{ nodeId, x, y, parentId?, index? }, ...]");
+  }
+
+  const results: Record<string, unknown>[] = [];
+  for (let i = 0; i < moves.length; i++) {
+    const move = moves[i] as Record<string, unknown>;
+    const nodeId = move["nodeId"] as string | undefined;
+    try {
+      if (!nodeId) throw new Error("Each move needs a nodeId");
+      const node = await figma.getNodeByIdAsync(nodeId);
+      if (!node) throw new Error(`Node not found with ID: ${nodeId}`);
+      const scene = node as SceneNode;
+
+      const newParentId = move["parentId"] as string | undefined;
+      if (newParentId) {
+        const parent = await figma.getNodeByIdAsync(newParentId);
+        if (!parent) throw new Error(`Parent node not found with ID: ${newParentId}`);
+        if (!("appendChild" in parent)) throw new Error(`Parent node does not support children: ${newParentId}`);
+        const container = parent as FrameNode;
+        const idx = move["index"] as number | undefined;
+        if (idx !== undefined && idx !== null && idx >= 0 && idx <= container.children.length) {
+          container.insertChild(idx, scene);
+        } else {
+          container.appendChild(scene);
+        }
+      }
+
+      const x = move["x"];
+      const y = move["y"];
+      if (x !== undefined && x !== null) scene.x = parseNum(x, scene.x);
+      if (y !== undefined && y !== null) scene.y = parseNum(y, scene.y);
+
+      results.push({
+        index: i,
+        success: true,
+        nodeId,
+        name: scene.name,
+        x: scene.x,
+        y: scene.y,
+        parentId: scene.parent ? scene.parent.id : undefined,
+      });
+    } catch (err) {
+      results.push({ index: i, success: false, nodeId, error: err instanceof Error ? err.message : String(err) });
+    }
+  }
+
+  const succeeded = results.filter(function (r) {
+    return r["success"] === true;
+  }).length;
+  return { total: results.length, succeeded, failed: results.length - succeeded, results };
 }
