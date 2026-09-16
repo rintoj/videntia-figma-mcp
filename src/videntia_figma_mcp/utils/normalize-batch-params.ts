@@ -157,12 +157,31 @@ const NORMALIZERS: Record<string, (p: Params) => void> = {
     alias(p, "style", "effectStyleId");
   },
 
+  set_image_fill: (p) => {
+    // A local file path is a first-class source standalone; fold every spelling into
+    // the single canonical key so batch-tools can read the file server-side.
+    alias(p, "path", "image_path");
+    alias(p, "load_from_path", "image_path");
+    alias(p, "imagePath", "image_path");
+    alias(p, "url", "imageUrl");
+    alias(p, "bytes", "imageBytes");
+    upper(p, "scaleMode");
+    defaultTo(p, "scaleMode", "FILL");
+  },
+
   set_gradient_fill: (p) => {
     alias(p, "type", "gradientType");
     upper(p, "gradientType");
     defaultTo(p, "gradientType", "LINEAR");
     defaultTo(p, "angle", 0);
     defaultTo(p, "opacity", 1);
+    // Standalone defaults aspect_correct to true and sends it explicitly; mirror that
+    // so a batched gradient lands identically. The string "false" comes from callers
+    // that stringify booleans.
+    alias(p, "aspectCorrect", "aspect_correct");
+    if (p.aspect_correct === "false") p.aspect_correct = false;
+    if (p.aspect_correct === "true") p.aspect_correct = true;
+    defaultTo(p, "aspect_correct", true);
     // Standalone, `stops` goes through coerceArray + zod. Batch forwards params
     // raw, so mirror the same coercions here: a JSON-encoded array, and the
     // `colors: ["#a", "#b"]` shorthand agents reach for inside a batch.

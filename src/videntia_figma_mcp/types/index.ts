@@ -100,6 +100,7 @@ export type FigmaCommand =
   | "set_line_height"
   | "set_paragraph_spacing"
   | "set_text_case"
+  | "set_text_align"
   | "set_text_wrap_style"
   | "set_text_decoration"
   | "get_styled_text_segments"
@@ -327,6 +328,9 @@ export interface FigmaNodeFill {
   type: string;
   color?: string;
   opacity?: number;
+  /** Present and false only when the paint is hidden in Figma. */
+  visible?: boolean;
+  blendMode?: string;
   gradient?: {
     type: string;
     stops: Array<{ color: string; position: number }>;
@@ -334,17 +338,28 @@ export interface FigmaNodeFill {
   };
   isImage?: boolean;
   imageRef?: string;
+  /** Figma API name for imageRef — same value, emitted for IMAGE paints. */
+  imageHash?: string;
+  scaleMode?: string;
 }
 
 export interface FigmaNodeStroke {
   type: string;
   color?: string;
   opacity?: number;
+  visible?: boolean;
+  blendMode?: string;
+  isImage?: boolean;
+  imageRef?: string;
+  imageHash?: string;
+  scaleMode?: string;
 }
 
 export interface FigmaNodeEffect {
   type: string;
   color?: string;
+  visible?: boolean;
+  blendMode?: string;
   offset?: { x: number; y: number };
   radius?: number;
   spread?: number;
@@ -380,9 +395,10 @@ export interface FigmaNodeData {
   clipsContent?: boolean;
   layoutPositioning?: "AUTO" | "ABSOLUTE";
   layoutAlign?: "MIN" | "CENTER" | "MAX" | "STRETCH" | "INHERIT";
-  // Fills
+  // Fills. A single entry of type "MIXED" means the node's paints differ across
+  // its geometry; an empty array means the node explicitly has no fill.
   fills?: FigmaNodeFill[];
-  // Strokes
+  // Strokes. Same "MIXED" convention as fills.
   strokes?: FigmaNodeStroke[];
   strokeWeight?: number;
   strokeTopWeight?: number;

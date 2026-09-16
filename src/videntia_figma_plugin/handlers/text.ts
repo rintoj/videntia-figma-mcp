@@ -8,6 +8,7 @@ import {
   parseNum,
   describeError,
 } from "../utils/helpers";
+import { guardParentSize, resolveStrict, snapshotParentSize } from "../utils/write-verify";
 
 // ---------------------------------------------------------------------------
 // Font style resolution
@@ -1082,6 +1083,10 @@ export async function setAutoLayout(params: Record<string, unknown>): Promise<Re
     width: number;
     height: number;
   }
+  // Bug #9: writing layoutSizing* on this frame can make ITS auto-layout parent
+  // recompute a hug size and silently shrink. Snapshot before any mutation.
+  const parentSnapshot = snapshotParentSize(frameNode.parent);
+
   const childSnapshots: ChildSizingSnapshot[] = [];
   if ("children" in frameNode) {
     const kids = frameNode.children;
@@ -1242,10 +1247,19 @@ export async function setAutoLayout(params: Record<string, unknown>): Promise<Re
     }
   }
 
+  const parentReport = guardParentSize(parentSnapshot, {
+    label: "set_auto_layout",
+    strict: resolveStrict(safeParams),
+    childName: frameNode.name,
+  });
+  const allWarnings = childWarnings.concat(parentReport.warnings);
+
   return {
     id: frameNode.id,
     name: frameNode.name,
-    ...(childWarnings.length > 0 ? { success: false, warnings: childWarnings } : {}),
+    ...(allWarnings.length > 0
+      ? { success: childWarnings.length === 0 && parentReport.noops.length === 0 ? true : false, warnings: allWarnings }
+      : {}),
     layoutMode: frameNode.layoutMode,
     paddingTop: frameNode.paddingTop,
     paddingBottom: frameNode.paddingBottom,
@@ -1762,17 +1776,21 @@ export async function loadFontAsyncWrapper(params: Record<string, unknown>): Pro
     throw new Error("Missing font family");
   }
 
-  try {
-    await figma.loadFontAsync({ family, style });
-    return {
-      success: true,
-      family,
-      style,
-      message: `Successfully loaded ${family} ${style}`,
-    };
-  } catch (error) {
-    throw new Error(describeError(error));
-  }
+  // Bug #37: this used to surface "Error loading font: undefined" — Figma rejects
+  // with a bare object, so `error.message` was undefined and the agent learned
+  // nothing. Route through the shared resolver so the failure names the family,
+  // the requested style, the spellings tried, and the styles that DO exist.
+  const resolvedStyle = await resolveAndLoadFontStyle(family, style, "Error loading font");
+  return {
+    success: true,
+    family,
+    style: resolvedStyle,
+    requestedStyle: style,
+    message:
+      resolvedStyle === style
+        ? `Successfully loaded ${family} ${style}`
+        : `Successfully loaded ${family} ${resolvedStyle} (requested "${style}")`,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -2302,6 +2320,90 @@ export async function updateTextStyle(params: Record<string, unknown>): Promise<
       updatedProperties,
       boundFields: applied,
       bindingWarnings: warnings,
+    };
+  } catch (error) {
+    throw new Error(describeError(error));
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Public: setTextAlign
+// ---------------------------------------------------------------------------
+
+const H_ALIGNMENTS = ["LEFT", "CENTER", "RIGHT", "JUSTIFIED"];
+const V_ALIGNMENTS = ["TOP", "CENTER", "BOTTOM"];
+
+function normalizeAlignValue(value: unknown): string | undefined {
+  if (value === undefined || value === null) return undefined;
+  const normalized = String(value).trim().toUpperCase();
+  return normalized.length > 0 ? normalized : undefined;
+}
+
+/**
+ * Sets `textAlignHorizontal` and/or `textAlignVertical` on an existing text node.
+ * Accepts aliases: `align`/`horizontal`/`textAlignHorizontal`, `vertical`/`textAlignVertical`.
+ */
+export async function setTextAlign(params: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const safeParams = params !== null && params !== undefined ? params : {};
+  const nodeId = safeParams.nodeId as string | undefined;
+
+  const horizontal = normalizeAlignValue(
+    safeParams.horizontal !== undefined
+      ? safeParams.horizontal
+      : safeParams.textAlignHorizontal !== undefined
+        ? safeParams.textAlignHorizontal
+        : safeParams.align,
+  );
+  const vertical = normalizeAlignValue(
+    safeParams.vertical !== undefined ? safeParams.vertical : safeParams.textAlignVertical,
+  );
+
+  if (!nodeId) {
+    throw new Error("Missing nodeId");
+  }
+
+  if (horizontal === undefined && vertical === undefined) {
+    throw new Error(
+      "Missing alignment: provide horizontal (LEFT/CENTER/RIGHT/JUSTIFIED) and/or vertical (TOP/CENTER/BOTTOM)",
+    );
+  }
+
+  if (horizontal !== undefined && !H_ALIGNMENTS.includes(horizontal)) {
+    throw new Error(`Invalid horizontal alignment "${horizontal}". Must be one of: ${H_ALIGNMENTS.join(", ")}`);
+  }
+
+  if (vertical !== undefined && !V_ALIGNMENTS.includes(vertical)) {
+    throw new Error(`Invalid vertical alignment "${vertical}". Must be one of: ${V_ALIGNMENTS.join(", ")}`);
+  }
+
+  const node = await figma.getNodeByIdAsync(nodeId);
+  if (!node) {
+    throw new Error(`Node not found with ID: ${nodeId}`);
+  }
+
+  if (node.type !== "TEXT") {
+    throw new Error(`Node is not a text node: ${nodeId}`);
+  }
+
+  try {
+    const textNode = node as TextNode;
+    const alignFontName = textNode.fontName;
+    const alignFont =
+      alignFontName === figma.mixed ? (textNode.getRangeFontName(0, 1) as FontName) : (alignFontName as FontName);
+    await figma.loadFontAsync(alignFont);
+
+    if (horizontal !== undefined) {
+      textNode.textAlignHorizontal = horizontal as TextNode["textAlignHorizontal"];
+    }
+    if (vertical !== undefined) {
+      textNode.textAlignVertical = vertical as TextNode["textAlignVertical"];
+    }
+
+    return {
+      id: node.id,
+      name: node.name,
+      textAlignHorizontal: textNode.textAlignHorizontal,
+      textAlignVertical: textNode.textAlignVertical,
     };
   } catch (error) {
     throw new Error(describeError(error));

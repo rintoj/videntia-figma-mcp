@@ -13,6 +13,7 @@ import { registerBrowserTools } from "./browser-tools.js";
 import { registerBrowserControlTools } from "./browser-control-tools.js";
 import { registerVerificationTools } from "./verification-tools.js";
 import { registerCompositeTools } from "./composite-tools.js";
+import { registerCapabilityTools } from "./capability-tools.js";
 
 /**
  * Register all Figma tools to the MCP server
@@ -34,6 +35,8 @@ export function registerTools(server: McpServer): void {
   registerBrowserControlTools(server);
   registerCompositeTools(server);
   registerVerificationTools(server);
+  // Registered last so the derived tool list in get_capabilities sees every tool.
+  registerCapabilityTools(server);
 }
 
 // Export all tool registration functions for individual usage if needed
@@ -52,4 +55,5 @@ export {
   registerBrowserControlTools,
   registerCompositeTools,
   registerVerificationTools,
+  registerCapabilityTools,
 };

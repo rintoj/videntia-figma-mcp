@@ -2,6 +2,16 @@ import * as t from "@babel/types";
 import type { FigmaNodeData } from "../types/index.js";
 import { reverseTwBorderRadius } from "./tailwind-values.js";
 
+/**
+ * Normalize a paint list: the serializer may emit a [{type:"MIXED"}] marker or an
+ * empty array. Hidden paints are kept in the payload but must not contribute to
+ * rendered classes/styles.
+ */
+function visiblePaints<T extends { visible?: boolean }>(v: T[] | undefined): T[] {
+  if (!Array.isArray(v)) return [];
+  return v.filter((p) => p?.visible !== false);
+}
+
 const COMPONENT_TYPES = new Set(["COMPONENT", "COMPONENT_SET", "INSTANCE"]);
 
 /**
@@ -264,9 +274,11 @@ function buildTailwindClasses(node: FigmaNodeData, parentLayoutMode?: string): s
 
   // --- Colors (all fills) ---
   let hasImageClass = false;
-  if (node.fills && node.fills.length > 0) {
-    for (let i = 0; i < node.fills.length; i++) {
-      const fill = node.fills[i];
+  const fillList = Array.isArray(node.fills) ? node.fills : [];
+  if (fillList.length > 0) {
+    for (let i = 0; i < fillList.length; i++) {
+      const fill = fillList[i];
+      if (fill.visible === false) continue;
       const fillBinding = bindings[`fills/${i}`];
       const fillOpacitySuffix =
         !fillBinding && fill.opacity !== undefined && fill.opacity < 1 ? `/${Math.round(fill.opacity * 100)}` : "";
@@ -306,15 +318,17 @@ function buildTailwindClasses(node: FigmaNodeData, parentLayoutMode?: string): s
   }
 
   // Strokes (all strokes)
-  if (node.strokes && node.strokes.length > 0) {
+  const strokeList = Array.isArray(node.strokes) ? node.strokes : [];
+  if (strokeList.some((st) => st.visible !== false)) {
     if (node.strokeWeight) {
       const sw = Math.round(node.strokeWeight * 100) / 100;
       classes.push(`border-[${sw}px]`);
     } else {
       classes.push("border");
     }
-    for (let i = 0; i < node.strokes.length; i++) {
-      const stroke = node.strokes[i];
+    for (let i = 0; i < strokeList.length; i++) {
+      const stroke = strokeList[i];
+      if (stroke.visible === false) continue;
       const strokeBinding = bindings[`strokes/${i}`];
       if (strokeBinding) {
         classes.push(`border-${normalizeName(strokeBinding)}`);
@@ -438,6 +452,7 @@ function buildTailwindClasses(node: FigmaNodeData, parentLayoutMode?: string): s
   // --- Blur effects as classes ---
   if (node.effects && !node.effectStyleName) {
     for (const effect of node.effects) {
+      if (effect.visible === false) continue;
       if (effect.type === "LAYER_BLUR" && effect.radius !== undefined) {
         classes.push(`blur-[${effect.radius}px]`);
       } else if (effect.type === "BACKGROUND_BLUR" && effect.radius !== undefined) {
@@ -465,6 +480,7 @@ function buildStyleAttribute(node: FigmaNodeData): Record<string, string> | null
   if (node.effects && !node.effectStyleName) {
     const shadows: string[] = [];
     for (const effect of node.effects) {
+      if (effect.visible === false) continue;
       if (effect.type === "DROP_SHADOW" || effect.type === "INNER_SHADOW") {
         const inset = effect.type === "INNER_SHADOW" ? "inset " : "";
         const x = effect.offset?.x ?? 0;
@@ -483,7 +499,7 @@ function buildStyleAttribute(node: FigmaNodeData): Record<string, string> | null
   }
 
   // Gradient fills → background (skip linear gradients with direction — already emitted as Tailwind)
-  const gradientFill = node.fills?.find(
+  const gradientFill = visiblePaints(node.fills).find(
     (f) => f.gradient && !(f.gradient.type === "GRADIENT_LINEAR" && f.gradient.direction),
   );
   if (gradientFill?.gradient) {
@@ -498,14 +514,14 @@ function buildStyleAttribute(node: FigmaNodeData): Record<string, string> | null
   }
 
   // Image fills → backgroundImage
-  const firstImageFill = node.fills?.find((f) => f.isImage);
+  const firstImageFill = visiblePaints(node.fills).find((f) => f.isImage);
   if (firstImageFill?.imageRef) {
     style.backgroundImage = `url(${firstImageFill.imageRef})`;
   }
 
   // SVG fill → fill CSS property (not bg-)
   if (node.type === "VECTOR" || node.type === "LINE") {
-    const solidFill = node.fills?.find((f) => !f.isImage && !f.gradient && f.color);
+    const solidFill = visiblePaints(node.fills).find((f) => !f.isImage && !f.gradient && f.color);
     if (solidFill?.color) {
       style.fill = solidFill.color;
     }

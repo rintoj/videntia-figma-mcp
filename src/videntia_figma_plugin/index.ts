@@ -75,6 +75,7 @@ import {
   setLineHeight,
   setParagraphSpacing,
   setTextCase,
+  setTextAlign,
   setTextWrapStyle,
   setTextDecoration,
   getStyledTextSegments,
@@ -374,6 +375,7 @@ var FOCUS_BEFORE_COMMANDS = new Set([
   "set_line_height",
   "set_paragraph_spacing",
   "set_text_case",
+  "set_text_align",
   "set_text_decoration",
   "apply_text_style",
   "set_effects",
@@ -836,6 +838,8 @@ async function _executeCommand(command: string, params: Record<string, unknown>)
       return await setParagraphSpacing(params);
     case "set_text_case":
       return await setTextCase(params);
+    case "set_text_align":
+      return await setTextAlign(params);
     case "set_text_wrap_style":
       return await setTextWrapStyle(params);
     case "set_text_decoration":

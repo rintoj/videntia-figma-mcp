@@ -389,14 +389,21 @@ export function registerModificationTools(server: McpServer): void {
       nodeId: z.string().describe("Node ID to resize — get from get_selection or get_node_info"),
       width: z.coerce.number().positive().describe("New width in pixels (must be > 0)"),
       height: z.coerce.number().positive().describe("New height in pixels (must be > 0)"),
+      scale_strokes: z
+        .boolean()
+        .optional()
+        .describe(
+          "When true, multiply strokeWeight on the node and every descendant by the resize scale factor. Figma's resize() keeps stroke weights at their original absolute value, so downscaled icons look too heavy and upscaled ones too thin — set this for vector/SVG content.",
+        ),
     },
-    async ({ nodeId, width, height }) => {
+    async ({ nodeId, width, height, scale_strokes }) => {
       nodeId = normalizeNodeId(nodeId);
       try {
         const result = await sendCommandToFigma("resize_node", {
           nodeId,
           width,
           height,
+          ...(scale_strokes ? { scale_strokes: true } : {}),
         });
         const typedResult = result as { name: string };
         return {
@@ -1328,26 +1335,54 @@ export function registerModificationTools(server: McpServer): void {
               ),
             lightIntensity: z.coerce
               .number()
+              .min(
+                0,
+                "lightIntensity must be between 0 and 1 (Figma normalises this GLASS field; it is NOT a 0-20/0-50 scale)",
+              )
+              .max(
+                1,
+                "lightIntensity must be between 0 and 1 (Figma normalises this GLASS field; it is NOT a 0-20/0-50 scale)",
+              )
               .optional()
-              .describe("Simulated light brightness 0–1 (GLASS only; typical range 0–1)"),
+              .describe("Specular highlight intensity, 0–1 normalised (GLASS only)"),
             lightAngle: z.coerce
               .number()
               .optional()
               .describe("Light source direction in degrees 0–360, where 0 = top (GLASS only)"),
             refraction: z.coerce
               .number()
+              .min(
+                0,
+                "refraction must be between 0 and 1 (Figma normalises this GLASS field; it is NOT a 0-20/0-50 scale)",
+              )
+              .max(
+                1,
+                "refraction must be between 0 and 1 (Figma normalises this GLASS field; it is NOT a 0-20/0-50 scale)",
+              )
               .optional()
               .describe(
-                "Background distortion amount ≥ 0 — higher = more bending of background (GLASS only; typical range 0–50)",
+                "Refraction distortion intensity, 0–1 normalised — higher = more bending of the background (GLASS only). NOT 0–50: Figma rejects values outside 0–1.",
               ),
             depth: z.coerce
               .number()
               .optional()
-              .describe("Perceived 3D depth of the glass surface ≥ 0 (GLASS only; typical range 0–100)"),
+              .describe(
+                "Depth of the refraction effect (GLASS only). Figma's typings document this as >= 1; higher = deeper glass.",
+              ),
             dispersion: z.coerce
               .number()
+              .min(
+                0,
+                "dispersion must be between 0 and 1 (Figma normalises this GLASS field; it is NOT a 0-20/0-50 scale)",
+              )
+              .max(
+                1,
+                "dispersion must be between 0 and 1 (Figma normalises this GLASS field; it is NOT a 0-20/0-50 scale)",
+              )
               .optional()
-              .describe("Chromatic aberration/rainbow fringing amount ≥ 0 (GLASS only; typical range 0–20)"),
+              .describe(
+                "Chromatic aberration / rainbow fringing, 0–1 normalised (GLASS only). NOT 0–20: Figma rejects values outside 0–1.",
+              ),
           }),
         ),
       ).describe("Array of effects to apply"),
@@ -1490,26 +1525,36 @@ export function registerModificationTools(server: McpServer): void {
       ),
     lightIntensity: z.coerce
       .number()
+      .min(0, "lightIntensity must be between 0 and 1 (Figma normalises this GLASS field; it is NOT a 0-20/0-50 scale)")
+      .max(1, "lightIntensity must be between 0 and 1 (Figma normalises this GLASS field; it is NOT a 0-20/0-50 scale)")
       .optional()
-      .describe("Simulated light brightness 0–1 (GLASS only; typical range 0–1)"),
+      .describe("Specular highlight intensity, 0–1 normalised (GLASS only)"),
     lightAngle: z.coerce
       .number()
       .optional()
       .describe("Light source direction in degrees 0–360, where 0 = top (GLASS only)"),
     refraction: z.coerce
       .number()
+      .min(0, "refraction must be between 0 and 1 (Figma normalises this GLASS field; it is NOT a 0-20/0-50 scale)")
+      .max(1, "refraction must be between 0 and 1 (Figma normalises this GLASS field; it is NOT a 0-20/0-50 scale)")
       .optional()
       .describe(
-        "Background distortion amount ≥ 0 — higher = more bending of background (GLASS only; typical range 0–50)",
+        "Refraction distortion intensity, 0–1 normalised — higher = more bending of the background (GLASS only). NOT 0–50: Figma rejects values outside 0–1.",
       ),
     depth: z.coerce
       .number()
       .optional()
-      .describe("Perceived 3D depth of the glass surface ≥ 0 (GLASS only; typical range 0–100)"),
+      .describe(
+        "Depth of the refraction effect (GLASS only). Figma's typings document this as >= 1; higher = deeper glass.",
+      ),
     dispersion: z.coerce
       .number()
+      .min(0, "dispersion must be between 0 and 1 (Figma normalises this GLASS field; it is NOT a 0-20/0-50 scale)")
+      .max(1, "dispersion must be between 0 and 1 (Figma normalises this GLASS field; it is NOT a 0-20/0-50 scale)")
       .optional()
-      .describe("Chromatic aberration/rainbow fringing amount ≥ 0 (GLASS only; typical range 0–20)"),
+      .describe(
+        "Chromatic aberration / rainbow fringing, 0–1 normalised (GLASS only). NOT 0–20: Figma rejects values outside 0–1.",
+      ),
   });
 
   // Create Effect Style Tool
@@ -2019,7 +2064,7 @@ export function registerModificationTools(server: McpServer): void {
   // Set Image Fill Tool
   server.tool(
     "set_image_fill",
-    "Set an image fill on a node from a public URL or from raw base64 image bytes. Supports PNG, JPEG, and GIF images up to 4096x4096 pixels. Provide exactly one of imageUrl or imageBytes. IMPORTANT: for an image that already exists on local disk, use `set_image_fill_from_path` instead — it takes a file path and reads the bytes server-side. Inlining a real image as `imageBytes` is usually impossible (a 705KB file is ~176,000 tokens of tool argument) and shell substitution like $(cat file) arrives literally and fails with 'Invalid base64 string'.",
+    "Set an image fill on a node from a LOCAL FILE PATH (`image_path`), a public URL (`imageUrl`), or raw base64 bytes (`imageBytes`). Supports PNG, JPEG, GIF and WEBP up to 4096x4096 pixels. Provide exactly ONE source. PREFER `image_path` for any image already on disk: the server reads and base64-encodes the file itself, so the bytes never pass through the conversation (`set_image_fill_from_path` is an equivalent alias tool). Inlining a real image as `imageBytes` is usually impossible (a 705KB file is ~176,000 tokens of tool argument) and shell substitution like $(cat file) arrives literally and fails with 'Invalid base64 string'.",
     {
       nodeId: z.string().describe("The ID of the node to modify"),
       imageUrl: z
@@ -2035,6 +2080,14 @@ export function registerModificationTools(server: McpServer): void {
         .describe(
           "Base64-encoded image bytes (PNG, JPEG, or GIF), sent directly with no network fetch. Only practical for tiny images you can literally emit — for a file on disk use `set_image_fill_from_path` (path in, bytes read server-side). A `data:image/...;base64,` prefix is accepted and stripped automatically. Use this OR imageUrl, not both. Capped at 20MB decoded.",
         ),
+      image_path: z
+        .string()
+        .optional()
+        .describe(
+          "Absolute path to a local image file (PNG, JPG, GIF, or WEBP, up to 20MB). The server reads and base64-encodes it, so the bytes never enter the conversation. Use this instead of imageBytes for anything on disk. Aliases: `path`, `load_from_path`.",
+        ),
+      path: z.string().optional().describe("Alias for image_path — absolute path to a local image file."),
+      load_from_path: z.string().optional().describe("Alias for image_path — absolute path to a local image file."),
       scaleMode: z
         .enum(["FILL", "FIT", "CROP", "TILE"])
         .optional()
@@ -2059,6 +2112,9 @@ export function registerModificationTools(server: McpServer): void {
       nodeId,
       imageUrl,
       imageBytes,
+      image_path,
+      path: pathAlias,
+      load_from_path,
       scaleMode,
       rotation,
       exposure,
@@ -2070,27 +2126,48 @@ export function registerModificationTools(server: McpServer): void {
       shadows,
     }) => {
       nodeId = normalizeNodeId(nodeId);
+      let sourceNote = "";
       try {
+        // A local file path is a first-class source here: agents reach for
+        // `set_image_fill` by name and must not hit a wall that forces them to inline
+        // a ~50,000-char base64 string (measured: 0/6 agents ever managed it).
+        const imagePath = image_path || pathAlias || load_from_path;
+        if (imagePath) {
+          if (imageUrl || imageBytes) {
+            throw new Error("Provide only ONE image source: image_path, imageUrl, or imageBytes.");
+          }
+          const file = await readImageFileAsBase64(imagePath);
+          imageBytes = file.base64;
+          sourceNote = ` from ${imagePath} (${file.mimeType}, ${file.bytes} bytes)`;
+        }
         if (!imageUrl && !imageBytes) {
-          throw new Error("Provide either imageUrl or imageBytes");
+          throw new Error(
+            "Provide exactly one image source: image_path (absolute path to a local file — preferred, read server-side; aliases: path, load_from_path), imageUrl (public http(s) URL), or imageBytes (base64).",
+          );
         }
         if (imageUrl && imageBytes) {
           throw new Error("Provide only one of imageUrl or imageBytes, not both");
         }
-        const result = await sendCommandToFigma("set_image_fill", {
-          nodeId,
-          imageUrl,
-          imageBytes,
-          scaleMode: scaleMode || "FILL",
-          rotation,
-          exposure,
-          contrast,
-          saturation,
-          temperature,
-          tint,
-          highlights,
-          shadows,
-        });
+        const result = await sendCommandToFigma(
+          "set_image_fill",
+          {
+            nodeId,
+            imageUrl,
+            imageBytes,
+            scaleMode: scaleMode || "FILL",
+            rotation,
+            exposure,
+            contrast,
+            saturation,
+            temperature,
+            tint,
+            highlights,
+            shadows,
+          },
+          // A large local file is base64-encoded and relayed to the plugin; give it the
+          // same headroom as set_image_fill_from_path.
+          imagePath ? 120000 : undefined,
+        );
         const typedResult = result as {
           id: string;
           name: string;
@@ -2102,7 +2179,7 @@ export function registerModificationTools(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: `Set image fill on "${typedResult.name}" (${typedResult.imageSize.width}x${typedResult.imageSize.height}px, scaleMode: ${typedResult.scaleMode})`,
+              text: `Set image fill on "${typedResult.name}"${sourceNote} (${typedResult.imageSize.width}x${typedResult.imageSize.height}px, scaleMode: ${typedResult.scaleMode})`,
             },
           ],
         };
@@ -2215,7 +2292,7 @@ export function registerModificationTools(server: McpServer): void {
   // Set Gradient Fill Tool
   server.tool(
     "set_gradient_fill",
-    "Set a gradient fill on a node. Supports LINEAR, RADIAL, ANGULAR, and DIAMOND gradient types.",
+    "Set a gradient fill on a node. Supports LINEAR, RADIAL, ANGULAR, and DIAMOND gradient types. LINEAR angles are aspect-corrected: 0 = top-to-bottom, 90 = left-to-right, 180 = bottom-to-top, 270 = right-to-left, and stop positions 0..1 always span the node's FULL extent along that direction regardless of the node's width:height ratio. Author stop positions in plain 0..1 — never pre-distort them. Pass aspect_correct: false for the legacy un-corrected behaviour (angle 0 = left-to-right, ramp compressed on non-square nodes). TOKENS: each stop accepts `colorVariable` (a COLOR variable name or id) and the stop is bound to it via ColorStop.boundVariables — this is the ONLY way to make a gradient token-driven, because bind_variable/setBoundVariableForPaint accept SolidPaint only and cannot bind an existing gradient after the fact. An unresolvable colorVariable is an ERROR, never a silent raw-colour fallback.",
     {
       nodeId: z.string().describe("Node ID to apply the gradient fill to"),
       type: z
@@ -2227,7 +2304,13 @@ export function registerModificationTools(server: McpServer): void {
         z
           .array(
             z.object({
-              color: colorParam("Color for this gradient stop."),
+              color: colorParam("Color for this gradient stop.").optional(),
+              colorVariable: z
+                .string()
+                .optional()
+                .describe(
+                  'COLOR variable name or id to BIND this stop to (e.g. "brand/primary"). Binds via ColorStop.boundVariables.color — the only supported way to token-drive a gradient. When given, `color` is optional and defaults to the variable\'s own value. An unresolvable name throws.',
+                ),
               position: z.coerce.number().min(0).max(1).describe("Stop position (0-1)"),
             }),
           )
@@ -2237,7 +2320,12 @@ export function registerModificationTools(server: McpServer): void {
         .number()
         .optional()
         .describe(
-          "Gradient direction in degrees 0–360, where 0 = top-to-bottom, 90 = left-to-right (LINEAR only; default: 0)",
+          "Gradient direction in degrees 0–360, clockwise, where 0 = top-to-bottom, 90 = left-to-right, 180 = bottom-to-top, 270 = right-to-left (LINEAR only; default: 0). Aspect-corrected — the full 0..1 stop range spans the node's actual extent.",
+        ),
+      aspect_correct: mcpBooleanSchema
+        .optional()
+        .describe(
+          "false = legacy un-corrected gradientTransform (angle 0 = left-to-right, ramp compressed on non-square nodes). Only set this for existing callers whose stop positions were hand-remapped for the old behaviour (default: true)",
         ),
       opacity: z.coerce
         .number()
@@ -2246,15 +2334,23 @@ export function registerModificationTools(server: McpServer): void {
         .optional()
         .describe("Overall fill opacity 0–1 applied on top of individual stop alphas (default: 1)"),
     },
-    async ({ nodeId, type, stops, angle, opacity }) => {
+    async ({ nodeId, type, stops, angle, opacity, aspect_correct }) => {
       nodeId = normalizeNodeId(nodeId);
       try {
         const result = await sendCommandToFigma("set_gradient_fill", {
           nodeId,
           gradientType: type,
-          stops: stops.map((stop) => ({ ...stop, color: toRgba(stop.color) })),
+          stops: stops.map((stop) => {
+            if (stop.color === undefined && stop.colorVariable === undefined) {
+              throw new Error("Each gradient stop needs a `color`, a `colorVariable`, or both.");
+            }
+            // A stop with only a colorVariable carries no literal colour: the plugin
+            // resolves the variable's own value rather than writing a NaN paint.
+            return stop.color === undefined ? stop : { ...stop, color: toRgba(stop.color) };
+          }),
           angle: angle ?? 0,
           opacity: opacity ?? 1,
+          aspect_correct: aspect_correct ?? true,
         });
 
         const typedResult = result as {

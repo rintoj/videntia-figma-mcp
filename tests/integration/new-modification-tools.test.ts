@@ -785,19 +785,27 @@ describe("new modification tools integration", () => {
       });
 
       expect(mockSendCommand).toHaveBeenCalledTimes(1);
-      expect(mockSendCommand).toHaveBeenCalledWith("set_image_fill", {
-        nodeId: "rect-123",
-        imageUrl: "https://picsum.photos/800/600",
-        scaleMode: "FILL",
-        rotation: undefined,
-        exposure: undefined,
-        contrast: undefined,
-        saturation: undefined,
-        temperature: undefined,
-        tint: undefined,
-        highlights: undefined,
-        shadows: undefined,
-      });
+      // Contract change (bug #16): set_image_fill gained `image_path`, so the payload
+      // always carries an imageBytes slot and a third timeout argument (120s only when
+      // a local file was read server-side, undefined otherwise).
+      expect(mockSendCommand).toHaveBeenCalledWith(
+        "set_image_fill",
+        {
+          nodeId: "rect-123",
+          imageUrl: "https://picsum.photos/800/600",
+          imageBytes: undefined,
+          scaleMode: "FILL",
+          rotation: undefined,
+          exposure: undefined,
+          contrast: undefined,
+          saturation: undefined,
+          temperature: undefined,
+          tint: undefined,
+          highlights: undefined,
+          shadows: undefined,
+        },
+        undefined,
+      );
       expect(response.content[0].text).toContain("Set image fill");
       expect(response.content[0].text).toContain("Image Rectangle");
       expect(response.content[0].text).toContain("800x600");
@@ -826,6 +834,7 @@ describe("new modification tools integration", () => {
           imageUrl: "https://picsum.photos/800/600",
           scaleMode: "FIT",
         }),
+        undefined,
       );
       expect(response.content[0].text).toContain("FIT");
     });
@@ -850,6 +859,7 @@ describe("new modification tools integration", () => {
         expect.objectContaining({
           scaleMode: "CROP",
         }),
+        undefined,
       );
     });
 
@@ -873,6 +883,7 @@ describe("new modification tools integration", () => {
         expect.objectContaining({
           scaleMode: "TILE",
         }),
+        undefined,
       );
     });
 
@@ -894,6 +905,7 @@ describe("new modification tools integration", () => {
           contrast: 0.1,
           saturation: -0.3,
         }),
+        undefined,
       );
     });
 
@@ -910,7 +922,7 @@ describe("new modification tools integration", () => {
       const response = await callTool("set_image_fill", {
         nodeId: "rect-123",
       });
-      expect(response.content[0].text).toContain("Provide either imageUrl or imageBytes");
+      expect(response.content[0].text).toContain("Provide exactly one image source");
       expect(mockSendCommand).not.toHaveBeenCalled();
     });
 
@@ -937,6 +949,7 @@ describe("new modification tools integration", () => {
           imageBytes: "aGVsbG8=",
           scaleMode: "FILL",
         }),
+        undefined,
       );
       expect(response.content[0].text).toContain("Set image fill");
     });

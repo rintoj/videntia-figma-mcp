@@ -164,3 +164,123 @@ export function withWriteReport(result: Record<string, unknown>, report: ApplyWr
   }
   return result;
 }
+
+// ---------------------------------------------------------------------------
+// Parent collapse guard (bug #9)
+// ---------------------------------------------------------------------------
+//
+// Setting a CHILD to FILL inside an auto-layout parent that hugs on that axis
+// makes Figma recompute the parent's hug size from the child's new
+// contribution — a FILL child contributes its minimum, not its old fixed size,
+// so the parent silently shrinks by the padding/spacing delta (observed: a
+// fixed 343px bar became 339px). The caller never asked for that.
+//
+// Policy:
+//   - parent is FIXED on the drifted axis -> the drift is pure side effect and
+//     resizing back is safe; we restore silently and report it.
+//   - parent HUGS on the drifted axis    -> restoring fights Figma's layout
+//     engine (it would just re-hug). We surface a precise error (strict) or a
+//     warning (non-strict) instead of letting a silent 4px drift ship.
+
+export interface ParentSizeSnapshot {
+  node: BaseNode & { width: number; height: number; resize?: (w: number, h: number) => void };
+  name: string;
+  id: string;
+  width: number;
+  height: number;
+  primaryAxisSizingMode?: string;
+  counterAxisSizingMode?: string;
+  layoutMode?: string;
+}
+
+/** Snapshot an auto-layout parent's size + sizing modes, or null when not applicable. */
+export function snapshotParentSize(parent: unknown): ParentSizeSnapshot | null {
+  if (parent === null || parent === undefined) return null;
+  const p = parent as Record<string, unknown>;
+  if (!("layoutMode" in p) || !("width" in p) || !("height" in p)) return null;
+  const layoutMode = p["layoutMode"] as string;
+  if (layoutMode !== "HORIZONTAL" && layoutMode !== "VERTICAL" && layoutMode !== "GRID") return null;
+  return {
+    node: parent as ParentSizeSnapshot["node"],
+    name: (p["name"] as string) ?? "(unnamed)",
+    id: (p["id"] as string) ?? "",
+    width: p["width"] as number,
+    height: p["height"] as number,
+    primaryAxisSizingMode: p["primaryAxisSizingMode"] as string | undefined,
+    counterAxisSizingMode: p["counterAxisSizingMode"] as string | undefined,
+    layoutMode,
+  };
+}
+
+/**
+ * Detect and handle a parent dimension that moved as a side effect of a write
+ * to one of its children. Restores where safe, throws/warns where Figma insists
+ * on hugging.
+ */
+export function guardParentSize(
+  snapshot: ParentSizeSnapshot | null,
+  options: { label: string; strict: boolean; childName: string },
+): ApplyWritesResult {
+  const result: ApplyWritesResult = { applied: [], noops: [], warnings: [] };
+  if (snapshot === null) return result;
+
+  const parent = snapshot.node as unknown as Record<string, unknown>;
+  const axes: Array<{
+    dim: "width" | "height";
+    before: number;
+    // Which sizing mode governs this dimension for this parent's layoutMode.
+    mode: string | undefined;
+  }> = [
+    {
+      dim: "width",
+      before: snapshot.width,
+      mode: snapshot.layoutMode === "HORIZONTAL" ? snapshot.primaryAxisSizingMode : snapshot.counterAxisSizingMode,
+    },
+    {
+      dim: "height",
+      before: snapshot.height,
+      mode: snapshot.layoutMode === "HORIZONTAL" ? snapshot.counterAxisSizingMode : snapshot.primaryAxisSizingMode,
+    },
+  ];
+
+  for (let i = 0; i < axes.length; i++) {
+    const axis = axes[i];
+    const after = parent[axis.dim] as number;
+    if (typeof after !== "number" || Math.abs(after - axis.before) <= EPSILON) continue;
+
+    const hugs = axis.mode === "AUTO";
+    if (!hugs && typeof parent["resize"] === "function") {
+      const targetW = axis.dim === "width" ? axis.before : (parent["width"] as number);
+      const targetH = axis.dim === "height" ? axis.before : (parent["height"] as number);
+      try {
+        (parent["resize"] as (w: number, h: number) => void).call(parent, targetW, targetH);
+      } catch {
+        // fall through to the drift check below
+      }
+      const restored = parent[axis.dim] as number;
+      if (Math.abs(restored - axis.before) <= EPSILON) {
+        result.applied.push(`parent.${axis.dim}`);
+        result.warnings.push(
+          `${options.label}: sizing "${options.childName}" shrank its parent "${snapshot.name}" (${snapshot.id}) ` +
+            `${axis.dim} from ${axis.before} to ${after}; restored to ${axis.before}.`,
+        );
+        continue;
+      }
+    }
+
+    const message =
+      `${options.label}: sizing "${options.childName}" changed its parent "${snapshot.name}" (${snapshot.id}) ` +
+      `${axis.dim} from ${axis.before} to ${after} — a side effect you did not request. The parent ` +
+      `${hugs ? `hugs on this axis (${axis.dim === "width" ? "horizontal" : "vertical"} sizing mode AUTO), so Figma recomputes its size from the FILL child and will not keep ${axis.before}` : "could not be resized back"}. ` +
+      `Fix: set the parent to FIXED on this axis first (set_layout_sizing on "${snapshot.name}", or resize_node), ` +
+      `or pass the child's horizontal/vertical sizing in the same set_auto_layout call.`;
+
+    result.noops.push({ property: `parent.${axis.dim}`, requested: axis.before, actual: after });
+    result.warnings.push(message);
+  }
+
+  if (result.noops.length > 0 && options.strict === true) {
+    throw new Error(result.warnings.join(" "));
+  }
+  return result;
+}

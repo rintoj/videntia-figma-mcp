@@ -399,10 +399,34 @@ export async function moveNode(params: Record<string, unknown>): Promise<Record<
   };
 }
 
+/**
+ * Multiplies `strokeWeight` by `scale` on a node and every descendant that has a numeric
+ * stroke weight. Figma's `resize()` deliberately preserves absolute stroke weights, so
+ * vector/SVG content keeps its original (now visually wrong) stroke after a rescale.
+ * Returns the number of nodes whose stroke weight actually changed.
+ */
+function scaleStrokeWeights(node: BaseNode, scale: number): number {
+  let changed = 0;
+  const candidate = node as unknown as { strokeWeight?: unknown };
+  if (typeof candidate.strokeWeight === "number" && candidate.strokeWeight > 0) {
+    candidate.strokeWeight = candidate.strokeWeight * scale;
+    changed += 1;
+  }
+  const children = (node as unknown as { children?: readonly BaseNode[] }).children;
+  if (children && typeof children.length === "number") {
+    for (const child of children) {
+      changed += scaleStrokeWeights(child, scale);
+    }
+  }
+  return changed;
+}
+
 export async function resizeNode(params: Record<string, unknown>): Promise<Record<string, unknown>> {
   const nodeId = getOptParam<string>(params, "nodeId");
   const width = getOptParam<number>(params, "width");
   const height = getOptParam<number>(params, "height");
+  const scaleStrokes =
+    getOptParam<boolean>(params, "scale_strokes") === true || getOptParam<boolean>(params, "scaleStrokes") === true;
 
   if (!nodeId) {
     throw new Error("Missing nodeId parameter");
@@ -417,6 +441,9 @@ export async function resizeNode(params: Record<string, unknown>): Promise<Recor
     throw new Error(`Node not found with ID: ${nodeId}`);
   }
 
+  const previousWidth = (node as unknown as { width?: number }).width;
+  const previousHeight = (node as unknown as { height?: number }).height;
+
   // SectionNode has no resize() — it only exposes resizeWithoutConstraints().
   if ("resize" in node) {
     (node as FrameNode).resize(width, height);
@@ -429,11 +456,26 @@ export async function resizeNode(params: Record<string, unknown>): Promise<Recor
     throw new Error(`Node does not support resizing: ${nodeId}`);
   }
 
+  let strokesScaled: number | undefined;
+  let strokeScaleFactor: number | undefined;
+  if (scaleStrokes) {
+    const sx = previousWidth && previousWidth > 0 ? width / previousWidth : 1;
+    const sy = previousHeight && previousHeight > 0 ? height / previousHeight : 1;
+    // Stroke weight is a single scalar in Figma, so a non-uniform resize gets the average.
+    strokeScaleFactor = (sx + sy) / 2;
+    if (strokeScaleFactor > 0 && strokeScaleFactor !== 1) {
+      strokesScaled = scaleStrokeWeights(node, strokeScaleFactor);
+    } else {
+      strokesScaled = 0;
+    }
+  }
+
   return {
     id: node.id,
     name: node.name,
     width: (node as FrameNode).width,
     height: (node as FrameNode).height,
+    ...(scaleStrokes ? { strokesScaled, strokeScaleFactor } : {}),
   };
 }
 

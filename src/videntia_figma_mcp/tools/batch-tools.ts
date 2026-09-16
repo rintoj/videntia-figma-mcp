@@ -8,6 +8,8 @@ import { normalizeCommandParams } from "../utils/normalize-batch-params";
 import { resolveResultReferences } from "../utils/resolve-result-references";
 import { formatState } from "../utils/return-state";
 import { batchActionSchema } from "../utils/batch-action-schema";
+import { readImageFileAsBase64 } from "../utils/image-file-input";
+import { computePureAction, isPureAction, nonBatchableReason } from "../utils/pure-batch-actions";
 
 const RESULT_REF_PATTERN = /^\$result\[(\d+)\](.*)$/;
 
@@ -40,6 +42,79 @@ function remapResultIndices(value: unknown, indexMap: number[]): unknown {
     return remapped;
   }
   return value;
+}
+
+/**
+ * A batch entry that never reaches the plugin: a pure server-side computation
+ * (#16) evaluated here, or a server-side-only tool that cannot be batched at all.
+ * `expandedPos` is the number of Figma-native actions queued BEFORE it, i.e. where
+ * its result has to be spliced back into the plugin's result list so the caller
+ * sees one row per action in their original order.
+ */
+interface ServerSideEntry {
+  expandedPos: number;
+  action: string;
+  success: boolean;
+  result?: unknown;
+  error?: string;
+}
+
+/**
+ * Substitutes `$result[N]...` references that point at a PURE action, using the
+ * value computed server-side. Done before dispatch, so the plugin never has to know
+ * the pure action existed — this is what makes "compute a colour, then apply it"
+ * chain cleanly inside one batch.
+ */
+function substitutePureRefs(value: unknown, computed: Map<number, unknown>): unknown {
+  if (typeof value === "string") {
+    const match = value.match(RESULT_REF_PATTERN);
+    if (!match) return value;
+    const index = parseInt(match[1], 10);
+    if (!computed.has(index)) return value;
+    return resolveResultReferences(value, [
+      // resolveResultReferences walks by array position, so pad up to `index`.
+      ...Array.from({ length: index }, () => ({ index: 0, action: "", success: true, result: {} })),
+      { index, action: "", success: true, result: computed.get(index) },
+    ] as BatchActionResult[]);
+  }
+  if (Array.isArray(value)) return value.map((item) => substitutePureRefs(item, computed));
+  if (value !== null && typeof value === "object") {
+    const out: Record<string, unknown> = {};
+    for (const key of Object.keys(value as Record<string, unknown>)) {
+      out[key] = substitutePureRefs((value as Record<string, unknown>)[key], computed);
+    }
+    return out;
+  }
+  return value;
+}
+
+/**
+ * Splices the server-side entries back into the plugin's per-action results, so the
+ * returned list is one row per dispatched-or-computed action, re-indexed in order.
+ */
+export function mergeServerSideResults(
+  pluginResults: BatchActionResult[],
+  entries: ServerSideEntry[],
+): BatchActionResult[] {
+  const merged: BatchActionResult[] = [];
+  const inserts = [...entries].sort((a, b) => a.expandedPos - b.expandedPos);
+  let consumed = 0;
+  let ins = 0;
+  while (consumed < pluginResults.length || ins < inserts.length) {
+    if (ins < inserts.length && (inserts[ins].expandedPos <= consumed || consumed >= pluginResults.length)) {
+      const e = inserts[ins++];
+      merged.push({
+        index: merged.length,
+        action: e.action,
+        success: e.success,
+        ...(e.success ? { result: e.result } : { error: e.error }),
+      } as BatchActionResult);
+    } else {
+      merged.push({ ...pluginResults[consumed], index: merged.length });
+      consumed++;
+    }
+  }
+  return merged;
 }
 
 /**
@@ -131,7 +206,21 @@ async function dispatchInChunks(
     if (stopOnError && failed > 0) break;
   }
 
-  return { totalActions: results.length, succeeded, failed, results } as BatchActionsResult;
+  return { success: failed === 0, totalActions: results.length, succeeded, failed, results } as BatchActionsResult;
+}
+
+/**
+ * Best-effort node id for one batch action's result, so the recovery manifest can
+ * name what each committed action actually produced or touched.
+ */
+function extractNodeId(result: unknown): string | undefined {
+  if (result === null || typeof result !== "object") return undefined;
+  const r = result as Record<string, unknown>;
+  for (const key of ["id", "nodeId", "newNodeId"]) {
+    if (typeof r[key] === "string") return r[key] as string;
+  }
+  if (Array.isArray(r.ids) && typeof r.ids[0] === "string") return r.ids[0] as string;
+  return undefined;
 }
 
 /**
@@ -167,7 +256,7 @@ export function registerBatchTools(server: McpServer): void {
         .optional()
         .default(true)
         .describe(
-          "Commit an undo checkpoint BEFORE running the batch (default: true), so a single undo in Figma reverts exactly this batch and nothing that came before it. Set to false only to deliberately merge this batch into the preceding undo group.",
+          "Commit an undo checkpoint BEFORE running the batch (default: true), so a single undo in Figma reverts exactly this batch and nothing that came before it. This is the only rollback available — Figma's plugin API has no transaction, so a partially-failed batch is never rolled back automatically; the failure report lists every action's committed state so you can recover without re-reading the document. Set to false only to deliberately merge this batch into the preceding undo group.",
         ),
     },
     async ({ actions, stopOnError, checkpoint, return_state }) => {
@@ -192,6 +281,11 @@ export function registerBatchTools(server: McpServer): void {
         // secondary insert_child step) — used to rewrite $result[N] references
         // the caller wrote against their own (pre-expansion) action list.
         const indexMap: number[] = [];
+        // Entries that never reach the plugin: pure computations evaluated here, and
+        // server-side-only tools rejected with a reason instead of "Unknown command".
+        const serverSideEntries: ServerSideEntry[] = [];
+        // originalActionIndex -> value, for $result[N] references to a pure action.
+        const pureValues = new Map<number, unknown>();
 
         for (let i = 0; i < actions.length; i++) {
           const { action, params: rawParams } = actions[i];
@@ -200,8 +294,46 @@ export function registerBatchTools(server: McpServer): void {
           // raw to the plugin, bypassing each tool's own zod schema).
           const actionParams = normalizeCommandParams(
             action,
-            remapResultIndices(rawParams, indexMap) as Record<string, unknown>,
+            remapResultIndices(substitutePureRefs(rawParams, pureValues), indexMap) as Record<string, unknown>,
           );
+
+          if (isPureAction(action)) {
+            // Computed server-side, right now: the value is available to every later
+            // action in this same batch via $result[i].
+            try {
+              const value = computePureAction(action, actionParams);
+              pureValues.set(i, value);
+              serverSideEntries.push({
+                expandedPos: expandedActions.length,
+                action,
+                success: true,
+                result: value,
+              });
+            } catch (error) {
+              serverSideEntries.push({
+                expandedPos: expandedActions.length,
+                action,
+                success: false,
+                error: error instanceof Error ? error.message : String(error),
+              });
+              if (stopOnError) break;
+            }
+            indexMap[i] = -1;
+            continue;
+          }
+
+          const blocked = nonBatchableReason(action);
+          if (blocked) {
+            serverSideEntries.push({
+              expandedPos: expandedActions.length,
+              action,
+              success: false,
+              error: blocked,
+            });
+            indexMap[i] = -1;
+            if (stopOnError) break;
+            continue;
+          }
 
           if (action === "create_icon") {
             try {
@@ -271,13 +403,42 @@ export function registerBatchTools(server: McpServer): void {
               });
             }
             indexMap[i] = expandedActions.length - 1;
+          } else if (action === "set_image_fill" && typeof actionParams.image_path === "string") {
+            // Parity with the standalone tool: a local file path is read and
+            // base64-encoded HERE, so batched image fills never require the bytes to
+            // pass through the model's context.
+            try {
+              const { base64 } = await readImageFileAsBase64(actionParams.image_path as string);
+              const { image_path: _unused, ...rest } = actionParams;
+              expandedActions.push({ action, params: { ...rest, imageBytes: base64 } });
+            } catch (error) {
+              expandedActions.push({
+                action,
+                params: { _error: error instanceof Error ? error.message : String(error) },
+              });
+            }
+            indexMap[i] = expandedActions.length - 1;
           } else {
             expandedActions.push({ action, params: actionParams });
             indexMap[i] = expandedActions.length - 1;
           }
         }
 
-        const result = await dispatchInChunks(expandedActions, stopOnError, return_state);
+        const dispatched =
+          expandedActions.length > 0
+            ? await dispatchInChunks(expandedActions, stopOnError, return_state)
+            : ({ success: true, totalActions: 0, succeeded: 0, failed: 0, results: [] } as BatchActionsResult);
+
+        // Fold the server-side entries back in so the caller sees one row per action,
+        // in their original order, whether it ran in Figma or in the MCP server.
+        const mergedResults = mergeServerSideResults(dispatched.results ?? [], serverSideEntries);
+        const result: BatchActionsResult = {
+          success: mergedResults.every((r) => r.success),
+          totalActions: mergedResults.length,
+          succeeded: mergedResults.filter((r) => r.success).length,
+          failed: mergedResults.filter((r) => !r.success).length,
+          results: mergedResults,
+        };
 
         const summary = `Batch completed: ${result.succeeded}/${result.totalActions} succeeded${result.failed > 0 ? `, ${result.failed} failed` : ""}`;
         const lines: string[] = [summary];
@@ -299,7 +460,39 @@ export function registerBatchTools(server: McpServer): void {
                 ? `First failure: action #${firstFailure.index} (${firstFailure.action}). No actions were committed to the document.`
                 : `First failure: action #${firstFailure.index} (${firstFailure.action}). ${committedBefore.length} earlier action(s) succeeded and ARE committed in the document (${committedBefore.map((r) => `#${r.index}`).join(", ")}).`,
             );
+            if (committedBefore.length > 0) {
+              lines.push(
+                "A partial batch is NOT rolled back automatically: the Figma plugin API exposes no transaction, " +
+                  "and undo is a user-level stack the plugin cannot replay selectively. Because an undo checkpoint was " +
+                  "committed before this batch, ONE undo in Figma (or the `undo` tool) reverts exactly these actions and " +
+                  "nothing earlier. Otherwise, use the per-action results below to re-run only what did not land.",
+              );
+            }
           }
+        }
+
+        // Machine-readable recovery manifest. Figma exposes NO transactional rollback
+        // (see the comment on `checkpoint` below), so when a batch partially commits the
+        // caller needs to know EXACTLY what landed without re-reading the document:
+        // one row per action with its index, command, outcome, resulting node id, and
+        // whether it is committed.
+        if (result.failed > 0 && result.results?.length) {
+          const manifest = result.results.map((r) => ({
+            index: r.index,
+            action: r.action,
+            success: r.success,
+            // Only a successful action mutated the document; a failed one wrote nothing.
+            committed: r.success,
+            nodeId: r.success ? extractNodeId(r.result) : undefined,
+            ...(r.success ? {} : { error: r.error || "unknown error" }),
+          }));
+          lines.push(
+            "",
+            "Per-action results (machine-readable; no document re-read needed):",
+            "```json",
+            JSON.stringify(manifest),
+            "```",
+          );
         }
 
         if (return_state && result.results?.length) {

@@ -1097,7 +1097,7 @@ export function registerVariableTools(server: McpServer): void {
    */
   server.tool(
     "validate_color_contrast",
-    "Validate all foreground/background pairs meet WCAG AA standards",
+    "Audit a variable COLLECTION: pair its foreground-named and background-named COLOR tokens by naming convention (`x-foreground`/`on-x`, or role segments such as text|fg|content vs background|surface|bg) and check each pair against WCAG. Reports explicitly when it can pair nothing (never a silent 0/0 pass). For contrast on RENDERED nodes against their resolved backdrops, use contrast_check_frame instead.",
     {
       collectionId: z.string().describe("Collection ID or name containing the color variables to validate"),
       mode: z
@@ -1120,14 +1120,62 @@ export function registerVariableTools(server: McpServer): void {
         });
         const pairs: Array<Record<string, any>> =
           result.pairs || (result as any).results || (Array.isArray(result) ? result : []);
+        const searched = (result as any).searched as Record<string, any> | undefined;
+
+        // Bug #44: a 0-pair sweep must read as an actionable failure, never as a
+        // silent pass. Say what was searched and why nothing paired.
+        if (pairs.length === 0) {
+          const reason =
+            (result as any).reason ||
+            (result as any).warning ||
+            "No foreground/background variable pairs could be formed.";
+          const lines: string[] = [
+            `## Color Contrast Validation (${standard || "AA"}) - NO PAIRS FOUND`,
+            "",
+            `**This is NOT a pass.** ${reason}`,
+            "",
+          ];
+          if (searched) {
+            lines.push("### What was searched");
+            lines.push(
+              `- Collection: ${searched.collectionName ?? collectionId} (${searched.collectionId ?? "id unknown"})`,
+            );
+            lines.push(`- Mode: ${searched.mode ?? mode ?? "default"}`);
+            lines.push(`- Variables in collection: ${searched.totalVariables ?? "?"}`);
+            lines.push(
+              `- COLOR variables: ${searched.colorVariables ?? 0} (resolved to a concrete color: ${searched.resolvedColorVariables ?? 0}, unresolvable: ${searched.unresolvableColorVariables ?? 0})`,
+            );
+            lines.push(
+              `- Foreground-named candidates: ${searched.foregroundCandidates ?? 0}; background-named candidates: ${searched.backgroundCandidates ?? 0}`,
+            );
+            if (Array.isArray(searched.strategiesTried)) {
+              lines.push(`- Pairing strategies tried: ${searched.strategiesTried.join(", ")}`);
+            }
+            lines.push("");
+          }
+          const sample = (result as any).sampleVariableNames as string[] | undefined;
+          if (Array.isArray(sample) && sample.length > 0) {
+            lines.push(`### Sample variable names seen`);
+            lines.push(sample.map((n) => `\`${n}\``).join(", "));
+            lines.push("");
+          }
+          lines.push(
+            "Next step: rename tokens so a role segment is present (e.g. `text/primary`, `surface/default`), or use `contrast_check_frame` to measure contrast on rendered nodes (resolved backdrops) instead of on variable names.",
+          );
+          return { content: [{ type: "text", text: lines.join("\n") }] };
+        }
+
         const passCount = pairs.filter((p: any) => p.passes || p.pass).length;
         const lines: string[] = [
           `## Color Contrast Validation (${standard || "AA"})`,
           `${passCount}/${pairs.length} pairs pass`,
-          "",
-          "| Foreground | Background | Ratio | Pass |",
-          "|------------|------------|-------|------|",
         ];
+        if (searched) {
+          lines.push(
+            `Searched collection "${searched.collectionName ?? collectionId}" mode "${searched.mode ?? mode ?? "default"}": ${searched.colorVariables ?? "?"} COLOR variables, paired via ${Array.isArray(searched.strategiesUsed) ? searched.strategiesUsed.join(", ") : "name conventions"}.`,
+          );
+        }
+        lines.push("", "| Foreground | Background | Ratio | Pass |", "|------------|------------|-------|------|");
         for (const p of pairs) {
           const fg = p.foregroundName || formatColorValue(p.foreground);
           const bg = p.backgroundName || formatColorValue(p.background);

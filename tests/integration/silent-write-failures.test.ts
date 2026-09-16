@@ -115,6 +115,9 @@ describe("silent write failures", () => {
         gradientType: "LINEAR",
         angle: 0,
         opacity: 1,
+        // Contract change (bug #30): aspect_correct defaults to true on the standalone
+        // tool, so the batch normaliser emits it too - that IS the "same wire shape".
+        aspect_correct: true,
         stops: [
           { color: "#ff0000", position: 0 },
           { color: "#0000ff", position: 1 },
@@ -159,7 +162,7 @@ describe("silent write failures", () => {
 
     it("is idempotent on already-canonical params", () => {
       const canonical = { nodeId: "1:1", gradientType: "ANGULAR", angle: 90, opacity: 0.5, stops: [] as unknown[] };
-      expect(normalizeCommandParams("set_gradient_fill", canonical)).toEqual(canonical);
+      expect(normalizeCommandParams("set_gradient_fill", canonical)).toEqual({ ...canonical, aspect_correct: true });
     });
   });
 

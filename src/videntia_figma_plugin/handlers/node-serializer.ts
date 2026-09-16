@@ -88,19 +88,28 @@ function resolveBindings(
   return bindings;
 }
 
-// Extract simplified fills
-function extractFills(node: SceneNode): Record<string, unknown>[] | undefined {
-  if (!("fills" in node) || (node as GeometryMixin).fills === figma.mixed) return undefined;
+// Extract simplified fills.
+// Returns a single [{type:"MIXED"}] entry when the node has mixed fills, an array
+// (possibly empty) when the node supports fills, and undefined only when the node has
+// no fills property at all.
+// Invisible paints are KEPT (flagged visible:false) — dropping them made it impossible
+// to tell "this node has a hidden fill" from "this node was never serialized".
+export function extractFills(node: SceneNode): Record<string, unknown>[] | undefined {
+  if (!("fills" in node)) return undefined;
+  if ((node as GeometryMixin).fills === figma.mixed) return [{ type: "MIXED" }];
   const fills = (node as GeometryMixin).fills as Paint[];
-  if (!Array.isArray(fills) || fills.length === 0) return undefined;
+  if (!Array.isArray(fills)) return undefined;
 
   const result: Record<string, unknown>[] = [];
   for (const fill of fills) {
-    if (fill.visible === false) continue;
     const f: Record<string, unknown> = { type: fill.type };
+    if (fill.visible === false) f["visible"] = false;
+    if (fill.opacity !== undefined && fill.opacity !== 1) f["opacity"] = fill.opacity;
+    if (fill.blendMode && fill.blendMode !== "NORMAL" && fill.blendMode !== "PASS_THROUGH") {
+      f["blendMode"] = fill.blendMode;
+    }
     if (fill.type === "SOLID" && fill.color) {
       f["color"] = colorToHex(fill.color as RGBA);
-      if (fill.opacity !== undefined && fill.opacity !== 1) f["opacity"] = fill.opacity;
     } else if (
       fill.type === "GRADIENT_LINEAR" ||
       fill.type === "GRADIENT_RADIAL" ||
@@ -122,58 +131,71 @@ function extractFills(node: SceneNode): Record<string, unknown>[] | undefined {
     } else if (fill.type === "IMAGE") {
       f["isImage"] = true;
       const imgFill = fill as ImagePaint;
-      if (imgFill.imageHash) f["imageRef"] = imgFill.imageHash;
+      // imageRef is the legacy key (consumed by figma-to-jsx); imageHash is the
+      // Figma API name and is what set_image_fill round-trips on.
+      if (imgFill.imageHash) {
+        f["imageRef"] = imgFill.imageHash;
+        f["imageHash"] = imgFill.imageHash;
+      }
+      if (imgFill.scaleMode) f["scaleMode"] = imgFill.scaleMode;
     }
     result.push(f);
   }
-  return result.length > 0 ? result : undefined;
+  return result;
 }
 
-// Extract simplified strokes
-function extractStrokes(node: SceneNode): Record<string, unknown>[] | undefined {
-  if (
-    !("strokes" in node) ||
-    !Array.isArray((node as GeometryMixin).strokes) ||
-    (node as GeometryMixin).strokes.length === 0
-  ) {
-    return undefined;
-  }
+// Extract simplified strokes — same contract as extractFills.
+export function extractStrokes(node: SceneNode): Record<string, unknown>[] | undefined {
+  if (!("strokes" in node)) return undefined;
+  const raw = (node as GeometryMixin).strokes;
+  if ((raw as unknown) === figma.mixed) return [{ type: "MIXED" }];
+  if (!Array.isArray(raw)) return undefined;
 
   const result: Record<string, unknown>[] = [];
-  for (const stroke of (node as GeometryMixin).strokes as Paint[]) {
-    if (stroke.visible === false) continue;
+  for (const stroke of raw as Paint[]) {
     const s: Record<string, unknown> = { type: stroke.type };
+    if (stroke.visible === false) s["visible"] = false;
+    if (stroke.opacity !== undefined && stroke.opacity !== 1) s["opacity"] = stroke.opacity;
+    if (stroke.blendMode && stroke.blendMode !== "NORMAL" && stroke.blendMode !== "PASS_THROUGH") {
+      s["blendMode"] = stroke.blendMode;
+    }
     if (stroke.type === "SOLID" && stroke.color) {
       s["color"] = colorToHex(stroke.color as RGBA);
-      if (stroke.opacity !== undefined && stroke.opacity !== 1) s["opacity"] = stroke.opacity;
+    } else if (stroke.type === "IMAGE") {
+      s["isImage"] = true;
+      const imgStroke = stroke as ImagePaint;
+      if (imgStroke.imageHash) {
+        s["imageRef"] = imgStroke.imageHash;
+        s["imageHash"] = imgStroke.imageHash;
+      }
+      if (imgStroke.scaleMode) s["scaleMode"] = imgStroke.scaleMode;
     }
     result.push(s);
   }
+  // Empty stroke lists are omitted (unlike fills) to keep JSON reads terse.
   return result.length > 0 ? result : undefined;
 }
 
-// Extract simplified effects
-function extractEffects(node: SceneNode): Record<string, unknown>[] | undefined {
-  if (
-    !("effects" in node) ||
-    !Array.isArray((node as BlendMixin).effects) ||
-    (node as BlendMixin).effects.length === 0
-  ) {
+// Extract simplified effects — same contract as extractFills.
+export function extractEffects(node: SceneNode): Record<string, unknown>[] | undefined {
+  if (!("effects" in node) || !Array.isArray((node as BlendMixin).effects)) {
     return undefined;
   }
 
   const result: Record<string, unknown>[] = [];
   for (const effect of (node as BlendMixin).effects as Effect[]) {
-    if (effect.visible === false) continue;
     const e: Record<string, unknown> = { type: effect.type };
+    if (effect.visible === false) e["visible"] = false;
     const shadowEffect = effect as DropShadowEffect;
     const blurEffect = effect as BlurEffectBase;
     if (shadowEffect.color) e["color"] = colorToHex(shadowEffect.color);
     if (shadowEffect.offset) e["offset"] = { x: shadowEffect.offset.x, y: shadowEffect.offset.y };
     if (blurEffect.radius !== undefined) e["radius"] = blurEffect.radius;
     if (shadowEffect.spread !== undefined) e["spread"] = shadowEffect.spread;
+    if (shadowEffect.blendMode && shadowEffect.blendMode !== "NORMAL") e["blendMode"] = shadowEffect.blendMode;
     result.push(e);
   }
+  // Empty effect lists are omitted (unlike fills) to keep JSON reads terse.
   return result.length > 0 ? result : undefined;
 }
 
@@ -264,20 +286,17 @@ async function processNode(
     if (la && la !== "INHERIT" && la !== "STRETCH") info["layoutAlign"] = la;
   }
 
-  // Fills
+  // Fills — always emitted when the node supports fills, including as an empty
+  // array, so "no fill" is distinguishable from "not serialized".
   const fills = extractFills(node);
-  if (fills) info["fills"] = fills;
+  if (fills !== undefined) info["fills"] = fills;
 
   // Strokes
   const strokes = extractStrokes(node);
-  if (strokes) info["strokes"] = strokes;
-  if (
-    "strokeWeight" in node &&
-    "strokes" in node &&
-    (node as GeometryMixin).strokes.length > 0 &&
-    (node as GeometryMixin).strokeWeight !== figma.mixed
-  ) {
-    info["strokeWeight"] = (node as GeometryMixin).strokeWeight;
+  if (strokes !== undefined) info["strokes"] = strokes;
+  if ("strokeWeight" in node && (node as GeometryMixin).strokeWeight !== figma.mixed) {
+    const sw = (node as GeometryMixin).strokeWeight;
+    if (typeof sw === "number" && sw > 0) info["strokeWeight"] = sw;
   }
 
   // Corner radius
@@ -296,7 +315,7 @@ async function processNode(
 
   // Effects
   const effects = extractEffects(node);
-  if (effects) info["effects"] = effects;
+  if (effects !== undefined) info["effects"] = effects;
 
   // Resolve effect style
   const blendNode = node as unknown as Record<string, unknown>;

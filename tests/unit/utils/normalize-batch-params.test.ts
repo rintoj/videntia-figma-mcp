@@ -135,12 +135,15 @@ describe("normalizeCommandParams", () => {
         stops: [1, 2],
         angle: 0,
         opacity: 1,
+        // Contract change (bug #30): the standalone tool defaults aspect_correct to true
+        // and sends it explicitly, so the batch normaliser mirrors it for wire parity.
+        aspect_correct: true,
       });
     });
 
     it("does not clobber caller-supplied angle/opacity", () => {
       const out = normalizeCommandParams("set_gradient_fill", { gradientType: "RADIAL", angle: 90, opacity: 0.5 });
-      expect(out).toEqual({ gradientType: "RADIAL", angle: 90, opacity: 0.5 });
+      expect(out).toEqual({ gradientType: "RADIAL", angle: 90, opacity: 0.5, aspect_correct: true });
     });
   });
 

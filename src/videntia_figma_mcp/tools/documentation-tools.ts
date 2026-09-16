@@ -3,6 +3,13 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { sendCommandToFigma } from "../utils/websocket.js";
 import { mcpBooleanSchema } from "../utils/mcp-boolean.js";
 import { cursorSchema, paginate, pageNotice } from "../utils/output-format.js";
+import {
+  defaultExportPath,
+  postProcessExport,
+  sessionExportDir,
+  writeExportToPath,
+} from "../utils/export-image-post.js";
+import { approximateImageTokens, exportCacheKey, getCachedExport, setCachedExport } from "../utils/export-cache.js";
 
 /**
  * Outline projection of one content-tree node.
@@ -126,32 +133,295 @@ export function registerDocumentationTools(server: McpServer): void {
 
   server.tool(
     "bulk_export_frames",
-    "Export multiple frames as images in a single call. Returns base64-encoded image data for each frame. If no nodeIds are provided, exports all top-level frames on the current page (or specified page).",
+    "Export multiple frames as images. BY DEFAULT every frame is WRITTEN TO A FILE and only {nodeId,name,path,width,height,bytes} is returned — no inline base64. " +
+      "Pass `inline: true` ONLY when you genuinely need to SEE the pixels in this conversation (this multiplies the single most expensive operation in the server by N frames). " +
+      "Results are PAGED: `limit` frames per call (default 10), follow `next_cursor` for the rest. " +
+      "Unchanged frames are served from the session render cache (bypass with `force_refresh: true`). " +
+      "If no nodeIds are provided, exports all top-level frames on the current page (or specified page).",
     {
       nodeIds: z
         .array(z.string())
         .optional()
         .describe("List of frame/node IDs to export. Omit to export all top-level frames on the page."),
       format: z.enum(["PNG", "JPG", "SVG", "PDF"]).optional().default("PNG").describe("Export format."),
-      scale: z.number().min(0.1).max(4).optional().default(1).describe("Export scale factor (1 = 1x, 2 = 2x, etc.)."),
+      scale: z.coerce
+        .number()
+        .min(0.1)
+        .max(4)
+        .optional()
+        .default(1)
+        .describe("Export scale factor (1 = 1x, 2 = 2x, etc.). Values above 1 multiply the pixel and byte cost."),
       pageId: z.string().optional().describe("Page to export from when nodeIds is omitted."),
+      out_dir: z
+        .string()
+        .optional()
+        .describe(
+          "Absolute directory to write the exports into. Created if missing. Defaults to this session's export directory.",
+        ),
+      inline: mcpBooleanSchema
+        .optional()
+        .describe(
+          "Return the pixels inline in this conversation instead of writing files. VERY expensive — one image per frame.",
+        ),
+      limit: z.coerce
+        .number()
+        .int()
+        .min(1)
+        .max(100)
+        .optional()
+        .default(10)
+        .describe("Max frames exported per call (default 10). Remaining frames are PAGED via next_cursor."),
+      cursor: cursorSchema,
+      max_width: z.coerce
+        .number()
+        .int()
+        .positive()
+        .optional()
+        .describe("Downscale each exported image so its width is at most this many pixels (raster formats only)."),
+      max_height: z.coerce
+        .number()
+        .int()
+        .positive()
+        .optional()
+        .describe("Downscale each exported image so its height is at most this many pixels (raster formats only)."),
+      jpeg_quality: z.coerce
+        .number()
+        .int()
+        .min(1)
+        .max(100)
+        .optional()
+        .describe("JPEG encode quality 1-100 — format 'JPG' only."),
+      allow_full_resolution: mcpBooleanSchema
+        .optional()
+        .describe("Return inline images at full resolution, bypassing the default 1200px longest-edge cap."),
+      force_refresh: mcpBooleanSchema
+        .optional()
+        .describe("Bypass the session render cache and force a fresh export of every frame on this page."),
     },
-    async ({ nodeIds, format, scale, pageId }) => {
+    async ({
+      nodeIds,
+      format,
+      scale,
+      pageId,
+      out_dir,
+      inline,
+      limit,
+      cursor,
+      max_width,
+      max_height,
+      jpeg_quality,
+      allow_full_resolution,
+      force_refresh,
+    }) => {
       try {
-        const result = await sendCommandToFigma<Record<string, unknown>>("bulk_export_frames", {
-          nodeIds,
-          format,
-          scale,
+        const resolvedFormat = (format || "PNG").toUpperCase();
+        const resolvedScale = scale ?? 1;
+        const wantsInline = inline === true;
+
+        // Resolve the full frame list FIRST so pagination happens before any
+        // rendering — exporting a whole board in one plugin round trip is what
+        // produced the "Request to Figma timed out" failures.
+        let allIds: string[];
+        if (nodeIds && nodeIds.length > 0) {
+          allIds = nodeIds;
+        } else {
+          const listed = (await sendCommandToFigma<{ frames?: Array<{ id: string }> }>("enumerate_all_frames", {
+            pageId,
+            topLevelOnly: true,
+            includeComponents: true,
+          })) as { frames?: Array<{ id: string }> };
+          allIds = (listed?.frames ?? []).map((f) => f.id);
+        }
+
+        const page = paginate(allIds, cursor, limit ?? 10);
+        const notice = pageNotice("Frames exported", page);
+
+        if (page.items.length === 0) {
+          return {
+            content: [{ type: "text" as const, text: JSON.stringify({ exports: [], notice }, null, 2) }],
+          };
+        }
+
+        const result = (await sendCommandToFigma<Record<string, unknown>>("bulk_export_frames", {
+          nodeIds: page.items,
+          format: resolvedFormat,
+          scale: resolvedScale,
           pageId,
-        });
+        })) as {
+          exports?: Array<{
+            nodeId: string;
+            name: string;
+            format: string;
+            width: number;
+            height: number;
+            data: string;
+            subtreeHash?: string | null;
+            error?: string;
+          }>;
+        };
+
+        const exportsIn = result?.exports ?? [];
+        const targetDir = out_dir ?? (await sessionExportDir());
+        if (out_dir) {
+          const path = await import("path");
+          const fs = await import("fs");
+          if (!path.isAbsolute(out_dir)) throw new Error(`out_dir must be an absolute path, got: ${out_dir}`);
+          fs.mkdirSync(out_dir, { recursive: true });
+        }
+
+        const rows: Array<Record<string, unknown>> = [];
+        const images: Array<{ type: "image"; data: string; mimeType: string }> = [];
+        let cacheHits = 0;
+        let tokensSaved = 0;
+
+        for (const item of exportsIn) {
+          if (item.error || !item.data) {
+            rows.push({ nodeId: item.nodeId, name: item.name, error: item.error || "empty export" });
+            continue;
+          }
+
+          const cacheKey = exportCacheKey({
+            nodeId: item.nodeId,
+            scale: resolvedScale,
+            format: resolvedFormat,
+            subtreeHash: item.subtreeHash,
+            maxWidth: max_width,
+            maxHeight: max_height,
+            jpegQuality: jpeg_quality,
+            allowFullResolution: allow_full_resolution === true,
+            inline: wantsInline,
+          });
+          const cached = force_refresh === true ? undefined : getCachedExport(cacheKey);
+
+          if (cached) {
+            cacheHits++;
+            tokensSaved += cached.approxTokens;
+            if (cached.path && !wantsInline) {
+              rows.push({
+                nodeId: item.nodeId,
+                name: item.name,
+                path: cached.path,
+                width: cached.width,
+                height: cached.height,
+                bytes: cached.bytes,
+                format: cached.format,
+                cached: true,
+              });
+              continue;
+            }
+            if (cached.base64 && wantsInline) {
+              rows.push({
+                nodeId: item.nodeId,
+                name: item.name,
+                width: cached.width,
+                height: cached.height,
+                bytes: cached.bytes,
+                format: cached.format,
+                cached: true,
+                inline: true,
+              });
+              images.push({
+                type: "image",
+                data: cached.base64,
+                mimeType: cached.mimeType || "image/png",
+              });
+              continue;
+            }
+          }
+
+          const longestSourceEdge = Math.max(item.width || 0, item.height || 0);
+          const hardMaxEdge =
+            resolvedScale < 1 && longestSourceEdge > 0
+              ? Math.max(1, Math.round(longestSourceEdge * resolvedScale))
+              : undefined;
+
+          const processed = await postProcessExport({
+            base64: item.data,
+            format: resolvedFormat,
+            maxWidth: max_width,
+            maxHeight: max_height,
+            allowFullResolution: allow_full_resolution === true || !wantsInline,
+            jpegQuality: jpeg_quality,
+            hardMaxEdge,
+          });
+
+          const width = processed.width ?? item.width;
+          const height = processed.height ?? item.height;
+          const approxTokens = approximateImageTokens(width, height);
+
+          if (!wantsInline) {
+            const pathMod = await import("path");
+            const defaultPath = await defaultExportPath(item.nodeId, resolvedScale, resolvedFormat);
+            const targetPath = pathMod.join(targetDir, pathMod.basename(defaultPath));
+            const written = await writeExportToPath(targetPath, processed.base64);
+            setCachedExport(cacheKey, {
+              path: written.path,
+              width,
+              height,
+              bytes: written.bytes,
+              format: resolvedFormat,
+              approxTokens,
+            });
+            rows.push({
+              nodeId: item.nodeId,
+              name: item.name,
+              path: written.path,
+              width,
+              height,
+              bytes: written.bytes,
+              format: resolvedFormat,
+              cached: false,
+            });
+            continue;
+          }
+
+          const mimeType = resolvedFormat === "JPG" ? "image/jpeg" : "image/png";
+          setCachedExport(cacheKey, {
+            base64: processed.base64,
+            mimeType,
+            width,
+            height,
+            bytes: processed.bytes,
+            format: resolvedFormat,
+            approxTokens,
+          });
+          rows.push({
+            nodeId: item.nodeId,
+            name: item.name,
+            width,
+            height,
+            bytes: processed.bytes,
+            format: resolvedFormat,
+            cached: false,
+            inline: true,
+          });
+          images.push({ type: "image", data: processed.base64, mimeType });
+        }
+
+        const summary = {
+          format: resolvedFormat,
+          scale: resolvedScale,
+          out_dir: wantsInline ? undefined : targetDir,
+          total_frames: page.total,
+          exported_this_page: rows.length,
+          cache_hits: cacheHits,
+          approx_tokens_saved_by_cache: tokensSaved,
+          next_cursor: page.nextCursor,
+          notice,
+          note: wantsInline
+            ? "Inline mode: one image per frame in this conversation. Omit inline to get file paths instead (far cheaper)."
+            : "Images were written to disk; no pixels are inlined. Pass inline: true only if you must see them here.",
+          exports: rows,
+        };
+
         return {
-          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          content: [{ type: "text" as const, text: JSON.stringify(summary, null, 2) }, ...images],
         };
       } catch (error) {
         return {
           content: [
             {
-              type: "text",
+              type: "text" as const,
               text: `Error bulk exporting frames: ${error instanceof Error ? error.message : String(error)}`,
             },
           ],

@@ -14,6 +14,7 @@ import {
   hasTextStyle,
   hasEffectStyle,
   hasFontVariableBindings,
+  isGradientFullyBound,
 } from "./helpers";
 import {
   MAX_LINT_DEPTH,
@@ -364,12 +365,17 @@ export function scanNode(
         let isGradient = fillType !== "SOLID" && typeof fillType === "string" && fillType.indexOf("GRADIENT_") === 0;
         if (fillBound) {
           categories[catName].bound++;
+        } else if (isGradient && isGradientFullyBound(fills[fi])) {
+          // Every stop is bound to a COLOR variable — genuinely token-driven.
+          categories[catName].bound++;
         } else if (isGradient) {
-          // EXEMPT: Figma's setBoundVariableForPaint only accepts SolidPaint,
-          // and ColorStop.color carries no boundVariables — binding a variable
-          // to a gradient stop is impossible, so the violation is
-          // unsatisfiable. Count it as compliant; surface a LOW nudge toward
-          // the satisfiable alternative (a named color style).
+          // EXEMPT from the HIGH bind-to-variable rule. `figma.variables
+          // .setBoundVariableForPaint` accepts SolidPaint ONLY, so the usual
+          // binding path cannot reach a gradient; per-stop binding is possible
+          // only by constructing ColorStop.boundVariables.color directly, which
+          // is what set_gradient_fill's per-stop `colorVariable` does. A gradient
+          // authored any other way cannot be bound after the fact, so count it as
+          // compliant and surface a LOW nudge toward a satisfiable route.
           categories[catName].bound++;
           addViolation(
             violations,
@@ -380,7 +386,7 @@ export function scanNode(
             "LOW",
             catName,
             "fills[" + fi + "]",
-            "Gradient fill — variables cannot bind to gradient paints (Figma API limitation). Optional: centralise it with create_color_style + set_color_style_id.",
+            "Gradient fill — setBoundVariableForPaint cannot bind a gradient paint. Optional: re-author with set_gradient_fill and a per-stop colorVariable, or centralise it with create_color_style + set_color_style_id.",
           );
         } else {
           categories[catName].unbound++;
@@ -435,6 +441,8 @@ export function scanNode(
           strokeType !== "SOLID" && typeof strokeType === "string" && strokeType.indexOf("GRADIENT_") === 0;
         if (strokeBound) {
           categories.strokesBorders.bound++;
+        } else if (strokeIsGradient && isGradientFullyBound(strokes[si])) {
+          categories.strokesBorders.bound++;
         } else if (strokeIsGradient) {
           // EXEMPT — see the gradient note in the FILL checks above.
           categories.strokesBorders.bound++;
@@ -447,7 +455,7 @@ export function scanNode(
             "LOW",
             "strokesBorders",
             "strokes[" + si + "]",
-            "Gradient stroke — variables cannot bind to gradient paints (Figma API limitation). Optional: centralise it with create_color_style + set_color_style_id.",
+            "Gradient stroke — setBoundVariableForPaint cannot bind a gradient paint. Optional: re-author with set_gradient_fill and a per-stop colorVariable, or centralise it with create_color_style + set_color_style_id.",
           );
         } else {
           categories.strokesBorders.unbound++;

@@ -125,7 +125,12 @@ describe("documentation tools integration", () => {
     });
 
     it("accepts custom format, scale, and pageId", async () => {
-      mockSendCommand.mockResolvedValue({ exports: [] });
+      // With nodeIds omitted, the frame list is resolved FIRST (so pagination
+      // happens before any rendering), then only that page's ids are exported.
+      mockSendCommand.mockImplementation(async (command: string) => {
+        if (command === "enumerate_all_frames") return { frames: [{ id: "a" }, { id: "b" }] };
+        return { exports: [] };
+      });
 
       await callTool("bulk_export_frames", {
         format: "SVG",
@@ -133,8 +138,13 @@ describe("documentation tools integration", () => {
         pageId: "page-1",
       });
 
+      expect(mockSendCommand).toHaveBeenCalledWith("enumerate_all_frames", {
+        pageId: "page-1",
+        topLevelOnly: true,
+        includeComponents: true,
+      });
       expect(mockSendCommand).toHaveBeenCalledWith("bulk_export_frames", {
-        nodeIds: undefined,
+        nodeIds: ["a", "b"],
         format: "SVG",
         scale: 2,
         pageId: "page-1",

@@ -2,6 +2,7 @@
 
 import { debugLog } from "../utils/helpers";
 import { customBase64Decode } from "../utils/base64";
+import { resolveColorVariable } from "./icons";
 
 // ---------------------------------------------------------------------------
 // Hex color parsing
@@ -522,6 +523,96 @@ export async function setImageFill(params: Record<string, unknown>): Promise<unk
 }
 
 // ---------------------------------------------------------------------------
+// computeGradientTransform
+// ---------------------------------------------------------------------------
+
+/**
+ * Build the 2x3 `gradientTransform` for a LINEAR gradient.
+ *
+ * CONVENTION: `angle` is in degrees; 0 = top-to-bottom, 90 = left-to-right,
+ * 180 = bottom-to-top, 270 = right-to-left. Rotation is clockwise.
+ *
+ * WHY aspect correction: Figma's gradientTransform operates in the node's
+ * NORMALISED [0,1] space, so on a non-square node an un-corrected rotation both
+ * skews the visual angle AND compresses the 0..1 stop range into a sub-window of
+ * the node's real extent (a 100x300 node at 90° showed only ~[0.66,1.0] of the
+ * ramp). We therefore project in PIXEL space: for the unit direction
+ * u = (sin a, cos a), the node's extent along u is L = |w*sin a| + |h*cos a|, and
+ * the gradient parameter is t = ((P - centre) . u)/L + 0.5. Expanded back into
+ * normalised coordinates that is t = a1*x + b1*y + c1 with
+ * a1 = w*sin a / L, b1 = h*cos a / L. The full 0..1 stop range then spans the
+ * node's actual extent for any aspect ratio.
+ *
+ * Pass `aspectCorrect: false` (width/height are then ignored) for the legacy
+ * un-corrected square-space rotation, so callers that already hand-remapped
+ * their stop positions are not silently re-distorted.
+ */
+export function computeGradientTransform(
+  angle: number,
+  width: number,
+  height: number,
+  aspectCorrect: boolean = true,
+): Transform {
+  const angleRad = (Number(angle) || 0) * (Math.PI / 180);
+  const sin = Math.sin(angleRad);
+  const cos = Math.cos(angleRad);
+
+  if (!aspectCorrect) {
+    // Legacy behaviour: rotate in normalised square space, 0 = left-to-right.
+    const lCos = Math.cos(angleRad);
+    const lSin = Math.sin(angleRad);
+    return [
+      [lCos, lSin, 0.5 - lCos * 0.5],
+      [-lSin, lCos, 0.5 - lSin * 0.5],
+    ];
+  }
+
+  const w = isFinite(width) && width > 0 ? width : 1;
+  const h = isFinite(height) && height > 0 ? height : 1;
+
+  // Extent of the w x h rectangle projected onto the gradient direction.
+  const length = Math.abs(w * sin) + Math.abs(h * cos);
+  const safeLength = length > 1e-9 ? length : 1;
+
+  const a1 = (w * sin) / safeLength;
+  const b1 = (h * cos) / safeLength;
+  const c1 = 0.5 - 0.5 * a1 - 0.5 * b1;
+
+  // Second row is the perpendicular axis (only observable for RADIAL/DIAMOND/
+  // ANGULAR, but must stay a well-formed affine basis).
+  const a2 = -b1;
+  const b2 = a1;
+  const c2 = 0.5 - 0.5 * a2 - 0.5 * b2;
+
+  return [
+    [round6(a1), round6(b1), round6(c1)],
+    [round6(a2), round6(b2), round6(c2)],
+  ];
+}
+
+function round6(value: number): number {
+  const r = Math.round(value * 1e6) / 1e6;
+  return r === 0 ? 0 : r;
+}
+
+/**
+ * A gradient stop bound to a variable still needs a literal `color` (Figma renders
+ * the literal until the alias resolves). Take the variable's first concrete COLOR
+ * mode value; fall back to opaque black if it only aliases another variable.
+ */
+function resolveVariableColor(variable: Variable): { r: number; g: number; b: number; a: number } {
+  const modes = Object.keys(variable.valuesByMode || {});
+  for (let i = 0; i < modes.length; i++) {
+    const value = variable.valuesByMode[modes[i]] as unknown;
+    if (value !== null && typeof value === "object" && typeof (value as { r?: unknown }).r === "number") {
+      const c = value as { r: number; g: number; b: number; a?: number };
+      return { r: c.r, g: c.g, b: c.b, a: typeof c.a === "number" ? c.a : 1 };
+    }
+  }
+  return { r: 0, g: 0, b: 0, a: 1 };
+}
+
+// ---------------------------------------------------------------------------
 // setGradientFill
 // ---------------------------------------------------------------------------
 
@@ -568,9 +659,47 @@ export async function setGradientFill(params: Record<string, unknown>): Promise<
   // forwarded RAW, so a hex stop ("#fff" — the form set_fill_color takes) landed
   // here as `undefined` channels and produced NaN colours. Parse here instead,
   // and throw a precise error rather than writing a garbage paint.
-  const figmaStops: ColorStop[] = stops.map((stop, index) => {
+  // Gradient stop → variable binding (#30).
+  //
+  // VERIFIED against @figma/plugin-typings 1.136.0: `ColorStop` DOES carry
+  // `boundVariables?: { [field in VariableBindableColorStopField]?: VariableAlias }`
+  // (plugin-api.d.ts:4506) with `VariableBindableColorStopField = 'color'`
+  // (:6742). What is NOT supported is the `figma.variables.setBoundVariableForPaint`
+  // HELPER, which is typed `(paint: SolidPaint, …): SolidPaint` (:2186) with no
+  // GradientPaint overload — that helper is the limit, not the data model. So a stop
+  // is bound by constructing the ColorStop with `boundVariables.color` directly.
+  const variableCache = await figma.variables.getLocalVariablesAsync();
+
+  const figmaStops: ColorStop[] = [];
+  for (let index = 0; index < stops.length; index++) {
+    const stop = stops[index];
     const raw = stop !== null && stop !== undefined ? stop : {};
-    const source = raw["color"] !== undefined ? raw["color"] : raw;
+
+    // Accept every spelling the other colour tools accept for a token reference.
+    const variableRef =
+      raw["colorVariable"] !== undefined
+        ? raw["colorVariable"]
+        : raw["variable"] !== undefined
+          ? raw["variable"]
+          : raw["variableName"] !== undefined
+            ? raw["variableName"]
+            : raw["variableId"];
+
+    let boundVariable: Variable | null = null;
+    if (variableRef !== undefined && variableRef !== null && variableRef !== "") {
+      const refName = String(variableRef);
+      boundVariable = await resolveColorVariable(refName, variableCache);
+      if (!boundVariable) {
+        // Never silently drop the token — an unresolvable name would otherwise
+        // produce a raw-value gradient that lints as a violation forever.
+        throw new Error(
+          `stops[${index}]: no COLOR variable matches "${refName}". Create it first (create_variable), or pass a literal hex colour.`,
+        );
+      }
+    }
+
+    const source =
+      raw["color"] !== undefined ? raw["color"] : boundVariable ? resolveVariableColor(boundVariable) : raw;
     let rgba: { r: number; g: number; b: number; a: number } | null = null;
 
     if (typeof source === "string") {
@@ -601,35 +730,36 @@ export async function setGradientFill(params: Record<string, unknown>): Promise<
       throw new Error(`stops[${index}].position must be a number 0-1, got ${JSON.stringify(raw["position"])}.`);
     }
 
-    return {
+    const colorStop: ColorStop = {
       color: { r: rgba.r, g: rgba.g, b: rgba.b, a: rgba.a },
       position,
     };
-  });
-
-  // Figma gradients use a 2x3 affine transform matrix in normalised [0,1] space.
-  // For LINEAR: rotate around centre (0.5, 0.5) by the specified angle.
-  // For RADIAL/ANGULAR/DIAMOND: identity matrix (centred, no rotation).
-  const angleRad = (angle * Math.PI) / 180;
-  const cos = Math.cos(angleRad);
-  const sin = Math.sin(angleRad);
-  const cx = 0.5;
-  const cy = 0.5;
-  const startX = cx - cos * 0.5;
-  const startY = cy - sin * 0.5;
-
-  let gradientTransform: Transform;
-  if (gradientType === "LINEAR") {
-    gradientTransform = [
-      [cos, sin, startX],
-      [-sin, cos, startY],
-    ];
-  } else {
-    gradientTransform = [
-      [1, 0, 0],
-      [0, 1, 0],
-    ];
+    figmaStops.push(
+      boundVariable
+        ? ({
+            ...colorStop,
+            boundVariables: { color: { type: "VARIABLE_ALIAS", id: boundVariable.id } },
+          } as ColorStop)
+        : colorStop,
+    );
   }
+
+  const aspectCorrect = paramsObj["aspect_correct"] !== false;
+  const nodeWidth = Number((node as unknown as { width?: number }).width);
+  const nodeHeight = Number((node as unknown as { height?: number }).height);
+
+  const gradientTransform =
+    gradientType === "LINEAR"
+      ? computeGradientTransform(
+          angle,
+          aspectCorrect && isFinite(nodeWidth) && nodeWidth > 0 ? nodeWidth : 1,
+          aspectCorrect && isFinite(nodeHeight) && nodeHeight > 0 ? nodeHeight : 1,
+          aspectCorrect,
+        )
+      : ([
+          [1, 0, 0],
+          [0, 1, 0],
+        ] as Transform);
 
   const gradientPaint: GradientPaint = {
     type: `GRADIENT_${gradientType}` as GradientPaint["type"],
@@ -645,5 +775,10 @@ export async function setGradientFill(params: Record<string, unknown>): Promise<
     name: node.name,
     gradientType,
     stopsCount: figmaStops.length,
+    boundStopsCount: figmaStops.filter(function (st) {
+      return (st as { boundVariables?: unknown }).boundVariables !== undefined;
+    }).length,
+    aspectCorrect: gradientType === "LINEAR" ? aspectCorrect : false,
+    gradientTransform,
   };
 }

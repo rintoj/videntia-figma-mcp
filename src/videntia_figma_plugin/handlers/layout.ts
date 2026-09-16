@@ -1,4 +1,11 @@
-import { applyWrites, resolveStrict, withWriteReport } from "../utils/write-verify";
+import {
+  applyWrites,
+  guardParentSize,
+  mergeWriteResults,
+  resolveStrict,
+  snapshotParentSize,
+  withWriteReport,
+} from "../utils/write-verify";
 import { findCollection } from "./variables";
 
 // ---------------------------------------------------------------------------
@@ -647,24 +654,43 @@ export async function setLayoutSizing(params: Record<string, unknown>): Promise<
     }
   }
 
+  const strict = resolveStrict(params);
+
+  // Bug #9: a FILL child makes a hugging parent recompute (and silently shrink)
+  // its own size. Snapshot the parent BEFORE the child write so the drift can be
+  // restored (parent FIXED) or reported loudly (parent hugs).
+  const parentSnapshot = snapshotParentSize(parent);
+
   const report = applyWrites(
     sizingNode,
     { layoutSizingHorizontal, layoutSizingVertical },
     {
       label: "set_layout_sizing",
-      strict: resolveStrict(params),
+      strict,
       hint: "Figma recomputed the sizing mode from the node's layout context.",
     },
   );
 
-  return withWriteReport(
-    {
-      nodeId: node.id,
-      name: node.name,
-      layoutSizingHorizontal: sizingNode.layoutSizingHorizontal,
-      layoutSizingVertical: sizingNode.layoutSizingVertical,
-      textAutoResize: node.type === "TEXT" ? (node as TextNode).textAutoResize : undefined,
-    },
-    report,
-  );
+  const parentReport = guardParentSize(parentSnapshot, {
+    label: "set_layout_sizing",
+    strict,
+    childName: node.name,
+  });
+
+  const result: Record<string, unknown> = {
+    nodeId: node.id,
+    name: node.name,
+    layoutSizingHorizontal: sizingNode.layoutSizingHorizontal,
+    layoutSizingVertical: sizingNode.layoutSizingVertical,
+    textAutoResize: node.type === "TEXT" ? (node as TextNode).textAutoResize : undefined,
+  };
+  if (parentSnapshot !== null) {
+    result["parentWidth"] = (parentSnapshot.node as unknown as Record<string, unknown>)["width"];
+    result["parentHeight"] = (parentSnapshot.node as unknown as Record<string, unknown>)["height"];
+  }
+  if (parentReport.warnings.length > 0 && parentReport.noops.length === 0) {
+    result["parentSizeRestored"] = parentReport.warnings;
+  }
+
+  return withWriteReport(result, mergeWriteResults(report, parentReport));
 }

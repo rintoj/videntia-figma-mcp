@@ -374,3 +374,22 @@ export async function buildLookupMaps(): Promise<LookupMaps> {
     textStyleExactMap,
   };
 }
+
+/**
+ * True when EVERY stop of a gradient paint carries a `boundVariables.color` alias.
+ *
+ * Gradient stops CAN be bound (ColorStop.boundVariables, @figma/plugin-typings
+ * 1.136.0 plugin-api.d.ts:4506) even though `setBoundVariableForPaint` refuses a
+ * GradientPaint. A fully bound gradient is genuinely token-driven and must not draw
+ * even a LOW "raw value" nudge.
+ */
+export function isGradientFullyBound(paint: unknown): boolean {
+  if (paint === null || typeof paint !== "object") return false;
+  let stops = (paint as { gradientStops?: Array<{ boundVariables?: { color?: { id?: string } } }> }).gradientStops;
+  if (!Array.isArray(stops) || stops.length === 0) return false;
+  for (let i = 0; i < stops.length; i++) {
+    let bv = stops[i] && stops[i].boundVariables;
+    if (!bv || !bv.color || !bv.color.id) return false;
+  }
+  return true;
+}
