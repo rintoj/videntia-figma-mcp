@@ -1202,6 +1202,27 @@ export function registerDocumentTools(server: McpServer): void {
             .describe(
               "Check screen naming convention: Screen/{Feature}@{Breakpoint}/{View}[/{State}] on any frame starting with 'Screen/' (default: true)",
             ),
+          clippedCorners: mcpBooleanSchema
+            .optional()
+            .describe(
+              "Check for clipping children whose square background paints over a rounded parent's corners (default: true)",
+            ),
+          radiusProportion: mcpBooleanSchema
+            .optional()
+            .describe(
+              "Check for a cornerRadius disproportionate to node height (lens-shaped, but not a deliberate capsule) (default: true)",
+            ),
+          crossAxisAlign: mcpBooleanSchema
+            .optional()
+            .describe(
+              "Check for counterAxisAlignItems=MIN on a container with a fixed cross-axis size (default: true)",
+            ),
+          iconColorConsistency: mcpBooleanSchema
+            .optional()
+            .describe("Check for icons where only some vector parts have a bound colour (default: true)"),
+          fixedWidthSlack: mcpBooleanSchema
+            .optional()
+            .describe("Check for small fixed-width packed rows carrying dead horizontal space (default: true)"),
         })
         .optional()
         .describe("Toggle individual check categories (all enabled by default)"),

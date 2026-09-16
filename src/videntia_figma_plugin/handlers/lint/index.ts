@@ -28,6 +28,11 @@ export async function lintFrame(params: Record<string, unknown>): Promise<LintRe
     autoLayout: true,
     overflow: true,
     screenNaming: true,
+    clippedCorners: true,
+    radiusProportion: true,
+    crossAxisAlign: true,
+    iconColorConsistency: true,
+    fixedWidthSlack: true,
   };
   if (checks) {
     if (checks.rootFrame === false) chk.rootFrame = false;
@@ -40,6 +45,11 @@ export async function lintFrame(params: Record<string, unknown>): Promise<LintRe
     if (checks.autoLayout === false) chk.autoLayout = false;
     if (checks.overflow === false) chk.overflow = false;
     if (checks.screenNaming === false) chk.screenNaming = false;
+    if (checks.clippedCorners === false) chk.clippedCorners = false;
+    if (checks.radiusProportion === false) chk.radiusProportion = false;
+    if (checks.crossAxisAlign === false) chk.crossAxisAlign = false;
+    if (checks.iconColorConsistency === false) chk.iconColorConsistency = false;
+    if (checks.fixedWidthSlack === false) chk.fixedWidthSlack = false;
   }
 
   // Pre-load all lookup maps (parallel)

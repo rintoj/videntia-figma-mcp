@@ -88,6 +88,11 @@ export interface LintChecks {
   autoLayout?: boolean;
   overflow?: boolean;
   screenNaming?: boolean;
+  clippedCorners?: boolean;
+  radiusProportion?: boolean;
+  crossAxisAlign?: boolean;
+  iconColorConsistency?: boolean;
+  fixedWidthSlack?: boolean;
 }
 
 export interface LintOptions {
@@ -106,6 +111,11 @@ export interface ActiveChecks {
   autoLayout: boolean;
   overflow: boolean;
   screenNaming: boolean;
+  clippedCorners: boolean;
+  radiusProportion: boolean;
+  crossAxisAlign: boolean;
+  iconColorConsistency: boolean;
+  fixedWidthSlack: boolean;
 }
 
 export interface ColorVarEntry {
