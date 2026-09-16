@@ -269,6 +269,14 @@ export async function createText(params: Record<string, unknown>): Promise<Recor
     figma.currentPage.appendChild(textNode);
   }
 
+  // Every field must be plain JSON. `fontSize` / `fontName` read back as `figma.mixed`
+  // (a Symbol) on multi-style text, and `fills` is a live readonly proxy — returning
+  // either across the plugin sandbox boundary fails the whole response with
+  // "Cannot unwrap symbol", which is why `$result[N].id` could not resolve for a
+  // batched create_text even though `id` itself was present.
+  const resolvedFontSize = textNode.fontSize;
+  const resolvedFontName = textNode.fontName;
+
   return {
     id: textNode.id,
     name: textNode.name,
@@ -277,11 +285,14 @@ export async function createText(params: Record<string, unknown>): Promise<Recor
     width: textNode.width,
     height: textNode.height,
     characters: textNode.characters,
-    fontSize: textNode.fontSize,
+    fontSize: typeof resolvedFontSize === "number" ? resolvedFontSize : "MIXED",
     fontWeight: fontWeight,
-    fontColor: fontColor,
-    fontName: textNode.fontName,
-    fills: textNode.fills,
+    fontColor: { r: paintStyle.color.r, g: paintStyle.color.g, b: paintStyle.color.b, a: paintStyle.opacity },
+    fontName:
+      resolvedFontName !== null && typeof resolvedFontName === "object"
+        ? { family: (resolvedFontName as FontName).family, style: (resolvedFontName as FontName).style }
+        : "MIXED",
+    fills: [{ type: "SOLID", color: { ...paintStyle.color }, opacity: paintStyle.opacity }],
     parentId: textNode.parent ? textNode.parent.id : undefined,
   };
 }

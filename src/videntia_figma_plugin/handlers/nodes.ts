@@ -1,6 +1,7 @@
 import { customBase64Encode } from "../utils/base64";
 import { debugLog, parseNum } from "../utils/helpers";
 import { selectAndFocusNode } from "../utils/plugin-state";
+import { resolveColor } from "./fills";
 
 function getParam<T>(params: Record<string, unknown>, key: string, defaultVal: T): T {
   const p = params !== null && params !== undefined ? params[key] : undefined;
@@ -22,6 +23,7 @@ export async function createRectangle(params: Record<string, unknown>): Promise<
   const parentId: string | undefined = getOptParam<string>(params, "parentId");
   const layoutPositioning: string | undefined = getOptParam<string>(params, "layoutPositioning");
   const cornerRadius: number | undefined = getOptParam<number>(params, "cornerRadius");
+  const fillColor: unknown = params["fillColor"];
 
   const rect = figma.createRectangle();
   rect.x = x;
@@ -30,6 +32,11 @@ export async function createRectangle(params: Record<string, unknown>): Promise<
   rect.name = name;
   if (cornerRadius !== undefined) {
     rect.cornerRadius = cornerRadius;
+  }
+  // fillColor was previously accepted by the schema but silently ignored.
+  if (fillColor !== undefined && fillColor !== null) {
+    const c = resolveColor({ color: fillColor });
+    rect.fills = [{ type: "SOLID", color: { r: c.r, g: c.g, b: c.b }, opacity: c.a }] as Paint[];
   }
 
   // If parentId is provided, append to that node, otherwise append to current page
@@ -61,7 +68,7 @@ export async function createRectangle(params: Record<string, unknown>): Promise<
     y: rect.y,
     width: rect.width,
     height: rect.height,
-    cornerRadius: rect.cornerRadius,
+    cornerRadius: typeof rect.cornerRadius === "number" ? rect.cornerRadius : "MIXED",
     parentId: rect.parent ? rect.parent.id : undefined,
   };
 }
@@ -79,6 +86,45 @@ export async function createFrame(params: Record<string, unknown>): Promise<Reco
   const clipsContent: boolean | undefined = getOptParam<boolean>(params, "clipsContent");
   const layoutPositioning: string | undefined = getOptParam<string>(params, "layoutPositioning");
   const cornerRadius: number | undefined = getOptParam<number>(params, "cornerRadius");
+  // Auto-layout arguments. These were previously accepted and dropped on the
+  // floor, so `create_frame({ layoutMode: "VERTICAL", ... })` produced a plain
+  // frame and every follow-up spacing call was inert.
+  const layoutMode: string | undefined = getOptParam<string>(params, "layoutMode");
+  const layoutWrap: string | undefined = getOptParam<string>(params, "layoutWrap");
+  const itemSpacing: number | undefined =
+    getOptParam<number>(params, "itemSpacing") ?? getOptParam<number>(params, "gap");
+  const paddingAll: number | undefined = getOptParam<number>(params, "padding");
+  const paddingTop: number | undefined =
+    getOptParam<number>(params, "paddingTop") ?? getOptParam<number>(params, "top") ?? paddingAll;
+  const paddingRight: number | undefined =
+    getOptParam<number>(params, "paddingRight") ?? getOptParam<number>(params, "right") ?? paddingAll;
+  const paddingBottom: number | undefined =
+    getOptParam<number>(params, "paddingBottom") ?? getOptParam<number>(params, "bottom") ?? paddingAll;
+  const paddingLeft: number | undefined =
+    getOptParam<number>(params, "paddingLeft") ?? getOptParam<number>(params, "left") ?? paddingAll;
+  const primaryAxisAlignItems: string | undefined = getOptParam<string>(params, "primaryAxisAlignItems");
+  const counterAxisAlignItems: string | undefined = getOptParam<string>(params, "counterAxisAlignItems");
+  const layoutSizingHorizontal: string | undefined =
+    getOptParam<string>(params, "layoutSizingHorizontal") ?? getOptParam<string>(params, "horizontal");
+  const layoutSizingVertical: string | undefined =
+    getOptParam<string>(params, "layoutSizingVertical") ?? getOptParam<string>(params, "vertical");
+
+  if (layoutMode !== undefined && ["NONE", "HORIZONTAL", "VERTICAL", "GRID"].indexOf(layoutMode) === -1) {
+    throw new Error(`Invalid layoutMode "${layoutMode}" — expected NONE, HORIZONTAL, VERTICAL or GRID`);
+  }
+  if (layoutMode === undefined || layoutMode === "NONE") {
+    const ignored: string[] = [];
+    if (itemSpacing !== undefined) ignored.push("itemSpacing/gap");
+    if (paddingTop !== undefined || paddingRight !== undefined || paddingBottom !== undefined) ignored.push("padding");
+    if (paddingLeft !== undefined && ignored.indexOf("padding") === -1) ignored.push("padding");
+    if (primaryAxisAlignItems !== undefined || counterAxisAlignItems !== undefined) ignored.push("axis alignment");
+    if (ignored.length > 0) {
+      throw new Error(
+        `create_frame was given ${ignored.join(", ")} but no layoutMode — those properties are inert on a ` +
+          `frame without auto layout and Figma discards them. Pass layoutMode: "HORIZONTAL" | "VERTICAL" | "GRID".`,
+      );
+    }
+  }
 
   const frame = figma.createFrame();
   frame.x = x;
@@ -143,6 +189,40 @@ export async function createFrame(params: Record<string, unknown>): Promise<Reco
     figma.currentPage.appendChild(frame);
   }
 
+  // Auto layout is applied after appendChild: layoutSizing* is only meaningful
+  // once the frame has a parent, and layoutMode must be set before the padding /
+  // spacing / alignment properties it governs.
+  if (layoutMode !== undefined && layoutMode !== "NONE") {
+    frame.layoutMode = layoutMode as "HORIZONTAL" | "VERTICAL" | "GRID";
+    if (layoutWrap !== undefined) {
+      frame.layoutWrap = layoutWrap as "NO_WRAP" | "WRAP";
+    }
+    if (paddingTop !== undefined) frame.paddingTop = paddingTop;
+    if (paddingRight !== undefined) frame.paddingRight = paddingRight;
+    if (paddingBottom !== undefined) frame.paddingBottom = paddingBottom;
+    if (paddingLeft !== undefined) frame.paddingLeft = paddingLeft;
+    if (primaryAxisAlignItems !== undefined) {
+      frame.primaryAxisAlignItems = primaryAxisAlignItems as "MIN" | "CENTER" | "MAX" | "SPACE_BETWEEN";
+    }
+    if (counterAxisAlignItems !== undefined) {
+      frame.counterAxisAlignItems = counterAxisAlignItems as "MIN" | "CENTER" | "MAX" | "BASELINE";
+    }
+    if (itemSpacing !== undefined) {
+      if (layoutMode === "GRID") {
+        frame.gridRowGap = itemSpacing;
+        frame.gridColumnGap = itemSpacing;
+      } else {
+        frame.itemSpacing = itemSpacing;
+      }
+    }
+    if (layoutSizingHorizontal !== undefined) {
+      frame.layoutSizingHorizontal = layoutSizingHorizontal as "FIXED" | "HUG" | "FILL";
+    }
+    if (layoutSizingVertical !== undefined) {
+      frame.layoutSizingVertical = layoutSizingVertical as "FIXED" | "HUG" | "FILL";
+    }
+  }
+
   // Set layoutPositioning after appendChild (node must be attached first)
   if (layoutPositioning !== undefined) {
     (frame as unknown as { layoutPositioning: string }).layoutPositioning = layoutPositioning;
@@ -163,7 +243,94 @@ export async function createFrame(params: Record<string, unknown>): Promise<Reco
     strokeWeight: frame.strokeWeight,
     clipsContent: frame.clipsContent,
     cornerRadius: frame.cornerRadius,
+    layoutMode: frame.layoutMode,
+    itemSpacing: frame.layoutMode === "NONE" ? undefined : frame.itemSpacing,
+    paddingTop: frame.layoutMode === "NONE" ? undefined : frame.paddingTop,
+    paddingRight: frame.layoutMode === "NONE" ? undefined : frame.paddingRight,
+    paddingBottom: frame.layoutMode === "NONE" ? undefined : frame.paddingBottom,
+    paddingLeft: frame.layoutMode === "NONE" ? undefined : frame.paddingLeft,
     parentId: frame.parent ? frame.parent.id : undefined,
+  };
+}
+
+/**
+ * Move a node to ABSOLUTE canvas coordinates.
+ *
+ * `move_node` sets `node.x`/`node.y`, which Figma interprets relative to the
+ * node's PARENT. That is correct but routinely surprising right after a
+ * reparent, where the same numbers suddenly mean something else. This handler
+ * takes absolute canvas coordinates (the frame of reference reported by
+ * `absoluteBoundingBox` and by every Figma inspector readout) and converts by
+ * applying the delta between the node's current absolute position and the
+ * target, so it works at any nesting depth and inside auto-layout parents that
+ * ignore direct x/y writes (those still report the change as a no-op).
+ */
+export async function moveNodeAbsolute(params: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const nodeId = getOptParam<string>(params, "nodeId");
+  const x = getOptParam<number>(params, "x");
+  const y = getOptParam<number>(params, "y");
+
+  if (!nodeId) {
+    throw new Error("Missing nodeId parameter");
+  }
+  if (x === undefined && y === undefined) {
+    throw new Error("move_node_absolute requires at least one of x or y (absolute canvas coordinates)");
+  }
+
+  const node = await figma.getNodeByIdAsync(nodeId);
+  if (!node) {
+    throw new Error(`Node not found with ID: ${nodeId}`);
+  }
+  if (!("x" in node) || !("y" in node)) {
+    throw new Error(`Node does not support position: ${nodeId}`);
+  }
+
+  const positioned = node as SceneNode & { x: number; y: number };
+  const box = (positioned as unknown as { absoluteBoundingBox?: { x: number; y: number } }).absoluteBoundingBox;
+  const transform = (positioned as unknown as { absoluteTransform?: number[][] }).absoluteTransform;
+
+  // absoluteBoundingBox is the rendered box (includes rotation/effects bounds);
+  // absoluteTransform's translation column is the node's own origin. Prefer the
+  // transform so a rotated node lands its ORIGIN on the requested point, and
+  // fall back to the bounding box when the transform is unavailable.
+  let currentAbsX: number | undefined;
+  let currentAbsY: number | undefined;
+  if (transform && transform[0] && transform[1]) {
+    currentAbsX = transform[0][2];
+    currentAbsY = transform[1][2];
+  } else if (box) {
+    currentAbsX = box.x;
+    currentAbsY = box.y;
+  }
+  if (currentAbsX === undefined || currentAbsY === undefined) {
+    throw new Error(`Cannot determine absolute position for node: ${nodeId}`);
+  }
+
+  const before = { x: positioned.x, y: positioned.y };
+  if (x !== undefined) positioned.x = before.x + (x - currentAbsX);
+  if (y !== undefined) positioned.y = before.y + (y - currentAbsY);
+
+  const afterBox = (positioned as unknown as { absoluteBoundingBox?: { x: number; y: number } }).absoluteBoundingBox;
+  const applied = positioned.x !== before.x || positioned.y !== before.y;
+  const parent = positioned.parent as (BaseNode & { layoutMode?: string }) | null;
+  const autoLayoutParent = !!parent && !!parent.layoutMode && parent.layoutMode !== "NONE";
+
+  return {
+    id: positioned.id,
+    name: positioned.name,
+    x: positioned.x,
+    y: positioned.y,
+    absoluteX: afterBox ? afterBox.x : undefined,
+    absoluteY: afterBox ? afterBox.y : undefined,
+    parentId: positioned.parent ? positioned.parent.id : undefined,
+    applied,
+    ...(autoLayoutParent && !applied
+      ? {
+          warning:
+            "Parent uses auto layout, which positions its children — absolute x/y were ignored by Figma. " +
+            "Reorder the child or change the parent's layout instead.",
+        }
+      : {}),
   };
 }
 
@@ -239,11 +406,17 @@ export async function resizeNode(params: Record<string, unknown>): Promise<Recor
     throw new Error(`Node not found with ID: ${nodeId}`);
   }
 
-  if (!("resize" in node)) {
+  // SectionNode has no resize() — it only exposes resizeWithoutConstraints().
+  if ("resize" in node) {
+    (node as FrameNode).resize(width, height);
+  } else if ("resizeWithoutConstraints" in node) {
+    (node as unknown as { resizeWithoutConstraints: (w: number, h: number) => void }).resizeWithoutConstraints(
+      width,
+      height,
+    );
+  } else {
     throw new Error(`Node does not support resizing: ${nodeId}`);
   }
-
-  (node as FrameNode).resize(width, height);
 
   return {
     id: node.id,
@@ -627,31 +800,41 @@ export async function setCornerRadius(params: Record<string, unknown>): Promise<
 
   const cornerNode = node as FrameNode;
 
-  // If corners array is provided, set individual corner radii
-  if (corners && Array.isArray(corners) && corners.length === 4) {
-    if ("topLeftRadius" in node) {
-      // Node supports individual corner radii
-      if (corners[0] === true) cornerNode.topLeftRadius = radius;
-      if (corners[1] === true) cornerNode.topRightRadius = radius;
-      if (corners[2] === true) cornerNode.bottomRightRadius = radius;
-      if (corners[3] === true) cornerNode.bottomLeftRadius = radius;
-    } else {
-      // Node only supports uniform corner radius
-      cornerNode.cornerRadius = radius;
-    }
+  // `corners` selects WHICH corners get `radius`; unselected corners are explicitly
+  // flattened to 0 so the array is a full specification rather than an additive mask.
+  // Accepts [tl, tr, br, bl] booleans or {topLeft,topRight,bottomRight,bottomLeft}.
+  let cornerFlags: boolean[] | undefined;
+  if (Array.isArray(corners) && corners.length === 4) {
+    cornerFlags = [corners[0] === true, corners[1] === true, corners[2] === true, corners[3] === true];
+  } else if (corners !== null && typeof corners === "object" && !Array.isArray(corners)) {
+    const c = corners as unknown as Record<string, unknown>;
+    cornerFlags = [c.topLeft !== false, c.topRight !== false, c.bottomRight !== false, c.bottomLeft !== false];
+  }
+
+  const supportsPerCorner = "topLeftRadius" in node;
+  if (cornerFlags && supportsPerCorner) {
+    cornerNode.topLeftRadius = cornerFlags[0] ? radius : 0;
+    cornerNode.topRightRadius = cornerFlags[1] ? radius : 0;
+    cornerNode.bottomRightRadius = cornerFlags[2] ? radius : 0;
+    cornerNode.bottomLeftRadius = cornerFlags[3] ? radius : 0;
   } else {
-    // Set uniform corner radius
+    // No per-corner support (or no corners array) — uniform radius.
     cornerNode.cornerRadius = radius;
   }
+
+  // `cornerRadius` reads back as `figma.mixed` (a Symbol) when the four corners differ.
+  // Returning that Symbol is what produced "Cannot unwrap symbol" across the sandbox
+  // boundary, so surface it as the string "MIXED" instead.
+  const uniformRadius: unknown = "cornerRadius" in node ? cornerNode.cornerRadius : undefined;
 
   return {
     id: node.id,
     name: node.name,
-    cornerRadius: "cornerRadius" in node ? cornerNode.cornerRadius : undefined,
-    topLeftRadius: "topLeftRadius" in node ? cornerNode.topLeftRadius : undefined,
-    topRightRadius: "topRightRadius" in node ? cornerNode.topRightRadius : undefined,
-    bottomRightRadius: "bottomRightRadius" in node ? cornerNode.bottomRightRadius : undefined,
-    bottomLeftRadius: "bottomLeftRadius" in node ? cornerNode.bottomLeftRadius : undefined,
+    cornerRadius: typeof uniformRadius === "number" ? uniformRadius : uniformRadius === undefined ? undefined : "MIXED",
+    topLeftRadius: supportsPerCorner ? cornerNode.topLeftRadius : undefined,
+    topRightRadius: supportsPerCorner ? cornerNode.topRightRadius : undefined,
+    bottomRightRadius: supportsPerCorner ? cornerNode.bottomRightRadius : undefined,
+    bottomLeftRadius: supportsPerCorner ? cornerNode.bottomLeftRadius : undefined,
   };
 }
 
@@ -944,4 +1127,89 @@ export async function insertChild(params: Record<string, unknown>): Promise<Reco
     console.error(`Error inserting child: ${(error as Error).message}`, error);
     throw new Error(`Error inserting child: ${(error as Error).message}`);
   }
+}
+
+/**
+ * Toggle `clipsContent` on a frame-like node (FRAME, COMPONENT, COMPONENT_SET,
+ * INSTANCE). Clipping is load-bearing for rounded containers.
+ * SectionNode has no clipsContent — it is rejected with a clear error.
+ */
+export async function setClipsContent(params: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const nodeId = getOptParam<string>(params, "nodeId");
+  const clipsContent = getOptParam<boolean>(params, "clipsContent");
+
+  if (!nodeId) {
+    throw new Error("Missing nodeId parameter");
+  }
+  if (clipsContent === undefined) {
+    throw new Error("Missing clipsContent parameter (boolean)");
+  }
+
+  const node = await figma.getNodeByIdAsync(nodeId);
+  if (!node) {
+    throw new Error(`Node not found with ID: ${nodeId}`);
+  }
+  if (!("clipsContent" in node)) {
+    throw new Error(`Node does not support clipsContent: ${nodeId} (type: ${node.type})`);
+  }
+
+  const target = node as FrameNode;
+  target.clipsContent = clipsContent === true || String(clipsContent) === "true";
+
+  return {
+    id: node.id,
+    name: node.name,
+    type: node.type,
+    clipsContent: target.clipsContent,
+  };
+}
+
+/**
+ * Set node `opacity` (0–1) and optionally `blendMode`, so alpha does not have
+ * to be baked into 8-digit hex fills.
+ */
+export async function setOpacity(params: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const nodeId = getOptParam<string>(params, "nodeId");
+  const opacityRaw = getOptParam<number | string>(params, "opacity");
+  const blendMode = getOptParam<string>(params, "blendMode");
+
+  if (!nodeId) {
+    throw new Error("Missing nodeId parameter");
+  }
+  if (opacityRaw === undefined && blendMode === undefined) {
+    throw new Error("Provide at least one of: opacity, blendMode");
+  }
+
+  const node = await figma.getNodeByIdAsync(nodeId);
+  if (!node) {
+    throw new Error(`Node not found with ID: ${nodeId}`);
+  }
+
+  const target = node as unknown as { opacity: number; blendMode: BlendMode };
+
+  if (opacityRaw !== undefined) {
+    const opacity = Number(opacityRaw);
+    if (isNaN(opacity) || opacity < 0 || opacity > 1) {
+      throw new Error(`Invalid opacity "${opacityRaw}". Must be a number between 0 and 1.`);
+    }
+    if (!("opacity" in node)) {
+      throw new Error(`Node does not support opacity: ${nodeId} (type: ${node.type})`);
+    }
+    target.opacity = opacity;
+  }
+
+  if (blendMode !== undefined) {
+    if (!("blendMode" in node)) {
+      throw new Error(`Node does not support blendMode: ${nodeId} (type: ${node.type})`);
+    }
+    target.blendMode = String(blendMode).toUpperCase() as BlendMode;
+  }
+
+  return {
+    id: node.id,
+    name: node.name,
+    type: node.type,
+    opacity: "opacity" in node ? target.opacity : undefined,
+    blendMode: "blendMode" in node ? target.blendMode : undefined,
+  };
 }

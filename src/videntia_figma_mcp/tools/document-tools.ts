@@ -10,9 +10,13 @@ import {
   fetchNodesAsJsx,
   fieldsSchema,
   ID_FIELDS,
+  nodeOutputFormatSchema,
+  nodeFormatAliasSchema,
 } from "../utils/output-format.js";
 import { convertToJsx } from "../utils/figma-to-jsx.js";
+import { formatCompact, formatSummary, extractGeometry, violationId } from "../utils/compact-node.js";
 import { filterNodeData, normalizeNodeId } from "../utils/figma-helpers.js";
+import { postProcessExport, writeExportToPath } from "../utils/export-image-post.js";
 import type {
   DocumentInfoResult,
   AnnotationsResult,
@@ -808,19 +812,39 @@ export function registerDocumentTools(server: McpServer): void {
       fields: coerceArray(fieldsSchema)
         .optional()
         .describe("Optional array of fields to include. Controls which properties appear in both JSX and JSON output."),
+      topLevelOnly: mcpBooleanSchema
+        .optional()
+        .describe(
+          "When true, only DIRECT children of nodeId are considered (no recursion into descendants). Default: false (full subtree scan).",
+        ),
       depth: depthSchema,
-      output_format: outputFormatSchema,
+      output_format: nodeOutputFormatSchema,
+      format: nodeFormatAliasSchema,
     },
-    async ({ nodeId, types, limit, fields, depth, output_format }) => {
+    async ({ nodeId, types, limit, fields, depth, output_format, format, topLevelOnly }) => {
       nodeId = normalizeNodeId(nodeId);
       try {
-        const result = await sendCommandToFigma("scan_nodes_by_types", {
+        const result: any = await sendCommandToFigma("scan_nodes_by_types", {
           nodeId,
           types,
           limit,
+          topLevelOnly: topLevelOnly === true,
           depth: resolveDepth(depth),
         });
-        return formatNodeResult(result, output_format, fields);
+        const returned = (result?.nodes ?? []).length;
+        const totalFound = typeof result?.totalFound === "number" ? result.totalFound : returned;
+        const truncated = result?.truncated === true || totalFound > returned;
+        const prefix = [
+          `scan_nodes_by_types: ${returned} of ${totalFound} matching node(s) returned` +
+            (topLevelOnly === true ? " (topLevelOnly: direct children only)" : " (full subtree)") +
+            `; truncated: ${truncated}`,
+        ];
+        if (truncated) {
+          prefix.push(
+            `WARNING: results are INCOMPLETE — ${totalFound - returned} match(es) omitted by limit=${result?.limit ?? limit ?? 50}. Do NOT treat this as a full sweep; raise \`limit\` to see the rest.`,
+          );
+        }
+        return formatNodeResult(result, format ?? output_format, fields, prefix);
       } catch (error) {
         return {
           content: [
@@ -877,21 +901,27 @@ export function registerDocumentTools(server: McpServer): void {
    */
   function formatNodeResult(
     result: unknown,
-    output_format: "jsx" | "json",
+    output_format: "jsx" | "json" | "compact",
     fields?: string[],
+    prefixLines?: string[],
   ): { content: Array<{ type: "text"; text: string }> } {
     const selection: any[] = (result as any)?.nodes ?? [];
     const processed = selection
       .map((n: any) => stripIdFields(n, fields))
       .map((n: any) => filterNodeData(n, fields as any));
+    const prefix = prefixLines && prefixLines.length > 0 ? `${prefixLines.join("\n")}\n` : "";
     if (processed.length === 0) {
-      const text = output_format === "jsx" ? "<!-- No nodes found -->" : JSON.stringify([]);
-      return { content: [{ type: "text", text }] };
+      const empty =
+        output_format === "jsx" ? "<!-- No nodes found -->" : output_format === "compact" ? "" : JSON.stringify([]);
+      return { content: [{ type: "text", text: `${prefix}${empty}` }] };
     }
     if (output_format === "jsx") {
-      return { content: [{ type: "text", text: convertToJsx(processed) }] };
+      return { content: [{ type: "text", text: `${prefix}${convertToJsx(processed)}` }] };
     }
-    return { content: [{ type: "text", text: JSON.stringify(processed) }] };
+    if (output_format === "compact") {
+      return { content: [{ type: "text", text: `${prefix}${formatCompact(processed)}` }] };
+    }
+    return { content: [{ type: "text", text: `${prefix}${JSON.stringify(processed)}` }] };
   }
 
   // Selection Tool
@@ -932,13 +962,14 @@ export function registerDocumentTools(server: McpServer): void {
         .optional()
         .describe("Optional array of fields to include. Controls which properties appear in both JSX and JSON output."),
       depth: depthSchema,
-      output_format: outputFormatSchema,
+      output_format: nodeOutputFormatSchema,
+      format: nodeFormatAliasSchema,
     },
-    async ({ nodeId, fields, depth, output_format }) => {
+    async ({ nodeId, fields, depth, output_format, format }) => {
       nodeId = normalizeNodeId(nodeId);
       try {
         const result = await sendCommandToFigma("get_node_info", { nodeIds: [nodeId], depth: resolveDepth(depth) });
-        return formatNodeResult(result, output_format, fields);
+        return formatNodeResult(result, format ?? output_format, fields);
       } catch (error) {
         return {
           content: [
@@ -962,19 +993,117 @@ export function registerDocumentTools(server: McpServer): void {
         .optional()
         .describe("Optional array of fields to include. Controls which properties appear in both JSX and JSON output."),
       depth: depthSchema,
-      output_format: outputFormatSchema,
+      output_format: nodeOutputFormatSchema,
+      format: nodeFormatAliasSchema,
     },
-    async ({ nodeIds, fields, depth, output_format }) => {
+    async ({ nodeIds, fields, depth, output_format, format }) => {
       nodeIds = nodeIds.map(normalizeNodeId);
       try {
         const result = await sendCommandToFigma("get_node_info", { nodeIds, depth: resolveDepth(depth) });
-        return formatNodeResult(result, output_format, fields);
+        return formatNodeResult(result, format ?? output_format, fields);
       } catch (error) {
         return {
           content: [
             {
               type: "text",
               text: `Error getting nodes info for ${nodeIds.length} node(s): ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  // Measure Node Tool — geometry only, no styles, no JSX
+  server.tool(
+    "measure_node",
+    "Get ONLY the geometry of one or more nodes: x, y, width, height, rotation and absoluteBoundingBox. Use this instead of get_node_info whenever you just need coordinates or sizes — it returns a fraction of the tokens. Optionally include child geometry via include_children/depth.",
+    {
+      nodeId: z
+        .union([z.string(), coerceArray(z.array(z.string()))])
+        .describe("Node ID (or array of node IDs) to measure"),
+      include_children: mcpBooleanSchema
+        .optional()
+        .describe("Include geometry for descendant nodes as well. Default: false."),
+      depth: z.coerce
+        .number()
+        .int()
+        .min(0)
+        .optional()
+        .describe("How many levels of children to include when include_children is true. Default: 1."),
+      output_format: z
+        .enum(["json", "compact"])
+        .optional()
+        .default("json")
+        .describe('Output format: "json" (default) or "compact" (one line per node).'),
+    },
+    async ({ nodeId, include_children, depth, output_format }) => {
+      const nodeIds = (Array.isArray(nodeId) ? nodeId : [nodeId]).map(normalizeNodeId);
+      const includeChildren = include_children === true;
+      const childDepth = includeChildren ? (depth ?? 1) : 0;
+      try {
+        const result: any = await sendCommandToFigma("get_node_info", { nodeIds, depth: childDepth });
+        const nodes: any[] = result?.nodes ?? [];
+        const geometry = nodes.map((n) => extractGeometry(n, includeChildren, childDepth));
+        if (output_format === "compact") {
+          const lines: string[] = [];
+          const walk = (list: any[], indent: number) => {
+            for (const g of list) {
+              lines.push(
+                `${"  ".repeat(indent)}${g.name} [${g.type}] ${g.id} ${g.x ?? "-"},${g.y ?? "-"} ${g.width ?? "-"}x${g.height ?? "-"}${g.rotation ? ` rot=${g.rotation}` : ""}`,
+              );
+              if (Array.isArray(g.children)) walk(g.children, indent + 1);
+            }
+          };
+          walk(geometry, 0);
+          return { content: [{ type: "text" as const, text: lines.join("\n") || "No nodes found" }] };
+        }
+        return { content: [{ type: "text" as const, text: JSON.stringify(geometry) }] };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: `Error measuring node(s) "${nodeIds.join(", ")}": ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  // Node Summary Tool — one line per node
+  server.tool(
+    "get_node_summary",
+    "Get a one-line-per-node summary: name, type, id, child count and key styles (layout, fill, stroke, radius, text style). Use this to orient inside a frame before drilling in with get_node_info — it is far cheaper than full node info.",
+    {
+      nodeId: z
+        .union([z.string(), coerceArray(z.array(z.string()))])
+        .describe("Node ID (or array of node IDs) to summarize"),
+      include_children: mcpBooleanSchema
+        .optional()
+        .describe("Also summarize the direct children of each node. Default: false."),
+    },
+    async ({ nodeId, include_children }) => {
+      const nodeIds = (Array.isArray(nodeId) ? nodeId : [nodeId]).map(normalizeNodeId);
+      const includeChildren = include_children === true;
+      try {
+        const result: any = await sendCommandToFigma("get_node_info", { nodeIds, depth: includeChildren ? 1 : 0 });
+        const nodes: any[] = result?.nodes ?? [];
+        const lines: string[] = [];
+        for (const n of nodes) {
+          lines.push(formatSummary([n]));
+          if (includeChildren && Array.isArray(n.children)) {
+            for (const c of n.children) lines.push(`  ${formatSummary([c])}`);
+          }
+        }
+        return { content: [{ type: "text" as const, text: lines.filter(Boolean).join("\n") || "No nodes found" }] };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: `Error summarizing node(s) "${nodeIds.join(", ")}": ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };
@@ -1226,19 +1355,39 @@ export function registerDocumentTools(server: McpServer): void {
         })
         .optional()
         .describe("Toggle individual check categories (all enabled by default)"),
+      summary_only: mcpBooleanSchema
+        .optional()
+        .describe(
+          "When true, return ONLY the per-category compliance scores and severity counts — no individual violation rows. Use for a quick pass/fail check before pulling the full report.",
+        ),
+      ignore_rules: z
+        .array(z.string())
+        .optional()
+        .describe(
+          'Deliberate, documented exceptions to excuse for this run — brand gradients, logo artwork, an intentionally filled icon. Accepts category names ("backgroundFills"), check names ("colors"), "category:property" pairs ("backgroundFills:fills[0]") or "*". Suppressed violations are removed from the verdict but reported separately so the exception stays visible. A per-node alternative also exists: set plugin data "lint.ignore" on a node, or suffix its name with "[lint-ignore: backgroundFills]" / "[role: artwork]" — both are inherited by descendants, and role=artwork exempts bespoke artwork from every token-binding rule.',
+        ),
     },
-    async ({ nodeId, fix, checks }) => {
+    async ({ nodeId, fix, checks, summary_only, ignore_rules }) => {
       nodeId = normalizeNodeId(nodeId);
       try {
         const result = await sendCommandToFigma<LintFrameResult>(
           "lint_frame",
-          { nodeId, fix: fix ?? false, checks },
+          { nodeId, fix: fix ?? false, checks, ignore_rules },
           60000,
         );
 
+        // Attach a stable id to every violation so repeat runs can be diffed.
+        // Derived from nodeId + category + rule/property (+ severity) — deterministic,
+        // independent of traversal order or run time.
+        const violations: LintViolation[] = (result.violations ?? []).map((v: LintViolation) => ({
+          ...v,
+          id: (v as any).id ?? violationId([v.nodeId, v.category, v.property, v.severity]),
+        }));
+        result.violations = violations;
+
         // Partition violations into fixed vs remaining (only meaningful when fix=true)
-        const fixedViolations = result.violations.filter((v: LintViolation) => v.fixed === true);
-        const remainingViolations = result.violations.filter((v: LintViolation) => v.fixed !== true);
+        const fixedViolations = violations.filter((v: LintViolation) => v.fixed === true);
+        const remainingViolations = violations.filter((v: LintViolation) => v.fixed !== true);
 
         // Format as markdown compliance report
         const lines: string[] = [];
@@ -1248,6 +1397,12 @@ export function registerDocumentTools(server: McpServer): void {
         lines.push(`**Node:** ${result.nodeId} (${result.nodeType}) | **Nodes scanned:** ${result.totalNodes}`);
         if (fix && fixedViolations.length > 0) {
           lines.push(`**Auto-fixed:** ${fixedViolations.length} violation${fixedViolations.length !== 1 ? "s" : ""}`);
+        }
+        const suppressedViolations = result.suppressedViolations ?? [];
+        if (suppressedViolations.length > 0) {
+          lines.push(
+            `**Suppressed:** ${suppressedViolations.length} (accepted exceptions — excluded from the verdict, listed at the end)`,
+          );
         }
         lines.push("");
 
@@ -1305,6 +1460,14 @@ export function registerDocumentTools(server: McpServer): void {
           }
         }
 
+        if (summary_only === true) {
+          lines.push("");
+          lines.push(
+            `Violation rows omitted (summary_only). Pending: ${remainingViolations.length}, fixed: ${fixedViolations.length}. Re-run without summary_only for details.`,
+          );
+          return { content: [{ type: "text" as const, text: lines.join("\n") }] };
+        }
+
         // Fixed violations (shown only in fix mode)
         if (fix && fixedViolations.length > 0) {
           lines.push("");
@@ -1334,12 +1497,12 @@ export function registerDocumentTools(server: McpServer): void {
             lines.push("");
             lines.push(`### ${sev} (${sevViolations.length})`);
             lines.push("");
-            lines.push("| Node | Type | Category | Property | Message |");
-            lines.push("|------|------|----------|----------|---------|");
+            lines.push("| ID | Node | Type | Category | Property | Message |");
+            lines.push("|----|------|------|----------|----------|---------|");
             for (const v of sevViolations) {
               const esc = (str: string) => (str || "-").replace(/\|/g, "\\|");
               lines.push(
-                `| ${esc(v.nodeName)} (${esc(v.nodeId)}) | ${esc(v.nodeType)} | ${esc(v.category)} | ${esc(v.property)} | ${esc(v.message)} |`,
+                `| ${esc((v as any).id)} | ${esc(v.nodeName)} (${esc(v.nodeId)}) | ${esc(v.nodeType)} | ${esc(v.category)} | ${esc(v.property)} | ${esc(v.message)} |`,
               );
             }
           }
@@ -1367,6 +1530,24 @@ export function registerDocumentTools(server: McpServer): void {
         if (result.violationsCapped) {
           lines.push("");
           lines.push("**Note:** Violations list was capped at 500 entries. Additional violations may exist.");
+        }
+
+        // Accepted exceptions stay visible — they are excluded from the
+        // verdict, not hidden, so a stale suppression can still be spotted.
+        if (!summary_only && suppressedViolations.length > 0) {
+          lines.push("");
+          lines.push(`## Suppressed (${suppressedViolations.length}) — not counted in the verdict`);
+          lines.push("");
+          lines.push("| Node | Property | Rule | Suppressed by |");
+          lines.push("|------|----------|------|---------------|");
+          for (const v of suppressedViolations.slice(0, 100)) {
+            lines.push(
+              `| ${v.nodeName} (${v.nodeId}) | ${v.property} | ${v.category} | ${(v as LintViolation & { suppressedBy?: string }).suppressedBy ?? "—"} |`,
+            );
+          }
+          if (suppressedViolations.length > 100) {
+            lines.push(`\n_${suppressedViolations.length - 100} more suppressed entries not shown._`);
+          }
         }
 
         return {
@@ -1667,7 +1848,12 @@ export function registerDocumentTools(server: McpServer): void {
   // Export Node as Image Tool
   server.tool(
     "export_node_as_image",
-    "Export a node as a base64 image (PNG/JPG/SVG/PDF), or as a base64 video (MP4/GIF/WEBM) from Figma. Video export requires the node to be a top-level frame (a direct child of a page) with animated content — a nested animated frame or an individual keyframed layer is rejected.",
+    "Export a node as an image (PNG/JPG/SVG/PDF) or video (MP4/GIF/WEBM) from Figma. " +
+      "STRONGLY PREFER `save_to_path` for 'does this look right' / visual-check work: it writes the file to disk and returns ONLY {path,width,height,bytes,format} — no inline image, so it costs a few tokens instead of tens of thousands. " +
+      "Only omit `save_to_path` when you genuinely need to SEE the pixels in this conversation. " +
+      "Inline returns are capped at 1200px on the longest edge unless `allow_full_resolution`, `max_width` or `max_height` is set. " +
+      "Use `region` to crop, `max_width`/`max_height` to downscale, and `format: 'JPG'` with `jpeg_quality` for cheap review screenshots. " +
+      "Video export requires the node to be a top-level frame (a direct child of a page) with animated content — a nested animated frame or an individual keyframed layer is rejected.",
     {
       nodeId: z.string().describe("The ID of the node to export"),
       format: z
@@ -1705,8 +1891,66 @@ export function registerDocumentTools(server: McpServer): void {
         .describe(
           "Video size constraint value — video formats only. For SCALE, must be one of 0.5/0.75/1/1.5/2/3/4. For WIDTH/HEIGHT, a pixel value (capped at 4K/3840x2160).",
         ),
+      save_to_path: z
+        .string()
+        .optional()
+        .describe(
+          "Absolute file path to write the export to. STRONGLY PREFERRED for visual checks: returns only {path,width,height,bytes,format} instead of an inline base64 image. Parent directory must exist; overwrites.",
+        ),
+      max_width: z.coerce
+        .number()
+        .int()
+        .positive()
+        .optional()
+        .describe("Downscale the exported image so its width is at most this many pixels (image formats only)."),
+      max_height: z.coerce
+        .number()
+        .int()
+        .positive()
+        .optional()
+        .describe("Downscale the exported image so its height is at most this many pixels (image formats only)."),
+      allow_full_resolution: mcpBooleanSchema
+        .optional()
+        .describe(
+          "Return the image inline at full resolution, bypassing the default 1200px longest-edge cap. Expensive — prefer save_to_path.",
+        ),
+      region: z
+        .object({
+          x: z.coerce.number(),
+          y: z.coerce.number(),
+          width: z.coerce.number().positive(),
+          height: z.coerce.number().positive(),
+        })
+        .optional()
+        .describe(
+          "Crop the export to this rectangle, in exported-image pixels (i.e. after `scale` is applied), origin at the node's top-left. PNG/JPG only.",
+        ),
+      jpeg_quality: z.coerce
+        .number()
+        .int()
+        .min(1)
+        .max(100)
+        .optional()
+        .describe(
+          "JPEG encode quality 1-100 — format 'JPG' only. Lower values shrink review screenshots dramatically. Unrelated to the video `quality` preset.",
+        ),
     },
-    async ({ nodeId, format, scale, fps, quality, loopCount, constraintType, constraintValue }) => {
+    async ({
+      nodeId,
+      format,
+      scale,
+      fps,
+      quality,
+      loopCount,
+      constraintType,
+      constraintValue,
+      save_to_path,
+      max_width,
+      max_height,
+      allow_full_resolution,
+      region,
+      jpeg_quality,
+    }) => {
       nodeId = normalizeNodeId(nodeId);
       const isVideo = format === "MP4" || format === "GIF" || format === "WEBM";
       try {
@@ -1728,6 +1972,21 @@ export function registerDocumentTools(server: McpServer): void {
             format: string;
             byteLength: number;
           };
+          if (save_to_path) {
+            const written = await writeExportToPath(save_to_path, typedResult.videoData);
+            return {
+              content: [
+                {
+                  type: "text" as const,
+                  text: JSON.stringify(
+                    { path: written.path, bytes: written.bytes, format: typedResult.format },
+                    null,
+                    2,
+                  ),
+                },
+              ],
+            };
+          }
           return {
             content: [
               {
@@ -1757,27 +2016,61 @@ export function registerDocumentTools(server: McpServer): void {
           exportedHeight: number;
         };
 
+        const resolvedFormat = format || "PNG";
+
+        // Server-side crop / downscale / re-encode. Saving to disk keeps full
+        // resolution — the 1200px cap only guards inline (token-costly) returns.
+        const processed = await postProcessExport({
+          base64: typedResult.imageData,
+          format: resolvedFormat,
+          maxWidth: max_width,
+          maxHeight: max_height,
+          allowFullResolution: allow_full_resolution === true || !!save_to_path,
+          explicitlyConstrained: constraintValue !== undefined,
+          region,
+          jpegQuality: jpeg_quality,
+        });
+
+        const width = processed.width ?? typedResult.exportedWidth;
+        const height = processed.height ?? typedResult.exportedHeight;
+
+        if (save_to_path) {
+          const written = await writeExportToPath(save_to_path, processed.base64);
+          return {
+            content: [
+              {
+                type: "text" as const,
+                text: JSON.stringify(
+                  { path: written.path, width, height, bytes: written.bytes, format: resolvedFormat },
+                  null,
+                  2,
+                ),
+              },
+            ],
+          };
+        }
+
         const content: Array<{ type: "text"; text: string } | { type: "image"; data: string; mimeType: string }> = [];
 
         // Add warning if scale was auto-reduced or image is large
         const wasScaleReduced = typedResult.actualScale < typedResult.requestedScale;
-        const isLargeImage = typedResult.exportedWidth > 4000 || typedResult.exportedHeight > 4000;
 
-        if (wasScaleReduced) {
-          content.push({
-            type: "text",
-            text: `⚠️ Image was auto-scaled from ${typedResult.requestedScale}x to ${typedResult.actualScale.toFixed(2)}x to fit within size limits. Original: ${typedResult.originalWidth}x${typedResult.originalHeight}px, Exported: ${typedResult.exportedWidth}x${typedResult.exportedHeight}px.`,
-          });
-        } else if (isLargeImage) {
-          content.push({
-            type: "text",
-            text: `ℹ️ Large image exported (${typedResult.exportedWidth}x${typedResult.exportedHeight}px).`,
-          });
-        }
+        const summary = [
+          `Exported "${nodeId}" as ${resolvedFormat} — ${width}x${height}px, ${(processed.bytes / 1024).toFixed(0)} KB (original node ${typedResult.originalWidth}x${typedResult.originalHeight}px).`,
+          wasScaleReduced
+            ? `⚠️ Scale auto-reduced from ${typedResult.requestedScale}x to ${typedResult.actualScale.toFixed(2)}x to fit Figma export limits.`
+            : "",
+          ...processed.notes,
+          "Tip: pass save_to_path to get the file on disk instead of an inline image (far cheaper).",
+        ]
+          .filter(Boolean)
+          .join(" ");
+
+        content.push({ type: "text", text: summary });
 
         content.push({
           type: "image",
-          data: typedResult.imageData,
+          data: processed.base64,
           mimeType: typedResult.mimeType || "image/png",
         });
 
@@ -2307,7 +2600,7 @@ export function registerDocumentTools(server: McpServer): void {
   // Commit Undo Tool
   server.tool(
     "commit_undo",
-    "Commit the current undo group as a checkpoint. A subsequent undo will revert only the actions performed after this checkpoint.",
+    "Commit an undo checkpoint: everything done up to now becomes one undo group, so a later `undo` (or the user pressing Cmd+Z once in Figma) reverts only what happens AFTER this call. Call it before any risky or exploratory sequence of edits - deletions, restructuring a frame, applying a theme across many nodes - so the whole sequence can be backed out in one step. `batch_actions` commits one for you by default (checkpoint: true).",
     {},
     async () => {
       try {
@@ -2351,6 +2644,56 @@ export function registerDocumentTools(server: McpServer): void {
             {
               type: "text",
               text: `Error saving version history: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  // Set Page Background Tool
+  server.tool(
+    "set_page_background",
+    "Set the canvas background color of a Figma page. Pages use `backgrounds` (not `fills`), so set_fill_color fails on a PAGE node — use this instead of faking the canvas with a full-bleed rectangle.",
+    {
+      pageId: z.string().optional().describe("Page ID. Defaults to the current page."),
+      color: z
+        .string()
+        .optional()
+        .describe("Hex color string (e.g. '#1e1e1e', '#fff', '#ffffff80' for alpha). Use this OR r,g,b,a."),
+      r: z.coerce.number().min(0).max(1).optional().describe("Red channel, 0–1"),
+      g: z.coerce.number().min(0).max(1).optional().describe("Green channel, 0–1"),
+      b: z.coerce.number().min(0).max(1).optional().describe("Blue channel, 0–1"),
+      a: z.coerce.number().min(0).max(1).optional().describe("Alpha, 0–1 (default 1)"),
+    },
+    async ({ pageId, color, r, g, b, a }) => {
+      try {
+        const params: Record<string, unknown> = {};
+        if (pageId) params.pageId = pageId;
+        if (color !== undefined) {
+          params.color = color;
+        } else {
+          params.r = r;
+          params.g = g;
+          params.b = b;
+          params.a = a !== undefined ? a : 1;
+        }
+        const result = await sendCommandToFigma("set_page_background", params);
+        const typed = result as { id: string; name: string };
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Set background of page "${typed.name}" (ID: ${typed.id}) to ${color ?? `rgba(${r}, ${g}, ${b}, ${a ?? 1})`}`,
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error setting page background: ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };

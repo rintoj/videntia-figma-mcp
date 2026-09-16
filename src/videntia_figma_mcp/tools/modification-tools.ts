@@ -14,6 +14,34 @@ import { normalizeNodeId } from "../utils/figma-helpers.js";
  * @param server - The MCP server instance
  */
 export function registerModificationTools(server: McpServer): void {
+  // Strict Mode Tool
+  server.tool(
+    "set_strict_mode",
+    "Toggle strict mode. When on, any write that Figma silently discards (a 'silent no-op') throws an error instead of reporting success — use it when a change appears to have no effect and you need the real reason.",
+    {
+      enabled: mcpBooleanSchema.describe(
+        "true = silent no-ops throw; false = they are reported as warnings on the result (default)",
+      ),
+    },
+    async ({ enabled }) => {
+      try {
+        const result = (await sendCommandToFigma("set_strict_mode", { enabled })) as { strict: boolean };
+        return {
+          content: [{ type: "text", text: `Strict mode is now ${result.strict ? "ON" : "OFF"}.` }],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error setting strict mode: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
   // Set Fill Color Tool
   server.tool(
     "set_fill_color",
@@ -221,10 +249,59 @@ export function registerModificationTools(server: McpServer): void {
     },
   );
 
+  // Move Node (absolute coordinates) Tool
+  server.tool(
+    "move_node_absolute",
+    "Move a node to ABSOLUTE canvas coordinates — the same frame of reference as absoluteBoundingBox and the Figma inspector. Use this instead of move_node whenever you have canvas coordinates, or right after reparenting a node (move_node's x/y are PARENT-relative, so the same numbers mean something different once the parent changes). The conversion to parent-relative coordinates happens inside the plugin.",
+    {
+      nodeId: z.string().describe("Node ID to move — get from get_selection or get_node_info"),
+      x: z.coerce.number().optional().describe("Target absolute X on the canvas, in pixels"),
+      y: z.coerce.number().optional().describe("Target absolute Y on the canvas, in pixels"),
+    },
+    async ({ nodeId, x, y }) => {
+      nodeId = normalizeNodeId(nodeId);
+      if (x === undefined && y === undefined) {
+        return {
+          content: [{ type: "text" as const, text: "Error: provide at least one of x or y (absolute canvas coords)" }],
+        };
+      }
+      try {
+        const result = (await sendCommandToFigma("move_node_absolute", { nodeId, x, y })) as {
+          name: string;
+          x: number;
+          y: number;
+          absoluteX?: number;
+          absoluteY?: number;
+          warning?: string;
+        };
+        const abs = result.absoluteX !== undefined ? ` (absolute ${result.absoluteX}, ${result.absoluteY})` : "";
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text:
+                `Moved node "${result.name}" to parent-relative (${result.x}, ${result.y})${abs}` +
+                (result.warning ? `\nWarning: ${result.warning}` : ""),
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: `Error moving node: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
   // Move Node Tool
   server.tool(
     "move_node",
-    "Move a node to a new position in Figma",
+    "Move a node to a position relative to its PARENT (for absolute canvas coordinates use move_node_absolute instead), and/or reparent it. Note that after changing parentId, x/y are interpreted against the NEW parent.",
     {
       nodeId: z.string().describe("Node ID to move — get from get_selection or get_node_info"),
       x: z.coerce
@@ -1958,6 +2035,127 @@ export function registerModificationTools(server: McpServer): void {
             {
               type: "text",
               text: `Error setting gradient fill: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  // Set Clips Content Tool
+  server.tool(
+    "set_clips_content",
+    "Toggle clipsContent ('Clip content') on a frame-like node (FRAME, COMPONENT, COMPONENT_SET, INSTANCE). Required for rounded containers to actually clip their children. Not supported on SECTION nodes.",
+    {
+      nodeId: z.string().describe("Node ID of a frame, component, component set, or instance"),
+      clipsContent: mcpBooleanSchema.describe("true to clip children to the node bounds, false to let them overflow"),
+    },
+    async ({ nodeId, clipsContent }) => {
+      nodeId = normalizeNodeId(nodeId);
+      try {
+        const result = await sendCommandToFigma("set_clips_content", { nodeId, clipsContent });
+        const typed = result as { name: string; clipsContent: boolean };
+        return {
+          content: [{ type: "text", text: `Set clipsContent of "${typed.name}" to ${typed.clipsContent}` }],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error setting clipsContent: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  // Set Opacity Tool
+  server.tool(
+    "set_opacity",
+    "Set a node's opacity (0–1) and/or blend mode. Prefer this over baking alpha into 8-digit hex fill colors.",
+    {
+      nodeId: z.string().describe("Node ID (e.g. '123:456')"),
+      opacity: z.coerce.number().min(0).max(1).optional().describe("Node opacity, 0 (transparent) to 1 (opaque)"),
+      blendMode: z
+        .enum([
+          "PASS_THROUGH",
+          "NORMAL",
+          "DARKEN",
+          "MULTIPLY",
+          "LINEAR_BURN",
+          "COLOR_BURN",
+          "LIGHTEN",
+          "SCREEN",
+          "LINEAR_DODGE",
+          "COLOR_DODGE",
+          "OVERLAY",
+          "SOFT_LIGHT",
+          "HARD_LIGHT",
+          "DIFFERENCE",
+          "EXCLUSION",
+          "HUE",
+          "SATURATION",
+          "COLOR",
+          "LUMINOSITY",
+        ])
+        .optional()
+        .describe("Optional layer blend mode"),
+    },
+    async ({ nodeId, opacity, blendMode }) => {
+      nodeId = normalizeNodeId(nodeId);
+      try {
+        const result = await sendCommandToFigma("set_opacity", { nodeId, opacity, blendMode });
+        const typed = result as { name: string; opacity?: number; blendMode?: string };
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Updated "${typed.name}" — opacity: ${typed.opacity}, blendMode: ${typed.blendMode}`,
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            { type: "text", text: `Error setting opacity: ${error instanceof Error ? error.message : String(error)}` },
+          ],
+        };
+      }
+    },
+  );
+
+  // Set Section Status Tool
+  server.tool(
+    "set_section_status",
+    "Set the dev status of a Figma SECTION node (Ready for dev / Completed), or clear it with NONE.",
+    {
+      nodeId: z.string().describe("Node ID of a SECTION node"),
+      status: z
+        .enum(["READY_FOR_DEV", "COMPLETED", "NONE"])
+        .describe("READY_FOR_DEV, COMPLETED, or NONE to clear the status"),
+      description: z.string().optional().describe("Optional dev status description"),
+    },
+    async ({ nodeId, status, description }) => {
+      nodeId = normalizeNodeId(nodeId);
+      try {
+        const result = await sendCommandToFigma("set_section_status", { nodeId, status, description });
+        const typed = result as { name: string; devStatus: { type: string } | null };
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Set dev status of section "${typed.name}" to ${typed.devStatus ? typed.devStatus.type : "NONE"}`,
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error setting section status: ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };

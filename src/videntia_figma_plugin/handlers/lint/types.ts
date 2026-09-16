@@ -34,6 +34,10 @@ export interface Violation {
   details?: ViolationDetails;
   fixed?: boolean;
   fixedWith?: string;
+  /** True when a suppression rule or node role excused this violation. */
+  suppressed?: boolean;
+  /** Human-readable source of the suppression (rule text / role). */
+  suppressedBy?: string;
 }
 
 export interface CategoryStats {
@@ -65,6 +69,8 @@ export interface LintSummary {
   low: number;
   compliance: number;
   fixed: number;
+  /** Violations excused by ignore_rules, node annotations or role=artwork. */
+  suppressed: number;
 }
 
 export interface LintResult {
@@ -74,6 +80,8 @@ export interface LintResult {
   totalNodes: number;
   categories: LintCategories;
   violations: Violation[];
+  /** Excused violations, reported separately so exceptions stay visible. */
+  suppressedViolations: Violation[];
   violationsCapped: boolean;
   summary: LintSummary;
 }
@@ -99,6 +107,11 @@ export interface LintOptions {
   nodeId: string;
   checks?: LintChecks;
   fix?: boolean;
+  /**
+   * Rules to excuse for this run. Accepts category names (`backgroundFills`),
+   * check names (`colors`), `category:property` pairs, or `*`.
+   */
+  ignore_rules?: string[] | string;
 }
 
 export interface ActiveChecks {

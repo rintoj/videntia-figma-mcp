@@ -40,6 +40,14 @@ export interface ProgressMessage {
 
 // Define possible command types for Figma
 export type FigmaCommand =
+  | "create_autolayout_frame"
+  | "create_styled_text"
+  | "set_gap"
+  | "create_card"
+  | "bulk_bind_variables"
+  | "clone_and_place"
+  | "apply_role_preset"
+  | "set_strict_mode"
   | "get_document_info"
   | "get_file_key"
   | "get_selection"
@@ -58,6 +66,7 @@ export type FigmaCommand =
   | "set_image_fill"
   | "set_gradient_fill"
   | "move_node"
+  | "move_node_absolute"
   | "resize_node"
   | "delete_node"
   | "delete_multiple_nodes"
@@ -170,9 +179,19 @@ export type FigmaCommand =
   | "create_page"
   | "rename_page"
   | "delete_page"
+  | "set_page_background"
+  | "create_section"
+  | "set_section_status"
+  | "set_clips_content"
+  | "set_opacity"
   | "create_from_data"
   | "batch_actions"
   | "lint_frame"
+  | "contrast_check_frame"
+  | "find_overlaps"
+  | "assert_node_state"
+  | "find_unbound"
+  | "check_token_collisions"
   | "get_design_system"
   | "setup_design_system"
   | "update_icon"
@@ -792,6 +811,8 @@ export interface UpdateEffectStyleResult {
 
 // Lint frame result
 export interface LintViolation {
+  /** Stable id (hash of nodeId + category + property + severity) — same across runs, so reports can be diffed. */
+  id?: string;
   nodeId: string;
   nodeName: string;
   nodeType: string;
@@ -805,6 +826,10 @@ export interface LintViolation {
   fixed?: boolean;
   /** Name of the variable/style that was applied when fixed=true. */
   fixedWith?: string;
+  /** True when a suppression rule or node role excused this violation. */
+  suppressed?: boolean;
+  /** Human-readable source of the suppression (rule text / role). */
+  suppressedBy?: string;
 }
 
 export interface LintCategoryResult {
@@ -832,6 +857,8 @@ export interface LintFrameResult {
     screenNaming: LintCategoryResult;
   };
   violations: LintViolation[];
+  /** Violations excused by ignore_rules, node annotations or role=artwork. */
+  suppressedViolations?: LintViolation[];
   violationsCapped?: boolean;
   summary: {
     total: number;
@@ -842,5 +869,7 @@ export interface LintFrameResult {
     compliance: number;
     /** Number of violations auto-fixed (only present when fix=true was passed). */
     fixed?: number;
+    /** Number of violations excused by suppression rules or node roles. */
+    suppressed?: number;
   };
 }

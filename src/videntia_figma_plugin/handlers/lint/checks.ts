@@ -360,15 +360,30 @@ export function scanNode(
         categories[catName].total++;
 
         let fillBound = isFillBound(node, "fills", fi) || hasFillPaintStyle(node);
+        let fillType = fills[fi].type;
+        let isGradient = fillType !== "SOLID" && typeof fillType === "string" && fillType.indexOf("GRADIENT_") === 0;
         if (fillBound) {
           categories[catName].bound++;
+        } else if (isGradient) {
+          // EXEMPT: Figma's setBoundVariableForPaint only accepts SolidPaint,
+          // and ColorStop.color carries no boundVariables — binding a variable
+          // to a gradient stop is impossible, so the violation is
+          // unsatisfiable. Count it as compliant; surface a LOW nudge toward
+          // the satisfiable alternative (a named color style).
+          categories[catName].bound++;
+          addViolation(
+            violations,
+            violationsCappedRef,
+            MAX_LINT_VIOLATIONS,
+            node,
+            depth,
+            "LOW",
+            catName,
+            "fills[" + fi + "]",
+            "Gradient fill — variables cannot bind to gradient paints (Figma API limitation). Optional: centralise it with create_color_style + set_color_style_id.",
+          );
         } else {
           categories[catName].unbound++;
-          let fillType = fills[fi].type;
-          let isGradient = fillType !== "SOLID" && typeof fillType === "string" && fillType.indexOf("GRADIENT_") === 0;
-          let fillMsg = isGradient
-            ? "Gradient fill without a color style applied — create a color style with create_color_style and apply via set_color_style_id"
-            : "Color using raw hex value (no variable or paint style bound)";
           addViolation(
             violations,
             violationsCappedRef,
@@ -378,7 +393,7 @@ export function scanNode(
             "HIGH",
             catName,
             "fills[" + fi + "]",
-            fillMsg,
+            "Color using raw hex value (no variable or paint style bound)",
           );
         }
       }
@@ -415,8 +430,25 @@ export function scanNode(
 
         categories.strokesBorders.total++;
         let strokeBound = isFillBound(node, "strokes", si) || hasStrokePaintStyle(node);
+        let strokeType = strokes[si].type;
+        let strokeIsGradient =
+          strokeType !== "SOLID" && typeof strokeType === "string" && strokeType.indexOf("GRADIENT_") === 0;
         if (strokeBound) {
           categories.strokesBorders.bound++;
+        } else if (strokeIsGradient) {
+          // EXEMPT — see the gradient note in the FILL checks above.
+          categories.strokesBorders.bound++;
+          addViolation(
+            violations,
+            violationsCappedRef,
+            MAX_LINT_VIOLATIONS,
+            node,
+            depth,
+            "LOW",
+            "strokesBorders",
+            "strokes[" + si + "]",
+            "Gradient stroke — variables cannot bind to gradient paints (Figma API limitation). Optional: centralise it with create_color_style + set_color_style_id.",
+          );
         } else {
           categories.strokesBorders.unbound++;
           addViolation(
@@ -713,7 +745,12 @@ export function scanNode(
             "CRITICAL",
             "effectStyles",
             "effectStyleId",
-            "Raw " + effectTypes.join("/") + " effect (no effect style applied)",
+            // Blur is satisfiable via a named effect style (createEffectStyle
+            // accepts BlurEffect) even though setBoundVariableForEffect does
+            // not cover blur radius — so point at the fix that works.
+            "Raw " +
+              effectTypes.join("/") +
+              " effect (no effect style applied) — create one with create_effect_style and apply it via set_effect_style_id",
           );
         }
       }

@@ -2,6 +2,7 @@ import type { LintOptions, LintResult, LintCategories, ActiveChecks } from "./ty
 import { scanNode } from "./checks";
 import { applyFixes } from "./fix";
 import { buildLookupMaps } from "./helpers";
+import { applySuppressions, parseIgnoreRules, resolveInheritedAnnotations, type NodeAnnotations } from "./suppress";
 
 export async function lintFrame(params: Record<string, unknown>): Promise<LintResult> {
   const lintParams = params as unknown as LintOptions;
@@ -99,6 +100,39 @@ export async function lintFrame(params: Record<string, unknown>): Promise<LintRe
     rootIsScreen,
   );
 
+  // ── Suppression pass (§8) ──────────────────────────────────────────────────
+  // Applied as a post-filter so the traversal stays untouched. Annotations are
+  // resolved only for nodes that actually produced a violation (bounded by
+  // MAX_LINT_VIOLATIONS), then inherited down from ancestors.
+  const globalIgnoreRules = parseIgnoreRules(lintParams ? lintParams.ignore_rules : undefined);
+  const annotationsByNodeId: Record<string, NodeAnnotations> = {};
+  const seenNodeIds: string[] = [];
+  for (let vi = 0; vi < violations.length; vi++) {
+    if (seenNodeIds.indexOf(violations[vi].nodeId) === -1) seenNodeIds.push(violations[vi].nodeId);
+  }
+  for (let si = 0; si < seenNodeIds.length; si++) {
+    try {
+      const n = await figma.getNodeByIdAsync(seenNodeIds[si]);
+      if (n) annotationsByNodeId[seenNodeIds[si]] = resolveInheritedAnnotations(n);
+    } catch (_e) {
+      /* node vanished — treat as un-annotated */
+    }
+  }
+  const outcome = applySuppressions(violations, globalIgnoreRules, annotationsByNodeId);
+  const suppressedViolations = outcome.suppressed;
+  violations.length = 0;
+  for (let ki = 0; ki < outcome.kept.length; ki++) violations.push(outcome.kept[ki]);
+
+  // A suppressed violation must not depress the compliance score either —
+  // move its tally from "unbound" back to "bound".
+  for (let sv2 = 0; sv2 < suppressedViolations.length; sv2++) {
+    const cat = categories[suppressedViolations[sv2].category];
+    if (cat && cat.unbound > 0) {
+      cat.unbound--;
+      cat.bound++;
+    }
+  }
+
   // Auto-fix pass (only when fix=true)
   if (fix) {
     await applyFixes(violations, categories, maps);
@@ -171,6 +205,7 @@ export async function lintFrame(params: Record<string, unknown>): Promise<LintRe
     totalNodes: totalNodesRef.value,
     categories: categories,
     violations: violations,
+    suppressedViolations: suppressedViolations,
     violationsCapped: violationsCappedRef.value,
     summary: {
       total: summaryTotal,
@@ -180,6 +215,7 @@ export async function lintFrame(params: Record<string, unknown>): Promise<LintRe
       low: summaryLow,
       compliance: overallCompliance,
       fixed: summaryFixed,
+      suppressed: suppressedViolations.length,
     },
   };
 }

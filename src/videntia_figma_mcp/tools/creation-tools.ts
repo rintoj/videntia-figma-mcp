@@ -31,6 +31,18 @@ export function registerCreationTools(server: McpServer): void {
         .min(0)
         .optional()
         .describe("Uniform corner radius in pixels (default: 0, sharp corners)"),
+      fillColor: z
+        .union([
+          z.string(),
+          z.object({
+            r: z.coerce.number().min(0).max(1),
+            g: z.coerce.number().min(0).max(1),
+            b: z.coerce.number().min(0).max(1),
+            a: z.coerce.number().min(0).max(1).optional(),
+          }),
+        ])
+        .optional()
+        .describe("Solid fill: hex string (e.g. '#ff0000', '#ff000080') or normalized RGBA components 0–1"),
       layoutPositioning: z
         .enum(["ABSOLUTE", "RELATIVE"])
         .optional()
@@ -38,7 +50,7 @@ export function registerCreationTools(server: McpServer): void {
           "How this node positions inside an auto-layout parent: ABSOLUTE = uses x/y coordinates ignoring auto-layout flow, RELATIVE = participates in auto-layout flow (default when inside auto-layout)",
         ),
     },
-    async ({ x, y, width, height, name, parentId, cornerRadius, layoutPositioning }) => {
+    async ({ x, y, width, height, name, parentId, cornerRadius, fillColor, layoutPositioning }) => {
       if (parentId) parentId = normalizeNodeId(parentId);
       try {
         const result = await sendCommandToFigma("create_rectangle", {
@@ -49,6 +61,7 @@ export function registerCreationTools(server: McpServer): void {
           name: name || "Rectangle",
           parentId,
           cornerRadius,
+          fillColor,
           layoutPositioning,
         });
         return {
@@ -122,6 +135,52 @@ export function registerCreationTools(server: McpServer): void {
         .describe(
           "How this frame positions inside an auto-layout parent: ABSOLUTE = positioned by x/y ignoring layout flow, RELATIVE = participates in layout flow (default when inside auto-layout)",
         ),
+      layoutMode: z
+        .enum(["NONE", "HORIZONTAL", "VERTICAL", "GRID"])
+        .optional()
+        .describe(
+          "Auto layout for the new frame. Required before gap/padding/alignment have any effect — passing those without a layoutMode is an error, not a silent no-op",
+        ),
+      layoutWrap: z
+        .enum(["NO_WRAP", "WRAP"])
+        .optional()
+        .describe("Wrap children onto multiple lines (requires layoutMode HORIZONTAL)"),
+      gap: z.coerce.number().min(0).optional().describe("Spacing between children in pixels (requires layoutMode)"),
+      padding: z.coerce
+        .number()
+        .min(0)
+        .optional()
+        .describe("Padding on all four sides in pixels (requires layoutMode)"),
+      top: z.coerce
+        .number()
+        .min(0)
+        .optional()
+        .describe("Top padding in pixels; overrides `padding` (requires layoutMode)"),
+      right: z.coerce
+        .number()
+        .min(0)
+        .optional()
+        .describe("Right padding in pixels; overrides `padding` (requires layoutMode)"),
+      bottom: z.coerce
+        .number()
+        .min(0)
+        .optional()
+        .describe("Bottom padding in pixels; overrides `padding` (requires layoutMode)"),
+      left: z.coerce
+        .number()
+        .min(0)
+        .optional()
+        .describe("Left padding in pixels; overrides `padding` (requires layoutMode)"),
+      primaryAxisAlignItems: z
+        .enum(["MIN", "CENTER", "MAX", "SPACE_BETWEEN"])
+        .optional()
+        .describe("Alignment along the layout direction (requires layoutMode)"),
+      counterAxisAlignItems: z
+        .enum(["MIN", "CENTER", "MAX", "BASELINE"])
+        .optional()
+        .describe("Alignment perpendicular to the layout direction (requires layoutMode)"),
+      horizontal: z.enum(["FIXED", "HUG", "FILL"]).optional().describe("Horizontal sizing mode (requires layoutMode)"),
+      vertical: z.enum(["FIXED", "HUG", "FILL"]).optional().describe("Vertical sizing mode (requires layoutMode)"),
     },
     async ({
       x,
@@ -136,6 +195,18 @@ export function registerCreationTools(server: McpServer): void {
       clipsContent,
       cornerRadius,
       layoutPositioning,
+      layoutMode,
+      layoutWrap,
+      gap,
+      padding,
+      top,
+      right,
+      bottom,
+      left,
+      primaryAxisAlignItems,
+      counterAxisAlignItems,
+      horizontal,
+      vertical,
     }) => {
       if (parentId) parentId = normalizeNodeId(parentId);
       try {
@@ -152,6 +223,18 @@ export function registerCreationTools(server: McpServer): void {
           clipsContent,
           cornerRadius,
           layoutPositioning,
+          layoutMode,
+          layoutWrap,
+          itemSpacing: gap,
+          padding,
+          paddingTop: top,
+          paddingRight: right,
+          paddingBottom: bottom,
+          paddingLeft: left,
+          primaryAxisAlignItems,
+          counterAxisAlignItems,
+          layoutSizingHorizontal: horizontal,
+          layoutSizingVertical: vertical,
         });
         const typedResult = result as { name: string; id: string };
         return {
@@ -512,6 +595,49 @@ export function registerCreationTools(server: McpServer): void {
               type: "text",
               text: `Error flattening node: ${error instanceof Error ? error.message : String(error)}`,
             },
+          ],
+        };
+      }
+    },
+  );
+
+  // Create Section Tool
+  server.tool(
+    "create_section",
+    "Create a Figma Section (figma.createSection) — a chrome-free, collapsible, deep-linkable container used for file organisation. Sections can only be parented to a PAGE or another SECTION.",
+    {
+      name: z.string().optional().describe("Section name (shown as the section title on canvas)"),
+      x: z.coerce.number().optional().describe("X position on canvas"),
+      y: z.coerce.number().optional().describe("Y position on canvas"),
+      width: z.coerce.number().optional().describe("Section width (applied via resizeWithoutConstraints)"),
+      height: z.coerce.number().optional().describe("Section height"),
+      color: z.string().optional().describe("Section background as a hex color (e.g. '#f5f5f5')"),
+      parentId: z.string().optional().describe("Parent PAGE or SECTION id. Defaults to the current page."),
+    },
+    async ({ name, x, y, width, height, color, parentId }) => {
+      try {
+        const result = await sendCommandToFigma("create_section", {
+          name,
+          x,
+          y,
+          width,
+          height,
+          color,
+          parentId: parentId ? normalizeNodeId(parentId) : undefined,
+        });
+        const typed = result as { id: string; name: string; width: number; height: number };
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Created section "${typed.name}" (ID: ${typed.id}) ${typed.width}x${typed.height}`,
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            { type: "text", text: `Error creating section: ${error instanceof Error ? error.message : String(error)}` },
           ],
         };
       }

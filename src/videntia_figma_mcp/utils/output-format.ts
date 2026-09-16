@@ -78,3 +78,21 @@ export async function fetchNodesAsJsx(nodeIds: string[], depth?: number, fields?
   const selection = (result?.nodes ?? []).map((n) => filterNodeData(n, fields));
   return convertToJsx(selection);
 }
+
+/**
+ * Output format for node-reading tools, extended with a terse "compact" mode:
+ * one line per node (name/type/id/geometry/key styles), no className strings.
+ */
+export const nodeOutputFormatSchema = z
+  .enum(["jsx", "json", "compact"])
+  .optional()
+  .default("jsx")
+  .describe(
+    'Output format. Defaults to "jsx" (JSX+Tailwind markup). Use "compact" for a terse one-line-per-node listing (far fewer tokens), or "json" for raw Figma node properties.',
+  );
+
+/** Alias parameter so callers can pass `format: "compact"` directly. */
+export const nodeFormatAliasSchema = z
+  .enum(["jsx", "json", "compact"])
+  .optional()
+  .describe('Alias for output_format. When set, overrides output_format. Use "compact" for terse output.');

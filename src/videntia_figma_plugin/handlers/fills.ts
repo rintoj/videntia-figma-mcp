@@ -227,11 +227,21 @@ export async function setStrokeColor(params: Record<string, unknown>): Promise<u
     throw new Error("Node does not support strokes: " + nodeId);
   }
 
-  // Default stroke weight to 1 if not provided
-  var strokeWeightParsed = strokeWeight !== undefined ? parseFloat(strokeWeight as string) : 1;
-
-  if (isNaN(strokeWeightParsed)) {
-    throw new Error("Invalid stroke weight - must be a valid number");
+  // When `strokeWeight` is omitted the caller asked only about colour — keep
+  // whatever weight the node already has. Defaulting to 1 here silently
+  // destroyed hairline/thick strokes the caller never mentioned.
+  var existingWeight =
+    "strokeWeight" in node ? (node as unknown as { strokeWeight: number | symbol }).strokeWeight : undefined;
+  // `strokeWeight` reads back as figma.mixed when per-side weights differ.
+  var hasMixedWeight = existingWeight === figma.mixed;
+  var strokeWeightParsed: number | undefined;
+  if (strokeWeight !== undefined && strokeWeight !== null) {
+    strokeWeightParsed = parseFloat(strokeWeight as string);
+    if (isNaN(strokeWeightParsed)) {
+      throw new Error("Invalid stroke weight - must be a valid number");
+    }
+  } else if (typeof existingWeight === "number") {
+    strokeWeightParsed = existingWeight;
   }
 
   var paintStyle: SolidPaint = {
@@ -250,11 +260,21 @@ export async function setStrokeColor(params: Record<string, unknown>): Promise<u
   // enabled, writing the uniform `strokeWeight` alone is silently ignored by the
   // Figma API — the per-side weights still win. Disable that mode first so the
   // requested uniform weight actually takes effect.
-  if ("strokeWeight" in node) {
-    if ("individualStrokeWeightsEnabled" in node) {
-      (node as unknown as { individualStrokeWeightsEnabled: boolean }).individualStrokeWeightsEnabled = false;
+  //
+  // Only do this when a weight was explicitly requested: forcing the uniform
+  // mode on a node with deliberate per-side weights would itself be a
+  // destructive change the caller did not ask for.
+  if ("strokeWeight" in node && strokeWeightParsed !== undefined) {
+    if (strokeWeight !== undefined && strokeWeight !== null) {
+      if ("individualStrokeWeightsEnabled" in node) {
+        (node as unknown as { individualStrokeWeightsEnabled: boolean }).individualStrokeWeightsEnabled = false;
+      }
+      (node as unknown as { strokeWeight: number }).strokeWeight = strokeWeightParsed;
+    } else if (!hasMixedWeight) {
+      // Re-assert the pre-existing uniform weight (a no-op, but keeps the
+      // reported value honest if Figma reset it while replacing strokes).
+      (node as unknown as { strokeWeight: number }).strokeWeight = strokeWeightParsed;
     }
-    (node as unknown as { strokeWeight: number }).strokeWeight = strokeWeightParsed;
   }
 
   // Set dash pattern if provided, e.g. [4, 4] for an even dash/gap, [] to clear

@@ -11,6 +11,8 @@ import { registerComparisonTools } from "./comparison-tools.js";
 import { registerDocumentationTools } from "./documentation-tools.js";
 import { registerBrowserTools } from "./browser-tools.js";
 import { registerBrowserControlTools } from "./browser-control-tools.js";
+import { registerVerificationTools } from "./verification-tools.js";
+import { registerCompositeTools } from "./composite-tools.js";
 
 /**
  * Register all Figma tools to the MCP server
@@ -30,6 +32,8 @@ export function registerTools(server: McpServer): void {
   registerDocumentationTools(server);
   registerBrowserTools(server);
   registerBrowserControlTools(server);
+  registerCompositeTools(server);
+  registerVerificationTools(server);
 }
 
 // Export all tool registration functions for individual usage if needed
@@ -46,4 +50,6 @@ export {
   registerDocumentationTools,
   registerBrowserTools,
   registerBrowserControlTools,
+  registerCompositeTools,
+  registerVerificationTools,
 };

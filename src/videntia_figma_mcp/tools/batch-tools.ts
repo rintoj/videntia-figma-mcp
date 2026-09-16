@@ -2,8 +2,9 @@ import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { sendCommandToFigma } from "../utils/websocket";
 import { BatchActionsResult } from "../types";
-import { resolveCreateIconParams } from "./icon-tools";
+import { resolveCreateIconParams, resolveUpdateIconParams } from "./icon-tools";
 import { normalizeNodeId } from "../utils/figma-helpers";
+import { normalizeCommandParams } from "../utils/normalize-batch-params";
 
 const RESULT_REF_PATTERN = /^\$result\[(\d+)\](.*)$/;
 
@@ -46,7 +47,7 @@ function remapResultIndices(value: unknown, indexMap: number[]): unknown {
 export function registerBatchTools(server: McpServer): void {
   server.tool(
     "batch_actions",
-    "Execute multiple Figma commands in a single batch call. Use this to batch operations like clone_node, rename_node, resize_node, set_fill_color, bind_variable etc. for multiple nodes instead of calling them one by one. Supports $result[N].field references to use results from earlier actions (e.g., clone then rename using new ID) — N is the index of the action as YOU listed it in `actions`, regardless of how any action (e.g. create_icon) expands internally. Set stopOnError to true to abort remaining actions after the first failure.",
+    "Execute multiple Figma commands in a single batch call. Use this to batch operations like clone_node, rename_node, resize_node, set_fill_color, bind_variable etc. for multiple nodes instead of calling them one by one. Supports $result[N].field references to use results from earlier actions (e.g., clone then rename using new ID) — N is the index of the action as YOU listed it in `actions`, regardless of how any action (e.g. create_icon) expands internally. Set stopOnError to true to abort remaining actions after the first failure. An undo checkpoint is committed before the batch runs by default, so one undo in Figma reverts exactly this batch (set checkpoint:false to opt out).",
     {
       actions: z
         .array(
@@ -62,12 +63,31 @@ export function registerBatchTools(server: McpServer): void {
         .optional()
         .default(false)
         .describe("Stop processing remaining actions after the first failure (default: false)"),
+      checkpoint: z
+        .boolean()
+        .optional()
+        .default(true)
+        .describe(
+          "Commit an undo checkpoint BEFORE running the batch (default: true), so a single undo in Figma reverts exactly this batch and nothing that came before it. Set to false only to deliberately merge this batch into the preceding undo group.",
+        ),
     },
-    async ({ actions, stopOnError }) => {
+    async ({ actions, stopOnError, checkpoint }) => {
+      // Declared outside the try so the catch block can report how many actions were
+      // actually dispatched when the transport itself fails.
+      const expandedActions: { action: string; params: Record<string, unknown> }[] = [];
       try {
+        // Close off everything done so far into its own undo group, so the batch that
+        // follows is one clean, revertible unit. Best-effort: a checkpoint failure must
+        // never block the work the caller actually asked for.
+        if (checkpoint) {
+          try {
+            await sendCommandToFigma("commit_undo");
+          } catch {
+            // Nothing to checkpoint yet (e.g. fresh session) — proceed with the batch.
+          }
+        }
         // Pre-process: expand server-side-only commands (create_icon) into Figma-native commands.
         // create_icon → create_svg + optional insert_child (icon SVG resolved server-side).
-        const expandedActions: typeof actions = [];
         // indexMap[originalActionIndex] = index in expandedActions holding that
         // action's primary result (the node create_icon expands to, not its
         // secondary insert_child step) — used to rewrite $result[N] references
@@ -76,7 +96,13 @@ export function registerBatchTools(server: McpServer): void {
 
         for (let i = 0; i < actions.length; i++) {
           const { action, params: rawParams } = actions[i];
-          const actionParams = remapResultIndices(rawParams, indexMap) as Record<string, unknown>;
+          // Normalise BEFORE dispatch so a batched action accepts the same param names
+          // and value formats as the equivalent standalone tool (batch forwards params
+          // raw to the plugin, bypassing each tool's own zod schema).
+          const actionParams = normalizeCommandParams(
+            action,
+            remapResultIndices(rawParams, indexMap) as Record<string, unknown>,
+          );
 
           if (action === "create_icon") {
             try {
@@ -121,6 +147,31 @@ export function registerBatchTools(server: McpServer): void {
               });
               indexMap[i] = expandedActions.length - 1;
             }
+          } else if (action === "update_icon") {
+            // Resolve the Lucide icon server-side — the plugin needs `svgString`, which
+            // only the standalone tool used to produce.
+            try {
+              const p = actionParams;
+              expandedActions.push({
+                action: "update_icon",
+                params:
+                  p.svgString !== undefined
+                    ? p
+                    : resolveUpdateIconParams({
+                        nodeId: normalizeNodeId(String(p.nodeId ?? "")),
+                        name: String(p.name ?? ""),
+                        color: p.color !== undefined ? String(p.color) : undefined,
+                        colorVariable: p.colorVariable !== undefined ? String(p.colorVariable) : undefined,
+                        size: Number(p.size ?? 24),
+                      }),
+              });
+            } catch (error) {
+              expandedActions.push({
+                action: "update_icon",
+                params: { _error: error instanceof Error ? error.message : String(error) },
+              });
+            }
+            indexMap[i] = expandedActions.length - 1;
           } else {
             expandedActions.push({ action, params: actionParams });
             indexMap[i] = expandedActions.length - 1;
@@ -143,6 +194,11 @@ export function registerBatchTools(server: McpServer): void {
             for (const r of failedResults) {
               lines.push(`| ${r.index} | ${r.action} | FAIL | ${r.error || "unknown error"} |`);
             }
+            const firstFailure = failedResults[0];
+            lines.push(
+              "",
+              `First failure: action #${firstFailure.index} (${firstFailure.action}). Actions before it are committed in the document.`,
+            );
           }
         }
 
@@ -156,13 +212,24 @@ export function registerBatchTools(server: McpServer): void {
           isError: result.failed > 0,
         };
       } catch (error) {
+        // A transport-level failure (timeout, serialisation error such as "Cannot unwrap
+        // symbol") gives us no per-action results — say so explicitly rather than leaving
+        // the caller unsure which action failed or what was committed.
+        const message = error instanceof Error ? error.message : String(error);
         return {
           content: [
             {
               type: "text" as const,
-              text: `Error executing batch actions: ${error instanceof Error ? error.message : String(error)}`,
+              text: [
+                `Error executing batch actions: ${message}`,
+                "",
+                `The batch was dispatched as ${expandedActions.length} action(s) but no per-action results were returned.`,
+                "Actions that ran before the failure ARE committed in the Figma document — re-run only the remaining actions, or use undo.",
+                "Re-run with stopOnError: true and a smaller batch to identify the failing action index.",
+              ].join("\n"),
             },
           ],
+          isError: true,
         };
       }
     },

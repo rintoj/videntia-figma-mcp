@@ -64,6 +64,10 @@ describe("batch_actions tool", () => {
           { action: "set_fill_color", params: { nodeId: "$result[0].id", color: { r: 1, g: 0, b: 0 } } },
           { action: "rename_node", params: { nodeId: "$result[0].id", name: "MyRect" } },
         ],
+        // Opt out of the default pre-batch undo checkpoint so this case asserts
+        // on the batch call alone (checkpoint behaviour is covered separately in
+        // batch-checkpoint.test.ts).
+        checkpoint: false,
       });
 
       expect(mockSendCommand).toHaveBeenCalledTimes(1);
@@ -71,7 +75,7 @@ describe("batch_actions tool", () => {
         "batch_actions",
         {
           actions: [
-            { action: "create_rectangle", params: { x: 0, y: 0, width: 100, height: 50 } },
+            { action: "create_rectangle", params: { x: 0, y: 0, width: 100, height: 50, name: "Rectangle" } },
             { action: "set_fill_color", params: { nodeId: "$result[0].id", color: { r: 1, g: 0, b: 0 } } },
             { action: "rename_node", params: { nodeId: "$result[0].id", name: "MyRect" } },
           ],
@@ -308,6 +312,207 @@ describe("batch_actions tool", () => {
         expect.any(Number),
       );
       expect(response.content[0].text).toContain("1/1 succeeded");
+    });
+  });
+
+  describe("param normalisation (batch params match standalone tools)", () => {
+    // Other commands (e.g. the pre-batch undo checkpoint) may also be sent — pick the
+    // batch_actions call itself.
+    function dispatched() {
+      const call = mockSendCommand.mock.calls.filter((c: any[]) => c[0] === "batch_actions").pop();
+      return call[1].actions;
+    }
+
+    beforeEach(() => {
+      mockSendCommand.mockResolvedValue({ success: true, totalActions: 1, succeeded: 1, failed: 0, results: [] });
+    });
+
+    it("maps set_layout_mode 'mode' to 'layoutMode'", async () => {
+      await callTool("batch_actions", {
+        actions: [{ action: "set_layout_mode", params: { nodeId: "1:2", mode: "vertical" } }],
+      });
+      expect(dispatched()[0].params).toEqual({ nodeId: "1:2", layoutMode: "VERTICAL" });
+    });
+
+    it("maps set_line_height 'height' to 'lineHeight' and defaults the unit", async () => {
+      await callTool("batch_actions", {
+        actions: [{ action: "set_line_height", params: { nodeId: "1:2", height: 24 } }],
+      });
+      expect(dispatched()[0].params).toEqual({ nodeId: "1:2", lineHeight: 24, unit: "PIXELS" });
+    });
+
+    it("maps rename_node 'newName' to 'name'", async () => {
+      await callTool("batch_actions", {
+        actions: [{ action: "rename_node", params: { nodeId: "1-2", newName: "Card" } }],
+      });
+      expect(dispatched()[0].params).toEqual({ nodeId: "1:2", name: "Card" });
+    });
+
+    it("maps bind_variable 'variableName' to 'variableId'", async () => {
+      await callTool("batch_actions", {
+        actions: [
+          { action: "bind_variable", params: { nodeId: "1:2", variableName: "background/primary", field: "fills/0" } },
+        ],
+      });
+      expect(dispatched()[0].params.variableId).toBe("background/primary");
+    });
+
+    it("maps apply_text_style 'styleName' to 'styleId'", async () => {
+      await callTool("batch_actions", {
+        actions: [{ action: "apply_text_style", params: { nodeId: "1:2", styleName: "body/md" } }],
+      });
+      expect(dispatched()[0].params).toEqual({ nodeId: "1:2", styleId: "body/md" });
+    });
+
+    it("supplies set_gradient_fill 'gradientType' from 'type' (was: Missing gradientType)", async () => {
+      await callTool("batch_actions", {
+        actions: [
+          {
+            action: "set_gradient_fill",
+            params: {
+              nodeId: "1:2",
+              type: "LINEAR",
+              stops: [
+                { color: { r: 0, g: 0, b: 0 }, position: 0 },
+                { color: { r: 1, g: 1, b: 1 }, position: 1 },
+              ],
+            },
+          },
+        ],
+      });
+      const params = dispatched()[0].params;
+      expect(params.gradientType).toBe("LINEAR");
+      expect(params.angle).toBe(0);
+      expect(params.opacity).toBe(1);
+      expect(params.type).toBeUndefined();
+    });
+
+    it("defaults set_corner_radius corners and accepts the object form", async () => {
+      await callTool("batch_actions", {
+        actions: [
+          { action: "set_corner_radius", params: { nodeId: "1:2", radius: 8 } },
+          {
+            action: "set_corner_radius",
+            params: {
+              nodeId: "1:3",
+              radius: 8,
+              corners: { topLeft: true, topRight: true, bottomRight: false, bottomLeft: false },
+            },
+          },
+        ],
+      });
+      expect(dispatched()[0].params.corners).toEqual([true, true, true, true]);
+      expect(dispatched()[1].params.corners).toEqual([true, true, false, false]);
+    });
+
+    it("applies create_text defaults so the plugin returns a resolvable node", async () => {
+      await callTool("batch_actions", {
+        actions: [{ action: "create_text", params: { x: 0, y: 0, text: "Hi" } }],
+      });
+      expect(dispatched()[0].params).toMatchObject({
+        text: "Hi",
+        fontSize: 14,
+        fontFamily: "Inter",
+        fontWeight: 400,
+        name: "Hi",
+      });
+    });
+
+    it("forwards create_rectangle fillColor", async () => {
+      await callTool("batch_actions", {
+        actions: [{ action: "create_rectangle", params: { x: 0, y: 0, width: 10, height: 10, fillColor: "#ff0000" } }],
+      });
+      expect(dispatched()[0].params.fillColor).toBe("#ff0000");
+    });
+
+    it("does not normalise away $result references", async () => {
+      await callTool("batch_actions", {
+        actions: [
+          { action: "create_text", params: { x: 0, y: 0, text: "Hi" } },
+          { action: "rename_node", params: { nodeId: "$result[0].id", newName: "Label" } },
+        ],
+      });
+      expect(dispatched()[1].params).toEqual({ nodeId: "$result[0].id", name: "Label" });
+    });
+  });
+
+  describe("update_icon expansion", () => {
+    function dispatchedActions() {
+      const call = mockSendCommand.mock.calls.filter((c: any[]) => c[0] === "batch_actions").pop();
+      return call[1].actions;
+    }
+
+    beforeEach(() => {
+      mockSendCommand.mockResolvedValue({ success: true, totalActions: 1, succeeded: 1, failed: 0, results: [] });
+    });
+
+    it("resolves the Lucide icon server-side into svgString (was: Missing svgString)", async () => {
+      await callTool("batch_actions", {
+        actions: [{ action: "update_icon", params: { nodeId: "1-2", name: "bell", size: 24 } }],
+      });
+      const action = dispatchedActions()[0];
+      expect(action.action).toBe("update_icon");
+      expect(action.params.nodeId).toBe("1:2");
+      expect(typeof action.params.svgString).toBe("string");
+      expect(action.params.svgString).toContain("<svg");
+      expect(action.params.name).toBe("bell");
+    });
+
+    it("surfaces an unknown icon as a clear per-action error", async () => {
+      await callTool("batch_actions", {
+        actions: [{ action: "update_icon", params: { nodeId: "1:2", name: "definitely-not-an-icon", size: 24 } }],
+      });
+      const action = dispatchedActions()[0];
+      expect(String(action.params._error)).toContain("not found");
+    });
+
+    it("passes a pre-resolved svgString through untouched", async () => {
+      await callTool("batch_actions", {
+        actions: [{ action: "update_icon", params: { nodeId: "1:2", svgString: "<svg/>", name: "x" } }],
+      });
+      expect(dispatchedActions()[0].params.svgString).toBe("<svg/>");
+    });
+  });
+
+  describe("failure reporting", () => {
+    it("names the first failing action index and commit status", async () => {
+      mockSendCommand.mockResolvedValue({
+        success: false,
+        totalActions: 3,
+        succeeded: 1,
+        failed: 2,
+        results: [
+          { index: 0, action: "create_rectangle", success: true, result: { id: "r1" } },
+          { index: 1, action: "set_fill_color", success: false, error: "boom" },
+          { index: 2, action: "rename_node", success: false, error: "bang" },
+        ],
+      });
+      const res = await callTool("batch_actions", {
+        actions: [
+          { action: "create_rectangle", params: {} },
+          { action: "set_fill_color", params: {} },
+          { action: "rename_node", params: {} },
+        ],
+      });
+      expect(res.isError).toBe(true);
+      expect(res.content[0].text).toContain("First failure: action #1 (set_fill_color)");
+      expect(res.content[0].text).toContain("committed");
+    });
+
+    it("explains a transport-level failure (e.g. Cannot unwrap symbol)", async () => {
+      mockSendCommand.mockRejectedValue(new Error("Cannot unwrap symbol"));
+      const res = await callTool("batch_actions", {
+        actions: [
+          { action: "create_rectangle", params: {} },
+          { action: "create_text", params: { x: 0, y: 0, text: "a" } },
+        ],
+      });
+      expect(res.isError).toBe(true);
+      const text = res.content[0].text;
+      expect(text).toContain("Cannot unwrap symbol");
+      expect(text).toContain("dispatched as 2 action(s)");
+      expect(text).toContain("ARE committed");
+      expect(text).toContain("stopOnError: true");
     });
   });
 });

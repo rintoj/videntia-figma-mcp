@@ -274,6 +274,40 @@ export function resolveCreateIconParams(params: {
 }
 
 /**
+ * Resolve update_icon params (Lucide icon name) into the plugin-facing wire shape
+ * (svgString + resolved name + colorVariable). Exported so batch_actions can run the
+ * same server-side icon resolution the standalone tool does — without it, a batched
+ * update_icon reaches the plugin with no svgString and fails "Missing svgString".
+ */
+export function resolveUpdateIconParams(params: {
+  nodeId: string;
+  name: string;
+  color?: string;
+  colorVariable?: string;
+  size: number;
+}): Record<string, unknown> {
+  const { nodeId, name: iconName, color, colorVariable, size } = params;
+  const icon = getIcon(iconName);
+  if (!icon) {
+    const suggestions = searchIcons(iconName, 5);
+    throw new Error(`Icon "${iconName}" not found. Suggestions: ${suggestions.map((s) => s.name).join(", ")}`);
+  }
+
+  const effectiveColorVar =
+    colorVariable ??
+    (color !== undefined && color !== null && color !== "" && !looksLikeCssColor(color) ? color : undefined);
+  const effectiveCssColor =
+    color !== undefined && color !== null && color !== "" && looksLikeCssColor(color) ? color : "#000000";
+
+  return {
+    nodeId,
+    svgString: buildIconSvg(icon.svg, effectiveCssColor, size),
+    name: icon.name,
+    colorVariable: effectiveColorVar,
+  };
+}
+
+/**
  * Register icon lookup tools to the MCP server.
  * Pure server-side — no Figma communication required.
  */

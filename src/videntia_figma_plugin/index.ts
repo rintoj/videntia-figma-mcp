@@ -13,9 +13,12 @@ import {
   saveVersionHistory,
   triggerUndo,
   commitUndoAction,
+  getDocumentIdentity,
 } from "./handlers/document";
+import { assertExpectedDocument } from "./utils/document-guard";
 import { serializeNodes } from "./handlers/node-serializer";
-import { createPage, renamePage, deletePage } from "./handlers/pages";
+import { createPage, renamePage, deletePage, setPageBackground } from "./handlers/pages";
+import { createSection, setSectionStatus } from "./handlers/sections";
 import {
   getReactions,
   getFrameAnimations,
@@ -30,6 +33,7 @@ import {
   createRectangle,
   createFrame,
   moveNode,
+  moveNodeAbsolute,
   resizeNode,
   deleteNode,
   deleteMultipleNodes,
@@ -42,6 +46,8 @@ import {
   flattenNode,
   renameNode,
   insertChild,
+  setClipsContent,
+  setOpacity,
 } from "./handlers/nodes";
 
 // Handlers — fills, strokes, shapes
@@ -170,6 +176,9 @@ import {
   setLayoutSizing,
 } from "./handlers/layout";
 
+// Strict mode (silent no-op detection)
+import { setStrictModeEnabled, isStrictModeEnabled } from "./utils/write-verify";
+
 // Handlers — selection & focus
 import {
   setFocus,
@@ -196,6 +205,13 @@ import { createFromData, getDesignSystem, setupDesignSystem } from "./handlers/d
 
 // Handlers — lint
 import { lintFrame } from "./handlers/lint/index";
+import {
+  contrastCheckFrame,
+  findOverlaps,
+  assertNodeState,
+  findUnbound,
+  checkTokenCollisions,
+} from "./handlers/verification";
 
 // Handlers — batch (injected with handleCommand to avoid circular import)
 import { batchActions } from "./handlers/batch";
@@ -232,6 +248,8 @@ const state = {
 // ---------------------------------------------------------------------------
 
 var READONLY_COMMANDS = new Set([
+  // Session-level toggle, not a design-data write.
+  "set_strict_mode",
   "get_document_info",
   "get_file_key",
   "get_selection",
@@ -263,6 +281,11 @@ var READONLY_COMMANDS = new Set([
   "get_frame_animations",
   "get_design_system",
   "lint_frame",
+  "contrast_check_frame",
+  "find_overlaps",
+  "assert_node_state",
+  "find_unbound",
+  "check_token_collisions",
   "set_focus",
   "set_selections",
   "export_node_as_image",
@@ -277,6 +300,17 @@ var READONLY_COMMANDS = new Set([
   "get_frame_documentation",
   "get_comments",
 ]);
+
+// Handlers — composites (one round trip for multi-call sequences)
+import {
+  createAutolayoutFrame,
+  createStyledText,
+  setGap,
+  createCard,
+  bulkBindVariables,
+  cloneAndPlace,
+  applyRolePreset,
+} from "./handlers/composites";
 
 // ---------------------------------------------------------------------------
 // Auto-focus command sets
@@ -295,6 +329,9 @@ var FOCUS_BEFORE_COMMANDS = new Set([
   "get_frame_animations",
   "export_node_as_image",
   "lint_frame",
+  "contrast_check_frame",
+  "find_overlaps",
+  "find_unbound",
   // Modify commands with nodeId
   "set_fill_color",
   "set_stroke_color",
@@ -303,6 +340,7 @@ var FOCUS_BEFORE_COMMANDS = new Set([
   "set_image_fill",
   "set_gradient_fill",
   "move_node",
+  "move_node_absolute",
   "resize_node",
   "delete_node",
   "clone_node",
@@ -310,6 +348,9 @@ var FOCUS_BEFORE_COMMANDS = new Set([
   "insert_child",
   "flatten_node",
   "set_corner_radius",
+  "set_clips_content",
+  "set_opacity",
+  "set_section_status",
   "set_text_content",
   "set_multiple_text_contents",
   "set_auto_layout",
@@ -356,6 +397,11 @@ var FOCUS_AFTER_COMMANDS = new Set([
   "create_component_set",
   "create_component_instance",
   "create_from_data",
+  "create_section",
+  "create_autolayout_frame",
+  "create_styled_text",
+  "create_card",
+  "clone_and_place",
 ]);
 
 // ---------------------------------------------------------------------------
@@ -522,6 +568,12 @@ function enqueueCommand(command: string, params: Record<string, unknown>): Promi
 async function handleCommand(command: string, params: Record<string, unknown>): Promise<unknown> {
   debugLog(`handleCommand: ${command}`);
 
+  // Node ids are unique only WITHIN a Figma file, so a command addressed to one
+  // file must never be applied to another (see utils/document-guard).
+  if (params) {
+    assertExpectedDocument(command, params["__expectedFile"] as any, getDocumentIdentity());
+  }
+
   // Readonly guard
   if (state.readonlyMode && !READONLY_COMMANDS.has(command)) {
     throw new Error("Readonly mode is active. Command '" + command + "' is not allowed.");
@@ -585,6 +637,16 @@ async function handleCommand(command: string, params: Record<string, unknown>): 
 
 async function _executeCommand(command: string, params: Record<string, unknown>): Promise<unknown> {
   switch (command) {
+    // Strict mode — when enabled, handlers that detect a silently-discarded
+    // write throw instead of reporting success. Read-only w.r.t. design data.
+    case "set_strict_mode": {
+      const requested = params ? params["enabled"] : undefined;
+      if (requested !== undefined && requested !== null) {
+        setStrictModeEnabled(requested === true || requested === "true");
+      }
+      return { strict: isStrictModeEnabled(), success: true };
+    }
+
     // Document
     case "get_document_info":
       return await getDocumentInfo();
@@ -650,6 +712,8 @@ async function _executeCommand(command: string, params: Record<string, unknown>)
     // Node operations
     case "move_node":
       return await moveNode(params);
+    case "move_node_absolute":
+      return await moveNodeAbsolute(params);
     case "resize_node":
       return await resizeNode(params);
     case "delete_node":
@@ -936,6 +1000,20 @@ async function _executeCommand(command: string, params: Record<string, unknown>)
       return await renamePage(params);
     case "delete_page":
       return await deletePage(params);
+    case "set_page_background":
+      return await setPageBackground(params);
+
+    // Sections
+    case "create_section":
+      return await createSection(params);
+    case "set_section_status":
+      return await setSectionStatus(params);
+
+    // Node display properties
+    case "set_clips_content":
+      return await setClipsContent(params);
+    case "set_opacity":
+      return await setOpacity(params);
 
     // Design system
     case "create_from_data":
@@ -948,6 +1026,18 @@ async function _executeCommand(command: string, params: Record<string, unknown>)
     // Batch
     case "batch_actions":
       return await batchActions(params, handleCommand);
+
+    // Verification (§7)
+    case "contrast_check_frame":
+      return await contrastCheckFrame(params);
+    case "find_overlaps":
+      return await findOverlaps(params);
+    case "assert_node_state":
+      return await assertNodeState(params);
+    case "find_unbound":
+      return await findUnbound(params);
+    case "check_token_collisions":
+      return await checkTokenCollisions(params);
 
     // Lint
     case "lint_frame":
@@ -988,6 +1078,22 @@ async function _executeCommand(command: string, params: Record<string, unknown>)
     // Comments
     case "get_comments":
       return await getComments(params);
+
+    // Composites — one round trip for what used to be 4-8 calls
+    case "create_autolayout_frame":
+      return await createAutolayoutFrame(params || {});
+    case "create_styled_text":
+      return await createStyledText(params || {});
+    case "set_gap":
+      return await setGap(params || {});
+    case "create_card":
+      return await createCard(params || {});
+    case "bulk_bind_variables":
+      return await bulkBindVariables(params || {});
+    case "clone_and_place":
+      return await cloneAndPlace(params || {});
+    case "apply_role_preset":
+      return await applyRolePreset(params || {});
 
     default:
       throw new Error("Unknown command");
