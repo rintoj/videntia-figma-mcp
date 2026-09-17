@@ -41,7 +41,7 @@
       "type": "string",
       "title": "Socket Server URL",
       "description": "WebSocket socket server host. Use 'localhost' for local dev or 'figma-mcp.videntia.dev' for the hosted server.",
-      "default": "figma-mcp.videntia.dev",
+      "default": "localhost",
       "required": false
     }
   },
