@@ -246,8 +246,8 @@ import { getComments } from "./handlers/comments";
 
 const state = {
   serverPort: 3055,
-  serverUrl: "figma-mcp.videntia.dev",
-  serverSecure: true,
+  serverUrl: "localhost",
+  serverSecure: false,
   readonlyMode: false,
   autoFocus: false,
   prefsExpanded: true,
