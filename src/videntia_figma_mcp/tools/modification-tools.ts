@@ -6,8 +6,10 @@ import { mcpBooleanSchema } from "../utils/mcp-boolean.js";
 import { DeleteMultipleNodesResult, CreateEffectStyleResult, UpdateEffectStyleResult } from "../types";
 import { normalizeNodeId } from "../utils/figma-helpers.js";
 import { formatState, returnStateParam } from "../utils/return-state.js";
+import { allowSideEffectsParam, expectSideEffectsParam } from "../utils/side-effects.js";
 import { readImageFileAsBase64 } from "../utils/image-file-input.js";
 import { colorParam, toRgba, COLOR_INPUT_DESCRIPTION } from "../utils/color-input.js";
+import { expandPadding, paddingShorthandSchema, PADDING_SHORTHAND_DESCRIPTION } from "../utils/frame-layout.js";
 
 /** Normalize the `color` on each effect entry to 0-1 {r,g,b,a}. */
 function normalizeEffectColors<T extends { color?: unknown; secondaryColor?: unknown }>(effects: T[]): T[] {
@@ -80,18 +82,26 @@ export function registerModificationTools(server: McpServer): void {
       return_state: returnStateParam.describe(
         "Session default for post-write state: when on, EVERY mutating command answers with the node's actual state after the write, so a follow-up get_node_info is never needed.",
       ),
+      allow_side_effects: allowSideEffectsParam.describe(
+        "Session default for side-effect acknowledgement: when on, an intentional knock-on change (e.g. an auto-layout parent resizing) is kept and reported as a warning instead of throwing. Individual commands override it per call with allow_side_effects / expect_side_effects.",
+      ),
     },
-    async ({ enabled, return_state }) => {
+    async ({ enabled, return_state, allow_side_effects }) => {
       try {
-        const result = (await sendCommandToFigma("set_strict_mode", { enabled, return_state })) as {
+        const result = (await sendCommandToFigma("set_strict_mode", {
+          enabled,
+          return_state,
+          allow_side_effects,
+        })) as {
           strict: boolean;
           returnState?: boolean;
+          allowSideEffects?: string[];
         };
         return {
           content: [
             {
               type: "text",
-              text: `Strict mode is now ${result.strict ? "ON" : "OFF"}. Post-write state is ${result.returnState ? "ON" : "OFF"}.`,
+              text: `Strict mode is now ${result.strict ? "ON" : "OFF"}. Post-write state is ${result.returnState ? "ON" : "OFF"}. Acknowledged side effects: ${result.allowSideEffects && result.allowSideEffects.length > 0 ? result.allowSideEffects.join(", ") : "none"}.`,
             },
           ],
         };
@@ -712,7 +722,7 @@ export function registerModificationTools(server: McpServer): void {
       right: z.coerce.number().optional().describe("Right padding in pixels (≥ 0; omit to leave unchanged)"),
       bottom: z.coerce.number().optional().describe("Bottom padding in pixels (≥ 0; omit to leave unchanged)"),
       left: z.coerce.number().optional().describe("Left padding in pixels (≥ 0; omit to leave unchanged)"),
-      padding: z.coerce.number().optional().describe("CSS-style shorthand applied to all four sides"),
+      padding: paddingShorthandSchema.optional().describe(PADDING_SHORTHAND_DESCRIPTION),
       paddingTop: z.coerce.number().optional().describe("Alias for `top` (the Figma property name)"),
       paddingRight: z.coerce.number().optional().describe("Alias for `right` (the Figma property name)"),
       paddingBottom: z.coerce.number().optional().describe("Alias for `bottom` (the Figma property name)"),
@@ -734,12 +744,13 @@ export function registerModificationTools(server: McpServer): void {
     }) => {
       nodeId = normalizeNodeId(nodeId);
       try {
-        const pick = (short?: number, long?: number) =>
-          short !== undefined ? short : long !== undefined ? long : padding;
-        const wantTop = pick(top, paddingTop);
-        const wantRight = pick(right, paddingRight);
-        const wantBottom = pick(bottom, paddingBottom);
-        const wantLeft = pick(left, paddingLeft);
+        const shorthand = expandPadding(padding as never);
+        const pick = (short: number | undefined, long: number | undefined, side: number | undefined) =>
+          short !== undefined ? short : long !== undefined ? long : side;
+        const wantTop = pick(top, paddingTop, shorthand?.top);
+        const wantRight = pick(right, paddingRight, shorthand?.right);
+        const wantBottom = pick(bottom, paddingBottom, shorthand?.bottom);
+        const wantLeft = pick(left, paddingLeft, shorthand?.left);
         if (wantTop === undefined && wantRight === undefined && wantBottom === undefined && wantLeft === undefined) {
           throw new Error("Nothing to set — pass padding, or any of top/right/bottom/left (aliases: padding*).");
         }
@@ -878,8 +889,19 @@ export function registerModificationTools(server: McpServer): void {
         .optional()
         .describe("Alias for `vertical` (the Figma property name); `vertical` wins if both are given"),
       return_state: returnStateParam,
+      allow_side_effects: allowSideEffectsParam,
+      expect_side_effects: expectSideEffectsParam,
     },
-    async ({ nodeId, horizontal, vertical, layoutSizingHorizontal, layoutSizingVertical, return_state }) => {
+    async ({
+      nodeId,
+      horizontal,
+      vertical,
+      layoutSizingHorizontal,
+      layoutSizingVertical,
+      return_state,
+      allow_side_effects,
+      expect_side_effects,
+    }) => {
       nodeId = normalizeNodeId(nodeId);
       try {
         const wantHorizontal = horizontal !== undefined ? horizontal : layoutSizingHorizontal;
@@ -895,6 +917,8 @@ export function registerModificationTools(server: McpServer): void {
           layoutSizingHorizontal: wantHorizontal,
           layoutSizingVertical: wantVertical,
           return_state,
+          allow_side_effects,
+          expect_side_effects,
         });
         const typedResult = result as {
           name: string;
@@ -1179,6 +1203,7 @@ export function registerModificationTools(server: McpServer): void {
         .optional()
         .describe("Alias for `mode` (the Figma property name); `mode` wins if both are given"),
       itemSpacing: z.coerce.number().optional().describe("Alias for `gap` (the Figma property name)"),
+      padding: paddingShorthandSchema.optional().describe(PADDING_SHORTHAND_DESCRIPTION),
       paddingTop: z.coerce.number().optional().describe("Alias for `top`"),
       paddingBottom: z.coerce.number().optional().describe("Alias for `bottom`"),
       paddingLeft: z.coerce.number().optional().describe("Alias for `left`"),
@@ -1191,12 +1216,17 @@ export function registerModificationTools(server: McpServer): void {
         .enum(["FIXED", "HUG", "FILL"])
         .optional()
         .describe("Alias for `vertical` (the Figma property name)"),
+      allow_side_effects: allowSideEffectsParam,
+      expect_side_effects: expectSideEffectsParam,
     },
     async ({
       nodeId,
+      allow_side_effects,
+      expect_side_effects,
       mode: modeArg,
       layoutMode: layoutModeAlias,
       itemSpacing,
+      padding,
       paddingTop,
       paddingBottom,
       paddingLeft,
@@ -1237,10 +1267,15 @@ export function registerModificationTools(server: McpServer): void {
       }
       const horizontal = horizontalArg !== undefined ? horizontalArg : layoutSizingHorizontal;
       const vertical = verticalArg !== undefined ? verticalArg : layoutSizingVertical;
-      top = top !== undefined ? top : paddingTop;
-      bottom = bottom !== undefined ? bottom : paddingBottom;
-      left = left !== undefined ? left : paddingLeft;
-      right = right !== undefined ? right : paddingRight;
+      // `padding` is the shorthand; any explicit per-side value (or its padding* alias)
+      // wins over it — the same precedence `set_padding` and `create_frame` use.
+      const shorthand = expandPadding(padding as never);
+      const pickSide = (side: number | undefined, alias: number | undefined, short: number | undefined) =>
+        side !== undefined ? side : alias !== undefined ? alias : short;
+      top = pickSide(top, paddingTop, shorthand?.top);
+      bottom = pickSide(bottom, paddingBottom, shorthand?.bottom);
+      left = pickSide(left, paddingLeft, shorthand?.left);
+      right = pickSide(right, paddingRight, shorthand?.right);
       gap = gap !== undefined ? gap : itemSpacing;
       try {
         if (
@@ -1290,6 +1325,8 @@ export function registerModificationTools(server: McpServer): void {
           ...(preserveChildSizing !== undefined ? { preserveChildSizing } : {}),
           layoutSizingHorizontal: horizontal,
           layoutSizingVertical: vertical,
+          allow_side_effects,
+          expect_side_effects,
         });
 
         const typedResult = result as { name: string };

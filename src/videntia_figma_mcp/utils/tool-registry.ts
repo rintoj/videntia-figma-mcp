@@ -36,6 +36,25 @@ export interface RegisteredToolEntry {
 const registry = new Map<string, RegisteredToolEntry>();
 
 /**
+ * Tools whose schema rejects unknown parameters instead of letting zod strip them.
+ *
+ * Zod's default `strip` mode makes a misspelled or unsupported parameter a SILENT
+ * no-op: `export_node_as_image` accepted `output_directory` for months and wrote the
+ * file somewhere else entirely. For tools where a dropped parameter changes where
+ * real side effects land, the call must fail loudly instead.
+ */
+export const STRICT_PARAM_TOOLS = new Set<string>(["export_node_as_image", "set_auto_layout"]);
+
+/** Swap the SDK's own parsed schema for the strict one, for allowlisted tools. */
+function enforceStrictSchema(server: McpServer, name: string, strict: z.ZodObject<ZodRawShape>): void {
+  if (!STRICT_PARAM_TOOLS.has(name)) return;
+  const registered = (server as unknown as { _registeredTools?: Record<string, { inputSchema?: unknown }> })
+    ._registeredTools;
+  const entry = registered?.[name];
+  if (entry && entry.inputSchema) entry.inputSchema = strict;
+}
+
+/**
  * Progressive-discovery support.
  *
  * The registry already sees EVERY tool. That makes it the natural place to gate which
@@ -191,22 +210,29 @@ export function instrumentToolRegistry(server: McpServer): McpServer {
           );
 
         const category = currentCategory;
+        const schema = STRICT_PARAM_TOOLS.has(name) ? z.object(shape).strict() : z.object(shape);
         registry.set(name, {
           name,
           description: typeof args[1] === "string" ? args[1] : "",
           category,
-          schema: z.object(shape),
+          schema,
           handler: wrapped,
         });
         const finalArgs = [args[0], args[1], shape, wrapped];
         if (!registrationGate(name, category)) {
           // Recorded, reachable, but not advertised. Keep the exact SDK call around so
           // `describe_figma_tools` / `load_figma_tools` can perform it verbatim later.
-          deferred.set(name, () => (original as (...a: unknown[]) => unknown)(...finalArgs));
+          deferred.set(name, () => {
+            const out = (original as (...a: unknown[]) => unknown)(...finalArgs);
+            enforceStrictSchema(server, name, schema);
+            return out;
+          });
           return undefined;
         }
         sdkRegistered.add(name);
-        return (original as (...a: unknown[]) => unknown)(...finalArgs);
+        const out = (original as (...a: unknown[]) => unknown)(...finalArgs);
+        enforceStrictSchema(server, name, schema);
+        return out;
       }
     }
     return (original as (...a: unknown[]) => unknown)(...args);

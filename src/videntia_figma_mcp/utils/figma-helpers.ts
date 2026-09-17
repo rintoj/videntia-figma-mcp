@@ -219,7 +219,8 @@ const FIELD_PROPERTY_MAP: Record<NodeField, string[]> = {
   id: [],
   name: [],
   type: [],
-  fills: ["fills"],
+  // Pages report their canvas paint on `backgrounds`, so it travels with `fills`.
+  fills: ["fills", "backgrounds"],
   strokes: ["strokes", "strokeWeight"],
   cornerRadius: ["cornerRadius", "topLeftRadius", "topRightRadius", "bottomRightRadius", "bottomLeftRadius"],
   absoluteBoundingBox: ["x", "y", "width", "height", "absoluteBoundingBox"],

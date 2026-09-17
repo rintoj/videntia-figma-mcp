@@ -178,7 +178,12 @@ import {
 } from "./handlers/layout";
 
 // Strict mode (silent no-op detection)
-import { setStrictModeEnabled, isStrictModeEnabled } from "./utils/write-verify";
+import {
+  setStrictModeEnabled,
+  isStrictModeEnabled,
+  setSideEffectAllowanceDefault,
+  getSideEffectAllowanceDefault,
+} from "./utils/write-verify";
 import {
   attachPostWriteState,
   isReturnStateDefault,
@@ -680,7 +685,24 @@ async function _executeCommand(command: string, params: Record<string, unknown>)
       if (wantState !== undefined && wantState !== null) {
         setReturnStateDefault(wantState === true || wantState === "true");
       }
-      return { strict: isStrictModeEnabled(), returnState: isReturnStateDefault(), success: true };
+      // Session default for side-effect acknowledgement (see utils/write-verify):
+      // true = an intentional knock-on change (e.g. a parent resizing) is reported
+      // as a warning instead of throwing. Accepts a list of kinds too.
+      const wantSideEffects =
+        params && params["allow_side_effects"] !== undefined
+          ? params["allow_side_effects"]
+          : params
+            ? params["allowSideEffects"]
+            : undefined;
+      if (wantSideEffects !== undefined && wantSideEffects !== null) {
+        setSideEffectAllowanceDefault(wantSideEffects);
+      }
+      return {
+        strict: isStrictModeEnabled(),
+        returnState: isReturnStateDefault(),
+        allowSideEffects: getSideEffectAllowanceDefault(),
+        success: true,
+      };
     }
 
     // Document

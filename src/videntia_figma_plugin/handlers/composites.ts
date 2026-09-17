@@ -226,11 +226,22 @@ const PADDING_FIELDS: Record<string, string> = {
   left: "paddingLeft",
 };
 
-/** Normalise number | {top,right,bottom,left} | {vertical,horizontal} padding. */
+/** Normalise number | CSS-style array | {top,right,bottom,left} | {vertical,horizontal} padding. */
 function normalizePadding(padding: unknown): { top: number; right: number; bottom: number; left: number } | undefined {
   if (padding === undefined || padding === null) return undefined;
   if (typeof padding === "number") {
     return { top: padding, right: padding, bottom: padding, left: padding };
+  }
+  if (Array.isArray(padding)) {
+    // CSS shorthand order. Without this an array would fall through to the object
+    // branch below and read as four zeroes — a silent no-op, which is the failure
+    // mode this dialect exists to remove.
+    const n = padding.map((entry) => parseNum(entry, 0));
+    if (n.length === 0) return undefined;
+    if (n.length === 1) return { top: n[0], right: n[0], bottom: n[0], left: n[0] };
+    if (n.length === 2) return { top: n[0], right: n[1], bottom: n[0], left: n[1] };
+    if (n.length === 3) return { top: n[0], right: n[1], bottom: n[2], left: n[1] };
+    return { top: n[0], right: n[1], bottom: n[2], left: n[3] };
   }
   const p = padding as Record<string, unknown>;
   const vertical = p["vertical"] !== undefined ? parseNum(p["vertical"], 0) : undefined;

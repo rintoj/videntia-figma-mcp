@@ -58,6 +58,11 @@ export interface ApplyWritesResult {
   noops: WriteNoOp[];
   /** Human-readable warnings, one per no-op. Empty when everything landed. */
   warnings: string[];
+  /**
+   * Side effects the caller acknowledged (`allow_side_effects` /
+   * `expect_side_effects`). Reported, never thrown, and never a failure.
+   */
+  acknowledged?: Array<WriteNoOp & { kind: string }>;
 }
 
 // Figma stores layout numbers as floats; tolerate representation drift only.
@@ -145,6 +150,9 @@ export function mergeWriteResults(...results: ApplyWritesResult[]): ApplyWritesR
     merged.applied = merged.applied.concat(r.applied);
     merged.noops = merged.noops.concat(r.noops);
     merged.warnings = merged.warnings.concat(r.warnings);
+    if (r.acknowledged !== undefined && r.acknowledged.length > 0) {
+      merged.acknowledged = (merged.acknowledged ?? []).concat(r.acknowledged);
+    }
   }
   return merged;
 }
@@ -161,6 +169,12 @@ export function withWriteReport(result: Record<string, unknown>, report: ApplyWr
     result["noops"] = report.noops;
   } else if (result["success"] === undefined) {
     result["success"] = true;
+  }
+  if (report.acknowledged !== undefined && report.acknowledged.length > 0) {
+    result["acknowledgedSideEffects"] = report.acknowledged;
+    // `report.warnings` already carries the acknowledgement lines; only set them
+    // when the no-op branch above did not already publish the same array.
+    if (result["warnings"] === undefined) result["warnings"] = report.warnings;
   }
   return result;
 }
@@ -219,9 +233,10 @@ export function snapshotParentSize(parent: unknown): ParentSizeSnapshot | null {
  */
 export function guardParentSize(
   snapshot: ParentSizeSnapshot | null,
-  options: { label: string; strict: boolean; childName: string },
+  options: { label: string; strict: boolean; childName: string; allowSideEffects?: string[] },
 ): ApplyWritesResult {
   const result: ApplyWritesResult = { applied: [], noops: [], warnings: [] };
+  const acknowledgedResize = isSideEffectAllowed(options.allowSideEffects, "parentResize");
   if (snapshot === null) return result;
 
   const parent = snapshot.node as unknown as Record<string, unknown>;
@@ -247,6 +262,19 @@ export function guardParentSize(
     const axis = axes[i];
     const after = parent[axis.dim] as number;
     if (typeof after !== "number" || Math.abs(after - axis.before) <= EPSILON) continue;
+
+    // Acknowledged: the caller asked for this resize, so do NOT restore it either —
+    // restoring would undo the very change they wanted. Report and move on.
+    if (acknowledgedResize) {
+      result.acknowledged = (result.acknowledged ?? []).concat([
+        { kind: "parentResize", property: `parent.${axis.dim}`, requested: axis.before, actual: after },
+      ]);
+      result.warnings.push(
+        `${options.label}: sizing "${options.childName}" changed its parent "${snapshot.name}" (${snapshot.id}) ` +
+          `${axis.dim} from ${axis.before} to ${after} — acknowledged via allow_side_effects/expect_side_effects, kept.`,
+      );
+      continue;
+    }
 
     const hugs = axis.mode === "AUTO";
     if (!hugs && typeof parent["resize"] === "function") {
@@ -283,4 +311,107 @@ export function guardParentSize(
     throw new Error(result.warnings.join(" "));
   }
   return result;
+}
+
+// ---------------------------------------------------------------------------
+// Side-effect acknowledgement
+// ---------------------------------------------------------------------------
+//
+// `guardParentSize` is right about WHAT happened but cannot know whether the
+// caller wanted it: shrinking the parent is often the entire point of the edit.
+// Without an opt-out, strict mode blocks an intentional edit and the only escape
+// is turning strict off wholesale — which also gives up silent-no-op detection.
+//
+// So the caller may acknowledge a side effect, per call or as a session default:
+//   - `allow_side_effects: true`             -> acknowledge every kind
+//   - `expect_side_effects: ["parentResize"]`-> acknowledge only those kinds
+// Acknowledged side effects never throw and never flip `success` to false; they
+// are still REPORTED, on `acknowledged` + a warning, so the measurement that made
+// the diagnostic useful is not lost.
+
+/** Every side-effect kind the guards can raise. */
+export const SIDE_EFFECT_KINDS = ["parentResize"] as const;
+export type SideEffectKind = (typeof SIDE_EFFECT_KINDS)[number];
+
+/** Wildcard entry meaning "every kind is acknowledged". */
+const ALL_SIDE_EFFECTS = "*";
+
+/** Session default, set by `set_strict_mode { allow_side_effects }`. Default: none. */
+const sideEffectState = { allowed: [] as string[] };
+
+function canonicalKind(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const key = value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z]/g, "");
+  if (key === "") return null;
+  if (key === "all" || value.trim() === ALL_SIDE_EFFECTS) return ALL_SIDE_EFFECTS;
+  if (key === "parentresize" || key === "parentsize" || key === "parentwidth" || key === "parentheight") {
+    return "parentResize";
+  }
+  return value.trim();
+}
+
+function parseAllowance(params: Record<string, unknown> | null | undefined): string[] | null {
+  if (params === null || params === undefined) return null;
+
+  const kinds: string[] = [];
+  let sawAny = false;
+
+  const expected =
+    params["expect_side_effects"] !== undefined ? params["expect_side_effects"] : params["expectSideEffects"];
+  if (expected !== undefined && expected !== null) {
+    sawAny = true;
+    const list = Array.isArray(expected) ? expected : String(expected).split(",");
+    for (let i = 0; i < list.length; i++) {
+      const kind = canonicalKind(list[i]);
+      if (kind !== null) kinds.push(kind);
+    }
+  }
+
+  const allow = params["allow_side_effects"] !== undefined ? params["allow_side_effects"] : params["allowSideEffects"];
+  if (allow !== undefined && allow !== null) {
+    sawAny = true;
+    if (allow === true || allow === "true") kinds.push(ALL_SIDE_EFFECTS);
+    else if (Array.isArray(allow) || (typeof allow === "string" && allow !== "false")) {
+      const list = Array.isArray(allow) ? allow : String(allow).split(",");
+      for (let i = 0; i < list.length; i++) {
+        const kind = canonicalKind(list[i]);
+        if (kind !== null) kinds.push(kind);
+      }
+    }
+  }
+
+  return sawAny ? kinds : null;
+}
+
+/** Set the session-wide acknowledgement default (used by `set_strict_mode`). */
+export function setSideEffectAllowanceDefault(value: unknown): void {
+  const parsed = parseAllowance({ allow_side_effects: value });
+  sideEffectState.allowed = parsed === null ? [] : parsed;
+}
+
+/** The current session-wide acknowledgement default. */
+export function getSideEffectAllowanceDefault(): string[] {
+  return sideEffectState.allowed.slice();
+}
+
+/**
+ * Resolve the acknowledged side-effect kinds for one command invocation: explicit
+ * per-call params win over the session default (including `allow_side_effects:
+ * false`, which narrows back to "acknowledge nothing").
+ */
+export function resolveSideEffectAllowance(params: Record<string, unknown> | null | undefined): string[] {
+  const perCall = parseAllowance(params);
+  return perCall === null ? sideEffectState.allowed.slice() : perCall;
+}
+
+/** True when `kind` was acknowledged by the caller (directly or via the wildcard). */
+export function isSideEffectAllowed(allowance: string[] | null | undefined, kind: string): boolean {
+  if (!allowance) return false;
+  for (let i = 0; i < allowance.length; i++) {
+    if (allowance[i] === ALL_SIDE_EFFECTS || allowance[i] === kind) return true;
+  }
+  return false;
 }

@@ -2,6 +2,12 @@ import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { registerModificationTools } from "../../src/videntia_figma_mcp/tools/modification-tools";
 import { registerCreationTools } from "../../src/videntia_figma_mcp/tools/creation-tools";
+import {
+  STRICT_PARAM_TOOLS,
+  clearToolRegistry,
+  getRegisteredTool,
+  instrumentToolRegistry,
+} from "../../src/videntia_figma_mcp/utils/tool-registry";
 
 jest.mock("../../src/videntia_figma_mcp/utils/websocket", () => ({
   sendCommandToFigma: jest.fn(),
@@ -97,6 +103,16 @@ describe("MCP → plugin wire params (alias + no-op guards)", () => {
       expect(wire()).toMatchObject({ paddingTop: 8, paddingRight: 8, paddingBottom: 8, paddingLeft: 8 });
     });
 
+    it("accepts the array/object shorthand forms too", async () => {
+      await callTool("set_padding", { nodeId: "1:1", padding: [4, 8] });
+      expect(wire()).toMatchObject({ paddingTop: 4, paddingRight: 8, paddingBottom: 4, paddingLeft: 8 });
+    });
+
+    it("lets an explicit side win over the shorthand", async () => {
+      await callTool("set_padding", { nodeId: "1:1", padding: 8, left: 0 });
+      expect(wire()).toMatchObject({ paddingTop: 8, paddingRight: 8, paddingBottom: 8, paddingLeft: 0 });
+    });
+
     it("refuses an empty call", async () => {
       const response = await callTool("set_padding", { nodeId: "1:1" });
       expect(mockSendCommand).not.toHaveBeenCalled();
@@ -139,6 +155,29 @@ describe("MCP → plugin wire params (alias + no-op guards)", () => {
       });
     });
 
+    it("set_auto_layout expands the `padding` shorthand to all four sides", async () => {
+      // The bug: `padding` was not declared in the zod shape, so zod's strip mode
+      // dropped it before the handler ran — accepted, reported as success, ignored.
+      await callTool("set_auto_layout", { nodeId: "1:1", mode: "VERTICAL", padding: 20 });
+      expect(wire()).toMatchObject({ paddingTop: 20, paddingRight: 20, paddingBottom: 20, paddingLeft: 20 });
+    });
+
+    it("set_auto_layout accepts the array and object padding forms", async () => {
+      await callTool("set_auto_layout", { nodeId: "1:1", mode: "VERTICAL", padding: [4, 8] });
+      expect(wire()).toMatchObject({ paddingTop: 4, paddingRight: 8, paddingBottom: 4, paddingLeft: 8 });
+      mockSendCommand.mockClear();
+      await callTool("set_auto_layout", { nodeId: "1:1", mode: "VERTICAL", padding: [1, 2, 3, 4] });
+      expect(wire()).toMatchObject({ paddingTop: 1, paddingRight: 2, paddingBottom: 3, paddingLeft: 4 });
+      mockSendCommand.mockClear();
+      await callTool("set_auto_layout", { nodeId: "1:1", mode: "VERTICAL", padding: { vertical: 6, horizontal: 12 } });
+      expect(wire()).toMatchObject({ paddingTop: 6, paddingRight: 12, paddingBottom: 6, paddingLeft: 12 });
+    });
+
+    it("set_auto_layout lets explicit per-side params override the shorthand", async () => {
+      await callTool("set_auto_layout", { nodeId: "1:1", mode: "VERTICAL", padding: 20, top: 4, paddingRight: 6 });
+      expect(wire()).toMatchObject({ paddingTop: 4, paddingRight: 6, paddingBottom: 20, paddingLeft: 20 });
+    });
+
     it("set_auto_layout reports a missing mode instead of sending a modeless write", async () => {
       const response = await callTool("set_auto_layout", { nodeId: "1:1", gap: 8 });
       expect(mockSendCommand).not.toHaveBeenCalled();
@@ -177,5 +216,37 @@ describe("MCP → plugin wire params (alias + no-op guards)", () => {
       await callTool("resize_node", { nodeId: "1:1", width: 10, height: 20 });
       expect(wire()).toMatchObject({ width: 10, height: 20 });
     });
+  });
+});
+
+/**
+ * `set_auto_layout` is in STRICT_PARAM_TOOLS: an undeclared parameter must be a loud
+ * error, not the silent strip that hid `padding: 20` for as long as it did.
+ */
+describe("set_auto_layout strict param schema", () => {
+  beforeEach(() => {
+    clearToolRegistry();
+  });
+  afterEach(() => {
+    clearToolRegistry();
+  });
+
+  function schemaFor(name: string) {
+    const server = new McpServer({ name: "strict-test", version: "1.0.0" }, { capabilities: { tools: {} } });
+    instrumentToolRegistry(server);
+    registerModificationTools(server);
+    return getRegisteredTool(name)!.schema;
+  }
+
+  it("is registered strict", () => {
+    expect(STRICT_PARAM_TOOLS.has("set_auto_layout")).toBe(true);
+  });
+
+  it("accepts padding and the declared aliases but rejects a misspelling", () => {
+    const schema = schemaFor("set_auto_layout");
+    expect(schema.safeParse({ nodeId: "1:1", mode: "VERTICAL", padding: 20 }).success).toBe(true);
+    expect(schema.safeParse({ nodeId: "1:1", mode: "VERTICAL", padding: [4, 8] }).success).toBe(true);
+    expect(schema.safeParse({ nodeId: "1:1", layoutMode: "VERTICAL", allowSideEffects: true }).success).toBe(true);
+    expect(schema.safeParse({ nodeId: "1:1", mode: "VERTICAL", paddign: 20 }).success).toBe(false);
   });
 });

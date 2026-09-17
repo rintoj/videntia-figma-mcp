@@ -6,6 +6,7 @@ import { resolveCreateIconParams } from "./icon-tools";
 import { normalizeNodeId } from "../utils/figma-helpers";
 import { resolveResultReferences } from "../utils/resolve-result-references";
 import { formatState } from "../utils/return-state";
+import { renderActionTable } from "../utils/batch-result-digest";
 import { batchActionSchema } from "../utils/batch-action-schema";
 import { computePureAction, isPureAction, nonBatchableReason } from "../utils/pure-batch-actions";
 import { getRegisteredTool } from "../utils/tool-registry";
@@ -287,7 +288,7 @@ function extractNodeId(result: unknown): string | undefined {
 export function registerBatchTools(server: McpServer): void {
   server.tool(
     "batch_actions",
-    'Execute multiple Figma commands in a single batch call. SHAPE: {actions: [{action: "<command_name>", params: {...}}, ...]} — `action` is the command name string and `params` its object (`type` is accepted as an alias for `action`; params written flat next to `action` are folded in). EXAMPLE: {"actions": [{"action": "clone_node", "params": {"nodeId": "1:23"}}, {"action": "rename_node", "params": {"nodeId": "$result[0].id", "name": "Copy"}}, {"action": "apply_text_style", "params": {"nodeId": "1:24", "styleName": "body/md"}}]}. Every batched action accepts EXACTLY the same parameters as the equivalent standalone tool, names included — pass styleName/variableName/icon name and they are resolved server-side, exactly as standalone. Call get_schema_definition with target:"batch_actions" for the full action schema. Supports $result[N].field references to use results from earlier actions (e.g., clone then rename using new ID) — N is the index of the action as YOU listed it in `actions`, regardless of how any action (e.g. create_icon) expands internally; references are preserved even when a long batch is auto-chunked. Set stopOnError to true to abort remaining actions after the first failure. An undo checkpoint is committed before the batch runs by default, so one undo in Figma reverts exactly this batch (set checkpoint:false to opt out).',
+    'Execute multiple Figma commands in a single batch call. SHAPE: {actions: [{action: "<command_name>", params: {...}}, ...]} — `action` is the command name string and `params` its object (`type` is accepted as an alias for `action`; params written flat next to `action` are folded in). EXAMPLE: {"actions": [{"action": "clone_node", "params": {"nodeId": "1:23"}}, {"action": "rename_node", "params": {"nodeId": "$result[0].id", "name": "Copy"}}, {"action": "apply_text_style", "params": {"nodeId": "1:24", "styleName": "body/md"}}]}. Every batched action accepts EXACTLY the same parameters as the equivalent standalone tool, names included — pass styleName/variableName/icon name and they are resolved server-side, exactly as standalone. Call get_schema_definition with target:"batch_actions" for the full action schema. Supports $result[N].field references to use results from earlier actions (e.g., clone then rename using new ID) — N is the index of the action as YOU listed it in `actions`, regardless of how any action (e.g. create_icon) expands internally; references are preserved even when a long batch is auto-chunked. Set stopOnError to true to abort remaining actions after the first failure. An undo checkpoint is committed before the batch runs by default, so one undo in Figma reverts exactly this batch (set checkpoint:false to opt out). The response ALWAYS carries one compact row per action (index, action, OK/FAIL, and a short digest of what it returned — new node id, or a read command\'s natural value), so no follow-up read is needed just to see what happened; set return_state:true for the verbose post-write state of every node touched.',
     {
       actions: z
         .array(batchActionSchema)
@@ -305,7 +306,7 @@ export function registerBatchTools(server: McpServer): void {
         .optional()
         .default(false)
         .describe(
-          "Apply-and-verify: each action's result carries the ACTUAL post-write state of the node it touched (one compact summary line + the properties that write touched, plus any silently discarded writes). Use this instead of following a batch with get_node_info calls.",
+          "VERBOSE opt-in on top of the per-action rows every batch already returns: each action additionally reports the ACTUAL post-write state of the node it touched (one compact summary line + the properties that write touched, plus any silently discarded writes under `noops`). Use this instead of following a batch with get_node_info calls.",
         ),
       checkpoint: z
         .boolean()
@@ -474,12 +475,11 @@ export function registerBatchTools(server: McpServer): void {
         const summary = `Batch completed: ${result.succeeded}/${result.totalActions} succeeded${result.failed > 0 ? `, ${result.failed} failed` : ""}`;
         const lines: string[] = [summary];
         if (result.results?.length) {
+          // ALWAYS one compact row per action — a batch must be informative without the
+          // caller opting in, and without dumping whole nodes (utils/batch-result-digest.ts).
+          lines.push("", ...renderActionTable(result.results));
           const failedResults = result.results.filter((r) => !r.success);
           if (failedResults.length > 0) {
-            lines.push("", "| # | Action | Status | Detail |", "|---|--------|--------|--------|");
-            for (const r of failedResults) {
-              lines.push(`| ${r.index} | ${r.action} | FAIL | ${r.error || "unknown error"} |`);
-            }
             const firstFailure = failedResults[0];
             // Only actions that SUCCEEDED mutated the document. When the very first
             // action failed, nothing was committed — saying otherwise sends the caller

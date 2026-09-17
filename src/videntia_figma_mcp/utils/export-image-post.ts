@@ -199,3 +199,91 @@ export async function defaultExportPath(nodeId: string, scale: number, format: s
   const ext = format.toLowerCase() === "jpg" ? "jpg" : format.toLowerCase();
   return path.join(dir, `${safeId}@${scale}x.${ext}`);
 }
+
+/** File extension implied by an export format (PNG/JPG/SVG/PDF/MP4/GIF/WEBM). */
+export function exportExtension(format: string): string {
+  const f = format.toLowerCase();
+  return f === "jpeg" ? "jpg" : f;
+}
+
+/** `Name-nodeId@2x.png` — readable, collision-free, deterministic. */
+export function defaultExportFilename(
+  nodeId: string,
+  nodeName: string | undefined,
+  scale: number,
+  format: string,
+): string {
+  const safeId = nodeId.replace(/[^a-zA-Z0-9_-]/g, "-");
+  const safeName = (nodeName ?? "")
+    .trim()
+    .replace(/[^a-zA-Z0-9_-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60);
+  const stem = safeName ? `${safeName}-${safeId}` : safeId;
+  return `${stem}@${scale}x.${exportExtension(format)}`;
+}
+
+export interface ExportDestinationOptions {
+  saveToPath?: string;
+  outputDirectory?: string;
+  filename?: string;
+  nodeId: string;
+  nodeName?: string;
+  scale: number;
+  format: string;
+}
+
+export interface ResolvedExportDestination {
+  path: string;
+  warnings: string[];
+}
+
+/**
+ * Resolve where a render should be written.
+ *
+ * Precedence: `save_to_path` > `output_directory` (+ optional `filename`) >
+ * the per-session temp directory. `output_directory` is created when missing;
+ * `filename` gains the extension implied by `format` when it lacks one.
+ */
+export async function resolveExportDestination(options: ExportDestinationOptions): Promise<ResolvedExportDestination> {
+  const path = await import("path");
+  const fs = await import("fs");
+  const { saveToPath, outputDirectory, filename, nodeId, nodeName, scale, format } = options;
+  const warnings: string[] = [];
+
+  if (saveToPath) {
+    if (outputDirectory || filename) {
+      warnings.push("save_to_path takes precedence — output_directory/filename were ignored for this export.");
+    }
+    return { path: saveToPath, warnings };
+  }
+
+  if (filename && (filename.includes("/") || filename.includes("\\"))) {
+    throw new Error(`filename must be a bare file name without path separators, got: ${filename}`);
+  }
+
+  let dir: string;
+  if (outputDirectory) {
+    if (!path.isAbsolute(outputDirectory)) {
+      throw new Error(`output_directory must be an absolute path, got: ${outputDirectory}`);
+    }
+    if (fs.existsSync(outputDirectory)) {
+      if (!fs.statSync(outputDirectory).isDirectory()) {
+        throw new Error(`output_directory is not a directory: ${outputDirectory}`);
+      }
+    } else {
+      fs.mkdirSync(outputDirectory, { recursive: true });
+      warnings.push(`Created output_directory ${outputDirectory}.`);
+    }
+    dir = outputDirectory;
+  } else {
+    dir = await sessionExportDir();
+  }
+
+  const ext = exportExtension(format);
+  let name = filename?.trim() || defaultExportFilename(nodeId, nodeName, scale, format);
+  if (name.toLowerCase().endsWith(`.${ext}`) === false) {
+    name = `${name}.${ext}`;
+  }
+  return { path: path.join(dir, name), warnings };
+}

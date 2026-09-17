@@ -1,6 +1,7 @@
 import {
   applyWrites,
   guardParentSize,
+  resolveSideEffectAllowance,
   mergeWriteResults,
   resolveStrict,
   snapshotParentSize,
@@ -675,6 +676,7 @@ export async function setLayoutSizing(params: Record<string, unknown>): Promise<
     label: "set_layout_sizing",
     strict,
     childName: node.name,
+    allowSideEffects: resolveSideEffectAllowance(params),
   });
 
   const result: Record<string, unknown> = {
@@ -688,7 +690,11 @@ export async function setLayoutSizing(params: Record<string, unknown>): Promise<
     result["parentWidth"] = (parentSnapshot.node as unknown as Record<string, unknown>)["width"];
     result["parentHeight"] = (parentSnapshot.node as unknown as Record<string, unknown>)["height"];
   }
-  if (parentReport.warnings.length > 0 && parentReport.noops.length === 0) {
+  if (
+    parentReport.warnings.length > 0 &&
+    parentReport.noops.length === 0 &&
+    (parentReport.acknowledged === undefined || parentReport.acknowledged.length === 0)
+  ) {
     result["parentSizeRestored"] = parentReport.warnings;
   }
 

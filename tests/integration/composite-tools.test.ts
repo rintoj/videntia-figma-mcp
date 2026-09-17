@@ -93,12 +93,20 @@ describe("composite tools", () => {
       expect(params).toMatchObject({
         name: "Panel",
         layoutMode: "VERTICAL",
-        padding: { vertical: 16, horizontal: 12 },
+        // Every shorthand form is expanded to the four-sided shape before it leaves
+        // the server, so the plugin sees one padding dialect.
+        padding: { top: 16, right: 12, bottom: 16, left: 12 },
         itemSpacing: 8,
         layoutSizingHorizontal: "FILL",
         fillVariable: "background/primary",
         radiusVariable: "radius/md",
       });
+    });
+
+    it("expands the CSS-style array padding shorthand", async () => {
+      await callTool("create_autolayout_frame", { layoutMode: "VERTICAL", padding: [8, 16] });
+      const [, params] = mockSendCommand.mock.calls[0];
+      expect(params.padding).toEqual({ top: 8, right: 16, bottom: 8, left: 16 });
     });
 
     it("accepts a hex string or rgba object for the raw fill", async () => {

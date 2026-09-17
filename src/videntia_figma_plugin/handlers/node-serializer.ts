@@ -176,6 +176,17 @@ export function extractStrokes(node: SceneNode): Record<string, unknown>[] | und
   return result.length > 0 ? result : undefined;
 }
 
+/**
+ * Extract a PAGE's canvas `backgrounds` using the same shape as `extractFills`.
+ * Pages have no `fills`, so this is the only paint information they can report.
+ */
+export function extractBackgrounds(node: SceneNode): Record<string, unknown>[] | undefined {
+  const bg = (node as unknown as Record<string, unknown>)["backgrounds"];
+  if (!Array.isArray(bg)) return undefined;
+  // Reuse the fill serializer by presenting the backgrounds as a fills-bearing node.
+  return extractFills({ fills: bg } as unknown as SceneNode);
+}
+
 // Extract simplified effects — same contract as extractFills.
 export function extractEffects(node: SceneNode): Record<string, unknown>[] | undefined {
   if (!("effects" in node) || !Array.isArray((node as BlendMixin).effects)) {
@@ -290,6 +301,11 @@ async function processNode(
   // array, so "no fill" is distinguishable from "not serialized".
   const fills = extractFills(node);
   if (fills !== undefined) info["fills"] = fills;
+
+  // Pages carry their canvas colour on `backgrounds`, not `fills` — without this a PAGE
+  // serializes with no paint information at all and renders as an empty shell.
+  const backgrounds = extractBackgrounds(node);
+  if (backgrounds !== undefined) info["backgrounds"] = backgrounds;
 
   // Strokes
   const strokes = extractStrokes(node);
@@ -463,6 +479,8 @@ async function processNode(
         return c !== null;
       });
       if (childInfos.length > 0) info["children"] = childInfos;
+      // Always report the true count — expanded children can be fewer (hidden/failed).
+      info["_childCount"] = (node as ChildrenMixin).children.length;
     } else {
       info["_childCount"] = (node as ChildrenMixin).children.filter(function (c) {
         return (c as SceneNode).visible !== false;
