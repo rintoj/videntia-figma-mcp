@@ -10,8 +10,8 @@ import { consumeEarlyMessages } from "./early-messages";
 
 export function App() {
   var [port, setPort] = useState(3055);
-  var [serverUrl, setServerUrl] = useState("figma-mcp.videntia.dev");
-  var [serverSecure, setServerSecure] = useState(true);
+  var [serverUrl, setServerUrl] = useState("localhost");
+  var [serverSecure, setServerSecure] = useState(false);
   var [readOnly, setReadOnly] = useState(false);
   var [autoFocus, setAutoFocus] = useState(false);
   var [activeTab, setActiveTab] = useState<TabId>("actions");

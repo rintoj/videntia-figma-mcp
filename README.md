@@ -146,7 +146,7 @@ Or `.mcp.json`:
 }
 ```
 
-The Figma plugin then connects to `wss://figma-mcp.videntia.dev` automatically — skip steps 2 and 4 above.
+The MCP server connects to the hosted relay automatically. The Figma plugin still defaults to `localhost`, so open its Server dropdown and pick `figma-mcp.videntia.dev` once, then skip steps 2 and 4 above.
 
 ---
 
