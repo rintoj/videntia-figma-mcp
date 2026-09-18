@@ -965,8 +965,10 @@ export async function setLayoutSizing(params: Record<string, unknown>): Promise<
     verticalToApply = "HUG";
   }
 
+  let priorTextAutoResize: TextNode["textAutoResize"] | undefined;
   if (node.type === "TEXT") {
     const textNode = node as TextNode;
+    priorTextAutoResize = textNode.textAutoResize;
     // Writing textAutoResize requires the node's fonts to be loaded.
     await loadTextNodeFonts(textNode);
     const effectiveHorizontal = layoutSizingHorizontal ?? textNode.layoutSizingHorizontal;
@@ -990,15 +992,23 @@ export async function setLayoutSizing(params: Record<string, unknown>): Promise<
   // restored (parent FIXED) or reported loudly (parent hugs).
   const parentSnapshot = snapshotParentSize(parent);
 
-  const report = applyWrites(
-    sizingNode,
-    { layoutSizingHorizontal, layoutSizingVertical: verticalToApply },
-    {
-      label: "set_layout_sizing",
-      strict,
-      hint: "Figma recomputed the sizing mode from the node's layout context.",
-    },
-  );
+  let report;
+  try {
+    report = applyWrites(
+      sizingNode,
+      { layoutSizingHorizontal, layoutSizingVertical: verticalToApply },
+      {
+        label: "set_layout_sizing",
+        strict,
+        hint: "Figma recomputed the sizing mode from the node's layout context.",
+      },
+    );
+  } catch (err) {
+    if (priorTextAutoResize !== undefined) {
+      (node as TextNode).textAutoResize = priorTextAutoResize;
+    }
+    throw err;
+  }
 
   const parentReport = guardParentSize(parentSnapshot, {
     label: "set_layout_sizing",
