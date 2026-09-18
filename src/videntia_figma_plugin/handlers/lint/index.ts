@@ -1,8 +1,20 @@
-import type { LintOptions, LintResult, LintCategories, ActiveChecks } from "./types";
+import type { LintOptions, LintResult, LintCategories, ActiveChecks, LintScope } from "./types";
 import { scanNode } from "./checks";
 import { applyFixes } from "./fix";
-import { buildLookupMaps } from "./helpers";
+import { buildLookupMaps, normalizeLintNodeId } from "./helpers";
 import { applySuppressions, parseIgnoreRules, resolveInheritedAnnotations, type NodeAnnotations } from "./suppress";
+
+function readStringList(value: unknown): string[] {
+  if (typeof value === "string") value = value.split(",");
+  if (!Array.isArray(value)) return [];
+  let out: string[] = [];
+  for (let i = 0; i < value.length; i++) {
+    if (typeof value[i] !== "string") continue;
+    let s = (value[i] as string).trim();
+    if (s !== "" && out.indexOf(s) === -1) out.push(s);
+  }
+  return out;
+}
 
 export async function lintFrame(params: Record<string, unknown>): Promise<LintResult> {
   const lintParams = params as unknown as LintOptions;
@@ -11,6 +23,16 @@ export async function lintFrame(params: Record<string, unknown>): Promise<LintRe
   const fix = lintParams ? lintParams.fix === true : false;
 
   if (!nodeId) throw new Error("nodeId is required");
+
+  const scope: LintScope = {
+    ignoreNodeIds: {},
+    ignoreRules: readStringList(lintParams.ignoreRules),
+    suppressed: { total: 0, byRule: {} },
+  };
+  const ignoreIds = readStringList(lintParams.ignoreNodeIds);
+  for (let ii = 0; ii < ignoreIds.length; ii++) {
+    scope.ignoreNodeIds[normalizeLintNodeId(ignoreIds[ii])] = true;
+  }
 
   const rootNode = await figma.getNodeByIdAsync(nodeId);
   if (!rootNode) throw new Error("Node not found: " + String(nodeId).substring(0, 50));
@@ -28,6 +50,7 @@ export async function lintFrame(params: Record<string, unknown>): Promise<LintRe
     effectStyles: true,
     autoLayout: true,
     overflow: true,
+    clippedContent: true,
     screenNaming: true,
     clippedCorners: true,
     radiusProportion: true,
@@ -36,6 +59,7 @@ export async function lintFrame(params: Record<string, unknown>): Promise<LintRe
     fixedWidthSlack: true,
   };
   if (checks) {
+    if (checks.clippedContent === false) chk.clippedContent = false;
     if (checks.rootFrame === false) chk.rootFrame = false;
     if (checks.rootFrame === true) chk.rootFrame = true;
     if (checks.colors === false) chk.colors = false;
@@ -67,6 +91,7 @@ export async function lintFrame(params: Record<string, unknown>): Promise<LintRe
     backgroundFills: { total: 0, bound: 0, unbound: 0, compliance: 100 },
     effectStyles: { total: 0, bound: 0, unbound: 0, compliance: 100 },
     overflow: { total: 0, bound: 0, unbound: 0, compliance: 100 },
+    clippedContent: { total: 0, bound: 0, unbound: 0, compliance: 100 },
     autoLayout: { total: 0, bound: 0, unbound: 0, compliance: 100 },
     screenNaming: { total: 0, bound: 0, unbound: 0, compliance: 100 },
   };
@@ -98,6 +123,7 @@ export async function lintFrame(params: Record<string, unknown>): Promise<LintRe
     violationsCappedRef,
     totalNodesRef,
     rootIsScreen,
+    scope,
   );
 
   // ── Suppression pass (§8) ──────────────────────────────────────────────────
@@ -149,6 +175,7 @@ export async function lintFrame(params: Record<string, unknown>): Promise<LintRe
     "backgroundFills",
     "effectStyles",
     "overflow",
+    "clippedContent",
     "autoLayout",
     "screenNaming",
   ];
@@ -217,5 +244,6 @@ export async function lintFrame(params: Record<string, unknown>): Promise<LintRe
       fixed: summaryFixed,
       suppressed: suppressedViolations.length,
     },
+    suppressed: scope.suppressed,
   };
 }

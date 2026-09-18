@@ -117,7 +117,7 @@ describe("MCP capability gap fixes", () => {
       expect(response.content[0].text).toContain("Carousel");
     });
 
-    it("omits clipsContent from create_frame when not provided", async () => {
+    it("leaves clipsContent unset for create_frame so the plugin resolves the parent-aware default", async () => {
       mockSendCommand.mockResolvedValue({
         id: "frame-002",
         name: "Frame",
@@ -166,6 +166,59 @@ describe("MCP capability gap fixes", () => {
 
       const [, params] = mockSendCommand.mock.calls[0];
       expect(params.clipsContent).toBeUndefined();
+    });
+
+    it("passes clipsContent to set_auto_layout with mode NONE", async () => {
+      mockSendCommand.mockResolvedValue({ name: "Card", layoutMode: "NONE", clipsContent: false });
+
+      await callTool("set_auto_layout", { nodeId: "frame-003", mode: "NONE", clipsContent: false });
+
+      const [command, params] = mockSendCommand.mock.calls[0];
+      expect(command).toBe("set_auto_layout");
+      expect(params.layoutMode).toBe("NONE");
+      expect(params.clipsContent).toBe(false);
+    });
+
+    it("documents the parent-aware create_frame default and set_auto_layout mode independence", () => {
+      const createFrameShape = toolSchemas.get("create_frame")!.shape as any;
+      const autoLayoutShape = toolSchemas.get("set_auto_layout")!.shape as any;
+      expect(createFrameShape.clipsContent.description).toContain("Default: false when parentId");
+      expect(createFrameShape.clipsContent.description).not.toContain("(default: false)");
+      expect(autoLayoutShape.clipsContent.description).toContain("including NONE");
+    });
+  });
+
+  describe("set_clips_content", () => {
+    it("sends nodeId and clipsContent and returns the result", async () => {
+      mockSendCommand.mockResolvedValue({ id: "1:2", name: "Card", clipsContent: false });
+
+      const response = await callTool("set_clips_content", { nodeId: "1-2", clipsContent: false });
+
+      expect(mockSendCommand).toHaveBeenCalledWith("set_clips_content", { nodeId: "1:2", clipsContent: false });
+      expect(response.content[0].text).toBe('Set clipsContent of "Card" to false');
+    });
+
+    it("coerces string booleans", async () => {
+      mockSendCommand.mockResolvedValue({ id: "1:2", name: "Card", clipsContent: true });
+
+      await callTool("set_clips_content", { nodeId: "1:2", clipsContent: "true" });
+
+      expect(mockSendCommand.mock.calls[0][1].clipsContent).toBe(true);
+    });
+
+    it("surfaces plugin errors for unsupported node types", async () => {
+      mockSendCommand.mockRejectedValue(new Error('Node "Label" does not support clipsContent (type: TEXT)'));
+
+      const response = await callTool("set_clips_content", { nodeId: "1:3", clipsContent: false });
+
+      expect(response.content[0].text).toContain("Error setting clipsContent");
+      expect(response.content[0].text).toContain("type: TEXT");
+    });
+
+    it("rejects missing params at schema level", async () => {
+      await expect(callTool("set_clips_content", { nodeId: "1:2" })).rejects.toThrow();
+      await expect(callTool("set_clips_content", { clipsContent: true })).rejects.toThrow();
+      expect(mockSendCommand).not.toHaveBeenCalled();
     });
   });
 

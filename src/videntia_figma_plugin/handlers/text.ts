@@ -6,9 +6,33 @@ import {
   generateCommandId,
   getFontStyle,
   parseNum,
+  loadTextNodeFonts,
   describeError,
 } from "../utils/helpers";
 import { guardParentSize, resolveSideEffectAllowance, resolveStrict, snapshotParentSize } from "../utils/write-verify";
+import { resolveColor } from "./fills";
+import { resolveColorVariable } from "./icons";
+import { validateGridTrackSizes, assertTrackSizesFit, applyGridTrackSizes, serializeGridTrackSizes } from "./layout";
+
+// ---------------------------------------------------------------------------
+// Text alignment helpers
+// ---------------------------------------------------------------------------
+
+const TEXT_ALIGN_HORIZONTAL = ["LEFT", "CENTER", "RIGHT", "JUSTIFIED"] as const;
+const TEXT_ALIGN_VERTICAL = ["TOP", "CENTER", "BOTTOM"] as const;
+
+function readTextAlign<T extends string>(
+  value: unknown,
+  allowed: readonly T[],
+  label: string,
+  command: string,
+): T | undefined {
+  if (value === null || value === undefined) return undefined;
+  if (typeof value !== "string" || !(allowed as readonly string[]).includes(value)) {
+    throw new Error(`Invalid ${label} for ${command}: ${String(value)} (expected ${allowed.join(", ")})`);
+  }
+  return value as T;
+}
 
 // ---------------------------------------------------------------------------
 // Font style resolution
@@ -311,6 +335,44 @@ export async function createText(params: Record<string, unknown>): Promise<Recor
       : { r: 0, g: 0, b: 0, a: 1 };
   const name = safeParams.name !== undefined ? (safeParams.name as string) : "Text";
   const parentId = safeParams.parentId !== undefined ? (safeParams.parentId as string) : undefined;
+  const rawWidth = safeParams.width !== null && safeParams.width !== undefined ? Number(safeParams.width) : undefined;
+  if (rawWidth !== undefined && !(rawWidth > 0)) {
+    throw new Error(`Invalid width for create_text: ${String(safeParams.width)} (must be a number > 0)`);
+  }
+  const width = rawWidth;
+  const requestedAutoResize =
+    safeParams.textAutoResize !== null && safeParams.textAutoResize !== undefined
+      ? (safeParams.textAutoResize as string)
+      : undefined;
+  if (
+    requestedAutoResize !== undefined &&
+    requestedAutoResize !== "NONE" &&
+    requestedAutoResize !== "HEIGHT" &&
+    requestedAutoResize !== "WIDTH_AND_HEIGHT"
+  ) {
+    throw new Error(
+      `Invalid textAutoResize for create_text: ${requestedAutoResize} (expected NONE, HEIGHT or WIDTH_AND_HEIGHT)`,
+    );
+  }
+  // A width without an explicit mode means "wrap at this width": fixed width, height grows.
+  const textAutoResize: "NONE" | "HEIGHT" | "WIDTH_AND_HEIGHT" | undefined =
+    requestedAutoResize !== undefined
+      ? (requestedAutoResize as "NONE" | "HEIGHT" | "WIDTH_AND_HEIGHT")
+      : width !== undefined
+        ? "HEIGHT"
+        : undefined;
+  const textAlignHorizontal = readTextAlign(
+    safeParams.textAlignHorizontal,
+    TEXT_ALIGN_HORIZONTAL,
+    "textAlignHorizontal",
+    "create_text",
+  );
+  const textAlignVertical = readTextAlign(
+    safeParams.textAlignVertical,
+    TEXT_ALIGN_VERTICAL,
+    "textAlignVertical",
+    "create_text",
+  );
 
   // Resolve the face BEFORE creating the node: a failure here must not leave a
   // stray Figtree/Inter Regular text node behind. The old code swallowed the
@@ -358,6 +420,20 @@ export async function createText(params: Record<string, unknown>): Promise<Recor
     figma.currentPage.appendChild(textNode);
   }
 
+  // Resize after appending (so the parent's auto layout sees the final node), then
+  // set textAutoResize last — resize() on a TEXT node forces textAutoResize to NONE.
+  if (width !== undefined) {
+    textNode.resize(width, Math.max(textNode.height, 1));
+  }
+  if (textAutoResize !== undefined) {
+    textNode.textAutoResize = textAutoResize;
+  }
+  if (textAlignHorizontal !== undefined) {
+    textNode.textAlignHorizontal = textAlignHorizontal;
+  }
+  if (textAlignVertical !== undefined) {
+    textNode.textAlignVertical = textAlignVertical;
+  }
   // Every field must be plain JSON. `fontSize` / `fontName` read back as `figma.mixed`
   // (a Symbol) on multi-style text, and `fills` is a live readonly proxy — returning
   // either across the plugin sandbox boundary fails the whole response with
@@ -373,6 +449,9 @@ export async function createText(params: Record<string, unknown>): Promise<Recor
     y: textNode.y,
     width: textNode.width,
     height: textNode.height,
+    textAutoResize: textNode.textAutoResize,
+    textAlignHorizontal: textNode.textAlignHorizontal,
+    textAlignVertical: textNode.textAlignVertical,
     characters: textNode.characters,
     fontSize: typeof resolvedFontSize === "number" ? resolvedFontSize : "MIXED",
     fontWeight: fontWeight,
@@ -1070,6 +1149,27 @@ export async function setAutoLayout(params: Record<string, unknown>): Promise<Re
   }
 
   const frameNode = node as FrameNode;
+  const gridRowSizes = validateGridTrackSizes(
+    safeParams.gridRowSizes !== undefined ? safeParams.gridRowSizes : safeParams.rowSizes,
+    "rowSizes",
+  );
+  const gridColumnSizes = validateGridTrackSizes(
+    safeParams.gridColumnSizes !== undefined ? safeParams.gridColumnSizes : safeParams.columnSizes,
+    "columnSizes",
+  );
+  if (layoutMode !== "GRID" && (gridRowSizes || gridColumnSizes)) {
+    throw new Error(`rowSizes/columnSizes apply to GRID mode only (mode is ${layoutMode}). No changes were made.`);
+  }
+  if (layoutMode === "GRID") {
+    const rowsParam = (safeParams.gridRowCount !== undefined ? safeParams.gridRowCount : safeParams.rows) as
+      | number
+      | undefined;
+    const columnsParam = (
+      safeParams.gridColumnCount !== undefined ? safeParams.gridColumnCount : safeParams.columns
+    ) as number | undefined;
+    assertTrackSizesFit(frameNode, gridRowSizes, rowsParam, "rowSizes");
+    assertTrackSizesFit(frameNode, gridColumnSizes, columnsParam, "columnSizes");
+  }
 
   // Snapshot every child's sizing BEFORE touching layoutMode. Figma resets a
   // child's layoutGrow/layoutAlign/layoutSizing* (collapsing fixed-size buttons
@@ -1153,6 +1253,8 @@ export async function setAutoLayout(params: Record<string, unknown>): Promise<Re
       }
       if (gridRowCount !== undefined) frameNode.gridRowCount = gridRowCount;
       if (gridColumnCount !== undefined) frameNode.gridColumnCount = gridColumnCount;
+      // Track sizes index into the tracks, so they go after the counts.
+      applyGridTrackSizes(frameNode, gridRowSizes, gridColumnSizes);
 
       // `gap` is the CSS shorthand: it sets both axes unless a per-axis value wins.
       if (itemSpacing !== undefined) {
@@ -1181,10 +1283,6 @@ export async function setAutoLayout(params: Record<string, unknown>): Promise<Re
       frameNode.strokesIncludedInLayout = strokesIncludedInLayout;
     }
 
-    if (clipsContent !== undefined) {
-      frameNode.clipsContent = clipsContent;
-    }
-
     // Only touch layoutSizing* when the caller explicitly asked for it, or when
     // this frame is newly gaining auto-layout (was NONE before this call) and
     // therefore has no meaningful existing sizing state to preserve. Applying a
@@ -1207,6 +1305,11 @@ export async function setAutoLayout(params: Record<string, unknown>): Promise<Re
     } else if (!wasAutoLayout) {
       frameNode.layoutSizingVertical = "HUG";
     }
+  }
+
+  // Clipping is independent of auto layout, so it applies for every mode including NONE.
+  if (clipsContent !== undefined) {
+    frameNode.clipsContent = clipsContent;
   }
 
   // Restore each child's pre-call sizing. `preserveChildSizing: false` opts out
@@ -1281,6 +1384,8 @@ export async function setAutoLayout(params: Record<string, unknown>): Promise<Re
           gridColumnGap: frameNode.gridColumnGap,
           gridAutoTracks: frameNode.gridAutoTracks,
           gridItemsPositioning: frameNode.gridItemsPositioning,
+          ...(gridRowSizes ? { gridRowSizes: serializeGridTrackSizes(frameNode.gridRowSizes) } : {}),
+          ...(gridColumnSizes ? { gridColumnSizes: serializeGridTrackSizes(frameNode.gridColumnSizes) } : {}),
         }
       : {}),
     strokesIncludedInLayout: frameNode.strokesIncludedInLayout,
@@ -1633,6 +1738,92 @@ export async function setTextWrapStyle(params: Record<string, unknown>): Promise
 }
 
 // ---------------------------------------------------------------------------
+// Public: setTextAlign
+// ---------------------------------------------------------------------------
+
+export async function setTextAlign(params: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const safeParams = params !== null && params !== undefined ? params : {};
+  const ids: string[] = [];
+  const pushId = (value: unknown) => {
+    if (typeof value === "string" && value && !ids.includes(value)) ids.push(value);
+  };
+  pushId(safeParams.nodeId);
+  if (Array.isArray(safeParams.nodeIds)) safeParams.nodeIds.forEach(pushId);
+  else pushId(safeParams.nodeIds);
+  if (ids.length === 0) {
+    throw new Error("set_text_align requires nodeId or nodeIds (at least one TEXT node)");
+  }
+
+  const horizontal = readTextAlign(
+    safeParams.textAlignHorizontal ?? safeParams.horizontal ?? safeParams.align,
+    TEXT_ALIGN_HORIZONTAL,
+    "horizontal",
+    "set_text_align",
+  );
+  const vertical = readTextAlign(
+    safeParams.textAlignVertical ?? safeParams.vertical,
+    TEXT_ALIGN_VERTICAL,
+    "vertical",
+    "set_text_align",
+  );
+  if (horizontal === undefined && vertical === undefined) {
+    throw new Error("set_text_align requires horizontal and/or vertical alignment");
+  }
+
+  const results: Array<Record<string, unknown>> = [];
+  for (const id of ids) {
+    const node = await figma.getNodeByIdAsync(id);
+    if (!node) {
+      results.push({ nodeId: id, success: false, error: `Node not found with ID: ${id}` });
+      continue;
+    }
+    if (node.type !== "TEXT") {
+      results.push({
+        nodeId: id,
+        name: node.name,
+        success: false,
+        error: `Node is not a text node (type ${node.type})`,
+      });
+      continue;
+    }
+    const textNode = node as TextNode;
+    try {
+      await loadTextNodeFonts(textNode);
+      if (horizontal !== undefined) textNode.textAlignHorizontal = horizontal;
+      if (vertical !== undefined) textNode.textAlignVertical = vertical;
+      const entry: Record<string, unknown> = {
+        nodeId: id,
+        name: textNode.name,
+        success: true,
+        textAlignHorizontal: textNode.textAlignHorizontal,
+        textAlignVertical: textNode.textAlignVertical,
+        textAutoResize: textNode.textAutoResize,
+      };
+      if (horizontal !== undefined && textNode.textAutoResize === "WIDTH_AND_HEIGHT") {
+        entry.note =
+          "Text hugs its content (textAutoResize WIDTH_AND_HEIGHT), so horizontal alignment has no visible effect until it has a fixed width or FILL sizing.";
+      }
+      results.push(entry);
+    } catch (error) {
+      results.push({
+        nodeId: id,
+        name: textNode.name,
+        success: false,
+        error: `Error setting text alignment: ${(error as Error).message}`,
+      });
+    }
+  }
+
+  const updated = results.filter((r) => r.success === true).length;
+  return {
+    success: updated === results.length,
+    updated,
+    failed: results.length - updated,
+    results,
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Public: setTextDecoration
 // ---------------------------------------------------------------------------
 
@@ -1672,6 +1863,381 @@ export async function setTextDecoration(params: Record<string, unknown>): Promis
   } catch (error) {
     throw new Error(describeError(error));
   }
+}
+
+// ---------------------------------------------------------------------------
+// Public: setTextRangeStyle
+// ---------------------------------------------------------------------------
+
+const RANGE_STYLE_PROPERTIES = [
+  "color",
+  "colorVariable",
+  "fontFamily",
+  "fontStyle",
+  "fontWeight",
+  "fontSize",
+  "textStyle",
+  "textDecoration",
+  "letterSpacing",
+  "lineHeight",
+];
+const RANGE_FONT_WEIGHTS = [100, 200, 300, 400, 500, 600, 700, 800, 900];
+const RANGE_TEXT_DECORATIONS = ["NONE", "UNDERLINE", "STRIKETHROUGH"];
+
+interface FontRun {
+  start: number;
+  end: number;
+  font: FontName;
+}
+
+interface PreparedTextRange {
+  start: number;
+  end: number;
+  color?: { r: number; g: number; b: number; a: number };
+  variable?: Variable;
+  textStyle?: TextStyle;
+  fontFamily?: string;
+  fontStyle?: string;
+  fontSize?: number;
+  textDecoration?: TextDecoration;
+  letterSpacing?: LetterSpacing;
+  lineHeight?: LineHeight;
+}
+
+interface RangeStyleLookups {
+  variable(ref: string): Promise<Variable | null>;
+  textStyle(ref: string): Promise<TextStyle | null>;
+}
+
+function isSet(value: unknown): boolean {
+  return value !== undefined && value !== null;
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function fontKey(font: FontName): string {
+  return font.family + "::" + font.style;
+}
+
+/** Contiguous runs of one font inside [start, end). Scans per character only when the range is mixed. */
+function getFontRuns(node: TextNode, start: number, end: number): FontRun[] {
+  const whole = node.getRangeFontName(start, end);
+  if (whole !== figma.mixed) {
+    return [{ start, end, font: whole as FontName }];
+  }
+  const runs: FontRun[] = [];
+  for (let i = start; i < end; i++) {
+    const font = node.getRangeFontName(i, i + 1) as FontName;
+    const last = runs.length > 0 ? runs[runs.length - 1] : undefined;
+    if (last !== undefined && fontKey(last.font) === fontKey(font)) {
+      last.end = i + 1;
+    } else {
+      runs.push({ start: i, end: i + 1, font: { family: font.family, style: font.style } });
+    }
+  }
+  return runs;
+}
+
+function overrideFont(font: FontName, range: PreparedTextRange): FontName {
+  return {
+    family: range.fontFamily !== undefined ? range.fontFamily : font.family,
+    style: range.fontStyle !== undefined ? range.fontStyle : font.style,
+  };
+}
+
+function toFiniteNumber(value: unknown, label: string): number {
+  const n = typeof value === "number" ? value : typeof value === "string" && value.trim() !== "" ? Number(value) : NaN;
+  if (!isFinite(n)) {
+    throw new Error(`${label} must be a number`);
+  }
+  return n;
+}
+
+function parseRangeLetterSpacing(value: unknown, label: string): LetterSpacing {
+  if (typeof value === "object" && value !== null) {
+    const spacing = value as Record<string, unknown>;
+    const unit = isSet(spacing.unit) ? spacing.unit : "PIXELS";
+    if (unit !== "PIXELS" && unit !== "PERCENT") {
+      throw new Error(`${label}.unit must be PIXELS or PERCENT`);
+    }
+    return { value: toFiniteNumber(spacing.value, `${label}.value`), unit };
+  }
+  return { value: toFiniteNumber(value, label), unit: "PIXELS" };
+}
+
+function parseRangeLineHeight(value: unknown, label: string): LineHeight {
+  if (
+    value === "AUTO" ||
+    (typeof value === "object" && value !== null && (value as { unit?: unknown }).unit === "AUTO")
+  ) {
+    return { unit: "AUTO" };
+  }
+  return parseRangeLetterSpacing(value, label);
+}
+
+/** Resolve a text style by id, exact name, or dash-to-slash normalized name. */
+async function findTextStyle(ref: string, localStyles?: TextStyle[]): Promise<TextStyle | null> {
+  let byId: BaseStyle | null = null;
+  try {
+    byId = await figma.getStyleByIdAsync(ref);
+  } catch (_error) {
+    byId = null;
+  }
+  if (byId && byId.type === "TEXT") {
+    return byId as TextStyle;
+  }
+  const styles = localStyles !== undefined ? localStyles : await figma.getLocalTextStylesAsync();
+  const exact = styles.find((s) => s.name === ref);
+  if (exact) return exact;
+  const normalized = ref.replace(/-/g, "/");
+  if (normalized !== ref) {
+    const match = styles.find((s) => s.name === normalized);
+    if (match) return match;
+  }
+  return null;
+}
+
+function createRangeStyleLookups(): RangeStyleLookups {
+  let localVariables: Variable[] | undefined;
+  let localTextStyles: TextStyle[] | undefined;
+  return {
+    async variable(ref: string): Promise<Variable | null> {
+      try {
+        const byId = await figma.variables.getVariableByIdAsync(ref);
+        if (byId && byId.resolvedType === "COLOR") return byId;
+      } catch (_error) {
+        // Not a variable id; fall back to name resolution.
+      }
+      if (localVariables === undefined) {
+        localVariables = await figma.variables.getLocalVariablesAsync();
+      }
+      return resolveColorVariable(ref, localVariables);
+    },
+    async textStyle(ref: string): Promise<TextStyle | null> {
+      if (localTextStyles === undefined) {
+        localTextStyles = await figma.getLocalTextStylesAsync();
+      }
+      return findTextStyle(ref, localTextStyles);
+    },
+  };
+}
+
+async function prepareTextRange(
+  raw: unknown,
+  index: number,
+  length: number,
+  lookups: RangeStyleLookups,
+): Promise<PreparedTextRange> {
+  const label = `ranges[${index}]`;
+  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
+    throw new Error(`${label} must be an object with start, end and at least one style property`);
+  }
+  const r = raw as Record<string, unknown>;
+  const start = toFiniteNumber(r.start, `${label}.start`);
+  const end = toFiniteNumber(r.end, `${label}.end`);
+  if (!Number.isInteger(start) || !Number.isInteger(end) || start < 0 || start >= end || end > length) {
+    throw new Error(
+      `${label}: invalid range [${String(r.start)}, ${String(r.end)}) — need integers with 0 <= start < end <= ${length} (text length)`,
+    );
+  }
+  if (!RANGE_STYLE_PROPERTIES.some((key) => isSet(r[key]))) {
+    throw new Error(`${label} sets no style; pass at least one of: ${RANGE_STYLE_PROPERTIES.join(", ")}`);
+  }
+
+  const range: PreparedTextRange = { start, end };
+
+  if (isSet(r.color) && isSet(r.colorVariable)) {
+    throw new Error(`${label}: pass color or colorVariable, not both`);
+  }
+  if (isSet(r.color)) {
+    try {
+      range.color = resolveColor({ color: r.color });
+    } catch (error) {
+      throw new Error(`${label}.color: ${errorMessage(error)}`);
+    }
+  }
+  if (isSet(r.colorVariable)) {
+    const ref = String(r.colorVariable);
+    const variable = await lookups.variable(ref);
+    if (!variable) {
+      throw new Error(`${label}.colorVariable: COLOR variable not found: "${ref}"`);
+    }
+    range.variable = variable;
+  }
+  if (isSet(r.textStyle)) {
+    const ref = String(r.textStyle);
+    const style = await lookups.textStyle(ref);
+    if (!style) {
+      throw new Error(
+        `${label}.textStyle: text style not found: "${ref}". Pass the style name (e.g. "Body/Medium") or id from get_text_styles`,
+      );
+    }
+    range.textStyle = style;
+  }
+  if (isSet(r.fontFamily)) {
+    if (typeof r.fontFamily !== "string" || r.fontFamily.trim() === "") {
+      throw new Error(`${label}.fontFamily must be a non-empty string`);
+    }
+    range.fontFamily = r.fontFamily;
+  }
+  if (isSet(r.fontStyle)) {
+    if (typeof r.fontStyle !== "string" || r.fontStyle.trim() === "") {
+      throw new Error(`${label}.fontStyle must be a non-empty string`);
+    }
+    range.fontStyle = r.fontStyle;
+  } else if (isSet(r.fontWeight)) {
+    const weight = toFiniteNumber(r.fontWeight, `${label}.fontWeight`);
+    if (RANGE_FONT_WEIGHTS.indexOf(weight) === -1) {
+      throw new Error(`${label}.fontWeight must be one of ${RANGE_FONT_WEIGHTS.join(", ")}`);
+    }
+    range.fontStyle = getFontStyle(weight);
+  }
+  if (isSet(r.fontSize)) {
+    const size = toFiniteNumber(r.fontSize, `${label}.fontSize`);
+    if (size <= 0) {
+      throw new Error(`${label}.fontSize must be greater than 0`);
+    }
+    range.fontSize = size;
+  }
+  if (isSet(r.textDecoration)) {
+    if (RANGE_TEXT_DECORATIONS.indexOf(r.textDecoration as string) === -1) {
+      throw new Error(`${label}.textDecoration must be one of: ${RANGE_TEXT_DECORATIONS.join(", ")}`);
+    }
+    range.textDecoration = r.textDecoration as TextDecoration;
+  }
+  if (isSet(r.letterSpacing)) {
+    range.letterSpacing = parseRangeLetterSpacing(r.letterSpacing, `${label}.letterSpacing`);
+  }
+  if (isSet(r.lineHeight)) {
+    range.lineHeight = parseRangeLineHeight(r.lineHeight, `${label}.lineHeight`);
+  }
+  return range;
+}
+
+async function applyTextRange(node: TextNode, range: PreparedTextRange): Promise<Record<string, unknown>> {
+  const start = range.start;
+  const end = range.end;
+  const applied: Record<string, unknown> = {};
+
+  // Text style first: it resets font, size and spacing, so explicit overrides below win.
+  if (range.textStyle !== undefined) {
+    await node.setRangeTextStyleIdAsync(start, end, range.textStyle.id);
+    applied.textStyle = { id: range.textStyle.id, name: range.textStyle.name };
+  }
+  if (range.fontFamily !== undefined || range.fontStyle !== undefined) {
+    const appliedFonts: FontName[] = [];
+    for (const run of getFontRuns(node, start, end)) {
+      const font = overrideFont(run.font, range);
+      // Already loaded in the validation pass unless an earlier overlapping range changed this run's font.
+      await figma.loadFontAsync(font);
+      node.setRangeFontName(run.start, run.end, font);
+      if (!appliedFonts.some((f) => fontKey(f) === fontKey(font))) appliedFonts.push(font);
+    }
+    applied.fontName = appliedFonts.length === 1 ? appliedFonts[0] : appliedFonts;
+  }
+  if (range.fontSize !== undefined) {
+    node.setRangeFontSize(start, end, range.fontSize);
+    applied.fontSize = range.fontSize;
+  }
+  if (range.color !== undefined || range.variable !== undefined) {
+    const base = range.color !== undefined ? range.color : { r: 0, g: 0, b: 0, a: 1 };
+    let paint: SolidPaint = { type: "SOLID", color: { r: base.r, g: base.g, b: base.b }, opacity: base.a };
+    if (range.variable !== undefined) {
+      paint = figma.variables.setBoundVariableForPaint(paint, "color", range.variable);
+      applied.colorVariable = { id: range.variable.id, name: range.variable.name };
+    } else {
+      applied.color = range.color;
+    }
+    node.setRangeFills(start, end, [paint]);
+  }
+  if (range.textDecoration !== undefined) {
+    node.setRangeTextDecoration(start, end, range.textDecoration);
+    applied.textDecoration = range.textDecoration;
+  }
+  if (range.letterSpacing !== undefined) {
+    node.setRangeLetterSpacing(start, end, range.letterSpacing);
+    applied.letterSpacing = range.letterSpacing;
+  }
+  if (range.lineHeight !== undefined) {
+    node.setRangeLineHeight(start, end, range.lineHeight);
+    applied.lineHeight = range.lineHeight;
+  }
+  return { start, end, characters: node.characters.slice(start, end), applied };
+}
+
+/**
+ * Style character ranges of one text node. Every range is validated (bounds, colors,
+ * variables, text styles) and every needed font is loaded before anything is mutated.
+ */
+export async function setTextRangeStyle(params: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const safeParams = params !== null && params !== undefined ? params : {};
+  const nodeId = safeParams.nodeId as string | undefined;
+  const rawRanges = safeParams.ranges;
+
+  if (!nodeId) {
+    throw new Error("Missing nodeId");
+  }
+  if (!Array.isArray(rawRanges) || rawRanges.length === 0) {
+    throw new Error("ranges must be a non-empty array of { start, end, ...style }");
+  }
+
+  const node = await figma.getNodeByIdAsync(nodeId);
+  if (!node) {
+    throw new Error(`Node not found with ID: ${nodeId}`);
+  }
+  if (node.type !== "TEXT") {
+    throw new Error(`Node is not a text node: ${nodeId}`);
+  }
+  const textNode = node as TextNode;
+  const length = textNode.characters.length;
+
+  const lookups = createRangeStyleLookups();
+  const ranges: PreparedTextRange[] = [];
+  for (let i = 0; i < rawRanges.length; i++) {
+    ranges.push(await prepareTextRange(rawRanges[i], i, length, lookups));
+  }
+
+  const fonts = new Map<string, FontName>();
+  for (const range of ranges) {
+    const changesFont = range.fontFamily !== undefined || range.fontStyle !== undefined;
+    const existing = getFontRuns(textNode, range.start, range.end).map((run) => run.font);
+    for (const font of existing) fonts.set(fontKey(font), font);
+    const base = range.textStyle !== undefined ? [range.textStyle.fontName] : existing;
+    for (const font of base) {
+      fonts.set(fontKey(font), font);
+      if (changesFont) {
+        const target = overrideFont(font, range);
+        fonts.set(fontKey(target), target);
+      }
+    }
+  }
+  await Promise.all(
+    Array.from(fonts.values()).map((font) =>
+      figma.loadFontAsync(font).catch((error) => {
+        throw new Error(
+          `Font "${font.family} ${font.style}" could not be loaded (${errorMessage(error)}). Copy the exact style name from get_styled_text_segments or get_text_styles`,
+        );
+      }),
+    ),
+  );
+
+  const results: Array<Record<string, unknown>> = [];
+  for (let i = 0; i < ranges.length; i++) {
+    try {
+      results.push(await applyTextRange(textNode, ranges[i]));
+    } catch (error) {
+      throw new Error(`Error applying ranges[${i}] (${i} earlier range(s) already applied): ${errorMessage(error)}`);
+    }
+  }
+
+  return {
+    id: textNode.id,
+    name: textNode.name,
+    characters: length,
+    ranges: results,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -2068,31 +2634,14 @@ export async function applyTextStyle(params: Record<string, unknown>): Promise<R
       throw new Error("Node is not a text node");
     }
 
-    let resolvedStyle: BaseStyle | null = await figma.getStyleByIdAsync(styleId);
-    if (!resolvedStyle || resolvedStyle.type !== "TEXT") {
-      // Fallback: exact name lookup, then dash-to-slash normalization
-      const allStyles = await figma.getLocalTextStylesAsync();
-      resolvedStyle =
-        allStyles.find(function (s) {
-          return s.name === styleId;
-        }) || null;
-      if (!resolvedStyle) {
-        const normalizedInput = styleId.replace(/-/g, "/");
-        if (normalizedInput !== styleId) {
-          resolvedStyle =
-            allStyles.find(function (s) {
-              return s.name === normalizedInput;
-            }) || null;
-        }
-      }
-    }
-    if (!resolvedStyle || resolvedStyle.type !== "TEXT") {
+    const resolvedStyle = await findTextStyle(styleId);
+    if (!resolvedStyle) {
       throw new Error(
         'Style not found. Pass either the style id (e.g. "S:abc123,") or the style name (e.g. "body/md") from get_text_styles. Do not use the key field.',
       );
     }
 
-    await figma.loadFontAsync((resolvedStyle as TextStyle).fontName);
+    await figma.loadFontAsync(resolvedStyle.fontName);
 
     await (node as TextNode).setTextStyleIdAsync(resolvedStyle.id);
 
@@ -2324,90 +2873,6 @@ export async function updateTextStyle(params: Record<string, unknown>): Promise<
       updatedProperties,
       boundFields: applied,
       bindingWarnings: warnings,
-    };
-  } catch (error) {
-    throw new Error(describeError(error));
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Public: setTextAlign
-// ---------------------------------------------------------------------------
-
-const H_ALIGNMENTS = ["LEFT", "CENTER", "RIGHT", "JUSTIFIED"];
-const V_ALIGNMENTS = ["TOP", "CENTER", "BOTTOM"];
-
-function normalizeAlignValue(value: unknown): string | undefined {
-  if (value === undefined || value === null) return undefined;
-  const normalized = String(value).trim().toUpperCase();
-  return normalized.length > 0 ? normalized : undefined;
-}
-
-/**
- * Sets `textAlignHorizontal` and/or `textAlignVertical` on an existing text node.
- * Accepts aliases: `align`/`horizontal`/`textAlignHorizontal`, `vertical`/`textAlignVertical`.
- */
-export async function setTextAlign(params: Record<string, unknown>): Promise<Record<string, unknown>> {
-  const safeParams = params !== null && params !== undefined ? params : {};
-  const nodeId = safeParams.nodeId as string | undefined;
-
-  const horizontal = normalizeAlignValue(
-    safeParams.horizontal !== undefined
-      ? safeParams.horizontal
-      : safeParams.textAlignHorizontal !== undefined
-        ? safeParams.textAlignHorizontal
-        : safeParams.align,
-  );
-  const vertical = normalizeAlignValue(
-    safeParams.vertical !== undefined ? safeParams.vertical : safeParams.textAlignVertical,
-  );
-
-  if (!nodeId) {
-    throw new Error("Missing nodeId");
-  }
-
-  if (horizontal === undefined && vertical === undefined) {
-    throw new Error(
-      "Missing alignment: provide horizontal (LEFT/CENTER/RIGHT/JUSTIFIED) and/or vertical (TOP/CENTER/BOTTOM)",
-    );
-  }
-
-  if (horizontal !== undefined && !H_ALIGNMENTS.includes(horizontal)) {
-    throw new Error(`Invalid horizontal alignment "${horizontal}". Must be one of: ${H_ALIGNMENTS.join(", ")}`);
-  }
-
-  if (vertical !== undefined && !V_ALIGNMENTS.includes(vertical)) {
-    throw new Error(`Invalid vertical alignment "${vertical}". Must be one of: ${V_ALIGNMENTS.join(", ")}`);
-  }
-
-  const node = await figma.getNodeByIdAsync(nodeId);
-  if (!node) {
-    throw new Error(`Node not found with ID: ${nodeId}`);
-  }
-
-  if (node.type !== "TEXT") {
-    throw new Error(`Node is not a text node: ${nodeId}`);
-  }
-
-  try {
-    const textNode = node as TextNode;
-    const alignFontName = textNode.fontName;
-    const alignFont =
-      alignFontName === figma.mixed ? (textNode.getRangeFontName(0, 1) as FontName) : (alignFontName as FontName);
-    await figma.loadFontAsync(alignFont);
-
-    if (horizontal !== undefined) {
-      textNode.textAlignHorizontal = horizontal as TextNode["textAlignHorizontal"];
-    }
-    if (vertical !== undefined) {
-      textNode.textAlignVertical = vertical as TextNode["textAlignVertical"];
-    }
-
-    return {
-      id: node.id,
-      name: node.name,
-      textAlignHorizontal: textNode.textAlignHorizontal,
-      textAlignVertical: textNode.textAlignVertical,
     };
   } catch (error) {
     throw new Error(describeError(error));

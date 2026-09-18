@@ -57,6 +57,7 @@ export const TOOL_CATEGORIES = [
   "browser-control",
   "composite",
   "verification",
+  "design-knowledge",
   "capability",
   "discovery",
 ] as const;

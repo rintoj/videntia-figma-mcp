@@ -3,6 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { sendCommandToFigma } from "../utils/websocket";
 import { coerceArray } from "../utils/coerce-array.js";
 import { normalizeNodeId } from "../utils/figma-helpers.js";
+import { normalizeCommandParams } from "../utils/command-params.js";
 import {
   outputFormatSchema,
   depthSchema,
@@ -502,9 +503,10 @@ export function registerComponentTools(server: McpServer): void {
     async ({ nodeId }) => {
       if (nodeId) nodeId = normalizeNodeId(nodeId);
       try {
-        const result = await sendCommandToFigma("get_instance_overrides", {
-          instanceNodeId: nodeId || null,
-        });
+        const result = await sendCommandToFigma(
+          "get_instance_overrides",
+          normalizeCommandParams("get_instance_overrides", { nodeId }),
+        );
         const typedResult = result as {
           success: boolean;
           message: string;

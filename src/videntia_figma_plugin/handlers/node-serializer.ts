@@ -238,7 +238,8 @@ async function processNode(
   maxDepth: number | undefined,
   maps: LookupMaps,
 ): Promise<Record<string, unknown> | null> {
-  if (node.visible === false) return null;
+  // Hidden descendants are skipped; a hidden node requested directly is still reported (visible: false).
+  if (node.visible === false && currentDepth > 0) return null;
 
   const info: Record<string, unknown> = {
     id: node.id,
@@ -284,6 +285,33 @@ async function processNode(
     if (grid.gridColumnGap !== undefined) info["gridColumnGap"] = grid.gridColumnGap;
     if (grid.gridRowCount !== undefined) info["gridRowCount"] = grid.gridRowCount;
     if (grid.gridColumnCount !== undefined) info["gridColumnCount"] = grid.gridColumnCount;
+    const trackSizes = function (tracks: ReadonlyArray<GridTrackSize> | undefined) {
+      return Array.isArray(tracks)
+        ? tracks.map(function (t) {
+            return t.type === "HUG" || t.value === undefined ? { type: t.type } : { type: t.type, value: t.value };
+          })
+        : undefined;
+    };
+    const rowSizes = trackSizes(grid.gridRowSizes);
+    const columnSizes = trackSizes(grid.gridColumnSizes);
+    if (rowSizes) info["gridRowSizes"] = rowSizes;
+    if (columnSizes) info["gridColumnSizes"] = columnSizes;
+  }
+  // Cell placement for direct children of a GRID frame (absolute children have no cell).
+  const gridParent = node.parent as (BaseNode & { layoutMode?: string }) | null;
+  if (
+    gridParent &&
+    gridParent.layoutMode === "GRID" &&
+    (node as SceneNode & { layoutPositioning?: string }).layoutPositioning !== "ABSOLUTE" &&
+    typeof (node as LayoutMixin).gridRowAnchorIndex === "number"
+  ) {
+    const cell = node as LayoutMixin;
+    info["gridRowAnchorIndex"] = cell.gridRowAnchorIndex;
+    info["gridColumnAnchorIndex"] = cell.gridColumnAnchorIndex;
+    info["gridRowSpan"] = cell.gridRowSpan;
+    info["gridColumnSpan"] = cell.gridColumnSpan;
+    info["gridChildHorizontalAlign"] = cell.gridChildHorizontalAlign;
+    info["gridChildVerticalAlign"] = cell.gridChildVerticalAlign;
   }
   if ("layoutWrap" in node) info["layoutWrap"] = (node as FrameNode).layoutWrap;
   if ("paddingTop" in node) info["paddingTop"] = (node as FrameNode).paddingTop;
@@ -295,6 +323,10 @@ async function processNode(
   if ("layoutAlign" in node) {
     const la = (node as SceneNode & { layoutAlign: string }).layoutAlign;
     if (la && la !== "INHERIT" && la !== "STRETCH") info["layoutAlign"] = la;
+  }
+  if ("constraints" in node) {
+    const c = (node as SceneNode & ConstraintMixin).constraints;
+    if (c) info["constraints"] = { horizontal: c.horizontal, vertical: c.vertical };
   }
 
   // Fills — always emitted when the node supports fills, including as an empty
@@ -361,12 +393,17 @@ async function processNode(
       if ((textNode.letterSpacing as LetterSpacing).unit === "PERCENT") info["letterSpacingUnit"] = "percent";
     }
     if (textNode.textAlignHorizontal) info["textAlignHorizontal"] = textNode.textAlignHorizontal;
+    if (textNode.textAlignVertical) info["textAlignVertical"] = textNode.textAlignVertical;
     if (textNode.textCase !== figma.mixed && textNode.textCase !== "ORIGINAL") {
       info["textCase"] = textNode.textCase;
     }
     if (textNode.textDecoration !== figma.mixed && textNode.textDecoration !== "NONE") {
       info["textDecoration"] = textNode.textDecoration;
     }
+    // Wrapping behaviour: WIDTH_AND_HEIGHT = single line, HEIGHT = wraps at fixed width, NONE = fixed box.
+    if (textNode.textAutoResize) info["textAutoResize"] = textNode.textAutoResize;
+    if (textNode.textTruncation) info["textTruncation"] = textNode.textTruncation;
+    if (typeof textNode.maxLines === "number") info["maxLines"] = textNode.maxLines;
 
     // Resolve text style
     if (textNode.textStyleId && textNode.textStyleId !== "" && textNode.textStyleId !== figma.mixed) {

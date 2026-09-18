@@ -5,6 +5,8 @@ import { coerceArray } from "../utils/coerce-array.js";
 import { mcpBooleanSchema } from "../utils/mcp-boolean.js";
 import { DeleteMultipleNodesResult, CreateEffectStyleResult, UpdateEffectStyleResult } from "../types";
 import { normalizeNodeId } from "../utils/figma-helpers.js";
+import { normalizeCommandParams } from "../utils/command-params.js";
+import { constraintTypeSchema } from "../utils/constraints-schema.js";
 import { formatState, returnStateParam } from "../utils/return-state.js";
 import { allowSideEffectsParam, expectSideEffectsParam } from "../utils/side-effects.js";
 import { readImageFileAsBase64 } from "../utils/image-file-input.js";
@@ -31,6 +33,23 @@ const channelParam = z.preprocess(
  * This module contains tools for modifying existing elements in Figma
  * @param server - The MCP server instance
  */
+const variableRef = (field: string) =>
+  z
+    .string()
+    .optional()
+    .describe(
+      `Variable name or ID to bind the effect's ${field} to (e.g. 'shadow/color'); the raw value is the fallback`,
+    );
+
+/** Optional per-effect variable bindings shared by set_effects and the effect style tools. */
+const effectVariableParams = {
+  colorVariable: variableRef("color (COLOR variable; DROP_SHADOW/INNER_SHADOW)"),
+  radiusVariable: variableRef("radius (FLOAT variable; shadows and LAYER_BLUR/BACKGROUND_BLUR)"),
+  spreadVariable: variableRef("spread (FLOAT variable; shadows only)"),
+  offsetXVariable: variableRef("offset.x (FLOAT variable; shadows only)"),
+  offsetYVariable: variableRef("offset.y (FLOAT variable; shadows only)"),
+};
+
 /**
  * Widen the shapes callers actually write for gradient stops into the canonical
  * `{color, position}` array.
@@ -433,11 +452,16 @@ export function registerModificationTools(server: McpServer): void {
   // Resize Node Tool
   server.tool(
     "resize_node",
-    "Resize a node in Figma",
+    "Resize a node in Figma. On TEXT nodes that auto-size (textAutoResize HEIGHT or WIDTH_AND_HEIGHT), the new width is kept and textAutoResize becomes HEIGHT, so the text wraps at that width and its height grows to fit (the requested height is not kept). TEXT nodes already fixed (NONE/TRUNCATE) keep the exact width and height. Other node types resize to exactly width × height.",
     {
       nodeId: z.string().describe("Node ID to resize — get from get_selection or get_node_info"),
       width: z.coerce.number().positive().describe("New width in pixels (must be > 0)"),
-      height: z.coerce.number().positive().describe("New height in pixels (must be > 0)"),
+      height: z.coerce
+        .number()
+        .positive()
+        .describe(
+          "New height in pixels (must be > 0). Ignored for auto-sizing TEXT nodes, whose height follows the wrapped text",
+        ),
       scale_strokes: z
         .boolean()
         .optional()
@@ -454,12 +478,16 @@ export function registerModificationTools(server: McpServer): void {
           height,
           ...(scale_strokes ? { scale_strokes: true } : {}),
         });
-        const typedResult = result as { name: string };
+        const typedResult = result as { name: string; width?: number; height?: number; textAutoResize?: string };
+        const text =
+          typedResult.textAutoResize !== undefined
+            ? `Resized text node "${typedResult.name}" to width ${typedResult.width ?? width} and height ${typedResult.height ?? height} (textAutoResize: ${typedResult.textAutoResize})`
+            : `Resized node "${typedResult.name}" to width ${width} and height ${height}`;
         return {
           content: [
             {
               type: "text",
-              text: `Resized node "${typedResult.name}" to width ${width} and height ${height}`,
+              text,
             },
           ],
         };
@@ -543,6 +571,21 @@ export function registerModificationTools(server: McpServer): void {
     },
   );
 
+  const gridTrackSizesSchema = coerceArray(
+    z.array(
+      z.object({
+        type: z
+          .enum(["FIXED", "FLEX", "HUG"])
+          .describe("FIXED = pixel size, FLEX = fractional share (CSS fr), HUG = fit content"),
+        value: z.coerce
+          .number()
+          .positive()
+          .optional()
+          .describe("Pixels for FIXED (required), fr weight for FLEX (optional), omit for HUG"),
+      }),
+    ),
+  );
+
   // Set Layout Mode Tool
   server.tool(
     "set_layout_mode",
@@ -589,6 +632,16 @@ export function registerModificationTools(server: McpServer): void {
         .describe(
           "GRID mode only. MANUAL = children stay at their explicitly assigned cell (default); ROW_AUTO_FLOW = children auto-place into the next free cell in row-major order as they're added — reorder via insert_child, not manual cell assignment, in this mode.",
         ),
+      rowSizes: gridTrackSizesSchema
+        .optional()
+        .describe(
+          'GRID mode only. One { type, value? } per row, top to bottom, applied after rows — length must equal the row count. E.g. [{"type":"FIXED","value":64},{"type":"FLEX"}]. FLEX tracks are invalid on an axis whose container sizing is HUG.',
+        ),
+      columnSizes: gridTrackSizesSchema
+        .optional()
+        .describe(
+          "GRID mode only. One { type, value? } per column, left to right, applied after columns — length must equal the column count.",
+        ),
     },
     async ({
       nodeId,
@@ -599,6 +652,8 @@ export function registerModificationTools(server: McpServer): void {
       columns,
       gridAutoTracks,
       gridItemsPositioning,
+      rowSizes,
+      columnSizes,
     }) => {
       nodeId = normalizeNodeId(nodeId);
       const mode = modeArg !== undefined ? modeArg : layoutModeAlias;
@@ -619,6 +674,9 @@ export function registerModificationTools(server: McpServer): void {
         if (mode !== "GRID" && (gridAutoTracks !== undefined || gridItemsPositioning !== undefined)) {
           throw new Error(`gridAutoTracks/gridItemsPositioning apply to GRID mode only (mode is ${mode})`);
         }
+        if (mode !== "GRID" && (rowSizes !== undefined || columnSizes !== undefined)) {
+          throw new Error(`rowSizes/columnSizes apply to GRID mode only (mode is ${mode})`);
+        }
         if (mode === "GRID" && wrap !== undefined) {
           throw new Error("wrap does not apply to GRID mode — grid children are placed on tracks, not wrapped");
         }
@@ -629,6 +687,8 @@ export function registerModificationTools(server: McpServer): void {
           if (gridItemsPositioning !== undefined) params.gridItemsPositioning = gridItemsPositioning;
           if (rows !== undefined) params.gridRowCount = rows;
           if (columns !== undefined) params.gridColumnCount = columns;
+          if (rowSizes !== undefined) params.gridRowSizes = rowSizes;
+          if (columnSizes !== undefined) params.gridColumnSizes = columnSizes;
         } else {
           // Only send layoutWrap when the caller asked for it — defaulting to
           // NO_WRAP here would silently un-wrap an existing wrapping frame.
@@ -705,6 +765,82 @@ export function registerModificationTools(server: McpServer): void {
             {
               type: "text",
               text: `Error reordering grid tracks: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  // Set Grid Child Tool
+  server.tool(
+    "set_grid_child",
+    "Place a child of a GRID auto-layout frame (FRAME, COMPONENT or COMPONENT_SET) in a specific cell, span it across rows/columns, and align it inside its cell. Indices are 0-based. Everything is validated before any change: the parent must be GRID, the cell area must fit the grid's row/column counts and must not overlap another visible child. Positions cannot be set when the grid uses gridItemsPositioning ROW_AUTO_FLOW (spans and alignment still can). Returns the applied row, column, spans and alignment.",
+    {
+      nodeId: z.string().describe("ID of a direct child of a GRID-mode frame"),
+      row: z.coerce.number().int().nonnegative().optional().describe("0-based row index of the child's top-left cell"),
+      column: z.coerce
+        .number()
+        .int()
+        .nonnegative()
+        .optional()
+        .describe("0-based column index of the child's top-left cell"),
+      rowSpan: z.coerce
+        .number()
+        .int()
+        .positive()
+        .optional()
+        .describe("Number of rows the child covers (≥ 1; row + rowSpan must not exceed the row count)"),
+      columnSpan: z.coerce
+        .number()
+        .int()
+        .positive()
+        .optional()
+        .describe("Number of columns the child covers (≥ 1; column + columnSpan must not exceed the column count)"),
+      horizontalAlign: z
+        .enum(["MIN", "CENTER", "MAX", "AUTO"])
+        .optional()
+        .describe("Horizontal alignment inside the cell area: MIN = left, CENTER, MAX = right, AUTO = grid default"),
+      verticalAlign: z
+        .enum(["MIN", "CENTER", "MAX", "AUTO"])
+        .optional()
+        .describe("Vertical alignment inside the cell area: MIN = top, CENTER, MAX = bottom, AUTO = grid default"),
+    },
+    async ({ nodeId, row, column, rowSpan, columnSpan, horizontalAlign, verticalAlign }) => {
+      nodeId = normalizeNodeId(nodeId);
+      try {
+        const params = normalizeCommandParams("set_grid_child", {
+          nodeId,
+          row,
+          column,
+          rowSpan,
+          columnSpan,
+          horizontalAlign,
+          verticalAlign,
+        });
+        const result = (await sendCommandToFigma("set_grid_child", params)) as {
+          name: string;
+          row: number;
+          column: number;
+          rowSpan: number;
+          columnSpan: number;
+          horizontalAlign: string;
+          verticalAlign: string;
+        };
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Placed "${result.name}" at row ${result.row}, column ${result.column} (span ${result.rowSpan}×${result.columnSpan}, align ${result.horizontalAlign}/${result.verticalAlign})`,
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error setting grid child: ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };
@@ -862,23 +998,91 @@ export function registerModificationTools(server: McpServer): void {
     },
   );
 
+  // Set Constraints Tool
+  server.tool(
+    "set_constraints",
+    "Set resize constraints on one or more nodes — how a layer follows its parent when the parent (or an instance of its component) is resized. " +
+      "MIN = keep distance to left/top, MAX = keep distance to right/bottom, CENTER = stay centred at its size, STRETCH = keep both edge distances (grows with the parent), SCALE = scale proportionally. " +
+      "An omitted axis keeps its current value. Constraints only take effect on absolutely positioned children and children of frames/components without auto layout; the result warns for auto-layout children in the flow (use set_layout_sizing there) and for nodes directly on the page. " +
+      "Nodes that do not support constraints (e.g. groups) fail individually. Typical: STRETCH for image slots and backgrounds, CENTER or MIN/MAX for fixed icons and badges, SCALE for illustrations. Read back with get_node_info (output_format json).",
+    {
+      nodeId: z.string().optional().describe("ID of a single node (combine with nodeIds or use alone)"),
+      nodeIds: coerceArray(z.array(z.string())).optional().describe("IDs of the nodes to update"),
+      horizontal: constraintTypeSchema
+        .optional()
+        .describe("Horizontal constraint: MIN | CENTER | MAX | STRETCH | SCALE"),
+      vertical: constraintTypeSchema.optional().describe("Vertical constraint: MIN | CENTER | MAX | STRETCH | SCALE"),
+    },
+    async ({ nodeId, nodeIds, horizontal, vertical }) => {
+      try {
+        const result = (await sendCommandToFigma(
+          "set_constraints",
+          normalizeCommandParams("set_constraints", {
+            ...(nodeId !== undefined ? { nodeId } : {}),
+            ...(nodeIds !== undefined ? { nodeIds } : {}),
+            ...(horizontal !== undefined ? { horizontal } : {}),
+            ...(vertical !== undefined ? { vertical } : {}),
+          }),
+        )) as {
+          updated?: number;
+          failed?: number;
+          results?: Array<{
+            nodeId: string;
+            name?: string;
+            success: boolean;
+            constraints?: { horizontal: string; vertical: string };
+            warning?: string;
+            error?: string;
+          }>;
+        };
+        const results = result.results ?? [];
+        const total = (result.updated ?? 0) + (result.failed ?? 0);
+        const lines = [`Updated constraints on ${result.updated ?? 0} of ${total} node(s)`];
+        for (const r of results) {
+          if (r.success) {
+            lines.push(
+              `- ${r.name ?? r.nodeId} (${r.nodeId}): horizontal ${r.constraints?.horizontal}, vertical ${r.constraints?.vertical}`,
+            );
+            if (r.warning) lines.push(`  warning: ${r.warning}`);
+          } else {
+            lines.push(`- ${r.nodeId} failed: ${r.error}`);
+          }
+        }
+        return { content: [{ type: "text", text: lines.join("\n") }] };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error setting constraints: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
   // Set Layout Sizing Tool
   server.tool(
     "set_layout_sizing",
-    "Set horizontal and vertical sizing modes for an auto-layout frame",
+    "Set horizontal/vertical sizing (FIXED, HUG, FILL) on an auto-layout frame or on a child of one — including TEXT nodes. " +
+      "FILL requires the node's parent to have auto layout; otherwise the call fails and nothing changes. " +
+      "On TEXT nodes sizing maps to textAutoResize: horizontal HUG → WIDTH_AND_HEIGHT (single line, never wraps); " +
+      "horizontal FIXED or FILL with vertical HUG → HEIGHT (wraps at the width, height grows); no HUG on either axis → NONE (fixed box, text can overflow). " +
+      "For TEXT, passing horizontal FIXED or FILL without vertical makes vertical HUG, so the text wraps. The response reports the resulting sizing and textAutoResize.",
     {
-      nodeId: z.string().describe("Frame or text node ID — also works on TEXT nodes for width sizing"),
+      nodeId: z.string().describe("ID of an auto-layout frame, or of a frame/text node inside an auto-layout frame"),
       horizontal: z
         .enum(["FIXED", "HUG", "FILL"])
         .optional()
         .describe(
-          "Horizontal sizing: FIXED = explicit width, HUG = shrink-wrap children, FILL = expand to fill parent (requires node to be inside an auto-layout frame)",
+          "Horizontal sizing: FIXED = explicit width, HUG = shrink-wrap content, FILL = expand to fill parent (parent must have auto layout). On TEXT, HUG = single line; FIXED/FILL = wrap at that width",
         ),
       vertical: z
         .enum(["FIXED", "HUG", "FILL"])
         .optional()
         .describe(
-          "Vertical sizing: FIXED = explicit height, HUG = shrink-wrap children, FILL = expand to fill parent (requires node to be inside an auto-layout frame)",
+          "Vertical sizing: FIXED = explicit height, HUG = shrink-wrap content, FILL = expand to fill parent (parent must have auto layout). On TEXT, omitted with horizontal FIXED/FILL defaults to HUG",
         ),
       layoutSizingHorizontal: z
         .enum(["FIXED", "HUG", "FILL"])
@@ -924,6 +1128,7 @@ export function registerModificationTools(server: McpServer): void {
           name: string;
           layoutSizingHorizontal?: string;
           layoutSizingVertical?: string;
+          textAutoResize?: string;
         };
 
         // Echo the values READ BACK from the node, never the requested ones — a
@@ -937,11 +1142,20 @@ export function registerModificationTools(server: McpServer): void {
         const sizingText =
           sizingMessages.length > 0 ? `layout sizing (${sizingMessages.join(", ")})` : "layout sizing (unreported)";
 
+        const resultingState: string[] = [];
+        if (typedResult.layoutSizingHorizontal !== undefined)
+          resultingState.push(`layoutSizingHorizontal: ${typedResult.layoutSizingHorizontal}`);
+        if (typedResult.layoutSizingVertical !== undefined)
+          resultingState.push(`layoutSizingVertical: ${typedResult.layoutSizingVertical}`);
+        if (typedResult.textAutoResize !== undefined)
+          resultingState.push(`textAutoResize: ${typedResult.textAutoResize}`);
+        const stateText = resultingState.length > 0 ? ` → ${resultingState.join(", ")}` : "";
+
         return {
           content: [
             {
               type: "text",
-              text: `Set ${sizingText} for frame "${typedResult.name}"${formatState(result)}`,
+              text: `Set ${sizingText} for node "${typedResult.name}"${stateText}${formatState(result)}`,
             },
           ],
         };
@@ -1106,7 +1320,7 @@ export function registerModificationTools(server: McpServer): void {
   // Auto Layout Tool
   server.tool(
     "set_auto_layout",
-    "Configure auto layout properties for a node in Figma. Note: FILL sizing is only valid when the node is a child of another auto-layout frame. For top-level or standalone frames, use FIXED or HUG.",
+    "Configure auto layout properties for a node in Figma. Note: FILL sizing is only valid when the node is a child of another auto-layout frame. For top-level or standalone frames, use FIXED or HUG. clipsContent is applied with any mode, including NONE.",
     {
       nodeId: z.string().describe("Frame node ID to enable/configure auto-layout on"),
       mode: z
@@ -1157,6 +1371,16 @@ export function registerModificationTools(server: McpServer): void {
         .describe(
           "GRID mode only. MANUAL = children stay at their explicitly assigned cell (default); ROW_AUTO_FLOW = children auto-place into the next free cell in row-major order as they're added — reorder via insert_child, not manual cell assignment, in this mode.",
         ),
+      rowSizes: gridTrackSizesSchema
+        .optional()
+        .describe(
+          'GRID mode only. One { type, value? } per row, top to bottom, applied after rows — length must equal the row count. E.g. [{"type":"FIXED","value":64},{"type":"FLEX"}]. FLEX tracks are invalid on an axis whose container sizing is HUG.',
+        ),
+      columnSizes: gridTrackSizesSchema
+        .optional()
+        .describe(
+          "GRID mode only. One { type, value? } per column, left to right, applied after columns — length must equal the column count.",
+        ),
       primaryAxisAlignItems: z
         .enum(["MIN", "CENTER", "MAX", "SPACE_BETWEEN"])
         .optional()
@@ -1181,7 +1405,7 @@ export function registerModificationTools(server: McpServer): void {
       clipsContent: mcpBooleanSchema
         .optional()
         .describe(
-          "true = content outside the frame boundary is hidden (like CSS overflow:hidden); false = content is visible (default: false)",
+          "true = content outside the frame boundary is hidden (like CSS overflow:hidden), including children's drop shadows and focus rings; false = content is visible. Applied with any mode, including NONE. Omit to leave the frame's current value unchanged (Figma frames clip by default). Use set_clips_content to change clipping alone.",
         ),
       preserveChildSizing: mcpBooleanSchema
         .optional()
@@ -1244,6 +1468,8 @@ export function registerModificationTools(server: McpServer): void {
       columnGap,
       gridAutoTracks,
       gridItemsPositioning,
+      rowSizes,
+      columnSizes,
       primaryAxisAlignItems,
       counterAxisAlignItems,
       wrap,
@@ -1278,56 +1504,34 @@ export function registerModificationTools(server: McpServer): void {
       right = pickSide(right, paddingRight, shorthand?.right);
       gap = gap !== undefined ? gap : itemSpacing;
       try {
-        if (
-          mode !== "GRID" &&
-          (rows !== undefined ||
-            columns !== undefined ||
-            rowGap !== undefined ||
-            columnGap !== undefined ||
-            gridAutoTracks !== undefined ||
-            gridItemsPositioning !== undefined)
-        ) {
-          throw new Error(
-            `rows/columns/rowGap/columnGap/gridAutoTracks/gridItemsPositioning apply to GRID mode only (mode is ${mode})`,
-          );
-        }
-        if (mode === "GRID") {
-          // Flex-only parameters would otherwise be accepted and silently dropped.
-          const flexOnly: string[] = [];
-          if (primaryAxisAlignItems !== undefined) flexOnly.push("primaryAxisAlignItems");
-          if (counterAxisAlignItems !== undefined) flexOnly.push("counterAxisAlignItems");
-          if (wrap !== undefined) flexOnly.push("wrap");
-          if (flexOnly.length > 0) {
-            throw new Error(
-              `${flexOnly.join("/")} do not apply to GRID mode — use rows/columns for placement and rowGap/columnGap for spacing`,
-            );
-          }
-        }
-        const result = await sendCommandToFigma("set_auto_layout", {
+        const params = normalizeCommandParams("set_auto_layout", {
           nodeId,
-          layoutMode: mode,
-          paddingTop: top,
-          paddingBottom: bottom,
-          paddingLeft: left,
-          paddingRight: right,
-          itemSpacing: gap,
-          ...(rows !== undefined ? { gridRowCount: rows } : {}),
-          ...(columns !== undefined ? { gridColumnCount: columns } : {}),
-          ...(rowGap !== undefined ? { gridRowGap: rowGap } : {}),
-          ...(columnGap !== undefined ? { gridColumnGap: columnGap } : {}),
-          ...(gridAutoTracks !== undefined ? { gridAutoTracks } : {}),
-          ...(gridItemsPositioning !== undefined ? { gridItemsPositioning } : {}),
+          mode,
+          top,
+          bottom,
+          left,
+          right,
+          gap,
+          rows,
+          columns,
+          rowGap,
+          columnGap,
+          gridAutoTracks,
+          gridItemsPositioning,
+          rowSizes,
+          columnSizes,
           primaryAxisAlignItems,
           counterAxisAlignItems,
-          layoutWrap: wrap,
+          wrap,
           strokesIncludedInLayout,
           clipsContent,
+          horizontal,
+          vertical,
           ...(preserveChildSizing !== undefined ? { preserveChildSizing } : {}),
-          layoutSizingHorizontal: horizontal,
-          layoutSizingVertical: vertical,
           allow_side_effects,
           expect_side_effects,
         });
+        const result = await sendCommandToFigma("set_auto_layout", params);
 
         const typedResult = result as { name: string };
         return {
@@ -1354,7 +1558,7 @@ export function registerModificationTools(server: McpServer): void {
   // Set Effects Tool
   server.tool(
     "set_effects",
-    "Set the visual effects of a node in Figma. Supports DROP_SHADOW, INNER_SHADOW, LAYER_BLUR, BACKGROUND_BLUR, and beta types NOISE (grain overlay), TEXTURE (frosted texture), GLASS (frosted glass with refraction, frame-only).",
+    "Set the visual effects of a node in Figma. Supports DROP_SHADOW, INNER_SHADOW, LAYER_BLUR, BACKGROUND_BLUR, and beta types NOISE (grain overlay), TEXTURE (frosted texture), GLASS (frosted glass with refraction, frame-only). Bind effect values to variables per effect with colorVariable/radiusVariable/spreadVariable/offsetXVariable/offsetYVariable (e.g. a focus ring colour bound to 'ring').",
     {
       nodeId: z.string().describe("The ID of the node to modify"),
       effects: coerceArray(
@@ -1472,6 +1676,7 @@ export function registerModificationTools(server: McpServer): void {
               .describe(
                 "Chromatic aberration / rainbow fringing, 0–1 normalised (GLASS only). NOT 0–20: Figma rejects values outside 0–1.",
               ),
+            ...effectVariableParams,
           }),
         ),
       ).describe("Array of effects to apply"),
@@ -1644,12 +1849,13 @@ export function registerModificationTools(server: McpServer): void {
       .describe(
         "Chromatic aberration / rainbow fringing, 0–1 normalised (GLASS only). NOT 0–20: Figma rejects values outside 0–1.",
       ),
+    ...effectVariableParams,
   });
 
   // Create Effect Style Tool
   server.tool(
     "create_effect_style",
-    "Create a new effect style in Figma (e.g., shadow, blur). The style can then be applied to nodes using set_effect_style_id.",
+    "Create a new effect style in Figma (e.g., shadow, blur). The style can then be applied to nodes using set_effect_style_id. Each effect can bind its colour/radius/spread/offsets to variables with colorVariable/radiusVariable/spreadVariable/offsetXVariable/offsetYVariable.",
     {
       name: z.string().describe("Name of the effect style (e.g., 'shadow/sm', 'shadow/md', 'blur/overlay')"),
       effects: coerceArray(z.array(effectStyleEntrySchema)).describe("Array of effects for the style"),
@@ -1686,7 +1892,7 @@ export function registerModificationTools(server: McpServer): void {
   // Update Effect Style Tool
   server.tool(
     "update_effect_style",
-    "Update an existing effect style's properties (name, effects, description)",
+    "Update an existing effect style's properties (name, effects, description). Effects accept the same per-effect variable params as create_effect_style (colorVariable, radiusVariable, spreadVariable, offsetXVariable, offsetYVariable).",
     {
       styleId: z
         .string()
@@ -2007,9 +2213,13 @@ export function registerModificationTools(server: McpServer): void {
   // Bind Variable Tool
   server.tool(
     "bind_variable",
-    'Bind a variable to a node property OR a text style field in Figma. For nodes: fills/strokes need an index, e.g. "fills/0" or "fills/0/color" (bare "fills" or "strokes" defaults to index 0); other fields are opacity/strokeWeight/cornerRadius/etc with no index. For text styles: pass the text style id (e.g. \'S:abc123,\') or name (e.g. \'body/md\') as nodeId, and a field of fontFamily, fontStyle, fontSize, fontWeight, lineHeight, letterSpacing, paragraphSpacing, or paragraphIndent.',
+    'Bind a variable to a node property, a text style field or an effect style field in Figma. For nodes: SOLID fills/strokes use "fills/0/color" or "strokes/0/color" (bare "fills" or "strokes" defaults to index 0); gradient paints bind per stop with "fills/0/gradientStops/1/color"; effects bind with "effects/0/color", "effects/0/radius", "effects/0/spread", "effects/0/offsetX" or "effects/0/offsetY" (shadows; blurs support radius only); other fields are opacity/strokeWeight/cornerRadius/etc with no index. For text styles: pass the text style id (e.g. \'S:abc123,\') or name (e.g. \'body/md\') as nodeId, and a field of fontFamily, fontStyle, fontSize, fontWeight, lineHeight, letterSpacing, paragraphSpacing, or paragraphIndent. For effect styles: pass the effect style id or name (e.g. \'shadow/md\') as nodeId and an effects/N/<field> path.',
     {
-      nodeId: z.string().describe("The ID of the node, or the ID/name of a text style (e.g. 'body/md')"),
+      nodeId: z
+        .string()
+        .describe(
+          "The ID of the node, or the ID/name of a text style (e.g. 'body/md') or an effect style (e.g. 'shadow/md', effects/N/* fields only)",
+        ),
       variableId: z
         .string()
         .describe(
@@ -2018,7 +2228,7 @@ export function registerModificationTools(server: McpServer): void {
       field: z
         .string()
         .describe(
-          'Property field path to bind to. Examples: "fills/0/color" for fill color, "strokes/0/color" for stroke color, "opacity", "width", "height", "strokeWeight", "cornerRadius", "topLeftRadius", "topRightRadius", "bottomLeftRadius", "bottomRightRadius", "paddingLeft", "paddingRight", "paddingTop", "paddingBottom", "itemSpacing", "counterAxisSpacing"',
+          'Property field path to bind to. Examples: "fills/0/color" for a SOLID fill color, "strokes/0/color" for stroke color, "fills/0/gradientStops/1/color" for a gradient stop, "effects/0/color" / "effects/0/radius" / "effects/0/spread" / "effects/0/offsetX" / "effects/0/offsetY" for a shadow, "opacity", "width", "height", "strokeWeight", "cornerRadius", "topLeftRadius", "topRightRadius", "bottomLeftRadius", "bottomRightRadius", "paddingLeft", "paddingRight", "paddingTop", "paddingBottom", "itemSpacing", "counterAxisSpacing"',
         ),
     },
     async ({ nodeId, variableId, field }) => {
@@ -2043,7 +2253,7 @@ export function registerModificationTools(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: `Successfully bound variable "${typedResult.variableName}" (${typedResult.variableType}) to "${typedResult.field}" on node "${typedResult.name}"`,
+              text: `Successfully bound variable "${typedResult.variableName}" (${typedResult.variableType}) to "${typedResult.field}" on ${typedResult.nodeId ? "node" : "style"} "${typedResult.name}"`,
             },
           ],
         };
@@ -2063,13 +2273,17 @@ export function registerModificationTools(server: McpServer): void {
   // Unbind Variable Tool
   server.tool(
     "unbind_variable",
-    "Remove a variable binding from a node property or a text style field in Figma. Pass a node id, or a text style id/name as nodeId.",
+    "Remove a variable binding from a node property, a text style field or an effect style field in Figma. Pass a node id, or a text/effect style id or name as nodeId. Accepts the same field paths as bind_variable, including gradient stops and effects.",
     {
-      nodeId: z.string().describe("The ID of the node, or the ID/name of a text style (e.g. 'body/md')"),
+      nodeId: z
+        .string()
+        .describe(
+          "The ID of the node, or the ID/name of a text style (e.g. 'body/md') or an effect style (e.g. 'shadow/md', effects/N/* fields only)",
+        ),
       field: z
         .string()
         .describe(
-          'Property field path to unbind. Examples: "fills/0/color" for fill color, "strokes/0/color" for stroke color, "opacity", "strokeWeight", etc.',
+          'Property field path to unbind. Examples: "fills/0/color" for fill color, "strokes/0/color" for stroke color, "fills/0/gradientStops/1/color" for a gradient stop, "effects/0/color" or "effects/0/radius" for a shadow, "opacity", "strokeWeight", etc.',
         ),
     },
     async ({ nodeId, field }) => {
@@ -2143,6 +2357,37 @@ export function registerModificationTools(server: McpServer): void {
             {
               type: "text",
               text: `Error renaming node: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  // Set Visible Tool
+  server.tool(
+    "set_visible",
+    "Show or hide one or more layers (node.visible, the eye toggle in the Layers panel). Works on any scene node; pass nodeId, nodeIds, or both. Returns per-node {id, name, visible}; a node that can't be updated (e.g. not found) is listed with an error while the rest still apply. Hidden layers stay in the tree but take no space in auto layout. Note: hiding a layer inside an INSTANCE sets an override on that one instance only. For a show/hide toggle designers control per instance, add a BOOLEAN component property on the main component and wire it with set_component_property_references { visible } instead.",
+    {
+      nodeId: z.string().optional().describe("ID of a single node to show or hide"),
+      nodeIds: coerceArray(z.array(z.string())).optional().describe("IDs of several nodes to show or hide"),
+      visible: mcpBooleanSchema.describe("true = show the layer, false = hide it"),
+    },
+    async ({ nodeId, nodeIds, visible }) => {
+      try {
+        const result = await sendCommandToFigma(
+          "set_visible",
+          normalizeCommandParams("set_visible", { nodeId, nodeIds, visible }),
+        );
+        return {
+          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error setting visibility: ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };

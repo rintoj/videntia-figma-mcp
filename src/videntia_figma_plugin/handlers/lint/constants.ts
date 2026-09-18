@@ -1,4 +1,46 @@
+import type { LintRuleId, ViolationCategory } from "./types";
+
 export const MAX_LINT_DEPTH = 50;
+
+export const LINT_RULE_IDS: LintRuleId[] = [
+  "root-frame-width-fixed",
+  "root-frame-device-width",
+  "root-frame-height-hug",
+  "root-frame-min-height",
+  "screen-naming",
+  "missing-text-style",
+  "mixed-text-style",
+  "font-variable-binding",
+  "hardcoded-color",
+  "gradient-without-style",
+  "invisible-paint",
+  "unbound-spacing",
+  "unbound-radius",
+  "missing-effect-style",
+  "no-auto-layout",
+  "absolute-in-auto-layout",
+  "overflow",
+  "clipped-content",
+];
+
+export const LINT_CATEGORY_NAMES: ViolationCategory[] = [
+  "rootFrame",
+  "typography",
+  "spacing",
+  "borderRadius",
+  "iconColors",
+  "strokesBorders",
+  "backgroundFills",
+  "effectStyles",
+  "overflow",
+  "clippedContent",
+  "autoLayout",
+  "screenNaming",
+];
+
+/** Shared plugin data location for persistent in-file suppression (value: "*" or comma-separated rules). */
+export const LINT_IGNORE_NAMESPACE = "videntia";
+export const LINT_IGNORE_KEY = "lint-ignore";
 export const MAX_LINT_VIOLATIONS = 500;
 
 export const COLOR_EXACT_THRESHOLD = 0.005; // ~1/255 per channel — treat as identical

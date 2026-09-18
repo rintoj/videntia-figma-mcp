@@ -16,7 +16,14 @@ describe("set_text_align MCP tool (#29)", () => {
     const server = new McpServer({ name: "test", version: "1.0.0" }, { capabilities: { tools: {} } });
     mockSendCommand = require("../../src/videntia_figma_mcp/utils/websocket").sendCommandToFigma;
     mockSendCommand.mockClear();
-    mockSendCommand.mockResolvedValue({ name: "Label", textAlignHorizontal: "CENTER", textAlignVertical: "TOP" });
+    mockSendCommand.mockResolvedValue({
+      success: true,
+      updated: 1,
+      failed: 0,
+      results: [
+        { nodeId: "1:1", name: "Label", success: true, textAlignHorizontal: "CENTER", textAlignVertical: "TOP" },
+      ],
+    });
     handlers = new Map();
     schemas = new Map();
     const original = server.tool.bind(server);
@@ -44,17 +51,16 @@ describe("set_text_align MCP tool (#29)", () => {
 
   it("forwards the resolved alignment to the plugin", async () => {
     const response = await callTool("set_text_align", { nodeId: "1:1", horizontal: "CENTER" });
-    expect(mockSendCommand).toHaveBeenCalledWith("set_text_align", {
-      nodeId: "1:1",
-      horizontal: "CENTER",
-      vertical: undefined,
-    });
-    expect(response.content[0].text).toContain("horizontal=CENTER");
+    expect(mockSendCommand).toHaveBeenCalledWith(
+      "set_text_align",
+      expect.objectContaining({ nodeId: "1:1", textAlignHorizontal: "CENTER" }),
+    );
+    expect(response.content[0].text).toContain("Aligned 1 of 1 text node(s)");
   });
 
   it("resolves the `align` alias", async () => {
     await callTool("set_text_align", { nodeId: "1:1", align: "RIGHT" });
-    expect(mockSendCommand.mock.calls[0][1].horizontal).toBe("RIGHT");
+    expect(mockSendCommand.mock.calls[0][1].textAlignHorizontal).toBe("RIGHT");
   });
 
   it("errors without calling the plugin when no axis is given", async () => {

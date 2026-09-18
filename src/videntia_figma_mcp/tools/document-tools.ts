@@ -21,6 +21,7 @@ import {
 import { convertToJsx } from "../utils/figma-to-jsx.js";
 import { formatCompact, formatSummary, extractGeometry, violationId } from "../utils/compact-node.js";
 import { filterNodeData, normalizeNodeId } from "../utils/figma-helpers.js";
+import { normalizeCommandParams } from "../utils/command-params.js";
 import { recordLintRun, getLintRun } from "../utils/lint-runs.js";
 import { postProcessExport, writeExportToPath, resolveExportDestination } from "../utils/export-image-post.js";
 import { exportCacheKey, getCachedExport, setCachedExport, approximateImageTokens } from "../utils/export-cache.js";
@@ -1335,9 +1336,19 @@ export function registerDocumentTools(server: McpServer): void {
   // Lint Frame Tool
   server.tool(
     "lint_frame",
-    "Run a comprehensive compliance audit on a frame (or any node with children). Checks color tokens, spacing tokens, border radius tokens, text styles, effect styles, auto-layout compliance, child overflow, and screen naming conventions in a single traversal. Returns a structured report with violations by severity (CRITICAL/HIGH/MEDIUM/LOW) and compliance percentages across 10 categories. Pass fix=true to auto-fix deterministic violations (root frame sizing: layoutSizingHorizontal→FIXED, layoutSizingVertical→HUG, minHeight→device standard) and report only the remaining issues.",
+    "Run a comprehensive compliance audit on a frame (or any node with children). Checks color tokens, spacing tokens, border radius tokens, text styles, effect styles, auto-layout compliance, child overflow, clipped content, and screen naming conventions in a single traversal. Clipped content (rule clipped-content, HIGH): inside any clipsContent=true frame/component/instance, each descendant's render extent (bounds + DROP_SHADOW offset±(radius+spread), LAYER_BLUR radius, OUTSIDE/CENTER strokes) must stay within the clipping bounds — reports the node, the clipping ancestor, sides and px, and cause (effect vs bounds); fix with set_clips_content {nodeId: ancestor, clipsContent: false} or padding ≥ the overflow. Image crops (IMAGE fill / Image/ layers) and bounds overflow under screen-level clips (linted root, page/section children, Screen/ frames — scrolling content) are not reported. No double reporting: while clippedContent is on, children of a non-screen clipping container are owned by clipped-content, not overflow (CRITICAL overflow still covers non-clipping parents); image layers are exempt from both. Paints inside component instances that are inherited from the main component are not re-reported per instance — only overridden fills/strokes are checked, and the main component is reported once when it is in the linted subtree. Every violation carries a stable rule id: root-frame-width-fixed, root-frame-device-width, root-frame-height-hug, root-frame-min-height, screen-naming, missing-text-style, mixed-text-style, font-variable-binding, hardcoded-color, gradient-without-style, invisible-paint, unbound-spacing, unbound-radius, missing-effect-style, no-auto-layout, absolute-in-auto-layout, overflow, clipped-content. Suppress intentional exceptions (carousels, cover crops, brand logos, diagram canvases, gradient scrims) with ignoreNodeIds / ignoreRules, or persistently in the file with set_lint_ignore (or a [lint-ignore] / [lint-ignore:rule1,rule2] token in the layer name); suppression applies to the node's whole subtree. Suppressed items are excluded from category totals and compliance and reported as suppressed counts by rule. Returns a structured report with violations by severity (CRITICAL/HIGH/MEDIUM/LOW) and compliance percentages per category. Pass fix=true to auto-fix deterministic violations (root frame sizing: layoutSizingHorizontal→FIXED, layoutSizingVertical→HUG, minHeight→device standard) and report only the remaining issues.",
     {
       nodeId: z.string().describe("The ID of the root node to lint"),
+      ignoreNodeIds: coerceArray(z.array(z.string()))
+        .optional()
+        .describe(
+          "Node IDs to suppress, together with their whole subtree (accepts 1:2 or 1-2). Use for intentional exceptions such as carousels, cover crops or brand logos.",
+        ),
+      ignoreRules: coerceArray(z.array(z.string()))
+        .optional()
+        .describe(
+          "Rule ids (e.g. overflow, clipped-content, hardcoded-color) and/or category names (e.g. backgroundFills, autoLayout) to suppress across the whole scan.",
+        ),
       fix: z
         .boolean()
         .optional()
@@ -1359,6 +1370,11 @@ export function registerDocumentTools(server: McpServer): void {
           effectStyles: mcpBooleanSchema.optional().describe("Check effect style application (default: true)"),
           autoLayout: mcpBooleanSchema.optional().describe("Check auto-layout on frames (default: true)"),
           overflow: mcpBooleanSchema.optional().describe("Check child overflow beyond parent bounds (default: true)"),
+          clippedContent: mcpBooleanSchema
+            .optional()
+            .describe(
+              "Check for shadows/blurs/outside strokes/children cropped by a clipsContent=true ancestor (default: true)",
+            ),
           screenNaming: mcpBooleanSchema
             .optional()
             .describe(
@@ -1414,14 +1430,21 @@ export function registerDocumentTools(server: McpServer): void {
           'Deliberate, documented exceptions to excuse for this run — brand gradients, logo artwork, an intentionally filled icon. Accepts category names ("backgroundFills"), check names ("colors"), "category:property" pairs ("backgroundFills:fills[0]") or "*". Suppressed violations are removed from the verdict but reported separately so the exception stays visible. A per-node alternative also exists: set plugin data "lint.ignore" on a node, or suffix its name with "[lint-ignore: backgroundFills]" / "[role: artwork]" — both are inherited by descendants, and role=artwork exempts bespoke artwork from every token-binding rule.',
         ),
     },
-    async ({ nodeId, fix, checks, summary_only, ignore_rules, max_violations, since_run }) => {
+    async ({
+      nodeId,
+      fix,
+      checks,
+      ignoreNodeIds,
+      ignoreRules,
+      summary_only,
+      ignore_rules,
+      max_violations,
+      since_run,
+    }) => {
       nodeId = normalizeNodeId(nodeId);
       try {
-        const result = await sendCommandToFigma<LintFrameResult>(
-          "lint_frame",
-          { nodeId, fix: fix ?? false, checks, ignore_rules },
-          60000,
-        );
+        const payload = normalizeCommandParams("lint_frame", { nodeId, fix, checks, ignoreNodeIds, ignoreRules });
+        const result = await sendCommandToFigma<LintFrameResult>("lint_frame", { ...payload, ignore_rules }, 60000);
 
         // Attach a stable id to every violation so repeat runs can be diffed.
         // Derived from nodeId + category + rule/property (+ severity) — deterministic,
@@ -1504,11 +1527,13 @@ export function registerDocumentTools(server: McpServer): void {
           { key: "borderRadius", label: "Border Radius" },
           { key: "effectStyles", label: "Effect Styles" },
           { key: "overflow", label: "Overflow" },
+          { key: "clippedContent", label: "Clipped Content" },
           { key: "screenNaming", label: "Screen Naming" },
         ];
 
         for (const { key, label } of catLabels) {
           const cat = result.categories[key];
+          if (!cat) continue;
           const pct = cat.compliance;
           const status = pct === 100 ? "PASS" : pct >= 80 ? "WARN" : "FAIL";
           lines.push(`| ${label} | ${cat.total} | ${cat.bound} | ${cat.unbound} | ${status} ${pct}% |`);
@@ -1521,6 +1546,14 @@ export function registerDocumentTools(server: McpServer): void {
         lines.push("");
         lines.push(`**Overall Compliance: ${s.compliance}%**`);
         lines.push("");
+        if (result.suppressed && result.suppressed.total > 0) {
+          const byRule = Object.entries(result.suppressed.byRule)
+            .sort((a, b) => b[1] - a[1])
+            .map(([rule, count]) => `${rule}: ${count}`)
+            .join(", ");
+          lines.push(`Suppressed (excluded from compliance): ${result.suppressed.total} — ${byRule}`);
+          lines.push("");
+        }
         if (remainingViolations.length === 0 && fixedViolations.length === 0) {
           lines.push("No violations found.");
         } else {
@@ -1582,13 +1615,13 @@ export function registerDocumentTools(server: McpServer): void {
             lines.push("");
             lines.push(`### ${sev} (${sevViolations.length})`);
             lines.push("");
-            lines.push("| ID | Node | Type | Category | Property | Message |");
-            lines.push("|----|------|------|----------|----------|---------|");
+            lines.push("| ID | Node | Type | Rule | Category | Property | Message |");
+            lines.push("|----|------|------|------|----------|----------|---------|");
             for (const v of sevViolations) {
               if (rowCap > 0 && rowsPrinted >= rowCap) break;
-              const esc = (str: string) => (str || "-").replace(/\|/g, "\\|");
+              const esc = (str: string | undefined) => (str || "-").replace(/\|/g, "\\|");
               lines.push(
-                `| ${esc((v as any).id)} | ${esc(v.nodeName)} (${esc(v.nodeId)}) | ${esc(v.nodeType)} | ${esc(v.category)} | ${esc(v.property)} | ${esc(v.message)} |`,
+                `| ${esc((v as any).id)} | ${esc(v.nodeName)} (${esc(v.nodeId)}) | ${esc(v.nodeType)} | ${esc(v.rule)} | ${esc(v.category)} | ${esc(v.property)} | ${esc(v.message)} |`,
               );
               rowsPrinted++;
             }
@@ -1653,6 +1686,40 @@ export function registerDocumentTools(server: McpServer): void {
             {
               type: "text",
               text: `Error running lint_frame on node "${nodeId}": ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  server.tool(
+    "set_lint_ignore",
+    'Persistently mark a node as an intentional lint exception, stored in the Figma file (shared plugin data videntia/lint-ignore) so every future lint_frame run honors it for the node and its whole subtree. Use for deliberate carousels, cover crops, brand logos, diagram canvases or gradient scrims instead of "fixing" them. rules: "*" (default) ignores every rule; an array limits it to rule ids (overflow, clipped-content, hardcoded-color, gradient-without-style, no-auto-layout, absolute-in-auto-layout, …) or category names. Replaces any existing value; clear=true removes it.',
+    {
+      nodeId: z.string().describe("ID of the node to mark (accepts 1:2 or 1-2)"),
+      rules: z
+        .union([z.literal("*"), coerceArray(z.array(z.string()))])
+        .optional()
+        .describe('"*" (default) for all rules, or an array of rule ids / category names'),
+      clear: mcpBooleanSchema.optional().describe("true = remove the lint-ignore marker from the node"),
+    },
+    async ({ nodeId, rules, clear }) => {
+      nodeId = normalizeNodeId(nodeId);
+      try {
+        const result = await sendCommandToFigma(
+          "set_lint_ignore",
+          normalizeCommandParams("set_lint_ignore", { nodeId, rules, clear }),
+        );
+        return {
+          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error setting lint-ignore on node "${nodeId}": ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };

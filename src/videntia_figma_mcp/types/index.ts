@@ -87,8 +87,11 @@ export type FigmaCommand =
   | "set_text_content"
   | "set_multiple_text_contents"
   | "set_auto_layout"
+  | "set_clips_content"
   | "set_layout_mode"
   | "reorder_grid_tracks"
+  | "set_grid_child"
+  | "set_constraints"
   | "set_padding"
   | "set_axis_align"
   | "set_layout_sizing"
@@ -103,6 +106,7 @@ export type FigmaCommand =
   | "set_text_align"
   | "set_text_wrap_style"
   | "set_text_decoration"
+  | "set_text_range_style"
   | "get_styled_text_segments"
   | "load_font_async"
   | "create_text_style"
@@ -134,6 +138,7 @@ export type FigmaCommand =
   | "set_component_property_references"
   | "get_component_properties"
   | "rename_node"
+  | "set_visible"
   | "get_annotations"
   | "set_annotation"
   | "set_multiple_annotations"
@@ -193,6 +198,7 @@ export type FigmaCommand =
   | "create_from_data"
   | "batch_actions"
   | "lint_frame"
+  | "set_lint_ignore"
   | "contrast_check_frame"
   | "find_overlaps"
   | "assert_node_state"
@@ -387,6 +393,15 @@ export interface FigmaNodeData {
   gridColumnGap?: number;
   gridRowCount?: number;
   gridColumnCount?: number;
+  gridRowSizes?: Array<{ type: "FIXED" | "FLEX" | "HUG"; value?: number }>;
+  gridColumnSizes?: Array<{ type: "FIXED" | "FLEX" | "HUG"; value?: number }>;
+  // Direct children of a GRID frame only.
+  gridRowAnchorIndex?: number;
+  gridColumnAnchorIndex?: number;
+  gridRowSpan?: number;
+  gridColumnSpan?: number;
+  gridChildHorizontalAlign?: "MIN" | "CENTER" | "MAX" | "AUTO";
+  gridChildVerticalAlign?: "MIN" | "CENTER" | "MAX" | "AUTO";
   layoutWrap?: "NO_WRAP" | "WRAP";
   paddingTop?: number;
   paddingRight?: number;
@@ -395,6 +410,10 @@ export interface FigmaNodeData {
   clipsContent?: boolean;
   layoutPositioning?: "AUTO" | "ABSOLUTE";
   layoutAlign?: "MIN" | "CENTER" | "MAX" | "STRETCH" | "INHERIT";
+  constraints?: {
+    horizontal: "MIN" | "CENTER" | "MAX" | "STRETCH" | "SCALE";
+    vertical: "MIN" | "CENTER" | "MAX" | "STRETCH" | "SCALE";
+  };
   // Fills. A single entry of type "MIXED" means the node's paints differ across
   // its geometry; an empty array means the node explicitly has no fill.
   fills?: FigmaNodeFill[];
@@ -423,8 +442,12 @@ export interface FigmaNodeData {
   letterSpacing?: number;
   letterSpacingUnit?: "percent";
   textAlignHorizontal?: "LEFT" | "CENTER" | "RIGHT" | "JUSTIFIED";
+  textAlignVertical?: "TOP" | "CENTER" | "BOTTOM";
   textCase?: "ORIGINAL" | "UPPER" | "LOWER" | "TITLE";
   textDecoration?: "NONE" | "UNDERLINE" | "STRIKETHROUGH";
+  textAutoResize?: "NONE" | "WIDTH_AND_HEIGHT" | "HEIGHT" | "TRUNCATE";
+  textTruncation?: "DISABLED" | "ENDING";
+  maxLines?: number;
   textStyleName?: string;
   effectStyleName?: string;
   // Appearance
@@ -840,6 +863,8 @@ export interface LintViolation {
   depth: number;
   severity: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
   category: string;
+  /** Stable kebab-case rule id (e.g. overflow, clipped-content, hardcoded-color). Absent from older plugins. */
+  rule?: string;
   property: string;
   message: string;
   details?: Record<string, unknown>;
@@ -875,12 +900,15 @@ export interface LintFrameResult {
     backgroundFills: LintCategoryResult;
     effectStyles: LintCategoryResult;
     overflow: LintCategoryResult;
+    clippedContent?: LintCategoryResult;
     screenNaming: LintCategoryResult;
   };
   violations: LintViolation[];
   /** Violations excused by ignore_rules, node annotations or role=artwork. */
   suppressedViolations?: LintViolation[];
   violationsCapped?: boolean;
+  /** Violations suppressed via ignoreNodeIds / ignoreRules / in-file lint-ignore; excluded from compliance. */
+  suppressed?: { total: number; byRule: Record<string, number> };
   summary: {
     total: number;
     critical: number;

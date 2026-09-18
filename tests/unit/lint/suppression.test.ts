@@ -29,6 +29,7 @@ function violation(over: Partial<Violation> = {}): Violation {
     depth: 2,
     severity: "CRITICAL",
     category: "backgroundFills" as ViolationCategory,
+    rule: "hardcoded-color",
     property: "fills[0]",
     message: "Color using raw hex value",
     ...over,

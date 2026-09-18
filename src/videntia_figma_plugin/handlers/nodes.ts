@@ -1,6 +1,6 @@
 import { customBase64Encode } from "../utils/base64";
 import { resolveStrict } from "../utils/write-verify";
-import { debugLog, describeError, parseNum } from "../utils/helpers";
+import { debugLog, describeError, loadTextNodeFonts, parseNum } from "../utils/helpers";
 import { selectAndFocusNode } from "../utils/plugin-state";
 import { computeSubtreeHash } from "../utils/subtree-hash";
 import { resolveColor } from "./fills";
@@ -172,12 +172,8 @@ export async function createFrame(params: Record<string, unknown>): Promise<Reco
     frame.strokeWeight = strokeWeight;
   }
 
-  // Set clipsContent if provided
-  if (clipsContent !== undefined) {
-    frame.clipsContent = clipsContent;
-  }
-
   // If parentId is provided, append to that node, otherwise append to current page
+  let isNested = false;
   if (parentId) {
     const parentNode = await figma.getNodeByIdAsync(parentId);
     if (!parentNode) {
@@ -187,9 +183,15 @@ export async function createFrame(params: Record<string, unknown>): Promise<Reco
       throw new Error(`Parent node does not support children: ${parentId}`);
     }
     (parentNode as FrameNode).appendChild(frame);
+    // Sections are canvas organisers, so frames directly inside them are top-level screens.
+    isNested = parentNode.type !== "PAGE" && parentNode.type !== "SECTION";
   } else {
     figma.currentPage.appendChild(frame);
   }
+
+  // Figma defaults frames to clipping, which cuts off children's shadows and focus
+  // rings. Nested containers default to unclipped; top-level frames keep clipping.
+  frame.clipsContent = clipsContent !== undefined ? clipsContent : !isNested;
 
   // Auto layout is applied after appendChild: layoutSizing* is only meaningful
   // once the frame has a parent, and layoutMode must be set before the padding /
@@ -445,7 +447,24 @@ export async function resizeNode(params: Record<string, unknown>): Promise<Recor
   const previousHeight = (node as unknown as { height?: number }).height;
 
   // SectionNode has no resize() — it only exposes resizeWithoutConstraints().
-  if ("resize" in node) {
+  let textAutoResize: string | undefined;
+  if (node.type === "TEXT") {
+    const textNode = node as TextNode;
+    // resize() flips a TEXT node to textAutoResize NONE (fixed box, text overflows).
+    // Preserve auto-sizing text as wrapping text: keep the new width, let height grow.
+    const previousAutoResize = textNode.textAutoResize;
+    const keepWrapping = previousAutoResize === "HEIGHT" || previousAutoResize === "WIDTH_AND_HEIGHT";
+    // Only the textAutoResize write needs loaded fonts; load before resizing so a failure
+    // cannot leave the node resized into a fixed box. Fixed text resizes without fonts.
+    if (keepWrapping) {
+      await loadTextNodeFonts(textNode);
+    }
+    textNode.resize(width, height);
+    if (keepWrapping) {
+      textNode.textAutoResize = "HEIGHT";
+    }
+    textAutoResize = textNode.textAutoResize;
+  } else if ("resize" in node) {
     (node as FrameNode).resize(width, height);
   } else if ("resizeWithoutConstraints" in node) {
     (node as unknown as { resizeWithoutConstraints: (w: number, h: number) => void }).resizeWithoutConstraints(
@@ -476,6 +495,7 @@ export async function resizeNode(params: Record<string, unknown>): Promise<Recor
     width: (node as FrameNode).width,
     height: (node as FrameNode).height,
     ...(scaleStrokes ? { strokesScaled, strokeScaleFactor } : {}),
+    ...(textAutoResize !== undefined ? { textAutoResize } : {}),
   };
 }
 
@@ -1127,6 +1147,56 @@ export async function renameNode(params: Record<string, unknown>): Promise<Recor
   } catch (error) {
     throw new Error(describeError(error));
   }
+}
+
+function isInsideInstance(node: BaseNode): boolean {
+  let current = node.parent;
+  while (current) {
+    if (current.type === "INSTANCE") return true;
+    current = current.parent;
+  }
+  return false;
+}
+
+export async function setVisible(params: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const nodeId = getOptParam<string>(params, "nodeId");
+  const nodeIds = getOptParam<unknown>(params, "nodeIds");
+  const visible = getOptParam<unknown>(params, "visible");
+
+  const ids: string[] = [];
+  for (const id of [nodeId, ...(Array.isArray(nodeIds) ? nodeIds : [])]) {
+    if (typeof id === "string" && id && ids.indexOf(id) === -1) ids.push(id);
+  }
+  if (ids.length === 0) throw new Error("Missing nodeId or nodeIds parameter");
+  if (typeof visible !== "boolean") throw new Error("visible must be true or false");
+
+  const results: Array<Record<string, unknown>> = [];
+  for (const id of ids) {
+    const node = await figma.getNodeByIdAsync(id);
+    if (!node) {
+      results.push({ id, error: `Node not found with ID: ${id}` });
+      continue;
+    }
+    if (!("visible" in node)) {
+      results.push({ id, name: node.name, error: `${node.type} nodes have no visibility` });
+      continue;
+    }
+    try {
+      const scene = node as SceneNode;
+      scene.visible = visible;
+      const entry: Record<string, unknown> = { id: scene.id, name: scene.name, visible: scene.visible };
+      if (isInsideInstance(scene)) entry["instanceOverride"] = true;
+      results.push(entry);
+    } catch (error) {
+      results.push({ id, name: node.name, error: (error as Error).message });
+    }
+  }
+
+  const failed = results.filter((r) => r["error"] !== undefined);
+  if (failed.length === results.length) {
+    throw new Error(failed.map((r) => r["error"]).join("; "));
+  }
+  return { visible, updated: results.length - failed.length, failed: failed.length, results };
 }
 
 export async function insertChild(params: Record<string, unknown>): Promise<Record<string, unknown>> {

@@ -750,6 +750,17 @@ function nodeToAst(node: FigmaNodeData, parentLayoutMode?: string): t.JSXElement
     attrs.push(buildStyleAstAttr(style));
   }
 
+  // Text wrapping behaviour (WIDTH_AND_HEIGHT = single line, HEIGHT = wraps, NONE = fixed box)
+  if (node.type === "TEXT" && node.textAutoResize) {
+    attrs.push(t.jsxAttribute(t.jsxIdentifier("textAutoResize"), t.stringLiteral(node.textAutoResize)));
+  }
+  if (node.type === "TEXT" && node.textTruncation === "ENDING") {
+    attrs.push(t.jsxAttribute(t.jsxIdentifier("textTruncation"), t.stringLiteral(node.textTruncation)));
+  }
+  if (node.type === "TEXT" && typeof node.maxLines === "number") {
+    attrs.push(t.jsxAttribute(t.jsxIdentifier("maxLines"), t.stringLiteral(String(node.maxLines))));
+  }
+
   // ID fields (only present when explicitly requested via fields)
   if (node.textStyleId) {
     attrs.push(t.jsxAttribute(t.jsxIdentifier("textStyleId"), t.stringLiteral(node.textStyleId)));

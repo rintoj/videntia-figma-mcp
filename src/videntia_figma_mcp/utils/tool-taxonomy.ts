@@ -126,6 +126,7 @@ export const TOOL_CATEGORY_MAP: Record<string, ToolCategoryEntry> = {
   get_styles: { category: "read", secondary: ["tokens"] },
   get_local_components: { category: "read", secondary: ["components"] },
   get_design_system: { category: "read", secondary: ["tokens"] },
+  get_design_knowledge: { category: "read" },
   get_content_tree: { category: "read", secondary: ["document"] },
 
   // --- create ---
@@ -166,6 +167,9 @@ export const TOOL_CATEGORY_MAP: Record<string, ToolCategoryEntry> = {
   set_layout_sizing: { category: "layout" },
   reorder_grid_tracks: { category: "layout" },
   set_clips_content: { category: "layout", secondary: ["modify"] },
+  set_grid_child: { category: "layout" },
+  set_constraints: { category: "layout", secondary: ["modify"] },
+  set_visible: { category: "modify" },
 
   // --- text ---
   set_text_content: { category: "text" },
@@ -178,6 +182,7 @@ export const TOOL_CATEGORY_MAP: Record<string, ToolCategoryEntry> = {
   set_paragraph_spacing: { category: "text" },
   set_text_case: { category: "text" },
   set_text_align: { category: "text", secondary: ["layout"] },
+  set_text_range_style: { category: "text" },
   set_text_wrap_style: { category: "text" },
   set_text_decoration: { category: "text" },
   get_styled_text_segments: { category: "text", secondary: ["read"] },
@@ -273,6 +278,7 @@ export const TOOL_CATEGORY_MAP: Record<string, ToolCategoryEntry> = {
 
   // --- lint ---
   lint_frame: { category: "lint", secondary: ["verify"] },
+  set_lint_ignore: { category: "lint" },
 
   // --- verify ---
   contrast_check_frame: { category: "verify" },

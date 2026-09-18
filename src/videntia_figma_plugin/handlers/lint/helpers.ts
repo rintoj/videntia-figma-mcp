@@ -6,8 +6,143 @@ import type {
   ColorVarEntry,
   FloatVarEntry,
   LookupMaps,
+  LintRuleId,
+  IgnoreSet,
+  LintScope,
 } from "./types";
-import { COLOR_SEMANTIC_KEYWORDS, FLOAT_SEMANTIC_KEYWORDS } from "./constants";
+import { COLOR_SEMANTIC_KEYWORDS, FLOAT_SEMANTIC_KEYWORDS, LINT_IGNORE_NAMESPACE, LINT_IGNORE_KEY } from "./constants";
+
+// ── Image layer detection ─────────────────────────────────────────────────────
+
+export function hasImageFill(node: SceneNode): boolean {
+  try {
+    let fills = (node as GeometryMixin).fills;
+    if (!Array.isArray(fills)) return false;
+    for (let i = 0; i < fills.length; i++) {
+      if (fills[i] && fills[i].type === "IMAGE" && fills[i].visible !== false) return true;
+    }
+  } catch (_e) {}
+  return false;
+}
+
+/** Image layers (visible IMAGE paint or `Image/` name) are intentionally cropped/bled — exempt from overflow and clip bounds. */
+export function isImageLayer(node: SceneNode): boolean {
+  let name = "";
+  try {
+    name = node.name || "";
+  } catch (_e) {}
+  return name.indexOf("Image/") === 0 || hasImageFill(node);
+}
+
+// ── Suppression ───────────────────────────────────────────────────────────────
+
+/** Accepts URL-style ids (`1-2`, `I1-2;3-4`) and returns Figma ids (`1:2`, `I1:2;3:4`). */
+export function normalizeLintNodeId(id: string): string {
+  let s = String(id).trim();
+  if (s.indexOf(":") !== -1) return s;
+  return s.replace(/(\d+)-(\d+)/g, "$1:$2");
+}
+
+/** Parses a lint-ignore value: "*" (or empty rule list) → all rules; otherwise comma-separated rule ids/categories. */
+export function parseIgnoreValue(value: string | undefined | null): IgnoreSet | null {
+  if (value === undefined || value === null) return null;
+  let raw = String(value).trim();
+  if (raw === "") return null;
+  let parts = raw.split(",");
+  let rules: string[] = [];
+  for (let i = 0; i < parts.length; i++) {
+    let p = parts[i].trim();
+    if (p === "*") return { all: true, rules: [] };
+    if (p !== "" && rules.indexOf(p) === -1) rules.push(p);
+  }
+  return rules.length > 0 ? { all: false, rules: rules } : null;
+}
+
+const NAME_IGNORE_TOKEN = /\[lint-ignore(?::([^\]]*))?\]/i;
+
+/** Reads a node's own suppression: ignoreNodeIds, shared plugin data `videntia/lint-ignore`, or a `[lint-ignore(:rules)]` name token. */
+export function readNodeIgnore(node: BaseNode, scope: LintScope | undefined): IgnoreSet | null {
+  let own: IgnoreSet | null = null;
+  if (scope && scope.ignoreNodeIds[node.id]) return { all: true, rules: [] };
+  try {
+    let getter = (node as BaseNode & { getSharedPluginData?: (ns: string, key: string) => string }).getSharedPluginData;
+    if (typeof getter === "function") {
+      own = mergeIgnore(own, parseIgnoreValue(getter.call(node, LINT_IGNORE_NAMESPACE, LINT_IGNORE_KEY)));
+    }
+  } catch (_e) {}
+  let name = "";
+  try {
+    name = node.name || "";
+  } catch (_e) {}
+  if (name.indexOf("[") !== -1) {
+    let m = NAME_IGNORE_TOKEN.exec(name);
+    if (m) own = mergeIgnore(own, m[1] === undefined ? { all: true, rules: [] } : parseIgnoreValue(m[1] || "*"));
+  }
+  return own;
+}
+
+export function mergeIgnore(a: IgnoreSet | null, b: IgnoreSet | null): IgnoreSet | null {
+  if (!a) return b;
+  if (!b) return a;
+  if (a.all) return a;
+  if (b.all) return b;
+  let rules = a.rules.slice();
+  for (let i = 0; i < b.rules.length; i++) {
+    if (rules.indexOf(b.rules[i]) === -1) rules.push(b.rules[i]);
+  }
+  return { all: false, rules: rules };
+}
+
+export function isSuppressed(
+  ignore: IgnoreSet | null,
+  scope: LintScope | undefined,
+  category: ViolationCategory,
+  rule: LintRuleId,
+): boolean {
+  if (scope && scope.ignoreRules.length > 0) {
+    if (scope.ignoreRules.indexOf(rule) !== -1 || scope.ignoreRules.indexOf(category) !== -1) return true;
+  }
+  if (!ignore) return false;
+  if (ignore.all) return true;
+  return ignore.rules.indexOf(rule) !== -1 || ignore.rules.indexOf(category) !== -1;
+}
+
+export function countSuppressed(scope: LintScope | undefined, rule: LintRuleId): void {
+  if (!scope) return;
+  scope.suppressed.total++;
+  scope.suppressed.byRule[rule] = (scope.suppressed.byRule[rule] || 0) + 1;
+}
+
+// ── Instance override detection ───────────────────────────────────────────────
+
+/** Map of sublayer id → overridden fields for an INSTANCE (`instance.overrides`). */
+export function readInstanceOverrides(node: SceneNode): Record<string, string[]> {
+  let map: Record<string, string[]> = {};
+  try {
+    let list = (node as InstanceNode).overrides;
+    if (Array.isArray(list)) {
+      for (let i = 0; i < list.length; i++) {
+        let entry = list[i];
+        if (entry && entry.id && Array.isArray(entry.overriddenFields)) {
+          map[entry.id] = (map[entry.id] || []).concat(entry.overriddenFields as string[]);
+        }
+      }
+    }
+  } catch (_e) {}
+  return map;
+}
+
+/** True when the paint property (`fills` / `strokes`) on a node inside an instance is overridden rather than inherited. */
+export function isPaintOverridden(
+  overrides: Record<string, string[]>,
+  nodeId: string,
+  prop: "fills" | "strokes",
+): boolean {
+  let fields = overrides[nodeId];
+  if (!fields) return false;
+  let styleField = prop === "fills" ? "fillStyleId" : "strokeStyleId";
+  return fields.indexOf(prop) !== -1 || fields.indexOf(styleField) !== -1;
+}
 
 // ── Fill / scalar binding helpers ────────────────────────────────────────────
 
@@ -238,6 +373,7 @@ export function addViolation(
   depth: number,
   severity: ViolationSeverity,
   category: ViolationCategory,
+  rule: LintRuleId,
   property: string,
   message: string,
   details?: ViolationDetails,
@@ -253,6 +389,7 @@ export function addViolation(
     depth: depth,
     severity: severity,
     category: category,
+    rule: rule,
     property: property,
     message: message,
   };

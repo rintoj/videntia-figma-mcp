@@ -4,6 +4,8 @@ import { sendCommandToFigma } from "../utils/websocket";
 import { coerceArray } from "../utils/coerce-array.js";
 import { mcpBooleanSchema } from "../utils/mcp-boolean.js";
 import { normalizeNodeId } from "../utils/figma-helpers.js";
+import { normalizeCommandParams } from "../utils/command-params.js";
+import { svgConstraintsSchema } from "../utils/constraints-schema.js";
 import { resolveFrameLayout, paddingShorthandSchema, PADDING_SHORTHAND_DESCRIPTION } from "../utils/frame-layout.js";
 import { colorParam, toRgba } from "../utils/color-input.js";
 
@@ -144,7 +146,7 @@ export function registerCreationTools(server: McpServer): void {
       clipsContent: mcpBooleanSchema
         .optional()
         .describe(
-          "true = hide content that overflows the frame boundary (CSS overflow:hidden); false = show overflow (default: false)",
+          "true = hide content that overflows the frame boundary (CSS overflow:hidden), which also clips children's drop shadows, glows and focus rings; false = show overflow. Default: false when parentId is a frame/component (nested container), true for top-level frames (no parentId, or parentId is a page or section). Change later with set_clips_content.",
         ),
       cornerRadius: z.coerce
         .number()
@@ -329,7 +331,10 @@ export function registerCreationTools(server: McpServer): void {
   // Create Text Tool
   server.tool(
     "create_text",
-    "Create a new text element in Figma",
+    "Create a new text element in Figma. Wrapping: without `width` the text auto-sizes to its content on a single line (textAutoResize WIDTH_AND_HEIGHT) and never wraps — right for labels and buttons. " +
+      "With `width` (and no `textAutoResize`) the text gets that fixed width and textAutoResize HEIGHT: it wraps at the width and its height grows — right for paragraphs. " +
+      "Pass `textAutoResize` to override (NONE = fixed box that can overflow; WIDTH_AND_HEIGHT ignores `width`). " +
+      'Alignment: `textAlignHorizontal` only visibly matters when the text box is wider than its content (a `width` / textAutoResize HEIGHT or NONE, or FILL sizing) — WIDTH_AND_HEIGHT text hugs its content, so for centred text pass `textAlignHorizontal: "CENTER"` together with `width`.',
     {
       x: z.coerce.number().describe("X position in pixels on the canvas (or relative to parent if parentId is set)"),
       y: z.coerce.number().describe("Y position in pixels on the canvas (or relative to parent if parentId is set)"),
@@ -348,8 +353,47 @@ export function registerCreationTools(server: McpServer): void {
       fontColor: colorParam("Text color (default: black).").optional(),
       name: z.string().optional().describe("Layer name for the text node (default: the text content itself)"),
       parentId: z.string().optional().describe("ID of the parent frame to insert the text into"),
+      width: z.coerce
+        .number()
+        .positive()
+        .optional()
+        .describe(
+          "Fixed width in pixels. When set without textAutoResize, the text wraps at this width and its height grows (textAutoResize HEIGHT). Omit for single-line text that hugs its content",
+        ),
+      textAutoResize: z
+        .enum(["NONE", "HEIGHT", "WIDTH_AND_HEIGHT"])
+        .optional()
+        .describe(
+          "Text box sizing: HEIGHT = fixed width, wraps, height grows (default when width is set); WIDTH_AND_HEIGHT = single line, hugs content (default when width is omitted); NONE = fixed width and height, text may overflow",
+        ),
+      textAlignHorizontal: z
+        .enum(["LEFT", "CENTER", "RIGHT", "JUSTIFIED"])
+        .optional()
+        .describe(
+          "Horizontal text alignment (Figma default LEFT). Only visible when the box is wider than the text — combine with `width` (or FILL sizing); WIDTH_AND_HEIGHT text hugs its content",
+        ),
+      textAlignVertical: z
+        .enum(["TOP", "CENTER", "BOTTOM"])
+        .optional()
+        .describe(
+          "Vertical text alignment within the box (Figma default TOP). Only visible when the box is taller than the text (textAutoResize NONE or a fixed/FILL height)",
+        ),
     },
-    async ({ x, y, text, fontSize, fontFamily, fontWeight, fontColor, name, parentId }) => {
+    async ({
+      x,
+      y,
+      text,
+      fontSize,
+      fontFamily,
+      fontWeight,
+      fontColor,
+      name,
+      parentId,
+      width,
+      textAutoResize,
+      textAlignHorizontal,
+      textAlignVertical,
+    }) => {
       if (parentId) parentId = normalizeNodeId(parentId);
       try {
         const result = await sendCommandToFigma("create_text", {
@@ -362,13 +406,36 @@ export function registerCreationTools(server: McpServer): void {
           fontColor: fontColor === undefined ? { r: 0, g: 0, b: 0, a: 1 } : toRgba(fontColor),
           name: name || "Text",
           parentId,
+          width,
+          textAutoResize,
+          textAlignHorizontal,
+          textAlignVertical,
         });
-        const typedResult = result as { name: string; id: string };
+        const typedResult = result as {
+          name: string;
+          id: string;
+          width?: number;
+          textAutoResize?: string;
+          textAlignHorizontal?: string;
+          textAlignVertical?: string;
+        };
+        const alignText = [
+          textAlignHorizontal !== undefined && typedResult.textAlignHorizontal !== undefined
+            ? `, textAlignHorizontal: ${typedResult.textAlignHorizontal}`
+            : "",
+          textAlignVertical !== undefined && typedResult.textAlignVertical !== undefined
+            ? `, textAlignVertical: ${typedResult.textAlignVertical}`
+            : "",
+        ].join("");
+        const sizingText =
+          typedResult.textAutoResize !== undefined
+            ? ` (textAutoResize: ${typedResult.textAutoResize}${typedResult.width !== undefined ? `, width: ${typedResult.width}` : ""}${alignText})`
+            : "";
         return {
           content: [
             {
               type: "text",
-              text: `Created text "${typedResult.name}" with ID: ${typedResult.id}`,
+              text: `Created text "${typedResult.name}" with ID: ${typedResult.id}${sizingText}`,
             },
           ],
         };
@@ -578,18 +645,23 @@ export function registerCreationTools(server: McpServer): void {
         .describe(
           "true = merge all SVG paths into a single vector node (loses individual path structure but simplifies the layer); false = preserve path hierarchy as separate nodes (default: false)",
         ),
+      constraints: svgConstraintsSchema.optional(),
     },
-    async ({ svgString, x, y, name, parentId, flatten }) => {
+    async ({ svgString, x, y, name, parentId, flatten, constraints }) => {
       if (parentId) parentId = normalizeNodeId(parentId);
       try {
-        const result = await sendCommandToFigma("create_svg", {
-          svgString,
-          x: x ?? 0,
-          y: y ?? 0,
-          name,
-          parentId,
-          flatten: flatten ?? false,
-        });
+        const result = await sendCommandToFigma(
+          "create_svg",
+          normalizeCommandParams("create_svg", {
+            svgString,
+            x,
+            y,
+            name,
+            parentId,
+            flatten,
+            ...(constraints ? { constraints } : {}),
+          }),
+        );
         const typedResult = result as {
           id: string;
           name: string;
@@ -600,12 +672,18 @@ export function registerCreationTools(server: McpServer): void {
           height: number;
           childCount: number;
           parentId?: string;
+          constraints?: { horizontal?: string; vertical?: string };
+          constraintsAppliedTo?: number;
         };
+        const c = typedResult.constraints;
+        const constraintsText = c
+          ? `; constraints (${[c.horizontal && `horizontal: ${c.horizontal}`, c.vertical && `vertical: ${c.vertical}`].filter(Boolean).join(", ")}) applied to ${typedResult.constraintsAppliedTo ?? 0} layer(s)`
+          : "";
         return {
           content: [
             {
               type: "text",
-              text: `Created SVG node "${typedResult.name}" (ID: ${typedResult.id}, ${typedResult.width}x${typedResult.height}px, ${typedResult.childCount} children)${typedResult.parentId ? ` inside parent ${typedResult.parentId}` : ""}`,
+              text: `Created SVG node "${typedResult.name}" (ID: ${typedResult.id}, ${typedResult.width}x${typedResult.height}px, ${typedResult.childCount} children)${typedResult.parentId ? ` inside parent ${typedResult.parentId}` : ""}${constraintsText}`,
             },
           ],
         };

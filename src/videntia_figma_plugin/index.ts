@@ -45,6 +45,7 @@ import {
   ungroupNodes,
   flattenNode,
   renameNode,
+  setVisible,
   insertChild,
   setClipsContent,
   setOpacity,
@@ -78,6 +79,7 @@ import {
   setTextAlign,
   setTextWrapStyle,
   setTextDecoration,
+  setTextRangeStyle,
   getStyledTextSegments,
   loadFontAsyncWrapper,
   createTextStyle,
@@ -171,10 +173,12 @@ import {
   createRadiusSystem,
   setLayoutMode,
   reorderGridTracks,
+  setGridChild,
   setPadding,
   setItemSpacing,
   setAxisAlign,
   setLayoutSizing,
+  setConstraints,
 } from "./handlers/layout";
 
 // Strict mode (silent no-op detection)
@@ -217,6 +221,7 @@ import { createFromData, getDesignSystem, setupDesignSystem } from "./handlers/d
 
 // Handlers — lint
 import { lintFrame } from "./handlers/lint/index";
+import { setLintIgnore } from "./handlers/lint/ignore";
 import {
   contrastCheckFrame,
   findOverlaps,
@@ -364,6 +369,7 @@ var FOCUS_BEFORE_COMMANDS = new Set([
   "delete_node",
   "clone_node",
   "rename_node",
+  "set_visible",
   "insert_child",
   "flatten_node",
   "set_corner_radius",
@@ -382,6 +388,7 @@ var FOCUS_BEFORE_COMMANDS = new Set([
   "set_text_case",
   "set_text_align",
   "set_text_decoration",
+  "set_text_range_style",
   "apply_text_style",
   "set_effects",
   "set_effect_style_id",
@@ -389,6 +396,8 @@ var FOCUS_BEFORE_COMMANDS = new Set([
   "bind_variable",
   "unbind_variable",
   "set_layout_mode",
+  "set_grid_child",
+  "set_constraints",
   "set_padding",
   "set_item_spacing",
   "set_axis_align",
@@ -782,6 +791,8 @@ async function _executeCommand(command: string, params: Record<string, unknown>)
       return await cloneNode(params);
     case "rename_node":
       return await renameNode(params);
+    case "set_visible":
+      return await setVisible(params);
     case "insert_child":
       return await insertChild(params);
     case "group_nodes":
@@ -866,6 +877,8 @@ async function _executeCommand(command: string, params: Record<string, unknown>)
       return await setTextWrapStyle(params);
     case "set_text_decoration":
       return await setTextDecoration(params);
+    case "set_text_range_style":
+      return await setTextRangeStyle(params);
     case "get_styled_text_segments":
       return await getStyledTextSegments(params);
     case "load_font_async":
@@ -1004,8 +1017,14 @@ async function _executeCommand(command: string, params: Record<string, unknown>)
       return await createRadiusSystem(params);
     case "set_layout_mode":
       return await setLayoutMode(params);
+    case "set_clips_content":
+      return await setClipsContent(params);
+    case "set_constraints":
+      return await setConstraints(params);
     case "reorder_grid_tracks":
       return await reorderGridTracks(params);
+    case "set_grid_child":
+      return await setGridChild(params);
     case "set_padding":
       return await setPadding(params);
     case "set_item_spacing":
@@ -1070,8 +1089,6 @@ async function _executeCommand(command: string, params: Record<string, unknown>)
       return await setSectionStatus(params);
 
     // Node display properties
-    case "set_clips_content":
-      return await setClipsContent(params);
     case "set_opacity":
       return await setOpacity(params);
 
@@ -1107,6 +1124,8 @@ async function _executeCommand(command: string, params: Record<string, unknown>)
         );
       }
       return await lintFrame(params);
+    case "set_lint_ignore":
+      return await setLintIgnore(params);
 
     case "get_instance_overrides":
       return await getInstanceOverrides(params);

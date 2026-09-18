@@ -89,6 +89,100 @@ describe("new modification tools integration", () => {
     });
   });
 
+  describe("set_grid_child", () => {
+    it("sends placement, spans and alignment and reports the applied values", async () => {
+      mockSendCommand.mockResolvedValue({
+        name: "Card",
+        row: 1,
+        column: 0,
+        rowSpan: 2,
+        columnSpan: 3,
+        horizontalAlign: "CENTER",
+        verticalAlign: "AUTO",
+      });
+      const response = await callTool("set_grid_child", {
+        nodeId: "1-2",
+        row: "1",
+        column: 0,
+        rowSpan: 2,
+        columnSpan: 3,
+        horizontalAlign: "CENTER",
+      });
+      expect(mockSendCommand).toHaveBeenCalledWith("set_grid_child", {
+        nodeId: "1:2",
+        row: 1,
+        column: 0,
+        rowSpan: 2,
+        columnSpan: 3,
+        horizontalAlign: "CENTER",
+      });
+      expect(response.content[0].text).toContain('Placed "Card" at row 1, column 0 (span 2×3');
+    });
+
+    it("rejects a call with nothing to set without contacting Figma", async () => {
+      const response = await callTool("set_grid_child", { nodeId: "1:2" });
+      expect(mockSendCommand).not.toHaveBeenCalled();
+      expect(response.content[0].text).toContain("Error setting grid child");
+      expect(response.content[0].text).toContain("requires at least one of");
+    });
+
+    it("rejects negative indices and zero spans at the schema", () => {
+      const schema = toolSchemas.get("set_grid_child")!;
+      expect(schema.safeParse({ nodeId: "1:2", row: -1 }).success).toBe(false);
+      expect(schema.safeParse({ nodeId: "1:2", columnSpan: 0 }).success).toBe(false);
+      expect(schema.safeParse({ nodeId: "1:2", verticalAlign: "STRETCH" }).success).toBe(false);
+    });
+
+    it("surfaces plugin errors", async () => {
+      mockSendCommand.mockRejectedValue(new Error("is not a child of a GRID auto-layout frame"));
+      const response = await callTool("set_grid_child", { nodeId: "1:2", row: 0 });
+      expect(response.content[0].text).toContain("not a child of a GRID");
+    });
+  });
+
+  describe("grid track sizes", () => {
+    beforeEach(() => {
+      mockSendCommand.mockResolvedValue({ name: "Grid", gridRowCount: 1, gridColumnCount: 2 });
+    });
+
+    it("set_layout_mode forwards columnSizes as gridColumnSizes", async () => {
+      await callTool("set_layout_mode", {
+        nodeId: "1:2",
+        mode: "GRID",
+        columns: 2,
+        columnSizes: '[{"type":"FIXED","value":"240"},{"type":"FLEX"}]',
+      });
+      expect(mockSendCommand).toHaveBeenCalledWith("set_layout_mode", {
+        nodeId: "1:2",
+        layoutMode: "GRID",
+        gridColumnCount: 2,
+        gridColumnSizes: [{ type: "FIXED", value: 240 }, { type: "FLEX" }],
+      });
+    });
+
+    it("set_auto_layout forwards rowSizes and rejects them outside GRID", async () => {
+      await callTool("set_auto_layout", { nodeId: "1:2", mode: "GRID", rowSizes: [{ type: "HUG" }] });
+      expect(mockSendCommand).toHaveBeenCalledWith(
+        "set_auto_layout",
+        expect.objectContaining({ layoutMode: "GRID", gridRowSizes: [{ type: "HUG" }] }),
+      );
+
+      mockSendCommand.mockClear();
+      const response = await callTool("set_auto_layout", {
+        nodeId: "1:2",
+        mode: "VERTICAL",
+        rowSizes: [{ type: "HUG" }],
+      });
+      expect(mockSendCommand).not.toHaveBeenCalled();
+      expect(response.content[0].text).toContain("apply to GRID mode only");
+    });
+
+    it("rejects unknown track types at the schema", () => {
+      const schema = toolSchemas.get("set_layout_mode")!;
+      expect(schema.safeParse({ nodeId: "1:2", mode: "GRID", rowSizes: [{ type: "AUTO" }] }).success).toBe(false);
+    });
+  });
+
   describe("set_layout_mode", () => {
     beforeEach(() => {
       mockSendCommand.mockResolvedValue({

@@ -22,6 +22,9 @@ import { registerTools } from "./tools";
 // Import prompts registration function from prompts/index.ts
 import { registerPrompts } from "./prompts";
 
+// Import design knowledge resource registration
+import { registerDesignKnowledge } from "./resources/design-knowledge/index.js";
+
 /**
  * Initialize and start the MCP server
  */
@@ -37,6 +40,9 @@ async function main() {
 
     // Register all prompts with the server
     registerPrompts(server);
+
+    // Register design knowledge resources (figma://design-knowledge/{module})
+    registerDesignKnowledge(server);
 
     // Try to connect to Figma socket server
     try {

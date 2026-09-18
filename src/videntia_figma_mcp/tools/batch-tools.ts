@@ -400,6 +400,10 @@ export function registerBatchTools(server: McpServer): void {
                 color: p.color !== undefined ? String(p.color) : undefined,
                 colorVariable: p.colorVariable !== undefined ? String(p.colorVariable) : undefined,
                 size: Number(p.size ?? 24),
+                constraints:
+                  p.constraints && typeof p.constraints === "object"
+                    ? (p.constraints as { horizontal?: string; vertical?: string })
+                    : undefined,
               });
 
               expandedActions.push({

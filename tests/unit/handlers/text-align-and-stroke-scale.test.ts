@@ -25,6 +25,8 @@ function makeTextNode(id = "1:1") {
     fontName: { family: "Inter", style: "Regular" },
     textAlignHorizontal: "LEFT",
     textAlignVertical: "TOP",
+    characters: "",
+    getRangeAllFontNames: () => [{ family: "Inter", style: "Regular" }],
   });
 }
 
@@ -33,13 +35,13 @@ describe("set_text_align (#29)", () => {
     const node = makeTextNode();
     const result = await setTextAlign({ nodeId: node.id, horizontal: "CENTER" });
     expect(node.textAlignHorizontal).toBe("CENTER");
-    expect(result.textAlignHorizontal).toBe("CENTER");
+    expect((result.results as any[])[0].textAlignHorizontal).toBe("CENTER");
     expect(node.textAlignVertical).toBe("TOP"); // untouched
   });
 
-  it("sets both axes and accepts the `align` alias plus lowercase values", async () => {
+  it("sets both axes and accepts the `align` alias", async () => {
     const node = makeTextNode();
-    await setTextAlign({ nodeId: node.id, align: "right", vertical: "bottom" });
+    await setTextAlign({ nodeId: node.id, align: "RIGHT", vertical: "BOTTOM" });
     expect(node.textAlignHorizontal).toBe("RIGHT");
     expect(node.textAlignVertical).toBe("BOTTOM");
   });
@@ -58,12 +60,14 @@ describe("set_text_align (#29)", () => {
 
   it("requires at least one alignment axis", async () => {
     const node = makeTextNode();
-    await expect(setTextAlign({ nodeId: node.id })).rejects.toThrow(/Missing alignment/);
+    await expect(setTextAlign({ nodeId: node.id })).rejects.toThrow(/requires horizontal and\/or vertical/);
   });
 
-  it("rejects non-text nodes", async () => {
+  it("reports non-text nodes per node instead of throwing", async () => {
     register({ id: "2:2", name: "Box", type: "FRAME" });
-    await expect(setTextAlign({ nodeId: "2:2", horizontal: "CENTER" })).rejects.toThrow(/not a text node/);
+    const result = await setTextAlign({ nodeId: "2:2", horizontal: "CENTER" });
+    expect(result.success).toBe(false);
+    expect((result.results as any[])[0].error).toMatch(/not a text node/);
   });
 });
 
