@@ -64,6 +64,8 @@ Pick the family in this order — stop at the first that applies:
 
 Fallback body defaults: weights 400 / 500 / 600, line height ~150–160% (\`{ value: 155, unit: "PERCENT" }\`), and text boxes wide enough for roughly 60–75 characters per line.
 
+**Centred headings and hero copy:** use \`textAlignHorizontal: "CENTER"\` with a width (\`create_text\` \`width\`, or \`set_text_align\` on existing text). Text without a width hugs its content, so alignment has no visible effect and wrapped lines stay ragged-left. Keep long body copy left-aligned; centre only short blocks of two or three lines.
+
 ### Font style names are file-specific
 
 Figma addresses a font as family + **style string**, and those strings differ between families and font sources: one file has \`"Semi Bold"\`, another \`"SemiBold"\`; some families have \`"Medium"\`, others don't. Copy the style string exactly as reported by \`get_text_styles\` or \`get_styled_text_segments\` — never guess it from a numeric weight.
@@ -106,6 +108,19 @@ Use these only when neither the brand nor the file already defines a typeface.
 - **700+** — Use sparingly: hero titles, maximum-impact statements only
 
 **Rule:** At least 2 distinct weights per screen. A design with only one weight has no hierarchy.
+
+## Inline Emphasis — One Text Node, Styled Ranges
+
+A bold word inside a sentence, an inline link, a highlighted price, or a muted suffix belongs in the **same** text node. Do not split the sentence into separate text nodes inside a horizontal auto-layout frame: the pieces cannot wrap together, baselines drift, and copy edits break the layout.
+
+Use \`set_text_range_style\` with character ranges (\`start\` inclusive, \`end\` exclusive, counted over the node's characters):
+
+- **Weight:** \`fontWeight: 600\`, or \`fontStyle\` with the exact style string from the file. The family of each run is kept unless you pass \`fontFamily\`.
+- **Color:** \`colorVariable\` (a token name such as \`"text/link"\`) is preferred over a raw \`color\` hex, which is for one-offs.
+- **Links and edits:** \`textDecoration: "UNDERLINE"\` or \`"STRIKETHROUGH"\`.
+- **Mixed scales:** \`textStyle\` (e.g. \`"Label/Mono"\`) for a styled run, or \`fontSize\` for a true one-off.
+
+Several ranges go in one call; all are validated before anything changes. Confirm the result with \`get_styled_text_segments\`.
 
 ## Display Letter-Spacing — Brand-Validated Scale
 

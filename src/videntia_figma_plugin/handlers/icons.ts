@@ -122,6 +122,39 @@ export function bindVariableToStrokes(node: SceneNode, variable: Variable): void
   }
 }
 
+/**
+ * Find the variable bound to `strokes[0].color` anywhere in a node tree.
+ *
+ * `update_icon` replaces the node wholesale (`remove()` + `createNodeFromSvg`),
+ * which throws away every variable binding the old node carried. Callers who
+ * only wanted to swap the glyph lost the icon's colour token and had no signal
+ * that it happened. Capture the binding before the rebuild so it can be
+ * re-applied afterwards.
+ */
+async function findBoundStrokeVariable(node: SceneNode): Promise<Variable | null> {
+  if ("strokes" in node) {
+    const strokes = (node as GeometryMixin).strokes as ReadonlyArray<Paint>;
+    if (strokes && strokes.length > 0) {
+      const paint = strokes[0] as SolidPaint;
+      const bound = paint.boundVariables;
+      if (bound && bound.color && bound.color.id) {
+        const variable = await figma.variables.getVariableByIdAsync(bound.color.id);
+        if (variable) return variable;
+      }
+    }
+  }
+
+  if ("children" in node) {
+    const children = (node as ChildrenMixin).children;
+    for (let i = 0; i < children.length; i++) {
+      const found = await findBoundStrokeVariable(children[i] as SceneNode);
+      if (found) return found;
+    }
+  }
+
+  return null;
+}
+
 // ---------------------------------------------------------------------------
 // updateIcon
 // ---------------------------------------------------------------------------
@@ -186,6 +219,10 @@ export async function updateIcon(params: Record<string, unknown>): Promise<Recor
   const origX = "x" in sceneNode && (sceneNode as LayoutMixin).x !== undefined ? (sceneNode as LayoutMixin).x : 0;
   const origY = "y" in sceneNode && (sceneNode as LayoutMixin).y !== undefined ? (sceneNode as LayoutMixin).y : 0;
 
+  // Capture any stroke-colour variable binding BEFORE destroying the node, so
+  // a caller that only passed a new svgString keeps the icon's colour token.
+  const inheritedVariable = colorVariable ? null : await findBoundStrokeVariable(sceneNode);
+
   // Remove the old node
   (node as SceneNode).remove();
 
@@ -219,6 +256,10 @@ export async function updateIcon(params: Record<string, unknown>): Promise<Recor
       colorVariableWarning =
         'Variable "' + colorVariable + '" not found. Check that the variable exists in your Figma file.';
     }
+  } else if (inheritedVariable !== null) {
+    // No explicit colour requested — restore the binding the old node had.
+    bindVariableToStrokes(svgNode as SceneNode, inheritedVariable);
+    colorVariableBound = true;
   }
 
   debugLog("updateIcon: inserting replacement SVG node");
@@ -257,6 +298,9 @@ export async function updateIcon(params: Record<string, unknown>): Promise<Recor
   };
   if (colorVariableBound !== undefined) {
     result["colorVariableBound"] = colorVariableBound;
+  }
+  if (inheritedVariable !== null) {
+    result["preservedColorVariable"] = inheritedVariable.name;
   }
   if (colorVariableWarning !== undefined) {
     result["colorVariableWarning"] = colorVariableWarning;

@@ -87,7 +87,7 @@ describe("setLayoutMode", () => {
 describe("setLayoutSizing", () => {
   it("accepts public horizontal/vertical names", async () => {
     const parent = frame("2:0", { layoutMode: "VERTICAL" });
-    frame("2:1", { parent });
+    frame("2:1", { parent, layoutMode: "VERTICAL" });
     const result = await setLayoutSizing({ nodeId: "2:1", horizontal: "FILL", vertical: "HUG" });
     expect(result).toMatchObject({ layoutSizingHorizontal: "FILL", layoutSizingVertical: "HUG" });
   });
@@ -105,9 +105,15 @@ describe("setPadding", () => {
     expect(result).toMatchObject({ paddingTop: 8, paddingLeft: 4, paddingRight: 0 });
   });
 
-  it("throws when no padding param is recognized", async () => {
+  it("treats `padding` as a shorthand for all four sides", async () => {
     frame("3:2", { layoutMode: "VERTICAL" });
-    await expect(setPadding({ nodeId: "3:2", padding: 8 })).rejects.toThrow("No padding values provided");
+    const result = await setPadding({ nodeId: "3:2", padding: 8 });
+    expect(result).toMatchObject({ paddingTop: 8, paddingRight: 8, paddingBottom: 8, paddingLeft: 8 });
+  });
+
+  it("throws when no padding param is recognized", async () => {
+    frame("3:3", { layoutMode: "VERTICAL" });
+    await expect(setPadding({ nodeId: "3:3", gap: 8 })).rejects.toThrow("was given no padding values");
   });
 });
 
@@ -148,7 +154,14 @@ describe("batchActions preflight errors", () => {
     expect(result).toMatchObject({
       success: false,
       failed: 1,
-      results: [{ index: 0, action: "set_layout_mode", success: false, error: "rows/columns apply to GRID mode only" }],
+      results: [
+        {
+          index: 0,
+          action: "set_layout_mode",
+          success: false,
+          error: expect.stringContaining("rows/columns apply to GRID mode only"),
+        },
+      ],
     });
   });
 });

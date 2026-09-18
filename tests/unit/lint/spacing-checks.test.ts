@@ -15,6 +15,11 @@ function makeChecks(): ActiveChecks {
     overflow: false,
     clippedContent: false,
     screenNaming: false,
+    clippedCorners: false,
+    radiusProportion: false,
+    crossAxisAlign: false,
+    iconColorConsistency: false,
+    fixedWidthSlack: false,
   };
 }
 

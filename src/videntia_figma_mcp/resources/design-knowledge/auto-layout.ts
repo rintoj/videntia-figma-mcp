@@ -28,6 +28,20 @@ Keep a child out of the flow only when it genuinely overlaps or is pinned rather
 
 \`create_frame\` and \`create_rectangle\` accept \`layoutPositioning: "ABSOLUTE"\` when creating a node inside an auto layout parent. To switch an existing child to absolute (or back), set it manually in Figma. An absolute child is not part of the flow, so it cannot use FILL — give it an explicit size.
 
+### Constraints: how pinned layers follow a resize
+
+Constraints decide what an absolutely positioned child (or any child of a frame without auto layout) does when its parent is resized — including when someone resizes an instance of your component. Children in an auto layout flow ignore them; use FIXED/HUG/FILL there. Set them with \`set_constraints\` (\`nodeId\` or \`nodeIds\`, \`horizontal\` and/or \`vertical\`); an omitted axis keeps its value, and the result warns when a node is a flow child so the call would change nothing visible.
+
+| Value | Behaviour on resize | Use for |
+|-------|---------------------|---------|
+| MIN | Keeps its distance to the left/top edge | Default; content anchored top-left |
+| MAX | Keeps its distance to the right/bottom edge | Close button pinned top-right (\`horizontal: "MAX"\`), badge on a corner |
+| CENTER | Stays centred, keeps its size | Fixed-size icons or glyphs in a resizable frame, a centred play button over media |
+| STRETCH | Keeps both edge distances, so it grows with the parent | Image slots, scrims, backgrounds and overlays that must cover the parent |
+| SCALE | Scales position and size proportionally | Illustrations and decorative art that should grow with the frame |
+
+Verify with \`get_node_info\` using \`output_format: "json"\` (or \`fields: ["constraints"]\`): every node that supports constraints reports \`constraints: { horizontal, vertical }\`. Then resize a test instance with \`resize_node\` and \`export_node_as_image\` to see it.
+
 ## FIXED, HUG and FILL
 
 \`set_layout_sizing\` takes \`horizontal\` and \`vertical\`, each \`FIXED\`, \`HUG\` or \`FILL\`. The same values are accepted by \`set_auto_layout\`. They are not interchangeable — each is only valid in certain structural positions:
@@ -82,6 +96,14 @@ A text node's \`textAutoResize\` decides whether it wraps: \`WIDTH_AND_HEIGHT\` 
 
 \`set_text_wrap_style\` (AUTO, BALANCE, PRETTY) only changes how lines are broken once wrapping happens — it does not make text wrap.
 
+### Centred text
+
+Centre the lines inside the text box with \`textAlignHorizontal: "CENTER"\` — pass it to \`create_text\` together with a \`width\`, or call \`set_text_align\` with \`horizontal: "CENTER"\` on existing text (\`nodeIds\` aligns several at once). Alignment only shows when the box is wider than its content: WIDTH_AND_HEIGHT text hugs its content, so it needs a fixed width (textAutoResize HEIGHT) or FILL sizing first.
+
+- **Wrong:** centring a hugging text node with the parent's \`counterAxisAlignItems: "CENTER"\` and leaving the text LEFT-aligned. The box is centred, but once it wraps the lines stay ragged-left.
+- \`textAlignVertical\` (TOP, CENTER, BOTTOM) only matters when the box is taller than the text (textAutoResize NONE or a fixed/FILL height).
+- **Verify:** \`get_node_info\` reports \`textAlignHorizontal\` and \`textAlignVertical\`.
+
 ## Clipping
 
 A frame with \`clipsContent\` hides everything past its bounds — not only overflowing children, but also drop shadows, layer blur glows, strokes aligned outside or centered, and focus rings, all of which render outside a node's own box. Any clipping ancestor cuts them.
@@ -122,7 +144,9 @@ Both lay out many items in two dimensions, but they behave differently:
 | GRID | Items that must line up in both rows and columns — card galleries, dashboards, stat tiles, calendars. |
 
 - **Wrap:** \`set_layout_mode\` with \`wrap: "WRAP"\`, or \`set_auto_layout\` with \`wrap\`. \`set_item_spacing\` \`gap\` spaces items within a line and \`counterAxisSpacing\` spaces the lines. Give the container a fixed or filled width so there is a line length to wrap at.
-- **Grid:** \`set_layout_mode\` or \`set_auto_layout\` with \`mode: "GRID"\` plus \`rows\` and \`columns\`. Space tracks with \`rowGap\`/\`columnGap\`. Use \`gridAutoTracks: "ROWS"\` so rows are added as items are, and \`gridItemsPositioning: "ROW_AUTO_FLOW"\` to place children into the next free cell automatically. Reorder whole rows or columns with \`reorder_grid_tracks\`. Alignment and wrap options do not apply to grid frames. Per-track sizing and spanning a child across several cells are set manually in Figma.
+- **Grid:** \`set_layout_mode\` or \`set_auto_layout\` with \`mode: "GRID"\` plus \`rows\` and \`columns\`. Space tracks with \`rowGap\`/\`columnGap\`. Use \`gridAutoTracks: "ROWS"\` so rows are added as items are, and \`gridItemsPositioning: "ROW_AUTO_FLOW"\` to place children into the next free cell automatically. Reorder whole rows or columns with \`reorder_grid_tracks\`. Alignment and wrap options do not apply to grid frames.
+- **Track sizes:** pass \`rowSizes\`/\`columnSizes\` to \`set_layout_mode\` or \`set_auto_layout\` — one \`{ type, value? }\` per track, e.g. a sidebar layout \`columnSizes: [{ type: "FIXED", value: 240 }, { type: "FLEX" }]\`. FIXED is pixels, FLEX is a fractional share (CSS \`fr\`), HUG fits content. Don't use FLEX tracks on an axis where the grid itself hugs.
+- **Placing children:** \`set_grid_child\` puts a child in a cell (\`row\`, \`column\`, 0-based), spans it (\`rowSpan\`, \`columnSpan\`) and aligns it inside the cell (\`horizontalAlign\`/\`verticalAlign\`: MIN, CENTER, MAX, AUTO). Explicit cells need \`gridItemsPositioning: "MANUAL"\`; spans and alignment also work with auto-flow. A span must fit the track count and must not overlap another child, so move or shrink blockers first. Read placement back with \`get_node_info\` (\`output_format: "json"\`).
 - Inside \`batch_actions\` use exactly the same params — e.g. \`{ action: "set_layout_mode", params: { nodeId, mode: "GRID", rows: 2, columns: 3 } }\` or \`{ action: "set_layout_sizing", params: { nodeId, horizontal: "FILL" } }\`.
 
 ## Anti-Patterns

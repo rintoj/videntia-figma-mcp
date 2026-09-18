@@ -3,6 +3,66 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { sendCommandToFigma } from "../utils/websocket";
 import { normalizeNodeId } from "../utils/figma-helpers.js";
 import { normalizeCommandParams } from "../utils/command-params.js";
+import { coerceArray } from "../utils/coerce-array.js";
+
+const rangeRgbaSchema = z.object({
+  r: z.coerce.number().min(0).max(1),
+  g: z.coerce.number().min(0).max(1),
+  b: z.coerce.number().min(0).max(1),
+  a: z.coerce.number().min(0).max(1).optional(),
+});
+
+const rangeSpacingSchema = z.object({
+  value: z.number(),
+  unit: z.enum(["PIXELS", "PERCENT"]),
+});
+
+const textRangeStyleSchema = z.object({
+  start: z.coerce.number().int().min(0).describe("First styled character index (inclusive, 0-based)"),
+  end: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .describe("Index after the last styled character (exclusive); at most the text length"),
+  color: z
+    .union([z.string(), rangeRgbaSchema])
+    .optional()
+    .describe(
+      "Solid text color: hex ('#ff0000', '#f00', '#ff000080') or { r, g, b, a } normalized 0–1. Use this OR colorVariable",
+    ),
+  colorVariable: z
+    .string()
+    .optional()
+    .describe("COLOR variable name (e.g. 'text/link') or id, bound to the range fill. Preferred over a raw color"),
+  fontFamily: z.string().optional().describe("Font family. Omit to keep each run's current family"),
+  fontStyle: z
+    .string()
+    .optional()
+    .describe("Exact font style string from the file (e.g. 'Semi Bold', 'Italic'). Takes priority over fontWeight"),
+  fontWeight: z.coerce
+    .number()
+    .int()
+    .min(100)
+    .max(900)
+    .optional()
+    .describe("Numeric weight 100–900 in steps of 100, resolved to a style name (700 → 'Bold')"),
+  fontSize: z.coerce.number().positive().optional().describe("Font size in px"),
+  textStyle: z
+    .string()
+    .optional()
+    .describe(
+      "Text style name (e.g. 'Body/Strong') or id. Applied first, so other properties in the range override it",
+    ),
+  textDecoration: z.enum(["NONE", "UNDERLINE", "STRIKETHROUGH"]).optional().describe("Text decoration"),
+  letterSpacing: z
+    .union([z.number(), rangeSpacingSchema])
+    .optional()
+    .describe("Number = px, or { value, unit: 'PIXELS' | 'PERCENT' }"),
+  lineHeight: z
+    .union([z.number(), z.literal("AUTO"), rangeSpacingSchema])
+    .optional()
+    .describe("Number = px, 'AUTO', or { value, unit: 'PIXELS' | 'PERCENT' }"),
+});
 
 /**
  * Register text-related tools to the MCP server
@@ -267,6 +327,7 @@ export function registerTextTools(server: McpServer): void {
               text: `Error setting font weight: ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
+          isError: true,
         };
       }
     },
@@ -485,6 +546,75 @@ export function registerTextTools(server: McpServer): void {
     },
   );
 
+  // Set Text Align Tool
+  server.tool(
+    "set_text_align",
+    "Set horizontal and/or vertical text alignment on one or more TEXT nodes. Provide nodeId or nodeIds and at least one of horizontal/vertical. " +
+      "Horizontal alignment only visibly matters when the text box is wider than its content — fixed width (textAutoResize HEIGHT or NONE) or FILL sizing; WIDTH_AND_HEIGHT text hugs its content, so give it a width first (create_text `width`, resize_node, or set_layout_sizing FILL). " +
+      "Vertical alignment only matters when the box is taller than the text (textAutoResize NONE or a fixed/FILL height). Non-text nodes are reported per node and skipped.",
+    {
+      nodeId: z.string().optional().describe("ID of a single TEXT node to align"),
+      nodeIds: coerceArray(z.array(z.string()))
+        .optional()
+        .describe("IDs of TEXT nodes to align (combined with nodeId when both are given)"),
+      horizontal: z
+        .enum(["LEFT", "CENTER", "RIGHT", "JUSTIFIED"])
+        .optional()
+        .describe(
+          "textAlignHorizontal: LEFT (Figma default), CENTER, RIGHT or JUSTIFIED. Aliases: align, textAlignHorizontal",
+        ),
+      align: z.enum(["LEFT", "CENTER", "RIGHT", "JUSTIFIED"]).optional().describe("Alias for `horizontal`."),
+      textAlignHorizontal: z
+        .enum(["LEFT", "CENTER", "RIGHT", "JUSTIFIED"])
+        .optional()
+        .describe("Alias for `horizontal` (matches the Figma property name)."),
+      vertical: z
+        .enum(["TOP", "CENTER", "BOTTOM"])
+        .optional()
+        .describe("textAlignVertical: TOP (Figma default), CENTER or BOTTOM. Alias: textAlignVertical"),
+      textAlignVertical: z
+        .enum(["TOP", "CENTER", "BOTTOM"])
+        .optional()
+        .describe("Alias for `vertical` (matches the Figma property name)."),
+    },
+    async ({ nodeId, nodeIds, horizontal, align, textAlignHorizontal, vertical, textAlignVertical }) => {
+      horizontal = horizontal ?? textAlignHorizontal ?? align;
+      vertical = vertical ?? textAlignVertical;
+      try {
+        const result = await sendCommandToFigma(
+          "set_text_align",
+          normalizeCommandParams("set_text_align", { nodeId, nodeIds, horizontal, vertical }),
+        );
+        const typedResult = result as {
+          updated?: number;
+          failed?: number;
+          results?: Array<Record<string, unknown>>;
+        };
+        const total = typedResult.results ? typedResult.results.length : 0;
+        const summary = `Aligned ${typedResult.updated ?? 0} of ${total} text node(s)${
+          typedResult.failed ? ` (${typedResult.failed} failed)` : ""
+        }`;
+        return {
+          content: [
+            {
+              type: "text",
+              text: `${summary}\n${JSON.stringify(typedResult.results ?? [], null, 2)}`,
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error setting text alignment: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
   // Set Text Decoration Tool
   server.tool(
     "set_text_decoration",
@@ -515,6 +645,44 @@ export function registerTextTools(server: McpServer): void {
             {
               type: "text",
               text: `Error setting text decoration: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  // Set Text Range Style Tool
+  server.tool(
+    "set_text_range_style",
+    "Style character ranges inside ONE text node: bold or colored words, inline links, highlighted values, mixed sizes. Use this for inline emphasis instead of splitting a sentence into separate text nodes. Each range is [start, end) over the node's characters and sets any of: color | colorVariable, fontFamily, fontStyle | fontWeight, fontSize, textStyle, textDecoration, letterSpacing, lineHeight. All ranges are validated and all fonts loaded before anything changes. Returns the properties applied per range.",
+    {
+      nodeId: z.string().describe("The ID of the text node to style"),
+      ranges: coerceArray(z.array(textRangeStyleSchema).min(1)).describe(
+        "Ranges to style, applied in order (a later overlapping range wins)",
+      ),
+    },
+    async ({ nodeId, ranges }) => {
+      try {
+        const result = (await sendCommandToFigma(
+          "set_text_range_style",
+          normalizeCommandParams("set_text_range_style", { nodeId, ranges }),
+        )) as { name?: string; ranges?: unknown[] };
+        const applied = Array.isArray(result?.ranges) ? result.ranges : [];
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Styled ${applied.length} range(s) in text node "${result?.name}"\n${JSON.stringify(applied, null, 2)}`,
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error setting text range style: ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };

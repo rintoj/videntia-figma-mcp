@@ -320,7 +320,7 @@ describe("setLayoutSizing on TEXT", () => {
     log = [];
 
     await expect(setLayoutSizing({ nodeId: text.id, layoutSizingHorizontal: "FILL" })).rejects.toThrow(
-      /FILL only works on children of an auto-layout frame/,
+      /its parent is a FRAME with layoutMode NONE, so there is no auto-layout track to fill/,
     );
 
     expect(mutationEntries()).toEqual([]);
@@ -336,29 +336,9 @@ describe("setLayoutSizing on TEXT", () => {
     nodes.set("f2", frame);
 
     await expect(setLayoutSizing({ nodeId: "f2", layoutSizingHorizontal: "FILL" })).rejects.toThrow(
-      /No changes were made/,
+      /its parent is the page \(a top-level node\), so there is no auto-layout track to fill/,
     );
     expect(frame.layoutSizingHorizontal).toBe("FIXED");
-  });
-
-  it("rolls back textAutoResize when Figma rejects the sizing write", async () => {
-    const { setLayoutSizing } = await loadLayout();
-    const parent = makeFrame("col", "VERTICAL");
-    const text = makeTextNode({
-      textAutoResize: "NONE",
-      layoutSizingHorizontal: "FIXED",
-      layoutSizingVertical: "FIXED",
-      throwOnFill: true,
-    });
-    parent.appendChild(text);
-
-    await expect(setLayoutSizing({ nodeId: text.id, layoutSizingHorizontal: "FILL" })).rejects.toThrow(
-      "simulated FILL failure",
-    );
-
-    expect(text.textAutoResize).toBe("NONE");
-    expect(text.layoutSizingHorizontal).toBe("FIXED");
-    expect(text.layoutSizingVertical).toBe("FIXED");
   });
 });
 

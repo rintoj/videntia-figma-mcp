@@ -96,6 +96,10 @@ export interface Violation {
   details?: ViolationDetails;
   fixed?: boolean;
   fixedWith?: string;
+  /** True when a suppression rule or node role excused this violation. */
+  suppressed?: boolean;
+  /** Human-readable source of the suppression (rule text / role). */
+  suppressedBy?: string;
 }
 
 export interface CategoryStats {
@@ -128,6 +132,8 @@ export interface LintSummary {
   low: number;
   compliance: number;
   fixed: number;
+  /** Violations excused by ignore_rules, node annotations or role=artwork. */
+  suppressed: number;
 }
 
 export interface LintResult {
@@ -137,6 +143,8 @@ export interface LintResult {
   totalNodes: number;
   categories: LintCategories;
   violations: Violation[];
+  /** Excused violations, reported separately so exceptions stay visible. */
+  suppressedViolations: Violation[];
   violationsCapped: boolean;
   summary: LintSummary;
   /** Violations dropped by ignoreNodeIds / ignoreRules / in-file lint-ignore; excluded from compliance. */
@@ -154,6 +162,11 @@ export interface LintChecks {
   overflow?: boolean;
   clippedContent?: boolean;
   screenNaming?: boolean;
+  clippedCorners?: boolean;
+  radiusProportion?: boolean;
+  crossAxisAlign?: boolean;
+  iconColorConsistency?: boolean;
+  fixedWidthSlack?: boolean;
 }
 
 export interface LintOptions {
@@ -162,6 +175,11 @@ export interface LintOptions {
   fix?: boolean;
   ignoreNodeIds?: string[];
   ignoreRules?: string[];
+  /**
+   * Rules to excuse for this run. Accepts category names (`backgroundFills`),
+   * check names (`colors`), `category:property` pairs, or `*`.
+   */
+  ignore_rules?: string[] | string;
 }
 
 export interface ActiveChecks {
@@ -175,6 +193,11 @@ export interface ActiveChecks {
   overflow: boolean;
   clippedContent: boolean;
   screenNaming: boolean;
+  clippedCorners: boolean;
+  radiusProportion: boolean;
+  crossAxisAlign: boolean;
+  iconColorConsistency: boolean;
+  fixedWidthSlack: boolean;
 }
 
 export interface ColorVarEntry {

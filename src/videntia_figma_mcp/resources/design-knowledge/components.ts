@@ -16,7 +16,7 @@ Before creating a single layer, write down the component's surface:
 | Question | Becomes |
 |----------|---------|
 | Does the whole shape, color, or layout change? | VARIANT axis (Size, Style, State) |
-| Does one layer appear or disappear? | BOOLEAN property wired to that layer's visibility |
+| Does one layer appear or disappear? | BOOLEAN property wired to that layer's visibility (not \`set_visible\` on the instance's layer, which is a one-off override the designer can't toggle from the properties panel) |
 | Is there editable copy? | TEXT property wired to the text layer |
 | Is there a swappable nested element (icon, avatar, logo)? | INSTANCE_SWAP property wired to the nested instance |
 
@@ -81,9 +81,11 @@ Rename a property with \`edit_component_property\` (\`newName\`); remove an unwa
    - **Columns:** the interaction axis — usually State (Default → Hover → Pressed → Focus → Disabled)
    - **Rows:** the identity axes — usually Size, then Style
    - A consistent 16–40px gap between cells and generous padding inside the set
+   - To pin a variant to a specific cell instead of child order, set \`gridItemsPositioning: "MANUAL"\` and use \`set_grid_child\` with \`row\`/\`column\` (0-based); \`columnSizes\`/\`rowSizes\` on \`set_auto_layout\` give uneven tracks, such as a wide first column
    - Only if the set cannot take a grid, fall back to placing each variant with \`move_node\` (positions are relative to the set)
 5. **Check clipping.** \`create_component\` and \`create_component_set\` keep the source frame's \`clipsContent\`. If the component has a shadow, focus ring, glow or a badge hanging past its edge, call \`set_clips_content\` with \`clipsContent: false\` on the component (and on the set, which crops variants near its border). Instances inherit this, but the frames they are placed in can still crop them — check the parent's \`clipsContent\` with \`get_node_info\`.
-6. \`export_node_as_image\` on the set and look at it. Check for overlapping variants, stragglers outside the grid, and values that render identically when they should differ.
+6. **Set constraints on layered parts.** Anything absolutely positioned inside the component (or inside a frame without auto layout) follows its constraints when an instance is resized, and new rectangles default to MIN/MIN — they stay put while the instance grows. Use \`set_constraints\`: \`STRETCH\` for image slots, scrims and backgrounds that must cover the component; \`CENTER\` (or \`MIN\`/\`MAX\` to pin an edge) for fixed-size icons, badges and close buttons; \`SCALE\` for illustrations that should grow. Flow children of auto layout ignore constraints — use FILL/HUG sizing there. Confirm with \`get_node_info\` (\`output_format: "json"\`) and by resizing a test instance.
+7. \`export_node_as_image\` on the set and look at it. Check for overlapping variants, stragglers outside the grid, and values that render identically when they should differ.
 
 ## 7. Interactive States
 

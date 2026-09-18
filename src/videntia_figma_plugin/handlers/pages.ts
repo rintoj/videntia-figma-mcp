@@ -1,3 +1,5 @@
+import { resolveColor } from "./fills";
+
 export interface CreatePageParams {
   name?: string;
 }
@@ -125,4 +127,51 @@ export async function deletePage(params: DeletePageParams): Promise<DeletePageRe
   node.remove();
 
   return pageInfo;
+}
+
+export interface SetPageBackgroundResult {
+  id: string;
+  name: string;
+  backgrounds: readonly Paint[];
+}
+
+/**
+ * Set a page's canvas background colour.
+ *
+ * Figma pages expose `backgrounds` (an array of Paint), NOT `fills` — which is
+ * why `set_fill_color` reports "Node does not support fills" on a PAGE node.
+ * Accepts the same colour formats as the other colour tools (hex string or rgba).
+ */
+export async function setPageBackground(params: Record<string, unknown>): Promise<SetPageBackgroundResult> {
+  const p = params || {};
+  const pageId = p["pageId"] as string | undefined;
+
+  let page: PageNode;
+  if (pageId) {
+    const node = await figma.getNodeByIdAsync(pageId);
+    if (!node) {
+      throw new Error(`Page not found with ID: ${pageId}`);
+    }
+    if (node.type !== "PAGE") {
+      throw new Error(`Node ${pageId} is not a page (type: ${node.type})`);
+    }
+    page = node as PageNode;
+  } else {
+    page = figma.currentPage;
+  }
+
+  const rgba = resolveColor(p);
+  page.backgrounds = [
+    {
+      type: "SOLID",
+      color: { r: rgba.r, g: rgba.g, b: rgba.b },
+      opacity: rgba.a,
+    } as SolidPaint,
+  ];
+
+  return {
+    id: page.id,
+    name: page.name,
+    backgrounds: page.backgrounds,
+  };
 }

@@ -1,5 +1,4 @@
-import { createFrame } from "../../../src/videntia_figma_plugin/handlers/nodes";
-import { setClipsContent } from "../../../src/videntia_figma_plugin/handlers/layout";
+import { createFrame, setClipsContent } from "../../../src/videntia_figma_plugin/handlers/nodes";
 import { setAutoLayout } from "../../../src/videntia_figma_plugin/handlers/text";
 
 type MockNode = Record<string, any>;
@@ -93,14 +92,14 @@ describe("setClipsContent", () => {
   it.each(["FRAME", "COMPONENT", "COMPONENT_SET", "INSTANCE"])("sets clipsContent on %s nodes", async (type) => {
     nodes.set("2:1", { id: "2:1", type, name: "Target", clipsContent: true });
     const result = await setClipsContent({ nodeId: "2:1", clipsContent: false });
-    expect(result).toEqual({ id: "2:1", name: "Target", clipsContent: false });
+    expect(result).toEqual({ id: "2:1", name: "Target", type, clipsContent: false });
     expect(nodes.get("2:1")!.clipsContent).toBe(false);
   });
 
   it("rejects unsupported node types", async () => {
     nodes.set("2:2", { id: "2:2", type: "TEXT", name: "Label" });
     await expect(setClipsContent({ nodeId: "2:2", clipsContent: false })).rejects.toThrow(
-      'Node "Label" does not support clipsContent (type: TEXT)',
+      "Node does not support clipsContent: 2:2 (type: TEXT)",
     );
   });
 

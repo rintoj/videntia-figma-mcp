@@ -3,6 +3,7 @@
 import { parseSvgRootStroke, propagateStrokeToShapes } from "../utils/svg";
 import { debugLog, parseNum } from "../utils/helpers";
 import { resolveColorVariable, bindVariableToStrokes } from "./icons";
+import { applyConstraints, parseConstraintsParam } from "./layout";
 
 // Individual stroke weight properties exposed by FrameNode / ComponentNode
 // but not typed in the public Figma plugin typings.
@@ -335,6 +336,7 @@ export async function createSvg(params: Record<string, unknown>): Promise<unknow
   if (!svgString) {
     throw new Error("Missing svgString parameter");
   }
+  const constraints = parseConstraintsParam(paramsObj["constraints"]);
 
   // Strip any leading HTML comments (e.g. Lucide license headers) before validating
   const cleanSvg = svgString.replace(/^<!--[\s\S]*?-->\s*/m, "").trim();
@@ -442,6 +444,25 @@ export async function createSvg(params: Record<string, unknown>): Promise<unknow
     figma.currentPage.appendChild(svgNode as SceneNode);
   }
 
+  // Applied last so the Icon/* placeholder resize above still scales the glyph.
+  // Wrapper frame → its vector descendants (relative to the wrapper); flattened
+  // single vector → the vector itself (relative to its parent).
+  let constraintsAppliedTo = 0;
+  if (constraints) {
+    const applyToDescendants = (node: BaseNode): void => {
+      if (!("children" in node)) return;
+      for (const child of (node as ChildrenMixin).children) {
+        if (applyConstraints(child, constraints)) constraintsAppliedTo++;
+        applyToDescendants(child);
+      }
+    };
+    if ("children" in svgNode && (svgNode as FrameNode).children.length > 0) {
+      applyToDescendants(svgNode as FrameNode);
+    } else if (applyConstraints(svgNode as SceneNode, constraints)) {
+      constraintsAppliedTo++;
+    }
+  }
+
   debugLog(`createSvg: Created SVG node "${svgNode.name}" (${svgNode.id})`);
 
   var result: Record<string, unknown> = {
@@ -460,6 +481,10 @@ export async function createSvg(params: Record<string, unknown>): Promise<unknow
   }
   if (colorVariableWarning !== undefined) {
     result["colorVariableWarning"] = colorVariableWarning;
+  }
+  if (constraints) {
+    result["constraints"] = constraints;
+    result["constraintsAppliedTo"] = constraintsAppliedTo;
   }
   return result;
 }

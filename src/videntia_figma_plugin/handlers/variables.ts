@@ -47,21 +47,70 @@ function findCollectionIn(collections: VariableCollection[], collectionIdOrName:
   return collection;
 }
 
+/** Variable names are slash-paths; callers routinely type the dashed spelling. */
+function normalizeVariableName(name: string): string {
+  return name.trim().replace(/-/g, "/").toLowerCase();
+}
+
 function findVariableIn(
   variables: Variable[],
   collections: VariableCollection[],
   variableIdOrName: string,
   collectionId?: string,
 ): Variable {
+  // A missing/blank lookup key is a CALLER mistake, not missing data — say so, and name
+  // the parameter, instead of reporting "Variable not found: undefined".
+  if (variableIdOrName === undefined || variableIdOrName === null || `${variableIdOrName}`.trim() === "") {
+    throw new Error(
+      'Missing variable identifier: pass "id" (aliases: variableId, variable, name) — a variable id or a variable name.',
+    );
+  }
+
   let variable = variables.find((v) => v.id === variableIdOrName);
 
-  if (!variable && collectionId !== undefined && collectionId !== null) {
+  // Name lookup, scoped to a collection when one was given.
+  if (!variable && collectionId !== undefined && collectionId !== null && `${collectionId}`.trim() !== "") {
     const collection = findCollectionIn(collections, collectionId);
-    variable = variables.find((v) => v.name === variableIdOrName && v.variableCollectionId === collection.id);
+    const inCollection = variables.filter((v) => v.variableCollectionId === collection.id);
+    variable =
+      inCollection.find((v) => v.name === variableIdOrName) ??
+      inCollection.find((v) => normalizeVariableName(v.name) === normalizeVariableName(variableIdOrName));
+    if (!variable) {
+      throw new Error(
+        `No variable found with id or name "${variableIdOrName}" in collection "${collection.name}". ` +
+          `That collection has ${inCollection.length} variable(s); call get_variables to list them.`,
+      );
+    }
+  }
+
+  // No collection given — a name is still a perfectly good key as long as it is unique
+  // across the file (name-based lookup is supported across the variable tools).
+  if (!variable) {
+    let matches = variables.filter((v) => v.name === variableIdOrName);
+    if (matches.length === 0) {
+      matches = variables.filter((v) => normalizeVariableName(v.name) === normalizeVariableName(variableIdOrName));
+    }
+    if (matches.length === 1) {
+      variable = matches[0];
+    } else if (matches.length > 1) {
+      const where = matches
+        .map((m) => {
+          const c = collections.find((col) => col.id === m.variableCollectionId);
+          return c ? c.name : m.variableCollectionId;
+        })
+        .join(", ");
+      throw new Error(
+        `Variable name "${variableIdOrName}" is ambiguous — it exists in ${matches.length} collections (${where}). ` +
+          `Pass collectionId to disambiguate, or use the variable id.`,
+      );
+    }
   }
 
   if (!variable) {
-    throw new Error(`Variable not found: ${variableIdOrName}`);
+    throw new Error(
+      `No variable found with id or name "${variableIdOrName}". ` +
+        `Call get_variables to list variable ids and names.`,
+    );
   }
 
   return variable;
@@ -535,279 +584,7 @@ export async function scanBoundVariables(params: Record<string, unknown>): Promi
   };
 }
 
-export async function bindVariable(params: Record<string, unknown>): Promise<Record<string, unknown>> {
-  const nodeId = params["nodeId"] as string;
-  const variableId = params["variableId"] as string;
-  const field = params["field"] as string;
-
-  if (!nodeId || !variableId || !field) {
-    throw new Error("nodeId, variableId, and field are required");
-  }
-
-  const node = await figma.getNodeByIdAsync(nodeId);
-
-  // If no node was found, try resolving as a TextStyle (by id or name).
-  let textStyle: TextStyle | null = null;
-  if (!node) {
-    const maybeStyle = await figma.getStyleByIdAsync(nodeId);
-    if (maybeStyle && maybeStyle.type === "TEXT") {
-      textStyle = maybeStyle as TextStyle;
-    } else {
-      const allTextStyles = await figma.getLocalTextStylesAsync();
-      textStyle =
-        allTextStyles.find(function (s) {
-          return s.name === nodeId;
-        }) || null;
-      if (!textStyle) {
-        const normalizedInput = nodeId.replace(/-/g, "/");
-        if (normalizedInput !== nodeId) {
-          textStyle =
-            allTextStyles.find(function (s) {
-              return s.name === normalizedInput;
-            }) || null;
-        }
-      }
-    }
-    if (!textStyle) {
-      throw new Error(`Node or text style not found: ${nodeId}`);
-    }
-  }
-
-  let variable = await figma.variables.getVariableByIdAsync(variableId);
-  if (!variable) {
-    // Fall back to name-based lookup: try exact name first, then dash-to-slash normalization
-    const allVariables = await figma.variables.getLocalVariablesAsync();
-    variable =
-      allVariables.find(function (v) {
-        return v.name === variableId;
-      }) || null;
-    if (!variable) {
-      const normalizedInput = variableId.replace(/-/g, "/");
-      if (normalizedInput !== variableId) {
-        variable =
-          allVariables.find(function (v) {
-            return v.name === normalizedInput;
-          }) || null;
-      }
-    }
-    if (!variable) {
-      throw new Error(`Variable not found: "${variableId}". Pass a variable ID or name (e.g. "background/primary").`);
-    }
-  }
-
-  // Text style binding: TextStyle.setBoundVariable supports fontFamily, fontStyle,
-  // fontSize, fontWeight, lineHeight, letterSpacing, paragraphSpacing, paragraphIndent.
-  if (textStyle) {
-    try {
-      (
-        textStyle as TextStyle & {
-          setBoundVariable: (field: VariableBindableTextField, variable: Variable | null) => void;
-        }
-      ).setBoundVariable(field as VariableBindableTextField, variable);
-    } catch (err) {
-      const errMsg = err instanceof Error ? err.message : String(err);
-      throw new Error(
-        `Failed to bind variable to text style: ${errMsg}. Field "${field}" must be one of: fontFamily, fontStyle, fontSize, fontWeight, lineHeight, letterSpacing, paragraphSpacing, paragraphIndent. Variable type (${variable.resolvedType}) must also match the field's expected type (FLOAT for sizes/spacing, STRING for fontFamily/fontStyle).`,
-      );
-    }
-    return {
-      styleId: textStyle.id,
-      styleName: textStyle.name,
-      field,
-      variableId: variable.id,
-      variableName: variable.name,
-      variableType: variable.resolvedType,
-    };
-  }
-
-  if (!node) {
-    throw new Error(`Node not found: ${nodeId}`);
-  }
-
-  const fieldParts = field.split("/");
-
-  try {
-    if (fieldParts[0] === "fills") {
-      const fillIndex = fieldParts.length >= 2 ? parseInt(fieldParts[1]) : 0;
-      if (isNaN(fillIndex)) {
-        throw new Error(`Invalid fill index: ${fieldParts[1]}`);
-      }
-
-      if ("fills" in node) {
-        const nodeWithFills = node as GeometryMixin;
-        const currentFills = nodeWithFills.fills;
-        const fillsCopy: Paint[] = currentFills !== figma.mixed ? [...(currentFills as ReadonlyArray<Paint>)] : [];
-
-        while (fillsCopy.length <= fillIndex) {
-          fillsCopy.push({ type: "SOLID", color: { r: 0, g: 0, b: 0 } } as SolidPaint);
-        }
-        nodeWithFills.fills = fillsCopy;
-
-        const updatedFills: Paint[] = [...(nodeWithFills.fills as ReadonlyArray<Paint>)];
-        updatedFills[fillIndex] = figma.variables.setBoundVariableForPaint(
-          updatedFills[fillIndex] as SolidPaint,
-          "color",
-          variable,
-        );
-        nodeWithFills.fills = updatedFills;
-      }
-    } else if (fieldParts[0] === "strokes") {
-      const strokeIndex = fieldParts.length >= 2 ? parseInt(fieldParts[1]) : 0;
-      if (isNaN(strokeIndex)) {
-        throw new Error(`Invalid stroke index: ${fieldParts[1]}`);
-      }
-
-      if ("strokes" in node) {
-        const nodeWithStrokes = node as MinimalStrokesMixin;
-        const strokesCopy: Paint[] = [...nodeWithStrokes.strokes];
-
-        while (strokesCopy.length <= strokeIndex) {
-          strokesCopy.push({ type: "SOLID", color: { r: 0, g: 0, b: 0 } } as SolidPaint);
-        }
-        nodeWithStrokes.strokes = strokesCopy;
-
-        const updatedStrokes: Paint[] = [...nodeWithStrokes.strokes];
-        updatedStrokes[strokeIndex] = figma.variables.setBoundVariableForPaint(
-          updatedStrokes[strokeIndex] as SolidPaint,
-          "color",
-          variable,
-        );
-        nodeWithStrokes.strokes = updatedStrokes;
-      }
-    } else {
-      const propertyName = fieldParts[0] as VariableBindableNodeField;
-      (
-        node as SceneNode & { setBoundVariable: (field: VariableBindableNodeField, variable: Variable | null) => void }
-      ).setBoundVariable(propertyName, variable);
-    }
-  } catch (err) {
-    const errMsg = err instanceof Error ? err.message : String(err);
-    throw new Error(
-      `Failed to bind variable: ${errMsg}. Make sure the variable type (${variable.resolvedType}) is compatible with the field "${field}"`,
-    );
-  }
-
-  return {
-    nodeId: node.id,
-    name: node.name,
-    field,
-    variableId: variable.id,
-    variableName: variable.name,
-    variableType: variable.resolvedType,
-  };
-}
-
-export async function unbindVariable(params: Record<string, unknown>): Promise<Record<string, unknown>> {
-  const nodeId = params["nodeId"] as string;
-  const field = params["field"] as string;
-
-  if (!nodeId || !field) {
-    throw new Error("nodeId and field are required");
-  }
-
-  const node = await figma.getNodeByIdAsync(nodeId);
-
-  // If no node, try TextStyle (by id or name) and unbind directly.
-  if (!node) {
-    let textStyle: TextStyle | null = null;
-    const maybeStyle = await figma.getStyleByIdAsync(nodeId);
-    if (maybeStyle && maybeStyle.type === "TEXT") {
-      textStyle = maybeStyle as TextStyle;
-    } else {
-      const allTextStyles = await figma.getLocalTextStylesAsync();
-      textStyle =
-        allTextStyles.find(function (s) {
-          return s.name === nodeId;
-        }) || null;
-      if (!textStyle) {
-        const normalizedInput = nodeId.replace(/-/g, "/");
-        if (normalizedInput !== nodeId) {
-          textStyle =
-            allTextStyles.find(function (s) {
-              return s.name === normalizedInput;
-            }) || null;
-        }
-      }
-    }
-    if (!textStyle) {
-      throw new Error(`Node or text style not found: ${nodeId}`);
-    }
-    try {
-      (
-        textStyle as TextStyle & {
-          setBoundVariable: (field: VariableBindableTextField, variable: Variable | null) => void;
-        }
-      ).setBoundVariable(field as VariableBindableTextField, null);
-    } catch (err) {
-      const errMsg = err instanceof Error ? err.message : String(err);
-      throw new Error(`Failed to unbind variable from text style: ${errMsg}`);
-    }
-    return {
-      styleId: textStyle.id,
-      styleName: textStyle.name,
-      field,
-      success: true,
-    };
-  }
-
-  const fieldParts = field.split("/");
-
-  try {
-    if (fieldParts[0] === "fills") {
-      const fillIndex = fieldParts.length >= 2 ? parseInt(fieldParts[1]) : 0;
-      if (isNaN(fillIndex)) {
-        throw new Error(`Invalid fill index: ${fieldParts[1]}`);
-      }
-
-      if ("fills" in node) {
-        const nodeWithFills = node as GeometryMixin;
-        const currentFills = nodeWithFills.fills;
-        if (currentFills !== figma.mixed && Array.isArray(currentFills)) {
-          const fills: Paint[] = [...(currentFills as ReadonlyArray<Paint>)];
-          const fillEntry = fills[fillIndex] as unknown as Record<string, unknown>;
-          if (fillEntry && fillEntry["boundVariables"]) {
-            const newFill = Object.assign({}, fillEntry) as Record<string, unknown>;
-            delete newFill["boundVariables"];
-            fills[fillIndex] = newFill as unknown as Paint;
-            nodeWithFills.fills = fills;
-          }
-        }
-      }
-    } else if (fieldParts[0] === "strokes") {
-      const strokeIndex = fieldParts.length >= 2 ? parseInt(fieldParts[1]) : 0;
-      if (isNaN(strokeIndex)) {
-        throw new Error(`Invalid stroke index: ${fieldParts[1]}`);
-      }
-
-      if ("strokes" in node) {
-        const nodeWithStrokes = node as MinimalStrokesMixin;
-        const strokes: Paint[] = [...nodeWithStrokes.strokes];
-        const strokeEntry = strokes[strokeIndex] as unknown as Record<string, unknown>;
-        if (strokeEntry && strokeEntry["boundVariables"]) {
-          const newStroke = Object.assign({}, strokeEntry) as Record<string, unknown>;
-          delete newStroke["boundVariables"];
-          strokes[strokeIndex] = newStroke as unknown as Paint;
-          nodeWithStrokes.strokes = strokes;
-        }
-      }
-    } else {
-      const propertyName = fieldParts[0] as VariableBindableNodeField;
-      (
-        node as SceneNode & { setBoundVariable: (field: VariableBindableNodeField, variable: Variable | null) => void }
-      ).setBoundVariable(propertyName, null);
-    }
-
-    return {
-      nodeId: node.id,
-      name: node.name,
-      field,
-      success: true,
-    };
-  } catch (err) {
-    const errMsg = err instanceof Error ? err.message : String(err);
-    throw new Error(`Failed to unbind variable: ${errMsg}`);
-  }
-}
+export { bindVariable, unbindVariable } from "./variable-bindings";
 
 // 1. get_variable_collections
 export async function getVariableCollections(): Promise<Record<string, unknown>> {
@@ -1104,7 +881,9 @@ export async function renameVariable(params: Record<string, unknown>): Promise<R
 
 // 8. delete_variable
 export async function deleteVariable(params: Record<string, unknown>): Promise<Record<string, unknown>> {
-  const variableId = params["variableId"] as string;
+  // `id` is the tool's own parameter name, `variableId` the wire name every other
+  // variable command uses — accept either so neither spelling can 404 the caller.
+  const variableId = (params["variableId"] ?? params["id"] ?? params["variable"] ?? params["name"]) as string;
   const collectionId = params["collectionId"] as string | undefined;
 
   const variable = await findVariable(variableId, collectionId);
@@ -1122,8 +901,17 @@ export async function deleteVariable(params: Record<string, unknown>): Promise<R
 
 // 9. delete_variables_batch
 export async function deleteVariablesBatch(params: Record<string, unknown>): Promise<Record<string, unknown>> {
-  const variableIds = params["variableIds"] as string[];
+  const rawIds = params["variableIds"] ?? params["ids"] ?? params["variables"] ?? params["names"];
+  const variableIds = (
+    Array.isArray(rawIds) ? rawIds : rawIds === undefined || rawIds === null ? [] : [rawIds]
+  ) as string[];
   const collectionId = params["collectionId"] as string | undefined;
+
+  if (variableIds.length === 0) {
+    throw new Error(
+      'Missing variable identifiers: pass "ids" (aliases: variableIds, variables, names) — an array of variable ids or names.',
+    );
+  }
 
   let deleted = 0;
   let failed = 0;
@@ -1204,6 +992,68 @@ export async function auditCollection(params: Record<string, unknown>): Promise<
 }
 
 // 11. validate_color_contrast
+//
+// Bug #44: this used to pair ONLY variables literally named `<x>-foreground`
+// with a sibling `<x>`, so any real collection (`text/primary` +
+// `surface/background`, `on-surface`, `foreground/default`, ...) produced 0
+// pairs and reported "0/0 pairs" as a silent pass. It also never resolved
+// VARIABLE_ALIAS values, so aliased tokens produced NaN ratios.
+//
+// It now tries several naming conventions, resolves aliases, and - when it
+// still finds nothing - returns an explicit, actionable diagnostic instead of
+// an empty success.
+
+const FG_TOKENS = ["foreground", "fg", "text", "content", "label", "icon", "on"];
+const BG_TOKENS = ["background", "bg", "surface", "base", "canvas", "card", "fill", "backdrop"];
+
+function normalizeVarName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[\s_]+/g, "-")
+    .replace(/\//g, "-");
+}
+
+function nameHasToken(name: string, tokens: string[]): boolean {
+  const segments = normalizeVarName(name).split("-").filter(Boolean);
+  for (const token of tokens) {
+    if (segments.indexOf(token) !== -1) return true;
+  }
+  return false;
+}
+
+/** Group key = the name with its fg/bg marker segments stripped (e.g. `text/primary` -> `primary`). */
+function roleGroupKey(name: string): string {
+  const segments = normalizeVarName(name).split("-").filter(Boolean);
+  const kept = segments.filter((s) => FG_TOKENS.indexOf(s) === -1 && BG_TOKENS.indexOf(s) === -1);
+  return kept.join("-");
+}
+
+/** Follow VARIABLE_ALIAS chains to a concrete RGBA value (bounded depth). */
+function resolveVariableColor(
+  value: VariableValue | undefined,
+  modeId: string,
+  byId: Map<string, Variable>,
+  depth = 0,
+): RgbaColor | null {
+  if (value === undefined || value === null || typeof value !== "object") return null;
+  const asAlias = value as { type?: string; id?: string };
+  if (asAlias.type === "VARIABLE_ALIAS" && typeof asAlias.id === "string") {
+    if (depth >= 8) return null;
+    const target = byId.get(asAlias.id);
+    if (!target) return null;
+    // An alias may point into another collection whose mode ids differ; fall
+    // back to that variable's first mode when our modeId is not present.
+    const targetValues = target.valuesByMode as Record<string, VariableValue>;
+    const next = targetValues[modeId] !== undefined ? targetValues[modeId] : targetValues[Object.keys(targetValues)[0]];
+    return resolveVariableColor(next, modeId, byId, depth + 1);
+  }
+  const color = value as unknown as RgbaColor;
+  if (typeof color.r === "number" && typeof color.g === "number" && typeof color.b === "number") {
+    return { r: color.r, g: color.g, b: color.b, a: typeof color.a === "number" ? color.a : 1 };
+  }
+  return null;
+}
+
 export async function validateColorContrast(params: Record<string, unknown>): Promise<Record<string, unknown>> {
   const collectionId = params["collectionId"] as string;
   const mode = params["mode"] as string | undefined;
@@ -1217,18 +1067,19 @@ export async function validateColorContrast(params: Record<string, unknown>): Pr
     mode !== undefined && mode !== null
       ? collection.modes.find((m: { modeId: string; name: string }) => m.name === mode)
       : null;
-  const modeId = targetMode !== undefined && targetMode !== null ? targetMode.modeId : collection.modes[0].modeId;
-
-  if (!modeId) {
-    throw new Error(`Mode not found: ${mode}`);
+  if (mode !== undefined && mode !== null && !targetMode) {
+    throw new Error(
+      `Mode "${mode}" not found in collection "${collection.name}". Available modes: ${collection.modes
+        .map((m: { name: string }) => m.name)
+        .join(", ")}`,
+    );
   }
+  const modeId = targetMode ? targetMode.modeId : collection.modes[0].modeId;
+  const modeName = targetMode ? targetMode.name : collection.modes[0].name;
 
   function getLuminance(color: RgbaColor): number {
     const linearize = (val: number) => (val <= 0.03928 ? val / 12.92 : Math.pow((val + 0.055) / 1.055, 2.4));
-    const r = linearize(color.r);
-    const g = linearize(color.g);
-    const b = linearize(color.b);
-    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    return 0.2126 * linearize(color.r) + 0.7152 * linearize(color.g) + 0.0722 * linearize(color.b);
   }
 
   function getContrastRatio(fg: RgbaColor, bg: RgbaColor): number {
@@ -1239,51 +1090,114 @@ export async function validateColorContrast(params: Record<string, unknown>): Pr
     return (lighter + 0.05) / (darker + 0.05);
   }
 
+  const byId = new Map(allVariables.map((v) => [v.id, v]));
+  const colorVariables = collectionVariables.filter((v) => v.resolvedType === "COLOR");
+
+  interface ResolvedVar {
+    name: string;
+    color: RgbaColor;
+  }
+  const resolved: ResolvedVar[] = [];
+  let unresolvable = 0;
+  for (const v of colorVariables) {
+    const color = resolveVariableColor((v.valuesByMode as Record<string, VariableValue>)[modeId], modeId, byId);
+    if (color) resolved.push({ name: v.name, color });
+    else unresolvable++;
+  }
+
+  const resolvedByName = new Map(resolved.map((v) => [v.name, v]));
+  const resolvedByNormalized = new Map(resolved.map((v) => [normalizeVarName(v.name), v]));
+
+  const isLarge = params["largeText"] === true;
+  let minRatio: number;
+  if (standard === "AAA") minRatio = isLarge ? 4.5 : 7.0;
+  else minRatio = isLarge ? 3.0 : 4.5;
+  const effectiveLevel =
+    (standard !== undefined && standard !== null ? standard : "AA") + (isLarge ? " Large" : " Normal");
+
   const pairs: Array<Record<string, unknown>> = [];
-  const fgSuffix = "-foreground";
-  const varByName = new Map(collectionVariables.map((v) => [v.name, v]));
+  const seen = new Set<string>();
+  const strategiesUsed: string[] = [];
 
-  for (const variable of collectionVariables) {
-    if (variable.name.endsWith(fgSuffix)) {
-      const baseName = variable.name.slice(0, -fgSuffix.length);
-      const baseVariable = varByName.get(baseName);
+  function addPair(fg: ResolvedVar, bg: ResolvedVar, strategy: string): void {
+    if (fg.name === bg.name) return;
+    const key = fg.name + " >> " + bg.name;
+    if (seen.has(key)) return;
+    seen.add(key);
+    if (strategiesUsed.indexOf(strategy) === -1) strategiesUsed.push(strategy);
+    const ratio = getContrastRatio(fg.color, bg.color);
+    const pass = ratio >= minRatio;
+    pairs.push({
+      foreground: fg.name,
+      background: bg.name,
+      ratio: parseFloat(ratio.toFixed(2)),
+      pass,
+      level: effectiveLevel,
+      strategy,
+      recommendation: pass
+        ? `Meets ${effectiveLevel} standards`
+        : `Increase contrast - needs ${minRatio}:1 for ${effectiveLevel}`,
+    });
+  }
 
-      if (baseVariable) {
-        const fgValue = variable.valuesByMode[modeId];
-        const bgValue = baseVariable.valuesByMode[modeId];
+  // Strategy 1: explicit foreground suffixes/prefixes pointing at a sibling base
+  // token: `x-foreground` / `x/foreground` / `x-fg` / `x-text`, and `on-x`.
+  const FG_SUFFIXES = ["-foreground", "/foreground", "-fg", "/fg", "-text", "/text", "-content", "/content"];
+  for (const v of resolved) {
+    let base: string | null = null;
+    for (const suffix of FG_SUFFIXES) {
+      if (v.name.toLowerCase().endsWith(suffix)) {
+        base = v.name.slice(0, v.name.length - suffix.length);
+        break;
+      }
+    }
+    if (base === null) {
+      const norm = normalizeVarName(v.name);
+      if (norm.indexOf("on-") === 0) base = norm.slice(3);
+    }
+    if (base === null) continue;
+    const bg = resolvedByName.get(base) || resolvedByNormalized.get(normalizeVarName(base));
+    if (bg) addPair(v, bg, "sibling-suffix");
+  }
 
-        if (
-          fgValue !== undefined &&
-          fgValue !== null &&
-          bgValue !== undefined &&
-          bgValue !== null &&
-          typeof fgValue === "object" &&
-          typeof bgValue === "object"
-        ) {
-          const ratio = getContrastRatio(fgValue as RgbaColor, bgValue as RgbaColor);
-          // WCAG thresholds: AA normal 4.5:1, AA large 3:1, AAA normal 7:1, AAA large 4.5:1
-          const isLarge = params["largeText"] === true;
-          let minRatio: number;
-          if (standard === "AAA") {
-            minRatio = isLarge ? 4.5 : 7.0;
-          } else {
-            minRatio = isLarge ? 3.0 : 4.5;
-          }
-          const effectiveLevel =
-            (standard !== undefined && standard !== null ? standard : "AA") + (isLarge ? " Large" : " Normal");
-          const pass = ratio >= minRatio;
+  // Strategy 2: role groups - `text/primary` vs `surface/primary`,
+  // `foreground/default` vs `background/default`.
+  const groups = new Map<string, { fg: ResolvedVar[]; bg: ResolvedVar[] }>();
+  const allFg: ResolvedVar[] = [];
+  const allBg: ResolvedVar[] = [];
+  for (const v of resolved) {
+    const isFg = nameHasToken(v.name, FG_TOKENS);
+    const isBg = nameHasToken(v.name, BG_TOKENS);
+    if (isFg === isBg) continue; // neither, or ambiguous ("text-background")
+    const key = roleGroupKey(v.name);
+    let group = groups.get(key);
+    if (!group) {
+      group = { fg: [], bg: [] };
+      groups.set(key, group);
+    }
+    if (isFg) {
+      group.fg.push(v);
+      allFg.push(v);
+    } else {
+      group.bg.push(v);
+      allBg.push(v);
+    }
+  }
+  groups.forEach((group) => {
+    for (const fg of group.fg) {
+      for (const bg of group.bg) addPair(fg, bg, "role-group");
+    }
+  });
 
-          pairs.push({
-            foreground: variable.name,
-            background: baseVariable.name,
-            ratio: parseFloat(ratio.toFixed(2)),
-            pass,
-            level: effectiveLevel,
-            recommendation: pass
-              ? `Meets ${effectiveLevel} standards`
-              : `Increase contrast — needs ${minRatio}:1 for ${effectiveLevel}`,
-          });
-        }
+  // Strategy 3: last resort - every foreground-ish token against every
+  // background-ish token, capped so a large collection cannot explode.
+  const MAX_FALLBACK_PAIRS = 200;
+  if (pairs.length === 0 && allFg.length > 0 && allBg.length > 0) {
+    for (const fg of allFg) {
+      if (pairs.length >= MAX_FALLBACK_PAIRS) break;
+      for (const bg of allBg) {
+        addPair(fg, bg, "cross-product");
+        if (pairs.length >= MAX_FALLBACK_PAIRS) break;
       }
     }
   }
@@ -1291,12 +1205,49 @@ export async function validateColorContrast(params: Record<string, unknown>): Pr
   const passed = pairs.filter((p) => p["pass"]).length;
   const failed = pairs.filter((p) => !p["pass"]).length;
 
-  return {
+  const searched = {
+    collectionId: collection.id,
+    collectionName: collection.name,
+    mode: modeName,
+    totalVariables: collectionVariables.length,
+    colorVariables: colorVariables.length,
+    resolvedColorVariables: resolved.length,
+    unresolvableColorVariables: unresolvable,
+    foregroundCandidates: allFg.length,
+    backgroundCandidates: allBg.length,
+    strategiesTried: ["sibling-suffix", "role-group", "cross-product"],
+    strategiesUsed,
+  };
+
+  const result: Record<string, unknown> = {
     totalPairs: pairs.length,
     passed,
     failed,
     pairs,
+    searched,
   };
+
+  if (pairs.length === 0) {
+    // Bug #44: never report an empty sweep as a silent pass.
+    let reason: string;
+    if (colorVariables.length === 0) {
+      reason = `Collection "${collection.name}" has ${collectionVariables.length} variable(s) but none of type COLOR, so there is nothing to pair.`;
+    } else if (resolved.length === 0) {
+      reason = `Collection "${collection.name}" has ${colorVariables.length} COLOR variable(s) but none resolve to a concrete color in mode "${modeName}" (unset values, or alias chains pointing outside this file).`;
+    } else if (allFg.length === 0 && allBg.length === 0) {
+      reason = `None of the ${resolved.length} COLOR variable(s) in mode "${modeName}" name a foreground or a background role. Recognised foreground segments: ${FG_TOKENS.join(", ")}. Recognised background segments: ${BG_TOKENS.join(", ")}. Rename tokens to include one of these (e.g. "text/primary", "surface/default"), or use contrast_check_frame to measure rendered nodes instead.`;
+    } else if (allFg.length === 0) {
+      reason = `Found ${allBg.length} background token(s) but no foreground token(s) in mode "${modeName}". Recognised foreground segments: ${FG_TOKENS.join(", ")}.`;
+    } else {
+      reason = `Found ${allFg.length} foreground token(s) but no background token(s) in mode "${modeName}". Recognised background segments: ${BG_TOKENS.join(", ")}.`;
+    }
+    result["noPairsFound"] = true;
+    result["reason"] = reason;
+    result["sampleVariableNames"] = resolved.slice(0, 15).map((v) => v.name);
+    result["warning"] = `0 foreground/background pairs found - this is NOT a pass. ${reason}`;
+  }
+
+  return result;
 }
 
 // 12. suggest_missing_variables
@@ -1968,13 +1919,32 @@ export async function addChartColors(params: Record<string, unknown>): Promise<R
 // Mode management handlers
 // -------------------------------------------------------------------------
 
+const MODE_LIMIT_PATTERN = /\blimit|\bplans?\b|\bmaximum\b|\bexceed|\bupgrade|\btoo many\b/i;
+
+export function isModeLimitError(message: string): boolean {
+  return MODE_LIMIT_PATTERN.test(message);
+}
+
 export async function addModeToCollection(params: Record<string, unknown>): Promise<Record<string, unknown>> {
   const collectionId = params["collectionId"] as string;
   const modeName = params["modeName"] as string;
 
   const collection = await findCollection(collectionId);
 
-  const newModeId = collection.addMode(modeName);
+  let newModeId: string;
+  try {
+    newModeId = collection.addMode(modeName);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (!isModeLimitError(message)) throw error;
+    const count = collection.modes.length;
+    throw new Error(
+      `Mode limit reached: collection "${collection.name}" already has ${count} mode${count === 1 ? "" : "s"}, ` +
+        `and Figma refused to add "${modeName}". The Figma plan limits how many modes a collection can have ` +
+        `(Starter/free plan = 1 mode per collection). Workaround: create a separate collection for this mode with ` +
+        `create_variable_collection, passing defaultMode: "${modeName}". (Figma: ${message})`,
+    );
+  }
 
   const newMode = collection.modes.find((m: { modeId: string; name: string }) => m.modeId === newModeId);
 

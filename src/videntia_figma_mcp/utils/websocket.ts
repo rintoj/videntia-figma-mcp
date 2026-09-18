@@ -10,6 +10,7 @@ import {
   ProgressMessage,
   BrowserCommand,
 } from "../types";
+import { interceptForCapture } from "./tool-capture";
 
 class ChannelValidationError extends Error {
   constructor(message: string) {
@@ -17,6 +18,32 @@ class ChannelValidationError extends Error {
     this.name = "ChannelValidationError";
   }
 }
+
+/**
+ * The plugin answering on a channel is attached to a DIFFERENT Figma file than the
+ * one the relay advertises for that channel. Joining anyway is how a session ends up
+ * silently writing into an unrelated document (node ids are unique only within a file).
+ */
+export class ChannelIdentityMismatchError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ChannelIdentityMismatchError";
+  }
+}
+
+export type FileIdentity = { fileKey: string | null; rootId: string | null; fileName: string | null };
+
+/**
+ * Why the active channel is (or is not) pinned to a document identity:
+ * - "none"        no channel has been joined
+ * - "pending"     a join is in flight; the identity handshake itself is allowed through
+ * - "verified"    the responding plugin's identity matched the channel's advertised identity
+ * - "unverified"  identity could not be established on one or both sides (older plugin build,
+ *                 unsaved file, or a failed `get_file_key` round trip). Commands go out UNPINNED,
+ *                 which is the historical behaviour: never block a session we cannot reason about.
+ * - "failed"      verification ran and MISMATCHED. Commands must be refused, never sent unpinned.
+ */
+type ChannelVerification = "none" | "pending" | "verified" | "unverified" | "failed";
 
 // WebSocket connection and request tracking
 let ws: WebSocket | null = null;
@@ -30,6 +57,18 @@ let currentChannel: string | null = null;
 // switches to the "browser" channel so we know what to silently rejoin before
 // the next Figma command.
 let lastChannelName: string | null = null;
+// Identity of the Figma document behind `lastChannelName`, captured at join time.
+// Figma node ids are unique only WITHIN a file — the same "3082:47270" resolves in
+// every open document — so a session that joined the wrong channel and then wrote to
+// a remembered node id would silently mutate an unrelated file. Every command carries
+// this identity as `__expectedFile`; the plugin refuses commands addressed to a file
+// it is not attached to (see assertExpectedDocument in the plugin entry point).
+let expectedFile: FileIdentity | null = null;
+// Distinguishes "we could not determine identity" (unpinned is acceptable) from
+// "identity verification FAILED" (every command must be refused). Overloading
+// `expectedFile === null` for both is what let a mismatch pass silently.
+let channelVerification: ChannelVerification = "none";
+let lastVerificationFailure: string | null = null;
 let heartbeatInterval: ReturnType<typeof setInterval> | null = null;
 
 // Map of pending requests for promise tracking
@@ -248,6 +287,152 @@ async function waitForConnection(timeoutMs = 10000): Promise<void> {
 }
 
 /**
+ * The identity a channel ADVERTISES on the relay, as reported by `/channels`.
+ * Null when the relay could not be reached or knows nothing about the channel —
+ * in that case there is nothing to verify against.
+ */
+async function getAdvertisedIdentity(
+  channelName: string,
+): Promise<{ fileKey: string | null; fileName: string | null } | null> {
+  try {
+    const channels = await getOpenChannels();
+    const match = channels.find((ch) => ch.channel === channelName);
+    if (!match) return null;
+    return { fileKey: match.fileKey ?? null, fileName: match.fileName ?? null };
+  } catch (error) {
+    logger.warn(
+      `Could not read advertised identity for channel "${channelName}": ${error instanceof Error ? error.message : String(error)}`,
+    );
+    return null;
+  }
+}
+
+function describeFile(identity: { fileKey?: string | null; fileName?: string | null } | null): string {
+  if (!identity) return "unknown";
+  return identity.fileName ?? identity.fileKey ?? "unknown";
+}
+
+/**
+ * Compare what the relay says a channel is, against what the plugin that actually
+ * answered on it says it is. `fileKey` wins when both sides have one (it survives
+ * renames); `fileName` is the fallback. When neither side has a usable discriminator
+ * the result is "indeterminate" — we do NOT block a session we cannot reason about
+ * (same principle as assertExpectedDocument in the plugin's document-guard).
+ */
+export function compareChannelIdentity(
+  advertised: { fileKey?: string | null; fileName?: string | null } | null,
+  responder: { fileKey?: string | null; fileName?: string | null } | null,
+): { status: "match" | "mismatch" | "indeterminate"; discriminator: "fileKey" | "fileName" | null; reason?: string } {
+  if (!advertised)
+    return { status: "indeterminate", discriminator: null, reason: "the relay reported no identity for this channel" };
+  if (!responder) return { status: "indeterminate", discriminator: null, reason: "the plugin reported no identity" };
+
+  if (advertised.fileKey && responder.fileKey) {
+    return advertised.fileKey === responder.fileKey
+      ? { status: "match", discriminator: "fileKey" }
+      : { status: "mismatch", discriminator: "fileKey" };
+  }
+  if (advertised.fileName && responder.fileName) {
+    return advertised.fileName === responder.fileName
+      ? { status: "match", discriminator: "fileName" }
+      : { status: "mismatch", discriminator: "fileName" };
+  }
+  return {
+    status: "indeterminate",
+    discriminator: null,
+    reason: "neither side reported a fileKey or fileName to compare",
+  };
+}
+
+function buildMismatchMessage(
+  channelName: string,
+  advertised: { fileKey?: string | null; fileName?: string | null } | null,
+  responder: { fileKey?: string | null; fileName?: string | null } | null,
+): string {
+  return (
+    `Channel "${channelName}" is registered to "${describeFile(advertised)}" but the plugin answering on it ` +
+    `is attached to "${describeFile(responder)}". Node IDs are not unique across files, so this session was NOT ` +
+    `joined. Close and re-run the Videntia plugin in the intended Figma file (Plugins \u203a Claude MCP Plugin), ` +
+    `then re-run get_open_channels and join_channel.`
+  );
+}
+
+/**
+ * THE one verified join path. Every code path that changes the active Figma channel
+ * must go through this — a re-point that skips verification reintroduces the
+ * cross-file bug it exists to prevent.
+ *
+ * Joins the channel, asks the plugin that answers who it is, and compares that against
+ * the identity the relay advertises for the channel. On mismatch nothing is retained:
+ * no currentChannel, no lastChannelName, no expectedFile — and the caller gets an
+ * actionable error instead of a session silently bound to the wrong document.
+ */
+async function joinAndVerify(channelName: string): Promise<void> {
+  const advertised = await getAdvertisedIdentity(channelName);
+
+  await _sendCommandToFigma("join", { channel: channelName });
+  currentChannel = channelName;
+  lastChannelName = channelName;
+  // Cleared first so a failed capture can never leave the previous file's identity
+  // stamped on the new channel's commands.
+  expectedFile = null;
+  channelVerification = "pending";
+  lastVerificationFailure = null;
+
+  let responder: FileIdentity | null = null;
+  try {
+    const identity =
+      (await _sendCommandToFigma<{
+        fileKey?: string | null;
+        rootId?: string | null;
+        fileName?: string | null;
+      }>("get_file_key", {}, 10000)) ?? {};
+    responder = {
+      fileKey: identity.fileKey ?? null,
+      rootId: identity.rootId ?? null,
+      fileName: identity.fileName ?? null,
+    };
+  } catch (error) {
+    // An older plugin build may not implement get_file_key, and the round trip can time
+    // out. Fall back to UNPINNED commands rather than blocking the session outright —
+    // but leave expectedFile null so nothing is pinned to a value we never confirmed.
+    logger.warn(
+      `Could not capture file identity for channel "${channelName}": ${error instanceof Error ? error.message : String(error)}`,
+    );
+    channelVerification = "unverified";
+    logger.info(`Joined channel: ${channelName}`);
+    return;
+  }
+
+  const verdict = compareChannelIdentity(advertised, responder);
+  if (verdict.status === "mismatch") {
+    currentChannel = null;
+    lastChannelName = null;
+    expectedFile = null;
+    channelVerification = "failed";
+    const message = buildMismatchMessage(channelName, advertised, responder);
+    lastVerificationFailure = message;
+    logger.error(message);
+    throw new ChannelIdentityMismatchError(message);
+  }
+
+  if (verdict.status === "indeterminate") {
+    // Never block a session we cannot reason about (same principle as the plugin's
+    // document-guard): pin what the plugin told us and carry on, loudly.
+    logger.warn(
+      `Could not verify that channel "${channelName}" belongs to the file answering on it (${verdict.reason}). Proceeding unverified.`,
+    );
+  }
+
+  expectedFile = responder;
+  channelVerification = verdict.status === "match" ? "verified" : "unverified";
+  logger.info(
+    `Channel ${channelName} is file "${expectedFile.fileName}" (fileKey=${expectedFile.fileKey}), verified by ${verdict.discriminator ?? "nothing"}`,
+  );
+  logger.info(`Joined channel: ${channelName}`);
+}
+
+/**
  * Join a specific channel in Figma.
  * @param channelName - Name of the channel to join
  * @returns Promise that resolves when successfully joined the channel
@@ -291,11 +476,9 @@ export async function joinChannel(channelName: string): Promise<void> {
   }
 
   try {
-    await sendCommandToFigma("join", { channel: channelName });
-    currentChannel = channelName;
-    lastChannelName = channelName;
-    logger.info(`Joined channel: ${channelName}`);
+    await joinAndVerify(channelName);
   } catch (error) {
+    if (error instanceof ChannelIdentityMismatchError) throw error;
     logger.error(`Failed to join channel: ${error instanceof Error ? error.message : String(error)}`);
     throw error;
   }
@@ -307,6 +490,23 @@ export async function joinChannel(channelName: string): Promise<void> {
  */
 export function getCurrentChannel(): string | null {
   return currentChannel;
+}
+
+/**
+ * Identity of the Figma document the current channel's plugin is attached to,
+ * captured at join time. Null when no channel has been joined or the plugin did
+ * not report one.
+ */
+export function getExpectedFile(): FileIdentity | null {
+  return expectedFile;
+}
+
+/**
+ * Whether the active channel's document identity was verified against the identity the
+ * relay advertises for that channel. Exposed for tests and diagnostics.
+ */
+export function getChannelVerification(): { state: ChannelVerification; failure: string | null } {
+  return { state: channelVerification, failure: lastVerificationFailure };
 }
 
 /**
@@ -322,6 +522,7 @@ export async function getOpenChannels(): Promise<
     extensionClients: number;
     hasExtension: boolean;
     fileName: string | null;
+    fileKey: string | null;
     joinedAt: number | null;
     browsers?: { id: string; label: string; joinedAt: number }[];
   }>
@@ -348,6 +549,7 @@ export async function getOpenChannels(): Promise<
       extensionClients: number;
       hasExtension: boolean;
       fileName: string | null;
+      fileKey: string | null;
       joinedAt: number | null;
       browsers?: { id: string; label: string; joinedAt: number }[];
     }>
@@ -366,15 +568,23 @@ export async function sendCommandToFigma<T = unknown>(
   params: unknown = {},
   timeoutMs: number = 30000,
 ): Promise<T> {
+  // Capture mode (batch_actions): record what this handler WOULD send and hand back a
+  // placeholder instead of touching the socket. This is what lets a batched action BE
+  // the standalone handler, so the two can never drift. See utils/tool-capture.ts.
+  const captured = interceptForCapture(command, params);
+  if (captured) return captured.value as T;
+
   await waitForConnection();
 
   // This connection can only be a member of one channel at a time — a browser
   // command (e.g. inject_figma_overlay) run in between may have switched it to
   // "browser", evicting it from our Figma channel. Rejoin transparently rather
   // than sending into a channel this socket is no longer actually a member of.
+  // Re-pointing the active channel MUST go through the same verified join — an
+  // unverified re-point would silently re-bind the session to whichever plugin now
+  // answers on that channel name, which is exactly the bug the guard exists to stop.
   if (command !== "join" && lastChannelName && currentChannel !== lastChannelName) {
-    await _sendCommandToFigma("join", { channel: lastChannelName });
-    currentChannel = lastChannelName;
+    await joinAndVerify(lastChannelName);
   }
 
   try {
@@ -391,8 +601,7 @@ export async function sendCommandToFigma<T = unknown>(
     if (recoverable && command !== "join" && lastChannelName) {
       logger.warn(`Relay connection dropped during "${command}"; reconnecting and retrying once.`);
       await waitForConnection();
-      await _sendCommandToFigma("join", { channel: lastChannelName });
-      currentChannel = lastChannelName;
+      await joinAndVerify(lastChannelName);
       return await _sendCommandToFigma<T>(command, params, timeoutMs);
     }
     throw error;
@@ -412,6 +621,31 @@ function _sendCommandToFigma<T = unknown>(
 
     // Check if we need a channel for this command
     const requiresChannel = command !== "join";
+
+    // Defence in depth: a channel whose identity verification FAILED must never be
+    // talked to, pinned or unpinned. `expectedFile === null` alone cannot express this
+    // (it also means "identity unavailable", which is legitimately allowed to proceed),
+    // so the refusal keys off the explicit verification state.
+    if (requiresChannel && channelVerification === "failed") {
+      reject(
+        new Error(
+          lastVerificationFailure ??
+            "The last channel join failed document-identity verification. Re-run get_open_channels and join_channel.",
+        ),
+      );
+      return;
+    }
+
+    if (requiresChannel && currentChannel && channelVerification === "none") {
+      reject(
+        new Error(
+          `Channel "${currentChannel}" was never verified against a Figma document. ` +
+            "Re-run join_channel before sending commands.",
+        ),
+      );
+      return;
+    }
+
     if (requiresChannel && !currentChannel) {
       getOpenChannels()
         .then((channels) => {
@@ -453,6 +687,10 @@ function _sendCommandToFigma<T = unknown>(
         params: {
           ...(params as any),
           commandId: id, // Include the command ID in params
+          // Pin this command to the document we believe we are talking to. The
+          // plugin rejects it outright on mismatch instead of applying it to a
+          // same-numbered node in a different file.
+          ...(command !== "join" && command !== "get_file_key" && expectedFile ? { __expectedFile: expectedFile } : {}),
         },
       },
     };

@@ -10,10 +10,22 @@ import {
   fetchNodesAsJsx,
   fieldsSchema,
   ID_FIELDS,
+  nodeOutputFormatSchema,
+  nodeFormatAliasSchema,
+  compactDefaultOutputFormatSchema,
+  COMPACT_DEFAULT_NOTICE,
+  cursorSchema,
+  paginate,
+  pageNotice,
 } from "../utils/output-format.js";
 import { convertToJsx } from "../utils/figma-to-jsx.js";
+import { formatCompact, formatSummary, extractGeometry, violationId } from "../utils/compact-node.js";
 import { filterNodeData, normalizeNodeId } from "../utils/figma-helpers.js";
 import { normalizeCommandParams } from "../utils/command-params.js";
+import { recordLintRun, getLintRun } from "../utils/lint-runs.js";
+import { postProcessExport, writeExportToPath, resolveExportDestination } from "../utils/export-image-post.js";
+import { exportCacheKey, getCachedExport, setCachedExport, approximateImageTokens } from "../utils/export-cache.js";
+import { ColorInputSchema, colorParam, toRgba } from "../utils/color-input.js";
 import type {
   DocumentInfoResult,
   AnnotationsResult,
@@ -809,19 +821,42 @@ export function registerDocumentTools(server: McpServer): void {
       fields: coerceArray(fieldsSchema)
         .optional()
         .describe("Optional array of fields to include. Controls which properties appear in both JSX and JSON output."),
+      topLevelOnly: mcpBooleanSchema
+        .optional()
+        .describe(
+          "When true, only DIRECT children of nodeId are considered (no recursion into descendants). Default: false (full subtree scan).",
+        ),
       depth: depthSchema,
-      output_format: outputFormatSchema,
+      output_format: nodeOutputFormatSchema,
+      format: nodeFormatAliasSchema,
+      cursor: cursorSchema,
     },
-    async ({ nodeId, types, limit, fields, depth, output_format }) => {
+    async ({ nodeId, types, limit, fields, depth, output_format, format, topLevelOnly, cursor }) => {
       nodeId = normalizeNodeId(nodeId);
       try {
-        const result = await sendCommandToFigma("scan_nodes_by_types", {
+        const result: any = await sendCommandToFigma("scan_nodes_by_types", {
           nodeId,
           types,
           limit,
+          topLevelOnly: topLevelOnly === true,
           depth: resolveDepth(depth),
         });
-        return formatNodeResult(result, output_format, fields);
+        const returned = (result?.nodes ?? []).length;
+        const totalFound = typeof result?.totalFound === "number" ? result.totalFound : returned;
+        const truncated = result?.truncated === true || totalFound > returned;
+        const prefix = [
+          `scan_nodes_by_types: ${returned} of ${totalFound} matching node(s) returned` +
+            (topLevelOnly === true ? " (topLevelOnly: direct children only)" : " (full subtree)") +
+            `; truncated: ${truncated}`,
+        ];
+        if (truncated) {
+          prefix.push(
+            `WARNING: results are INCOMPLETE — ${totalFound - returned} match(es) omitted by limit=${result?.limit ?? limit ?? 50}. Do NOT treat this as a full sweep; raise \`limit\` to see the rest.`,
+          );
+        }
+        const page = paginate(result?.nodes ?? [], cursor, limit ?? 50);
+        prefix.push(pageNotice("scan_nodes_by_types page", page));
+        return formatNodeResult({ ...(result ?? {}), nodes: page.items }, format ?? output_format, fields, prefix);
       } catch (error) {
         return {
           content: [
@@ -878,21 +913,27 @@ export function registerDocumentTools(server: McpServer): void {
    */
   function formatNodeResult(
     result: unknown,
-    output_format: "jsx" | "json",
+    output_format: "jsx" | "json" | "compact",
     fields?: string[],
+    prefixLines?: string[],
   ): { content: Array<{ type: "text"; text: string }> } {
     const selection: any[] = (result as any)?.nodes ?? [];
     const processed = selection
       .map((n: any) => stripIdFields(n, fields))
       .map((n: any) => filterNodeData(n, fields as any));
+    const prefix = prefixLines && prefixLines.length > 0 ? `${prefixLines.join("\n")}\n` : "";
     if (processed.length === 0) {
-      const text = output_format === "jsx" ? "<!-- No nodes found -->" : JSON.stringify([]);
-      return { content: [{ type: "text", text }] };
+      const empty =
+        output_format === "jsx" ? "<!-- No nodes found -->" : output_format === "compact" ? "" : JSON.stringify([]);
+      return { content: [{ type: "text", text: `${prefix}${empty}` }] };
     }
     if (output_format === "jsx") {
-      return { content: [{ type: "text", text: convertToJsx(processed) }] };
+      return { content: [{ type: "text", text: `${prefix}${convertToJsx(processed)}` }] };
     }
-    return { content: [{ type: "text", text: JSON.stringify(processed) }] };
+    if (output_format === "compact") {
+      return { content: [{ type: "text", text: `${prefix}${formatCompact(processed)}` }] };
+    }
+    return { content: [{ type: "text", text: `${prefix}${JSON.stringify(processed)}` }] };
   }
 
   // Selection Tool
@@ -933,13 +974,14 @@ export function registerDocumentTools(server: McpServer): void {
         .optional()
         .describe("Optional array of fields to include. Controls which properties appear in both JSX and JSON output."),
       depth: depthSchema,
-      output_format: outputFormatSchema,
+      output_format: nodeOutputFormatSchema,
+      format: nodeFormatAliasSchema,
     },
-    async ({ nodeId, fields, depth, output_format }) => {
+    async ({ nodeId, fields, depth, output_format, format }) => {
       nodeId = normalizeNodeId(nodeId);
       try {
         const result = await sendCommandToFigma("get_node_info", { nodeIds: [nodeId], depth: resolveDepth(depth) });
-        return formatNodeResult(result, output_format, fields);
+        return formatNodeResult(result, format ?? output_format, fields);
       } catch (error) {
         return {
           content: [
@@ -963,19 +1005,131 @@ export function registerDocumentTools(server: McpServer): void {
         .optional()
         .describe("Optional array of fields to include. Controls which properties appear in both JSX and JSON output."),
       depth: depthSchema,
-      output_format: outputFormatSchema,
+      output_format: compactDefaultOutputFormatSchema,
+      format: nodeFormatAliasSchema,
+      limit: z.coerce
+        .number()
+        .int()
+        .min(1)
+        .optional()
+        .describe("Max number of nodes to return in this page. Default: 25. Remaining nodes are PAGED, not dropped."),
+      cursor: cursorSchema,
     },
-    async ({ nodeIds, fields, depth, output_format }) => {
+    async ({ nodeIds, fields, depth, output_format, format, limit, cursor }) => {
       nodeIds = nodeIds.map(normalizeNodeId);
       try {
-        const result = await sendCommandToFigma("get_node_info", { nodeIds, depth: resolveDepth(depth) });
-        return formatNodeResult(result, output_format, fields);
+        const page = paginate(nodeIds, cursor, limit ?? 25);
+        const result = await sendCommandToFigma("get_node_info", {
+          nodeIds: page.items,
+          depth: resolveDepth(depth),
+        });
+        const effective = format ?? output_format;
+        const prefix = [pageNotice("get_nodes_info", page)];
+        if (effective === "compact") prefix.push(COMPACT_DEFAULT_NOTICE);
+        return formatNodeResult(result, effective, fields, prefix);
       } catch (error) {
         return {
           content: [
             {
               type: "text",
               text: `Error getting nodes info for ${nodeIds.length} node(s): ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  // Measure Node Tool — geometry only, no styles, no JSX
+  server.tool(
+    "measure_node",
+    "Get ONLY the geometry of one or more nodes: x, y, width, height, rotation and absoluteBoundingBox. Use this instead of get_node_info whenever you just need coordinates or sizes — it returns a fraction of the tokens. Optionally include child geometry via include_children/depth.",
+    {
+      nodeId: z
+        .union([z.string(), coerceArray(z.array(z.string()))])
+        .describe("Node ID (or array of node IDs) to measure"),
+      include_children: mcpBooleanSchema
+        .optional()
+        .describe("Include geometry for descendant nodes as well. Default: false."),
+      depth: z.coerce
+        .number()
+        .int()
+        .min(0)
+        .optional()
+        .describe("How many levels of children to include when include_children is true. Default: 1."),
+      output_format: z
+        .enum(["json", "compact"])
+        .optional()
+        .default("json")
+        .describe('Output format: "json" (default) or "compact" (one line per node).'),
+    },
+    async ({ nodeId, include_children, depth, output_format }) => {
+      const nodeIds = (Array.isArray(nodeId) ? nodeId : [nodeId]).map(normalizeNodeId);
+      const includeChildren = include_children === true;
+      const childDepth = includeChildren ? (depth ?? 1) : 0;
+      try {
+        const result: any = await sendCommandToFigma("get_node_info", { nodeIds, depth: childDepth });
+        const nodes: any[] = result?.nodes ?? [];
+        const geometry = nodes.map((n) => extractGeometry(n, includeChildren, childDepth));
+        if (output_format === "compact") {
+          const lines: string[] = [];
+          const walk = (list: any[], indent: number) => {
+            for (const g of list) {
+              lines.push(
+                `${"  ".repeat(indent)}${g.name} [${g.type}] ${g.id} ${g.x ?? "-"},${g.y ?? "-"} ${g.width ?? "-"}x${g.height ?? "-"}${g.rotation ? ` rot=${g.rotation}` : ""}`,
+              );
+              if (Array.isArray(g.children)) walk(g.children, indent + 1);
+            }
+          };
+          walk(geometry, 0);
+          return { content: [{ type: "text" as const, text: lines.join("\n") || "No nodes found" }] };
+        }
+        return { content: [{ type: "text" as const, text: JSON.stringify(geometry) }] };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: `Error measuring node(s) "${nodeIds.join(", ")}": ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  // Node Summary Tool — one line per node
+  server.tool(
+    "get_node_summary",
+    "Get a one-line-per-node summary: name, type, id, child count and key styles (layout, fill, stroke, radius, text style). Use this to orient inside a frame before drilling in with get_node_info — it is far cheaper than full node info.",
+    {
+      nodeId: z
+        .union([z.string(), coerceArray(z.array(z.string()))])
+        .describe("Node ID (or array of node IDs) to summarize"),
+      include_children: mcpBooleanSchema
+        .optional()
+        .describe("Also summarize the direct children of each node. Default: false."),
+    },
+    async ({ nodeId, include_children }) => {
+      const nodeIds = (Array.isArray(nodeId) ? nodeId : [nodeId]).map(normalizeNodeId);
+      const includeChildren = include_children === true;
+      try {
+        const result: any = await sendCommandToFigma("get_node_info", { nodeIds, depth: includeChildren ? 1 : 0 });
+        const nodes: any[] = result?.nodes ?? [];
+        const lines: string[] = [];
+        for (const n of nodes) {
+          lines.push(formatSummary([n]));
+          if (includeChildren && Array.isArray(n.children)) {
+            for (const c of n.children) lines.push(`  ${formatSummary([c])}`);
+          }
+        }
+        return { content: [{ type: "text" as const, text: lines.filter(Boolean).join("\n") || "No nodes found" }] };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: `Error summarizing node(s) "${nodeIds.join(", ")}": ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };
@@ -1014,12 +1168,15 @@ export function registerDocumentTools(server: McpServer): void {
       fields: coerceArray(fieldsSchema)
         .optional()
         .describe("Optional array of fields to include. Controls which properties appear in both JSX and JSON output."),
-      output_format: outputFormatSchema,
+      output_format: compactDefaultOutputFormatSchema,
+      format: nodeFormatAliasSchema,
+      cursor: cursorSchema,
     },
-    async ({ query, types, nodeId, limit, depth, leadingTrim, fields, output_format }) => {
+    async ({ query, types, nodeId, limit, depth, leadingTrim, fields, output_format, format, cursor }) => {
       if (nodeId) nodeId = Array.isArray(nodeId) ? nodeId.map(normalizeNodeId) : normalizeNodeId(nodeId);
       try {
-        const result = await sendCommandToFigma("search_nodes", {
+        const pageSize = limit ?? 50;
+        const result: any = await sendCommandToFigma("search_nodes", {
           query,
           types,
           nodeId,
@@ -1027,7 +1184,12 @@ export function registerDocumentTools(server: McpServer): void {
           depth: resolveDepth(depth),
           leadingTrim,
         });
-        return formatNodeResult(result, output_format, fields);
+        const allNodes: any[] = result?.nodes ?? [];
+        const page = paginate(allNodes, cursor, pageSize);
+        const effective = format ?? output_format;
+        const prefix = [pageNotice("search_nodes", page)];
+        if (effective === "compact") prefix.push(COMPACT_DEFAULT_NOTICE);
+        return formatNodeResult({ ...result, nodes: page.items }, effective, fields, prefix);
       } catch (error) {
         return {
           content: [
@@ -1218,19 +1380,108 @@ export function registerDocumentTools(server: McpServer): void {
             .describe(
               "Check screen naming convention: Screen/{Feature}@{Breakpoint}/{View}[/{State}] on any frame starting with 'Screen/' (default: true)",
             ),
+          clippedCorners: mcpBooleanSchema
+            .optional()
+            .describe(
+              "Check for clipping children whose square background paints over a rounded parent's corners (default: true)",
+            ),
+          radiusProportion: mcpBooleanSchema
+            .optional()
+            .describe(
+              "Check for a cornerRadius disproportionate to node height (lens-shaped, but not a deliberate capsule) (default: true)",
+            ),
+          crossAxisAlign: mcpBooleanSchema
+            .optional()
+            .describe(
+              "Check for counterAxisAlignItems=MIN on a container with a fixed cross-axis size (default: true)",
+            ),
+          iconColorConsistency: mcpBooleanSchema
+            .optional()
+            .describe("Check for icons where only some vector parts have a bound colour (default: true)"),
+          fixedWidthSlack: mcpBooleanSchema
+            .optional()
+            .describe("Check for small fixed-width packed rows carrying dead horizontal space (default: true)"),
         })
         .optional()
         .describe("Toggle individual check categories (all enabled by default)"),
+      summary_only: mcpBooleanSchema
+        .optional()
+        .describe(
+          "When true, return ONLY the per-category compliance scores and severity counts — no individual violation rows. Use for a quick pass/fail check before pulling the full report.",
+        ),
+      max_violations: z.coerce
+        .number()
+        .int()
+        .min(0)
+        .optional()
+        .describe(
+          "Max individual violation rows to print. Default: 25. Remaining rows are counted and reported, never silently dropped — pass 0 for no cap.",
+        ),
+      since_run: z
+        .string()
+        .optional()
+        .describe(
+          'Delta mode. Pass "last" (or a run_id from an earlier lint_frame response for this node) to list ONLY violations that are new since that run. Unchanged and resolved violations are reported as counts, not rows.',
+        ),
+      ignore_rules: z
+        .array(z.string())
+        .optional()
+        .describe(
+          'Deliberate, documented exceptions to excuse for this run — brand gradients, logo artwork, an intentionally filled icon. Accepts category names ("backgroundFills"), check names ("colors"), "category:property" pairs ("backgroundFills:fills[0]") or "*". Suppressed violations are removed from the verdict but reported separately so the exception stays visible. A per-node alternative also exists: set plugin data "lint.ignore" on a node, or suffix its name with "[lint-ignore: backgroundFills]" / "[role: artwork]" — both are inherited by descendants, and role=artwork exempts bespoke artwork from every token-binding rule.',
+        ),
     },
-    async ({ nodeId, fix, checks, ignoreNodeIds, ignoreRules }) => {
+    async ({
+      nodeId,
+      fix,
+      checks,
+      ignoreNodeIds,
+      ignoreRules,
+      summary_only,
+      ignore_rules,
+      max_violations,
+      since_run,
+    }) => {
       nodeId = normalizeNodeId(nodeId);
       try {
         const payload = normalizeCommandParams("lint_frame", { nodeId, fix, checks, ignoreNodeIds, ignoreRules });
-        const result = await sendCommandToFigma<LintFrameResult>("lint_frame", payload, 60000);
+        const result = await sendCommandToFigma<LintFrameResult>("lint_frame", { ...payload, ignore_rules }, 60000);
+
+        // Attach a stable id to every violation so repeat runs can be diffed.
+        // Derived from nodeId + category + rule/property (+ severity) — deterministic,
+        // independent of traversal order or run time.
+        const violations: LintViolation[] = (result.violations ?? []).map((v: LintViolation) => ({
+          ...v,
+          id: (v as any).id ?? violationId([v.nodeId, v.category, v.property, v.severity]),
+        }));
+        result.violations = violations;
 
         // Partition violations into fixed vs remaining (only meaningful when fix=true)
-        const fixedViolations = result.violations.filter((v: LintViolation) => v.fixed === true);
-        const remainingViolations = result.violations.filter((v: LintViolation) => v.fixed !== true);
+        const fixedViolations = violations.filter((v: LintViolation) => v.fixed === true);
+        const allRemaining = violations.filter((v: LintViolation) => v.fixed !== true);
+
+        // --- Delta mode -------------------------------------------------
+        // The same ~18 pre-existing violations were re-emitted on every one of
+        // 136 measured calls. With `since_run`, only NEW violations get rows;
+        // unchanged/resolved are reported as numbers.
+        const currentIds = new Set(allRemaining.map((v) => String((v as any).id)));
+        const previous = since_run ? getLintRun(nodeId, since_run) : undefined;
+        let delta: { newCount: number; unchanged: number; resolved: number } | undefined;
+        let remainingViolations = allRemaining;
+        if (since_run) {
+          if (!previous) {
+            delta = undefined;
+          } else {
+            remainingViolations = allRemaining.filter((v) => !previous.ids.has(String((v as any).id)));
+            let unchanged = 0;
+            for (const id of previous.ids) if (currentIds.has(id)) unchanged++;
+            delta = {
+              newCount: remainingViolations.length,
+              unchanged,
+              resolved: previous.ids.size - unchanged,
+            };
+          }
+        }
+        const runId = recordLintRun(nodeId, currentIds);
 
         // Format as markdown compliance report
         const lines: string[] = [];
@@ -1238,8 +1489,25 @@ export function registerDocumentTools(server: McpServer): void {
         const modeLabel = fix ? " (fix mode)" : "";
         lines.push(`# Compliance Audit: ${result.nodeName}${modeLabel}`);
         lines.push(`**Node:** ${result.nodeId} (${result.nodeType}) | **Nodes scanned:** ${result.totalNodes}`);
+        lines.push(`**run_id:** ${runId} (pass since_run:"last" next time for a delta report)`);
+        if (since_run && !previous) {
+          lines.push(
+            `**Delta unavailable:** no recorded run matching since_run="${since_run}" for this node in this session — showing the FULL report instead.`,
+          );
+        } else if (delta) {
+          lines.push(
+            `**Delta vs previous run:** ${delta.newCount} new, ${delta.unchanged} unchanged, ${delta.resolved} resolved. ` +
+              `Only the ${delta.newCount} NEW violation(s) are listed below — the ${delta.unchanged} unchanged one(s) are NOT shown. Re-run without since_run for the complete list.`,
+          );
+        }
         if (fix && fixedViolations.length > 0) {
           lines.push(`**Auto-fixed:** ${fixedViolations.length} violation${fixedViolations.length !== 1 ? "s" : ""}`);
+        }
+        const suppressedViolations = result.suppressedViolations ?? [];
+        if (suppressedViolations.length > 0) {
+          lines.push(
+            `**Suppressed:** ${suppressedViolations.length} (accepted exceptions — excluded from the verdict, listed at the end)`,
+          );
         }
         lines.push("");
 
@@ -1307,6 +1575,14 @@ export function registerDocumentTools(server: McpServer): void {
           }
         }
 
+        if (summary_only === true) {
+          lines.push("");
+          lines.push(
+            `Violation rows omitted (summary_only). Pending: ${remainingViolations.length}, fixed: ${fixedViolations.length}. Re-run without summary_only for details.`,
+          );
+          return { content: [{ type: "text" as const, text: lines.join("\n") }] };
+        }
+
         // Fixed violations (shown only in fix mode)
         if (fix && fixedViolations.length > 0) {
           lines.push("");
@@ -1329,21 +1605,33 @@ export function registerDocumentTools(server: McpServer): void {
           lines.push(fix ? "## Pending Violations" : "## Violations");
 
           const severities: Array<"CRITICAL" | "HIGH" | "MEDIUM" | "LOW"> = ["CRITICAL", "HIGH", "MEDIUM", "LOW"];
+          const rowCap = max_violations ?? 25;
+          let rowsPrinted = 0;
           for (const sev of severities) {
             const sevViolations = remainingViolations.filter((v: LintViolation) => v.severity === sev);
             if (sevViolations.length === 0) continue;
+            if (rowCap > 0 && rowsPrinted >= rowCap) break;
 
             lines.push("");
             lines.push(`### ${sev} (${sevViolations.length})`);
             lines.push("");
-            lines.push("| Node | Type | Rule | Category | Property | Message |");
-            lines.push("|------|------|------|----------|----------|---------|");
+            lines.push("| ID | Node | Type | Rule | Category | Property | Message |");
+            lines.push("|----|------|------|------|----------|----------|---------|");
             for (const v of sevViolations) {
+              if (rowCap > 0 && rowsPrinted >= rowCap) break;
               const esc = (str: string | undefined) => (str || "-").replace(/\|/g, "\\|");
               lines.push(
-                `| ${esc(v.nodeName)} (${esc(v.nodeId)}) | ${esc(v.nodeType)} | ${esc(v.rule)} | ${esc(v.category)} | ${esc(v.property)} | ${esc(v.message)} |`,
+                `| ${esc((v as any).id)} | ${esc(v.nodeName)} (${esc(v.nodeId)}) | ${esc(v.nodeType)} | ${esc(v.rule)} | ${esc(v.category)} | ${esc(v.property)} | ${esc(v.message)} |`,
               );
+              rowsPrinted++;
             }
+          }
+          const rowsOmitted = remainingViolations.length - rowsPrinted;
+          if (rowsOmitted > 0) {
+            lines.push("");
+            lines.push(
+              `_${rowsOmitted} further violation row(s) OMITTED by the default cap of ${rowCap}. This list is INCOMPLETE — re-run with max_violations:0 for every row, or summary_only:true for counts alone._`,
+            );
           }
         }
 
@@ -1369,6 +1657,24 @@ export function registerDocumentTools(server: McpServer): void {
         if (result.violationsCapped) {
           lines.push("");
           lines.push("**Note:** Violations list was capped at 500 entries. Additional violations may exist.");
+        }
+
+        // Accepted exceptions stay visible — they are excluded from the
+        // verdict, not hidden, so a stale suppression can still be spotted.
+        if (!summary_only && suppressedViolations.length > 0) {
+          lines.push("");
+          lines.push(`## Suppressed (${suppressedViolations.length}) — not counted in the verdict`);
+          lines.push("");
+          lines.push("| Node | Property | Rule | Suppressed by |");
+          lines.push("|------|----------|------|---------------|");
+          for (const v of suppressedViolations.slice(0, 100)) {
+            lines.push(
+              `| ${v.nodeName} (${v.nodeId}) | ${v.property} | ${v.category} | ${(v as LintViolation & { suppressedBy?: string }).suppressedBy ?? "—"} |`,
+            );
+          }
+          if (suppressedViolations.length > 100) {
+            lines.push(`\n_${suppressedViolations.length - 100} more suppressed entries not shown._`);
+          }
         }
 
         return {
@@ -1593,6 +1899,56 @@ export function registerDocumentTools(server: McpServer): void {
     },
   );
 
+  // Figma Connect Tool — get_open_channels + join_channel in one call.
+  //
+  // ~84% of sessions opened with exactly that pair, so the pair is the tool.
+  server.tool(
+    "figma_connect",
+    "START HERE. Connects this session to Figma in ONE call: discovers the open channels and joins the live one automatically. ALWAYS PREFER this over calling get_open_channels and then join_channel — that pair is the first thing almost every session does. With exactly one connected channel it joins it and reports the file name; with several it lists them and asks you to re-call with `channelId`; with none it reports how to fix the connection. Pass `channelId` directly when the user names a channel.",
+    {
+      channelId: z
+        .string()
+        .optional()
+        .describe("Join this channel directly, skipping discovery. Omit to auto-discover."),
+    },
+    async ({ channelId }) => {
+      const text = (t: string) => ({ content: [{ type: "text" as const, text: t }] });
+      try {
+        if (channelId) {
+          await joinChannel(channelId);
+          return text(`Connected to Figma channel: ${channelId}`);
+        }
+
+        const channels = await getOpenChannels();
+        // The "browser" channel belongs to the Chrome extension, not a Figma file.
+        const figmaChannels = channels.filter((ch) => ch.channel !== "browser");
+        const live = figmaChannels.filter((ch) => ch.hasPlugin);
+
+        if (live.length === 0) {
+          const stale = figmaChannels.length > 0 ? ` (${figmaChannels.length} stale channel(s) with no plugin)` : "";
+          return text(
+            `No live Figma channels found${stale}. Ensure the WebSocket server is running and the Claude MCP Plugin is open in Figma, then call figma_connect again.`,
+          );
+        }
+
+        if (live.length === 1) {
+          const only = live[0];
+          await joinChannel(only.channel);
+          return text(`Connected to Figma channel: ${only.channel} (${only.fileName || "unknown file"})`);
+        }
+
+        const list = live.map((ch) => `  - ${ch.channel} (${ch.fileName || "unknown file"})`).join("\n");
+        return text(
+          `${live.length} live Figma channels — ask the user which file to work in, then call figma_connect again with that channelId:\n${list}`,
+        );
+      } catch (error) {
+        return text(
+          `Error connecting to Figma: ${error instanceof Error ? error.message : String(error)}. Ensure the WebSocket server is running and the Claude MCP Plugin is open in Figma.`,
+        );
+      }
+    },
+  );
+
   // Join Channel Tool
   server.tool(
     "join_channel",
@@ -1703,7 +2059,15 @@ export function registerDocumentTools(server: McpServer): void {
   // Export Node as Image Tool
   server.tool(
     "export_node_as_image",
-    "Export a node as a base64 image (PNG/JPG/SVG/PDF), or as a base64 video (MP4/GIF/WEBM) from Figma. Video export requires the node to be a top-level frame (a direct child of a page) with animated content — a nested animated frame or an individual keyframed layer is rejected.",
+    "Export a node as an image (PNG/JPG/SVG/PDF) or video (MP4/GIF/WEBM) from Figma. " +
+      "BY DEFAULT the render is written to a file and only {path,width,height,bytes,format} is returned — a few tokens instead of tens of thousands. " +
+      "Pass `inline: true` ONLY when you genuinely need to SEE the pixels in this conversation; structural checks ('did it render', 'is it clipped') never do. " +
+      "Pass `save_to_path` for an exact file path, or `output_directory` (plus an optional `filename`) to choose a folder; otherwise a session temp file is used. " +
+      "Identical re-exports of an unchanged node are served from a session cache (bypass with `force_refresh: true`). " +
+      "`scale` defaults to 1 — that is almost always right; 2 doubles the pixel cost, so only use it when you are inspecting fine detail. " +
+      "Inline returns are capped at 1200px on the longest edge unless `allow_full_resolution`, `max_width` or `max_height` is set. " +
+      "Use `region` to crop, `max_width`/`max_height` to downscale, and `format: 'JPG'` with `jpeg_quality` for cheap review screenshots. " +
+      "Video export requires the node to be a top-level frame (a direct child of a page) with animated content — a nested animated frame or an individual keyframed layer is rejected.",
     {
       nodeId: z.string().describe("The ID of the node to export"),
       format: z
@@ -1711,7 +2075,13 @@ export function registerDocumentTools(server: McpServer): void {
         .transform((v) => v.toUpperCase() as "PNG" | "JPG" | "SVG" | "PDF" | "MP4" | "GIF" | "WEBM")
         .optional()
         .describe("Export format (e.g. 'png' or 'PNG'). MP4/GIF/WEBM export a video instead of an image."),
-      scale: z.coerce.number().positive().optional().describe("Export scale — image formats only (PNG/JPG/SVG/PDF)"),
+      scale: z.coerce
+        .number()
+        .positive()
+        .optional()
+        .describe(
+          "Export scale — image formats only (PNG/JPG/SVG/PDF). Defaults to 1. Values above 1 multiply the pixel (and token) cost; use <1 to shrink.",
+        ),
       fps: z.coerce
         .number()
         .optional()
@@ -1741,8 +2111,90 @@ export function registerDocumentTools(server: McpServer): void {
         .describe(
           "Video size constraint value — video formats only. For SCALE, must be one of 0.5/0.75/1/1.5/2/3/4. For WIDTH/HEIGHT, a pixel value (capped at 4K/3840x2160).",
         ),
+      save_to_path: z
+        .string()
+        .optional()
+        .describe(
+          "Absolute file path to write the export to. STRONGLY PREFERRED for visual checks: returns only {path,width,height,bytes,format} instead of an inline base64 image. Parent directory must exist; overwrites.",
+        ),
+      output_directory: z
+        .string()
+        .optional()
+        .describe(
+          "Absolute directory to write the export into; created when missing. The file name is derived from the node name, id, scale and format unless `filename` is given. Ignored (with a warning) when `save_to_path` is also passed.",
+        ),
+      filename: z
+        .string()
+        .optional()
+        .describe(
+          "File name for the export (no path separators). The extension implied by `format` is appended when missing. Used with `output_directory`; falls back to the session temp directory when that is omitted.",
+        ),
+      max_width: z.coerce
+        .number()
+        .int()
+        .positive()
+        .optional()
+        .describe("Downscale the exported image so its width is at most this many pixels (image formats only)."),
+      max_height: z.coerce
+        .number()
+        .int()
+        .positive()
+        .optional()
+        .describe("Downscale the exported image so its height is at most this many pixels (image formats only)."),
+      allow_full_resolution: mcpBooleanSchema
+        .optional()
+        .describe(
+          "Return the image inline at full resolution, bypassing the default 1200px longest-edge cap. Expensive — prefer save_to_path.",
+        ),
+      region: z
+        .object({
+          x: z.coerce.number(),
+          y: z.coerce.number(),
+          width: z.coerce.number().positive(),
+          height: z.coerce.number().positive(),
+        })
+        .optional()
+        .describe(
+          "Crop the export to this rectangle, in exported-image pixels (i.e. after `scale` is applied), origin at the node's top-left. PNG/JPG only.",
+        ),
+      jpeg_quality: z.coerce
+        .number()
+        .int()
+        .min(1)
+        .max(100)
+        .optional()
+        .describe(
+          "JPEG encode quality 1-100 — format 'JPG' only. Lower values shrink review screenshots dramatically. Unrelated to the video `quality` preset.",
+        ),
+      inline: mcpBooleanSchema
+        .optional()
+        .describe(
+          "Return the pixels inline in this conversation instead of writing a file. Expensive — only for work that genuinely needs to see the image.",
+        ),
+      force_refresh: mcpBooleanSchema
+        .optional()
+        .describe("Bypass the session render cache and force a fresh export, even if the node looks unchanged."),
     },
-    async ({ nodeId, format, scale, fps, quality, loopCount, constraintType, constraintValue }) => {
+    async ({
+      nodeId,
+      format,
+      scale,
+      fps,
+      quality,
+      loopCount,
+      constraintType,
+      constraintValue,
+      save_to_path,
+      output_directory,
+      filename,
+      max_width,
+      max_height,
+      allow_full_resolution,
+      region,
+      jpeg_quality,
+      inline,
+      force_refresh,
+    }) => {
       nodeId = normalizeNodeId(nodeId);
       const isVideo = format === "MP4" || format === "GIF" || format === "WEBM";
       try {
@@ -1763,7 +2215,37 @@ export function registerDocumentTools(server: McpServer): void {
             mimeType: string;
             format: string;
             byteLength: number;
+            name?: string;
           };
+          if (save_to_path || output_directory || filename) {
+            const destination = await resolveExportDestination({
+              saveToPath: save_to_path,
+              outputDirectory: output_directory,
+              filename,
+              nodeId,
+              nodeName: typedResult.name,
+              scale: scale || 1,
+              format: typedResult.format,
+            });
+            const written = await writeExportToPath(destination.path, typedResult.videoData);
+            return {
+              content: [
+                {
+                  type: "text" as const,
+                  text: JSON.stringify(
+                    {
+                      path: written.path,
+                      bytes: written.bytes,
+                      format: typedResult.format,
+                      ...(destination.warnings.length ? { warnings: destination.warnings } : {}),
+                    },
+                    null,
+                    2,
+                  ),
+                },
+              ],
+            };
+          }
           return {
             content: [
               {
@@ -1791,30 +2273,179 @@ export function registerDocumentTools(server: McpServer): void {
           originalHeight: number;
           exportedWidth: number;
           exportedHeight: number;
+          subtreeHash?: string | null;
+          name?: string;
         };
+
+        const resolvedFormat = format || "PNG";
+        const resolvedScale = scale || 1;
+        const wantsInline = inline === true;
+
+        // Where the file goes. Resolved even for inline renders so an explicit
+        // destination still participates in the cache key.
+        const destination = wantsInline
+          ? { path: "", warnings: [] as string[] }
+          : await resolveExportDestination({
+              saveToPath: save_to_path,
+              outputDirectory: output_directory,
+              filename,
+              nodeId,
+              nodeName: typedResult.name,
+              scale: resolvedScale,
+              format: resolvedFormat,
+            });
+
+        // Session render cache. Keyed on the plugin-computed subtree version
+        // hash — when that is missing we simply never cache (a false miss costs
+        // one render; a false hit silently shows a stale design).
+        const cacheKey = exportCacheKey({
+          nodeId,
+          scale: resolvedScale,
+          format: resolvedFormat,
+          subtreeHash: typedResult.subtreeHash,
+          region,
+          maxWidth: max_width,
+          maxHeight: max_height,
+          jpegQuality: jpeg_quality,
+          allowFullResolution: allow_full_resolution === true,
+          inline: wantsInline,
+          destination: destination.path || null,
+        });
+        const cached = force_refresh === true ? undefined : getCachedExport(cacheKey);
+
+        if (cached) {
+          const savedNote =
+            `Cache HIT — "${nodeId}" is unchanged since the last export at this scale (subtree hash ${typedResult.subtreeHash}); ` +
+            `reusing that render and skipping ~${cached.approxTokens} result tokens. Pass force_refresh: true to re-render.`;
+          if (cached.path) {
+            return {
+              content: [
+                {
+                  type: "text" as const,
+                  text: JSON.stringify(
+                    {
+                      path: cached.path,
+                      width: cached.width,
+                      height: cached.height,
+                      bytes: cached.bytes,
+                      format: cached.format,
+                      cached: true,
+                      note: savedNote,
+                    },
+                    null,
+                    2,
+                  ),
+                },
+              ],
+            };
+          }
+          return {
+            content: [
+              { type: "text" as const, text: savedNote },
+              {
+                type: "image" as const,
+                data: cached.base64 as string,
+                mimeType: cached.mimeType || "image/png",
+              },
+            ],
+          };
+        }
+
+        // Server-side crop / downscale / re-encode. Saving to disk keeps full
+        // resolution — the 1200px cap only guards inline (token-costly)
+        // returns — but a fractional `scale` is enforced on BOTH paths.
+        const longestSourceEdge = Math.max(typedResult.originalWidth || 0, typedResult.originalHeight || 0);
+        const hardMaxEdge =
+          resolvedScale < 1 && longestSourceEdge > 0
+            ? Math.max(1, Math.round(longestSourceEdge * resolvedScale))
+            : undefined;
+
+        const processed = await postProcessExport({
+          base64: typedResult.imageData,
+          format: resolvedFormat,
+          maxWidth: max_width,
+          maxHeight: max_height,
+          allowFullResolution: allow_full_resolution === true || !wantsInline,
+          region,
+          jpegQuality: jpeg_quality,
+          hardMaxEdge,
+        });
+
+        const width = processed.width ?? typedResult.exportedWidth;
+        const height = processed.height ?? typedResult.exportedHeight;
+        const approxTokens = approximateImageTokens(width, height);
+
+        // A2: writing a file is the DEFAULT. Pixels come back inline only when
+        // the caller explicitly asks for them.
+        if (!wantsInline) {
+          const written = await writeExportToPath(destination.path, processed.base64);
+          setCachedExport(cacheKey, {
+            path: written.path,
+            width,
+            height,
+            bytes: written.bytes,
+            format: resolvedFormat,
+            approxTokens,
+          });
+          return {
+            content: [
+              {
+                type: "text" as const,
+                text: JSON.stringify(
+                  {
+                    path: written.path,
+                    width,
+                    height,
+                    bytes: written.bytes,
+                    format: resolvedFormat,
+                    cached: false,
+                    ...(destination.warnings.length ? { warnings: destination.warnings } : {}),
+                    note: [
+                      ...processed.notes,
+                      ...destination.warnings,
+                      "Pass inline: true if you need to see the pixels in the conversation.",
+                    ].join(" "),
+                  },
+                  null,
+                  2,
+                ),
+              },
+            ],
+          };
+        }
 
         const content: Array<{ type: "text"; text: string } | { type: "image"; data: string; mimeType: string }> = [];
 
         // Add warning if scale was auto-reduced or image is large
         const wasScaleReduced = typedResult.actualScale < typedResult.requestedScale;
-        const isLargeImage = typedResult.exportedWidth > 4000 || typedResult.exportedHeight > 4000;
 
-        if (wasScaleReduced) {
-          content.push({
-            type: "text",
-            text: `⚠️ Image was auto-scaled from ${typedResult.requestedScale}x to ${typedResult.actualScale.toFixed(2)}x to fit within size limits. Original: ${typedResult.originalWidth}x${typedResult.originalHeight}px, Exported: ${typedResult.exportedWidth}x${typedResult.exportedHeight}px.`,
-          });
-        } else if (isLargeImage) {
-          content.push({
-            type: "text",
-            text: `ℹ️ Large image exported (${typedResult.exportedWidth}x${typedResult.exportedHeight}px).`,
-          });
-        }
+        const summary = [
+          `Exported "${nodeId}" as ${resolvedFormat} — ${width}x${height}px, ${(processed.bytes / 1024).toFixed(0)} KB (original node ${typedResult.originalWidth}x${typedResult.originalHeight}px).`,
+          wasScaleReduced
+            ? `⚠️ Scale auto-reduced from ${typedResult.requestedScale}x to ${typedResult.actualScale.toFixed(2)}x to fit Figma export limits.`
+            : "",
+          ...processed.notes,
+          `Cache MISS (~${approxTokens} result tokens). Omit inline to get a file path instead of an inline image (far cheaper).`,
+        ]
+          .filter(Boolean)
+          .join(" ");
+
+        content.push({ type: "text", text: summary });
 
         content.push({
           type: "image",
-          data: typedResult.imageData,
+          data: processed.base64,
           mimeType: typedResult.mimeType || "image/png",
+        });
+
+        setCachedExport(cacheKey, {
+          base64: processed.base64,
+          mimeType: typedResult.mimeType || "image/png",
+          width,
+          height,
+          bytes: processed.bytes,
+          format: resolvedFormat,
+          approxTokens,
         });
 
         return { content };
@@ -2166,12 +2797,8 @@ export function registerDocumentTools(server: McpServer): void {
   );
 
   // Setup Design System Tool
-  const rgbaColorSchema = z.object({
-    r: z.coerce.number().min(0).max(1).describe("Red channel (0-1)"),
-    g: z.coerce.number().min(0).max(1).describe("Green channel (0-1)"),
-    b: z.coerce.number().min(0).max(1).describe("Blue channel (0-1)"),
-    a: z.coerce.number().min(0).max(1).optional().describe("Alpha channel (0-1), defaults to 1"),
-  });
+  // Shared colour contract: hex, {r,g,b,a} in 0-1 or 0-255, or [r,g,b(,a)].
+  const rgbaColorSchema = ColorInputSchema;
 
   server.tool(
     "setup_design_system",
@@ -2259,7 +2886,16 @@ export function registerDocumentTools(server: McpServer): void {
       try {
         const params: Record<string, unknown> = {};
         if (pages) params.pages = pages;
-        if (collections) params.collections = collections;
+        if (collections) {
+          // Normalize every COLOR value to 0-1 {r,g,b,a} — the schema accepts
+          // hex strings, 0-255 objects and arrays too.
+          params.collections = collections.map((collection) => ({
+            ...collection,
+            variables: collection.variables.map((variable) =>
+              variable.type === "COLOR" ? { ...variable, value: toRgba(variable.value) } : variable,
+            ),
+          }));
+        }
         if (text_styles) {
           params.textStyles = text_styles.map((ts) => ({
             name: ts.name,
@@ -2272,7 +2908,12 @@ export function registerDocumentTools(server: McpServer): void {
           }));
         }
         if (effect_styles) {
-          params.effectStyles = effect_styles;
+          params.effectStyles = effect_styles.map((style) => ({
+            ...style,
+            effects: style.effects.map((effect) =>
+              effect.color === undefined ? effect : { ...effect, color: toRgba(effect.color) },
+            ),
+          }));
         }
 
         const setupResult = await sendCommandToFigma<SetupDesignSystemResult>("setup_design_system", params, 120000);
@@ -2343,7 +2984,7 @@ export function registerDocumentTools(server: McpServer): void {
   // Commit Undo Tool
   server.tool(
     "commit_undo",
-    "Commit the current undo group as a checkpoint. A subsequent undo will revert only the actions performed after this checkpoint.",
+    "Commit an undo checkpoint: everything done up to now becomes one undo group, so a later `undo` (or the user pressing Cmd+Z once in Figma) reverts only what happens AFTER this call. Call it before any risky or exploratory sequence of edits - deletions, restructuring a frame, applying a theme across many nodes - so the whole sequence can be backed out in one step. `batch_actions` commits one for you by default (checkpoint: true).",
     {},
     async () => {
       try {
@@ -2387,6 +3028,58 @@ export function registerDocumentTools(server: McpServer): void {
             {
               type: "text",
               text: `Error saving version history: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  // Set Page Background Tool
+  server.tool(
+    "set_page_background",
+    "Set the canvas background color of a Figma page. Pages use `backgrounds` (not `fills`), so set_fill_color fails on a PAGE node — use this instead of faking the canvas with a full-bleed rectangle.",
+    {
+      pageId: z.string().optional().describe("Page ID. Defaults to the current page."),
+      color: colorParam("Page background color. Use this OR r,g,b,a.").optional(),
+      r: z.coerce.number().min(0).max(255).optional().describe("Red channel (0–1 normalized, or 0–255)"),
+      g: z.coerce.number().min(0).max(255).optional().describe("Green channel (0–1 normalized, or 0–255)"),
+      b: z.coerce.number().min(0).max(255).optional().describe("Blue channel (0–1 normalized, or 0–255)"),
+      a: z.coerce.number().min(0).max(255).optional().describe("Alpha (0–1 normalized, or 0–255; default 1)"),
+    },
+    async ({ pageId, color, r, g, b, a }) => {
+      try {
+        const params: Record<string, unknown> = {};
+        if (pageId) params.pageId = pageId;
+        if (color !== undefined) {
+          const normalized = toRgba(color);
+          params.color = typeof color === "string" ? color : normalized;
+        } else {
+          if (r === undefined || g === undefined || b === undefined) {
+            throw new Error("Provide either 'color' or r, g, b components");
+          }
+          const normalized = toRgba({ r, g, b, a });
+          params.r = normalized.r;
+          params.g = normalized.g;
+          params.b = normalized.b;
+          params.a = normalized.a;
+        }
+        const result = await sendCommandToFigma("set_page_background", params);
+        const typed = result as { id: string; name: string };
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Set background of page "${typed.name}" (ID: ${typed.id}) to ${color ?? `rgba(${r}, ${g}, ${b}, ${a ?? 1})`}`,
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error setting page background: ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };

@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { hexToRgba, RGBAColor } from "./color-calculations.js";
+import { RGBAColor } from "./color-calculations.js";
+import { toRgba } from "./color-input.js";
 
 /**
  * Shared variable value schemas and type-driven value normalization, used by the
@@ -9,7 +10,8 @@ import { hexToRgba, RGBAColor } from "./color-calculations.js";
 // Zod schemas for color validation
 const coerceColorChannel = z.preprocess(
   (v) => (typeof v === "boolean" || v === null ? undefined : v),
-  z.coerce.number().min(0).max(1),
+  // Range is 0–255: a channel > 1 is read as 0–255 by toRgba, <= 1 as 0–1.
+  z.coerce.number().min(0).max(255),
 );
 
 export const RGBAColorSchema = z.object({
@@ -63,6 +65,7 @@ export const VariableTypeSchema = z.enum(["COLOR", "FLOAT", "STRING", "BOOLEAN",
 export const VariableInputValueSchema = z.union([
   RGBAColorSchema,
   MotionEasingSchema,
+  z.array(z.coerce.number()).min(3).max(4),
   z.string(),
   z.number(),
   z.boolean(),
@@ -73,18 +76,8 @@ export function normalizeVariableValueByType(
   value: unknown,
 ): RGBAColor | MotionEasingValue | number | string | boolean {
   if (type === "COLOR") {
-    // Accept a hex string (e.g. "#ff0000", "#f00", "#ff000080") the same way
-    // set_fill_color/set_stroke_color do, in addition to an {r,g,b,a} object.
-    if (typeof value === "string") {
-      try {
-        return hexToRgba(value);
-      } catch {
-        throw new Error(
-          `Invalid COLOR value: "${value}". Pass a hex string (e.g. "#ff0000") or an {r,g,b,a} object with 0-1 channels.`,
-        );
-      }
-    }
-    return RGBAColorSchema.parse(value);
+    // Accepts hex, {r,g,b,a} in 0-1 or 0-255, and [r,g,b(,a)] arrays.
+    return toRgba(value);
   }
 
   if (type === "FLOAT") {

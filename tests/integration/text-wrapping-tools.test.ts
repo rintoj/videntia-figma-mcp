@@ -69,6 +69,39 @@ describe("text wrapping MCP tools", () => {
       expect(() => schema.parse({ x: 0, y: 0, text: "x", textAutoResize: "TRUNCATE" })).toThrow();
       expect(() => schema.parse({ x: 0, y: 0, text: "x", width: 0 })).toThrow();
     });
+
+    it("forwards textAlignHorizontal/textAlignVertical and reports them", async () => {
+      mockSendCommand.mockResolvedValue({
+        id: "t3",
+        name: "Title",
+        width: 240,
+        textAutoResize: "HEIGHT",
+        textAlignHorizontal: "CENTER",
+        textAlignVertical: "BOTTOM",
+      });
+
+      const response = await callTool("create_text", {
+        x: 0,
+        y: 0,
+        text: "Centred",
+        width: 240,
+        textAlignHorizontal: "CENTER",
+        textAlignVertical: "BOTTOM",
+      });
+
+      const params = mockSendCommand.mock.calls[0][1];
+      expect(params.textAlignHorizontal).toBe("CENTER");
+      expect(params.textAlignVertical).toBe("BOTTOM");
+      expect(response.content[0].text).toContain("textAlignHorizontal: CENTER");
+      expect(response.content[0].text).toContain("textAlignVertical: BOTTOM");
+    });
+
+    it("rejects invalid alignment values", () => {
+      const schema = toolSchemas.get("create_text")!;
+      expect(() => schema.parse({ x: 0, y: 0, text: "x", textAlignHorizontal: "MIDDLE" })).toThrow();
+      expect(() => schema.parse({ x: 0, y: 0, text: "x", textAlignVertical: "JUSTIFIED" })).toThrow();
+      expect(toolSchemas.get("create_text")!.parse({ x: 0, y: 0, text: "x" }).textAlignHorizontal).toBeUndefined();
+    });
   });
 
   describe("resize_node", () => {
@@ -145,6 +178,21 @@ describe("text wrapping MCP tools", () => {
       expect(parsed[0].textAutoResize).toBe("HEIGHT");
       expect(parsed[0].textTruncation).toBe("ENDING");
       expect(parsed[0].fills).toBeUndefined();
+    });
+
+    it("keeps textAlignHorizontal and textAlignVertical when filtering to the characters field", async () => {
+      mockSendCommand.mockResolvedValue({
+        count: 1,
+        nodes: [{ ...textNode, fills: [], textAlignHorizontal: "CENTER", textAlignVertical: "BOTTOM" }],
+      });
+      const response = await callTool("get_node_info", {
+        nodeId: "t1",
+        output_format: "json",
+        fields: ["characters"],
+      });
+      const parsed = JSON.parse(response.content[0].text);
+      expect(parsed[0].textAlignHorizontal).toBe("CENTER");
+      expect(parsed[0].textAlignVertical).toBe("BOTTOM");
     });
 
     it("emits textAutoResize in JSX output", async () => {

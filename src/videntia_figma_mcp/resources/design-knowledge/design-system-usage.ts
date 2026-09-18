@@ -70,6 +70,8 @@ If a token or style exists for a value, attach it. Don't type the number or hex.
 | Typography on a text layer | \`apply_text_style\` (by name or id) |
 | Typography inside a text style | \`bind_variable\` with the text style as the target and a field such as \`fontSize\`, \`lineHeight\`, \`fontFamily\` |
 | Shadows / blurs | \`set_effect_style_id\` |
+| Shadow or focus-ring colour, blur radius, spread, offset | \`bind_variable\` with \`effects/0/color\`, \`effects/0/radius\`, \`effects/0/spread\`, \`effects/0/offsetX\`, \`effects/0/offsetY\` on a node or an effect style (style name as \`nodeId\`), or \`colorVariable\`/\`radiusVariable\`/… per effect in \`set_effects\` and \`create_effect_style\` |
+| Gradient stop colour | \`bind_variable\` with \`fills/0/gradientStops/M/color\`, or \`colorVariable\` per stop in \`set_gradient_fill\`. \`fills/0/color\` only works on SOLID paints |
 
 \`bind_variable\`, \`apply_text_style\` and the style tools accept names like \`surface/card\`, so you don't need to look up ids first. Use \`unbind_variable\` only when you mean to break a link on purpose.
 

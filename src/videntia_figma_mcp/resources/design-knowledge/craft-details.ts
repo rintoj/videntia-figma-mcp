@@ -15,6 +15,7 @@ The 10% of work that separates good design from great. These are the details tha
 - Recommended focus ring: \`box-shadow: 0 0 0 2px {background}, 0 0 0 4px {ring-color}\`
 - The 2px background gap creates visual separation from the element border
 - Focus ring color: Use primary color at 40–60% opacity or a dedicated \`--ring\` token
+- In Figma, draw the ring as a \`DROP_SHADOW\` with offset 0, radius 0 and spread 2–4, and bind its colour to the ring token: \`colorVariable: "ring"\` in \`set_effects\` / \`create_effect_style\`, or \`bind_variable\` with field \`effects/0/color\`. A stroke bound with \`strokes/0/color\` also works when the ring should sit inside the layout
 
 ## Forms
 

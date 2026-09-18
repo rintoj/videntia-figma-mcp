@@ -157,6 +157,7 @@ export async function scanNodesByTypes(params: Record<string, unknown>): Promise
   const types = params["types"] as string[] | undefined;
   const limit = params["limit"] !== undefined && params["limit"] !== null ? (params["limit"] as number) : 50;
   const depth = params["depth"] as number | undefined;
+  const topLevelOnly = params["topLevelOnly"] === true;
 
   if (!Array.isArray(types) || types.length === 0) {
     throw new Error("types must be a non-empty array");
@@ -167,16 +168,20 @@ export async function scanNodesByTypes(params: Record<string, unknown>): Promise
     throw new Error(`Node with ID ${nodeId} not found`);
   }
 
-  const matchedIds: string[] = [];
+  // Collect ALL matches first so totalFound is accurate even when the result is
+  // truncated by `limit`. Truncating during traversal is what made previous
+  // sweeps silently incomplete.
+  const allMatchedIds: string[] = [];
 
   const scanNode = (n: SceneNode): void => {
-    if (matchedIds.length >= limit) return;
-    if (types.includes(n.type)) {
-      matchedIds.push(n.id);
+    const isMatch = types.includes(n.type);
+    if (isMatch) {
+      allMatchedIds.push(n.id);
+      // A matched node's descendants are nested, not top level.
+      if (topLevelOnly) return;
     }
     if ("children" in n) {
       for (const child of (n as ChildrenMixin).children) {
-        if (matchedIds.length >= limit) break;
         scanNode(child as SceneNode);
       }
     }
@@ -184,14 +189,25 @@ export async function scanNodesByTypes(params: Record<string, unknown>): Promise
 
   if ("children" in node) {
     for (const child of (node as ChildrenMixin).children) {
-      if (matchedIds.length >= limit) break;
-      scanNode(child as SceneNode);
+      if (topLevelOnly) {
+        // Only direct children of the scanned node are considered.
+        if (types.includes((child as SceneNode).type)) {
+          allMatchedIds.push(child.id);
+        }
+      } else {
+        scanNode(child as SceneNode);
+      }
     }
   }
 
+  const totalFound = allMatchedIds.length;
+  const matchedIds = totalFound > limit ? allMatchedIds.slice(0, limit) : allMatchedIds;
+  const truncated = totalFound > matchedIds.length;
+
   if (matchedIds.length === 0) {
-    return { count: 0, nodes: [] };
+    return { count: 0, totalFound, truncated: false, limit, topLevelOnly, nodes: [] };
   }
 
-  return await serializeNodes({ nodeIds: matchedIds, depth: depth });
+  const serialized = await serializeNodes({ nodeIds: matchedIds, depth: depth });
+  return { ...serialized, count: matchedIds.length, totalFound, truncated, limit, topLevelOnly };
 }

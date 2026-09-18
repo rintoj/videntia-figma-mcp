@@ -89,6 +89,100 @@ describe("new modification tools integration", () => {
     });
   });
 
+  describe("set_grid_child", () => {
+    it("sends placement, spans and alignment and reports the applied values", async () => {
+      mockSendCommand.mockResolvedValue({
+        name: "Card",
+        row: 1,
+        column: 0,
+        rowSpan: 2,
+        columnSpan: 3,
+        horizontalAlign: "CENTER",
+        verticalAlign: "AUTO",
+      });
+      const response = await callTool("set_grid_child", {
+        nodeId: "1-2",
+        row: "1",
+        column: 0,
+        rowSpan: 2,
+        columnSpan: 3,
+        horizontalAlign: "CENTER",
+      });
+      expect(mockSendCommand).toHaveBeenCalledWith("set_grid_child", {
+        nodeId: "1:2",
+        row: 1,
+        column: 0,
+        rowSpan: 2,
+        columnSpan: 3,
+        horizontalAlign: "CENTER",
+      });
+      expect(response.content[0].text).toContain('Placed "Card" at row 1, column 0 (span 2×3');
+    });
+
+    it("rejects a call with nothing to set without contacting Figma", async () => {
+      const response = await callTool("set_grid_child", { nodeId: "1:2" });
+      expect(mockSendCommand).not.toHaveBeenCalled();
+      expect(response.content[0].text).toContain("Error setting grid child");
+      expect(response.content[0].text).toContain("requires at least one of");
+    });
+
+    it("rejects negative indices and zero spans at the schema", () => {
+      const schema = toolSchemas.get("set_grid_child")!;
+      expect(schema.safeParse({ nodeId: "1:2", row: -1 }).success).toBe(false);
+      expect(schema.safeParse({ nodeId: "1:2", columnSpan: 0 }).success).toBe(false);
+      expect(schema.safeParse({ nodeId: "1:2", verticalAlign: "STRETCH" }).success).toBe(false);
+    });
+
+    it("surfaces plugin errors", async () => {
+      mockSendCommand.mockRejectedValue(new Error("is not a child of a GRID auto-layout frame"));
+      const response = await callTool("set_grid_child", { nodeId: "1:2", row: 0 });
+      expect(response.content[0].text).toContain("not a child of a GRID");
+    });
+  });
+
+  describe("grid track sizes", () => {
+    beforeEach(() => {
+      mockSendCommand.mockResolvedValue({ name: "Grid", gridRowCount: 1, gridColumnCount: 2 });
+    });
+
+    it("set_layout_mode forwards columnSizes as gridColumnSizes", async () => {
+      await callTool("set_layout_mode", {
+        nodeId: "1:2",
+        mode: "GRID",
+        columns: 2,
+        columnSizes: '[{"type":"FIXED","value":"240"},{"type":"FLEX"}]',
+      });
+      expect(mockSendCommand).toHaveBeenCalledWith("set_layout_mode", {
+        nodeId: "1:2",
+        layoutMode: "GRID",
+        gridColumnCount: 2,
+        gridColumnSizes: [{ type: "FIXED", value: 240 }, { type: "FLEX" }],
+      });
+    });
+
+    it("set_auto_layout forwards rowSizes and rejects them outside GRID", async () => {
+      await callTool("set_auto_layout", { nodeId: "1:2", mode: "GRID", rowSizes: [{ type: "HUG" }] });
+      expect(mockSendCommand).toHaveBeenCalledWith(
+        "set_auto_layout",
+        expect.objectContaining({ layoutMode: "GRID", gridRowSizes: [{ type: "HUG" }] }),
+      );
+
+      mockSendCommand.mockClear();
+      const response = await callTool("set_auto_layout", {
+        nodeId: "1:2",
+        mode: "VERTICAL",
+        rowSizes: [{ type: "HUG" }],
+      });
+      expect(mockSendCommand).not.toHaveBeenCalled();
+      expect(response.content[0].text).toContain("apply to GRID mode only");
+    });
+
+    it("rejects unknown track types at the schema", () => {
+      const schema = toolSchemas.get("set_layout_mode")!;
+      expect(schema.safeParse({ nodeId: "1:2", mode: "GRID", rowSizes: [{ type: "AUTO" }] }).success).toBe(false);
+    });
+  });
+
   describe("set_layout_mode", () => {
     beforeEach(() => {
       mockSendCommand.mockResolvedValue({
@@ -106,7 +200,6 @@ describe("new modification tools integration", () => {
       expect(mockSendCommand).toHaveBeenCalledWith("set_layout_mode", {
         nodeId: "frame-123",
         layoutMode: "HORIZONTAL",
-        layoutWrap: "NO_WRAP",
       });
       expect(response.content[0].text).toContain("Set layout mode");
       expect(response.content[0].text).toContain("Auto Layout Frame");
@@ -122,7 +215,6 @@ describe("new modification tools integration", () => {
       expect(mockSendCommand).toHaveBeenCalledWith("set_layout_mode", {
         nodeId: "frame-123",
         layoutMode: "VERTICAL",
-        layoutWrap: "NO_WRAP",
       });
     });
 
@@ -135,8 +227,15 @@ describe("new modification tools integration", () => {
       expect(mockSendCommand).toHaveBeenCalledWith("set_layout_mode", {
         nodeId: "frame-123",
         layoutMode: "NONE",
-        layoutWrap: "NO_WRAP",
       });
+    });
+
+    it("omits layoutWrap entirely when wrap is not supplied", async () => {
+      await callTool("set_layout_mode", { nodeId: "frame-123", mode: "HORIZONTAL" });
+      const [, payload] = mockSendCommand.mock.calls[0];
+      // Regression: defaulting to NO_WRAP here silently un-wrapped frames the
+      // caller never mentioned.
+      expect(Object.prototype.hasOwnProperty.call(payload, "layoutWrap")).toBe(false);
     });
 
     it("accepts layoutWrap parameter", async () => {
@@ -212,13 +311,18 @@ describe("new modification tools integration", () => {
       expect(response.content[0].text).toContain("does not apply to GRID");
     });
 
-    it("requires nodeId and layoutMode parameters", async () => {
-      await expect(
-        callTool("set_layout_mode", {
-          nodeId: "frame-123",
-        }),
-      ).rejects.toThrow();
+    it("requires a mode (or its layoutMode alias)", async () => {
+      const response = await callTool("set_layout_mode", { nodeId: "frame-123" });
+      expect(response.content[0].text).toContain("missing `mode`");
       expect(mockSendCommand).not.toHaveBeenCalled();
+    });
+
+    it("accepts the layoutMode alias", async () => {
+      await callTool("set_layout_mode", { nodeId: "frame-123", layoutMode: "VERTICAL" });
+      expect(mockSendCommand).toHaveBeenCalledWith("set_layout_mode", {
+        nodeId: "frame-123",
+        layoutMode: "VERTICAL",
+      });
     });
 
     describe("set_auto_layout GRID support", () => {
@@ -534,9 +638,13 @@ describe("new modification tools integration", () => {
 
   describe("set_layout_sizing", () => {
     beforeEach(() => {
-      mockSendCommand.mockResolvedValue({
+      // The tool echoes the values READ BACK from the plugin, so the mock must
+      // return them the way the real plugin handler does.
+      mockSendCommand.mockImplementation(async (_cmd: string, params: any) => ({
         name: "Sized Frame",
-      });
+        layoutSizingHorizontal: params.layoutSizingHorizontal,
+        layoutSizingVertical: params.layoutSizingVertical,
+      }));
     });
 
     it("successfully sets horizontal sizing", async () => {
@@ -771,19 +879,27 @@ describe("new modification tools integration", () => {
       });
 
       expect(mockSendCommand).toHaveBeenCalledTimes(1);
-      expect(mockSendCommand).toHaveBeenCalledWith("set_image_fill", {
-        nodeId: "rect-123",
-        imageUrl: "https://picsum.photos/800/600",
-        scaleMode: "FILL",
-        rotation: undefined,
-        exposure: undefined,
-        contrast: undefined,
-        saturation: undefined,
-        temperature: undefined,
-        tint: undefined,
-        highlights: undefined,
-        shadows: undefined,
-      });
+      // Contract change (bug #16): set_image_fill gained `image_path`, so the payload
+      // always carries an imageBytes slot and a third timeout argument (120s only when
+      // a local file was read server-side, undefined otherwise).
+      expect(mockSendCommand).toHaveBeenCalledWith(
+        "set_image_fill",
+        {
+          nodeId: "rect-123",
+          imageUrl: "https://picsum.photos/800/600",
+          imageBytes: undefined,
+          scaleMode: "FILL",
+          rotation: undefined,
+          exposure: undefined,
+          contrast: undefined,
+          saturation: undefined,
+          temperature: undefined,
+          tint: undefined,
+          highlights: undefined,
+          shadows: undefined,
+        },
+        undefined,
+      );
       expect(response.content[0].text).toContain("Set image fill");
       expect(response.content[0].text).toContain("Image Rectangle");
       expect(response.content[0].text).toContain("800x600");
@@ -812,6 +928,7 @@ describe("new modification tools integration", () => {
           imageUrl: "https://picsum.photos/800/600",
           scaleMode: "FIT",
         }),
+        undefined,
       );
       expect(response.content[0].text).toContain("FIT");
     });
@@ -836,6 +953,7 @@ describe("new modification tools integration", () => {
         expect.objectContaining({
           scaleMode: "CROP",
         }),
+        undefined,
       );
     });
 
@@ -859,6 +977,7 @@ describe("new modification tools integration", () => {
         expect.objectContaining({
           scaleMode: "TILE",
         }),
+        undefined,
       );
     });
 
@@ -880,6 +999,7 @@ describe("new modification tools integration", () => {
           contrast: 0.1,
           saturation: -0.3,
         }),
+        undefined,
       );
     });
 
@@ -896,7 +1016,7 @@ describe("new modification tools integration", () => {
       const response = await callTool("set_image_fill", {
         nodeId: "rect-123",
       });
-      expect(response.content[0].text).toContain("Provide either imageUrl or imageBytes");
+      expect(response.content[0].text).toContain("Provide exactly one image source");
       expect(mockSendCommand).not.toHaveBeenCalled();
     });
 
@@ -923,6 +1043,7 @@ describe("new modification tools integration", () => {
           imageBytes: "aGVsbG8=",
           scaleMode: "FILL",
         }),
+        undefined,
       );
       expect(response.content[0].text).toContain("Set image fill");
     });

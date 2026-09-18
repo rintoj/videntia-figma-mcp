@@ -1,6 +1,6 @@
 # Tool Reference
 
-Complete reference for all 184 MCP tools provided by Videntia Figma MCP.
+Complete reference for all 191 MCP tools provided by Videntia Figma MCP.
 
 ---
 
@@ -41,7 +41,7 @@ Complete reference for all 184 MCP tools provided by Videntia Figma MCP.
 |------|-------------|------------|
 | `get_document_info` | Get information about the current Figma document (name, pages, selection) | — |
 | `get_selection` | Get info on the currently selected node(s) | `fields`, `depth`, `output_format` |
-| `get_node_info` | Get detailed info for a single node by ID | `nodeId`, `fields`, `depth`, `output_format` |
+| `get_node_info` | Get detailed info for a single node by ID. JSON output includes `constraints: { horizontal, vertical }` on every node that supports them (request only those with `fields: ["constraints"]`) | `nodeId`, `fields`, `depth`, `output_format` |
 | `get_nodes_info` | Get detailed info for multiple nodes by ID | `nodeIds`, `fields`, `depth`, `output_format` |
 | `search_nodes` | Search document or subtree for nodes by name or ID | `query`, `types`, `nodeId`, `limit`, `depth`, `fields`, `output_format` |
 | `scan_nodes_by_types` | Find descendant nodes matching one or more types | `nodeId`, `types`, `limit`, `fields`, `depth`, `output_format` |
@@ -90,8 +90,8 @@ Complete reference for all 184 MCP tools provided by Videntia Figma MCP.
 |------|-------------|------------|
 | `create_frame` | Create a new frame | `x`, `y`, `width`, `height`, `name`, `parentId`, `fillColor`, `strokeColor`, `strokeWeight`, `clipsContent`, `layoutPositioning` |
 | `create_rectangle` | Create a new rectangle | `x`, `y`, `width`, `height`, `name`, `parentId`, `layoutPositioning` |
-| `create_text` | Create a new text element | `x`, `y`, `text`, `fontSize`, `fontFamily`, `fontWeight`, `fontColor`, `name`, `parentId` |
-| `create_svg` | Create a node from an SVG string | `svgString`, `x`, `y`, `name`, `parentId`, `flatten` |
+| `create_text` | Create a new text element. For centred text pass `textAlignHorizontal: "CENTER"` with a `width` — text without a width hugs its content, so alignment has no visible effect | `x`, `y`, `text`, `fontSize`, `fontFamily`, `fontWeight`, `fontColor`, `name`, `parentId`, `width`, `textAutoResize`, `textAlignHorizontal` (`LEFT`/`CENTER`/`RIGHT`/`JUSTIFIED`), `textAlignVertical` (`TOP`/`CENTER`/`BOTTOM`) |
+| `create_svg` | Create a node from an SVG string. Optional `constraints` (`{ horizontal?, vertical? }`) is applied to every vector layer inside the wrapper frame (or to the node itself when `flatten: true`); without it layers keep Figma's SCALE default, which stretches glyphs when the frame resizes — pass `CENTER`/`CENTER` for icons | `svgString`, `x`, `y`, `name`, `parentId`, `flatten`, `constraints` |
 | `group_nodes` | Group nodes together | `nodeIds`, `name` |
 | `ungroup_nodes` | Ungroup a group node | `nodeId` |
 | `clone_node` | Clone an existing node | `nodeId`, `x`, `y`, `parentId`, `index` |
@@ -105,6 +105,7 @@ Complete reference for all 184 MCP tools provided by Videntia Figma MCP.
 | Tool | Description | Parameters |
 |------|-------------|------------|
 | `rename_node` | Rename a node | `nodeId`, `name` |
+| `set_visible` | Show or hide layers; returns per-node `{id, name, visible}` with per-node errors. Inside an INSTANCE this sets an override — for per-instance toggles prefer a BOOLEAN component property wired via `set_component_property_references { visible }` | `nodeId` and/or `nodeIds`, `visible` |
 | `move_node` | Move a node to a new position (optionally reparent) | `nodeId`, `x`, `y`, `parentId`, `index` |
 | `resize_node` | Resize a node | `nodeId`, `width`, `height` |
 | `delete_node` | Delete a node | `nodeId` |
@@ -114,11 +115,11 @@ Complete reference for all 184 MCP tools provided by Videntia Figma MCP.
 | `remove_fill` | Remove all fills from a node | `nodeId` |
 | `remove_stroke` | Remove all strokes from a node | `nodeId` |
 | `set_corner_radius` | Set corner radius (uniform or per-corner) | `nodeId`, `radius`, `corners` |
-| `set_effects` | Set visual effects (shadows, blurs) | `nodeId`, `effects` |
+| `set_effects` | Set visual effects (shadows, blurs); bind effect values to variables per effect | `nodeId`, `effects` (each may add `colorVariable`, `radiusVariable`, `spreadVariable`, `offsetXVariable`, `offsetYVariable`) |
 | `set_image_fill` | Set an image fill from a URL | `nodeId`, `imageUrl`, `scaleMode`, `rotation`, `exposure`, `contrast`, `saturation`, `temperature`, `tint`, `highlights`, `shadows` |
-| `set_gradient_fill` | Set a gradient fill | `nodeId`, `type`, `stops`, `angle`, `opacity` |
-| `bind_variable` | Bind a variable to a node property | `nodeId`, `variableId`, `field` |
-| `unbind_variable` | Remove a variable binding from a node property | `nodeId`, `field` |
+| `set_gradient_fill` | Set a gradient fill; stops can bind to COLOR variables | `nodeId`, `type`, `stops` (`color` and/or `colorVariable`, `position`), `angle`, `opacity` |
+| `bind_variable` | Bind a variable to a node property, text style or effect style. Fields: `fills/N/color`, `strokes/N/color` (SOLID), `fills/N/gradientStops/M/color`, `effects/N/color\|radius\|spread\|offsetX\|offsetY`, node fields (`opacity`, `cornerRadius`, …) | `nodeId` (node id, or text/effect style id or name), `variableId`, `field` |
+| `unbind_variable` | Remove a variable binding (same fields as `bind_variable`) | `nodeId`, `field` |
 
 **Color input:** `"#rrggbb"` · `"#rrggbbaa"` · `"#rgb"` · `{ r, g, b, a }` (0–1 each)
 
@@ -130,11 +131,14 @@ Complete reference for all 184 MCP tools provided by Videntia Figma MCP.
 
 | Tool | Description | Parameters |
 |------|-------------|------------|
-| `set_auto_layout` | Configure auto layout comprehensively | `nodeId`, `mode` (`HORIZONTAL`/`VERTICAL`/`NONE`), `top`, `bottom`, `left`, `right`, `gap`, `primaryAxisAlignItems`, `counterAxisAlignItems`, `wrap`, `strokesIncludedInLayout`, `clipsContent`, `horizontal`, `vertical` |
-| `set_layout_mode` | Set layout direction and wrap | `nodeId`, `mode`, `wrap` |
+| `set_auto_layout` | Configure auto layout comprehensively. GRID-only params: `rows`, `columns`, `rowGap`, `columnGap`, `gridAutoTracks`, `gridItemsPositioning`, `rowSizes`, `columnSizes` | `nodeId`, `mode` (`HORIZONTAL`/`VERTICAL`/`GRID`/`NONE`), `top`, `bottom`, `left`, `right`, `gap`, `primaryAxisAlignItems`, `counterAxisAlignItems`, `wrap`, `strokesIncludedInLayout`, `clipsContent`, `horizontal`, `vertical`, plus the GRID params |
+| `set_layout_mode` | Set layout direction and wrap, or GRID tracks. `rowSizes`/`columnSizes` are arrays of `{ type: "FIXED"\|"FLEX"\|"HUG", value? }`, one per track (length must equal the track count), applied after `rows`/`columns`. FIXED needs `value` (px), FLEX takes an optional fr weight, HUG takes none | `nodeId`, `mode`, `wrap`, `rows`, `columns`, `gridAutoTracks`, `gridItemsPositioning`, `rowSizes`, `columnSizes` |
+| `reorder_grid_tracks` | Move rows or columns of a GRID frame to a new position | `nodeId`, `axis` (`ROW`/`COLUMN`), `fromIndices`, `insertionIndex` |
+| `set_grid_child` | Place a child of a GRID frame in a cell (0-based), span it, and align it inside the cell. Validates before changing anything: parent must be a GRID frame/component/component set, `row + rowSpan` and `column + columnSpan` must fit the track counts, and the area must not overlap another visible child. `row`/`column` are rejected when the grid uses `ROW_AUTO_FLOW`. Returns the applied `row`, `column`, `rowSpan`, `columnSpan`, `horizontalAlign`, `verticalAlign`. `get_node_info` (`output_format: "json"`) reads back `gridRowAnchorIndex`/`gridColumnAnchorIndex`/`gridRowSpan`/`gridColumnSpan`/`gridChildHorizontalAlign`/`gridChildVerticalAlign` on grid children and `gridRowSizes`/`gridColumnSizes` on grid frames | `nodeId`, `row`, `column`, `rowSpan`, `columnSpan`, `horizontalAlign`/`verticalAlign` (`MIN`/`CENTER`/`MAX`/`AUTO`) |
 | `set_padding` | Set padding for an auto-layout frame | `nodeId`, `top`, `right`, `bottom`, `left` |
 | `set_axis_align` | Set primary and counter axis alignment | `nodeId`, `primaryAxisAlignItems`, `counterAxisAlignItems` |
 | `set_layout_sizing` | Set horizontal/vertical sizing mode | `nodeId`, `horizontal`, `vertical` |
+| `set_constraints` | Set resize constraints (`MIN`/`CENTER`/`MAX`/`STRETCH`/`SCALE`) on one or more nodes; an omitted axis keeps its current value. Returns per-node `{nodeId, name, constraints}` or `error` (unsupported types such as groups fail per node), plus a `warning` when the node is an auto-layout child in the flow (`layoutPositioning: AUTO`) or sits on the page, where constraints have no effect. Read them back with `get_node_info` (`output_format: "json"`) | `nodeId` and/or `nodeIds`, `horizontal`, `vertical` |
 | `set_item_spacing` | Set gap between children | `nodeId`, `gap`, `counterAxisSpacing` |
 
 ---
@@ -145,8 +149,8 @@ Complete reference for all 184 MCP tools provided by Videntia Figma MCP.
 
 | Tool | Description | Parameters |
 |------|-------------|------------|
-| `create_effect_style` | Create a new effect style | `name`, `effects`, `description` |
-| `update_effect_style` | Update an effect style | `styleId`, `name`, `effects`, `description` |
+| `create_effect_style` | Create a new effect style (effects accept per-effect variable params like `set_effects`) | `name`, `effects`, `description` |
+| `update_effect_style` | Update an effect style (effects accept per-effect variable params like `set_effects`) | `styleId`, `name`, `effects`, `description` |
 | `delete_effect_style` | Delete an effect style | `styleId` |
 | `set_effect_style_id` | Apply an effect style to a node | `nodeId`, `effectStyleId`, `styleName` |
 
@@ -176,7 +180,9 @@ Complete reference for all 184 MCP tools provided by Videntia Figma MCP.
 | `set_line_height` | Set line height | `nodeId`, `height`, `unit` |
 | `set_paragraph_spacing` | Set paragraph spacing | `nodeId`, `spacing` |
 | `set_text_case` | Set text case transform (`UPPER`, `LOWER`, `TITLE`, `ORIGINAL`) | `nodeId`, `textCase` |
+| `set_text_align` | Set text alignment on one or more TEXT nodes; returns per-node applied values (non-text nodes are reported as failures). Horizontal alignment only shows when the box is wider than its content (fixed width / `HEIGHT` auto-resize or FILL) | `nodeId` or `nodeIds`, `horizontal` (`LEFT`/`CENTER`/`RIGHT`/`JUSTIFIED`), `vertical` (`TOP`/`CENTER`/`BOTTOM`) — at least one |
 | `set_text_decoration` | Set text decoration (`NONE`, `UNDERLINE`, `STRIKETHROUGH`) | `nodeId`, `decoration` |
+| `set_text_range_style` | Style character ranges inside one text node (inline emphasis, links, highlighted words). Ranges are `[start, end)` indices; all are validated and fonts loaded before anything changes | `nodeId`, `ranges[]` (`start`, `end`, `color`, `colorVariable`, `fontFamily`, `fontStyle`, `fontWeight`, `fontSize`, `textStyle`, `textDecoration`, `letterSpacing`, `lineHeight`) |
 | `get_styled_text_segments` | Get text segments with a specific styling property | `nodeId`, `property` |
 | `load_font_async` | Load a font asynchronously (required before setting fonts) | `family`, `style` |
 | `create_text_style` | Create a text style from an existing text node | `nodeId`, `name`, `description` |
@@ -330,7 +336,7 @@ Uses the [Lucide](https://lucide.dev) icon library (5 000+ icons).
 | `search_icon` | Fuzzy-search for icons by keyword | `query`, `limit` |
 | `get_icon` | Get an icon's SVG by exact name | `name` |
 | `list_icons` | Paginated listing of icon names | `prefix`, `offset`, `limit` |
-| `create_icon` | Create an icon node in Figma | `parentId`, `index`, `name`, `color`, `colorVariable`, `size` |
+| `create_icon` | Create an icon node in Figma. Optional `constraints` behaves as on `create_svg` (applied to the icon's vector layers; default SCALE is unchanged) — `{ horizontal: "CENTER", vertical: "CENTER" }` keeps the glyph from stretching when the icon frame or component resizes | `parentId`, `index`, `name`, `color`, `colorVariable`, `size`, `constraints` |
 | `update_icon` | Replace an existing icon node with a new one | `nodeId`, `name`, `color`, `colorVariable`, `size` |
 
 ---

@@ -1,5 +1,7 @@
 // Documentation handlers — enumerate frames, map flows, bulk export, content tree
 
+import { computeSubtreeHash } from "../utils/subtree-hash";
+
 function getParam<T>(params: Record<string, unknown>, key: string, defaultVal: T): T {
   const p = params !== null && params !== undefined ? params[key] : undefined;
   return p !== null && p !== undefined ? (p as T) : defaultVal;
@@ -275,6 +277,7 @@ export async function bulkExportFrames(params: Record<string, unknown>): Promise
     width: number;
     height: number;
     data: string;
+    subtreeHash?: string | null;
     error?: string;
   }> = [];
 
@@ -321,6 +324,7 @@ export async function bulkExportFrames(params: Record<string, unknown>): Promise
         width: exportNode.width,
         height: exportNode.height,
         data: base64,
+        subtreeHash: computeSubtreeHash(node),
       });
     } catch (err) {
       results.push({

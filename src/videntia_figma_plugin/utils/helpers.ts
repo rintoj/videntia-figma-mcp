@@ -152,3 +152,25 @@ export function getFontStyle(weight: number): string {
       return "Regular";
   }
 }
+
+/**
+ * Extracts a human-readable reason from an unknown thrown value.
+ *
+ * WHY: Figma's async APIs can reject with a plain object or a bare string, where
+ * `(error as Error).message` is `undefined` — which then lands in the caller's
+ * message literally (e.g. "Error setting font weight: undefined"), telling an
+ * agent nothing it can act on. Always route thrown values through this.
+ */
+export function describeError(error: unknown): string {
+  if (error === null || error === undefined) return "Unknown error";
+  if (error instanceof Error) return error.message || String(error);
+  if (typeof error === "string") return error.length > 0 ? error : "Unknown error";
+  const maybe = error as { message?: unknown };
+  if (typeof maybe.message === "string" && maybe.message.length > 0) return maybe.message;
+  try {
+    const json = JSON.stringify(error);
+    return json !== undefined && json !== "{}" ? json : String(error);
+  } catch (_e) {
+    return String(error);
+  }
+}

@@ -58,6 +58,8 @@ const ARRAY_KEYS = new Set([
   "preferredValues",
   "pages",
   "dashPattern",
+  "rowSizes",
+  "columnSizes",
 ]);
 
 const NUMBER_KEYS = new Set([
@@ -79,6 +81,10 @@ const NUMBER_KEYS = new Set([
   "fontWeight",
   "rows",
   "columns",
+  "row",
+  "column",
+  "rowSpan",
+  "columnSpan",
   "gap",
   "rowGap",
   "columnGap",
@@ -233,6 +239,9 @@ function normalizeVariableValue(type: unknown, value: unknown): unknown {
 
 type Normalizer = (p: CommandParams) => void;
 
+/** Numeric fields inside each set_text_range_style range (mirrors the tool's z.coerce.number). */
+const TEXT_RANGE_NUMBER_KEYS = ["start", "end", "fontWeight", "fontSize"];
+
 const COMMAND_NORMALIZERS: Record<string, Normalizer> = {
   // ── Creation ────────────────────────────────────────────────────────────
   create_rectangle: (p) => {
@@ -379,6 +388,14 @@ const COMMAND_NORMALIZERS: Record<string, Normalizer> = {
     p.scaleMode = p.scaleMode || "FILL";
   },
   set_gradient_fill: (p) => {
+    if (Array.isArray(p.stops)) {
+      (p.stops as unknown[]).forEach((stop, i) => {
+        const s = stop as CommandParams | null;
+        if (s && typeof s === "object" && s.color === undefined && !s.colorVariable) {
+          throw new CommandParamsError(`stops[${i}] needs a color or a colorVariable`);
+        }
+      });
+    }
     rename(p, "type", "gradientType");
     p.angle = p.angle ?? 0;
     p.opacity = p.opacity ?? 1;
@@ -403,12 +420,37 @@ const COMMAND_NORMALIZERS: Record<string, Normalizer> = {
     }
   },
 
+  set_visible: (p) => {
+    if (Array.isArray(p.nodeIds) && p.nodeIds.length === 0) delete p.nodeIds;
+    if (!p.nodeId && p.nodeIds === undefined) throw new CommandParamsError("set_visible requires nodeId or nodeIds");
+    if (p.visible === undefined) throw new CommandParamsError("set_visible requires visible (true or false)");
+    p.visible = coerceBooleanValue(p.visible);
+    if (typeof p.visible !== "boolean" && !isResultReference(p.visible)) {
+      throw new CommandParamsError("visible must be true or false");
+    }
+  },
+
+  set_constraints: (p) => {
+    const hasIds =
+      (Array.isArray(p.nodeIds) && (p.nodeIds as unknown[]).length > 0) ||
+      isResultReference(p.nodeIds) ||
+      (typeof p.nodeId === "string" && p.nodeId !== "");
+    if (!hasIds) throw new CommandParamsError("set_constraints requires nodeId or nodeIds");
+    if (p.horizontal === undefined && p.vertical === undefined) {
+      throw new CommandParamsError(
+        "set_constraints requires horizontal and/or vertical (MIN, CENTER, MAX, STRETCH or SCALE)",
+      );
+    }
+  },
+
   // ── Layout ──────────────────────────────────────────────────────────────
   set_layout_mode: (p) => {
     renameAll(p, [
       ["mode", "layoutMode"],
       ["rows", "gridRowCount"],
       ["columns", "gridColumnCount"],
+      ["rowSizes", "gridRowSizes"],
+      ["columnSizes", "gridColumnSizes"],
       ["wrap", "layoutWrap"],
     ]);
     const mode = p.layoutMode;
@@ -419,6 +461,9 @@ const COMMAND_NORMALIZERS: Record<string, Normalizer> = {
     if (mode !== "GRID" && (p.gridRowCount !== undefined || p.gridColumnCount !== undefined)) {
       throw new CommandParamsError(`rows/columns apply to GRID mode only (mode is ${mode})`);
     }
+    if (mode !== "GRID" && (p.gridRowSizes !== undefined || p.gridColumnSizes !== undefined)) {
+      throw new CommandParamsError(`rowSizes/columnSizes apply to GRID mode only (mode is ${mode})`);
+    }
     if (mode !== "GRID" && (p.gridAutoTracks !== undefined || p.gridItemsPositioning !== undefined)) {
       throw new CommandParamsError(`gridAutoTracks/gridItemsPositioning apply to GRID mode only (mode is ${mode})`);
     }
@@ -428,6 +473,14 @@ const COMMAND_NORMALIZERS: Record<string, Normalizer> = {
       );
     }
     if (mode !== "GRID") p.layoutWrap = p.layoutWrap || "NO_WRAP";
+  },
+  set_grid_child: (p) => {
+    const fields = ["row", "column", "rowSpan", "columnSpan", "horizontalAlign", "verticalAlign"];
+    if (fields.every((key) => p[key] === undefined)) {
+      throw new CommandParamsError(
+        "set_grid_child requires at least one of row, column, rowSpan, columnSpan, horizontalAlign, verticalAlign",
+      );
+    }
   },
   set_padding: (p) => {
     renameAll(p, [
@@ -464,10 +517,12 @@ const COMMAND_NORMALIZERS: Record<string, Normalizer> = {
         first(p, "columnGap", "gridColumnGap"),
         p.gridAutoTracks,
         p.gridItemsPositioning,
+        first(p, "rowSizes", "gridRowSizes"),
+        first(p, "columnSizes", "gridColumnSizes"),
       ];
       if (mode !== "GRID" && gridOnly.some((v) => v !== undefined)) {
         throw new CommandParamsError(
-          `rows/columns/rowGap/columnGap/gridAutoTracks/gridItemsPositioning apply to GRID mode only (mode is ${mode})`,
+          `rows/columns/rowGap/columnGap/gridAutoTracks/gridItemsPositioning/rowSizes/columnSizes apply to GRID mode only (mode is ${mode})`,
         );
       }
       if (mode === "GRID") {
@@ -493,6 +548,8 @@ const COMMAND_NORMALIZERS: Record<string, Normalizer> = {
       ["columns", "gridColumnCount"],
       ["rowGap", "gridRowGap"],
       ["columnGap", "gridColumnGap"],
+      ["rowSizes", "gridRowSizes"],
+      ["columnSizes", "gridColumnSizes"],
       ["wrap", "layoutWrap"],
       ["horizontal", "layoutSizingHorizontal"],
       ["vertical", "layoutSizingVertical"],
@@ -520,6 +577,36 @@ const COMMAND_NORMALIZERS: Record<string, Normalizer> = {
   },
   set_paragraph_spacing: (p) => rename(p, "spacing", "paragraphSpacing"),
   set_text_decoration: (p) => rename(p, "decoration", "textDecoration"),
+  set_text_range_style: (p) => {
+    p.ranges = coerceArrayValue(p.ranges);
+    if (isResultReference(p.ranges)) return;
+    if (!Array.isArray(p.ranges) || p.ranges.length === 0) {
+      throw new CommandParamsError(
+        "set_text_range_style requires a non-empty ranges array of { start, end, ...style }",
+      );
+    }
+    p.ranges = (p.ranges as unknown[]).map((range) => {
+      if (!range || typeof range !== "object" || Array.isArray(range)) return range;
+      const out: CommandParams = { ...(range as CommandParams) };
+      for (const key of TEXT_RANGE_NUMBER_KEYS) {
+        if (out[key] !== undefined) out[key] = coerceNumberValue(out[key]);
+      }
+      return out;
+    });
+  },
+  set_text_align: (p) => {
+    renameAll(p, [
+      ["horizontal", "textAlignHorizontal"],
+      ["vertical", "textAlignVertical"],
+    ]);
+    const hasNodeIds = Array.isArray(p.nodeIds) ? p.nodeIds.length > 0 : Boolean(p.nodeIds);
+    if (!p.nodeId && !hasNodeIds) {
+      throw new CommandParamsError("set_text_align requires nodeId or nodeIds (at least one TEXT node)");
+    }
+    if (p.textAlignHorizontal === undefined && p.textAlignVertical === undefined) {
+      throw new CommandParamsError("set_text_align requires horizontal and/or vertical alignment");
+    }
+  },
   load_font_async: (p) => {
     p.style = p.style || "Regular";
   },

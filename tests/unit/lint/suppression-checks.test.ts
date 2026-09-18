@@ -19,6 +19,11 @@ const NONE: ActiveChecks = {
   overflow: false,
   clippedContent: false,
   screenNaming: false,
+  clippedCorners: false,
+  radiusProportion: false,
+  crossAxisAlign: false,
+  iconColorConsistency: false,
+  fixedWidthSlack: false,
 };
 
 function makeCategories(): LintCategories {
@@ -315,7 +320,7 @@ describe("lintFrame suppression result", () => {
 
     const result = await lintFrame({
       nodeId: "1:1",
-      checks: { autoLayout: false, overflow: false, clippedContent: false },
+      checks: { autoLayout: false, overflow: false, clippedContent: false, iconColorConsistency: false },
       ignoreNodeIds: ["1-2"],
     });
 

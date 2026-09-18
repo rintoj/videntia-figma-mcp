@@ -253,7 +253,7 @@ export function isIconLike(node: SceneNode): boolean {
   return false;
 }
 
-function hasOnlyVectorChildren(children: ReadonlyArray<SceneNode>): boolean {
+export function hasOnlyVectorChildren(children: ReadonlyArray<SceneNode>): boolean {
   for (let i = 0; i < children.length; i++) {
     let ct = children[i].type;
     if (
@@ -275,6 +275,79 @@ function hasOnlyVectorChildren(children: ReadonlyArray<SceneNode>): boolean {
     return false;
   }
   return true;
+}
+
+// ── Paint inspection helpers ──────────────────────────────────────────────────
+
+function visiblePaints(node: SceneNode, key: "fills" | "strokes"): Paint[] {
+  let out: Paint[] = [];
+  if (!(key in node)) return out;
+  let paints: unknown = null;
+  try {
+    paints = (node as unknown as Record<string, unknown>)[key];
+  } catch (_e) {
+    return out;
+  }
+  if (!paints || !Array.isArray(paints)) return out;
+  let arr = paints as Paint[];
+  for (let i = 0; i < arr.length; i++) {
+    if (!isColorFill(arr[i])) continue;
+    if (arr[i].opacity === 0) continue;
+    out.push(arr[i]);
+  }
+  return out;
+}
+
+// A node that actually paints a background — used to decide whether a clipping
+// child can cover up its parent's rounded corners.
+export function hasVisibleBackgroundFill(node: SceneNode): boolean {
+  return visiblePaints(node, "fills").length > 0;
+}
+
+// Every visible color paint on the node is bound to a variable or a paint style.
+// Returns null when the node paints nothing at all (so callers can skip it).
+export function paintBindingState(node: SceneNode): boolean | null {
+  let hasAny = false;
+  let allBound = true;
+  let keys: Array<"fills" | "strokes"> = ["fills", "strokes"];
+  for (let k = 0; k < keys.length; k++) {
+    let key = keys[k];
+    let paints: unknown = null;
+    if (!(key in node)) continue;
+    try {
+      paints = (node as unknown as Record<string, unknown>)[key];
+    } catch (_e) {
+      continue;
+    }
+    if (!paints || !Array.isArray(paints)) continue;
+    let arr = paints as Paint[];
+    let styleBound = key === "fills" ? hasFillPaintStyle(node) : hasStrokePaintStyle(node);
+    for (let i = 0; i < arr.length; i++) {
+      if (!isColorFill(arr[i])) continue;
+      if (arr[i].opacity === 0) continue;
+      hasAny = true;
+      if (!isFillBound(node, key, i) && !styleBound) allBound = false;
+    }
+  }
+  if (!hasAny) return null;
+  return allBound;
+}
+
+// Flattens an icon's nested groups down to the primitives that actually carry a
+// colour, so a partially recoloured icon can be detected.
+export function collectVectorLeaves(children: ReadonlyArray<SceneNode>, out: SceneNode[]): void {
+  for (let i = 0; i < children.length; i++) {
+    let child = children[i];
+    if ((child as SceneNode & { visible?: boolean }).visible === false) continue;
+    if ((child.type === "GROUP" || child.type === "FRAME") && "children" in child) {
+      let nested = (child as FrameNode).children;
+      if (nested && nested.length > 0) {
+        collectVectorLeaves(nested, out);
+        continue;
+      }
+    }
+    out.push(child);
+  }
 }
 
 export function isColorFill(fill: Paint): boolean {
@@ -437,4 +510,23 @@ export async function buildLookupMaps(): Promise<LookupMaps> {
     floatVarEntries,
     textStyleExactMap,
   };
+}
+
+/**
+ * True when EVERY stop of a gradient paint carries a `boundVariables.color` alias.
+ *
+ * Gradient stops CAN be bound (ColorStop.boundVariables, @figma/plugin-typings
+ * 1.136.0 plugin-api.d.ts:4506) even though `setBoundVariableForPaint` refuses a
+ * GradientPaint. A fully bound gradient is genuinely token-driven and must not draw
+ * even a LOW "raw value" nudge.
+ */
+export function isGradientFullyBound(paint: unknown): boolean {
+  if (paint === null || typeof paint !== "object") return false;
+  let stops = (paint as { gradientStops?: Array<{ boundVariables?: { color?: { id?: string } } }> }).gradientStops;
+  if (!Array.isArray(stops) || stops.length === 0) return false;
+  for (let i = 0; i < stops.length; i++) {
+    let bv = stops[i] && stops[i].boundVariables;
+    if (!bv || !bv.color || !bv.color.id) return false;
+  }
+  return true;
 }

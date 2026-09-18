@@ -1,13 +1,31 @@
 import { serializeNodes } from "./node-serializer";
 
-export async function getFileKey(): Promise<Record<string, unknown>> {
-  const fileKey = figma.fileKey;
-  if (!fileKey) {
-    throw new Error("File key not available. Make sure you're in a saved Figma file.");
+/**
+ * Stable identity of the document this plugin instance is attached to.
+ *
+ * Figma node ids are only unique WITHIN a file — "3082:47270" names a different
+ * node in every file. Callers therefore must be able to prove which document a
+ * remembered node id came from. `figma.fileKey` is the canonical answer, but it
+ * is undefined for unsaved/local files and in sandboxes without file-key access,
+ * so `figma.root.id` (unique per document, stable for the session) is the
+ * fallback discriminator.
+ */
+export function getDocumentIdentity(): { fileKey: string | null; rootId: string; fileName: string } {
+  let fileKey: string | null = null;
+  try {
+    fileKey = figma.fileKey || null;
+  } catch (_e) {
+    fileKey = null;
   }
+  return { fileKey, rootId: figma.root.id, fileName: figma.root.name };
+}
+
+export async function getFileKey(): Promise<Record<string, unknown>> {
+  const identity = getDocumentIdentity();
   return {
-    fileKey,
-    fileName: figma.root.name,
+    fileKey: identity.fileKey,
+    rootId: identity.rootId,
+    fileName: identity.fileName,
   };
 }
 
