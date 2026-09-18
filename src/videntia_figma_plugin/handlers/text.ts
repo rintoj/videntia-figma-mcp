@@ -7,7 +7,9 @@ import {
   getFontStyle,
   parseNum,
   loadTextNodeFonts,
+  describeError,
 } from "../utils/helpers";
+import { guardParentSize, resolveSideEffectAllowance, resolveStrict, snapshotParentSize } from "../utils/write-verify";
 import { resolveColor } from "./fills";
 import { resolveColorVariable } from "./icons";
 import { validateGridTrackSizes, assertTrackSizesFit, applyGridTrackSizes, serializeGridTrackSizes } from "./layout";
@@ -30,6 +32,87 @@ function readTextAlign<T extends string>(
     throw new Error(`Invalid ${label} for ${command}: ${String(value)} (expected ${allowed.join(", ")})`);
   }
   return value as T;
+}
+
+// ---------------------------------------------------------------------------
+// Font style resolution
+// ---------------------------------------------------------------------------
+//
+// Figma font faces are named per-family and the spelling is NOT consistent:
+// some families ship "Semi Bold", others "SemiBold". Normalising to one spelling
+// (as this code used to) makes `set_font_name`/`set_font_weight` fail on every
+// family that uses the other one. Instead, generate BOTH spellings (plus the
+// caller's own) and pick whichever `loadFontAsync` actually accepts.
+
+const FIGMA_STYLE_MAP: Record<string, string> = {
+  thin: "Thin",
+  extralight: "Extra Light",
+  ultralight: "Extra Light",
+  light: "Light",
+  regular: "Regular",
+  normal: "Regular",
+  medium: "Medium",
+  semibold: "Semi Bold",
+  demibold: "Semi Bold",
+  bold: "Bold",
+  extrabold: "Extra Bold",
+  ultrabold: "Extra Bold",
+  black: "Black",
+  heavy: "Black",
+  thinitalic: "Thin Italic",
+  extralightitalic: "Extra Light Italic",
+  lightitalic: "Light Italic",
+  italic: "Italic",
+  mediumitalic: "Medium Italic",
+  semibolditalic: "Semi Bold Italic",
+  bolditalic: "Bold Italic",
+  extrabolditalic: "Extra Bold Italic",
+  blackitalic: "Black Italic",
+};
+
+/**
+ * All plausible Figma face names for a requested style, most-likely first.
+ * e.g. "SemiBold" -> ["SemiBold", "Semi Bold"]; "Semi Bold" -> ["Semi Bold", "SemiBold"].
+ */
+export function fontStyleCandidates(requested: string): string[] {
+  const out: string[] = [];
+  const push = (value: string | undefined): void => {
+    if (value !== undefined && value !== null && value !== "" && out.indexOf(value) === -1) out.push(value);
+  };
+  const raw = String(requested).trim();
+  push(raw);
+  const compact = raw.replace(/\s+/g, "");
+  const mapped = FIGMA_STYLE_MAP[compact.toLowerCase()];
+  push(mapped);
+  push(raw.replace(/([a-z])([A-Z])/g, "$1 $2"));
+  push(compact);
+  if (mapped !== undefined) push(mapped.replace(/\s+/g, ""));
+  return out;
+}
+
+/**
+ * Loads the first face of `family` that matches any spelling of `requested`.
+ * Returns the face name that actually loaded, or throws naming the real styles.
+ */
+export async function resolveAndLoadFontStyle(family: string, requested: string, context: string): Promise<string> {
+  const candidates = fontStyleCandidates(requested);
+  let lastError: unknown;
+  for (let i = 0; i < candidates.length; i++) {
+    try {
+      await figma.loadFontAsync({ family, style: candidates[i] });
+      return candidates[i];
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  const available = await listStylesForFamily(family);
+  throw new Error(
+    `${context}: font "${family}" has no style matching "${requested}" (tried ${candidates.join(", ")}). ` +
+      (available.length > 0
+        ? `Available styles for "${family}": ${available.join(", ")}.`
+        : `No styles could be listed for "${family}" — check the family name.`) +
+      (describeError(lastError) !== "Unknown error" ? ` (Figma said: ${describeError(lastError)})` : ""),
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -291,21 +374,27 @@ export async function createText(params: Record<string, unknown>): Promise<Recor
     "create_text",
   );
 
+  // Resolve the face BEFORE creating the node: a failure here must not leave a
+  // stray Figtree/Inter Regular text node behind. The old code swallowed the
+  // load error, so a missing 600/700 face silently produced Regular text AND
+  // dropped the requested fontSize (it was assigned after the throwing line).
+  const resolvedStyle = await resolveAndLoadFontStyle(fontFamily, getFontStyle(fontWeight), "create_text");
+
   const textNode = figma.createText();
   textNode.x = x;
   textNode.y = y;
   textNode.name = name;
-  try {
-    await figma.loadFontAsync({
-      family: fontFamily,
-      style: getFontStyle(fontWeight),
-    });
-    textNode.fontName = { family: fontFamily, style: getFontStyle(fontWeight) };
-    textNode.fontSize = parseInt(String(fontSize));
-  } catch (error) {
-    console.error("Error setting font name/size", error);
+  textNode.fontName = { family: fontFamily, style: resolvedStyle };
+  const requestedFontSize = Number(fontSize);
+  if (!isFinite(requestedFontSize) || requestedFontSize <= 0) {
+    throw new Error(`create_text: invalid fontSize ${JSON.stringify(fontSize)} — expected a positive number.`);
   }
-  await setCharacters(textNode, text);
+  textNode.fontSize = requestedFontSize;
+  await setCharacters(textNode, text, { fallbackFont: { family: fontFamily, style: resolvedStyle } });
+  // setCharacters can replace the font when the node had mixed fonts; re-assert
+  // the caller's intent so a success response is never a lie about either field.
+  textNode.fontName = { family: fontFamily, style: resolvedStyle };
+  textNode.fontSize = requestedFontSize;
 
   const paintStyle: SolidPaint = {
     type: "SOLID",
@@ -345,6 +434,13 @@ export async function createText(params: Record<string, unknown>): Promise<Recor
   if (textAlignVertical !== undefined) {
     textNode.textAlignVertical = textAlignVertical;
   }
+  // Every field must be plain JSON. `fontSize` / `fontName` read back as `figma.mixed`
+  // (a Symbol) on multi-style text, and `fills` is a live readonly proxy — returning
+  // either across the plugin sandbox boundary fails the whole response with
+  // "Cannot unwrap symbol", which is why `$result[N].id` could not resolve for a
+  // batched create_text even though `id` itself was present.
+  const resolvedFontSize = textNode.fontSize;
+  const resolvedFontName = textNode.fontName;
 
   return {
     id: textNode.id,
@@ -357,11 +453,14 @@ export async function createText(params: Record<string, unknown>): Promise<Recor
     textAlignHorizontal: textNode.textAlignHorizontal,
     textAlignVertical: textNode.textAlignVertical,
     characters: textNode.characters,
-    fontSize: textNode.fontSize,
+    fontSize: typeof resolvedFontSize === "number" ? resolvedFontSize : "MIXED",
     fontWeight: fontWeight,
-    fontColor: fontColor,
-    fontName: textNode.fontName,
-    fills: textNode.fills,
+    fontColor: { r: paintStyle.color.r, g: paintStyle.color.g, b: paintStyle.color.b, a: paintStyle.opacity },
+    fontName:
+      resolvedFontName !== null && typeof resolvedFontName === "object"
+        ? { family: (resolvedFontName as FontName).family, style: (resolvedFontName as FontName).style }
+        : "MIXED",
+    fills: [{ type: "SOLID", color: { ...paintStyle.color }, opacity: paintStyle.opacity }],
     parentId: textNode.parent ? textNode.parent.id : undefined,
   };
 }
@@ -402,7 +501,7 @@ export async function setTextContent(params: Record<string, unknown>): Promise<R
       fontName: (node as TextNode).fontName,
     };
   } catch (error) {
-    throw new Error(`Error setting text content: ${(error as Error).message}`);
+    throw new Error(describeError(error));
   }
 }
 
@@ -624,7 +723,7 @@ export async function scanTextNodes(params: Record<string, unknown>): Promise<Re
         { error: (error as Error).message },
       );
 
-      throw new Error(`Error scanning text nodes: ${(error as Error).message}`);
+      throw new Error(`Error scanning text nodes: ${describeError(error)}`);
     }
   }
 
@@ -1071,6 +1170,39 @@ export async function setAutoLayout(params: Record<string, unknown>): Promise<Re
     assertTrackSizesFit(frameNode, gridRowSizes, rowsParam, "rowSizes");
     assertTrackSizesFit(frameNode, gridColumnSizes, columnsParam, "columnSizes");
   }
+
+  // Snapshot every child's sizing BEFORE touching layoutMode. Figma resets a
+  // child's layoutGrow/layoutAlign/layoutSizing* (collapsing fixed-size buttons
+  // to ~20px and body frames to their hug height) as a side effect of the
+  // parent gaining or changing auto layout — damage the caller never asked for.
+  interface ChildSizingSnapshot {
+    id: string;
+    name: string;
+    horizontal?: string;
+    vertical?: string;
+    width: number;
+    height: number;
+  }
+  // Bug #9: writing layoutSizing* on this frame can make ITS auto-layout parent
+  // recompute a hug size and silently shrink. Snapshot before any mutation.
+  const parentSnapshot = snapshotParentSize(frameNode.parent);
+
+  const childSnapshots: ChildSizingSnapshot[] = [];
+  if ("children" in frameNode) {
+    const kids = frameNode.children;
+    for (let i = 0; i < kids.length; i++) {
+      const kid = kids[i] as SceneNode & { layoutSizingHorizontal?: string; layoutSizingVertical?: string };
+      childSnapshots.push({
+        id: kid.id,
+        name: kid.name,
+        horizontal: "layoutSizingHorizontal" in kid ? (kid.layoutSizingHorizontal as string) : undefined,
+        vertical: "layoutSizingVertical" in kid ? (kid.layoutSizingVertical as string) : undefined,
+        width: "width" in kid ? (kid as SceneNode & { width: number }).width : 0,
+        height: "height" in kid ? (kid as SceneNode & { height: number }).height : 0,
+      });
+    }
+  }
+
   // Capture before mutating: drives whether we touch layoutSizing* below, and
   // guards against reassigning layoutMode to its current value — Figma resets
   // layoutSizingHorizontal/Vertical (and thus item spacing/padding rendering)
@@ -1180,9 +1312,61 @@ export async function setAutoLayout(params: Record<string, unknown>): Promise<Re
     frameNode.clipsContent = clipsContent;
   }
 
+  // Restore each child's pre-call sizing. `preserveChildSizing: false` opts out
+  // for callers who genuinely want Figma's defaults.
+  const childWarnings: string[] = [];
+  if (safeParams.preserveChildSizing !== false && childSnapshots.length > 0) {
+    for (let i = 0; i < childSnapshots.length; i++) {
+      const snap = childSnapshots[i];
+      const kid = (frameNode.children as readonly SceneNode[])[i] as SceneNode & {
+        layoutSizingHorizontal?: string;
+        layoutSizingVertical?: string;
+        width?: number;
+        height?: number;
+      };
+      if (!kid || kid.id !== snap.id) continue;
+      const axes: Array<["layoutSizingHorizontal" | "layoutSizingVertical", string | undefined, number]> = [
+        ["layoutSizingHorizontal", snap.horizontal, snap.width],
+        ["layoutSizingVertical", snap.vertical, snap.height],
+      ];
+      for (let a = 0; a < axes.length; a++) {
+        const [prop, wanted, originalSize] = axes[a];
+        if (wanted === undefined || !(prop in kid)) continue;
+        if ((kid as unknown as Record<string, unknown>)[prop] === wanted) continue;
+        try {
+          (kid as unknown as Record<string, unknown>)[prop] = wanted;
+        } catch {
+          // fall through to the warning below
+        }
+        const actual = (kid as unknown as Record<string, unknown>)[prop];
+        if (actual !== wanted) {
+          childWarnings.push(
+            `set_auto_layout changed child "${snap.name}" (${snap.id}) ${prop} from ${wanted} to ` +
+              `${String(actual)} and Figma refused to restore it — this frame's layout forces it. ` +
+              `Original size was ${snap.width}x${snap.height}; resize_node it if that matters.`,
+          );
+        }
+      }
+    }
+  }
+
+  const parentReport = guardParentSize(parentSnapshot, {
+    label: "set_auto_layout",
+    strict: resolveStrict(safeParams),
+    childName: frameNode.name,
+    allowSideEffects: resolveSideEffectAllowance(safeParams),
+  });
+  const allWarnings = childWarnings.concat(parentReport.warnings);
+
   return {
     id: frameNode.id,
     name: frameNode.name,
+    ...(allWarnings.length > 0
+      ? { success: childWarnings.length === 0 && parentReport.noops.length === 0 ? true : false, warnings: allWarnings }
+      : {}),
+    ...(parentReport.acknowledged !== undefined && parentReport.acknowledged.length > 0
+      ? { acknowledgedSideEffects: parentReport.acknowledged }
+      : {}),
     layoutMode: frameNode.layoutMode,
     paddingTop: frameNode.paddingTop,
     paddingBottom: frameNode.paddingBottom,
@@ -1221,40 +1405,6 @@ export async function setFontName(params: Record<string, unknown>): Promise<Reco
   const family = safeParams.family as string | undefined;
   const rawStyle =
     safeParams.style !== null && safeParams.style !== undefined ? (safeParams.style as string) : "Regular";
-  // Normalize camelCase/compound weight names to Figma's space-separated format.
-  // The lookup table covers all standard Figma weight names exactly; the regex fallback
-  // handles edge cases (e.g. custom styles) but may not always produce a valid Figma name.
-  const FIGMA_STYLE_MAP: Record<string, string> = {
-    thin: "Thin",
-    extralight: "Extra Light",
-    ultralight: "Extra Light",
-    light: "Light",
-    regular: "Regular",
-    normal: "Regular",
-    medium: "Medium",
-    semibold: "Semi Bold",
-    demibold: "Semi Bold",
-    bold: "Bold",
-    extrabold: "Extra Bold",
-    ultrabold: "Extra Bold",
-    black: "Black",
-    heavy: "Black",
-    thinitalic: "Thin Italic",
-    extralightitalic: "Extra Light Italic",
-    lightitalic: "Light Italic",
-    italic: "Italic",
-    mediumitalic: "Medium Italic",
-    semibolditalic: "Semi Bold Italic",
-    bolditalic: "Bold Italic",
-    extrabolditalic: "Extra Bold Italic",
-    blackitalic: "Black Italic",
-  };
-  const normalized = rawStyle.trim().toLowerCase().replace(/\s+/g, "");
-  const style =
-    FIGMA_STYLE_MAP[normalized] !== undefined
-      ? FIGMA_STYLE_MAP[normalized]
-      : rawStyle.replace(/([a-z])([A-Z])/g, "$1 $2");
-
   if (!nodeId || !family) {
     throw new Error("Missing nodeId or font family");
   }
@@ -1268,17 +1418,17 @@ export async function setFontName(params: Record<string, unknown>): Promise<Reco
     throw new Error(`Node is not a text node: ${nodeId}`);
   }
 
-  try {
-    await figma.loadFontAsync({ family, style });
-    (node as TextNode).fontName = { family, style };
-    return {
-      id: node.id,
-      name: node.name,
-      fontName: (node as TextNode).fontName,
-    };
-  } catch (error) {
-    throw new Error(`Error setting font name: ${error instanceof Error ? error.message : String(error)}`);
-  }
+  // Try every spelling of the requested face ("SemiBold" AND "Semi Bold", …) and
+  // use whichever the family actually ships; error naming the real styles if none.
+  const style = await resolveAndLoadFontStyle(family, rawStyle, "set_font_name");
+  (node as TextNode).fontName = { family, style };
+  return {
+    id: node.id,
+    name: node.name,
+    fontName: (node as TextNode).fontName,
+    requestedStyle: rawStyle,
+    resolvedStyle: style,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -1312,7 +1462,7 @@ export async function setFontSize(params: Record<string, unknown>): Promise<Reco
       fontSize: (node as TextNode).fontSize,
     };
   } catch (error) {
-    throw new Error(`Error setting font size: ${(error as Error).message}`);
+    throw new Error(describeError(error));
   }
 }
 
@@ -1345,8 +1495,14 @@ export async function setFontWeight(params: Record<string, unknown>): Promise<Re
     const family =
       rawFontName === figma.mixed ? ((node as TextNode).getRangeFontName(0, 1) as FontName) : (rawFontName as FontName);
     const resolvedFamily = (family as FontName).family;
-    const style = getFontStyle(weight as number);
-    await figma.loadFontAsync({ family: resolvedFamily, style });
+    // Try both "Semi Bold" and "SemiBold" spellings (and the other compound
+    // variants) — families disagree, and normalising to one of them was the
+    // cause of 9 spurious "font has no style" failures.
+    const style = await resolveAndLoadFontStyle(
+      resolvedFamily,
+      getFontStyle(weight as number),
+      `set_font_weight (weight ${weight})`,
+    );
     (node as TextNode).fontName = { family: resolvedFamily, style };
     return {
       id: node.id,
@@ -1355,7 +1511,23 @@ export async function setFontWeight(params: Record<string, unknown>): Promise<Re
       weight,
     };
   } catch (error) {
-    throw new Error(`Error setting font weight: ${(error as Error).message}`);
+    throw new Error(describeError(error));
+  }
+}
+
+/** Lists the style names available for a font family (best effort). */
+async function listStylesForFamily(family: string): Promise<string[]> {
+  try {
+    const fonts = await figma.listAvailableFontsAsync();
+    const styles: string[] = [];
+    for (let i = 0; i < fonts.length; i++) {
+      if (fonts[i].fontName.family === family && styles.indexOf(fonts[i].fontName.style) === -1) {
+        styles.push(fonts[i].fontName.style);
+      }
+    }
+    return styles;
+  } catch (_e) {
+    return [];
   }
 }
 
@@ -1397,7 +1569,7 @@ export async function setLetterSpacing(params: Record<string, unknown>): Promise
       letterSpacing: (node as TextNode).letterSpacing,
     };
   } catch (error) {
-    throw new Error(`Error setting letter spacing: ${(error as Error).message}`);
+    throw new Error(describeError(error));
   }
 }
 
@@ -1439,7 +1611,7 @@ export async function setLineHeight(params: Record<string, unknown>): Promise<Re
       lineHeight: (node as TextNode).lineHeight,
     };
   } catch (error) {
-    throw new Error(`Error setting line height: ${(error as Error).message}`);
+    throw new Error(describeError(error));
   }
 }
 
@@ -1477,7 +1649,7 @@ export async function setParagraphSpacing(params: Record<string, unknown>): Prom
       paragraphSpacing: (node as TextNode).paragraphSpacing,
     };
   } catch (error) {
-    throw new Error(`Error setting paragraph spacing: ${(error as Error).message}`);
+    throw new Error(describeError(error));
   }
 }
 
@@ -1519,7 +1691,7 @@ export async function setTextCase(params: Record<string, unknown>): Promise<Reco
       textCase: (node as TextNode).textCase,
     };
   } catch (error) {
-    throw new Error(`Error setting text case: ${(error as Error).message}`);
+    throw new Error(describeError(error));
   }
 }
 
@@ -1561,7 +1733,7 @@ export async function setTextWrapStyle(params: Record<string, unknown>): Promise
       textWrapStyle: (node as TextNode).textWrapStyle,
     };
   } catch (error) {
-    throw new Error(`Error setting text wrap style: ${(error as Error).message}`);
+    throw new Error(describeError(error));
   }
 }
 
@@ -1583,7 +1755,7 @@ export async function setTextAlign(params: Record<string, unknown>): Promise<Rec
   }
 
   const horizontal = readTextAlign(
-    safeParams.textAlignHorizontal ?? safeParams.horizontal,
+    safeParams.textAlignHorizontal ?? safeParams.horizontal ?? safeParams.align,
     TEXT_ALIGN_HORIZONTAL,
     "horizontal",
     "set_text_align",
@@ -1689,7 +1861,7 @@ export async function setTextDecoration(params: Record<string, unknown>): Promis
       textDecoration: (node as TextNode).textDecoration,
     };
   } catch (error) {
-    throw new Error(`Error setting text decoration: ${(error as Error).message}`);
+    throw new Error(describeError(error));
   }
 }
 
@@ -2157,7 +2329,7 @@ export async function getStyledTextSegments(params: Record<string, unknown>): Pr
       segments: safeSegments,
     };
   } catch (error) {
-    throw new Error(`Error getting styled text segments: ${(error as Error).message}`);
+    throw new Error(describeError(error));
   }
 }
 
@@ -2174,17 +2346,21 @@ export async function loadFontAsyncWrapper(params: Record<string, unknown>): Pro
     throw new Error("Missing font family");
   }
 
-  try {
-    await figma.loadFontAsync({ family, style });
-    return {
-      success: true,
-      family,
-      style,
-      message: `Successfully loaded ${family} ${style}`,
-    };
-  } catch (error) {
-    throw new Error(`Error loading font: ${(error as Error).message}`);
-  }
+  // Bug #37: this used to surface "Error loading font: undefined" — Figma rejects
+  // with a bare object, so `error.message` was undefined and the agent learned
+  // nothing. Route through the shared resolver so the failure names the family,
+  // the requested style, the spellings tried, and the styles that DO exist.
+  const resolvedStyle = await resolveAndLoadFontStyle(family, style, "Error loading font");
+  return {
+    success: true,
+    family,
+    style: resolvedStyle,
+    requestedStyle: style,
+    message:
+      resolvedStyle === style
+        ? `Successfully loaded ${family} ${style}`
+        : `Successfully loaded ${family} ${resolvedStyle} (requested "${style}")`,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -2340,7 +2516,7 @@ export async function createTextStyle(params: Record<string, unknown>): Promise<
       bindingWarnings: warnings,
     };
   } catch (error) {
-    throw new Error(`Error creating text style: ${(error as Error).message}`);
+    throw new Error(describeError(error));
   }
 }
 
@@ -2435,7 +2611,7 @@ export async function createTextStyleFromProperties(params: Record<string, unkno
       bindingWarnings: warnings,
     };
   } catch (error) {
-    throw new Error(`Error creating text style from properties: ${(error as Error).message}`);
+    throw new Error(describeError(error));
   }
 }
 
@@ -2474,7 +2650,7 @@ export async function applyTextStyle(params: Record<string, unknown>): Promise<R
       styleName: resolvedStyle.name,
     };
   } catch (error) {
-    throw new Error(`Error applying text style: ${(error as Error).message}`);
+    throw new Error(describeError(error));
   }
 }
 
@@ -2504,7 +2680,7 @@ export async function getTextStyles(): Promise<Record<string, unknown>> {
       })),
     };
   } catch (error) {
-    throw new Error(`Error getting text styles: ${(error as Error).message}`);
+    throw new Error(describeError(error));
   }
 }
 
@@ -2552,7 +2728,7 @@ export async function deleteTextStyle(params: Record<string, unknown>): Promise<
       id: styleIdCopy,
     };
   } catch (error) {
-    throw new Error(`Error deleting text style: ${(error as Error).message}`);
+    throw new Error(describeError(error));
   }
 }
 
@@ -2699,6 +2875,6 @@ export async function updateTextStyle(params: Record<string, unknown>): Promise<
       bindingWarnings: warnings,
     };
   } catch (error) {
-    throw new Error(`Error updating text style: ${(error as Error).message}`);
+    throw new Error(describeError(error));
   }
 }

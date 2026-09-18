@@ -146,7 +146,7 @@ Or `.mcp.json`:
 }
 ```
 
-The Figma plugin then connects to `wss://figma-mcp.videntia.dev` automatically — skip steps 2 and 4 above.
+The MCP server connects to the hosted relay automatically. The Figma plugin still defaults to `localhost`, so open its Server dropdown and pick `figma-mcp.videntia.dev` once, then skip steps 2 and 4 above.
 
 ---
 
@@ -185,6 +185,48 @@ bun run format   # Auto-fix formatting
 
 ---
 
+## Progressive Tool Discovery
+
+This server exposes **~233 tools**. Advertising all of them costs roughly **80k tokens of
+JSON-Schema in every agent session**, and a typical session uses fewer than ten. So the
+server defaults to a small **entry surface** and lets an agent discover the rest on demand.
+
+**Entry surface (always advertised):** `figma_connect`, `find_figma_tools`,
+`describe_figma_tools`, `load_figma_tools`, `figma_call`, `get_capabilities`,
+`batch_actions`, `get_node_info`, `get_content_tree`, `export_node_as_image`
+— about **4k tokens instead of ~80k (a ~95% reduction)**.
+
+Nothing is removed. Every tool is still fully present internally; it is simply not
+advertised until it is needed:
+
+| Step        | Call                                                                        | Cost                                                                                           |
+| ----------- | --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Find it     | `find_figma_tools({query:"center text"})`                                   | names + one-liners, ~200 tokens                                                                |
+| Learn it    | `describe_figma_tools({names:["set_text_align"]})`                          | full JSON-Schema, and the tool is added to your tool list (`notifications/tools/list_changed`) |
+| Call it now | `figma_call({tool,params})` or `batch_actions({actions:[{action,params}]})` | zero registration, works immediately                                                           |
+
+`batch_actions` already dispatches **any** document-acting tool by name with exactly the
+standalone parameters, so an agent never has to wait for a tool-list refresh to act.
+
+### Opting out — `VIDENTIA_FIGMA_TOOLS`
+
+> **This changes behaviour for existing setups.** If you rely on every tool appearing in
+> `tools/list`, set `VIDENTIA_FIGMA_TOOLS=all`.
+
+| Value                      | Effect                                                                                                                                                                                                                                                                                                                                                                           |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| _(unset)_ or `progressive` | **Default.** Entry surface only; everything else discoverable.                                                                                                                                                                                                                                                                                                                   |
+| `all`                      | Pre-0.8 behaviour — every tool advertised up front.                                                                                                                                                                                                                                                                                                                              |
+| `read,write,tokens`        | Advertise only these categories (plus the entry surface). Categories: `document`, `creation`, `modification`, `text`, `component`, `variable`, `batch`, `icon`, `comparison`, `documentation`, `browser`, `browser-control`, `composite`, `verification`, `capability`, `discovery` — with aliases such as `tokens` → `variable`, `read` → `document`, `write` → `modification`. |
+
+An unrecognised value never crashes the server: it logs a warning on stderr and falls
+back to `all`. `get_capabilities` always reports the active mode, how many tools are
+hidden, and how to reach them.
+
+```json
+{ "mcpServers": { "videntia-figma": { "command": "…", "env": { "VIDENTIA_FIGMA_TOOLS": "all" } } } }
+```
+
 ## Capabilities
 
 | Category      | What you can do                                             |
@@ -213,30 +255,30 @@ JSX output format: **[docs/jsx-syntax-reference.md](docs/jsx-syntax-reference.md
 
 This project contains two `manifest.json` files with different purposes:
 
-| File | Purpose |
-|------|---------|
-| `manifest.json` (root) | **DXT manifest** — packages the MCP server as a Claude Desktop extension (`dxt_version: "0.1"`). Used by `bun run build:dxt`. |
+| File                                      | Purpose                                                                                                                                  |
+| ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `manifest.json` (root)                    | **DXT manifest** — packages the MCP server as a Claude Desktop extension (`dxt_version: "0.1"`). Used by `bun run build:dxt`.            |
 | `src/videntia_figma_plugin/manifest.json` | **Figma plugin manifest** — tells Figma how to load the plugin (`code.js` + `ui.html`). Import this when installing the plugin in Figma. |
 
 ### Documentation
 
-| File | Contents |
-|------|---------|
-| [`docs/tools.md`](docs/tools.md) | Complete reference for all 167 MCP tools |
+| File                                                           | Contents                                                                    |
+| -------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| [`docs/tools.md`](docs/tools.md)                               | Complete reference for all 167 MCP tools                                    |
 | [`docs/jsx-syntax-reference.md`](docs/jsx-syntax-reference.md) | JSX + Tailwind output format used by `get_selection`, `get_node_info`, etc. |
 
 ---
 
 ## Troubleshooting
 
-| Problem                             | Fix                                                                                                                                      |
-| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| Can't connect to WebSocket          | Check launchd: `lsof -iTCP:3055 -sTCP:LISTEN`. Reload: `launchctl kickstart -k gui/$(id -u)/videntia-figma-mcp.socket`. Foreground fallback: `bun run socket` |
-| Plugin not found                    | Re-import `src/videntia_figma_plugin/manifest.json` via Figma → Plugins → Development                                                      |
-| MCP not available in Claude Desktop | Restart Claude after editing the config file                                                                                             |
-| Font not found                      | Use `load_font_async` to verify font availability                                                                                        |
+| Problem                             | Fix                                                                                                                                                                |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Can't connect to WebSocket          | Check launchd: `lsof -iTCP:3055 -sTCP:LISTEN`. Reload: `launchctl kickstart -k gui/$(id -u)/videntia-figma-mcp.socket`. Foreground fallback: `bun run socket`      |
+| Plugin not found                    | Re-import `src/videntia_figma_plugin/manifest.json` via Figma → Plugins → Development                                                                              |
+| MCP not available in Claude Desktop | Restart Claude after editing the config file                                                                                                                       |
+| Font not found                      | Use `load_font_async` to verify font availability                                                                                                                  |
 | `set_image_fill` fails              | Only `images.unsplash.com` and `picsum.photos` are allowed by default; add your domain to `src/videntia_figma_plugin/manifest.json → networkAccess.allowedDomains` |
-| Timeout on complex operations       | Retry; large documents take longer                                                                                                       |
+| Timeout on complex operations       | Retry; large documents take longer                                                                                                                                 |
 
 ---
 

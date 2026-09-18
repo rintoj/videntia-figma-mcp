@@ -1,3 +1,12 @@
+import {
+  applyWrites,
+  guardParentSize,
+  resolveSideEffectAllowance,
+  mergeWriteResults,
+  resolveStrict,
+  snapshotParentSize,
+  withWriteReport,
+} from "../utils/write-verify";
 import { findCollection } from "./variables";
 import { loadTextNodeFonts } from "../utils/helpers";
 
@@ -224,35 +233,6 @@ function isAutoLayoutNode(node: BaseNode): node is AutoLayoutNode {
   return (
     node.type === "FRAME" || node.type === "COMPONENT" || node.type === "INSTANCE" || node.type === "COMPONENT_SET"
   );
-}
-
-const CLIPPABLE_NODE_TYPES = new Set(["FRAME", "COMPONENT", "COMPONENT_SET", "INSTANCE"]);
-
-export async function setClipsContent(params: Record<string, unknown>): Promise<Record<string, unknown>> {
-  const nodeId = params ? (params["nodeId"] as string | undefined) : undefined;
-  const clipsContent = params ? params["clipsContent"] : undefined;
-
-  if (!nodeId) {
-    throw new Error("Missing nodeId parameter");
-  }
-  if (typeof clipsContent !== "boolean") {
-    throw new Error("Missing clipsContent parameter (must be a boolean)");
-  }
-
-  const node = await figma.getNodeByIdAsync(nodeId);
-  if (!node) {
-    throw new Error(`Node with ID ${nodeId} not found`);
-  }
-  if (!CLIPPABLE_NODE_TYPES.has(node.type)) {
-    throw new Error(
-      `Node "${node.name}" does not support clipsContent (type: ${node.type}); supported types: FRAME, COMPONENT, COMPONENT_SET, INSTANCE`,
-    );
-  }
-
-  const frame = node as FrameNode;
-  frame.clipsContent = clipsContent;
-
-  return { id: frame.id, name: frame.name, clipsContent: frame.clipsContent };
 }
 
 // Layout handlers read their internal param names but also accept the public MCP
@@ -652,21 +632,59 @@ export async function setGridChild(params: Record<string, unknown>): Promise<Rec
   };
 }
 
+/**
+ * Read a padding/spacing argument under any of its accepted spellings.
+ *
+ * The MCP tool layer maps its short argument names (`top`, `gap`, …) to the
+ * plugin's long names, but `batch_actions` forwards action params verbatim —
+ * so a batched `set_padding` arrived with `top`/`right`/… and every long-name
+ * lookup returned `undefined`, producing a total no-op that still reported
+ * success. Accept both spellings here so the two paths behave identically.
+ */
+function readAlias(params: Record<string, unknown>, ...names: string[]): number | undefined {
+  for (let i = 0; i < names.length; i++) {
+    const v = params[names[i]];
+    if (v !== undefined && v !== null) {
+      const n = typeof v === "number" ? v : parseFloat(v as string);
+      if (isNaN(n)) {
+        throw new Error(`Invalid value for "${names[i]}": expected a number, got ${JSON.stringify(v)}`);
+      }
+      return n;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Padding, item spacing and counter-axis spacing are only live on a frame that
+ * currently has auto layout. On a `layoutMode === "NONE"` frame the Figma API
+ * accepts the assignment and throws nothing, but the value never renders and is
+ * not persisted — the classic silent no-op. Fail loudly with the fix instead.
+ */
+function assertAutoLayoutEnabled(node: BaseNode, command: string, property: string): FrameNode {
+  if (!isAutoLayoutNode(node)) {
+    throw new Error(`Node "${node.name}" does not support ${property} (type: ${node.type})`);
+  }
+  const frame = node as FrameNode;
+  if (frame.layoutMode === "NONE") {
+    throw new Error(
+      `Frame "${node.name}" has layoutMode NONE, so ${property} is inert — Figma accepts the write and discards it. ` +
+        `Fix it in ONE call with set_auto_layout — it sets layoutMode, padding and itemSpacing/gap together ` +
+        `and applies them exactly (e.g. {mode:"VERTICAL", gap:37, left:21, top:13, right:21, bottom:13}). ` +
+        `Otherwise call set_layout_mode with HORIZONTAL/VERTICAL/GRID on this frame first, then ${command}.`,
+    );
+  }
+  return frame;
+}
+
 export async function setPadding(params: Record<string, unknown>): Promise<Record<string, unknown>> {
   const nodeId = params["nodeId"] as string;
-  const paddingTop = paramAlias(params, "paddingTop", "top") as number | undefined;
-  const paddingRight = paramAlias(params, "paddingRight", "right") as number | undefined;
-  const paddingBottom = paramAlias(params, "paddingBottom", "bottom") as number | undefined;
-  const paddingLeft = paramAlias(params, "paddingLeft", "left") as number | undefined;
-
-  if (
-    paddingTop === undefined &&
-    paddingRight === undefined &&
-    paddingBottom === undefined &&
-    paddingLeft === undefined
-  ) {
-    throw new Error("No padding values provided — pass top, right, bottom and/or left. No changes were made.");
-  }
+  // `padding` is a CSS-style shorthand applying to all four sides.
+  const paddingAll = readAlias(params, "padding");
+  const paddingTop = readAlias(params, "paddingTop", "top");
+  const paddingRight = readAlias(params, "paddingRight", "right");
+  const paddingBottom = readAlias(params, "paddingBottom", "bottom");
+  const paddingLeft = readAlias(params, "paddingLeft", "left");
 
   const node = await figma.getNodeByIdAsync(nodeId);
 
@@ -674,33 +692,54 @@ export async function setPadding(params: Record<string, unknown>): Promise<Recor
     throw new Error(`Node with ID ${nodeId} not found`);
   }
 
-  if (!isAutoLayoutNode(node)) {
-    throw new Error(`Node "${node.name}" does not support padding (type: ${node.type})`);
+  const frame = assertAutoLayoutEnabled(node, "set_padding", "padding");
+
+  const top = paddingTop !== undefined ? paddingTop : paddingAll;
+  const right = paddingRight !== undefined ? paddingRight : paddingAll;
+  const bottom = paddingBottom !== undefined ? paddingBottom : paddingAll;
+  const left = paddingLeft !== undefined ? paddingLeft : paddingAll;
+
+  if (top === undefined && right === undefined && bottom === undefined && left === undefined) {
+    throw new Error(
+      `set_padding on "${node.name}" was given no padding values. ` +
+        `Pass at least one of padding/top/right/bottom/left (aliases: paddingTop/paddingRight/paddingBottom/paddingLeft).`,
+    );
   }
 
-  const frame = node as FrameNode;
-  if (paddingTop !== undefined) frame.paddingTop = paddingTop;
-  if (paddingRight !== undefined) frame.paddingRight = paddingRight;
-  if (paddingBottom !== undefined) frame.paddingBottom = paddingBottom;
-  if (paddingLeft !== undefined) frame.paddingLeft = paddingLeft;
+  const report = applyWrites(
+    frame,
+    { paddingTop: top, paddingRight: right, paddingBottom: bottom, paddingLeft: left },
+    { label: "set_padding", strict: resolveStrict(params) },
+  );
 
-  return {
-    nodeId: node.id,
-    name: node.name,
-    paddingTop: frame.paddingTop,
-    paddingRight: frame.paddingRight,
-    paddingBottom: frame.paddingBottom,
-    paddingLeft: frame.paddingLeft,
-    success: true,
-  };
+  return withWriteReport(
+    {
+      nodeId: node.id,
+      name: node.name,
+      paddingTop: frame.paddingTop,
+      paddingRight: frame.paddingRight,
+      paddingBottom: frame.paddingBottom,
+      paddingLeft: frame.paddingLeft,
+    },
+    report,
+  );
 }
 
 export async function setItemSpacing(params: Record<string, unknown>): Promise<Record<string, unknown>> {
   const nodeId = params["nodeId"] as string;
-  const itemSpacing = paramAlias(params, "itemSpacing", "gap") as number | undefined;
-  const counterAxisSpacing = params["counterAxisSpacing"] as number | undefined;
-  const gridRowGap = paramAlias(params, "gridRowGap", "rowGap") as number | undefined;
-  const gridColumnGap = paramAlias(params, "gridColumnGap", "columnGap") as number | undefined;
+  // `gap` is the MCP tool's name; batch_actions forwards it verbatim.
+  const itemSpacing = readAlias(params, "itemSpacing", "gap");
+  const counterAxisSpacing = readAlias(params, "counterAxisSpacing");
+
+  const node = await figma.getNodeByIdAsync(nodeId);
+
+  if (!node) {
+    throw new Error(`Node with ID ${nodeId} not found`);
+  }
+
+  const frame = assertAutoLayoutEnabled(node, "set_item_spacing", "item spacing");
+  const gridRowGap = readAlias(params, "gridRowGap", "rowGap");
+  const gridColumnGap = readAlias(params, "gridColumnGap", "columnGap");
 
   if (
     itemSpacing === undefined &&
@@ -712,18 +751,6 @@ export async function setItemSpacing(params: Record<string, unknown>): Promise<R
       "No spacing values provided — pass gap, counterAxisSpacing, rowGap and/or columnGap. No changes were made.",
     );
   }
-
-  const node = await figma.getNodeByIdAsync(nodeId);
-
-  if (!node) {
-    throw new Error(`Node with ID ${nodeId} not found`);
-  }
-
-  if (!isAutoLayoutNode(node)) {
-    throw new Error(`Node "${node.name}" does not support item spacing (type: ${node.type})`);
-  }
-
-  const frame = node as FrameNode;
   const isGrid = frame.layoutMode === "GRID";
 
   // itemSpacing is inert on GRID frames and the grid gaps are inert everywhere
@@ -742,35 +769,62 @@ export async function setItemSpacing(params: Record<string, unknown>): Promise<R
     );
   }
 
+  const strict = resolveStrict(params);
+
   if (isGrid) {
     // `gap` is the CSS shorthand: it sets both axes unless a per-axis value wins.
-    if (itemSpacing !== undefined) {
-      frame.gridRowGap = itemSpacing;
-      frame.gridColumnGap = itemSpacing;
-    }
-    if (gridRowGap !== undefined) frame.gridRowGap = gridRowGap;
-    if (gridColumnGap !== undefined) frame.gridColumnGap = gridColumnGap;
+    const rowValue = gridRowGap !== undefined ? gridRowGap : itemSpacing;
+    const columnValue = gridColumnGap !== undefined ? gridColumnGap : itemSpacing;
+    const gridReport = applyWrites(
+      frame,
+      { gridRowGap: rowValue, gridColumnGap: columnValue },
+      { label: "set_item_spacing", strict },
+    );
 
-    return {
-      nodeId: node.id,
-      name: node.name,
-      layoutMode: frame.layoutMode,
-      gridRowGap: frame.gridRowGap,
-      gridColumnGap: frame.gridColumnGap,
-      success: true,
-    };
+    return withWriteReport(
+      {
+        nodeId: node.id,
+        name: node.name,
+        layoutMode: frame.layoutMode,
+        gridRowGap: frame.gridRowGap,
+        gridColumnGap: frame.gridColumnGap,
+      },
+      gridReport,
+    );
   }
 
-  if (itemSpacing !== undefined) frame.itemSpacing = itemSpacing;
-  if (counterAxisSpacing !== undefined) frame.counterAxisSpacing = counterAxisSpacing;
+  // itemSpacing is ignored by the layout engine when the primary axis is
+  // distributing free space itself. Figma still stores the number (so a
+  // read-back check cannot detect it), which is exactly why callers saw a
+  // "successful" write with no visual change.
+  if (itemSpacing !== undefined && frame.primaryAxisAlignItems === "SPACE_BETWEEN") {
+    throw new Error(
+      `Frame "${node.name}" has primaryAxisAlignItems SPACE_BETWEEN, which distributes the gap automatically — ` +
+        `itemSpacing is stored but never rendered. Set primaryAxisAlignItems to MIN/CENTER/MAX ` +
+        `(set_axis_align) before setting a gap.`,
+    );
+  }
 
-  return {
-    nodeId: node.id,
-    name: node.name,
-    itemSpacing: frame.itemSpacing,
-    counterAxisSpacing: frame.counterAxisSpacing,
-    success: true,
-  };
+  // counterAxisSpacing only exists on a wrapping frame; on a non-wrapping one
+  // Figma keeps it at null and discards the write.
+  if (counterAxisSpacing !== undefined && frame.layoutWrap !== "WRAP") {
+    throw new Error(
+      `Frame "${node.name}" has layoutWrap ${frame.layoutWrap} — counterAxisSpacing only applies to WRAP frames ` +
+        `and is discarded here. Set wrap=WRAP (set_layout_mode) first, or use gap instead.`,
+    );
+  }
+
+  const report = applyWrites(frame, { itemSpacing, counterAxisSpacing }, { label: "set_item_spacing", strict });
+
+  return withWriteReport(
+    {
+      nodeId: node.id,
+      name: node.name,
+      itemSpacing: frame.itemSpacing,
+      counterAxisSpacing: frame.counterAxisSpacing,
+    },
+    report,
+  );
 }
 
 export async function setAxisAlign(params: Record<string, unknown>): Promise<Record<string, unknown>> {
@@ -813,8 +867,12 @@ export async function setAxisAlign(params: Record<string, unknown>): Promise<Rec
 
 export async function setLayoutSizing(params: Record<string, unknown>): Promise<Record<string, unknown>> {
   const nodeId = params["nodeId"] as string;
-  const layoutSizingHorizontal = paramAlias(params, "layoutSizingHorizontal", "horizontal") as string | undefined;
-  const layoutSizingVertical = paramAlias(params, "layoutSizingVertical", "vertical") as string | undefined;
+  const layoutSizingHorizontal = (
+    params["layoutSizingHorizontal"] !== undefined ? params["layoutSizingHorizontal"] : params["horizontal"]
+  ) as string | undefined;
+  const layoutSizingVertical = (
+    params["layoutSizingVertical"] !== undefined ? params["layoutSizingVertical"] : params["vertical"]
+  ) as string | undefined;
 
   if (layoutSizingHorizontal === undefined && layoutSizingVertical === undefined) {
     throw new Error(
@@ -842,30 +900,61 @@ export async function setLayoutSizing(params: Record<string, unknown>): Promise<
   const sizingNode = node as FrameNode | TextNode;
   const isText = node.type === "TEXT";
 
-  // Validate FILL before touching the node so a rejected call leaves no partial change.
+  // ---- Preconditions that Figma silently swallows rather than reporting ----
+
   const parent = node.parent;
   const parentLayoutMode =
-    parent && "layoutMode" in parent ? (parent as unknown as { layoutMode: string }).layoutMode : undefined;
-  const parentIsAutoLayout = parentLayoutMode !== undefined && parentLayoutMode !== "NONE";
-  const fillAxes: string[] = [];
-  if (layoutSizingHorizontal === "FILL") fillAxes.push("horizontal");
-  if (layoutSizingVertical === "FILL") fillAxes.push("vertical");
-  if (fillAxes.length > 0) {
-    if (!parentIsAutoLayout) {
-      const parentDesc = parent
-        ? `its parent "${parent.name}" (${parent.type}) has no auto layout`
-        : "it has no parent";
+    parent !== null && parent !== undefined && "layoutMode" in parent ? (parent as FrameNode).layoutMode : "NONE";
+  const isLayoutChild =
+    parentLayoutMode === "HORIZONTAL" || parentLayoutMode === "VERTICAL" || parentLayoutMode === "GRID";
+
+  // FILL means "stretch to my parent's auto-layout track". A node whose parent
+  // is a page, a group, or a non-auto-layout frame has no track to fill, so the
+  // assignment is discarded without error.
+  if (layoutSizingHorizontal === "FILL" || layoutSizingVertical === "FILL") {
+    if (!isLayoutChild) {
+      const where =
+        parent === null || parent === undefined
+          ? "no parent"
+          : parent.type === "PAGE"
+            ? "the page (a top-level node)"
+            : `a ${parent.type}${"layoutMode" in parent ? " with layoutMode NONE" : ""}`;
       throw new Error(
-        `Cannot set ${fillAxes.join(" and ")} sizing to FILL on "${node.name}": FILL only works on children of an auto-layout frame, and ${parentDesc}. Add auto layout to the parent (set_auto_layout) or use FIXED/HUG. No changes were made.`,
-      );
-    }
-    if ("layoutPositioning" in node && (node as FrameNode).layoutPositioning === "ABSOLUTE") {
-      throw new Error(
-        `Cannot set ${fillAxes.join(" and ")} sizing to FILL on "${node.name}": the node is absolutely positioned inside its auto-layout parent. No changes were made.`,
+        `Cannot set layout sizing FILL on "${node.name}": its parent is ${where}, so there is no auto-layout ` +
+          `track to fill and Figma discards the write. Put the node inside an auto-layout frame first ` +
+          `(set_layout_mode on the parent), or use FIXED with resize_node.`,
       );
     }
   }
 
+  // HUG means "shrink-wrap my children". Figma only permits it on a node that
+  // is itself an auto-layout frame (or a TEXT node, handled below); a top-level
+  // frame that is a page child can never hug.
+  const wantsHug = layoutSizingHorizontal === "HUG" || layoutSizingVertical === "HUG";
+  if (wantsHug && node.type !== "TEXT") {
+    const ownLayoutMode = "layoutMode" in node ? (node as FrameNode).layoutMode : "NONE";
+    if (ownLayoutMode === "NONE") {
+      throw new Error(
+        `Cannot set layout sizing HUG on "${node.name}": HUG shrink-wraps auto-layout children, but this ` +
+          `${node.type} has layoutMode NONE. Enable auto layout on it first (set_layout_mode / set_auto_layout), ` +
+          `then set HUG.`,
+      );
+    }
+    if (parent !== null && parent !== undefined && parent.type === "PAGE") {
+      throw new Error(
+        `Cannot set layout sizing HUG on "${node.name}": it is a top-level frame (a direct child of the page). ` +
+          `Figma does not allow page-level frames to hug their contents — the write is accepted and discarded. ` +
+          `Either resize it explicitly (resize_node) or nest it inside an auto-layout parent frame.`,
+      );
+    }
+  }
+
+  // TEXT nodes drive their HUG behavior off `textAutoResize`, not layoutSizing*
+  // directly — setting layoutSizingHorizontal/Vertical to HUG without also
+  // updating textAutoResize is silently ignored by the Figma runtime. Resolve
+  // the effective horizontal/vertical intent (falling back to the node's
+  // current sizing for whichever axis wasn't passed) and derive the matching
+  // textAutoResize value before touching layoutSizing*.
   // TEXT: a fixed or filled width with no vertical intent means "wrap" — height hugs.
   let verticalToApply = layoutSizingVertical as Sizing | undefined;
   if (
@@ -876,69 +965,68 @@ export async function setLayoutSizing(params: Record<string, unknown>): Promise<
     verticalToApply = "HUG";
   }
 
-  // TEXT nodes drive HUG off `textAutoResize`; writing layoutSizing* HUG without it is
-  // silently ignored. Mapping: HUG width → WIDTH_AND_HEIGHT; FIXED/FILL width + HUG
-  // height → HEIGHT (wraps); no HUG on either axis → NONE (fixed box).
-  let targetAutoResize: "NONE" | "HEIGHT" | "WIDTH_AND_HEIGHT" | undefined;
-  if (isText) {
+  if (node.type === "TEXT") {
     const textNode = node as TextNode;
+    // Writing textAutoResize requires the node's fonts to be loaded.
+    await loadTextNodeFonts(textNode);
     const effectiveHorizontal = layoutSizingHorizontal ?? textNode.layoutSizingHorizontal;
     const effectiveVertical = verticalToApply ?? textNode.layoutSizingVertical;
     const hugH = effectiveHorizontal === "HUG";
     const hugV = effectiveVertical === "HUG";
-    targetAutoResize = hugH ? "WIDTH_AND_HEIGHT" : hugV ? "HEIGHT" : "NONE";
+
+    // Figma's TextAutoResize enum has no "WIDTH"-only value, so a horizontal-only
+    // hug still requires WIDTH_AND_HEIGHT (the vertical axis rides along with it).
+    if (hugH || hugV) {
+      textNode.textAutoResize = hugV && !hugH ? "HEIGHT" : "WIDTH_AND_HEIGHT";
+    } else {
+      textNode.textAutoResize = "NONE";
+    }
   }
 
-  const previous = {
-    horizontal: sizingNode.layoutSizingHorizontal,
-    vertical: sizingNode.layoutSizingVertical,
-    textAutoResize: isText ? (node as TextNode).textAutoResize : undefined,
-  };
+  const strict = resolveStrict(params);
 
-  // Writing textAutoResize (and rolling it back) requires the node's fonts to be loaded.
-  if (isText && targetAutoResize !== undefined) {
-    await loadTextNodeFonts(node as TextNode);
-  }
+  // Bug #9: a FILL child makes a hugging parent recompute (and silently shrink)
+  // its own size. Snapshot the parent BEFORE the child write so the drift can be
+  // restored (parent FIXED) or reported loudly (parent hugs).
+  const parentSnapshot = snapshotParentSize(parent);
 
-  try {
-    if (isText && targetAutoResize !== undefined) {
-      (node as TextNode).textAutoResize = targetAutoResize;
-    }
-    if (layoutSizingHorizontal !== undefined) {
-      sizingNode.layoutSizingHorizontal = layoutSizingHorizontal as Sizing;
-    }
-    if (verticalToApply !== undefined) {
-      sizingNode.layoutSizingVertical = verticalToApply;
-    }
-    // Writing layoutSizing* can nudge textAutoResize; the derived value is authoritative.
-    if (isText && targetAutoResize !== undefined && (node as TextNode).textAutoResize !== targetAutoResize) {
-      (node as TextNode).textAutoResize = targetAutoResize;
-    }
-  } catch (error) {
-    try {
-      if (isText && previous.textAutoResize !== undefined) {
-        (node as TextNode).textAutoResize = previous.textAutoResize;
-      }
-      if (sizingNode.layoutSizingHorizontal !== previous.horizontal) {
-        sizingNode.layoutSizingHorizontal = previous.horizontal;
-      }
-      if (sizingNode.layoutSizingVertical !== previous.vertical) {
-        sizingNode.layoutSizingVertical = previous.vertical;
-      }
-    } catch (_restoreError) {
-      // Best-effort rollback; surface the original failure.
-    }
-    throw error;
-  }
+  const report = applyWrites(
+    sizingNode,
+    { layoutSizingHorizontal, layoutSizingVertical: verticalToApply },
+    {
+      label: "set_layout_sizing",
+      strict,
+      hint: "Figma recomputed the sizing mode from the node's layout context.",
+    },
+  );
 
-  return {
+  const parentReport = guardParentSize(parentSnapshot, {
+    label: "set_layout_sizing",
+    strict,
+    childName: node.name,
+    allowSideEffects: resolveSideEffectAllowance(params),
+  });
+
+  const result: Record<string, unknown> = {
     nodeId: node.id,
     name: node.name,
     layoutSizingHorizontal: sizingNode.layoutSizingHorizontal,
     layoutSizingVertical: sizingNode.layoutSizingVertical,
     textAutoResize: node.type === "TEXT" ? (node as TextNode).textAutoResize : undefined,
-    success: true,
   };
+  if (parentSnapshot !== null) {
+    result["parentWidth"] = (parentSnapshot.node as unknown as Record<string, unknown>)["width"];
+    result["parentHeight"] = (parentSnapshot.node as unknown as Record<string, unknown>)["height"];
+  }
+  if (
+    parentReport.warnings.length > 0 &&
+    parentReport.noops.length === 0 &&
+    (parentReport.acknowledged === undefined || parentReport.acknowledged.length === 0)
+  ) {
+    result["parentSizeRestored"] = parentReport.warnings;
+  }
+
+  return withWriteReport(result, mergeWriteResults(report, parentReport));
 }
 
 // ---------------------------------------------------------------------------

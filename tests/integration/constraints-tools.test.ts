@@ -1,14 +1,24 @@
+process.env.VIDENTIA_FIGMA_TOOLS = "all";
+
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { registerModificationTools } from "../../src/videntia_figma_mcp/tools/modification-tools";
-import { registerCreationTools } from "../../src/videntia_figma_mcp/tools/creation-tools";
-import { registerIconTools, resolveCreateIconParams } from "../../src/videntia_figma_mcp/tools/icon-tools";
-import { registerBatchTools } from "../../src/videntia_figma_mcp/tools/batch-tools";
+import { registerTools } from "../../src/videntia_figma_mcp/tools";
+import { resolveCreateIconParams } from "../../src/videntia_figma_mcp/tools/icon-tools";
+import { clearToolRegistry } from "../../src/videntia_figma_mcp/utils/tool-registry";
 import { filterNodeData } from "../../src/videntia_figma_mcp/utils/figma-helpers";
 
-jest.mock("../../src/videntia_figma_mcp/utils/websocket", () => ({
-  sendCommandToFigma: jest.fn(),
-}));
+// Batched actions are built by running the standalone handler in capture mode.
+jest.mock("../../src/videntia_figma_mcp/utils/websocket", () => {
+  const { createCaptureAwareSend } = require("../helpers/capture-aware-websocket");
+  return {
+    sendCommandToFigma: createCaptureAwareSend(),
+    sendCommandToChannel: jest.fn(),
+    connectToFigma: jest.fn(),
+    joinChannel: jest.fn(),
+    getOpenChannels: jest.fn(async () => []),
+    getCurrentChannel: jest.fn(() => "test-channel"),
+  };
+});
 
 describe("constraints tools", () => {
   let mockSendCommand: jest.Mock;
@@ -29,11 +39,11 @@ describe("constraints tools", () => {
       toolSchemas.set(args[0], z.object(schema ?? {}));
       return (originalTool as any)(...args);
     });
-    registerModificationTools(server);
-    registerCreationTools(server);
-    registerIconTools(server);
-    registerBatchTools(server);
+    clearToolRegistry();
+    registerTools(server);
   });
+
+  const sentCalls = () => mockSendCommand.mock.calls.map((c: unknown[]) => [c[0], c[1]]);
 
   async function callTool(toolName: string, args: any) {
     const schema = toolSchemas.get(toolName);
@@ -60,10 +70,13 @@ describe("constraints tools", () => {
         ],
       });
       const response = await callTool("set_constraints", { nodeIds: ["1-2", "3-4"], horizontal: "CENTER" });
-      expect(mockSendCommand).toHaveBeenCalledWith("set_constraints", {
-        nodeIds: ["1:2", "3:4"],
-        horizontal: "CENTER",
-      });
+      expect(sentCalls()).toContainEqual([
+        "set_constraints",
+        {
+          nodeIds: ["1:2", "3:4"],
+          horizontal: "CENTER",
+        },
+      ]);
       const text = response.content[0].text;
       expect(text).toContain("Updated constraints on 2 of 2 node(s)");
       expect(text).toContain("Glyph (1:2): horizontal CENTER, vertical CENTER");
@@ -73,9 +86,9 @@ describe("constraints tools", () => {
     it("accepts a single nodeId and a JSON-string nodeIds", async () => {
       mockSendCommand.mockResolvedValue({ success: true, updated: 1, failed: 0, results: [] });
       await callTool("set_constraints", { nodeId: "5-6", vertical: "STRETCH" });
-      expect(mockSendCommand).toHaveBeenLastCalledWith("set_constraints", { nodeId: "5:6", vertical: "STRETCH" });
+      expect(sentCalls().at(-1)).toEqual(["set_constraints", { nodeId: "5:6", vertical: "STRETCH" }]);
       await callTool("set_constraints", { nodeIds: '["7-8"]', vertical: "SCALE" });
-      expect(mockSendCommand).toHaveBeenLastCalledWith("set_constraints", { nodeIds: ["7:8"], vertical: "SCALE" });
+      expect(sentCalls().at(-1)).toEqual(["set_constraints", { nodeIds: ["7:8"], vertical: "SCALE" }]);
     });
 
     it("lists per-node failures", async () => {
@@ -98,7 +111,7 @@ describe("constraints tools", () => {
       expect(noAxis.content[0].text).toContain("requires horizontal and/or vertical");
       const noNode = await callTool("set_constraints", { horizontal: "MIN" });
       expect(noNode.content[0].text).toContain("requires nodeId or nodeIds");
-      expect(mockSendCommand).not.toHaveBeenCalled();
+      expect(sentCalls()).toEqual([]);
       expect(() => toolSchemas.get("set_constraints")!.parse({ nodeId: "1:2", horizontal: "LEFT" })).toThrow();
     });
 
@@ -106,6 +119,7 @@ describe("constraints tools", () => {
       mockSendCommand.mockResolvedValue({ success: true, totalActions: 1, succeeded: 1, failed: 0, results: [] });
       await callTool("batch_actions", {
         actions: [{ action: "set_constraints", params: { nodeIds: "1-2,3-4", horizontal: "STRETCH" } }],
+        checkpoint: false,
       });
       expect(mockSendCommand.mock.calls[0][1].actions[0]).toEqual({
         action: "set_constraints",
@@ -131,15 +145,18 @@ describe("constraints tools", () => {
         svgString: svg,
         constraints: { horizontal: "CENTER", vertical: "CENTER" },
       });
-      expect(mockSendCommand).toHaveBeenCalledWith("create_svg", {
-        svgString: svg,
-        x: 0,
-        y: 0,
-        name: undefined,
-        parentId: undefined,
-        flatten: false,
-        constraints: { horizontal: "CENTER", vertical: "CENTER" },
-      });
+      expect(sentCalls()).toContainEqual([
+        "create_svg",
+        {
+          svgString: svg,
+          x: 0,
+          y: 0,
+          name: undefined,
+          parentId: undefined,
+          flatten: false,
+          constraints: { horizontal: "CENTER", vertical: "CENTER" },
+        },
+      ]);
       expect(response.content[0].text).toContain(
         "constraints (horizontal: CENTER, vertical: CENTER) applied to 1 layer(s)",
       );
@@ -202,6 +219,7 @@ describe("constraints tools", () => {
             params: { parentId: "1:2", name: "bell", size: 16, constraints: { horizontal: "CENTER" } },
           },
         ],
+        checkpoint: false,
       });
       expect(mockSendCommand.mock.calls[0][1].actions[0].params.constraints).toEqual({ horizontal: "CENTER" });
     });

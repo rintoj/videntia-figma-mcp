@@ -279,8 +279,10 @@ export function resolveCreateIconParams(params: {
 }
 
 /**
- * Resolve an update_icon call into the plugin payload (SVG built server-side).
- * Throws when the icon name is unknown.
+ * Resolve update_icon params (Lucide icon name) into the plugin-facing wire shape
+ * (svgString + resolved name + colorVariable). Exported so batch_actions can run the
+ * same server-side icon resolution the standalone tool does — without it, a batched
+ * update_icon reaches the plugin with no svgString and fails "Missing svgString".
  */
 export function resolveUpdateIconParams(params: {
   nodeId: string;

@@ -13,9 +13,12 @@ import {
   saveVersionHistory,
   triggerUndo,
   commitUndoAction,
+  getDocumentIdentity,
 } from "./handlers/document";
+import { assertExpectedDocument } from "./utils/document-guard";
 import { serializeNodes } from "./handlers/node-serializer";
-import { createPage, renamePage, deletePage } from "./handlers/pages";
+import { createPage, renamePage, deletePage, setPageBackground } from "./handlers/pages";
+import { createSection, setSectionStatus } from "./handlers/sections";
 import {
   getReactions,
   getFrameAnimations,
@@ -30,6 +33,7 @@ import {
   createRectangle,
   createFrame,
   moveNode,
+  moveNodeAbsolute,
   resizeNode,
   deleteNode,
   deleteMultipleNodes,
@@ -43,6 +47,8 @@ import {
   renameNode,
   setVisible,
   insertChild,
+  setClipsContent,
+  setOpacity,
 } from "./handlers/nodes";
 
 // Handlers — fills, strokes, shapes
@@ -70,8 +76,8 @@ import {
   setLineHeight,
   setParagraphSpacing,
   setTextCase,
-  setTextWrapStyle,
   setTextAlign,
+  setTextWrapStyle,
   setTextDecoration,
   setTextRangeStyle,
   getStyledTextSegments,
@@ -172,9 +178,22 @@ import {
   setItemSpacing,
   setAxisAlign,
   setLayoutSizing,
-  setClipsContent,
   setConstraints,
 } from "./handlers/layout";
+
+// Strict mode (silent no-op detection)
+import {
+  setStrictModeEnabled,
+  isStrictModeEnabled,
+  setSideEffectAllowanceDefault,
+  getSideEffectAllowanceDefault,
+} from "./utils/write-verify";
+import {
+  attachPostWriteState,
+  isReturnStateDefault,
+  resolveReturnState,
+  setReturnStateDefault,
+} from "./utils/post-write-state";
 
 // Handlers — selection & focus
 import {
@@ -203,6 +222,13 @@ import { createFromData, getDesignSystem, setupDesignSystem } from "./handlers/d
 // Handlers — lint
 import { lintFrame } from "./handlers/lint/index";
 import { setLintIgnore } from "./handlers/lint/ignore";
+import {
+  contrastCheckFrame,
+  findOverlaps,
+  assertNodeState,
+  findUnbound,
+  checkTokenCollisions,
+} from "./handlers/verification";
 
 // Handlers — batch (injected with handleCommand to avoid circular import)
 import { batchActions } from "./handlers/batch";
@@ -225,8 +251,8 @@ import { getComments } from "./handlers/comments";
 
 const state = {
   serverPort: 3055,
-  serverUrl: "figma-mcp.videntia.dev",
-  serverSecure: true,
+  serverUrl: "localhost",
+  serverSecure: false,
   readonlyMode: false,
   autoFocus: false,
   prefsExpanded: true,
@@ -239,12 +265,16 @@ const state = {
 // ---------------------------------------------------------------------------
 
 var READONLY_COMMANDS = new Set([
+  // Session-level toggle, not a design-data write.
+  "set_strict_mode",
   "get_document_info",
   "get_file_key",
   "get_selection",
   "get_node_info",
   "get_nodes_info",
   "search_nodes",
+  "get_color_style",
+  "get_color_styles",
   "get_styles",
   "get_local_components",
   "get_remote_components",
@@ -270,6 +300,11 @@ var READONLY_COMMANDS = new Set([
   "get_frame_animations",
   "get_design_system",
   "lint_frame",
+  "contrast_check_frame",
+  "find_overlaps",
+  "assert_node_state",
+  "find_unbound",
+  "check_token_collisions",
   "set_focus",
   "set_selections",
   "export_node_as_image",
@@ -284,6 +319,22 @@ var READONLY_COMMANDS = new Set([
   "get_frame_documentation",
   "get_comments",
 ]);
+
+// Handlers — composites (one round trip for multi-call sequences)
+import {
+  createAutolayoutFrame,
+  createStyledText,
+  setGap,
+  createCard,
+  bulkBindVariables,
+  cloneAndPlace,
+  applyRolePreset,
+  bindMany,
+  createTexts,
+  createSvgs,
+  insertChildren,
+  moveNodes,
+} from "./handlers/composites";
 
 // ---------------------------------------------------------------------------
 // Auto-focus command sets
@@ -302,6 +353,9 @@ var FOCUS_BEFORE_COMMANDS = new Set([
   "get_frame_animations",
   "export_node_as_image",
   "lint_frame",
+  "contrast_check_frame",
+  "find_overlaps",
+  "find_unbound",
   // Modify commands with nodeId
   "set_fill_color",
   "set_stroke_color",
@@ -310,6 +364,7 @@ var FOCUS_BEFORE_COMMANDS = new Set([
   "set_image_fill",
   "set_gradient_fill",
   "move_node",
+  "move_node_absolute",
   "resize_node",
   "delete_node",
   "clone_node",
@@ -318,10 +373,12 @@ var FOCUS_BEFORE_COMMANDS = new Set([
   "insert_child",
   "flatten_node",
   "set_corner_radius",
+  "set_clips_content",
+  "set_opacity",
+  "set_section_status",
   "set_text_content",
   "set_multiple_text_contents",
   "set_auto_layout",
-  "set_clips_content",
   "set_font_name",
   "set_font_size",
   "set_font_weight",
@@ -369,6 +426,13 @@ var FOCUS_AFTER_COMMANDS = new Set([
   "create_component_set",
   "create_component_instance",
   "create_from_data",
+  "create_section",
+  "create_autolayout_frame",
+  "create_texts",
+  "create_svgs",
+  "create_styled_text",
+  "create_card",
+  "clone_and_place",
 ]);
 
 // ---------------------------------------------------------------------------
@@ -535,6 +599,12 @@ function enqueueCommand(command: string, params: Record<string, unknown>): Promi
 async function handleCommand(command: string, params: Record<string, unknown>): Promise<unknown> {
   debugLog(`handleCommand: ${command}`);
 
+  // Node ids are unique only WITHIN a Figma file, so a command addressed to one
+  // file must never be applied to another (see utils/document-guard).
+  if (params) {
+    assertExpectedDocument(command, params["__expectedFile"] as any, getDocumentIdentity());
+  }
+
   // Readonly guard
   if (state.readonlyMode && !READONLY_COMMANDS.has(command)) {
     throw new Error("Readonly mode is active. Command '" + command + "' is not allowed.");
@@ -564,6 +634,20 @@ async function handleCommand(command: string, params: Record<string, unknown>): 
   }
 
   var result = await _executeCommand(command, params);
+
+  // `return_state` — answer a mutating command with the node's ACTUAL post-write
+  // state so the caller never needs a follow-up get_node_info. Applied once here,
+  // for every mutating command, rather than in each handler. Best-effort: a state
+  // capture failure must never fail a write that already landed.
+  if (!READONLY_COMMANDS.has(command) && command !== "batch_actions" && resolveReturnState(params)) {
+    try {
+      result = await attachPostWriteState(params, result, function (id: string) {
+        return figma.getNodeByIdAsync(id) as Promise<any>;
+      });
+    } catch (_e) {
+      /* silent */
+    }
+  }
 
   // Auto-focus after create commands
   if (state.autoFocus && FOCUS_AFTER_COMMANDS.has(command) && result && typeof result === "object") {
@@ -598,6 +682,38 @@ async function handleCommand(command: string, params: Record<string, unknown>): 
 
 async function _executeCommand(command: string, params: Record<string, unknown>): Promise<unknown> {
   switch (command) {
+    // Strict mode — when enabled, handlers that detect a silently-discarded
+    // write throw instead of reporting success. Read-only w.r.t. design data.
+    case "set_strict_mode": {
+      const requested = params ? params["enabled"] : undefined;
+      if (requested !== undefined && requested !== null) {
+        setStrictModeEnabled(requested === true || requested === "true");
+      }
+      // Session default for post-write state (see utils/post-write-state).
+      const wantState = params ? params["return_state"] : undefined;
+      if (wantState !== undefined && wantState !== null) {
+        setReturnStateDefault(wantState === true || wantState === "true");
+      }
+      // Session default for side-effect acknowledgement (see utils/write-verify):
+      // true = an intentional knock-on change (e.g. a parent resizing) is reported
+      // as a warning instead of throwing. Accepts a list of kinds too.
+      const wantSideEffects =
+        params && params["allow_side_effects"] !== undefined
+          ? params["allow_side_effects"]
+          : params
+            ? params["allowSideEffects"]
+            : undefined;
+      if (wantSideEffects !== undefined && wantSideEffects !== null) {
+        setSideEffectAllowanceDefault(wantSideEffects);
+      }
+      return {
+        strict: isStrictModeEnabled(),
+        returnState: isReturnStateDefault(),
+        allowSideEffects: getSideEffectAllowanceDefault(),
+        success: true,
+      };
+    }
+
     // Document
     case "get_document_info":
       return await getDocumentInfo();
@@ -663,6 +779,8 @@ async function _executeCommand(command: string, params: Record<string, unknown>)
     // Node operations
     case "move_node":
       return await moveNode(params);
+    case "move_node_absolute":
+      return await moveNodeAbsolute(params);
     case "resize_node":
       return await resizeNode(params);
     case "delete_node":
@@ -753,10 +871,10 @@ async function _executeCommand(command: string, params: Record<string, unknown>)
       return await setParagraphSpacing(params);
     case "set_text_case":
       return await setTextCase(params);
-    case "set_text_wrap_style":
-      return await setTextWrapStyle(params);
     case "set_text_align":
       return await setTextAlign(params);
+    case "set_text_wrap_style":
+      return await setTextWrapStyle(params);
     case "set_text_decoration":
       return await setTextDecoration(params);
     case "set_text_range_style":
@@ -961,6 +1079,18 @@ async function _executeCommand(command: string, params: Record<string, unknown>)
       return await renamePage(params);
     case "delete_page":
       return await deletePage(params);
+    case "set_page_background":
+      return await setPageBackground(params);
+
+    // Sections
+    case "create_section":
+      return await createSection(params);
+    case "set_section_status":
+      return await setSectionStatus(params);
+
+    // Node display properties
+    case "set_opacity":
+      return await setOpacity(params);
 
     // Design system
     case "create_from_data":
@@ -973,6 +1103,18 @@ async function _executeCommand(command: string, params: Record<string, unknown>)
     // Batch
     case "batch_actions":
       return await batchActions(params, handleCommand);
+
+    // Verification (§7)
+    case "contrast_check_frame":
+      return await contrastCheckFrame(params);
+    case "find_overlaps":
+      return await findOverlaps(params);
+    case "assert_node_state":
+      return await assertNodeState(params);
+    case "find_unbound":
+      return await findUnbound(params);
+    case "check_token_collisions":
+      return await checkTokenCollisions(params);
 
     // Lint
     case "lint_frame":
@@ -1015,6 +1157,32 @@ async function _executeCommand(command: string, params: Record<string, unknown>)
     // Comments
     case "get_comments":
       return await getComments(params);
+
+    // Composites — one round trip for what used to be 4-8 calls
+    case "create_autolayout_frame":
+      return await createAutolayoutFrame(params || {});
+    case "create_styled_text":
+      return await createStyledText(params || {});
+    case "set_gap":
+      return await setGap(params || {});
+    case "create_card":
+      return await createCard(params || {});
+    case "bulk_bind_variables":
+      return await bulkBindVariables(params || {});
+    case "clone_and_place":
+      return await cloneAndPlace(params || {});
+    case "apply_role_preset":
+      return await applyRolePreset(params || {});
+    case "bind_many":
+      return await bindMany(params || {});
+    case "create_texts":
+      return await createTexts(params || {});
+    case "create_svgs":
+      return await createSvgs(params || {});
+    case "insert_children":
+      return await insertChildren(params || {});
+    case "move_nodes":
+      return await moveNodes(params || {});
 
     default:
       throw new Error("Unknown command");

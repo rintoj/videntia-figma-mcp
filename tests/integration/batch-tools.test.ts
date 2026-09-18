@@ -1,10 +1,23 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { registerBatchTools } from "../../src/videntia_figma_mcp/tools/batch-tools";
+import { registerTools } from "../../src/videntia_figma_mcp/tools";
+import { clearToolRegistry } from "../../src/videntia_figma_mcp/utils/tool-registry";
 
-jest.mock("../../src/videntia_figma_mcp/utils/websocket", () => ({
-  sendCommandToFigma: jest.fn(),
-}));
+// A batched action is built by running the standalone handler with sendCommandToFigma
+// intercepted, so the mock has to honour capture mode or every batch comes out empty.
+jest.mock("../../src/videntia_figma_mcp/utils/websocket", () => {
+  // `require`, not jest.requireActual — this suite runs under `bun test`, which has no
+  // requireActual.
+  const { createCaptureAwareSend } = require("../helpers/capture-aware-websocket");
+  return {
+    sendCommandToFigma: createCaptureAwareSend(),
+    sendCommandToChannel: jest.fn(),
+    connectToFigma: jest.fn(),
+    joinChannel: jest.fn(),
+    getOpenChannels: jest.fn(async () => []),
+    getCurrentChannel: jest.fn(() => "test-channel"),
+  };
+});
 
 describe("batch_actions tool", () => {
   let server: McpServer;
@@ -31,7 +44,8 @@ describe("batch_actions tool", () => {
       return (originalTool as any)(...args);
     });
 
-    registerBatchTools(server);
+    clearToolRegistry();
+    registerTools(server);
   });
 
   async function callTool(toolName: string, args: any) {
@@ -61,24 +75,28 @@ describe("batch_actions tool", () => {
       const response = await callTool("batch_actions", {
         actions: [
           { action: "create_rectangle", params: { x: 0, y: 0, width: 100, height: 50 } },
-          { action: "set_fill_color", params: { nodeId: "$result[0].id", color: { r: 1, g: 0, b: 0 } } },
+          { action: "set_fill_color", params: { nodeId: "$result[0].id", color: { r: 1, g: 0, b: 0, a: 1 } } },
           { action: "rename_node", params: { nodeId: "$result[0].id", name: "MyRect" } },
         ],
+        // Opt out of the default pre-batch undo checkpoint so this case asserts
+        // on the batch call alone (checkpoint behaviour is covered separately in
+        // batch-checkpoint.test.ts).
+        checkpoint: false,
       });
 
-      expect(mockSendCommand).toHaveBeenCalledTimes(1);
-      expect(mockSendCommand).toHaveBeenCalledWith(
+      expect(mockSendCommand.mock.calls).toHaveLength(1);
+      expect(mockSendCommand.mock.calls).toContainEqual([
         "batch_actions",
         {
           actions: [
             { action: "create_rectangle", params: { x: 0, y: 0, width: 100, height: 50, name: "Rectangle" } },
-            { action: "set_fill_color", params: { nodeId: "$result[0].id", color: { r: 1, g: 0, b: 0 } } },
+            { action: "set_fill_color", params: { nodeId: "$result[0].id", color: { r: 1, g: 0, b: 0, a: 1 } } },
             { action: "rename_node", params: { nodeId: "$result[0].id", name: "MyRect" } },
           ],
           stopOnError: false,
         },
         expect.any(Number),
-      );
+      ]);
       expect(response.content[0].text).toContain("3/3 succeeded");
     });
   });
@@ -138,22 +156,22 @@ describe("batch_actions tool", () => {
   describe("validation", () => {
     it("rejects empty actions array", async () => {
       await expect(callTool("batch_actions", { actions: [] })).rejects.toThrow();
-      expect(mockSendCommand).not.toHaveBeenCalled();
+      expect(mockSendCommand.mock.calls).toHaveLength(0);
     });
 
     it("accepts large batch without limit", async () => {
       const count = 50;
-      mockSendCommand.mockResolvedValue({
-        success: true,
-        totalActions: count,
-        succeeded: count,
-        failed: 0,
-        results: Array.from({ length: count }, (_, i) => ({
+      // Batches longer than BATCH_CHUNK_SIZE are auto-chunked, so the mock must answer
+      // per dispatch — echoing the chunk it was actually given.
+      mockSendCommand.mockImplementation(async (command: string, params: any) => {
+        if (command !== "batch_actions") return {};
+        const results = params.actions.map((a: any, i: number) => ({
           index: i,
-          action: "get_node_info",
+          action: a.action,
           success: true,
           result: { id: `node-${i}` },
-        })),
+        }));
+        return { success: true, totalActions: results.length, succeeded: results.length, failed: 0, results };
       });
 
       const manyActions = Array.from({ length: count }, (_, i) => ({
@@ -187,7 +205,7 @@ describe("batch_actions tool", () => {
       await callTool("batch_actions", { actions });
 
       // 30000 + 10 * 2000 = 50000
-      expect(mockSendCommand).toHaveBeenCalledWith("batch_actions", expect.any(Object), 50000);
+      expect(mockSendCommand.mock.calls).toContainEqual(["batch_actions", expect.any(Object), 50000]);
     });
 
     it("uses higher timeout for larger batches", async () => {
@@ -207,7 +225,7 @@ describe("batch_actions tool", () => {
       await callTool("batch_actions", { actions });
 
       // 30000 + 25 * 2000 = 80000
-      expect(mockSendCommand).toHaveBeenCalledWith("batch_actions", expect.any(Object), 80000);
+      expect(mockSendCommand.mock.calls).toContainEqual(["batch_actions", expect.any(Object), 80000]);
     });
   });
 
@@ -249,14 +267,15 @@ describe("batch_actions tool", () => {
         actions: [{ action: "get_node_info", params: { nodeId: "1:2" } }],
       });
 
-      expect(mockSendCommand).toHaveBeenCalledWith(
+      // The payload is the STANDALONE tool's — get_node_info sends nodeIds + depth.
+      expect(mockSendCommand.mock.calls).toContainEqual([
         "batch_actions",
         {
           actions: [{ action: "get_node_info", params: { nodeIds: ["1:2"], depth: 1 } }],
           stopOnError: false,
         },
         expect.any(Number),
-      );
+      ]);
     });
 
     it("passes stopOnError true to Figma", async () => {
@@ -280,11 +299,11 @@ describe("batch_actions tool", () => {
         stopOnError: true,
       });
 
-      expect(mockSendCommand).toHaveBeenCalledWith(
+      expect(mockSendCommand.mock.calls).toContainEqual([
         "batch_actions",
         expect.objectContaining({ stopOnError: true }),
         expect.any(Number),
-      );
+      ]);
     });
   });
 
@@ -302,203 +321,271 @@ describe("batch_actions tool", () => {
         actions: [{ action: "get_selection" }],
       });
 
-      expect(mockSendCommand).toHaveBeenCalledWith(
+      expect(mockSendCommand.mock.calls).toContainEqual([
         "batch_actions",
         { actions: [{ action: "get_selection", params: { depth: 1 } }], stopOnError: false },
         expect.any(Number),
-      );
+      ]);
       expect(response.content[0].text).toContain("1/1 succeeded");
     });
   });
 
-  describe("param normalization (same names as the individual tools)", () => {
-    const okResult = (count: number) => ({
-      success: true,
-      totalActions: count,
-      succeeded: count,
-      failed: 0,
-      results: [],
-    });
-
-    function sentActions(): Array<{ action: string; params: Record<string, unknown> }> {
-      return mockSendCommand.mock.calls[0][1].actions;
+  describe("param normalisation (batch params match standalone tools)", () => {
+    // Other commands (e.g. the pre-batch undo checkpoint) may also be sent — pick the
+    // batch_actions call itself.
+    function dispatched() {
+      const call = mockSendCommand.mock.calls.filter((c: any[]) => c[0] === "batch_actions").pop();
+      return call[1].actions;
     }
 
-    it("maps set_layout_sizing horizontal/vertical to the plugin's layoutSizing* names", async () => {
-      mockSendCommand.mockResolvedValue(okResult(1));
-      await callTool("batch_actions", {
-        actions: [{ action: "set_layout_sizing", params: { nodeId: "1:2", horizontal: "FILL", vertical: "HUG" } }],
-      });
-      expect(sentActions()[0]).toEqual({
-        action: "set_layout_sizing",
-        params: { nodeId: "1:2", layoutSizingHorizontal: "FILL", layoutSizingVertical: "HUG" },
-      });
+    beforeEach(() => {
+      mockSendCommand.mockResolvedValue({ success: true, totalActions: 1, succeeded: 1, failed: 0, results: [] });
     });
 
-    it("maps set_layout_mode mode/rows/columns to layoutMode/gridRowCount/gridColumnCount", async () => {
-      mockSendCommand.mockResolvedValue(okResult(1));
+    it("maps set_layout_mode 'mode' to 'layoutMode'", async () => {
       await callTool("batch_actions", {
-        actions: [{ action: "set_layout_mode", params: { nodeId: "1:2", mode: "GRID", rows: 2, columns: 3 } }],
+        actions: [{ action: "set_layout_mode", params: { nodeId: "1:2", mode: "vertical" } }],
       });
-      expect(sentActions()[0].params).toEqual({
-        nodeId: "1:2",
-        layoutMode: "GRID",
-        gridRowCount: 2,
-        gridColumnCount: 3,
-      });
+      expect(dispatched()[0].params).toEqual({ nodeId: "1:2", layoutMode: "VERTICAL" });
     });
 
-    it("normalizes URL-style node ids in literal params", async () => {
-      mockSendCommand.mockResolvedValue(okResult(2));
+    it("maps set_line_height 'height' to 'lineHeight' and defaults the unit", async () => {
       await callTool("batch_actions", {
-        actions: [
-          { action: "move_node", params: { nodeId: "12-34", parentId: "5-6", index: 0 } },
-          { action: "delete_multiple_nodes", params: { nodeIds: ["7-8", "9:10"] } },
-        ],
+        actions: [{ action: "set_line_height", params: { nodeId: "1:2", height: 24 } }],
       });
-      expect(sentActions()[0].params).toEqual({ nodeId: "12:34", parentId: "5:6", index: 0 });
-      expect(sentActions()[1].params).toEqual({ nodeIds: ["7:8", "9:10"] });
+      expect(dispatched()[0].params).toEqual({ nodeId: "1:2", lineHeight: 24, unit: "PIXELS" });
     });
 
-    it("preserves $result references while renaming keys", async () => {
-      mockSendCommand.mockResolvedValue(okResult(3));
+    it("maps rename_node 'newName' to 'name'", async () => {
+      await callTool("batch_actions", {
+        actions: [{ action: "rename_node", params: { nodeId: "1-2", newName: "Card" } }],
+      });
+      expect(dispatched()[0].params).toEqual({ nodeId: "1:2", name: "Card" });
+    });
+
+    it("maps bind_variable 'variableName' to 'variableId'", async () => {
       await callTool("batch_actions", {
         actions: [
-          { action: "clone_node", params: { nodeId: "1-2" } },
-          { action: "set_layout_sizing", params: { nodeId: "$result[0].id", horizontal: "FILL" } },
-          { action: "set_padding", params: { nodeId: "$result[0].children[0].id", top: "$result[0].y" } },
+          { action: "bind_variable", params: { nodeId: "1:2", variableName: "background/primary", field: "fills/0" } },
         ],
       });
-      const sent = sentActions();
-      expect(sent[0].params).toEqual({ nodeId: "1:2" });
-      expect(sent[1].params).toEqual({ nodeId: "$result[0].id", layoutSizingHorizontal: "FILL" });
-      expect(sent[2].params).toEqual({ nodeId: "$result[0].children[0].id", paddingTop: "$result[0].y" });
+      expect(dispatched()[0].params.variableId).toBe("background/primary");
     });
 
-    it("keeps accepting the plugin's internal param names", async () => {
-      mockSendCommand.mockResolvedValue(okResult(1));
+    it("maps apply_text_style 'styleName' to 'styleId'", async () => {
+      await callTool("batch_actions", {
+        actions: [{ action: "apply_text_style", params: { nodeId: "1:2", styleName: "body/md" } }],
+      });
+      expect(dispatched()[0].params).toEqual({ nodeId: "1:2", styleId: "body/md" });
+    });
+
+    it("supplies set_gradient_fill 'gradientType' from 'type' (was: Missing gradientType)", async () => {
       await callTool("batch_actions", {
         actions: [
           {
-            action: "set_layout_sizing",
-            params: { nodeId: "1:2", layoutSizingHorizontal: "FIXED", layoutSizingVertical: "FILL" },
+            action: "set_gradient_fill",
+            params: {
+              nodeId: "1:2",
+              type: "LINEAR",
+              stops: [
+                { color: { r: 0, g: 0, b: 0 }, position: 0 },
+                { color: { r: 1, g: 1, b: 1 }, position: 1 },
+              ],
+            },
           },
         ],
       });
-      expect(sentActions()[0].params).toEqual({
-        nodeId: "1:2",
-        layoutSizingHorizontal: "FIXED",
-        layoutSizingVertical: "FILL",
-      });
+      const params = dispatched()[0].params;
+      expect(params.gradientType).toBe("LINEAR");
+      expect(params.angle).toBe(0);
+      expect(params.opacity).toBe(1);
+      expect(params.type).toBeUndefined();
     });
 
-    it("fails invalid actions with the direct tool's validation message instead of sending them raw", async () => {
-      mockSendCommand.mockResolvedValue({
-        success: false,
-        totalActions: 1,
-        succeeded: 0,
-        failed: 1,
-        results: [{ index: 0, action: "set_layout_mode", success: false, error: "plugin error" }],
-      });
-      const response = await callTool("batch_actions", {
-        actions: [{ action: "set_layout_mode", params: { nodeId: "1:2", mode: "HORIZONTAL", rows: 2 } }],
-      });
-      expect(sentActions()[0].params).toEqual({
-        __batchError: "rows/columns apply to GRID mode only (mode is HORIZONTAL)",
-      });
-      expect(response.content[0].text).toContain("rows/columns apply to GRID mode only");
-      expect(response.isError).toBe(true);
-    });
-
-    it("rejects server-only tools with a clear message", async () => {
-      mockSendCommand.mockResolvedValue(okResult(0));
+    it("defaults set_corner_radius corners and accepts the object form", async () => {
       await callTool("batch_actions", {
-        actions: [{ action: "export_image_fill", params: { nodeId: "1:2", exportPath: "/tmp/a.png" } }],
+        actions: [
+          { action: "set_corner_radius", params: { nodeId: "1:2", radius: 8 } },
+          {
+            action: "set_corner_radius",
+            params: {
+              nodeId: "1:3",
+              radius: 8,
+              corners: { topLeft: true, topRight: true, bottomRight: false, bottomLeft: false },
+            },
+          },
+        ],
       });
-      expect(String(sentActions()[0].params.__batchError)).toContain("cannot be used inside batch_actions");
+      expect(dispatched()[0].params.corners).toEqual([true, true, true, true]);
+      expect(dispatched()[1].params.corners).toEqual([true, true, false, false]);
+    });
+
+    it("applies create_text defaults so the plugin returns a resolvable node", async () => {
+      await callTool("batch_actions", {
+        actions: [{ action: "create_text", params: { x: 0, y: 0, text: "Hi" } }],
+      });
+      expect(dispatched()[0].params).toMatchObject({ text: "Hi", fontSize: 14, fontFamily: "Inter" });
+    });
+
+    it("forwards create_rectangle fillColor", async () => {
+      await callTool("batch_actions", {
+        actions: [{ action: "create_rectangle", params: { x: 0, y: 0, width: 10, height: 10, fillColor: "#ff0000" } }],
+      });
+      // The standalone tool parses hex into normalised RGBA before dispatch, and the
+      // batch now produces the identical payload.
+      expect(dispatched()[0].params.fillColor).toEqual({ r: 1, g: 0, b: 0, a: 1 });
+    });
+
+    it("does not normalise away $result references", async () => {
+      await callTool("batch_actions", {
+        actions: [
+          { action: "create_text", params: { x: 0, y: 0, text: "Hi" } },
+          { action: "rename_node", params: { nodeId: "$result[0].id", newName: "Label" } },
+        ],
+      });
+      expect(dispatched()[1].params).toEqual({ nodeId: "$result[0].id", name: "Label" });
     });
   });
 
-  describe("per-action results", () => {
-    it("lists every action with a compact result so no-ops are visible", async () => {
-      mockSendCommand.mockResolvedValue({
-        success: true,
-        totalActions: 2,
-        succeeded: 2,
-        failed: 0,
-        results: [
-          {
-            index: 0,
-            action: "set_layout_sizing",
-            success: true,
-            result: { nodeId: "1:2", name: "Card", layoutSizingHorizontal: "FILL", layoutSizingVertical: "HUG" },
-          },
-          { index: 1, action: "rename_node", success: true, result: { id: "1:2", name: "A|B" } },
-        ],
-      });
-      const response = await callTool("batch_actions", {
-        actions: [
-          { action: "set_layout_sizing", params: { nodeId: "1:2", horizontal: "FILL" } },
-          { action: "rename_node", params: { nodeId: "1:2", name: "A|B" } },
-        ],
-      });
-      const text = response.content[0].text;
-      expect(text).toContain("| 0 | set_layout_sizing | OK |");
-      expect(text).toContain('"layoutSizingHorizontal":"FILL"');
-      expect(text).toContain("| 1 | rename_node | OK |");
-      expect(text).toContain("A\\|B");
+  describe("update_icon expansion", () => {
+    function dispatchedActions() {
+      const call = mockSendCommand.mock.calls.filter((c: any[]) => c[0] === "batch_actions").pop();
+      return call[1].actions;
+    }
+
+    beforeEach(() => {
+      mockSendCommand.mockResolvedValue({ success: true, totalActions: 1, succeeded: 1, failed: 0, results: [] });
     });
 
-    it("caps successful rows for large batches but always lists failures", async () => {
-      const total = 250;
-      const results = Array.from({ length: total }, (_, i) =>
-        i === 240
-          ? { index: i, action: "rename_node", success: false, error: "Node not found" }
-          : { index: i, action: "rename_node", success: true, result: { id: `1:${i}`, name: `N${i}` } },
-      );
+    it("resolves the Lucide icon server-side into svgString (was: Missing svgString)", async () => {
+      await callTool("batch_actions", {
+        actions: [{ action: "update_icon", params: { nodeId: "1-2", name: "bell", size: 24 } }],
+      });
+      const action = dispatchedActions()[0];
+      expect(action.action).toBe("update_icon");
+      expect(action.params.nodeId).toBe("1:2");
+      expect(typeof action.params.svgString).toBe("string");
+      expect(action.params.svgString).toContain("<svg");
+      expect(action.params.name).toBe("bell");
+    });
+
+    it("surfaces an unknown icon as a clear per-action error", async () => {
+      // The standalone handler refuses to build a payload for an unknown icon, so the
+      // action is reported as a per-action failure instead of being sent to Figma with
+      // an `_error` sentinel in its params.
+      const res = await callTool("batch_actions", {
+        actions: [{ action: "update_icon", params: { nodeId: "1:2", name: "definitely-not-an-icon", size: 24 } }],
+      });
+      expect(res.isError).toBe(true);
+      expect(res.content[0].text).toContain("update_icon");
+      expect(mockSendCommand.mock.calls.filter((c: any[]) => c[0] === "batch_actions")).toHaveLength(0);
+    });
+
+    it("does NOT accept a pre-baked svgString, because the standalone tool does not", async () => {
+      // `update_icon` standalone takes a Lucide `name` and resolves the SVG itself; it has
+      // no `svgString` parameter. Batch used to let one through, which is precisely the
+      // standalone/batch divergence this contract removes. An unknown icon name now fails
+      // the same way in both places.
+      const res = await callTool("batch_actions", {
+        actions: [{ action: "update_icon", params: { nodeId: "1:2", svgString: "<svg/>", name: "x" } }],
+      });
+      expect(res.isError).toBe(true);
+      expect(mockSendCommand.mock.calls.filter((c: any[]) => c[0] === "batch_actions")).toHaveLength(0);
+    });
+  });
+
+  describe("failure reporting", () => {
+    it("names the first failing action index and commit status", async () => {
       mockSendCommand.mockResolvedValue({
         success: false,
-        totalActions: total,
-        succeeded: total - 1,
-        failed: 1,
-        results,
+        totalActions: 3,
+        succeeded: 1,
+        failed: 2,
+        results: [
+          { index: 0, action: "create_rectangle", success: true, result: { id: "r1" } },
+          { index: 1, action: "set_fill_color", success: false, error: "boom" },
+          { index: 2, action: "rename_node", success: false, error: "bang" },
+        ],
       });
-      const response = await callTool("batch_actions", {
-        actions: Array.from({ length: total }, (_, i) => ({
-          action: "rename_node",
-          params: { nodeId: `1:${i}`, name: `N${i}` },
-        })),
+      const res = await callTool("batch_actions", {
+        actions: [
+          { action: "create_rectangle", params: { x: 0, y: 0, width: 10, height: 10 } },
+          { action: "set_fill_color", params: { nodeId: "1:2", color: "#ff0000" } },
+          { action: "rename_node", params: { nodeId: "1:3", name: "X" } },
+        ],
       });
-      const text: string = response.content[0].text;
-      const okRows = text.split("\n").filter((l) => l.includes("| OK |"));
-      expect(okRows).toHaveLength(100);
-      expect(text).toContain("| 240 | rename_node | FAIL | Node not found |");
-      expect(text).toContain("149 more successful action(s) not listed");
+      expect(res.isError).toBe(true);
+      expect(res.content[0].text).toContain("First failure: action #1 (set_fill_color)");
+      expect(res.content[0].text).toContain("committed");
     });
 
-    it("reports caller indices for expanded create_icon actions", async () => {
-      mockSendCommand.mockResolvedValue({
-        success: true,
-        totalActions: 3,
-        succeeded: 3,
-        failed: 0,
-        results: [
-          { index: 0, action: "create_svg", success: true, result: { id: "9:1" } },
-          { index: 1, action: "insert_child", success: true, result: { id: "9:1" } },
-          { index: 2, action: "rename_node", success: true, result: { id: "9:1" } },
+    it("explains a transport-level failure (e.g. Cannot unwrap symbol)", async () => {
+      mockSendCommand.mockRejectedValue(new Error("Cannot unwrap symbol"));
+      const res = await callTool("batch_actions", {
+        actions: [
+          { action: "create_rectangle", params: { x: 0, y: 0, width: 10, height: 10 } },
+          { action: "create_text", params: { x: 0, y: 0, text: "a" } },
         ],
       });
+      expect(res.isError).toBe(true);
+      const text = res.content[0].text;
+      expect(text).toContain("Cannot unwrap symbol");
+      expect(text).toContain("dispatched as 2 action(s)");
+      expect(text).toContain("ARE committed");
+      expect(text).toContain("stopOnError: true");
+    });
+  });
+
+  describe("failure footer accuracy", () => {
+    it("says nothing was committed when action #0 failed", async () => {
+      mockSendCommand.mockResolvedValue({
+        success: false,
+        totalActions: 3,
+        succeeded: 0,
+        failed: 3,
+        results: [
+          { index: 0, action: "create_text", success: false, error: "Parent node not found with ID: 0:1" },
+          { index: 1, action: "set_font_size", success: false, error: "$result[0] references a failed action" },
+          { index: 2, action: "rename_node", success: false, error: "$result[0] references a failed action" },
+        ],
+      });
+
       const response = await callTool("batch_actions", {
         actions: [
-          { action: "create_icon", params: { parentId: "1:2", name: "bell", size: 16, index: 0 } },
-          { action: "rename_node", params: { nodeId: "$result[0].id", name: "Bell" } },
+          { action: "create_text", params: {} },
+          { action: "set_font_size", params: {} },
+          { action: "rename_node", params: {} },
         ],
       });
-      const text = response.content[0].text;
-      expect(text).toContain("| 0 | create_svg | OK |");
-      expect(text).toContain("| 0 | insert_child | OK |");
-      expect(text).toContain("| 1 | rename_node | OK |");
-      expect(mockSendCommand.mock.calls[0][1].actions[2].params).toEqual({ nodeId: "$result[0].id", name: "Bell" });
+
+      const text = response.content[0].text as string;
+      expect(text).toContain("No actions were committed to the document.");
+      expect(text).not.toContain("Actions before it are committed");
+    });
+
+    it("reports only the succeeded earlier actions as committed", async () => {
+      mockSendCommand.mockResolvedValue({
+        success: false,
+        totalActions: 3,
+        succeeded: 1,
+        failed: 2,
+        results: [
+          { index: 0, action: "create_frame", success: true, result: { id: "1:1" } },
+          { index: 1, action: "rename_node", success: false, error: "boom" },
+          { index: 2, action: "resize_node", success: false, error: "boom" },
+        ],
+      });
+
+      const response = await callTool("batch_actions", {
+        actions: [
+          { action: "create_frame", params: {} },
+          { action: "rename_node", params: {} },
+          { action: "resize_node", params: {} },
+        ],
+      });
+
+      const text = response.content[0].text as string;
+      expect(text).toContain("1 earlier action(s) succeeded and ARE committed in the document (#0)");
     });
   });
 });

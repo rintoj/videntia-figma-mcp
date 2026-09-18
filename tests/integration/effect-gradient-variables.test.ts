@@ -76,20 +76,19 @@ describe("effect and gradient variable params", () => {
       expect.objectContaining({
         stops: [
           { colorVariable: "brand/primary", position: 0 },
-          { color: { r: 1, g: 1, b: 1 }, position: 1 },
+          { color: { r: 1, g: 1, b: 1, a: 1 }, position: 1 },
         ],
       }),
     );
   });
 
   it("set_gradient_fill rejects a stop with neither color nor colorVariable", async () => {
-    await expect(
-      callTool("set_gradient_fill", {
-        nodeId: "1:2",
-        type: "LINEAR",
-        stops: [{ position: 0 }, { color: { r: 1, g: 1, b: 1 }, position: 1 }],
-      }),
-    ).rejects.toThrow("Each stop needs a color or a colorVariable");
+    const response = await callTool("set_gradient_fill", {
+      nodeId: "1:2",
+      type: "LINEAR",
+      stops: [{ position: 0 }, { color: { r: 1, g: 1, b: 1 }, position: 1 }],
+    });
+    expect(response.content[0].text).toContain("Each gradient stop needs a `color`, a `colorVariable`, or both.");
     expect(mockSendCommand).not.toHaveBeenCalled();
   });
 

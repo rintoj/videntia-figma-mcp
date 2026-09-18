@@ -297,6 +297,6 @@ describe("variable params on effect and gradient tools", () => {
         gradientType: "LINEAR",
         stops: [{ position: 0 }, { position: 1, color: { r: 1, g: 1, b: 1 } }],
       }),
-    ).rejects.toThrow("stops[0] needs a color or a colorVariable");
+    ).rejects.toThrow("stops[0].color must be a hex string or {r,g,b,a}");
   });
 });

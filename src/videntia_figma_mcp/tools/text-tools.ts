@@ -327,6 +327,7 @@ export function registerTextTools(server: McpServer): void {
               text: `Error setting font weight: ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
+          isError: true,
         };
       }
     },
@@ -559,13 +560,26 @@ export function registerTextTools(server: McpServer): void {
       horizontal: z
         .enum(["LEFT", "CENTER", "RIGHT", "JUSTIFIED"])
         .optional()
-        .describe("textAlignHorizontal: LEFT (Figma default), CENTER, RIGHT or JUSTIFIED"),
+        .describe(
+          "textAlignHorizontal: LEFT (Figma default), CENTER, RIGHT or JUSTIFIED. Aliases: align, textAlignHorizontal",
+        ),
+      align: z.enum(["LEFT", "CENTER", "RIGHT", "JUSTIFIED"]).optional().describe("Alias for `horizontal`."),
+      textAlignHorizontal: z
+        .enum(["LEFT", "CENTER", "RIGHT", "JUSTIFIED"])
+        .optional()
+        .describe("Alias for `horizontal` (matches the Figma property name)."),
       vertical: z
         .enum(["TOP", "CENTER", "BOTTOM"])
         .optional()
-        .describe("textAlignVertical: TOP (Figma default), CENTER or BOTTOM"),
+        .describe("textAlignVertical: TOP (Figma default), CENTER or BOTTOM. Alias: textAlignVertical"),
+      textAlignVertical: z
+        .enum(["TOP", "CENTER", "BOTTOM"])
+        .optional()
+        .describe("Alias for `vertical` (matches the Figma property name)."),
     },
-    async ({ nodeId, nodeIds, horizontal, vertical }) => {
+    async ({ nodeId, nodeIds, horizontal, align, textAlignHorizontal, vertical, textAlignVertical }) => {
+      horizontal = horizontal ?? textAlignHorizontal ?? align;
+      vertical = vertical ?? textAlignVertical;
       try {
         const result = await sendCommandToFigma(
           "set_text_align",

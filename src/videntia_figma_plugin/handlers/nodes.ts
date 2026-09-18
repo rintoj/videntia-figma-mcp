@@ -1,6 +1,9 @@
 import { customBase64Encode } from "../utils/base64";
-import { debugLog, loadTextNodeFonts, parseNum } from "../utils/helpers";
+import { resolveStrict } from "../utils/write-verify";
+import { debugLog, describeError, loadTextNodeFonts, parseNum } from "../utils/helpers";
 import { selectAndFocusNode } from "../utils/plugin-state";
+import { computeSubtreeHash } from "../utils/subtree-hash";
+import { resolveColor } from "./fills";
 
 function getParam<T>(params: Record<string, unknown>, key: string, defaultVal: T): T {
   const p = params !== null && params !== undefined ? params[key] : undefined;
@@ -22,6 +25,7 @@ export async function createRectangle(params: Record<string, unknown>): Promise<
   const parentId: string | undefined = getOptParam<string>(params, "parentId");
   const layoutPositioning: string | undefined = getOptParam<string>(params, "layoutPositioning");
   const cornerRadius: number | undefined = getOptParam<number>(params, "cornerRadius");
+  const fillColor: unknown = params["fillColor"];
 
   const rect = figma.createRectangle();
   rect.x = x;
@@ -30,6 +34,11 @@ export async function createRectangle(params: Record<string, unknown>): Promise<
   rect.name = name;
   if (cornerRadius !== undefined) {
     rect.cornerRadius = cornerRadius;
+  }
+  // fillColor was previously accepted by the schema but silently ignored.
+  if (fillColor !== undefined && fillColor !== null) {
+    const c = resolveColor({ color: fillColor });
+    rect.fills = [{ type: "SOLID", color: { r: c.r, g: c.g, b: c.b }, opacity: c.a }] as Paint[];
   }
 
   // If parentId is provided, append to that node, otherwise append to current page
@@ -61,7 +70,7 @@ export async function createRectangle(params: Record<string, unknown>): Promise<
     y: rect.y,
     width: rect.width,
     height: rect.height,
-    cornerRadius: rect.cornerRadius,
+    cornerRadius: typeof rect.cornerRadius === "number" ? rect.cornerRadius : "MIXED",
     parentId: rect.parent ? rect.parent.id : undefined,
   };
 }
@@ -79,6 +88,45 @@ export async function createFrame(params: Record<string, unknown>): Promise<Reco
   const clipsContent: boolean | undefined = getOptParam<boolean>(params, "clipsContent");
   const layoutPositioning: string | undefined = getOptParam<string>(params, "layoutPositioning");
   const cornerRadius: number | undefined = getOptParam<number>(params, "cornerRadius");
+  // Auto-layout arguments. These were previously accepted and dropped on the
+  // floor, so `create_frame({ layoutMode: "VERTICAL", ... })` produced a plain
+  // frame and every follow-up spacing call was inert.
+  const layoutMode: string | undefined = getOptParam<string>(params, "layoutMode");
+  const layoutWrap: string | undefined = getOptParam<string>(params, "layoutWrap");
+  const itemSpacing: number | undefined =
+    getOptParam<number>(params, "itemSpacing") ?? getOptParam<number>(params, "gap");
+  const paddingAll: number | undefined = getOptParam<number>(params, "padding");
+  const paddingTop: number | undefined =
+    getOptParam<number>(params, "paddingTop") ?? getOptParam<number>(params, "top") ?? paddingAll;
+  const paddingRight: number | undefined =
+    getOptParam<number>(params, "paddingRight") ?? getOptParam<number>(params, "right") ?? paddingAll;
+  const paddingBottom: number | undefined =
+    getOptParam<number>(params, "paddingBottom") ?? getOptParam<number>(params, "bottom") ?? paddingAll;
+  const paddingLeft: number | undefined =
+    getOptParam<number>(params, "paddingLeft") ?? getOptParam<number>(params, "left") ?? paddingAll;
+  const primaryAxisAlignItems: string | undefined = getOptParam<string>(params, "primaryAxisAlignItems");
+  const counterAxisAlignItems: string | undefined = getOptParam<string>(params, "counterAxisAlignItems");
+  const layoutSizingHorizontal: string | undefined =
+    getOptParam<string>(params, "layoutSizingHorizontal") ?? getOptParam<string>(params, "horizontal");
+  const layoutSizingVertical: string | undefined =
+    getOptParam<string>(params, "layoutSizingVertical") ?? getOptParam<string>(params, "vertical");
+
+  if (layoutMode !== undefined && ["NONE", "HORIZONTAL", "VERTICAL", "GRID"].indexOf(layoutMode) === -1) {
+    throw new Error(`Invalid layoutMode "${layoutMode}" — expected NONE, HORIZONTAL, VERTICAL or GRID`);
+  }
+  if (layoutMode === undefined || layoutMode === "NONE") {
+    const ignored: string[] = [];
+    if (itemSpacing !== undefined) ignored.push("itemSpacing/gap");
+    if (paddingTop !== undefined || paddingRight !== undefined || paddingBottom !== undefined) ignored.push("padding");
+    if (paddingLeft !== undefined && ignored.indexOf("padding") === -1) ignored.push("padding");
+    if (primaryAxisAlignItems !== undefined || counterAxisAlignItems !== undefined) ignored.push("axis alignment");
+    if (ignored.length > 0) {
+      throw new Error(
+        `create_frame was given ${ignored.join(", ")} but no layoutMode — those properties are inert on a ` +
+          `frame without auto layout and Figma discards them. Pass layoutMode: "HORIZONTAL" | "VERTICAL" | "GRID".`,
+      );
+    }
+  }
 
   const frame = figma.createFrame();
   frame.x = x;
@@ -145,6 +193,40 @@ export async function createFrame(params: Record<string, unknown>): Promise<Reco
   // rings. Nested containers default to unclipped; top-level frames keep clipping.
   frame.clipsContent = clipsContent !== undefined ? clipsContent : !isNested;
 
+  // Auto layout is applied after appendChild: layoutSizing* is only meaningful
+  // once the frame has a parent, and layoutMode must be set before the padding /
+  // spacing / alignment properties it governs.
+  if (layoutMode !== undefined && layoutMode !== "NONE") {
+    frame.layoutMode = layoutMode as "HORIZONTAL" | "VERTICAL" | "GRID";
+    if (layoutWrap !== undefined) {
+      frame.layoutWrap = layoutWrap as "NO_WRAP" | "WRAP";
+    }
+    if (paddingTop !== undefined) frame.paddingTop = paddingTop;
+    if (paddingRight !== undefined) frame.paddingRight = paddingRight;
+    if (paddingBottom !== undefined) frame.paddingBottom = paddingBottom;
+    if (paddingLeft !== undefined) frame.paddingLeft = paddingLeft;
+    if (primaryAxisAlignItems !== undefined) {
+      frame.primaryAxisAlignItems = primaryAxisAlignItems as "MIN" | "CENTER" | "MAX" | "SPACE_BETWEEN";
+    }
+    if (counterAxisAlignItems !== undefined) {
+      frame.counterAxisAlignItems = counterAxisAlignItems as "MIN" | "CENTER" | "MAX" | "BASELINE";
+    }
+    if (itemSpacing !== undefined) {
+      if (layoutMode === "GRID") {
+        frame.gridRowGap = itemSpacing;
+        frame.gridColumnGap = itemSpacing;
+      } else {
+        frame.itemSpacing = itemSpacing;
+      }
+    }
+    if (layoutSizingHorizontal !== undefined) {
+      frame.layoutSizingHorizontal = layoutSizingHorizontal as "FIXED" | "HUG" | "FILL";
+    }
+    if (layoutSizingVertical !== undefined) {
+      frame.layoutSizingVertical = layoutSizingVertical as "FIXED" | "HUG" | "FILL";
+    }
+  }
+
   // Set layoutPositioning after appendChild (node must be attached first)
   if (layoutPositioning !== undefined) {
     (frame as unknown as { layoutPositioning: string }).layoutPositioning = layoutPositioning;
@@ -165,7 +247,103 @@ export async function createFrame(params: Record<string, unknown>): Promise<Reco
     strokeWeight: frame.strokeWeight,
     clipsContent: frame.clipsContent,
     cornerRadius: frame.cornerRadius,
+    layoutMode: frame.layoutMode,
+    itemSpacing: frame.layoutMode === "NONE" ? undefined : frame.itemSpacing,
+    paddingTop: frame.layoutMode === "NONE" ? undefined : frame.paddingTop,
+    paddingRight: frame.layoutMode === "NONE" ? undefined : frame.paddingRight,
+    paddingBottom: frame.layoutMode === "NONE" ? undefined : frame.paddingBottom,
+    paddingLeft: frame.layoutMode === "NONE" ? undefined : frame.paddingLeft,
     parentId: frame.parent ? frame.parent.id : undefined,
+  };
+}
+
+/**
+ * Move a node to ABSOLUTE canvas coordinates.
+ *
+ * `move_node` sets `node.x`/`node.y`, which Figma interprets relative to the
+ * node's PARENT. That is correct but routinely surprising right after a
+ * reparent, where the same numbers suddenly mean something else. This handler
+ * takes absolute canvas coordinates (the frame of reference reported by
+ * `absoluteBoundingBox` and by every Figma inspector readout) and converts by
+ * applying the delta between the node's current absolute position and the
+ * target, so it works at any nesting depth and inside auto-layout parents that
+ * ignore direct x/y writes (those still report the change as a no-op).
+ */
+export async function moveNodeAbsolute(params: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const nodeId = getOptParam<string>(params, "nodeId");
+  const x = getOptParam<number>(params, "x");
+  const y = getOptParam<number>(params, "y");
+
+  if (!nodeId) {
+    throw new Error("Missing nodeId parameter");
+  }
+  if (x === undefined && y === undefined) {
+    throw new Error("move_node_absolute requires at least one of x or y (absolute canvas coordinates)");
+  }
+
+  const node = await figma.getNodeByIdAsync(nodeId);
+  if (!node) {
+    throw new Error(`Node not found with ID: ${nodeId}`);
+  }
+  if (!("x" in node) || !("y" in node)) {
+    throw new Error(`Node does not support position: ${nodeId}`);
+  }
+
+  const positioned = node as SceneNode & { x: number; y: number };
+  const box = (positioned as unknown as { absoluteBoundingBox?: { x: number; y: number } }).absoluteBoundingBox;
+  const transform = (positioned as unknown as { absoluteTransform?: number[][] }).absoluteTransform;
+
+  // absoluteBoundingBox is the rendered box (includes rotation/effects bounds);
+  // absoluteTransform's translation column is the node's own origin. Prefer the
+  // transform so a rotated node lands its ORIGIN on the requested point, and
+  // fall back to the bounding box when the transform is unavailable.
+  let currentAbsX: number | undefined;
+  let currentAbsY: number | undefined;
+  if (transform && transform[0] && transform[1]) {
+    currentAbsX = transform[0][2];
+    currentAbsY = transform[1][2];
+  } else if (box) {
+    currentAbsX = box.x;
+    currentAbsY = box.y;
+  }
+  if (currentAbsX === undefined || currentAbsY === undefined) {
+    throw new Error(`Cannot determine absolute position for node: ${nodeId}`);
+  }
+
+  const before = { x: positioned.x, y: positioned.y };
+  if (x !== undefined) positioned.x = before.x + (x - currentAbsX);
+  if (y !== undefined) positioned.y = before.y + (y - currentAbsY);
+
+  const afterBox = (positioned as unknown as { absoluteBoundingBox?: { x: number; y: number } }).absoluteBoundingBox;
+  const applied = positioned.x !== before.x || positioned.y !== before.y;
+  const parent = positioned.parent as (BaseNode & { layoutMode?: string }) | null;
+  const autoLayoutParent = !!parent && !!parent.layoutMode && parent.layoutMode !== "NONE";
+
+  // D2: the handler already KNOWS the write was discarded. Returning success
+  // with a `warning` field is exactly the silent-failure shape that forces a
+  // read-back loop — throw instead (opt out per call with strict:false).
+  const requestedMove =
+    (x !== undefined && Math.abs(x - currentAbsX) > 0.001) || (y !== undefined && Math.abs(y - currentAbsY) > 0.001);
+  const discarded = autoLayoutParent && !applied && requestedMove;
+  const discardedMessage = discarded
+    ? `Cannot position "${positioned.name}": its parent uses auto layout (${parent?.layoutMode}), which positions ` +
+      `its children — Figma accepted and discarded the x/y write. Reorder the child (insert_child with an index), ` +
+      `change the parent's layout, or set layoutPositioning ABSOLUTE on this node first.`
+    : undefined;
+  if (discarded && resolveStrict(params)) {
+    throw new Error(discardedMessage);
+  }
+
+  return {
+    warning: discardedMessage,
+    id: positioned.id,
+    name: positioned.name,
+    x: positioned.x,
+    y: positioned.y,
+    absoluteX: afterBox ? afterBox.x : undefined,
+    absoluteY: afterBox ? afterBox.y : undefined,
+    parentId: positioned.parent ? positioned.parent.id : undefined,
+    applied,
   };
 }
 
@@ -223,10 +401,34 @@ export async function moveNode(params: Record<string, unknown>): Promise<Record<
   };
 }
 
+/**
+ * Multiplies `strokeWeight` by `scale` on a node and every descendant that has a numeric
+ * stroke weight. Figma's `resize()` deliberately preserves absolute stroke weights, so
+ * vector/SVG content keeps its original (now visually wrong) stroke after a rescale.
+ * Returns the number of nodes whose stroke weight actually changed.
+ */
+function scaleStrokeWeights(node: BaseNode, scale: number): number {
+  let changed = 0;
+  const candidate = node as unknown as { strokeWeight?: unknown };
+  if (typeof candidate.strokeWeight === "number" && candidate.strokeWeight > 0) {
+    candidate.strokeWeight = candidate.strokeWeight * scale;
+    changed += 1;
+  }
+  const children = (node as unknown as { children?: readonly BaseNode[] }).children;
+  if (children && typeof children.length === "number") {
+    for (const child of children) {
+      changed += scaleStrokeWeights(child, scale);
+    }
+  }
+  return changed;
+}
+
 export async function resizeNode(params: Record<string, unknown>): Promise<Record<string, unknown>> {
   const nodeId = getOptParam<string>(params, "nodeId");
   const width = getOptParam<number>(params, "width");
   const height = getOptParam<number>(params, "height");
+  const scaleStrokes =
+    getOptParam<boolean>(params, "scale_strokes") === true || getOptParam<boolean>(params, "scaleStrokes") === true;
 
   if (!nodeId) {
     throw new Error("Missing nodeId parameter");
@@ -241,10 +443,11 @@ export async function resizeNode(params: Record<string, unknown>): Promise<Recor
     throw new Error(`Node not found with ID: ${nodeId}`);
   }
 
-  if (!("resize" in node)) {
-    throw new Error(`Node does not support resizing: ${nodeId}`);
-  }
+  const previousWidth = (node as unknown as { width?: number }).width;
+  const previousHeight = (node as unknown as { height?: number }).height;
 
+  // SectionNode has no resize() — it only exposes resizeWithoutConstraints().
+  let textAutoResize: string | undefined;
   if (node.type === "TEXT") {
     const textNode = node as TextNode;
     // resize() flips a TEXT node to textAutoResize NONE (fixed box, text overflows).
@@ -260,22 +463,39 @@ export async function resizeNode(params: Record<string, unknown>): Promise<Recor
     if (keepWrapping) {
       textNode.textAutoResize = "HEIGHT";
     }
-    return {
-      id: node.id,
-      name: node.name,
-      width: textNode.width,
-      height: textNode.height,
-      textAutoResize: textNode.textAutoResize,
-    };
+    textAutoResize = textNode.textAutoResize;
+  } else if ("resize" in node) {
+    (node as FrameNode).resize(width, height);
+  } else if ("resizeWithoutConstraints" in node) {
+    (node as unknown as { resizeWithoutConstraints: (w: number, h: number) => void }).resizeWithoutConstraints(
+      width,
+      height,
+    );
+  } else {
+    throw new Error(`Node does not support resizing: ${nodeId}`);
   }
 
-  (node as FrameNode).resize(width, height);
+  let strokesScaled: number | undefined;
+  let strokeScaleFactor: number | undefined;
+  if (scaleStrokes) {
+    const sx = previousWidth && previousWidth > 0 ? width / previousWidth : 1;
+    const sy = previousHeight && previousHeight > 0 ? height / previousHeight : 1;
+    // Stroke weight is a single scalar in Figma, so a non-uniform resize gets the average.
+    strokeScaleFactor = (sx + sy) / 2;
+    if (strokeScaleFactor > 0 && strokeScaleFactor !== 1) {
+      strokesScaled = scaleStrokeWeights(node, strokeScaleFactor);
+    } else {
+      strokesScaled = 0;
+    }
+  }
 
   return {
     id: node.id,
     name: node.name,
     width: (node as FrameNode).width,
     height: (node as FrameNode).height,
+    ...(scaleStrokes ? { strokesScaled, strokeScaleFactor } : {}),
+    ...(textAutoResize !== undefined ? { textAutoResize } : {}),
   };
 }
 
@@ -382,10 +602,12 @@ export async function exportNodeAsImage(params: Record<string, unknown>): Promis
     const scaledWidth = nodeWidth * scale;
     const scaledHeight = nodeHeight * scale;
 
-    // Auto-reduce scale if dimensions would exceed max
+    // Auto-reduce scale if dimensions would exceed max. This may only ever
+    // REDUCE the requested scale — clamping must never enlarge a deliberately
+    // small export.
     if (scaledWidth > MAX_DIMENSION || scaledHeight > MAX_DIMENSION) {
-      const maxDimension = Math.max(scaledWidth, scaledHeight);
-      finalScale = (MAX_DIMENSION / maxDimension) * scale;
+      const longestNodeEdge = Math.max(nodeWidth, nodeHeight) || 1;
+      finalScale = Math.min(scale, MAX_DIMENSION / longestNodeEdge);
       debugLog(
         `exportNodeAsImage: Auto-reducing scale from ${scale} to ${finalScale.toFixed(3)} to fit within ${MAX_DIMENSION}px limit`,
       );
@@ -432,11 +654,15 @@ export async function exportNodeAsImage(params: Record<string, unknown>): Promis
       originalHeight: nodeHeight,
       exportedWidth: Math.round(nodeWidth * finalScale),
       exportedHeight: Math.round(nodeHeight * finalScale),
+      // Subtree version hash so the MCP server can skip re-inlining an
+      // identical render. `null` means "could not compute" — the server must
+      // treat that as a cache miss, never as "unchanged".
+      subtreeHash: computeSubtreeHash(node),
       mimeType,
       imageData: base64,
     };
   } catch (error) {
-    throw new Error(`Error exporting node as image: ${(error as Error).message}`);
+    throw new Error(`Error exporting node as image: ${describeError(error)}`);
   }
 }
 
@@ -624,7 +850,7 @@ export async function exportImageFill(params: Record<string, unknown>): Promise<
       imageData: base64,
     };
   } catch (error) {
-    throw new Error(`Error exporting image fill: ${(error as Error).message}`);
+    throw new Error(`Error exporting image fill: ${describeError(error)}`);
   }
 }
 
@@ -653,31 +879,41 @@ export async function setCornerRadius(params: Record<string, unknown>): Promise<
 
   const cornerNode = node as FrameNode;
 
-  // If corners array is provided, set individual corner radii
-  if (corners && Array.isArray(corners) && corners.length === 4) {
-    if ("topLeftRadius" in node) {
-      // Node supports individual corner radii
-      if (corners[0] === true) cornerNode.topLeftRadius = radius;
-      if (corners[1] === true) cornerNode.topRightRadius = radius;
-      if (corners[2] === true) cornerNode.bottomRightRadius = radius;
-      if (corners[3] === true) cornerNode.bottomLeftRadius = radius;
-    } else {
-      // Node only supports uniform corner radius
-      cornerNode.cornerRadius = radius;
-    }
+  // `corners` selects WHICH corners get `radius`; unselected corners are explicitly
+  // flattened to 0 so the array is a full specification rather than an additive mask.
+  // Accepts [tl, tr, br, bl] booleans or {topLeft,topRight,bottomRight,bottomLeft}.
+  let cornerFlags: boolean[] | undefined;
+  if (Array.isArray(corners) && corners.length === 4) {
+    cornerFlags = [corners[0] === true, corners[1] === true, corners[2] === true, corners[3] === true];
+  } else if (corners !== null && typeof corners === "object" && !Array.isArray(corners)) {
+    const c = corners as unknown as Record<string, unknown>;
+    cornerFlags = [c.topLeft !== false, c.topRight !== false, c.bottomRight !== false, c.bottomLeft !== false];
+  }
+
+  const supportsPerCorner = "topLeftRadius" in node;
+  if (cornerFlags && supportsPerCorner) {
+    cornerNode.topLeftRadius = cornerFlags[0] ? radius : 0;
+    cornerNode.topRightRadius = cornerFlags[1] ? radius : 0;
+    cornerNode.bottomRightRadius = cornerFlags[2] ? radius : 0;
+    cornerNode.bottomLeftRadius = cornerFlags[3] ? radius : 0;
   } else {
-    // Set uniform corner radius
+    // No per-corner support (or no corners array) — uniform radius.
     cornerNode.cornerRadius = radius;
   }
+
+  // `cornerRadius` reads back as `figma.mixed` (a Symbol) when the four corners differ.
+  // Returning that Symbol is what produced "Cannot unwrap symbol" across the sandbox
+  // boundary, so surface it as the string "MIXED" instead.
+  const uniformRadius: unknown = "cornerRadius" in node ? cornerNode.cornerRadius : undefined;
 
   return {
     id: node.id,
     name: node.name,
-    cornerRadius: "cornerRadius" in node ? cornerNode.cornerRadius : undefined,
-    topLeftRadius: "topLeftRadius" in node ? cornerNode.topLeftRadius : undefined,
-    topRightRadius: "topRightRadius" in node ? cornerNode.topRightRadius : undefined,
-    bottomRightRadius: "bottomRightRadius" in node ? cornerNode.bottomRightRadius : undefined,
-    bottomLeftRadius: "bottomLeftRadius" in node ? cornerNode.bottomLeftRadius : undefined,
+    cornerRadius: typeof uniformRadius === "number" ? uniformRadius : uniformRadius === undefined ? undefined : "MIXED",
+    topLeftRadius: supportsPerCorner ? cornerNode.topLeftRadius : undefined,
+    topRightRadius: supportsPerCorner ? cornerNode.topRightRadius : undefined,
+    bottomRightRadius: supportsPerCorner ? cornerNode.bottomRightRadius : undefined,
+    bottomLeftRadius: supportsPerCorner ? cornerNode.bottomLeftRadius : undefined,
   };
 }
 
@@ -795,7 +1031,7 @@ export async function groupNodes(params: Record<string, unknown>): Promise<Recor
       children: group.children.map((child) => ({ id: child.id, name: child.name, type: child.type })),
     };
   } catch (error) {
-    throw new Error(`Error grouping nodes: ${(error as Error).message}`);
+    throw new Error(describeError(error));
   }
 }
 
@@ -826,7 +1062,7 @@ export async function ungroupNodes(params: Record<string, unknown>): Promise<Rec
       items: ungroupedItems.map((item) => ({ id: item.id, name: item.name, type: item.type })),
     };
   } catch (error) {
-    throw new Error(`Error ungrouping node: ${(error as Error).message}`);
+    throw new Error(describeError(error));
   }
 }
 
@@ -877,7 +1113,7 @@ export async function flattenNode(params: Record<string, unknown>): Promise<Reco
         "The flatten operation timed out. This usually happens with complex nodes. Try simplifying the node first or breaking it into smaller parts.",
       );
     } else {
-      throw new Error(`Error flattening node: ${(error as Error).message}`);
+      throw new Error(describeError(error));
     }
   }
 }
@@ -909,7 +1145,7 @@ export async function renameNode(params: Record<string, unknown>): Promise<Recor
       newName: node.name,
     };
   } catch (error) {
-    throw new Error(`Error renaming node: ${(error as Error).message}`);
+    throw new Error(describeError(error));
   }
 }
 
@@ -1018,6 +1254,91 @@ export async function insertChild(params: Record<string, unknown>): Promise<Reco
     };
   } catch (error) {
     console.error(`Error inserting child: ${(error as Error).message}`, error);
-    throw new Error(`Error inserting child: ${(error as Error).message}`);
+    throw new Error(`Error inserting child: ${describeError(error)}`);
   }
+}
+
+/**
+ * Toggle `clipsContent` on a frame-like node (FRAME, COMPONENT, COMPONENT_SET,
+ * INSTANCE). Clipping is load-bearing for rounded containers.
+ * SectionNode has no clipsContent — it is rejected with a clear error.
+ */
+export async function setClipsContent(params: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const nodeId = getOptParam<string>(params, "nodeId");
+  const clipsContent = getOptParam<boolean>(params, "clipsContent");
+
+  if (!nodeId) {
+    throw new Error("Missing nodeId parameter");
+  }
+  if (clipsContent === undefined) {
+    throw new Error("Missing clipsContent parameter (boolean)");
+  }
+
+  const node = await figma.getNodeByIdAsync(nodeId);
+  if (!node) {
+    throw new Error(`Node not found with ID: ${nodeId}`);
+  }
+  if (!("clipsContent" in node)) {
+    throw new Error(`Node does not support clipsContent: ${nodeId} (type: ${node.type})`);
+  }
+
+  const target = node as FrameNode;
+  target.clipsContent = clipsContent === true || String(clipsContent) === "true";
+
+  return {
+    id: node.id,
+    name: node.name,
+    type: node.type,
+    clipsContent: target.clipsContent,
+  };
+}
+
+/**
+ * Set node `opacity` (0–1) and optionally `blendMode`, so alpha does not have
+ * to be baked into 8-digit hex fills.
+ */
+export async function setOpacity(params: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const nodeId = getOptParam<string>(params, "nodeId");
+  const opacityRaw = getOptParam<number | string>(params, "opacity");
+  const blendMode = getOptParam<string>(params, "blendMode");
+
+  if (!nodeId) {
+    throw new Error("Missing nodeId parameter");
+  }
+  if (opacityRaw === undefined && blendMode === undefined) {
+    throw new Error("Provide at least one of: opacity, blendMode");
+  }
+
+  const node = await figma.getNodeByIdAsync(nodeId);
+  if (!node) {
+    throw new Error(`Node not found with ID: ${nodeId}`);
+  }
+
+  const target = node as unknown as { opacity: number; blendMode: BlendMode };
+
+  if (opacityRaw !== undefined) {
+    const opacity = Number(opacityRaw);
+    if (isNaN(opacity) || opacity < 0 || opacity > 1) {
+      throw new Error(`Invalid opacity "${opacityRaw}". Must be a number between 0 and 1.`);
+    }
+    if (!("opacity" in node)) {
+      throw new Error(`Node does not support opacity: ${nodeId} (type: ${node.type})`);
+    }
+    target.opacity = opacity;
+  }
+
+  if (blendMode !== undefined) {
+    if (!("blendMode" in node)) {
+      throw new Error(`Node does not support blendMode: ${nodeId} (type: ${node.type})`);
+    }
+    target.blendMode = String(blendMode).toUpperCase() as BlendMode;
+  }
+
+  return {
+    id: node.id,
+    name: node.name,
+    type: node.type,
+    opacity: "opacity" in node ? target.opacity : undefined,
+    blendMode: "blendMode" in node ? target.blendMode : undefined,
+  };
 }

@@ -69,8 +69,8 @@ export function useConnection() {
   var reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   var reconnectAttemptRef = useRef(0);
   var serverPortRef = useRef(3055);
-  var serverUrlRef = useRef("figma-mcp.videntia.dev");
-  var serverSecureRef = useRef(true);
+  var serverUrlRef = useRef("localhost");
+  var serverSecureRef = useRef(false);
   var progressStartTimesRef = useRef<Map<string, number>>(new Map());
   var connectedRef = useRef(false);
   // Track command metadata for action entries

@@ -245,11 +245,18 @@ describe("set_fill_color tool integration", () => {
       expect(mockSendCommand).not.toHaveBeenCalled();
     });
 
+    it("accepts 0-255 channels (a channel > 1 is read as 0-255)", async () => {
+      await callToolWithValidation({ nodeId: "nodeF8", r: 255, g: 128, b: 0 });
+      const payload = mockSendCommand.mock.calls[0][1];
+      expect(payload.color.r).toBe(1);
+      expect(payload.color.g).toBeCloseTo(128 / 255);
+    });
+
     it("rejects out-of-range values", async () => {
       await expect(
         callToolWithValidation({
           nodeId: "nodeF8",
-          r: 1.5, // Out of 0-1 range
+          r: 300, // Out of 0-255 range
           g: 0.5,
           b: 0.8,
           a: 1,
