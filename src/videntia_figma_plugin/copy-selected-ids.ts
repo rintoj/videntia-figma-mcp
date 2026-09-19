@@ -1,4 +1,4 @@
-// Headless "Copy Selected Node IDs" menu command.
+// The "Copy Selected Node IDs" menu command.
 //
 // Figma has no API for a custom global keyboard shortcut. The native fast path
 // is a manifest `menu` command, invoked once through Quick Actions and then
@@ -6,6 +6,10 @@
 // Windows). A menu command starts a FRESH sandbox with no socket and no UI, so
 // the channel is read back from clientStorage and the clipboard write is done
 // in a hidden iframe (the main thread has no DOM).
+//
+// The copy NEVER closes the plugin. Every outcome is reported with a native
+// figma.notify toast and the caller then boots the normal panel, which
+// re-establishes the MCP WebSocket channel the run restarted.
 
 import { copiedIdsToast, formatCopiedIds } from "./shared/copy-ids";
 
@@ -83,6 +87,9 @@ function copyThroughUi(html: string, text: string, timeoutMs: number, uiOptions:
       if (settled) return;
       settled = true;
       if (timer !== undefined) clearTimeout(timer);
+      // Drop the handler as soon as the copy settles so nothing from this
+      // throwaway iframe is still listening when the panel takes the UI over.
+      figma.ui.onmessage = undefined;
       resolve(ok);
     }
     figma.ui.onmessage = function (msg: Record<string, unknown>) {
@@ -98,11 +105,15 @@ function copyThroughUi(html: string, text: string, timeoutMs: number, uiOptions:
   });
 }
 
+/**
+ * Copy the selected node ids to the clipboard and report the outcome with a
+ * toast. Always resolves; the caller boots the panel afterwards either way.
+ */
 export async function runCopySelectedIds(): Promise<void> {
   try {
     var selection = figma.currentPage.selection;
     if (selection.length === 0) {
-      figma.closePlugin("No nodes selected");
+      figma.notify("No nodes selected", { error: true });
       return;
     }
 
@@ -116,16 +127,16 @@ export async function runCopySelectedIds(): Promise<void> {
 
     var copied = await copyThroughUi(SILENT_COPY_HTML, text, SILENT_COPY_TIMEOUT_MS, { visible: false });
     if (copied) {
-      figma.closePlugin(copiedIdsToast(ids.length));
+      figma.notify(copiedIdsToast(ids.length));
       return;
     }
 
     // No gesture was available, so show a small pane where a real click can
     // complete the copy. No timeout here: the user drives it.
     var confirmed = await copyThroughUi(FALLBACK_COPY_HTML, text, 0, { visible: true, width: 320, height: 170 });
-    figma.closePlugin(confirmed ? copiedIdsToast(ids.length) : "Copy cancelled");
+    figma.notify(confirmed ? copiedIdsToast(ids.length) : "Copy cancelled");
   } catch (error) {
     var message = error instanceof Error ? error.message : String(error);
-    figma.closePlugin("Copy failed: " + message);
+    figma.notify("Copy failed: " + message, { error: true });
   }
 }

@@ -2,6 +2,7 @@ import {
   copiedIdsToast,
   copyShortcutLabel,
   formatCopiedIds,
+  globalCopyHint,
   isCopyIdsChord,
   quickActionsShortcutLabel,
   repeatPluginShortcutLabel,
@@ -68,6 +69,15 @@ describe("selection copy-ids helpers", () => {
       expect(quickActionsShortcutLabel(false)).toBe("Ctrl+K");
       expect(repeatPluginShortcutLabel(true)).toBe("⌥⌘P");
       expect(repeatPluginShortcutLabel(false)).toBe("Ctrl+Alt+P");
+    });
+
+    it("leads the hint with the repeat shortcut and treats Quick Actions as a one-off", () => {
+      expect(globalCopyHint(true)).toBe(
+        'Anywhere in Figma: \u2325\u2318P copies the selection. Prime it once with \u2318K "Copy Selected Node IDs".',
+      );
+      expect(globalCopyHint(false)).toBe(
+        'Anywhere in Figma: Ctrl+Alt+P copies the selection. Prime it once with Ctrl+K "Copy Selected Node IDs".',
+      );
     });
   });
 

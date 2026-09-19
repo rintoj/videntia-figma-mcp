@@ -4,10 +4,9 @@ import {
   copiedIdsToast,
   copyShortcutLabel,
   formatCopiedIds,
+  globalCopyHint,
   isCopyIdsChord,
   isMacPlatform,
-  quickActionsShortcutLabel,
-  repeatPluginShortcutLabel,
 } from "../../../shared/copy-ids";
 
 var MAX_HISTORY = 500;
@@ -176,12 +175,7 @@ export function useSelection(channelName?: string) {
   var displayNodes = getDisplayNodes();
   var isMac = isMacPlatform();
   var shortcutLabel = copyShortcutLabel(isMac);
-  var globalHint =
-    "Anywhere in Figma: " +
-    quickActionsShortcutLabel(isMac) +
-    ' "Copy Selected Node IDs", then ' +
-    repeatPluginShortcutLabel(isMac) +
-    " to repeat";
+  var globalHint = globalCopyHint(isMac);
   channelNameRef.current = channelName;
   checkedIdsRef.current = checkedIds;
   displayNodesRef.current = displayNodes;

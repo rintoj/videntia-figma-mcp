@@ -440,26 +440,39 @@ var FOCUS_AFTER_COMMANDS = new Set([
 // Plugin UI
 // ---------------------------------------------------------------------------
 
-// The manifest declares a `menu`, so every run carries a command. The
-// "copy-selected-ids" command is headless: it must not boot the panel, wire the
-// socket, or claim figma.ui.onmessage, so every startup side effect below is
-// gated on this flag.
-var isHeadlessCopy = figma.command === COPY_SELECTED_IDS_COMMAND;
-
-if (isHeadlessCopy) {
-  void runCopySelectedIds();
-} else {
+// Every startup side effect the panel needs, in the order an `open` run applies
+// them. Both manifest commands end here, so the panel and its WebSocket channel
+// are always live once the run settles.
+function startPanel(): void {
   figma.showUI(__html__, { width: 315, height: 430 });
 
   // Send file name to UI immediately on startup so it's available before WebSocket connects
   figma.ui.postMessage({ type: "file-name", fileName: figma.root.name, fileKey: figma.fileKey });
+
+  // The copy command talks to a throwaway iframe and claims figma.ui.onmessage
+  // while it does. Re-claiming it here hands the live UI back to the panel, so
+  // no handler from the copy step survives.
+  figma.ui.onmessage = handlePanelMessage;
+
+  // Notify UI when the Figma selection changes
+  figma.on("selectionchange", handleSelectionChange);
+
+  // Auto-connect is triggered after init-settings so saved URL/port are applied first.
+  void initializePlugin();
 }
 
-// Auto-connect is triggered after init-settings so saved URL/port are applied first.
+// The manifest declares a `menu`, so every run carries a command. Figma runs one
+// plugin at a time and restarts the sandbox on every invocation, so the copy
+// command copies first and then falls through into the very same startup path.
+// It never calls figma.closePlugin: that would take the panel and the MCP
+// WebSocket channel down with it and leave the user with nothing.
+if (figma.command === COPY_SELECTED_IDS_COMMAND) {
+  void runCopySelectedIds().then(startPanel, startPanel);
+} else {
+  startPanel();
+}
 
-// Notify UI when the Figma selection changes
-figma.on("selectionchange", function () {
-  if (isHeadlessCopy) return;
+function handleSelectionChange(): void {
   var nodes = figma.currentPage.selection.map(function (n) {
     var page = n.parent;
     while (page && page.type !== "PAGE") {
@@ -473,7 +486,7 @@ figma.on("selectionchange", function () {
     };
   });
   figma.ui.postMessage({ type: "selection-changed", nodes: nodes });
-});
+}
 
 // ---------------------------------------------------------------------------
 // Settings
@@ -518,8 +531,7 @@ function updateSettings(settings: Record<string, unknown>): void {
 }
 
 // Initialize settings from clientStorage on plugin load
-(async function initializePlugin() {
-  if (isHeadlessCopy) return;
+async function initializePlugin(): Promise<void> {
   try {
     const savedSettings = (await figma.clientStorage.getAsync("settings:" + figma.root.name)) as
       | Record<string, unknown>
@@ -570,7 +582,7 @@ function updateSettings(settings: Record<string, unknown>): void {
   } catch (error) {
     console.error("Error loading settings:", error);
   }
-})();
+}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -1231,10 +1243,9 @@ function extractNodeIds(result: unknown): string[] {
 // UI message handler
 // ---------------------------------------------------------------------------
 
-figma.ui.onmessage = async (msg: Record<string, unknown>) => {
-  // The headless copy command installs its own figma.ui.onmessage; this panel
-  // handler must never take it over.
-  if (isHeadlessCopy) return;
+// Installed by startPanel, never at module scope: the copy command owns
+// figma.ui.onmessage until it hands the UI over.
+async function handlePanelMessage(msg: Record<string, unknown>): Promise<void> {
   switch (msg["type"]) {
     case "update-settings":
       updateSettings(msg);
@@ -1680,4 +1691,4 @@ figma.ui.onmessage = async (msg: Record<string, unknown>) => {
     default:
       break;
   }
-};
+}

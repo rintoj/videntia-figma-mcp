@@ -44,6 +44,19 @@ export function repeatPluginShortcutLabel(isMac: boolean): string {
   return isMac ? "⌥⌘P" : "Ctrl+Alt+P";
 }
 
+// One muted line in the Selection tab. The repeat shortcut is the actual key
+// to press; Quick Actions is only needed once, to make this plugin the "last
+// plugin" that shortcut repeats.
+export function globalCopyHint(isMac: boolean): string {
+  return (
+    "Anywhere in Figma: " +
+    repeatPluginShortcutLabel(isMac) +
+    " copies the selection. Prime it once with " +
+    quickActionsShortcutLabel(isMac) +
+    ' "Copy Selected Node IDs".'
+  );
+}
+
 export function copiedIdsToast(count: number): string {
   return "Copied " + count + " node ID" + (count === 1 ? "" : "s");
 }
