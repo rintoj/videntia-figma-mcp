@@ -12,6 +12,7 @@ import {
   fieldsSchema,
 } from "../utils/output-format.js";
 import { mcpBooleanSchema } from "../utils/mcp-boolean.js";
+import { expandPadding, paddingShorthandSchema, PADDING_SHORTHAND_DESCRIPTION } from "../utils/frame-layout.js";
 import { CreateComponentInstanceResult, GetReactionsResult, GetComponentPropertiesResult } from "../types";
 
 /**
@@ -772,6 +773,101 @@ export function registerComponentTools(server: McpServer): void {
             {
               type: "text",
               text: `Error deleting component property: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  // Create Slot Tool
+  server.tool(
+    "create_slot",
+    "Create a SLOT node inside a COMPONENT (component.createSlot()). A slot is a frame-like content area that instances fill with their own children; Figma creates the backing SLOT component property. Configure its limits afterwards with edit_component_property (slotSettings). Fill a slot on an instance by inserting children into the instance's SLOT node; reset it with reset_slot.",
+    {
+      componentId: z.string().describe("ID of the COMPONENT to add the slot to (a variant inside a set is fine)"),
+      name: z.string().optional().describe("Layer name for the slot"),
+      parentId: z
+        .string()
+        .optional()
+        .describe("Frame inside the component to place the slot in (default: the component itself)"),
+      index: z.coerce.number().int().nonnegative().optional().describe("Child index within the parent"),
+      width: z.coerce.number().positive().optional().describe("Slot width"),
+      height: z.coerce.number().positive().optional().describe("Slot height"),
+      layoutMode: z
+        .enum(["NONE", "HORIZONTAL", "VERTICAL"])
+        .optional()
+        .describe("Auto layout direction. GRID is not supported on slots."),
+      itemSpacing: z.coerce.number().optional().describe("Gap between children (requires layoutMode)"),
+      gap: z.coerce.number().optional().describe("Alias for itemSpacing"),
+      padding: paddingShorthandSchema.optional().describe(`${PADDING_SHORTHAND_DESCRIPTION} (requires layoutMode)`),
+    },
+    async ({ componentId, name, parentId, index, width, height, layoutMode, itemSpacing, gap, padding }) => {
+      try {
+        const sides = expandPadding(padding);
+        const result = await sendCommandToFigma("create_slot", {
+          componentId: normalizeNodeId(componentId),
+          name,
+          parentId: parentId !== undefined ? normalizeNodeId(parentId) : undefined,
+          index,
+          width,
+          height,
+          layoutMode,
+          itemSpacing: itemSpacing ?? gap,
+          padding:
+            sides !== undefined
+              ? { top: sides.top ?? 0, right: sides.right ?? 0, bottom: sides.bottom ?? 0, left: sides.left ?? 0 }
+              : undefined,
+        });
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      } catch (error) {
+        return {
+          content: [
+            { type: "text", text: `Error creating slot: ${error instanceof Error ? error.message : String(error)}` },
+          ],
+        };
+      }
+    },
+  );
+
+  // Reset Slot Tool
+  server.tool(
+    "reset_slot",
+    "Reset a SLOT node on an instance back to the main component's slot content (SlotNode.resetSlot()). Use get_slot_info on the instance to find slot ids.",
+    {
+      nodeId: z.string().describe("ID of the SLOT node (inside an instance)"),
+    },
+    async ({ nodeId }) => {
+      try {
+        const result = await sendCommandToFigma("reset_slot", { nodeId: normalizeNodeId(nodeId) });
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      } catch (error) {
+        return {
+          content: [
+            { type: "text", text: `Error resetting slot: ${error instanceof Error ? error.message : String(error)}` },
+          ],
+        };
+      }
+    },
+  );
+
+  // Get Slot Info Tool
+  server.tool(
+    "get_slot_info",
+    "List every SLOT node under a node (a component, component set, instance, or a slot itself) with its property name, child count, slotSettings and limitViolations (BELOW_MIN / ABOVE_MAX / HAS_NON_PREFERRED). Use to check an instance's slot content against its limits.",
+    {
+      nodeId: z.string().describe("ID of a SLOT, COMPONENT, COMPONENT_SET or INSTANCE"),
+    },
+    async ({ nodeId }) => {
+      try {
+        const result = await sendCommandToFigma("get_slot_info", { nodeId: normalizeNodeId(nodeId) });
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error getting slot info: ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };

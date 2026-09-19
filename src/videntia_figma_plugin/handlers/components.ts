@@ -319,6 +319,20 @@ async function applyContentToInstance(
   return result;
 }
 
+// Figma throws `cannotSetSlotProperty` for SLOT keys in setProperties; slots are
+// filled by editing the SLOT node's children instead.
+function assertNoSlotProperties(instance: InstanceNode, props: Record<string, unknown>): void {
+  const defs = instance.componentProperties !== undefined ? instance.componentProperties : {};
+  const slotKeys = Object.keys(props).filter((k) => defs[k] !== undefined && (defs[k].type as string) === "SLOT");
+  if (slotKeys.length > 0) {
+    throw new Error(
+      `${slotKeys.join(", ")} ${slotKeys.length > 1 ? "are SLOT properties" : "is a SLOT property"}, which cannot be set via setProperties. ` +
+        "Fill the slot by inserting children into the instance's SLOT node (insert_child / create_* with parentId), " +
+        "or restore the component's content with reset_slot. Use get_slot_info to find the slot node ids.",
+    );
+  }
+}
+
 export async function getStyles(): Promise<Record<string, unknown>> {
   const styles = {
     colors: await figma.getLocalPaintStylesAsync(),
@@ -501,6 +515,7 @@ export async function createComponentInstance(params: Record<string, unknown>): 
 
     // Apply instance properties if provided
     if (instanceProperties) {
+      assertNoSlotProperties(instance, instanceProperties);
       instance.setProperties(instanceProperties);
       debugLog(`Set instance properties: ${Object.keys(instanceProperties).join(", ")}`);
     }
@@ -1105,6 +1120,7 @@ export async function setComponentProperty(params: Record<string, unknown>): Pro
     }
 
     const instance = node as InstanceNode;
+    assertNoSlotProperties(instance, { [propertyName]: value });
     instance.setProperties({ [propertyName]: value as string | boolean });
 
     return {
@@ -1188,6 +1204,7 @@ export async function swapInstance(params: Record<string, unknown>): Promise<Rec
 
     // Apply instance properties if provided
     if (instanceProperties) {
+      assertNoSlotProperties(instance, instanceProperties);
       instance.setProperties(instanceProperties);
       debugLog(`Set instance properties: ${Object.keys(instanceProperties).join(", ")}`);
     }
@@ -1246,5 +1263,163 @@ export async function getComponentProperties(params: Record<string, unknown>): P
     };
   } catch (error) {
     throw new Error(`Error getting component properties: ${describeError(error)}`);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Slots
+// ---------------------------------------------------------------------------
+
+function slotPropertyName(slot: SlotNode): string | null {
+  const refs = slot.componentPropertyReferences as Record<string, string> | null;
+  if (!refs) return null;
+  const values = Object.values(refs);
+  return values.length > 0 ? values[0] : null;
+}
+
+function describeSlot(slot: SlotNode): Record<string, unknown> {
+  return {
+    slotId: slot.id,
+    name: slot.name,
+    propertyName: slotPropertyName(slot),
+    childCount: slot.children.length,
+    limitViolations: slot.limitViolations.slice(),
+  };
+}
+
+function collectSlots(root: BaseNode): SlotNode[] {
+  const slots: SlotNode[] = [];
+  const walk = (n: BaseNode): void => {
+    if (n.type === "SLOT") slots.push(n as SlotNode);
+    if ("children" in n) for (const c of (n as ChildrenMixin).children) walk(c);
+  };
+  walk(root);
+  return slots;
+}
+
+export async function createSlot(params: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const componentId = params["componentId"] as string | undefined;
+  const name = params["name"] as string | undefined;
+  const parentId = params["parentId"] as string | undefined;
+  const index = params["index"] as number | undefined;
+  const width = params["width"] as number | undefined;
+  const height = params["height"] as number | undefined;
+  const layoutMode = params["layoutMode"] as "HORIZONTAL" | "VERTICAL" | "NONE" | undefined;
+  const itemSpacing = params["itemSpacing"] as number | undefined;
+  const padding = params["padding"] as { top: number; right: number; bottom: number; left: number } | undefined;
+
+  if (!componentId) throw new Error("Missing componentId parameter");
+
+  try {
+    const node = await figma.getNodeByIdAsync(componentId);
+    if (!node) throw new Error(`Node not found with ID: ${componentId}`);
+    if (node.type !== "COMPONENT") {
+      throw new Error(
+        `create_slot needs a COMPONENT (a variant inside a COMPONENT_SET is fine), got: ${node.type}. Slots on instances are edited, not created.`,
+      );
+    }
+    const component = node as ComponentNode;
+    if (itemSpacing !== undefined && layoutMode === undefined) {
+      throw new Error("itemSpacing requires layoutMode (HORIZONTAL or VERTICAL)");
+    }
+    if (padding !== undefined && layoutMode === undefined) {
+      throw new Error("padding requires layoutMode (HORIZONTAL or VERTICAL)");
+    }
+
+    const slot = component.createSlot();
+    if (name !== undefined) slot.name = name;
+
+    if (parentId !== undefined && parentId !== component.id) {
+      const parent = await figma.getNodeByIdAsync(parentId);
+      if (!parent || !("children" in parent)) throw new Error(`Parent not found or has no children: ${parentId}`);
+      let inside: BaseNode | null = parent;
+      while (inside && inside.id !== component.id) inside = inside.parent;
+      if (!inside) {
+        slot.remove();
+        throw new Error(`parentId ${parentId} is not inside component ${component.id}`);
+      }
+      const container = parent as unknown as ChildrenMixin;
+      if (index !== undefined) container.insertChild(index, slot);
+      else container.appendChild(slot);
+    } else if (index !== undefined) {
+      component.insertChild(index, slot);
+    }
+
+    if (layoutMode !== undefined) slot.layoutMode = layoutMode;
+    if (layoutMode !== undefined && layoutMode !== "NONE") {
+      if (itemSpacing !== undefined) slot.itemSpacing = itemSpacing;
+      if (padding !== undefined) {
+        slot.paddingTop = padding.top;
+        slot.paddingRight = padding.right;
+        slot.paddingBottom = padding.bottom;
+        slot.paddingLeft = padding.left;
+      }
+    }
+    if (width !== undefined || height !== undefined) {
+      slot.resize(width !== undefined ? width : slot.width, height !== undefined ? height : slot.height);
+    }
+
+    return { componentId: component.id, parentId: slot.parent ? slot.parent.id : null, ...describeSlot(slot) };
+  } catch (error) {
+    throw new Error(describeError(error));
+  }
+}
+
+export async function resetSlot(params: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const nodeId = params["nodeId"] as string | undefined;
+  if (!nodeId) throw new Error("Missing nodeId parameter");
+  try {
+    const node = await figma.getNodeByIdAsync(nodeId);
+    if (!node) throw new Error(`Node not found with ID: ${nodeId}`);
+    if (node.type !== "SLOT") {
+      throw new Error(
+        `reset_slot needs a SLOT node, got: ${node.type}. Use get_slot_info on the instance to find slot ids.`,
+      );
+    }
+    const slot = node as SlotNode;
+    slot.resetSlot();
+    return { success: true, ...describeSlot(slot) };
+  } catch (error) {
+    throw new Error(describeError(error));
+  }
+}
+
+export async function getSlotInfo(params: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const nodeId = params["nodeId"] as string | undefined;
+  if (!nodeId) throw new Error("Missing nodeId parameter");
+  try {
+    const node = await figma.getNodeByIdAsync(nodeId);
+    if (!node) throw new Error(`Node not found with ID: ${nodeId}`);
+    const slots = collectSlots(node);
+
+    let defs: ComponentPropertyDefinitions = {};
+    if (node.type === "INSTANCE") {
+      const main = await (node as InstanceNode).getMainComponentAsync();
+      const owner = main && main.parent && main.parent.type === "COMPONENT_SET" ? main.parent : main;
+      if (owner) defs = (owner as ComponentNode | ComponentSetNode).componentPropertyDefinitions;
+    } else {
+      let owner: BaseNode | null = node;
+      while (owner && owner.type !== "COMPONENT" && owner.type !== "COMPONENT_SET") owner = owner.parent;
+      if (owner && owner.type === "COMPONENT" && owner.parent && owner.parent.type === "COMPONENT_SET")
+        owner = owner.parent;
+      if (owner) defs = (owner as ComponentNode | ComponentSetNode).componentPropertyDefinitions;
+    }
+
+    return {
+      nodeId: node.id,
+      type: node.type,
+      slots: slots.map((s) => {
+        const info = describeSlot(s);
+        const def = info.propertyName ? defs[info.propertyName as string] : undefined;
+        return {
+          ...info,
+          slotSettings: def ? def.slotSettings : undefined,
+          description: def ? def.description : undefined,
+          preferredValues: def ? def.preferredValues : undefined,
+        };
+      }),
+    };
+  } catch (error) {
+    throw new Error(describeError(error));
   }
 }

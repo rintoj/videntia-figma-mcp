@@ -118,6 +118,9 @@ import {
   createComponent,
   createComponentSet,
   addComponentProperty,
+  createSlot,
+  resetSlot,
+  getSlotInfo,
   editComponentProperty,
   deleteComponentProperty,
   setComponentPropertyReferences,
@@ -279,6 +282,7 @@ var READONLY_COMMANDS = new Set([
   "get_local_components",
   "get_remote_components",
   "get_component_properties",
+  "get_slot_info",
   "get_instance_overrides",
   "get_styled_text_segments",
   "get_text_styles",
@@ -835,6 +839,12 @@ async function _executeCommand(command: string, params: Record<string, unknown>)
       return await createComponent(params);
     case "create_component_set":
       return await createComponentSet(params);
+    case "create_slot":
+      return await createSlot(params);
+    case "reset_slot":
+      return await resetSlot(params);
+    case "get_slot_info":
+      return await getSlotInfo(params);
     case "add_component_property":
       return await addComponentProperty(params);
     case "edit_component_property":

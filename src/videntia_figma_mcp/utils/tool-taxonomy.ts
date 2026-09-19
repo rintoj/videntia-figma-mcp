@@ -251,6 +251,9 @@ export const TOOL_CATEGORY_MAP: Record<string, ToolCategoryEntry> = {
   get_instance_overrides: { category: "components", secondary: ["read"] },
   set_instance_overrides: { category: "components" },
   add_component_property: { category: "components" },
+  create_slot: { category: "components", secondary: ["create"] },
+  reset_slot: { category: "components" },
+  get_slot_info: { category: "components", secondary: ["read"] },
   edit_component_property: { category: "components" },
   delete_component_property: { category: "components" },
   set_component_property: { category: "components" },
@@ -370,6 +373,9 @@ export const TOOL_CATEGORY_MAP: Record<string, ToolCategoryEntry> = {
  * with the query.
  */
 export const TOOL_SYNONYMS: Record<string, string[]> = {
+  // component slots
+  slot: ["create_slot", "get_slot_info", "reset_slot", "add_component_property"],
+  slots: ["create_slot", "get_slot_info", "reset_slot"],
   // text alignment / typography
   center: ["set_text_align", "set_axis_align"],
   "center text": ["set_text_align"],
