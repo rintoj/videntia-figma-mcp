@@ -95,9 +95,7 @@ export function ConnectionSection({
 
   if (connected) {
     return (
-      <div
-        class={rowClass + (readOnly ? " border-b border-warning" : "")}
-      >
+      <div class={rowClass + (readOnly ? " border-b border-warning" : "")}>
         <div class="flex items-center gap-1.5 min-w-0 flex-1">
           {readOnly ? (
             <LockIcon color="var(--color-warning)" size={18} />
@@ -114,11 +112,11 @@ export function ConnectionSection({
           </span>
         </div>
         <button
-          class="flex items-center gap-1 border border-solid border-border text-primary py-1 px-2 rounded-md cursor-pointer text-xs leading-4 font-medium whitespace-nowrap transition-colors hover:bg-accent"
+          class="flex items-center gap-1 bg-primary border border-solid border-primary text-primary-foreground py-1.5 px-2 rounded-md cursor-pointer text-xs leading-4 font-medium whitespace-nowrap transition-colors hover:brightness-110 active:scale-95"
           disabled={buttonDisabled}
           onClick={onDisconnect}
         >
-          <PlugZapIcon color="var(--color-primary)" size={14} /> Disconnect
+          <PlugZapIcon color="currentColor" size={14} /> Disconnect
         </button>
       </div>
     );
@@ -152,7 +150,7 @@ export function ConnectionSection({
         </span>
       ) : failed ? (
         <button
-          class="flex items-center gap-1 bg-destructive border border-solid border-destructive text-destructive-foreground py-1 px-2 rounded-md cursor-pointer text-xs leading-4 font-medium whitespace-nowrap transition-colors hover:brightness-110 active:scale-95"
+          class="flex items-center gap-1 bg-destructive border border-solid border-destructive text-destructive-foreground py-1.5 px-2 rounded-md cursor-pointer text-xs leading-4 font-medium whitespace-nowrap transition-colors hover:brightness-110 active:scale-95"
           onClick={function () {
             onConnect(port);
           }}
@@ -161,7 +159,7 @@ export function ConnectionSection({
         </button>
       ) : (
         <button
-          class="flex items-center gap-1 bg-primary border border-solid border-primary text-primary-foreground py-1 px-2 rounded-md cursor-pointer text-xs leading-4 font-medium whitespace-nowrap transition-colors hover:brightness-110 active:scale-95"
+          class="flex items-center gap-1 bg-primary border border-solid border-primary text-primary-foreground py-1.5 px-2 rounded-md cursor-pointer text-xs leading-4 font-medium whitespace-nowrap transition-colors hover:brightness-110 active:scale-95"
           onClick={function () {
             onConnect(port);
           }}
