@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback } from "preact/hooks";
 import { ALLOWED_COMMANDS, RECONNECT_BASE_DELAY, RECONNECT_MAX_DELAY, MIN_PROGRESS_DISPLAY_MS } from "../constants";
 import { ActionEntry } from "../types";
+import { socketUrlFrom } from "../../shared/socket-url";
 
 function generateId(): string {
   var bytes = new Uint8Array(6);
@@ -250,10 +251,11 @@ export function useConnection() {
     }
 
     serverPortRef.current = port;
-    var host = serverUrlRef.current || "localhost";
-    var isLocalhost = host === "localhost" || host === "127.0.0.1";
-    var protocol = serverSecureRef.current ? "wss://" : "ws://";
-    var url = isLocalhost ? "ws://localhost:" + port : protocol + host;
+    var url = socketUrlFrom({
+      serverPort: port,
+      serverUrl: serverUrlRef.current,
+      serverSecure: serverSecureRef.current,
+    });
     var ws: WebSocket;
     try {
       ws = new WebSocket(url);

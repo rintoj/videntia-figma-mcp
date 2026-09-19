@@ -1,14 +1,26 @@
 import { useState, useEffect, useRef } from "preact/hooks";
-import { FilterMode, NodeInfo } from "./types";
+import { FilterMode, NodeInfo, copyToClipboard } from "./types";
+import {
+  copiedIdsToast,
+  copyShortcutLabel,
+  formatCopiedIds,
+  isCopyIdsChord,
+  isMacPlatform,
+} from "../../../shared/copy-ids";
 
 var MAX_HISTORY = 500;
 
-export function useSelection() {
+// The hook is instantiated ONCE, in App, so the selection list and the bottom
+// bar never drift apart. This is the shape App hands down to its children.
+export type SelectionState = ReturnType<typeof useSelection>;
+
+export function useSelection(channelName?: string) {
   var [nodes, setNodes] = useState<NodeInfo[]>([]);
   var [searchQuery, setSearchQuery] = useState("");
   var [searchResults, setSearchResults] = useState<NodeInfo[] | null>(null);
   var [navIndex, setNavIndex] = useState(-1);
   var [copiedId, setCopiedId] = useState<string | null>(null);
+  var [bulkCopied, setBulkCopied] = useState(false);
   var [hoveredId, setHoveredId] = useState<string | null>(null);
   var [checkedIds, setCheckedIds] = useState<Record<string, boolean>>({});
   var [barVisible, setBarVisible] = useState(false);
@@ -24,6 +36,9 @@ export function useSelection() {
   var suppressRef = useRef(false);
   var filterRef = useRef<HTMLDivElement>(null);
   var skipRefreshRef = useRef(false);
+  var channelNameRef = useRef<string | undefined>(channelName);
+  var checkedIdsRef = useRef<Record<string, boolean>>({});
+  var displayNodesRef = useRef<NodeInfo[]>([]);
 
   useEffect(function () {
     function handleMessage(event: MessageEvent) {
@@ -158,6 +173,32 @@ export function useSelection() {
     };
   }, []);
 
+  // Keep the latest render values reachable from the keydown listener below,
+  // which is registered once and would otherwise close over stale state.
+  var displayNodes = getDisplayNodes();
+  var isMac = isMacPlatform();
+  var shortcutLabel = copyShortcutLabel(isMac);
+  channelNameRef.current = channelName;
+  checkedIdsRef.current = checkedIds;
+  displayNodesRef.current = displayNodes;
+  var isMacRef = useRef(isMac);
+  isMacRef.current = isMac;
+
+  // Option+Shift+C / Alt+Shift+C copies the checked ids, or all listed ids when
+  // nothing is checked. The clipboard write stays synchronous inside the
+  // handler so it keeps the trusted user gesture the plugin iframe needs.
+  useEffect(function () {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (!isCopyIdsChord(e, isMacRef.current)) return;
+      e.preventDefault();
+      copySelectionIds();
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return function () {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
+
   function triggerSearch(query: string, filter: FilterMode, offset?: number, all?: boolean, entirePage?: boolean) {
     if (filter === "selection") {
       setSearchResults(null);
@@ -230,14 +271,16 @@ export function useSelection() {
     focusNode(node.id);
   }
 
+  // Native Figma toast, on top of the inline checkmark, so the feedback matches
+  // the headless "Copy Selected Node IDs" command.
+  function notifyCopied(count: number) {
+    parent.postMessage({ pluginMessage: { type: "notify", message: copiedIdsToast(count) } }, "*");
+  }
+
   function handleCopyId(e: Event, id: string) {
     e.stopPropagation();
-    var textarea = document.createElement("textarea");
-    textarea.value = id;
-    document.body.appendChild(textarea);
-    textarea.select();
-    document.execCommand("copy");
-    document.body.removeChild(textarea);
+    copyToClipboard(formatCopiedIds(id, channelNameRef.current));
+    notifyCopied(1);
     setCopiedId(id);
     setTimeout(function () {
       setCopiedId(null);
@@ -294,16 +337,30 @@ export function useSelection() {
     }
   }
 
+  function copyIds(ids: string[]) {
+    if (ids.length === 0) return;
+    copyToClipboard(formatCopiedIds(ids, channelNameRef.current));
+    notifyCopied(ids.length);
+    setBulkCopied(true);
+    setTimeout(function () {
+      setBulkCopied(false);
+    }, 1500);
+  }
+
   function copyCheckedIds() {
-    var ids = Object.keys(checkedIds);
-    if (ids.length > 0) {
-      var textarea = document.createElement("textarea");
-      textarea.value = JSON.stringify(ids);
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand("copy");
-      document.body.removeChild(textarea);
+    copyIds(Object.keys(checkedIdsRef.current));
+  }
+
+  // Copies the checked rows, or every listed row when nothing is checked.
+  function copySelectionIds() {
+    var ids = Object.keys(checkedIdsRef.current);
+    if (ids.length === 0) {
+      var list = displayNodesRef.current;
+      for (var i = 0; i < list.length; i++) {
+        if (ids.indexOf(list[i].id) === -1) ids.push(list[i].id);
+      }
     }
+    copyIds(ids);
   }
 
   function searchEntirePage() {
@@ -330,6 +387,8 @@ export function useSelection() {
 
   return {
     nodes,
+    bulkCopied,
+    copyShortcut: shortcutLabel,
     searchQuery,
     navIndex,
     copiedId,
@@ -340,7 +399,7 @@ export function useSelection() {
     selectedNodeNames,
     searchFocused,
     filterRef,
-    displayNodes: getDisplayNodes(),
+    displayNodes: displayNodes,
     checkedCount: Object.keys(checkedIds).length,
     barVisible,
     placeholder: getPlaceholder(),
@@ -356,6 +415,7 @@ export function useSelection() {
     clearHistory,
     toggleSelectAll,
     copyCheckedIds,
+    copySelectionIds,
     selectCheckedInFigma,
     handlePrev,
     handleNext,
