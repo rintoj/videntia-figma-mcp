@@ -412,6 +412,27 @@ Suppression logic: `src/videntia_figma_plugin/handlers/lint/suppress.ts`.
   the fix in the message instead. `create_frame` likewise errors when gap/padding/
   alignment/sizing params are passed without a `layoutMode`.
 
+## Slots
+
+Tools: `create_slot`, `reset_slot`, `get_slot_info` (`tools/component-tools.ts`, plugin
+`handlers/components.ts`). A SLOT is a frame-like node inside a component that instances
+fill with their own children.
+
+- `create_slot { componentId, name?, parentId?, layoutMode?, gap?, padding?, width?, height? }`
+  calls `ComponentNode.createSlot()`, which also creates the SLOT property. Limits live in
+  that property's `slotSettings`; edit them with `edit_component_property`.
+- Fill an instance's slot by inserting children into its SLOT node. `setProperties` throws
+  for SLOT properties, so `set_instance_property` / `create_component_instance` /
+  `swap_instance` reject them up front with a message that points here.
+- `get_slot_info` (read-only) lists every slot under a node with `propertyName`,
+  `childCount`, `slotSettings` and `limitViolations` (`BELOW_MIN`/`ABOVE_MAX`/`HAS_NON_PREFERRED`).
+  Node reads carry `slotProperty` + `limitViolations`, and compact lines print
+  `slot=<name> violations=<list>`.
+- `SLOT` is accepted wherever frame-like nodes are (auto layout, gap, padding, sizing, effects,
+  annotations), except GRID layout, which Figma rejects on slots.
+- `clone_node` / `clone_and_place` on a slot return a FRAME plus a warning. JSX renders slots
+  as `<Slot>`, and `<Slot>` inside a component becomes a real slot on the way back.
+
 ## New Primitives
 
 - `set_page_background` — pages use `backgrounds`, not `fills`, so `set_fill_color` fails
