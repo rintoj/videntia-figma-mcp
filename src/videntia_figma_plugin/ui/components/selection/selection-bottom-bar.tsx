@@ -6,7 +6,6 @@ interface SelectionBottomBarProps {
   barVisible: boolean;
   copied: boolean;
   copyShortcut: string;
-  globalHint: string;
   onCopyIds: () => void;
   onClear: () => void;
   onToggleSelectAll: () => void;
@@ -100,9 +99,6 @@ export function SelectionBottomBar(props: SelectionBottomBarProps) {
             )}
           </button>
         </div>
-      </div>
-      <div class="px-3 pb-1.5 bg-muted shrink-0">
-        <span class="text-muted-foreground text-[10px] leading-4 font-medium">{props.globalHint}</span>
       </div>
     </div>
   );

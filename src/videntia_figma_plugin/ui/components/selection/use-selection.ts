@@ -4,7 +4,6 @@ import {
   copiedIdsToast,
   copyShortcutLabel,
   formatCopiedIds,
-  globalCopyHint,
   isCopyIdsChord,
   isMacPlatform,
 } from "../../../shared/copy-ids";
@@ -175,7 +174,6 @@ export function useSelection(channelName?: string) {
   var displayNodes = getDisplayNodes();
   var isMac = isMacPlatform();
   var shortcutLabel = copyShortcutLabel(isMac);
-  var globalHint = globalCopyHint(isMac);
   channelNameRef.current = channelName;
   checkedIdsRef.current = checkedIds;
   displayNodesRef.current = displayNodes;
@@ -387,7 +385,6 @@ export function useSelection(channelName?: string) {
     nodes,
     bulkCopied,
     copyShortcut: shortcutLabel,
-    globalHint: globalHint,
     searchQuery,
     navIndex,
     copiedId,

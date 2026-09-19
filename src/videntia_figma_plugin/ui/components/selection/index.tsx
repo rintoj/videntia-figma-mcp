@@ -222,7 +222,6 @@ export function SelectionSection(props: SelectionSectionProps) {
         barVisible={sel.barVisible}
         copied={sel.bulkCopied}
         copyShortcut={sel.copyShortcut}
-        globalHint={sel.globalHint}
         onCopyIds={sel.copyCheckedIds}
         onClear={sel.clearChecked}
         onToggleSelectAll={sel.toggleSelectAll}
