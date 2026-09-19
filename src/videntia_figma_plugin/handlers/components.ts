@@ -1329,37 +1329,43 @@ export async function createSlot(params: Record<string, unknown>): Promise<Recor
       throw new Error("padding requires layoutMode (HORIZONTAL or VERTICAL)");
     }
 
-    const slot = component.createSlot();
-    if (name !== undefined) slot.name = name;
-
+    let container: ChildrenMixin | null = null;
     if (parentId !== undefined && parentId !== component.id) {
       const parent = await figma.getNodeByIdAsync(parentId);
       if (!parent || !("children" in parent)) throw new Error(`Parent not found or has no children: ${parentId}`);
       let inside: BaseNode | null = parent;
       while (inside && inside.id !== component.id) inside = inside.parent;
-      if (!inside) {
-        slot.remove();
-        throw new Error(`parentId ${parentId} is not inside component ${component.id}`);
-      }
-      const container = parent as unknown as ChildrenMixin;
-      if (index !== undefined) container.insertChild(index, slot);
-      else container.appendChild(slot);
-    } else if (index !== undefined) {
-      component.insertChild(index, slot);
+      if (!inside) throw new Error(`parentId ${parentId} is not inside component ${component.id}`);
+      container = parent as unknown as ChildrenMixin;
     }
 
-    if (layoutMode !== undefined) slot.layoutMode = layoutMode;
-    if (layoutMode !== undefined && layoutMode !== "NONE") {
-      if (itemSpacing !== undefined) slot.itemSpacing = itemSpacing;
-      if (padding !== undefined) {
-        slot.paddingTop = padding.top;
-        slot.paddingRight = padding.right;
-        slot.paddingBottom = padding.bottom;
-        slot.paddingLeft = padding.left;
+    const slot = component.createSlot();
+    try {
+      if (name !== undefined) slot.name = name;
+
+      if (container !== null) {
+        if (index !== undefined) container.insertChild(index, slot);
+        else container.appendChild(slot);
+      } else if (index !== undefined) {
+        component.insertChild(index, slot);
       }
-    }
-    if (width !== undefined || height !== undefined) {
-      slot.resize(width !== undefined ? width : slot.width, height !== undefined ? height : slot.height);
+
+      if (layoutMode !== undefined) slot.layoutMode = layoutMode;
+      if (layoutMode !== undefined && layoutMode !== "NONE") {
+        if (itemSpacing !== undefined) slot.itemSpacing = itemSpacing;
+        if (padding !== undefined) {
+          slot.paddingTop = padding.top;
+          slot.paddingRight = padding.right;
+          slot.paddingBottom = padding.bottom;
+          slot.paddingLeft = padding.left;
+        }
+      }
+      if (width !== undefined || height !== undefined) {
+        slot.resize(width !== undefined ? width : slot.width, height !== undefined ? height : slot.height);
+      }
+    } catch (error) {
+      slot.remove();
+      throw error;
     }
 
     return { componentId: component.id, parentId: slot.parent ? slot.parent.id : null, ...describeSlot(slot) };
