@@ -4,11 +4,6 @@
   "api": "1.0.0",
   "main": "code.js",
   "ui": "ui.html",
-  "menu": [
-    { "name": "Open Videntia Figma MCP", "command": "open" },
-    { "separator": true },
-    { "name": "Copy Selected Node IDs", "command": "copy-selected-ids" }
-  ],
   "editorType": ["figma", "figjam", "dev"],
   "permissions": ["teamlibrary"],
   "networkAccess": {

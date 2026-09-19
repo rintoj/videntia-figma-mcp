@@ -1,6 +1,6 @@
-// How the plugin turns saved settings into the relay WebSocket URL. Shared by
-// the panel's connection hook and the headless copy command, so a custom port
-// or host configured in Preferences is honoured by both.
+// How the plugin turns saved settings into the relay WebSocket URL, so a custom
+// port or host configured in Preferences is honoured by the panel's connection
+// hook.
 
 export var DEFAULT_SOCKET_PORT = 3055;
 export var DEFAULT_SOCKET_HOST = "localhost";

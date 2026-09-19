@@ -298,10 +298,6 @@ export function useConnection() {
             // Update channelRef with server-assigned name (may differ due to dedup)
             if (channelName) {
               channelRef.current = channelName;
-              // Persist the channel on the main thread so a headless run of the
-              // "Copy Selected Node IDs" command, which has no socket of its own,
-              // can still qualify the ids it copies.
-              parent.postMessage({ pluginMessage: { type: "save-last-channel", channel: channelName } }, "*");
             }
             updateConnectionStatus(true, "Channel: " + channelName, undefined, channelName);
             addAction({

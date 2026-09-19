@@ -1,5 +1,4 @@
-// Helpers for copying node ids, shared by the plugin UI (Selection tab) and
-// the main thread (the headless "Copy Selected Node IDs" menu command).
+// Helpers for copying node ids from the plugin UI (Selection tab).
 // Ids are only unique within a single Figma file, so a copied id is qualified
 // with the joined channel when there is one.
 
@@ -32,16 +31,6 @@ export function isCopyIdsChord(
   if (!e.shiftKey || !e.altKey) return false;
   if (e.metaKey || e.ctrlKey) return false;
   return String(e.code || "") === "KeyC";
-}
-
-// Figma has no API for a custom global shortcut. The native path is Quick
-// Actions once, then "run last plugin again" to repeat it.
-export function quickActionsShortcutLabel(isMac: boolean): string {
-  return isMac ? "⌘K" : "Ctrl+K";
-}
-
-export function repeatPluginShortcutLabel(isMac: boolean): string {
-  return isMac ? "⌥⌘P" : "Ctrl+Alt+P";
 }
 
 export function copiedIdsToast(count: number): string {

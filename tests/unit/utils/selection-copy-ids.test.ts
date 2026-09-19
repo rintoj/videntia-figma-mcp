@@ -3,8 +3,6 @@ import {
   copyShortcutLabel,
   formatCopiedIds,
   isCopyIdsChord,
-  quickActionsShortcutLabel,
-  repeatPluginShortcutLabel,
 } from "../../../src/videntia_figma_plugin/shared/copy-ids";
 
 function chord(over: Partial<Record<string, any>> = {}) {
@@ -59,15 +57,6 @@ describe("selection copy-ids helpers", () => {
 
     it("stays inside the 100 character figma.notify cap", () => {
       expect(copiedIdsToast(999999).length).toBeLessThanOrEqual(100);
-    });
-  });
-
-  describe("global command shortcut labels", () => {
-    it("renders the platform symbols for Quick Actions and run-last-plugin", () => {
-      expect(quickActionsShortcutLabel(true)).toBe("⌘K");
-      expect(quickActionsShortcutLabel(false)).toBe("Ctrl+K");
-      expect(repeatPluginShortcutLabel(true)).toBe("⌥⌘P");
-      expect(repeatPluginShortcutLabel(false)).toBe("Ctrl+Alt+P");
     });
   });
 
