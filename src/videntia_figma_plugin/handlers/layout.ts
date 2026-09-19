@@ -227,11 +227,15 @@ export async function createRadiusSystem(params: Record<string, unknown>): Promi
 // Auto-layout individual commands
 // ---------------------------------------------------------------------------
 
-type AutoLayoutNode = FrameNode | ComponentNode | InstanceNode | ComponentSetNode;
+type AutoLayoutNode = FrameNode | ComponentNode | InstanceNode | ComponentSetNode | SlotNode;
 
 function isAutoLayoutNode(node: BaseNode): node is AutoLayoutNode {
   return (
-    node.type === "FRAME" || node.type === "COMPONENT" || node.type === "INSTANCE" || node.type === "COMPONENT_SET"
+    node.type === "FRAME" ||
+    node.type === "COMPONENT" ||
+    node.type === "INSTANCE" ||
+    node.type === "COMPONENT_SET" ||
+    node.type === "SLOT"
   );
 }
 
@@ -258,6 +262,12 @@ export async function setLayoutMode(params: Record<string, unknown>): Promise<Re
 
   if (!isAutoLayoutNode(node)) {
     throw new Error(`Node "${node.name}" does not support auto layout (type: ${node.type})`);
+  }
+
+  if (node.type === "SLOT" && layoutMode === "GRID") {
+    throw new Error(
+      `Node "${node.name}" is a SLOT — Figma does not support GRID layout on slots. Use HORIZONTAL or VERTICAL. No changes were made.`,
+    );
   }
 
   const frame = node as FrameNode;
@@ -891,6 +901,7 @@ export async function setLayoutSizing(params: Record<string, unknown>): Promise<
     node.type !== "COMPONENT" &&
     node.type !== "INSTANCE" &&
     node.type !== "COMPONENT_SET" &&
+    node.type !== "SLOT" &&
     node.type !== "TEXT"
   ) {
     throw new Error(`Node "${node.name}" does not support layout sizing (type: ${node.type})`);

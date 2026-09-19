@@ -158,6 +158,7 @@ describe("batch_actions ↔ standalone parameter parity", () => {
     ["set_padding", { nodeId: "1:2", padding: 16 }],
     ["create_autolayout_frame", { name: "Panel", layoutMode: "vertical", padding: [8, 16], gap: 12 }],
     ["create_card", { name: "Card", padding: 16, gap: 8 }],
+    ["create_slot", { componentId: "1:2", layoutMode: "VERTICAL", padding: 16, gap: 8 }],
     ["set_text_content", { nodeId: "1:2", characters: "Hello" }],
     ["set_font_size", { nodeId: "1:2", size: 14 }],
     ["set_line_height", { nodeId: "1:2", height: 24 }],

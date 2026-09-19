@@ -514,6 +514,7 @@ function isAnnotatable(node: BaseNode): boolean {
     "COMPONENT",
     "COMPONENT_SET",
     "INSTANCE",
+    "SLOT",
     "RECTANGLE",
     "ELLIPSE",
     "VECTOR",

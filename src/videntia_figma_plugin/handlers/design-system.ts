@@ -478,7 +478,8 @@ export async function createFromData(params: Record<string, unknown>): Promise<R
         const setNode = node as ComponentSetNode;
         for (const propName of Object.keys(propDefs)) {
           const def = propDefs[propName];
-          if (def["type"] === "VARIANT") continue;
+          // SLOT properties are created by createSlot() alongside their slot node.
+          if (def["type"] === "VARIANT" || def["type"] === "SLOT") continue;
           try {
             const defaultVal = def["default"] !== undefined ? def["default"] : def["type"] === "BOOLEAN" ? true : "";
             setNode.addComponentProperty(
@@ -507,6 +508,7 @@ export async function createFromData(params: Record<string, unknown>): Promise<R
         if (compProps) {
           const propsToSet: Record<string, string | boolean> = {};
           for (const key of Object.keys(compProps)) {
+            if (compProps[key]["type"] === "SLOT") continue;
             propsToSet[key] = compProps[key]["value"] as string | boolean;
           }
           try {
@@ -520,6 +522,17 @@ export async function createFromData(params: Record<string, unknown>): Promise<R
         const fallback = figma.createFrame();
         fallback.fills = [];
         console.warn('Component "' + componentName + '" not found — created frame as fallback');
+        node = fallback;
+      }
+    } else if (node === null && jsxType === "SLOT") {
+      let owner: BaseNode | null = parentNode;
+      while (owner !== null && owner.type !== "COMPONENT") owner = owner.parent;
+      if (owner !== null) {
+        node = (owner as ComponentNode).createSlot();
+      } else {
+        const fallback = figma.createFrame();
+        fallback.fills = [];
+        console.warn("<Slot> outside a component — created frame as fallback");
         node = fallback;
       }
     } else if (node === null && jsxType === "SVG" && nodeData["svgString"]) {
