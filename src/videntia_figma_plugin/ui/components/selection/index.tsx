@@ -3,11 +3,14 @@ import { FILTER_OPTIONS } from "./types";
 import { FilterIcon } from "./icons";
 import { FilterPopup } from "./filter-popup";
 import { NodeRow } from "./node-row";
-import { SelectionBottomBar } from "./selection-bottom-bar";
-import { useSelection } from "./use-selection";
+import { SelectionState } from "./use-selection";
 
-export function SelectionSection() {
-  var sel = useSelection();
+interface SelectionSectionProps {
+  selection: SelectionState;
+}
+
+export function SelectionSection(props: SelectionSectionProps) {
+  var sel = props.selection;
 
   var currentFilterIcon = FILTER_OPTIONS.filter(function (o) {
     return o.value === sel.filterMode;
@@ -212,15 +215,6 @@ export function SelectionSection() {
           </div>
         )}
       </div>
-      <SelectionBottomBar
-        checkedCount={sel.checkedCount}
-        totalCount={sel.displayNodes.length}
-        barVisible={sel.barVisible}
-        onCopyIds={sel.copyCheckedIds}
-        onClear={sel.clearChecked}
-        onToggleSelectAll={sel.toggleSelectAll}
-        onSelectInFigma={sel.selectCheckedInFigma}
-      />
     </div>
   );
 }

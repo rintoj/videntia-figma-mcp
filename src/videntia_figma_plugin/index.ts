@@ -443,15 +443,27 @@ var FOCUS_AFTER_COMMANDS = new Set([
 // Plugin UI
 // ---------------------------------------------------------------------------
 
-figma.showUI(__html__, { width: 315, height: 430 });
+// Every startup side effect the panel needs, in the order a plugin run applies
+// them, so the panel and its WebSocket channel are always live once the run
+// settles.
+function startPanel(): void {
+  figma.showUI(__html__, { width: 315, height: 430 });
 
-// Send file name to UI immediately on startup so it's available before WebSocket connects
-figma.ui.postMessage({ type: "file-name", fileName: figma.root.name, fileKey: figma.fileKey });
+  // Send file name to UI immediately on startup so it's available before WebSocket connects
+  figma.ui.postMessage({ type: "file-name", fileName: figma.root.name, fileKey: figma.fileKey });
 
-// Auto-connect is triggered after init-settings so saved URL/port are applied first.
+  figma.ui.onmessage = handlePanelMessage;
 
-// Notify UI when the Figma selection changes
-figma.on("selectionchange", function () {
+  // Notify UI when the Figma selection changes
+  figma.on("selectionchange", handleSelectionChange);
+
+  // Auto-connect is triggered after init-settings so saved URL/port are applied first.
+  void initializePlugin();
+}
+
+startPanel();
+
+function handleSelectionChange(): void {
   var nodes = figma.currentPage.selection.map(function (n) {
     var page = n.parent;
     while (page && page.type !== "PAGE") {
@@ -465,7 +477,7 @@ figma.on("selectionchange", function () {
     };
   });
   figma.ui.postMessage({ type: "selection-changed", nodes: nodes });
-});
+}
 
 // ---------------------------------------------------------------------------
 // Settings
@@ -510,7 +522,7 @@ function updateSettings(settings: Record<string, unknown>): void {
 }
 
 // Initialize settings from clientStorage on plugin load
-(async function initializePlugin() {
+async function initializePlugin(): Promise<void> {
   try {
     const savedSettings = (await figma.clientStorage.getAsync("settings:" + figma.root.name)) as
       | Record<string, unknown>
@@ -561,7 +573,7 @@ function updateSettings(settings: Record<string, unknown>): void {
   } catch (error) {
     console.error("Error loading settings:", error);
   }
-})();
+}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -1228,7 +1240,8 @@ function extractNodeIds(result: unknown): string[] {
 // UI message handler
 // ---------------------------------------------------------------------------
 
-figma.ui.onmessage = async (msg: Record<string, unknown>) => {
+// Installed by startPanel, never at module scope.
+async function handlePanelMessage(msg: Record<string, unknown>): Promise<void> {
   switch (msg["type"]) {
     case "update-settings":
       updateSettings(msg);
@@ -1667,4 +1680,4 @@ figma.ui.onmessage = async (msg: Record<string, unknown>) => {
     default:
       break;
   }
-};
+}

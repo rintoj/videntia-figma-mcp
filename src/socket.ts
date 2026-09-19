@@ -25,6 +25,12 @@ import {
   type ChannelMeta,
 } from "./socket-channel-registry";
 import {
+  CLIPBOARD_RESULT_TYPE,
+  CLIPBOARD_WRITE_TYPE,
+  validateClipboardRequest,
+  writeSystemClipboard,
+} from "./socket-clipboard";
+import {
   resolveTarget,
   reserveBrowserChannel,
   formatBrowserList,
@@ -316,6 +322,39 @@ function handleWebSocketMessage(ws: WebSocket, raw: string) {
   if (data.type === "leave") {
     const channelName: string = data.channel;
     if (channelName) leaveChannel(channelName, ws);
+    return;
+  }
+
+  // The Figma plugin cannot write the clipboard itself: a browser clipboard
+  // write inside the plugin iframe needs a trusted user gesture, which a menu
+  // command fired from a global shortcut never has. The host writes it instead.
+  // No channel membership is required: this carries no document state and the
+  // relay only ever listens on localhost.
+  if (data.type === CLIPBOARD_WRITE_TYPE) {
+    const check = validateClipboardRequest(data);
+    if (!check.ok) {
+      ws.send(JSON.stringify({ type: CLIPBOARD_RESULT_TYPE, id: data.id, success: false, error: check.error }));
+      stats.messagesSent++;
+      logger.warn(`Rejected clipboard write from client ${clientId}: ${check.error}`);
+      return;
+    }
+    void writeSystemClipboard(check.request.text).then((result) => {
+      if (ws.readyState !== WebSocket.OPEN) return;
+      ws.send(
+        JSON.stringify({
+          type: CLIPBOARD_RESULT_TYPE,
+          id: check.request.id,
+          success: result.success,
+          error: result.error,
+        }),
+      );
+      stats.messagesSent++;
+      if (result.success) {
+        logger.info(`Wrote ${check.request.text.length} character(s) to the host clipboard for client ${clientId}`);
+      } else {
+        logger.warn(`Clipboard write failed for client ${clientId}: ${result.error}`);
+      }
+    });
     return;
   }
 
