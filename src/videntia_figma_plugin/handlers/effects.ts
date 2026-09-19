@@ -43,7 +43,7 @@ export async function setEffects(params: Record<string, unknown>): Promise<Recor
   // GLASS effects only work on FRAME, COMPONENT, and INSTANCE nodes
   const hasGlass = (effects as Array<Record<string, unknown>>).some((e) => e["type"] === "GLASS");
   if (hasGlass) {
-    const frameTypes = ["FRAME", "COMPONENT", "COMPONENT_SET", "INSTANCE"];
+    const frameTypes = ["FRAME", "COMPONENT", "COMPONENT_SET", "INSTANCE", "SLOT"];
     if (!frameTypes.includes(node.type)) {
       throw new Error(
         `GLASS effect is only supported on frame-like nodes (FRAME, COMPONENT, INSTANCE). Got: ${node.type}`,

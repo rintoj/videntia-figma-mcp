@@ -98,7 +98,7 @@ export const ROLE_NAMES = Object.keys(ROLE_PRESETS);
 // Shared helpers
 // ---------------------------------------------------------------------------
 
-type LayoutNode = FrameNode | ComponentNode | InstanceNode;
+type LayoutNode = FrameNode | ComponentNode | InstanceNode | SlotNode;
 
 /** Resolve a variable by id, then by exact name, then by dash→slash name. */
 async function resolveVariable(nameOrId: string): Promise<Variable> {
@@ -255,7 +255,7 @@ function normalizePadding(padding: unknown): { top: number; right: number; botto
 }
 
 function isLayoutNode(node: BaseNode): node is LayoutNode {
-  return node.type === "FRAME" || node.type === "COMPONENT" || node.type === "INSTANCE";
+  return node.type === "FRAME" || node.type === "COMPONENT" || node.type === "INSTANCE" || node.type === "SLOT";
 }
 
 /**
@@ -821,6 +821,11 @@ export async function cloneAndPlace(params: Record<string, unknown>): Promise<Re
   }
 
   const warnings: string[] = [];
+  if (node.type === "SLOT") {
+    warnings.push(
+      "Source is a SLOT — Figma clones slots as a plain FRAME (the slot property binding only exists inside its component). Use create_slot to add another slot.",
+    );
+  }
   if (x !== undefined || y !== undefined) {
     const cloneParent = clone.parent;
     const parentIsAutoLayout =

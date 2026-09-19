@@ -447,6 +447,8 @@ async function processNode(
             defs[cleanKey] = { type: "TEXT", default: def.defaultValue };
           } else if (def.type === "INSTANCE_SWAP") {
             defs[cleanKey] = { type: "INSTANCE_SWAP" };
+          } else if ((def.type as string) === "SLOT") {
+            defs[cleanKey] = { type: "SLOT", slotSettings: def.slotSettings };
           }
         }
         if (Object.keys(defs).length > 0) info["componentPropertyDefinitions"] = defs;
@@ -499,6 +501,18 @@ async function processNode(
       }
     } catch (_e) {
       // Main component may not be available (e.g. external library)
+    }
+  }
+
+  if (node.type === "SLOT") {
+    const slotNode = node as SlotNode;
+    const refs = slotNode.componentPropertyReferences as Record<string, string> | null;
+    const refValues = refs ? Object.values(refs) : [];
+    if (refValues.length > 0) info["slotProperty"] = refValues[0];
+    try {
+      if (slotNode.limitViolations.length > 0) info["limitViolations"] = slotNode.limitViolations.slice();
+    } catch (_e) {
+      // limitViolations is only meaningful inside a component or instance
     }
   }
 

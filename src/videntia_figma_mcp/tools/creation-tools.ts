@@ -553,10 +553,13 @@ export function registerCreationTools(server: McpServer): void {
       if (parentId) parentId = normalizeNodeId(parentId);
       try {
         const result = await sendCommandToFigma("clone_node", { nodeId, x, y, parentId, index });
-        const typedResult = result as { name: string; id: string };
+        const typedResult = result as { name: string; id: string; warnings?: string[] };
         const parts = [`Cloned node "${typedResult.name}" with new ID: ${typedResult.id}`];
         if (parentId) parts.push(`into parent ${parentId}${index !== undefined ? ` at index ${index}` : ""}`);
         if (x !== undefined && y !== undefined) parts.push(`at position (${x}, ${y})`);
+        if (typedResult.warnings && typedResult.warnings.length > 0) {
+          parts.push(`\nWarnings: ${typedResult.warnings.join("; ")}`);
+        }
         return {
           content: [
             {

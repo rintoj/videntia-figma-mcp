@@ -594,6 +594,7 @@ function getTag(node: FigmaNodeData): string {
     }
     return toPascalCase(node.name);
   }
+  if (node.type === "SLOT") return "Slot";
 
   return "div";
 }
