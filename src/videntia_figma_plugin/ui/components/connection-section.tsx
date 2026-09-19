@@ -111,6 +111,29 @@ export function ConnectionSection({
 
   var card = (
     <div class="flex flex-col gap-2 p-2.5 bg-popover border border-solid border-border rounded-lg">
+      <div class="flex items-stretch gap-0.5 p-0.5 bg-muted border border-solid border-border rounded-md">
+        {environments.map(function (env) {
+          var active = env.host === serverHost;
+          return (
+            <button
+              key={env.host}
+              class={
+                "flex-1 min-w-0 py-1 px-2 rounded-md cursor-pointer text-[11px] leading-4 font-medium " +
+                "whitespace-nowrap overflow-hidden text-ellipsis transition-colors border border-solid " +
+                (active
+                  ? "bg-background border-border text-foreground"
+                  : "bg-transparent border-transparent text-muted-foreground hover:text-foreground")
+              }
+              onClick={function () {
+                onHostChange(env.host);
+              }}
+            >
+              {env.label}
+            </button>
+          );
+        })}
+      </div>
+
       <div class="flex items-center justify-between gap-1.5">
         <div class="flex items-center gap-1.5 min-w-0 flex-1">
           <span class="flex items-center shrink-0">{statusIcon}</span>
@@ -172,29 +195,6 @@ export function ConnectionSection({
           {showPort ? ":" + port : ""}
         </span>
       )}
-
-      <div class="flex items-stretch gap-0.5 p-0.5 bg-muted border border-solid border-border rounded-md">
-        {environments.map(function (env) {
-          var active = env.host === serverHost;
-          return (
-            <button
-              key={env.host}
-              class={
-                "flex-1 min-w-0 py-1 px-2 rounded-md cursor-pointer text-[11px] leading-4 font-medium " +
-                "whitespace-nowrap overflow-hidden text-ellipsis transition-colors border border-solid " +
-                (active
-                  ? "bg-background border-border text-foreground"
-                  : "bg-transparent border-transparent text-muted-foreground hover:text-foreground")
-              }
-              onClick={function () {
-                onHostChange(env.host);
-              }}
-            >
-              {env.label}
-            </button>
-          );
-        })}
-      </div>
     </div>
   );
 

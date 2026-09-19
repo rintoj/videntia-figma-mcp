@@ -25,14 +25,11 @@ export function SelectionBottomBar(props: SelectionBottomBarProps) {
       <div class="flex items-center justify-between py-1.5 px-3 bg-muted shrink-0">
         <div class="flex items-center gap-2">
           <button
-            class="border border-solid border-border text-primary rounded-md py-1 px-2 text-[11px] leading-4 font-medium cursor-pointer transition-colors hover:bg-accent flex items-center gap-1.5"
+            class="border border-solid border-border text-primary rounded-md py-1 px-2 text-[11px] leading-4 font-medium cursor-pointer transition-colors hover:bg-accent flex items-center"
             onClick={props.onCopyIds}
             title={"Copy node IDs (" + props.copyShortcut + ")"}
           >
-            <span>{props.copied ? "Copied" : "Copy IDs"}</span>
-            <span class="text-muted-foreground text-[10px] leading-4 font-medium whitespace-nowrap">
-              {props.copyShortcut}
-            </span>
+            {props.copied ? "Copied" : "Copy IDs"}
           </button>
           <button
             class="bg-muted border border-border rounded-md text-muted-foreground text-[11px] leading-4 font-medium cursor-pointer py-1 px-2 hover:bg-input hover:text-foreground"
