@@ -825,7 +825,7 @@ export async function cloneAndPlace(params: Record<string, unknown>): Promise<Re
   const warnings: string[] = [];
   if (node.type === "SLOT") {
     warnings.push(
-      "Source is a SLOT — Figma clones slots as a plain FRAME (the slot property binding only exists inside its component). Use create_slot to add another slot.",
+      "Source is a SLOT — Figma places a cloned slot on the page, outside its component, with no slot property binding. Delete the clone and use create_slot to add another slot.",
     );
   }
   if (x !== undefined || y !== undefined) {

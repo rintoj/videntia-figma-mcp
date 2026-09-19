@@ -430,7 +430,8 @@ fill with their own children.
   `slot=<name> violations=<list>`.
 - `SLOT` is accepted wherever frame-like nodes are (auto layout, gap, padding, sizing, effects,
   annotations), except GRID layout, which Figma rejects on slots.
-- `clone_node` / `clone_and_place` on a slot return a FRAME plus a warning. JSX renders slots
+- `clone_node` / `clone_and_place` on a slot warn: Figma puts the clone on the page, outside
+  the component, still typed SLOT but with no slot binding (not the FRAME the typings promise). JSX renders slots
   as `<Slot>`, and `<Slot>` inside a component becomes a real slot on the way back.
 
 ## New Primitives

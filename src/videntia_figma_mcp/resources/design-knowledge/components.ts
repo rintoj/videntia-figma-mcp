@@ -94,7 +94,7 @@ Rename a property with \`edit_component_property\` (\`newName\`); remove an unwa
 - Set limits with \`edit_component_property\` \`slotSettings\`: \`minChildren\`, \`maxChildren\`, \`allowPreferredValuesOnly\` (with \`preferredValues\`), \`stretchChildOnInsert\`, \`displayEmptyByDefault\`.
 - Fill a slot on an instance by inserting children into the instance's SLOT node (\`get_slot_info\` lists slot ids). \`set_instance_property\` cannot set a slot. \`reset_slot\` restores the component's content.
 - Check limits with \`get_slot_info\`: \`limitViolations\` reports \`BELOW_MIN\`, \`ABOVE_MAX\` and \`HAS_NON_PREFERRED\`.
-- Slots accept HORIZONTAL or VERTICAL auto layout, never GRID. Cloning a slot gives a plain FRAME.
+- Slots accept HORIZONTAL or VERTICAL auto layout, never GRID. Don't clone a slot: the clone lands on the page with no slot binding. Call \`create_slot\` again instead.
 
 ## 7. Interactive States
 
