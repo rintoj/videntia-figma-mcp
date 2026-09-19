@@ -1,6 +1,7 @@
 import { h } from "preact";
 import { useState } from "preact/hooks";
 import { Toggle } from "./toggle";
+import { ConnectionSection } from "./connection-section";
 import { SERVER_OPTIONS } from "../constants";
 
 interface SettingsSectionProps {
@@ -9,6 +10,12 @@ interface SettingsSectionProps {
   serverSecure: boolean;
   readOnly: boolean;
   autoFocus: boolean;
+  connected: boolean;
+  channelName: string;
+  buttonDisabled: boolean;
+  statusClass: string;
+  onConnect: (port: number) => void;
+  onDisconnect: () => void;
   onPortChange: (port: number) => void;
   onServerUrlChange: (url: string) => void;
   onServerSecureChange: (secure: boolean) => void;
@@ -22,6 +29,12 @@ export function SettingsSection({
   serverSecure,
   readOnly,
   autoFocus,
+  connected,
+  channelName,
+  buttonDisabled,
+  statusClass,
+  onConnect,
+  onDisconnect,
   onPortChange,
   onServerUrlChange,
   onServerSecureChange,
@@ -62,6 +75,18 @@ export function SettingsSection({
   return (
     <div class="flex flex-col gap-3 p-3 bg-card flex-1">
       <span class="text-muted-foreground text-[11px] font-semibold leading-4 uppercase tracking-wide">Connection</span>
+      <ConnectionSection
+        port={port}
+        connected={connected}
+        channelName={channelName}
+        buttonDisabled={buttonDisabled}
+        statusClass={statusClass}
+        readOnly={readOnly}
+        inset={true}
+        onConnect={onConnect}
+        onDisconnect={onDisconnect}
+        onPortChange={onPortChange}
+      />
       <div class="flex flex-col gap-1 py-1">
         <div class="flex flex-col gap-1">
           <span class="text-foreground text-sm font-medium leading-5">Server</span>

@@ -10,6 +10,10 @@ import {
 
 var MAX_HISTORY = 500;
 
+// The hook is instantiated ONCE, in App, so the selection list and the bottom
+// bar never drift apart. This is the shape App hands down to its children.
+export type SelectionState = ReturnType<typeof useSelection>;
+
 export function useSelection(channelName?: string) {
   var [nodes, setNodes] = useState<NodeInfo[]>([]);
   var [searchQuery, setSearchQuery] = useState("");

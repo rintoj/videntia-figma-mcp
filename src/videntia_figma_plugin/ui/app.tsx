@@ -1,10 +1,11 @@
 import { h } from "preact";
 import { useState, useEffect, useRef } from "preact/hooks";
-import { ConnectionSection } from "./components/connection-section";
 import { SettingsSection } from "./components/settings-section";
 import { ActionsList } from "./components/actions-list";
 import { TabBar, TabId } from "./components/tab-bar";
 import { SelectionSection } from "./components/selection";
+import { SelectionBottomBar } from "./components/selection/selection-bottom-bar";
+import { useSelection } from "./components/selection/use-selection";
 import { useConnection } from "./hooks/use-connection";
 import { consumeEarlyMessages } from "./early-messages";
 
@@ -17,6 +18,11 @@ export function App() {
   var [activeTab, setActiveTab] = useState<TabId>("actions");
 
   var connection = useConnection();
+
+  // Instantiated here, not inside SelectionSection, so the bottom bar can sit at
+  // the root and stay in sync with the list on every tab. Two instances of the
+  // hook would give the bar its own divergent copy of the checked ids.
+  var selection = useSelection(connection.connState.channelName);
 
   var connectionRef = useRef(connection);
   connectionRef.current = connection;
@@ -146,7 +152,7 @@ export function App() {
               flexDirection: "column",
             }}
           >
-            <SelectionSection channelName={connection.connState.channelName} />
+            <SelectionSection selection={selection} />
           </div>
           {activeTab === "settings" && (
             <SettingsSection
@@ -155,6 +161,12 @@ export function App() {
               serverSecure={serverSecure}
               readOnly={readOnly}
               autoFocus={autoFocus}
+              connected={connection.connState.connected}
+              channelName={connection.connState.channelName}
+              buttonDisabled={connection.connState.buttonDisabled}
+              statusClass={connection.connState.statusClass}
+              onConnect={handleConnect}
+              onDisconnect={handleDisconnect}
               onPortChange={handlePortChange}
               onServerUrlChange={handleServerUrlChange}
               onServerSecureChange={handleServerSecureChange}
@@ -164,19 +176,17 @@ export function App() {
           )}
         </div>
       </div>
-      {activeTab === "actions" && (
-        <ConnectionSection
-          port={port}
-          connected={connection.connState.connected}
-          channelName={connection.connState.channelName}
-          buttonDisabled={connection.connState.buttonDisabled}
-          statusClass={connection.connState.statusClass}
-          readOnly={readOnly}
-          onConnect={handleConnect}
-          onDisconnect={handleDisconnect}
-          onPortChange={handlePortChange}
-        />
-      )}
+      <SelectionBottomBar
+        checkedCount={selection.checkedCount}
+        totalCount={selection.displayNodes.length}
+        barVisible={selection.barVisible}
+        copied={selection.bulkCopied}
+        copyShortcut={selection.copyShortcut}
+        onCopyIds={selection.copyCheckedIds}
+        onClear={selection.clearChecked}
+        onToggleSelectAll={selection.toggleSelectAll}
+        onSelectInFigma={selection.selectCheckedInFigma}
+      />
     </div>
   );
 }

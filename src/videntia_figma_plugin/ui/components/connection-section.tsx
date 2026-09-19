@@ -9,6 +9,7 @@ interface ConnectionSectionProps {
   buttonDisabled: boolean;
   statusClass: string;
   readOnly: boolean;
+  inset?: boolean;
   onConnect: (port: number) => void;
   onDisconnect: () => void;
   onPortChange: (port: number) => void;
@@ -21,11 +22,13 @@ export function ConnectionSection({
   buttonDisabled,
   statusClass,
   readOnly,
+  inset,
   onConnect,
   onDisconnect,
   onPortChange,
 }: ConnectionSectionProps) {
   var connecting = buttonDisabled && !connected;
+  var rowClass = "flex items-center justify-between gap-2.5" + (inset ? "" : " px-3 py-1.5");
   var failed = !connected && !buttonDisabled && statusClass === "info";
   var [editing, setEditing] = useState(false);
   var [editPort, setEditPort] = useState(String(port));
@@ -93,7 +96,7 @@ export function ConnectionSection({
   if (connected) {
     return (
       <div
-        class={"flex items-center justify-between px-3 py-1.5 gap-2.5" + (readOnly ? " border-b border-warning" : "")}
+        class={rowClass + (readOnly ? " border-b border-warning" : "")}
       >
         <div class="flex items-center gap-1.5 min-w-0 flex-1">
           {readOnly ? (
@@ -127,7 +130,7 @@ export function ConnectionSection({
   var statusClass2 = connecting ? "text-muted-foreground" : failed ? "text-destructive" : "text-warning";
 
   return (
-    <div class="flex items-center justify-between px-3 py-1.5 gap-2.5">
+    <div class={rowClass}>
       <div class="flex items-center gap-1.5 min-w-0 flex-1">
         {connecting ? (
           <SpinnerIcon color="var(--color-muted-foreground, #888)" size={18} />
