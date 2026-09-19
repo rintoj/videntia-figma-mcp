@@ -6,8 +6,12 @@ import { NodeRow } from "./node-row";
 import { SelectionBottomBar } from "./selection-bottom-bar";
 import { useSelection } from "./use-selection";
 
-export function SelectionSection() {
-  var sel = useSelection();
+interface SelectionSectionProps {
+  channelName?: string;
+}
+
+export function SelectionSection(props: SelectionSectionProps) {
+  var sel = useSelection(props.channelName);
 
   var currentFilterIcon = FILTER_OPTIONS.filter(function (o) {
     return o.value === sel.filterMode;
@@ -216,6 +220,8 @@ export function SelectionSection() {
         checkedCount={sel.checkedCount}
         totalCount={sel.displayNodes.length}
         barVisible={sel.barVisible}
+        copied={sel.bulkCopied}
+        copyShortcut={sel.copyShortcut}
         onCopyIds={sel.copyCheckedIds}
         onClear={sel.clearChecked}
         onToggleSelectAll={sel.toggleSelectAll}

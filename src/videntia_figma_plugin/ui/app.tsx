@@ -146,7 +146,7 @@ export function App() {
               flexDirection: "column",
             }}
           >
-            <SelectionSection />
+            <SelectionSection channelName={connection.connState.channelName} />
           </div>
           {activeTab === "settings" && (
             <SettingsSection
