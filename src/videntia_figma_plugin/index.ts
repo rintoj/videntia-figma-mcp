@@ -16,6 +16,7 @@ import {
   getDocumentIdentity,
 } from "./handlers/document";
 import { assertExpectedDocument } from "./utils/document-guard";
+import { COPY_SELECTED_IDS_COMMAND, lastChannelStorageKey, runCopySelectedIds } from "./copy-selected-ids";
 import { serializeNodes } from "./handlers/node-serializer";
 import { createPage, renamePage, deletePage, setPageBackground } from "./handlers/pages";
 import { createSection, setSectionStatus } from "./handlers/sections";
@@ -439,15 +440,26 @@ var FOCUS_AFTER_COMMANDS = new Set([
 // Plugin UI
 // ---------------------------------------------------------------------------
 
-figma.showUI(__html__, { width: 315, height: 430 });
+// The manifest declares a `menu`, so every run carries a command. The
+// "copy-selected-ids" command is headless: it must not boot the panel, wire the
+// socket, or claim figma.ui.onmessage, so every startup side effect below is
+// gated on this flag.
+var isHeadlessCopy = figma.command === COPY_SELECTED_IDS_COMMAND;
 
-// Send file name to UI immediately on startup so it's available before WebSocket connects
-figma.ui.postMessage({ type: "file-name", fileName: figma.root.name, fileKey: figma.fileKey });
+if (isHeadlessCopy) {
+  void runCopySelectedIds();
+} else {
+  figma.showUI(__html__, { width: 315, height: 430 });
+
+  // Send file name to UI immediately on startup so it's available before WebSocket connects
+  figma.ui.postMessage({ type: "file-name", fileName: figma.root.name, fileKey: figma.fileKey });
+}
 
 // Auto-connect is triggered after init-settings so saved URL/port are applied first.
 
 // Notify UI when the Figma selection changes
 figma.on("selectionchange", function () {
+  if (isHeadlessCopy) return;
   var nodes = figma.currentPage.selection.map(function (n) {
     var page = n.parent;
     while (page && page.type !== "PAGE") {
@@ -507,6 +519,7 @@ function updateSettings(settings: Record<string, unknown>): void {
 
 // Initialize settings from clientStorage on plugin load
 (async function initializePlugin() {
+  if (isHeadlessCopy) return;
   try {
     const savedSettings = (await figma.clientStorage.getAsync("settings:" + figma.root.name)) as
       | Record<string, unknown>
@@ -1219,6 +1232,9 @@ function extractNodeIds(result: unknown): string[] {
 // ---------------------------------------------------------------------------
 
 figma.ui.onmessage = async (msg: Record<string, unknown>) => {
+  // The headless copy command installs its own figma.ui.onmessage; this panel
+  // handler must never take it over.
+  if (isHeadlessCopy) return;
   switch (msg["type"]) {
     case "update-settings":
       updateSettings(msg);
@@ -1226,6 +1242,13 @@ figma.ui.onmessage = async (msg: Record<string, unknown>) => {
     case "notify":
       figma.notify(msg["message"] as string);
       break;
+    case "save-last-channel": {
+      var joinedChannel = msg["channel"];
+      if (typeof joinedChannel === "string" && joinedChannel) {
+        await figma.clientStorage.setAsync(lastChannelStorageKey(figma.root.name), joinedChannel);
+      }
+      break;
+    }
     case "close-plugin":
       figma.closePlugin();
       break;

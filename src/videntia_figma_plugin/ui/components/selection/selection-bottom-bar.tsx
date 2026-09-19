@@ -6,6 +6,7 @@ interface SelectionBottomBarProps {
   barVisible: boolean;
   copied: boolean;
   copyShortcut: string;
+  globalHint: string;
   onCopyIds: () => void;
   onClear: () => void;
   onToggleSelectAll: () => void;
@@ -22,7 +23,7 @@ export function SelectionBottomBar(props: SelectionBottomBarProps) {
   return (
     <div>
       <div class="h-px bg-muted shrink-0" />
-      <div class="flex items-center justify-between py-1.5 px-3 bg-muted shrink-0">
+      <div class="flex items-center justify-between pt-1.5 px-3 bg-muted shrink-0">
         <div class="flex items-center gap-2">
           <button
             class="border border-solid border-border text-primary rounded-md py-1 px-2 text-[11px] leading-4 font-medium cursor-pointer transition-colors hover:bg-accent flex items-center gap-1.5"
@@ -99,6 +100,9 @@ export function SelectionBottomBar(props: SelectionBottomBarProps) {
             )}
           </button>
         </div>
+      </div>
+      <div class="px-3 pb-1.5 bg-muted shrink-0">
+        <span class="text-muted-foreground text-[10px] leading-4 font-medium">{props.globalHint}</span>
       </div>
     </div>
   );

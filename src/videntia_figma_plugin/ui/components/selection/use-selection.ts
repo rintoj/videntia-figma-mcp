@@ -1,6 +1,14 @@
 import { useState, useEffect, useRef } from "preact/hooks";
 import { FilterMode, NodeInfo, copyToClipboard } from "./types";
-import { copyShortcutLabel, formatCopiedIds, isCopyIdsChord, isMacPlatform } from "./copy-ids";
+import {
+  copiedIdsToast,
+  copyShortcutLabel,
+  formatCopiedIds,
+  isCopyIdsChord,
+  isMacPlatform,
+  quickActionsShortcutLabel,
+  repeatPluginShortcutLabel,
+} from "../../../shared/copy-ids";
 
 var MAX_HISTORY = 500;
 
@@ -168,6 +176,12 @@ export function useSelection(channelName?: string) {
   var displayNodes = getDisplayNodes();
   var isMac = isMacPlatform();
   var shortcutLabel = copyShortcutLabel(isMac);
+  var globalHint =
+    "Anywhere in Figma: " +
+    quickActionsShortcutLabel(isMac) +
+    ' "Copy Selected Node IDs", then ' +
+    repeatPluginShortcutLabel(isMac) +
+    " to repeat";
   channelNameRef.current = channelName;
   checkedIdsRef.current = checkedIds;
   displayNodesRef.current = displayNodes;
@@ -261,9 +275,16 @@ export function useSelection(channelName?: string) {
     focusNode(node.id);
   }
 
+  // Native Figma toast, on top of the inline checkmark, so the feedback matches
+  // the headless "Copy Selected Node IDs" command.
+  function notifyCopied(count: number) {
+    parent.postMessage({ pluginMessage: { type: "notify", message: copiedIdsToast(count) } }, "*");
+  }
+
   function handleCopyId(e: Event, id: string) {
     e.stopPropagation();
     copyToClipboard(formatCopiedIds(id, channelNameRef.current));
+    notifyCopied(1);
     setCopiedId(id);
     setTimeout(function () {
       setCopiedId(null);
@@ -323,6 +344,7 @@ export function useSelection(channelName?: string) {
   function copyIds(ids: string[]) {
     if (ids.length === 0) return;
     copyToClipboard(formatCopiedIds(ids, channelNameRef.current));
+    notifyCopied(ids.length);
     setBulkCopied(true);
     setTimeout(function () {
       setBulkCopied(false);
@@ -371,6 +393,7 @@ export function useSelection(channelName?: string) {
     nodes,
     bulkCopied,
     copyShortcut: shortcutLabel,
+    globalHint: globalHint,
     searchQuery,
     navIndex,
     copiedId,
