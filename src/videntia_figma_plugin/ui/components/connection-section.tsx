@@ -112,7 +112,6 @@ export function ConnectionSection({
           >
             {channelName || "Connected"}
           </span>
-          <span class="text-muted-foreground text-xs leading-4 whitespace-nowrap">:{port}</span>
         </div>
         <button
           class="flex items-center gap-1 border border-solid border-border text-primary py-1 px-2 rounded-md cursor-pointer text-xs leading-4 font-medium whitespace-nowrap transition-colors hover:bg-accent"

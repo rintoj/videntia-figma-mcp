@@ -75,70 +75,69 @@ export function SettingsSection({
   return (
     <div class="flex flex-col gap-3 p-3 bg-card flex-1">
       <span class="text-muted-foreground text-[11px] font-semibold leading-4 uppercase tracking-wide">Connection</span>
-      <ConnectionSection
-        port={port}
-        connected={connected}
-        channelName={channelName}
-        buttonDisabled={buttonDisabled}
-        statusClass={statusClass}
-        readOnly={readOnly}
-        inset={true}
-        onConnect={onConnect}
-        onDisconnect={onDisconnect}
-        onPortChange={onPortChange}
-      />
-      <div class="flex flex-col gap-1 py-1">
+      <div class="flex flex-col gap-1.5">
+        <ConnectionSection
+          port={port}
+          connected={connected}
+          channelName={channelName}
+          buttonDisabled={buttonDisabled}
+          statusClass={statusClass}
+          readOnly={readOnly}
+          inset={true}
+          onConnect={onConnect}
+          onDisconnect={onDisconnect}
+          onPortChange={onPortChange}
+        />
         <div class="flex flex-col gap-1">
-          <span class="text-foreground text-sm font-medium leading-5">Server</span>
           <span class="text-muted-foreground text-xs font-medium leading-4">WebSocket server URL and port</span>
-        </div>
-        <div class="flex border border-border rounded-md overflow-hidden hover:border-input focus-within:border-ring">
-          <span
-            class={
-              "flex items-center px-2 text-xs font-mono font-semibold border-r border-border whitespace-nowrap select-none " +
-              (serverSecure ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground")
-            }
-          >
-            {serverSecure ? "wss" : "ws"}://
-          </span>
-          <select
-            value={selectedOption.host}
-            onChange={function (e) {
-              handleHostChange((e.target as HTMLSelectElement).value);
-            }}
-            class="py-1.5 px-1.5 text-sm bg-transparent text-foreground outline-none flex-1 min-w-0 cursor-pointer appearance-none"
-          >
-            {SERVER_OPTIONS.map(function (o) {
-              return (
-                <option key={o.host} value={o.host}>
-                  {o.label}
-                </option>
-              );
-            })}
-          </select>
-          {selectedOption.showPort && <span class="flex items-center text-border text-sm select-none">|</span>}
-          {selectedOption.showPort && (
-            <input
-              type="number"
-              value={editPort}
-              placeholder={String(port)}
-              min={1024}
-              max={65535}
-              onInput={function (e) {
-                setEditPort((e.target as HTMLInputElement).value);
+          <div class="flex border border-border rounded-md overflow-hidden hover:border-input focus-within:border-ring">
+            <span
+              class={
+                "flex items-center px-2 text-xs font-mono font-semibold border-r border-border whitespace-nowrap select-none " +
+                (serverSecure ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground")
+              }
+            >
+              {serverSecure ? "wss" : "ws"}://
+            </span>
+            <select
+              value={selectedOption.host}
+              onChange={function (e) {
+                handleHostChange((e.target as HTMLSelectElement).value);
               }}
-              onBlur={handlePortBlur}
-              onKeyDown={handlePortKeyDown}
-              class="py-1.5 px-1 text-sm bg-transparent text-foreground outline-none w-[56px] text-center"
-            />
-          )}
+              class="py-1.5 px-1.5 text-sm bg-transparent text-foreground outline-none flex-1 min-w-0 cursor-pointer appearance-none"
+            >
+              {SERVER_OPTIONS.map(function (o) {
+                return (
+                  <option key={o.host} value={o.host}>
+                    {o.label}
+                  </option>
+                );
+              })}
+            </select>
+            {selectedOption.showPort && <span class="flex items-center text-border text-sm select-none">|</span>}
+            {selectedOption.showPort && (
+              <input
+                type="number"
+                value={editPort}
+                placeholder={String(port)}
+                min={1024}
+                max={65535}
+                onInput={function (e) {
+                  setEditPort((e.target as HTMLInputElement).value);
+                }}
+                onBlur={handlePortBlur}
+                onKeyDown={handlePortKeyDown}
+                class="py-1.5 px-1 text-sm bg-transparent text-foreground outline-none w-[56px] text-center"
+              />
+            )}
+          </div>
         </div>
       </div>
       <div class="h-px bg-border" />
       <span class="text-muted-foreground text-[11px] font-semibold leading-4 uppercase tracking-wide">Preferences</span>
       <Toggle
         label="Read Only"
-        description="Prevent changes — view only mode"
+        description="Prevent changes, view only mode"
         checked={readOnly}
         onChange={onReadOnlyChange}
         activeColor="var(--color-success)"
