@@ -76,6 +76,7 @@ export const PARAM_ALIASES: Record<string, Record<string, string>> = {
   // built with the house default instead of the caller's spacing.
   create_autolayout_frame: { gap: "itemSpacing" },
   create_card: { gap: "itemSpacing" },
+  create_slot: { gap: "itemSpacing", mode: "layoutMode" },
   // `allowSideEffects`/`expectSideEffects` are the camelCase spellings a caller reaches
   // for; the tool's own parameters are snake_case like `return_state`.
   set_layout_sizing: {

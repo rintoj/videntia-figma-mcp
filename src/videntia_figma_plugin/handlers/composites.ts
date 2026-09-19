@@ -227,7 +227,9 @@ const PADDING_FIELDS: Record<string, string> = {
 };
 
 /** Normalise number | CSS-style array | {top,right,bottom,left} | {vertical,horizontal} padding. */
-function normalizePadding(padding: unknown): { top: number; right: number; bottom: number; left: number } | undefined {
+export function normalizePadding(
+  padding: unknown,
+): { top: number; right: number; bottom: number; left: number } | undefined {
   if (padding === undefined || padding === null) return undefined;
   if (typeof padding === "number") {
     return { top: padding, right: padding, bottom: padding, left: padding };

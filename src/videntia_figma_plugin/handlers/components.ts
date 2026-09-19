@@ -1,6 +1,7 @@
 import { debugLog, describeError } from "../utils/helpers";
 import { selectAndFocusNode } from "../utils/plugin-state";
 import { setCharacters } from "./text";
+import { normalizePadding } from "./composites";
 
 // ---------------------------------------------------------------------------
 // Content override helpers
@@ -1305,8 +1306,10 @@ export async function createSlot(params: Record<string, unknown>): Promise<Recor
   const width = params["width"] as number | undefined;
   const height = params["height"] as number | undefined;
   const layoutMode = params["layoutMode"] as "HORIZONTAL" | "VERTICAL" | "NONE" | undefined;
-  const itemSpacing = params["itemSpacing"] as number | undefined;
-  const padding = params["padding"] as { top: number; right: number; bottom: number; left: number } | undefined;
+  const itemSpacing = (params["itemSpacing"] !== undefined ? params["itemSpacing"] : params["gap"]) as
+    | number
+    | undefined;
+  const padding = normalizePadding(params["padding"]);
 
   if (!componentId) throw new Error("Missing componentId parameter");
 
@@ -1319,10 +1322,10 @@ export async function createSlot(params: Record<string, unknown>): Promise<Recor
       );
     }
     const component = node as ComponentNode;
-    if (itemSpacing !== undefined && layoutMode === undefined) {
+    if (itemSpacing !== undefined && (layoutMode === undefined || layoutMode === "NONE")) {
       throw new Error("itemSpacing requires layoutMode (HORIZONTAL or VERTICAL)");
     }
-    if (padding !== undefined && layoutMode === undefined) {
+    if (padding !== undefined && (layoutMode === undefined || layoutMode === "NONE")) {
       throw new Error("padding requires layoutMode (HORIZONTAL or VERTICAL)");
     }
 
