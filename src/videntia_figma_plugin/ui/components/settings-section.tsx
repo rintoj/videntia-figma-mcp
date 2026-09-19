@@ -76,18 +76,6 @@ export function SettingsSection({
     <div class="flex flex-col gap-3 p-3 bg-card flex-1">
       <span class="text-muted-foreground text-[11px] font-semibold leading-4 uppercase tracking-wide">Connection</span>
       <div class="flex flex-col gap-1.5">
-        <ConnectionSection
-          port={port}
-          connected={connected}
-          channelName={channelName}
-          buttonDisabled={buttonDisabled}
-          statusClass={statusClass}
-          readOnly={readOnly}
-          inset={true}
-          onConnect={onConnect}
-          onDisconnect={onDisconnect}
-          onPortChange={onPortChange}
-        />
         <div class="flex flex-col gap-1">
           <span class="text-muted-foreground text-xs font-medium leading-4">WebSocket server URL and port</span>
           <div class="flex border border-border rounded-md overflow-hidden hover:border-input focus-within:border-ring">
@@ -132,6 +120,18 @@ export function SettingsSection({
             )}
           </div>
         </div>
+        <ConnectionSection
+          port={port}
+          connected={connected}
+          channelName={channelName}
+          buttonDisabled={buttonDisabled}
+          statusClass={statusClass}
+          readOnly={readOnly}
+          inset={true}
+          onConnect={onConnect}
+          onDisconnect={onDisconnect}
+          onPortChange={onPortChange}
+        />
       </div>
       <div class="h-px bg-border" />
       <span class="text-muted-foreground text-[11px] font-semibold leading-4 uppercase tracking-wide">Preferences</span>
