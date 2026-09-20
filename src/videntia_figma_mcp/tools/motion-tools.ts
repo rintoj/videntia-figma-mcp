@@ -229,7 +229,14 @@ export function registerMotionTools(server: McpServer): void {
       style: z.string().describe("Animation style id or name (see list_animation_styles)"),
       duration: z.number().optional().describe("Duration in MILLISECONDS"),
       timelineOffset: z.number().optional().describe("Offset from the timeline start, in MILLISECONDS"),
-      props: z.record(z.string(), z.any()).optional().describe("Style-specific props (see list_animation_styles)"),
+      props: z
+        .record(z.string(), z.any())
+        .optional()
+        .describe(
+          "Style-specific props (see list_animation_styles). NOTE: list_animation_styles documents " +
+            "`duration`/`delay` in seconds because that is Figma's own unit; pass them here in " +
+            "MILLISECONDS like every other duration on this server and they are converted for you.",
+        ),
     },
     async ({ nodeId, style, duration, timelineOffset, props }) => {
       try {

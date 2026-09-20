@@ -1,5 +1,6 @@
 import {
   animateNode,
+  applyAnimationStyle,
   getMotionInfo,
   normalizeKeyframeField,
   normalizeKeyframeValue,
@@ -252,6 +253,65 @@ describe("setKeyframeTrack", () => {
     await expect(setKeyframeTrack({ nodeId: "1:2", field: "OPACITY", keyframes: [] })).rejects.toThrow(
       /non-empty array/,
     );
+  });
+});
+
+describe("applyAnimationStyle", () => {
+  it("converts duration and prop times to seconds for Figma", async () => {
+    const node = motionNode();
+    nodes.set("1:2", node);
+
+    await applyAnimationStyle({
+      nodeId: "1:2",
+      style: "Fade",
+      duration: 300,
+      timelineOffset: 40,
+      props: { delay: 100, duration: 250, type: "fadeIn" },
+    });
+
+    const [styleId, config] = node.applyAnimationStyle!.mock.calls[0];
+    expect(styleId).toBe("S:1");
+    expect(config.duration).toBe(0.3);
+    expect(config.timelineOffset).toBe(0.04);
+    // Figma's style props are seconds; ours are ms.
+    expect(config.props).toEqual({ delay: 0.1, duration: 0.25, type: "fadeIn" });
+  });
+
+  it("reports an applied style back in milliseconds", async () => {
+    const node = motionNode({
+      animationStyles: [
+        {
+          id: "as-1",
+          styleId: "S:1",
+          name: "fade",
+          // What Figma actually returns: seconds, with float32 noise.
+          duration: 0.30000001192092896,
+          timelineOffset: 0,
+          props: { delay: 0.1, type: "fadeIn" },
+        },
+      ],
+    });
+    nodes.set("1:2", node);
+
+    const result = await getMotionInfo({ nodeIds: ["1:2"] });
+    const style = result.nodes[0].animationStyles[0];
+    expect(style["durationMs"]).toBe(300);
+    expect(style["timelineOffsetMs"]).toBe(0);
+    expect((style["props"] as any).delay).toBe(100);
+    // The raw seconds fields are replaced, not duplicated.
+    expect(style["duration"]).toBeUndefined();
+  });
+
+  it("resolves a style by name as well as id", async () => {
+    const node = motionNode();
+    nodes.set("1:2", node);
+    await applyAnimationStyle({ nodeId: "1:2", style: "Pop" });
+    expect(node.applyAnimationStyle!.mock.calls[0][0]).toBe("S:2");
+  });
+
+  it("lists the available styles when the name is wrong", async () => {
+    nodes.set("1:2", motionNode());
+    await expect(applyAnimationStyle({ nodeId: "1:2", style: "Nope" })).rejects.toThrow(/Available: Fade, Pop/);
   });
 });
 

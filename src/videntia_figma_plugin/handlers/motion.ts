@@ -318,6 +318,45 @@ export interface GetMotionInfoResult {
   reason?: string;
 }
 
+/**
+ * Figma's built-in animation styles express these props in SECONDS
+ * (`duration: number // default: 0.5 (s)`). Everything else on this server is
+ * milliseconds, so they are converted in both directions — otherwise
+ * `props: { duration: 240 }` would mean 240 SECONDS.
+ */
+const TIME_VALUED_STYLE_PROPS = ["duration", "delay", "timelineOffset"];
+
+function convertStyleProps(props: unknown, convert: (value: number) => number): Record<string, unknown> | undefined {
+  if (props === null || typeof props !== "object") return undefined;
+  const source = props as Record<string, unknown>;
+  const result: Record<string, unknown> = {};
+  for (const key of Object.keys(source)) {
+    const value = source[key];
+    result[key] = TIME_VALUED_STYLE_PROPS.indexOf(key) !== -1 && typeof value === "number" ? convert(value) : value;
+  }
+  return result;
+}
+
+/**
+ * Report an applied animation style in milliseconds.
+ *
+ * Without this, `apply_animation_style { duration: 300 }` read back as
+ * `duration: 0.30000001192092896` — seconds, with float32 noise — which is the
+ * exact write/read disagreement this server exists to prevent.
+ */
+function describeAppliedStyle(style: Record<string, unknown>): Record<string, unknown> {
+  const result: Record<string, unknown> = { ...style };
+  if (typeof style["duration"] === "number") result["durationMs"] = secondsToMs(style["duration"] as number);
+  if (typeof style["timelineOffset"] === "number") {
+    result["timelineOffsetMs"] = secondsToMs(style["timelineOffset"] as number);
+  }
+  delete result["duration"];
+  delete result["timelineOffset"];
+  const props = convertStyleProps(style["props"], secondsToMs);
+  if (props) result["props"] = props;
+  return result;
+}
+
 /** Summarise one `ManualKeyframeBinding` without dumping the whole structure. */
 function summarizeTrack(name: string, binding: unknown): MotionTrackSummary | null {
   if (typeof binding !== "object" || binding === null) return null;
@@ -411,7 +450,7 @@ export async function getMotionInfo(params: Record<string, unknown>): Promise<Ge
       durationMs: secondsToMs(t.duration),
     }));
     const tracks = collectTracks(motionNode.manualKeyframeTracks);
-    const styles = motionNode.animationStyles ?? [];
+    const styles = (motionNode.animationStyles ?? []).map(describeAppliedStyle);
 
     nodes.push({
       nodeId: motionNode.id,
@@ -508,7 +547,8 @@ export async function applyAnimationStyle(params: Record<string, unknown>): Prom
     config["timelineOffset"] = msToSeconds(offsetMs);
   }
   if (params["props"] !== undefined) {
-    config["props"] = params["props"];
+    // `delay` / `duration` inside props are seconds to Figma; ms to us.
+    config["props"] = convertStyleProps(params["props"], msToSeconds) ?? params["props"];
   }
 
   const appliedStyleId = node.applyAnimationStyle!(String(match["styleId"]), config);
