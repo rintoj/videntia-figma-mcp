@@ -223,6 +223,7 @@ export type FigmaCommand =
   | "swap_instance"
   | "add_prototype_link"
   | "remove_prototype_link"
+  | "set_reactions"
   | "enumerate_all_frames"
   | "map_prototype_flows"
   | "bulk_export_frames"

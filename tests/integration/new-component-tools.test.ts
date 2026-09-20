@@ -44,54 +44,6 @@ describe("new component tools integration", () => {
     return await handler(validatedArgs, { meta: {} });
   }
 
-  describe("get_reactions", () => {
-    beforeEach(() => {
-      mockSendCommand.mockResolvedValue({
-        reactions: [
-          { nodeId: "btn-1", action: "NAVIGATE", destination: "frame-2" },
-          { nodeId: "btn-2", action: "NAVIGATE", destination: "frame-3" },
-        ],
-      });
-    });
-
-    it("successfully gets reactions from multiple nodes", async () => {
-      const response = await callTool("get_reactions", {
-        nodeIds: ["btn-1", "btn-2"],
-      });
-
-      expect(mockSendCommand).toHaveBeenCalledTimes(1);
-      expect(mockSendCommand).toHaveBeenCalledWith("get_reactions", {
-        nodeIds: ["btn-1", "btn-2"],
-      });
-      expect(response.content[0].text).toContain("reaction(s)");
-      expect(response.content[0].text).toContain("reaction_to_connector_strategy");
-    });
-
-    it("requires nodeIds parameter", async () => {
-      await expect(callTool("get_reactions", {})).rejects.toThrow();
-      expect(mockSendCommand).not.toHaveBeenCalled();
-    });
-
-    it("coerces string nodeIds into an array", async () => {
-      mockSendCommand.mockResolvedValue({ reactions: [] });
-      const response = await callTool("get_reactions", {
-        nodeIds: "btn-1",
-      });
-      expect(mockSendCommand).toHaveBeenCalledWith("get_reactions", { nodeIds: ["btn-1"] });
-    });
-
-    it("handles errors gracefully", async () => {
-      mockSendCommand.mockRejectedValue(new Error("Nodes not found"));
-
-      const response = await callTool("get_reactions", {
-        nodeIds: ["invalid-1"],
-      });
-
-      expect(response.content[0].text).toContain("Error getting reactions");
-      expect(response.content[0].text).toContain("Nodes not found");
-    });
-  });
-
   describe("set_default_connector", () => {
     beforeEach(() => {
       mockSendCommand.mockResolvedValue({

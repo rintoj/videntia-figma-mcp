@@ -187,6 +187,7 @@ export const ALLOWED_COMMANDS = new Set([
   "map_prototype_flows",
   "add_prototype_link",
   "remove_prototype_link",
+  "set_reactions",
   "bulk_export_frames",
   "get_content_tree",
   "get_frame_documentation",

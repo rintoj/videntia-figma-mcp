@@ -53,6 +53,8 @@ export const TOOL_CATEGORIES = [
   "icon",
   "comparison",
   "documentation",
+  "prototype",
+  "motion",
   "browser",
   "browser-control",
   "composite",

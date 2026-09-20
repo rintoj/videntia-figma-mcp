@@ -298,6 +298,7 @@ export const TOOL_CATEGORY_MAP: Record<string, ToolCategoryEntry> = {
   set_default_connector: { category: "prototype" },
   add_prototype_link: { category: "prototype" },
   remove_prototype_link: { category: "prototype" },
+  set_reactions: { category: "prototype" },
   create_connections: { category: "prototype" },
   map_prototype_flows: { category: "prototype", secondary: ["document"] },
   get_frame_animations: { category: "prototype", secondary: ["document"] },
@@ -522,9 +523,11 @@ export const TOOL_SYNONYMS: Record<string, string[]> = {
 
   // prototype
   prototype: ["add_prototype_link", "map_prototype_flows", "get_reactions"],
-  interaction: ["add_prototype_link", "get_reactions"],
+  interaction: ["add_prototype_link", "get_reactions", "set_reactions"],
   animation: ["get_frame_animations"],
   connector: ["set_default_connector", "create_connections"],
+  transition: ["add_prototype_link", "get_frame_animations", "set_reactions"],
+  easing: ["get_frame_animations", "add_prototype_link"],
 
   // browser
   browser: ["browser_navigate", "browser_click", "get_browser_page_info"],

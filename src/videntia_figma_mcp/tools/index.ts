@@ -9,6 +9,7 @@ import { registerBatchTools } from "./batch-tools.js";
 import { registerIconTools } from "./icon-tools.js";
 import { registerComparisonTools } from "./comparison-tools.js";
 import { registerDocumentationTools } from "./documentation-tools.js";
+import { registerPrototypeTools } from "./prototype-tools.js";
 import { registerBrowserTools } from "./browser-tools.js";
 import { registerBrowserControlTools } from "./browser-control-tools.js";
 import { registerDesignKnowledgeTool } from "./design-knowledge-tools.js";
@@ -58,6 +59,7 @@ export function registerTools(server: McpServer): void {
     ["icon", registerIconTools],
     ["comparison", registerComparisonTools],
     ["documentation", registerDocumentationTools],
+    ["prototype", registerPrototypeTools],
     ["browser", registerBrowserTools],
     ["browser-control", registerBrowserControlTools],
     ["composite", registerCompositeTools],
@@ -90,6 +92,7 @@ export {
   registerIconTools,
   registerComparisonTools,
   registerDocumentationTools,
+  registerPrototypeTools,
   registerBrowserTools,
   registerBrowserControlTools,
   registerDesignKnowledgeTool,

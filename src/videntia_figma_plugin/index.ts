@@ -26,6 +26,8 @@ import {
   createConnections,
   addPrototypeLink,
   removePrototypeLink,
+  setReactions,
+  mapPrototypeFlows,
 } from "./handlers/prototyping";
 
 // Handlers — node creation & modification
@@ -237,13 +239,7 @@ import {
 import { batchActions } from "./handlers/batch";
 
 // Handlers — documentation
-import {
-  enumerateAllFrames,
-  mapPrototypeFlows,
-  bulkExportFrames,
-  getContentTree,
-  getFrameDocumentation,
-} from "./handlers/documentation";
+import { enumerateAllFrames, bulkExportFrames, getContentTree, getFrameDocumentation } from "./handlers/documentation";
 
 // Handlers — comments
 import { getComments } from "./handlers/comments";
@@ -1089,6 +1085,8 @@ async function _executeCommand(command: string, params: Record<string, unknown>)
       return await addPrototypeLink(params);
     case "remove_prototype_link":
       return await removePrototypeLink(params);
+    case "set_reactions":
+      return await setReactions(params);
     case "set_default_connector":
       return await setDefaultConnector(params);
     case "create_connections":

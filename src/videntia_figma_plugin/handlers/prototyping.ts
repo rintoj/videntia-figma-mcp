@@ -1,14 +1,348 @@
-export interface GetReactionsParams {
-  nodeIds: string[];
+// Prototyping handlers — reactions, prototype links, transitions and flow maps.
+//
+// DURATION UNITS: every duration crossing the MCP boundary is in MILLISECONDS.
+// The Figma API wants SECONDS — for `Transition.duration`, for
+// `AFTER_TIMEOUT.timeout`, and for the `delay` on MOUSE_* triggers. All three
+// are converted here, at the boundary. See utils/duration.ts for why.
+//
+// WRITES: this plugin's manifest sets `documentAccess: "dynamic-page"`, under
+// which `node.reactions` is READ-ONLY. Assigning to it is silently discarded,
+// so every write goes through `setReactionsAsync`.
+
+import { assertValidMs, msToSeconds, secondsToMs } from "../utils/duration";
+
+// ---------------------------------------------------------------------------
+// Shared reaction shapes
+//
+// Deliberately structural rather than importing Figma's own types: we accept a
+// looser input (durations in ms, easing as a bare string) and normalise it.
+// ---------------------------------------------------------------------------
+
+interface RawEasing {
+  type?: string;
+  easingFunctionCubicBezier?: { x1: number; y1: number; x2: number; y2: number };
+  easingFunctionSpring?: { mass: number; stiffness: number; damping: number; initialVelocity: number };
 }
+
+interface RawTransition {
+  type?: string;
+  direction?: string;
+  matchLayers?: boolean;
+  duration?: number;
+  easing?: RawEasing;
+}
+
+interface RawAction {
+  type: string;
+  destinationId?: string | null;
+  navigation?: string;
+  transition?: RawTransition | null;
+  preserveScrollPosition?: boolean;
+  resetVideoPosition?: boolean;
+  resetScrollPosition?: boolean;
+  resetInteractiveComponents?: boolean;
+  overlayRelativePosition?: { x: number; y: number };
+  url?: string;
+  openInNewTab?: boolean;
+  variableId?: string | null;
+  variableCollectionId?: string | null;
+  variableModeId?: string | null;
+  mediaAction?: string;
+  amountToSkip?: number;
+  newTimestamp?: number;
+}
+
+interface RawTrigger {
+  type: string;
+  timeout?: number;
+  delay?: number;
+  deprecatedVersion?: boolean;
+  device?: string;
+  keyCodes?: number[];
+  mediaHitTime?: number;
+}
+
+interface RawReaction {
+  trigger: RawTrigger | null;
+  /** Figma still declares the deprecated singular form; tolerate it on read. */
+  action?: RawAction | null;
+  actions?: RawAction[];
+}
+
+interface ReactiveNodeLike {
+  id: string;
+  name: string;
+  type: string;
+  reactions: RawReaction[];
+  setReactionsAsync?: (reactions: unknown[]) => Promise<void>;
+  children?: readonly SceneNode[];
+}
+
+/** Read a node's reactions, tolerating the deprecated singular `action`. */
+function actionsOf(reaction: RawReaction): RawAction[] {
+  if (Array.isArray(reaction.actions)) return reaction.actions;
+  if (reaction.action !== null && reaction.action !== undefined) return [reaction.action];
+  return [];
+}
+
+async function loadReactiveNode(nodeId: string): Promise<ReactiveNodeLike> {
+  const node = await figma.getNodeByIdAsync(nodeId);
+  if (!node) throw new Error("Node not found: " + nodeId);
+  if (!("reactions" in node)) {
+    throw new Error(`Node "${node.name}" (type: ${node.type}) does not support reactions`);
+  }
+  return node as unknown as ReactiveNodeLike;
+}
+
+/**
+ * Persist reactions.
+ *
+ * Under `documentAccess: "dynamic-page"` the `reactions` property is read-only
+ * and a direct assignment is silently dropped, so `setReactionsAsync` is the
+ * only write path that actually sticks.
+ */
+async function writeReactions(node: ReactiveNodeLike, reactions: unknown[]): Promise<void> {
+  if (typeof node.setReactionsAsync !== "function") {
+    throw new Error(
+      `Node "${node.name}" does not expose setReactionsAsync. ` +
+        "This Figma build is too old for prototype authoring under dynamic-page document access.",
+    );
+  }
+  await node.setReactionsAsync(reactions);
+}
+
+// ---------------------------------------------------------------------------
+// Normalisation: our ms-based, loosely-typed input -> Figma's exact shapes
+// ---------------------------------------------------------------------------
+
+const SIMPLE_TRANSITIONS = ["DISSOLVE", "SMART_ANIMATE", "SCROLL_ANIMATE"];
+const DIRECTIONAL_TRANSITIONS = ["MOVE_IN", "MOVE_OUT", "PUSH", "SLIDE_IN", "SLIDE_OUT"];
+
+function normalizeEasing(easing: RawEasing | string | undefined): Record<string, unknown> {
+  const raw: RawEasing = typeof easing === "string" ? { type: easing } : (easing ?? {});
+  const type = raw.type ?? "EASE_OUT";
+  const result: Record<string, unknown> = { type };
+
+  if (type === "CUSTOM_CUBIC_BEZIER") {
+    if (!raw.easingFunctionCubicBezier) {
+      throw new Error("easing type CUSTOM_CUBIC_BEZIER requires easingFunctionCubicBezier {x1,y1,x2,y2}");
+    }
+    result["easingFunctionCubicBezier"] = raw.easingFunctionCubicBezier;
+  }
+  if (type === "CUSTOM_SPRING") {
+    if (!raw.easingFunctionSpring) {
+      throw new Error(
+        "easing type CUSTOM_SPRING requires easingFunctionSpring {mass,stiffness,damping,initialVelocity}",
+      );
+    }
+    result["easingFunctionSpring"] = raw.easingFunctionSpring;
+  }
+  return result;
+}
+
+/** Build a Figma `Transition`, converting the ms duration to seconds. */
+function normalizeTransition(transition: RawTransition | null | undefined): Record<string, unknown> | null {
+  if (!transition || !transition.type) return null;
+
+  const type = transition.type;
+  const durationMs = transition.duration ?? 300;
+  assertValidMs(durationMs, "transition duration");
+
+  const base: Record<string, unknown> = {
+    type,
+    duration: msToSeconds(durationMs),
+    easing: normalizeEasing(transition.easing),
+  };
+
+  if (DIRECTIONAL_TRANSITIONS.indexOf(type) !== -1) {
+    // Figma rejects a directional transition without a direction, and
+    // `matchLayers` is required on the same shape.
+    base["direction"] = transition.direction ?? "LEFT";
+    base["matchLayers"] = transition.matchLayers === true;
+  } else if (SIMPLE_TRANSITIONS.indexOf(type) === -1) {
+    throw new Error(
+      `Unknown transition type "${type}". Expected one of ` +
+        `${SIMPLE_TRANSITIONS.concat(DIRECTIONAL_TRANSITIONS).join(", ")}.`,
+    );
+  } else if (type === "SMART_ANIMATE" && transition.matchLayers !== undefined) {
+    // SMART_ANIMATE is a SimpleTransition in the API — it has no matchLayers
+    // field, and layer matching is implicit. Silently dropping the param would
+    // be the sort of no-op this server exists to surface.
+    throw new Error(
+      "matchLayers is only valid on directional transitions (MOVE_IN, MOVE_OUT, PUSH, SLIDE_IN, SLIDE_OUT). " +
+        "SMART_ANIMATE matches layers by name automatically.",
+    );
+  }
+
+  return base;
+}
+
+/** Build a Figma `Trigger`, converting ms timeout/delay to seconds. */
+function normalizeTrigger(trigger: RawTrigger | string | null | undefined): Record<string, unknown> | null {
+  const raw: RawTrigger = typeof trigger === "string" ? { type: trigger } : (trigger ?? { type: "ON_CLICK" });
+  const type = raw.type;
+  const result: Record<string, unknown> = { type };
+
+  switch (type) {
+    case "AFTER_TIMEOUT": {
+      const timeoutMs = raw.timeout ?? 800;
+      assertValidMs(timeoutMs, "trigger timeout");
+      result["timeout"] = msToSeconds(timeoutMs);
+      break;
+    }
+    case "MOUSE_UP":
+    case "MOUSE_DOWN": {
+      const delayMs = raw.delay ?? 0;
+      assertValidMs(delayMs, "trigger delay");
+      result["delay"] = msToSeconds(delayMs);
+      break;
+    }
+    case "MOUSE_ENTER":
+    case "MOUSE_LEAVE": {
+      const delayMs = raw.delay ?? 0;
+      assertValidMs(delayMs, "trigger delay");
+      result["delay"] = msToSeconds(delayMs);
+      result["deprecatedVersion"] = raw.deprecatedVersion === true;
+      break;
+    }
+    case "ON_KEY_DOWN": {
+      result["device"] = raw.device ?? "KEYBOARD";
+      result["keyCodes"] = Array.isArray(raw.keyCodes) ? raw.keyCodes : [];
+      break;
+    }
+    case "ON_MEDIA_HIT": {
+      const hitMs = raw.mediaHitTime ?? 0;
+      assertValidMs(hitMs, "mediaHitTime");
+      result["mediaHitTime"] = msToSeconds(hitMs);
+      break;
+    }
+    case "ON_CLICK":
+    case "ON_HOVER":
+    case "ON_PRESS":
+    case "ON_DRAG":
+    case "ON_MEDIA_END":
+      break;
+    default:
+      throw new Error(
+        `Unknown trigger type "${type}". Expected one of ON_CLICK, ON_HOVER, ON_PRESS, ON_DRAG, ` +
+          "AFTER_TIMEOUT, MOUSE_UP, MOUSE_DOWN, MOUSE_ENTER, MOUSE_LEAVE, ON_KEY_DOWN, ON_MEDIA_HIT, ON_MEDIA_END.",
+      );
+  }
+  return result;
+}
+
+/** Build a Figma `Action` from our looser input. */
+function normalizeAction(action: RawAction): Record<string, unknown> {
+  const type = action.type;
+
+  switch (type) {
+    case "BACK":
+    case "CLOSE":
+      return { type };
+
+    case "URL": {
+      if (!action.url) throw new Error('action type "URL" requires a url');
+      return { type, url: action.url, openInNewTab: action.openInNewTab === true };
+    }
+
+    case "SET_VARIABLE":
+      return { type, variableId: action.variableId ?? null };
+
+    case "SET_VARIABLE_MODE":
+      return {
+        type,
+        variableCollectionId: action.variableCollectionId ?? null,
+        variableModeId: action.variableModeId ?? null,
+      };
+
+    case "UPDATE_MEDIA_RUNTIME": {
+      const mediaAction = action.mediaAction ?? "TOGGLE_PLAY_PAUSE";
+      const base: Record<string, unknown> = {
+        type,
+        destinationId: action.destinationId ?? null,
+        mediaAction,
+      };
+      if (mediaAction === "SKIP_FORWARD" || mediaAction === "SKIP_BACKWARD") {
+        const skipMs = action.amountToSkip ?? 0;
+        assertValidMs(skipMs, "amountToSkip");
+        base["amountToSkip"] = msToSeconds(skipMs);
+      }
+      if (mediaAction === "SKIP_TO") {
+        const stampMs = action.newTimestamp ?? 0;
+        assertValidMs(stampMs, "newTimestamp");
+        base["newTimestamp"] = msToSeconds(stampMs);
+      }
+      return base;
+    }
+
+    case "NODE": {
+      const result: Record<string, unknown> = {
+        type,
+        destinationId: action.destinationId ?? null,
+        navigation: action.navigation ?? "NAVIGATE",
+        transition: normalizeTransition(action.transition),
+      };
+      if (action.preserveScrollPosition !== undefined) {
+        result["preserveScrollPosition"] = action.preserveScrollPosition === true;
+      }
+      if (action.resetVideoPosition !== undefined) {
+        result["resetVideoPosition"] = action.resetVideoPosition === true;
+      }
+      if (action.resetScrollPosition !== undefined) {
+        result["resetScrollPosition"] = action.resetScrollPosition === true;
+      }
+      if (action.resetInteractiveComponents !== undefined) {
+        result["resetInteractiveComponents"] = action.resetInteractiveComponents === true;
+      }
+      if (action.overlayRelativePosition) {
+        result["overlayRelativePosition"] = action.overlayRelativePosition;
+      }
+      return result;
+    }
+
+    default:
+      throw new Error(
+        `Unknown action type "${type}". Expected one of NODE, BACK, CLOSE, URL, ` +
+          "SET_VARIABLE, SET_VARIABLE_MODE, UPDATE_MEDIA_RUNTIME. " +
+          "CONDITIONAL is not yet supported by this server.",
+      );
+  }
+}
+
+/** Convert a Figma-side easing back to our reporting shape. */
+function describeEasing(easing: RawEasing | undefined): AnimationEasing | undefined {
+  if (!easing || !easing.type) return undefined;
+  const result: AnimationEasing = { type: easing.type };
+  if (easing.easingFunctionCubicBezier) result.cubicBezier = easing.easingFunctionCubicBezier;
+  if (easing.easingFunctionSpring) result.spring = easing.easingFunctionSpring;
+  return result;
+}
+
+// ---------------------------------------------------------------------------
+// get_reactions
+// ---------------------------------------------------------------------------
 
 export interface ReactionTriggerInfo {
   type: string;
+  /** Milliseconds, converted from Figma's seconds. */
+  timeout?: number;
+  delay?: number;
+  keyCodes?: number[];
+  device?: string;
 }
 
 export interface ReactionActionInfo {
   type: string;
   destinationId?: string;
+  destinationName?: string;
+  navigation?: string;
+  transitionType?: string;
+  /** Milliseconds. */
+  duration?: number;
+  easing?: AnimationEasing;
+  direction?: string;
+  matchLayers?: boolean;
+  url?: string;
 }
 
 export interface NodeReactionInfo {
@@ -27,47 +361,71 @@ export interface GetReactionsResult {
   reactions: NodeReactionInfo[];
 }
 
+function describeTrigger(trigger: RawTrigger | null): ReactionTriggerInfo | null {
+  if (!trigger) return null;
+  const info: ReactionTriggerInfo = { type: trigger.type };
+  if (typeof trigger.timeout === "number") info.timeout = secondsToMs(trigger.timeout);
+  if (typeof trigger.delay === "number") info.delay = secondsToMs(trigger.delay);
+  if (Array.isArray(trigger.keyCodes)) info.keyCodes = trigger.keyCodes;
+  if (trigger.device) info.device = trigger.device;
+  return info;
+}
+
+async function describeAction(action: RawAction): Promise<ReactionActionInfo> {
+  const info: ReactionActionInfo = { type: action.type };
+
+  if (action.destinationId) {
+    info.destinationId = action.destinationId;
+    const dest = await figma.getNodeByIdAsync(action.destinationId);
+    if (dest) info.destinationName = dest.name;
+  }
+  if (action.navigation) info.navigation = action.navigation;
+  if (action.url) info.url = action.url;
+
+  const transition = action.transition;
+  if (transition && transition.type) {
+    info.transitionType = transition.type;
+    if (typeof transition.duration === "number") info.duration = secondsToMs(transition.duration);
+    const easing = describeEasing(transition.easing);
+    if (easing) info.easing = easing;
+    if (transition.direction) info.direction = transition.direction;
+    if (typeof transition.matchLayers === "boolean") info.matchLayers = transition.matchLayers;
+  }
+  return info;
+}
+
 export async function getReactions(params: Record<string, unknown>): Promise<GetReactionsResult> {
   const nodeIds = params["nodeIds"] as string[] | undefined;
-
   if (!Array.isArray(nodeIds)) {
     throw new Error("nodeIds must be an array");
   }
-  const typedNodeIds = nodeIds as string[];
+
   const results: NodeReactionInfo[] = [];
 
-  for (const id of typedNodeIds) {
+  for (const id of nodeIds) {
     const node = await figma.getNodeByIdAsync(id);
     if (!node) continue;
+    if (!("reactions" in node)) continue;
 
-    if ("reactions" in node) {
-      const reactiveNode = node as unknown as {
-        id: string;
-        name: string;
-        reactions: Array<{
-          trigger: { type: string } | null;
-          actions: Array<{ type: string; destinationId?: string }>;
-        }>;
-      };
+    const reactiveNode = node as unknown as ReactiveNodeLike;
+    const reactions = Array.isArray(reactiveNode.reactions) ? reactiveNode.reactions : [];
+    if (reactions.length === 0) continue;
 
-      results.push({
-        nodeId: reactiveNode.id,
-        nodeName: reactiveNode.name,
-        reactionCount: reactiveNode.reactions.length,
-        reactions: reactiveNode.reactions.map((reaction) => ({
-          trigger: reaction.trigger !== null && reaction.trigger !== undefined ? { type: reaction.trigger.type } : null,
-          actions: reaction.actions.map((action) => {
-            const actionInfo: ReactionActionInfo = {
-              type: action.type,
-            };
-            if (action.type === "NODE" && action.destinationId) {
-              actionInfo.destinationId = action.destinationId;
-            }
-            return actionInfo;
-          }),
-        })),
-      });
+    const described = [];
+    for (const reaction of reactions) {
+      const actions = [];
+      for (const action of actionsOf(reaction)) {
+        actions.push(await describeAction(action));
+      }
+      described.push({ trigger: describeTrigger(reaction.trigger), actions });
     }
+
+    results.push({
+      nodeId: reactiveNode.id,
+      nodeName: reactiveNode.name,
+      reactionCount: reactions.length,
+      reactions: described,
+    });
   }
 
   return {
@@ -78,12 +436,13 @@ export async function getReactions(params: Record<string, unknown>): Promise<Get
 }
 
 // ---------------------------------------------------------------------------
-// get_frame_animations — read prototype transitions (animations) within a frame
+// get_frame_animations — every prototype transition within a frame
 // ---------------------------------------------------------------------------
 
 export interface AnimationEasing {
   type: string;
   cubicBezier?: { x1: number; y1: number; x2: number; y2: number };
+  spring?: { mass: number; stiffness: number; damping: number; initialVelocity: number };
 }
 
 export interface FrameAnimationInfo {
@@ -91,6 +450,7 @@ export interface FrameAnimationInfo {
   sourceName: string;
   sourceType: string;
   trigger: string;
+  /** Milliseconds. */
   triggerTimeout?: number;
   action: string;
   navigation?: string;
@@ -99,6 +459,7 @@ export interface FrameAnimationInfo {
   transitionType: string;
   direction?: string;
   matchLayers?: boolean;
+  /** Milliseconds. */
   duration?: number;
   easing?: AnimationEasing;
   preserveScrollPosition?: boolean;
@@ -110,35 +471,6 @@ export interface GetFrameAnimationsResult {
   nodesScanned: number;
   animationCount: number;
   animations: FrameAnimationInfo[];
-}
-
-interface RawTransition {
-  type?: string;
-  direction?: string;
-  matchLayers?: boolean;
-  duration?: number;
-  easing?: { type?: string; easingFunctionCubicBezier?: { x1: number; y1: number; x2: number; y2: number } };
-}
-
-interface RawAction {
-  type: string;
-  destinationId?: string;
-  navigation?: string;
-  transition?: RawTransition | null;
-  preserveScrollPosition?: boolean;
-}
-
-interface RawReaction {
-  trigger: { type: string; timeout?: number } | null;
-  actions?: RawAction[];
-}
-
-interface RawReactiveNode {
-  id: string;
-  name: string;
-  type: string;
-  reactions?: RawReaction[];
-  children?: readonly SceneNode[];
 }
 
 export async function getFrameAnimations(params: Record<string, unknown>): Promise<GetFrameAnimationsResult> {
@@ -154,13 +486,12 @@ export async function getFrameAnimations(params: Record<string, unknown>): Promi
   // Depth-first walk of the frame subtree, including the frame node itself.
   const stack: SceneNode[] = [frame as SceneNode];
   while (stack.length > 0) {
-    const node = stack.pop() as unknown as RawReactiveNode;
+    const node = stack.pop() as unknown as ReactiveNodeLike;
     nodesScanned += 1;
 
     if (Array.isArray(node.reactions)) {
       for (const reaction of node.reactions) {
-        const actions = Array.isArray(reaction.actions) ? reaction.actions : [];
-        for (const action of actions) {
+        for (const action of actionsOf(reaction)) {
           const transition = action.transition;
           // Only actions that carry a transition are "animations".
           if (!transition || !transition.type) continue;
@@ -175,7 +506,7 @@ export async function getFrameAnimations(params: Record<string, unknown>): Promi
           };
 
           if (reaction.trigger && typeof reaction.trigger.timeout === "number") {
-            info.triggerTimeout = reaction.trigger.timeout;
+            info.triggerTimeout = secondsToMs(reaction.trigger.timeout);
           }
           if (action.navigation) info.navigation = action.navigation;
           if (action.destinationId) {
@@ -185,14 +516,9 @@ export async function getFrameAnimations(params: Record<string, unknown>): Promi
           }
           if (transition.direction) info.direction = transition.direction;
           if (typeof transition.matchLayers === "boolean") info.matchLayers = transition.matchLayers;
-          if (typeof transition.duration === "number") info.duration = transition.duration;
-          if (transition.easing && transition.easing.type) {
-            const easing: AnimationEasing = { type: transition.easing.type };
-            if (transition.easing.easingFunctionCubicBezier) {
-              easing.cubicBezier = transition.easing.easingFunctionCubicBezier;
-            }
-            info.easing = easing;
-          }
+          if (typeof transition.duration === "number") info.duration = secondsToMs(transition.duration);
+          const easing = describeEasing(transition.easing);
+          if (easing) info.easing = easing;
           if (typeof action.preserveScrollPosition === "boolean") {
             info.preserveScrollPosition = action.preserveScrollPosition;
           }
@@ -216,51 +542,25 @@ export async function getFrameAnimations(params: Record<string, unknown>): Promi
   };
 }
 
-export interface SetDefaultConnectorParams {
-  connectorId: string;
+// ---------------------------------------------------------------------------
+// set_default_connector — unsupported by the platform
+// ---------------------------------------------------------------------------
+
+export async function setDefaultConnector(params: Record<string, unknown>): Promise<never> {
+  const connectorId = params["connectorId"] as string | undefined;
+  // Previously this returned `{ success: false }`, which reads as a completed
+  // call and lets a caller carry on as though the connector had been set.
+  // The operation is genuinely impossible, so say so loudly.
+  throw new Error(
+    "set_default_connector is not supported: the Figma Plugin API exposes no way to set the default connector" +
+      (connectorId ? ` (requested ${connectorId})` : "") +
+      ". Set it from the Figma UI instead, then use create_connections to draw connectors.",
+  );
 }
 
-export interface SetDefaultConnectorResult {
-  connectorId: string;
-  connectorName: string;
-  message: string;
-  success: boolean;
-}
-
-export async function setDefaultConnector(params: Record<string, unknown>): Promise<SetDefaultConnectorResult> {
-  const connectorId = params["connectorId"] as string;
-
-  const connector = await figma.getNodeByIdAsync(connectorId);
-  if (!connector) {
-    throw new Error(`Connector node with ID ${connectorId} not found`);
-  }
-
-  if (connector.type !== "CONNECTOR") {
-    throw new Error(`Node "${connector.name}" is not a connector (type: ${connector.type})`);
-  }
-
-  // Note: Setting default connector is not directly supported in plugin API
-  // This would require UI interaction
-
-  return {
-    connectorId: connector.id,
-    connectorName: connector.name,
-    message: "Default connector setting is not available in Figma Plugin API. Use Figma UI.",
-    success: false,
-  };
-}
-
-export interface AddPrototypeLinkParams {
-  nodeId: string;
-  destinationId: string;
-  trigger?: string;
-  navigation?: string;
-  transitionType?: string;
-  transitionDuration?: number;
-  transitionEasing?: string;
-  preserveScrollPosition?: boolean;
-  triggerTimeout?: number;
-}
+// ---------------------------------------------------------------------------
+// add_prototype_link
+// ---------------------------------------------------------------------------
 
 export interface AddPrototypeLinkResult {
   nodeId: string;
@@ -269,80 +569,120 @@ export interface AddPrototypeLinkResult {
   destinationName: string;
   trigger: string;
   navigation: string;
+  reactionCount: number;
   success: boolean;
 }
 
 export async function addPrototypeLink(params: Record<string, unknown>): Promise<AddPrototypeLinkResult> {
   const nodeId = params["nodeId"] as string;
   const destinationId = params["destinationId"] as string;
-  const trigger = (params["trigger"] as string) || "ON_CLICK";
-  const navigation = (params["navigation"] as string) || "NAVIGATE";
-  const transitionType = (params["transitionType"] as string) || null;
-  const transitionDuration =
-    params["transitionDuration"] !== undefined ? (params["transitionDuration"] as number) : 300;
-  const transitionEasing = (params["transitionEasing"] as string) || "EASE_OUT";
-  const preserveScrollPosition = params["preserveScrollPosition"] === true;
-  const triggerTimeout = params["triggerTimeout"] !== undefined ? (params["triggerTimeout"] as number) : 800;
 
-  const node = await figma.getNodeByIdAsync(nodeId);
-  if (!node) throw new Error("Node not found: " + nodeId);
-  if (!("reactions" in node)) throw new Error("Node type does not support reactions: " + node.type);
+  const node = await loadReactiveNode(nodeId);
 
   const destNode = await figma.getNodeByIdAsync(destinationId);
   if (!destNode) throw new Error("Destination node not found: " + destinationId);
 
-  const reactiveNode = node as unknown as {
-    name: string;
-    reactions: Array<{
-      trigger: { type: string } | null;
-      actions: Array<{
-        type: string;
-        destinationId?: string;
-        navigation?: string;
-        transition?: unknown;
-        preserveScrollPosition?: boolean;
-      }>;
-    }>;
-  };
+  const triggerType = (params["trigger"] as string) || "ON_CLICK";
+  const trigger = normalizeTrigger({
+    type: triggerType,
+    timeout: params["triggerTimeout"] as number | undefined,
+    delay: params["triggerDelay"] as number | undefined,
+    device: params["keyDevice"] as string | undefined,
+    keyCodes: params["keyCodes"] as number[] | undefined,
+    mediaHitTime: params["mediaHitTime"] as number | undefined,
+  });
 
-  const transition =
-    transitionType !== null
-      ? { type: transitionType, duration: transitionDuration, easing: { type: transitionEasing } }
-      : null;
+  const transitionType = params["transitionType"] as string | undefined;
+  const transition: RawTransition | null = transitionType
+    ? {
+        type: transitionType,
+        duration: params["transitionDuration"] as number | undefined,
+        direction: params["direction"] as string | undefined,
+        matchLayers: params["matchLayers"] as boolean | undefined,
+        easing: {
+          type: (params["transitionEasing"] as string | undefined) ?? "EASE_OUT",
+          easingFunctionCubicBezier: params["easingFunctionCubicBezier"] as RawEasing["easingFunctionCubicBezier"],
+          easingFunctionSpring: params["easingFunctionSpring"] as RawEasing["easingFunctionSpring"],
+        },
+      }
+    : null;
 
-  const triggerObj = trigger === "AFTER_TIMEOUT" ? { type: trigger, timeout: triggerTimeout } : { type: trigger };
+  const action = normalizeAction({
+    type: "NODE",
+    destinationId,
+    navigation: (params["navigation"] as string) || "NAVIGATE",
+    transition,
+    preserveScrollPosition: params["preserveScrollPosition"] as boolean | undefined,
+    resetVideoPosition: params["resetVideoPosition"] as boolean | undefined,
+    resetScrollPosition: params["resetScrollPosition"] as boolean | undefined,
+    resetInteractiveComponents: params["resetInteractiveComponents"] as boolean | undefined,
+    overlayRelativePosition: params["overlayRelativePosition"] as { x: number; y: number } | undefined,
+  });
 
-  const newReaction = {
-    trigger: triggerObj,
-    actions: [
-      {
-        type: "NODE",
-        destinationId,
-        navigation,
-        transition,
-        preserveScrollPosition,
-      },
-    ],
-  };
-
-  const existing = Array.isArray(reactiveNode.reactions) ? reactiveNode.reactions.slice() : [];
-  reactiveNode.reactions = existing.concat([newReaction]) as typeof reactiveNode.reactions;
+  const existing = Array.isArray(node.reactions) ? node.reactions.slice() : [];
+  const next = existing.concat([{ trigger, actions: [action] } as unknown as RawReaction]);
+  await writeReactions(node, next);
 
   return {
     nodeId: node.id,
-    nodeName: reactiveNode.name,
+    nodeName: node.name,
     destinationId,
     destinationName: destNode.name,
-    trigger,
-    navigation,
+    trigger: triggerType,
+    navigation: (params["navigation"] as string) || "NAVIGATE",
+    reactionCount: next.length,
     success: true,
   };
 }
 
-export interface RemovePrototypeLinkParams {
+// ---------------------------------------------------------------------------
+// set_reactions — full-fidelity authoring, replaces the whole array
+// ---------------------------------------------------------------------------
+
+export interface SetReactionsResult {
   nodeId: string;
-  destinationId?: string;
+  nodeName: string;
+  reactionCount: number;
+  replacedCount: number;
+  success: boolean;
 }
+
+export async function setReactions(params: Record<string, unknown>): Promise<SetReactionsResult> {
+  const nodeId = params["nodeId"] as string;
+  const reactions = params["reactions"];
+
+  if (!Array.isArray(reactions)) {
+    throw new Error("reactions must be an array (pass [] to clear every reaction on the node)");
+  }
+
+  const node = await loadReactiveNode(nodeId);
+  const replacedCount = Array.isArray(node.reactions) ? node.reactions.length : 0;
+
+  const normalized = (reactions as RawReaction[]).map((reaction, index) => {
+    const actions = actionsOf(reaction);
+    if (actions.length === 0) {
+      throw new Error(`reactions[${index}] has no actions; every reaction needs at least one action`);
+    }
+    return {
+      trigger: normalizeTrigger(reaction.trigger),
+      actions: actions.map(normalizeAction),
+    };
+  });
+
+  await writeReactions(node, normalized);
+
+  return {
+    nodeId: node.id,
+    nodeName: node.name,
+    reactionCount: normalized.length,
+    replacedCount,
+    success: true,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// remove_prototype_link
+// ---------------------------------------------------------------------------
 
 export interface RemovePrototypeLinkResult {
   nodeId: string;
@@ -356,39 +696,36 @@ export async function removePrototypeLink(params: Record<string, unknown>): Prom
   const nodeId = params["nodeId"] as string;
   const destinationId = params["destinationId"] as string | undefined;
 
-  const node = await figma.getNodeByIdAsync(nodeId);
-  if (!node) throw new Error("Node not found: " + nodeId);
-  if (!("reactions" in node)) throw new Error("Node type does not support reactions: " + node.type);
+  const node = await loadReactiveNode(nodeId);
+  const existing = Array.isArray(node.reactions) ? node.reactions : [];
+  const before = existing.length;
 
-  const reactiveNode = node as unknown as {
-    name: string;
-    reactions: Array<{
-      trigger: { type: string } | null;
-      actions: Array<{ type: string; destinationId?: string }>;
-    }>;
-  };
-
-  const before = Array.isArray(reactiveNode.reactions) ? reactiveNode.reactions.length : 0;
-
+  let next: RawReaction[];
   if (destinationId !== undefined && destinationId !== null) {
-    reactiveNode.reactions = reactiveNode.reactions.filter((r) => {
-      const action = r.actions && r.actions[0];
-      return !(action && action.type === "NODE" && action.destinationId === destinationId);
-    }) as typeof reactiveNode.reactions;
+    // Scan EVERY action, not just actions[0] — a reaction whose matching
+    // action sits at index >= 1 was previously never removed.
+    next = existing.filter(
+      (reaction) =>
+        !actionsOf(reaction).some((action) => action.type === "NODE" && action.destinationId === destinationId),
+    );
   } else {
-    reactiveNode.reactions = [] as typeof reactiveNode.reactions;
+    next = [];
   }
 
-  const after = reactiveNode.reactions.length;
+  await writeReactions(node, next);
 
   return {
     nodeId: node.id,
-    nodeName: reactiveNode.name,
-    removedCount: before - after,
-    remainingCount: after,
+    nodeName: node.name,
+    removedCount: before - next.length,
+    remainingCount: next.length,
     success: true,
   };
 }
+
+// ---------------------------------------------------------------------------
+// create_connections — FigJam-style connector nodes
+// ---------------------------------------------------------------------------
 
 export interface ConnectionRequest {
   startNodeId: string;
@@ -404,10 +741,6 @@ export interface ConnectionResult {
   error?: string;
 }
 
-export interface CreateConnectionsParams {
-  connections: ConnectionRequest[];
-}
-
 export interface CreateConnectionsResult {
   totalRequested: number;
   successCount: number;
@@ -421,11 +754,10 @@ export async function createConnections(params: Record<string, unknown>): Promis
   if (!Array.isArray(connections)) {
     throw new Error("connections must be an array");
   }
-  const typedConnections = connections as ConnectionRequest[];
 
   const results: ConnectionResult[] = [];
 
-  for (const conn of typedConnections) {
+  for (const conn of connections) {
     const { startNodeId, endNodeId, text } = conn;
 
     const startNode = await figma.getNodeByIdAsync(startNodeId);
@@ -442,18 +774,10 @@ export async function createConnections(params: Record<string, unknown>): Promis
     }
 
     try {
-      // Create connector
       const connector = figma.createConnector();
-      connector.connectorStart = {
-        endpointNodeId: startNode.id,
-        magnet: "AUTO",
-      };
-      connector.connectorEnd = {
-        endpointNodeId: endNode.id,
-        magnet: "AUTO",
-      };
+      connector.connectorStart = { endpointNodeId: startNode.id, magnet: "AUTO" };
+      connector.connectorEnd = { endpointNodeId: endNode.id, magnet: "AUTO" };
 
-      // Add text label if provided
       if (text) {
         connector.connectorLineType = "ELBOWED";
         // textBackground is read-only in plugin typings; skip assignment
@@ -461,12 +785,7 @@ export async function createConnections(params: Record<string, unknown>): Promis
 
       figma.currentPage.appendChild(connector);
 
-      results.push({
-        startNodeId,
-        endNodeId,
-        connectorId: connector.id,
-        success: true,
-      });
+      results.push({ startNodeId, endNodeId, connectorId: connector.id, success: true });
     } catch (error) {
       results.push({
         startNodeId,
@@ -482,5 +801,137 @@ export async function createConnections(params: Record<string, unknown>): Promis
     successCount: results.filter((r) => r.success).length,
     failedCount: results.filter((r) => !r.success).length,
     connections: results,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// map_prototype_flows — the page-level flow graph
+// ---------------------------------------------------------------------------
+
+interface FlowNode {
+  id: string;
+  name: string;
+  type: string;
+  pageId: string;
+  pageName: string;
+}
+
+interface FlowEdge {
+  fromId: string;
+  fromName: string;
+  toId: string;
+  toName: string;
+  trigger: string;
+  action: string;
+  pageId: string;
+  pageName: string;
+}
+
+function getPageId(node: BaseNode): string | null {
+  let current: BaseNode | null = node;
+  while (current) {
+    if (current.type === "PAGE") return current.id;
+    current = current.parent;
+  }
+  return null;
+}
+
+async function traverseForReactions(
+  nodes: readonly SceneNode[],
+  page: PageNode,
+  nodesMap: Map<string, FlowNode>,
+  edges: FlowEdge[],
+): Promise<void> {
+  for (const node of nodes) {
+    if ("reactions" in node) {
+      const reactiveNode = node as unknown as ReactiveNodeLike;
+
+      if (reactiveNode.reactions.length > 0) {
+        if (!nodesMap.has(reactiveNode.id)) {
+          nodesMap.set(reactiveNode.id, {
+            id: reactiveNode.id,
+            name: reactiveNode.name,
+            type: reactiveNode.type,
+            pageId: page.id,
+            pageName: page.name,
+          });
+        }
+
+        for (const reaction of reactiveNode.reactions) {
+          for (const action of actionsOf(reaction)) {
+            if (!action.destinationId) continue;
+
+            const destNode = await figma.getNodeByIdAsync(action.destinationId);
+            if (!destNode) continue;
+
+            const destPageId = getPageId(destNode);
+            const destPage = destPageId ? figma.root.children.find((p) => p.id === destPageId) : page;
+
+            if (!nodesMap.has(destNode.id)) {
+              nodesMap.set(destNode.id, {
+                id: destNode.id,
+                name: destNode.name,
+                type: destNode.type,
+                pageId: destPage?.id ?? page.id,
+                pageName: destPage?.name ?? page.name,
+              });
+            }
+
+            edges.push({
+              fromId: reactiveNode.id,
+              fromName: reactiveNode.name,
+              toId: destNode.id,
+              toName: destNode.name,
+              trigger: reaction.trigger?.type ?? "UNKNOWN",
+              action: action.type,
+              pageId: page.id,
+              pageName: page.name,
+            });
+          }
+        }
+      }
+    }
+
+    if ("children" in node) {
+      await traverseForReactions((node as FrameNode).children, page, nodesMap, edges);
+    }
+  }
+}
+
+export async function mapPrototypeFlows(params: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const pageId = params["pageId"] as string | undefined;
+
+  const pagesToScan: PageNode[] = [];
+  if (pageId) {
+    const page = figma.root.children.find((p) => p.id === pageId);
+    if (!page) throw new Error(`Page not found: ${pageId}`);
+    pagesToScan.push(page);
+  } else {
+    pagesToScan.push(...figma.root.children);
+  }
+
+  const nodesMap = new Map<string, FlowNode>();
+  const edges: FlowEdge[] = [];
+  const entryPoints: FlowNode[] = [];
+
+  for (const page of pagesToScan) {
+    await page.loadAsync();
+    await traverseForReactions(page.children, page, nodesMap, edges);
+  }
+
+  // Entry points are nodes that are the destination of no edge.
+  const destinationIds = new Set(edges.map((e) => e.toId));
+  for (const [id, node] of nodesMap) {
+    if (!destinationIds.has(id)) {
+      entryPoints.push(node);
+    }
+  }
+
+  return {
+    totalNodes: nodesMap.size,
+    totalEdges: edges.length,
+    entryPoints,
+    nodes: Array.from(nodesMap.values()),
+    edges,
   };
 }

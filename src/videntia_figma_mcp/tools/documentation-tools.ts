@@ -82,56 +82,6 @@ export function registerDocumentationTools(server: McpServer): void {
   );
 
   server.tool(
-    "map_prototype_flows",
-    "Build a complete flow graph from prototype reactions across the document. Returns all nodes with navigation links, edges (from→to with trigger/action), and computed entry points (screens with no incoming links). Use this to document user journeys and navigation flows.",
-    {
-      pageId: z.string().optional().describe("Scope to a specific page ID. Omit to map flows across all pages."),
-    },
-    async ({ pageId }) => {
-      try {
-        const result = await sendCommandToFigma<Record<string, unknown>>("map_prototype_flows", { pageId });
-        return {
-          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
-        };
-      } catch (error) {
-        return {
-          content: [
-            {
-              type: "text",
-              text: `Error mapping prototype flows: ${error instanceof Error ? error.message : String(error)}`,
-            },
-          ],
-        };
-      }
-    },
-  );
-
-  server.tool(
-    "get_frame_animations",
-    "Read all prototype animations (transitions) within a frame and its descendants. Unlike get_reactions/map_prototype_flows, this surfaces the full animation detail that those tools drop: transition type (SMART_ANIMATE, MOVE_IN, PUSH, DISSOLVE, SLIDE_IN, SCROLL_ANIMATE…), direction, matchLayers, duration (seconds), and easing (including custom cubic-bezier control points). Each entry also includes the trigger (with AFTER_TIMEOUT timeout), destination, and preserveScrollPosition. Use this to document or audit motion/interaction design.",
-    {
-      nodeId: z.string().describe("Frame/node ID to scan. Animations on this node and all descendants are returned."),
-    },
-    async ({ nodeId }) => {
-      try {
-        const result = await sendCommandToFigma<Record<string, unknown>>("get_frame_animations", { nodeId });
-        return {
-          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
-        };
-      } catch (error) {
-        return {
-          content: [
-            {
-              type: "text",
-              text: `Error getting frame animations: ${error instanceof Error ? error.message : String(error)}`,
-            },
-          ],
-        };
-      }
-    },
-  );
-
-  server.tool(
     "bulk_export_frames",
     "Export multiple frames as images. BY DEFAULT every frame is WRITTEN TO A FILE and only {nodeId,name,path,width,height,bytes} is returned — no inline base64. " +
       "Pass `inline: true` ONLY when you genuinely need to SEE the pixels in this conversation (this multiplies the single most expensive operation in the server by N frames). " +
