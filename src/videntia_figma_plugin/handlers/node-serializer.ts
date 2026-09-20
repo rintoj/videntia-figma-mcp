@@ -539,7 +539,40 @@ async function processNode(
     }
   }
 
+  // Interactions and motion are otherwise invisible to a read — an agent had to
+  // already suspect they existed and call get_reactions / get_motion_info.
+  // These two cheap flags make them discoverable from get_node_info.
+  if ("reactions" in node) {
+    const reactions = (node as unknown as { reactions?: unknown[] }).reactions;
+    if (Array.isArray(reactions) && reactions.length > 0) {
+      info["_reactionCount"] = reactions.length;
+    }
+  }
+  if (nodeHasMotion(node)) {
+    info["_hasMotion"] = true;
+  }
+
   return info;
+}
+
+/**
+ * Whether a node carries any Motion data.
+ *
+ * Guarded because Motion is a Beta API: on an editor without it these
+ * properties simply do not exist, and reading them must not throw.
+ */
+function nodeHasMotion(node: BaseNode): boolean {
+  try {
+    const motionNode = node as unknown as {
+      animationStyles?: unknown[];
+      manualKeyframeTracks?: Record<string, unknown>;
+    };
+    if (Array.isArray(motionNode.animationStyles) && motionNode.animationStyles.length > 0) return true;
+    const tracks = motionNode.manualKeyframeTracks;
+    return typeof tracks === "object" && tracks !== null && Object.keys(tracks).length > 0;
+  } catch {
+    return false;
+  }
 }
 
 /**
