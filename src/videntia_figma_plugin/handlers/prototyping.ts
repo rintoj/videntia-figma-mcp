@@ -9,7 +9,7 @@
 // which `node.reactions` is READ-ONLY. Assigning to it is silently discarded,
 // so every write goes through `setReactionsAsync`.
 
-import { assertValidMs, msToSeconds, secondsToMs } from "../utils/duration";
+import { assertValidMs, msToSeconds, secondsToMs, tidyFloat } from "../utils/duration";
 
 // ---------------------------------------------------------------------------
 // Shared reaction shapes
@@ -340,8 +340,24 @@ function normalizeAction(action: RawAction): Record<string, unknown> {
 function describeEasing(easing: RawEasing | undefined): AnimationEasing | undefined {
   if (!easing || !easing.type) return undefined;
   const result: AnimationEasing = { type: easing.type };
-  if (easing.easingFunctionCubicBezier) result.cubicBezier = easing.easingFunctionCubicBezier;
-  if (easing.easingFunctionSpring) result.spring = easing.easingFunctionSpring;
+  const bezier = easing.easingFunctionCubicBezier;
+  if (bezier) {
+    result.cubicBezier = {
+      x1: tidyFloat(bezier.x1),
+      y1: tidyFloat(bezier.y1),
+      x2: tidyFloat(bezier.x2),
+      y2: tidyFloat(bezier.y2),
+    };
+  }
+  const spring = easing.easingFunctionSpring;
+  if (spring) {
+    result.spring = {
+      mass: tidyFloat(spring.mass),
+      stiffness: tidyFloat(spring.stiffness),
+      damping: tidyFloat(spring.damping),
+      initialVelocity: tidyFloat(spring.initialVelocity),
+    };
+  }
   return result;
 }
 

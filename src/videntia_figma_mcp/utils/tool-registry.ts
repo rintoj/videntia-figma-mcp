@@ -184,6 +184,10 @@ export function instrumentToolRegistry(server: McpServer): McpServer {
         // `nodeId`. Declaring them keeps zod from stripping the value before the
         // wrapper can salvage it — again, identically in both call paths.
         const hasNodeId = "nodeId" in rawShape;
+        // A tool may own `id`/`node` as real parameters alongside `nodeId`; the salvage
+        // below must not consume them.
+        const declaresId = "id" in rawShape;
+        const declaresNode = "node" in rawShape;
         if (hasNodeId) {
           const nodeIdType = shape.nodeId as { isOptional?: () => boolean; optional?: () => unknown };
           if (typeof nodeIdType?.isOptional === "function" && !nodeIdType.isOptional() && nodeIdType.optional) {
@@ -211,7 +215,12 @@ export function instrumentToolRegistry(server: McpServer): McpServer {
         // wrapped handler, so neither path can see a different parameter contract.
         const wrapped: RegisteredToolEntry["handler"] = (parsedArgs, extra) =>
           handler(
-            applyParamAliases(name, (parsedArgs ?? {}) as Record<string, unknown>, { hasNodeId, coerceField }),
+            applyParamAliases(name, (parsedArgs ?? {}) as Record<string, unknown>, {
+              hasNodeId,
+              declaresId,
+              declaresNode,
+              coerceField,
+            }),
             extra,
           );
 

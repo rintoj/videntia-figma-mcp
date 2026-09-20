@@ -56,6 +56,19 @@ export function secondsToMsOptional(seconds: number | undefined): number | undef
 }
 
 /**
+ * Round a dimensionless float (bezier control point, spring value) for
+ * reporting.
+ *
+ * Figma stores these as 32-bit floats, so a bezier written as 0.4 reads back as
+ * 0.4000000059604645. That noise makes a written value look different from the
+ * value read back — the same confusion the ms/seconds conversion exists to
+ * prevent, so it gets the same treatment.
+ */
+export function tidyFloat(value: number): number {
+  return Math.round(value * 1e6) / 1e6;
+}
+
+/**
  * Validate a duration supplied in milliseconds.
  *
  * Figma silently misbehaves on negative or non-finite durations rather than

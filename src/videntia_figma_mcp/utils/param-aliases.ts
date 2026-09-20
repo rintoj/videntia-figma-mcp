@@ -119,6 +119,14 @@ export interface AliasOptions {
   /** True when the tool really has a `nodeId` parameter — gates the `id`/`node` salvage. */
   hasNodeId: boolean;
   /**
+   * Parameters the tool declares under these exact names. The `id`/`node` salvage must
+   * NOT consume a key the tool owns: `remove_animation_style` takes both `nodeId` and a
+   * distinct `id` (the applied style), and the salvage silently deleted the latter, so
+   * the tool could never receive it.
+   */
+  declaresId?: boolean;
+  declaresNode?: boolean;
+  /**
    * Re-validate a folded value against the canonical parameter's own zod type. The fold
    * happens after the SDK's parse, so without this an aliased value would skip the
    * coercions (enum casing, number coercion) its canonical spelling gets — and the two
@@ -151,12 +159,12 @@ export function applyParamAliases(
   // `nodeId`. Only for tools that HAVE a `nodeId` — elsewhere `id` means a variable,
   // collection or mode and must be left alone.
   if (options.hasNodeId && !isPresent(out.nodeId)) {
-    if (isPresent(out.node)) out.nodeId = out.node;
-    else if (isPresent(out.id)) out.nodeId = out.id;
+    if (isPresent(out.node) && !options.declaresNode) out.nodeId = out.node;
+    else if (isPresent(out.id) && !options.declaresId) out.nodeId = out.id;
   }
   if (options.hasNodeId) {
-    delete out.node;
-    delete out.id;
+    if (!options.declaresNode) delete out.node;
+    if (!options.declaresId) delete out.id;
   }
 
   for (const key of NODE_ID_KEYS) {

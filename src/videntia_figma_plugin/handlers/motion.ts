@@ -281,6 +281,22 @@ export function normalizeKeyframeField(field: unknown): Record<string, unknown> 
   throw new Error(`Unknown keyframe field type "${String(type)}". Expected "PROPERTY" or "INDEXED_ITEM".`);
 }
 
+/**
+ * The combined-axis fields take a VECTOR keyframe value, not a FLOAT.
+ * Figma rejects a scalar outright:
+ *   "baseValue for SCALE_XY must be a VECTOR keyframe value"
+ * Callers naturally reach for a single number ("scale to 0.97"), so a scalar is
+ * widened to {x, y} rather than bounced back.
+ */
+function isVectorField(field: Record<string, unknown>): boolean {
+  return field["type"] === "PROPERTY" && String(field["name"]).slice(-3) === "_XY";
+}
+
+function widenScalarToVector(value: KeyframeValueLike): KeyframeValueLike {
+  if (value.type !== "FLOAT" || typeof value.value !== "number") return value;
+  return { type: "VECTOR", value: { x: value.value, y: value.value } };
+}
+
 /** A short label for error messages. */
 function fieldLabel(field: Record<string, unknown>): string {
   if (field["type"] === "PROPERTY") return String(field["name"]);
@@ -623,6 +639,7 @@ export async function setKeyframeTrack(params: Record<string, unknown>): Promise
 
   const field = normalizeKeyframeField(params["field"]);
   const label = fieldLabel(field);
+  const vectorField = isVectorField(field);
 
   const keyframes = params["keyframes"];
   if (!Array.isArray(keyframes) || keyframes.length === 0) {
@@ -639,9 +656,10 @@ export async function setKeyframeTrack(params: Record<string, unknown>): Promise
     }
     assertValidMs(positionMs, `keyframes[${index}].timelinePosition`);
 
+    const normalizedValue = normalizeKeyframeValue(kf["value"], `keyframes[${index}]`);
     const result: Record<string, unknown> = {
       timelinePosition: msToSeconds(positionMs),
-      value: normalizeKeyframeValue(kf["value"], `keyframes[${index}]`),
+      value: vectorField ? widenScalarToVector(normalizedValue) : normalizedValue,
     };
     const easing = normalizeMotionEasing(kf["easing"]);
     if (easing) result["easing"] = easing;
@@ -651,7 +669,8 @@ export async function setKeyframeTrack(params: Record<string, unknown>): Promise
 
   const track: Record<string, unknown> = { keyframes: normalizedKeyframes };
   if (params["baseValue"] !== undefined) {
-    track["baseValue"] = normalizeKeyframeValue(params["baseValue"], "baseValue");
+    const base = normalizeKeyframeValue(params["baseValue"], "baseValue");
+    track["baseValue"] = vectorField ? widenScalarToVector(base) : base;
   }
   if (params["id"] !== undefined) track["id"] = params["id"];
 
@@ -1021,12 +1040,16 @@ export async function animateNode(params: Record<string, unknown>): Promise<Anim
   for (const track of preset.tracks) {
     const field = normalizeKeyframeField(track.field);
 
+    const vectorField = isVectorField(field);
+    const asKeyframeValue = (value: number): KeyframeValueLike =>
+      vectorField ? { type: "VECTOR", value: { x: value, y: value } } : { type: "FLOAT", value };
+
     const keyframes = track.keyframes.map((kf) => {
       const positionMs = delayMs + kf.at * durationMs;
       const value = track.scaleByDistance ? kf.value * distance : kf.value;
       const entry: Record<string, unknown> = {
         timelinePosition: msToSeconds(positionMs),
-        value: { type: "FLOAT", value },
+        value: asKeyframeValue(value),
       };
       if (easing) entry["easing"] = easing;
       return entry;
@@ -1034,7 +1057,7 @@ export async function animateNode(params: Record<string, unknown>): Promise<Anim
 
     const trackInput: Record<string, unknown> = { keyframes };
     if (track.baseValue !== undefined) {
-      trackInput["baseValue"] = { type: "FLOAT", value: track.baseValue };
+      trackInput["baseValue"] = asKeyframeValue(track.baseValue);
     }
 
     try {

@@ -235,6 +235,23 @@ describe("setKeyframeTrack", () => {
     expect(track.baseValue).toEqual({ type: "FLOAT", value: 1 });
   });
 
+  it("widens a scalar to a VECTOR on a combined-axis field", async () => {
+    const node = motionNode();
+    nodes.set("1:2", node);
+
+    // Callers naturally write "scale to 0.97"; Figma demands {x, y}.
+    await setKeyframeTrack({
+      nodeId: "1:2",
+      field: "SCALE_XY",
+      baseValue: 1,
+      keyframes: [{ timelinePosition: 0, value: 0.97 }],
+    });
+
+    const [, track] = node.applyManualKeyframeTrack!.mock.calls[0];
+    expect(track.baseValue).toEqual({ type: "VECTOR", value: { x: 1, y: 1 } });
+    expect(track.keyframes[0].value).toEqual({ type: "VECTOR", value: { x: 0.97, y: 0.97 } });
+  });
+
   it("warns when the node has no timeline", async () => {
     const node = motionNode({ timelines: [] });
     nodes.set("1:2", node);
@@ -396,6 +413,34 @@ describe("animateNode", () => {
     const result = await animateNode({ nodeId: "1:2", preset: "slide-up" });
     expect(result.appliedCount).toBe(1);
     expect(result.failedCount).toBe(1);
+  });
+
+  it("emits VECTOR values for combined-axis fields", async () => {
+    const node = motionNode();
+    nodes.set("1:2", node);
+
+    // Figma rejects a scalar here outright:
+    // "baseValue for SCALE_XY must be a VECTOR keyframe value".
+    await animateNode({ nodeId: "1:2", preset: "scale-in" });
+
+    const scaleCall = node.applyManualKeyframeTrack!.mock.calls.find((c: any) => c[0].name === "SCALE_XY");
+    expect(scaleCall).toBeDefined();
+    expect(scaleCall![1].baseValue).toEqual({ type: "VECTOR", value: { x: 1, y: 1 } });
+    expect(scaleCall![1].keyframes[0].value).toEqual({ type: "VECTOR", value: { x: 0, y: 0 } });
+
+    // A single-axis field stays a FLOAT.
+    const opacityCall = node.applyManualKeyframeTrack!.mock.calls.find((c: any) => c[0].name === "OPACITY");
+    expect(opacityCall![1].keyframes[0].value).toEqual({ type: "FLOAT", value: 0 });
+  });
+
+  it("applies every preset without a warning", async () => {
+    for (const preset of Object.keys(MOTION_PRESETS)) {
+      const node = motionNode();
+      nodes.set("1:2", node);
+      const result = await animateNode({ nodeId: "1:2", preset });
+      expect(result.warnings).toEqual([]);
+      expect(result.failedCount).toBe(0);
+    }
   });
 
   it("rejects an unknown preset and lists the valid ones", async () => {

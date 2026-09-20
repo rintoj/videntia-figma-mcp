@@ -1284,13 +1284,18 @@ function extractNodeIds(result: unknown): string[] {
 function describeThrown(error: unknown, command?: string): string {
   const prefix = command ? `${command}: ` : "";
 
-  if (error instanceof Error && error.message) return `${prefix}${error.message}`;
-  if (typeof error === "string" && error.length > 0) return `${prefix}${error}`;
+  // Handlers already prefix their own command name; adding a second produced
+  // "remove_animation_style: remove_animation_style: id is required".
+  const withPrefix = (message: string): string =>
+    command && message.indexOf(`${command}:`) === 0 ? message : `${prefix}${message}`;
+
+  if (error instanceof Error && error.message) return withPrefix(error.message);
+  if (typeof error === "string" && error.length > 0) return withPrefix(error);
 
   if (error !== null && typeof error === "object") {
     try {
       const message = (error as { message?: unknown }).message;
-      if (typeof message === "string" && message.length > 0) return `${prefix}${message}`;
+      if (typeof message === "string" && message.length > 0) return withPrefix(message);
     } catch {
       // A hostile getter — fall through.
     }
