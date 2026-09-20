@@ -38,6 +38,7 @@ export type ToolCategory =
   | "lint"
   | "verify"
   | "prototype"
+  | "motion"
   | "document"
   | "browser"
   | "compute"
@@ -64,7 +65,12 @@ export const TOOL_CATEGORIES: readonly CategoryInfo[] = [
   { id: "export", description: "Render/export nodes, frames and image fills to files." },
   { id: "lint", description: "Automated design-quality linting of frames." },
   { id: "verify", description: "Assertions and checks: overlaps, contrast, unbound values, token collisions, diffs." },
-  { id: "prototype", description: "Prototype links, reactions, flows, animations and connectors." },
+  { id: "prototype", description: "Prototype links, reactions, flows, transitions and connectors." },
+  {
+    id: "motion",
+    description:
+      "Figma Motion: timelines, keyframe tracks and animation styles. A separate system from prototyping — Motion animates a node's properties along a timeline, prototyping navigates between frames.",
+  },
   { id: "document", description: "Pages, sections, annotations, comments and frame documentation." },
   {
     id: "browser",
@@ -299,6 +305,16 @@ export const TOOL_CATEGORY_MAP: Record<string, ToolCategoryEntry> = {
   add_prototype_link: { category: "prototype" },
   remove_prototype_link: { category: "prototype" },
   set_reactions: { category: "prototype" },
+
+  // --- motion (Figma Motion timelines / keyframes) ---
+  get_motion_info: { category: "motion", secondary: ["read"] },
+  list_animation_styles: { category: "motion", secondary: ["read"] },
+  apply_animation_style: { category: "motion" },
+  remove_animation_style: { category: "motion" },
+  set_keyframe_track: { category: "motion" },
+  remove_keyframe_track: { category: "motion" },
+  set_timeline_duration: { category: "motion" },
+  animate_node: { category: "motion", secondary: ["composite"] },
   create_connections: { category: "prototype" },
   map_prototype_flows: { category: "prototype", secondary: ["document"] },
   get_frame_animations: { category: "prototype", secondary: ["document"] },
@@ -524,7 +540,10 @@ export const TOOL_SYNONYMS: Record<string, string[]> = {
   // prototype
   prototype: ["add_prototype_link", "map_prototype_flows", "get_reactions"],
   interaction: ["add_prototype_link", "get_reactions", "set_reactions"],
-  animation: ["get_frame_animations"],
+  animation: ["animate_node", "get_motion_info", "get_frame_animations"],
+  motion: ["animate_node", "get_motion_info", "set_keyframe_track"],
+  keyframe: ["set_keyframe_track", "get_motion_info", "remove_keyframe_track"],
+  timeline: ["set_timeline_duration", "get_motion_info"],
   connector: ["set_default_connector", "create_connections"],
   transition: ["add_prototype_link", "get_frame_animations", "set_reactions"],
   easing: ["get_frame_animations", "add_prototype_link"],

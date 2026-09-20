@@ -43,7 +43,13 @@ const registry = new Map<string, RegisteredToolEntry>();
  * file somewhere else entirely. For tools where a dropped parameter changes where
  * real side effects land, the call must fail loudly instead.
  */
-export const STRICT_PARAM_TOOLS = new Set<string>(["export_node_as_image", "set_auto_layout"]);
+export const STRICT_PARAM_TOOLS = new Set<string>([
+  "export_node_as_image",
+  "set_auto_layout",
+  // Large nested schemas: a silently stripped param here is very hard to debug.
+  "set_keyframe_track",
+  "set_reactions",
+]);
 
 /** Swap the SDK's own parsed schema for the strict one, for allowlisted tools. */
 function enforceStrictSchema(server: McpServer, name: string, strict: z.ZodObject<ZodRawShape>): void {

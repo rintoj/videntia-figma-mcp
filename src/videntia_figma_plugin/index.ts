@@ -30,6 +30,18 @@ import {
   mapPrototypeFlows,
 } from "./handlers/prototyping";
 
+// Handlers — motion (Figma Motion timelines / keyframes, Beta API)
+import {
+  getMotionInfo,
+  listAnimationStyles,
+  applyAnimationStyle,
+  removeAnimationStyle,
+  setKeyframeTrack,
+  removeKeyframeTrack,
+  setTimelineDuration,
+  animateNode,
+} from "./handlers/motion";
+
 // Handlers — node creation & modification
 import {
   createRectangle,
@@ -298,6 +310,8 @@ var READONLY_COMMANDS = new Set([
   "get_annotation_categories",
   "get_reactions",
   "get_frame_animations",
+  "get_motion_info",
+  "list_animation_styles",
   "get_design_system",
   "lint_frame",
   "contrast_check_frame",
@@ -351,6 +365,7 @@ var FOCUS_BEFORE_COMMANDS = new Set([
   "get_annotations",
   "get_reactions",
   "get_frame_animations",
+  "get_motion_info",
   "export_node_as_image",
   "lint_frame",
   "contrast_check_frame",
@@ -1087,6 +1102,22 @@ async function _executeCommand(command: string, params: Record<string, unknown>)
       return await removePrototypeLink(params);
     case "set_reactions":
       return await setReactions(params);
+    case "get_motion_info":
+      return await getMotionInfo(params);
+    case "list_animation_styles":
+      return await listAnimationStyles();
+    case "apply_animation_style":
+      return await applyAnimationStyle(params);
+    case "remove_animation_style":
+      return await removeAnimationStyle(params);
+    case "set_keyframe_track":
+      return await setKeyframeTrack(params);
+    case "remove_keyframe_track":
+      return await removeKeyframeTrack(params);
+    case "set_timeline_duration":
+      return await setTimelineDuration(params);
+    case "animate_node":
+      return await animateNode(params);
     case "set_default_connector":
       return await setDefaultConnector(params);
     case "create_connections":
