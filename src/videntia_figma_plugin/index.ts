@@ -1270,6 +1270,39 @@ function extractNodeIds(result: unknown): string[] {
 // ---------------------------------------------------------------------------
 
 // Installed by startPanel, never at module scope.
+/**
+ * Describe a thrown value for the wire.
+ *
+ * The Figma API does not always throw an `Error` — it can throw a plain string
+ * or a bare object, and the old handler collapsed all of those to the useless
+ * "Error executing command", hiding the actual reason a write was rejected.
+ *
+ * Deliberately does NOT JSON.stringify an unknown throw: a Figma error can
+ * carry live node proxies, and serializing those walks the document and hangs
+ * the command until the socket times out. Only cheap, bounded reads here.
+ */
+function describeThrown(error: unknown, command?: string): string {
+  const prefix = command ? `${command}: ` : "";
+
+  if (error instanceof Error && error.message) return `${prefix}${error.message}`;
+  if (typeof error === "string" && error.length > 0) return `${prefix}${error}`;
+
+  if (error !== null && typeof error === "object") {
+    try {
+      const message = (error as { message?: unknown }).message;
+      if (typeof message === "string" && message.length > 0) return `${prefix}${message}`;
+    } catch {
+      // A hostile getter — fall through.
+    }
+  }
+
+  return (
+    prefix +
+    "the Figma API rejected this command without an error message " +
+    `(threw ${Object.prototype.toString.call(error)})`
+  );
+}
+
 async function handlePanelMessage(msg: Record<string, unknown>): Promise<void> {
   switch (msg["type"]) {
     case "update-settings":
@@ -1678,49 +1711,15 @@ async function handlePanelMessage(msg: Record<string, unknown>): Promise<void> {
       }
       break;
     }
-    case "focus-nodes":
-      {
-        var focusIds = msg["nodeIds"] as string[];
-        if (Array.isArray(focusIds) && focusIds.length > 0) {
-          for (var i = 0; i < focusIds.length; i++) {
-            await focusNode(focusIds[i]);
-          }
+    case "focus-nodes": {
+      var focusIds = msg["nodeIds"] as string[];
+      if (Array.isArray(focusIds) && focusIds.length > 0) {
+        for (var i = 0; i < focusIds.length; i++) {
+          await focusNode(focusIds[i]);
         }
-        break;
       }
-      /**
-       * Describe a thrown value for the wire.
-       *
-       * The Figma API does not always throw an `Error` — it can throw a plain string
-       * or a bare object, and the old handler collapsed all of those to the useless
-       * "Error executing command", hiding the actual reason a write was rejected.
-       *
-       * Deliberately does NOT JSON.stringify an unknown throw: a Figma error can
-       * carry live node proxies, and serializing those walks the document and hangs
-       * the command until the socket times out. Only cheap, bounded reads here.
-       */
-      function describeThrown(error: unknown, command?: string): string {
-        const prefix = command ? `${command}: ` : "";
-
-        if (error instanceof Error && error.message) return `${prefix}${error.message}`;
-        if (typeof error === "string" && error.length > 0) return `${prefix}${error}`;
-
-        if (error !== null && typeof error === "object") {
-          try {
-            const message = (error as { message?: unknown }).message;
-            if (typeof message === "string" && message.length > 0) return `${prefix}${message}`;
-          } catch {
-            // A hostile getter — fall through.
-          }
-        }
-
-        return (
-          prefix +
-          "the Figma API rejected this command without an error message " +
-          `(threw ${Object.prototype.toString.call(error)})`
-        );
-      }
-
+      break;
+    }
     case "execute-command":
       try {
         const result = await enqueueCommand(msg["command"] as string, (msg["params"] as Record<string, unknown>) || {});

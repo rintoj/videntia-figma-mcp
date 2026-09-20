@@ -347,9 +347,25 @@ export function registerPrototypeTools(server: McpServer): void {
                   url: z.string().optional().describe("Required for URL actions"),
                   openInNewTab: z.boolean().optional(),
                   variableId: z.string().optional(),
+                  variableValue: z
+                    .record(z.string(), z.any())
+                    .optional()
+                    .describe("VariableData for SET_VARIABLE, e.g. {resolvedType:'FLOAT', value: 1}"),
                   variableCollectionId: z.string().optional(),
                   variableModeId: z.string().optional(),
-                  mediaAction: z.string().optional(),
+                  mediaAction: z
+                    .enum([
+                      "PLAY",
+                      "PAUSE",
+                      "TOGGLE_PLAY_PAUSE",
+                      "MUTE",
+                      "UNMUTE",
+                      "TOGGLE_MUTE_UNMUTE",
+                      "SKIP_FORWARD",
+                      "SKIP_BACKWARD",
+                      "SKIP_TO",
+                    ])
+                    .optional(),
                   amountToSkip: z.number().optional().describe("In MILLISECONDS"),
                   newTimestamp: z.number().optional().describe("In MILLISECONDS"),
                   preserveScrollPosition: z.boolean().optional(),
@@ -387,10 +403,18 @@ export function registerPrototypeTools(server: McpServer): void {
         .describe("The complete reaction array. Replaces what is already on the node."),
     },
     async ({ nodeId, reactions }) => {
+      // Normalise nested destination ids too, so a `3082-47270` copied out of a
+      // Figma URL works here exactly as it does on add_prototype_link.
+      const normalizedReactions = reactions.map((reaction) => ({
+        ...reaction,
+        actions: reaction.actions.map((action) =>
+          action.destinationId ? { ...action, destinationId: normalizeNodeId(action.destinationId) } : action,
+        ),
+      }));
       try {
         const result = await sendCommandToFigma("set_reactions", {
           nodeId: normalizeNodeId(nodeId),
-          reactions,
+          reactions: normalizedReactions,
         });
         const r = result as { nodeName: string; reactionCount: number; replacedCount: number };
         return {

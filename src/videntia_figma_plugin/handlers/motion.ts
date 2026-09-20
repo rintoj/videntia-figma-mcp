@@ -88,9 +88,6 @@ const KEYFRAME_PROPERTY_FIELDS = [
   "PATH_TRIM_END",
 ];
 
-/** Fields whose natural value is a colour rather than a float. */
-const COLOR_EFFECT_FIELDS = ["COLOR", "SECONDARY_COLOR"];
-
 async function loadMotionNode(nodeId: string, commandName: string): Promise<MotionNodeLike> {
   if (!nodeId) throw new Error(`${commandName}: nodeId is required`);
   const node = await figma.getNodeByIdAsync(nodeId);
@@ -139,13 +136,41 @@ export function normalizeKeyframeValue(value: unknown, fieldLabel: string): Keyf
       };
     }
     if (typeof obj["x"] === "number" && typeof obj["y"] === "number") {
+      const x = obj["x"] as number;
+      const y = obj["y"] as number;
+
       if (typeof obj["radius"] === "number") {
-        return typeof obj["angle"] === "number" ? { type: "CIRCLE_POINT", value: obj } : { type: "CIRCLE", value: obj };
+        const radius = obj["radius"] as number;
+        // CIRCLE_POINT is CIRCLE plus an angle.
+        return typeof obj["angle"] === "number"
+          ? { type: "CIRCLE_POINT", value: { x, y, radius, angle: obj["angle"] as number } }
+          : { type: "CIRCLE", value: { x, y, radius } };
       }
       if (typeof obj["x2"] === "number" && typeof obj["y2"] === "number") {
-        return { type: "LINE", value: obj };
+        return { type: "LINE", value: { x, y, x2: obj["x2"] as number, y2: obj["y2"] as number } };
       }
-      return { type: "VECTOR", value: { x: obj["x"], y: obj["y"] } };
+      // COLOR_POINT ({x, y, color}) — a gradient-stop keyframe. Without this it
+      // fell through to VECTOR and the colour was silently discarded.
+      const color = obj["color"];
+      if (color !== null && typeof color === "object") {
+        const rgba = color as Record<string, unknown>;
+        if (typeof rgba["r"] === "number" && typeof rgba["g"] === "number" && typeof rgba["b"] === "number") {
+          return {
+            type: "COLOR_POINT",
+            value: {
+              x,
+              y,
+              color: {
+                r: rgba["r"],
+                g: rgba["g"],
+                b: rgba["b"],
+                a: typeof rgba["a"] === "number" ? rgba["a"] : 1,
+              },
+            },
+          };
+        }
+      }
+      return { type: "VECTOR", value: { x, y } };
     }
   }
 
@@ -323,11 +348,26 @@ function collectTracks(tracks: Record<string, unknown> | undefined): MotionTrack
       const indexed = value as Record<string, unknown>;
       for (const index of Object.keys(indexed)) {
         const entry = indexed[index];
-        if (key === "effects" && typeof entry === "object" && entry !== null && !("keyframes" in entry)) {
-          // effects carry a map of field -> binding
-          const effectFields = entry as Record<string, unknown>;
-          for (const effectField of Object.keys(effectFields)) {
-            const summary = summarizeTrack(`${key}[${index}].${effectField}`, effectFields[effectField]);
+        if (typeof entry === "object" && entry !== null && !("keyframes" in entry)) {
+          // An entry that is not itself a binding: either `{properties: {...}}`
+          // (component-prop tracks, valid on fills/strokes AND effects) or, for
+          // effects, a map of field -> binding. Both used to vanish silently —
+          // fills/strokes because summarizeTrack returned null, and `properties`
+          // because it was treated as an effect field name.
+          const nested = entry as Record<string, unknown>;
+          for (const nestedKey of Object.keys(nested)) {
+            if (nestedKey === "properties") {
+              const props = nested[nestedKey];
+              if (props !== null && typeof props === "object") {
+                const propMap = props as Record<string, unknown>;
+                for (const propKey of Object.keys(propMap)) {
+                  const summary = summarizeTrack(`${key}[${index}].properties.${propKey}`, propMap[propKey]);
+                  if (summary) summaries.push(summary);
+                }
+              }
+              continue;
+            }
+            const summary = summarizeTrack(`${key}[${index}].${nestedKey}`, nested[nestedKey]);
             if (summary) summaries.push(summary);
           }
           continue;
@@ -671,7 +711,7 @@ export async function setTimelineDuration(params: Record<string, unknown>): Prom
   };
 }
 
-export { COLOR_EFFECT_FIELDS, KEYFRAME_PROPERTY_FIELDS };
+export { KEYFRAME_PROPERTY_FIELDS };
 
 // ---------------------------------------------------------------------------
 // animate_node — the composite. One round trip per common motion effect.
@@ -905,6 +945,8 @@ export interface AnimateNodeResult {
   durationMs: number;
   easing: string;
   applied: Record<string, unknown>;
+  appliedCount: number;
+  failedCount: number;
   warnings: string[];
   success: boolean;
 }
@@ -934,6 +976,7 @@ export async function animateNode(params: Record<string, unknown>): Promise<Anim
 
   const warnings: string[] = [];
   const applied: Record<string, unknown> = {};
+  let appliedCount = 0;
 
   for (const track of preset.tracks) {
     const field = normalizeKeyframeField(track.field);
@@ -957,6 +1000,7 @@ export async function animateNode(params: Record<string, unknown>): Promise<Anim
     try {
       node.applyManualKeyframeTrack!(field, trackInput);
       applied[track.field] = `${keyframes.length} keyframe(s)`;
+      appliedCount += 1;
     } catch (error) {
       // A composite reports what it could not do rather than failing wholesale.
       warnings.push(`${track.field}: ${(error as Error).message}`);
@@ -987,6 +1031,16 @@ export async function animateNode(params: Record<string, unknown>): Promise<Anim
     }
   }
 
+  // A composite tolerates a partial failure, but reporting success: true when
+  // EVERY track failed would tell the caller the animation was applied when
+  // nothing was written at all.
+  const failedCount = preset.tracks.length - appliedCount;
+  if (appliedCount === 0) {
+    throw new Error(
+      `animate_node: every keyframe track for preset "${presetName}" failed on "${node.name}". ` + warnings.join("; "),
+    );
+  }
+
   return {
     nodeId: node.id,
     nodeName: node.name,
@@ -994,6 +1048,8 @@ export async function animateNode(params: Record<string, unknown>): Promise<Anim
     durationMs,
     easing: String((easing ?? {})["type"] ?? preset.easing),
     applied,
+    appliedCount,
+    failedCount,
     warnings,
     success: true,
   };

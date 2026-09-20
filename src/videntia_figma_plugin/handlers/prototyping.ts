@@ -45,6 +45,7 @@ interface RawAction {
   url?: string;
   openInNewTab?: boolean;
   variableId?: string | null;
+  variableValue?: unknown;
   variableCollectionId?: string | null;
   variableModeId?: string | null;
   mediaAction?: string;
@@ -116,6 +117,17 @@ async function writeReactions(node: ReactiveNodeLike, reactions: unknown[]): Pro
 // ---------------------------------------------------------------------------
 
 const SIMPLE_TRANSITIONS = ["DISSOLVE", "SMART_ANIMATE", "SCROLL_ANIMATE"];
+const MEDIA_ACTIONS = [
+  "PLAY",
+  "PAUSE",
+  "TOGGLE_PLAY_PAUSE",
+  "MUTE",
+  "UNMUTE",
+  "TOGGLE_MUTE_UNMUTE",
+  "SKIP_FORWARD",
+  "SKIP_BACKWARD",
+  "SKIP_TO",
+];
 const DIRECTIONAL_TRANSITIONS = ["MOVE_IN", "MOVE_OUT", "PUSH", "SLIDE_IN", "SLIDE_OUT"];
 
 function normalizeEasing(easing: RawEasing | string | undefined): Record<string, unknown> {
@@ -202,7 +214,11 @@ function normalizeTrigger(trigger: RawTrigger | string | null | undefined): Reco
       const delayMs = raw.delay ?? 0;
       assertValidMs(delayMs, "trigger delay");
       result["delay"] = msToSeconds(delayMs);
-      result["deprecatedVersion"] = raw.deprecatedVersion === true;
+      // NOTE: the typings declare `deprecatedVersion` on MOUSE_ENTER/MOUSE_LEAVE,
+      // but Figma's RUNTIME validator rejects it:
+      //   "Unrecognized key(s) in object: 'deprecatedVersion' at [0].trigger"
+      // (verified 2026-09-20). Typings and runtime disagree, so it is never
+      // written. It is still tolerated and reported on the read path.
       break;
     }
     case "ON_KEY_DOWN": {
@@ -245,8 +261,14 @@ function normalizeAction(action: RawAction): Record<string, unknown> {
       return { type, url: action.url, openInNewTab: action.openInNewTab === true };
     }
 
-    case "SET_VARIABLE":
-      return { type, variableId: action.variableId ?? null };
+    case "SET_VARIABLE": {
+      const result: Record<string, unknown> = { type, variableId: action.variableId ?? null };
+      // Figma's action is {type, variableId, variableValue?: VariableData}.
+      // Dropping variableValue made SET_VARIABLE able to write only a valueless
+      // action, which is never what a caller means.
+      if (action.variableValue !== undefined) result["variableValue"] = action.variableValue;
+      return result;
+    }
 
     case "SET_VARIABLE_MODE":
       return {
@@ -257,6 +279,11 @@ function normalizeAction(action: RawAction): Record<string, unknown> {
 
     case "UPDATE_MEDIA_RUNTIME": {
       const mediaAction = action.mediaAction ?? "TOGGLE_PLAY_PAUSE";
+      if (MEDIA_ACTIONS.indexOf(mediaAction) === -1) {
+        // Unvalidated, a near-miss like "SKIP-FORWARD" missed the branch below,
+        // never attached amountToSkip, and wrote a malformed action.
+        throw new Error(`Unknown mediaAction "${mediaAction}". Expected one of ${MEDIA_ACTIONS.join(", ")}.`);
+      }
       const base: Record<string, unknown> = {
         type,
         destinationId: action.destinationId ?? null,
@@ -327,8 +354,10 @@ export interface ReactionTriggerInfo {
   /** Milliseconds, converted from Figma's seconds. */
   timeout?: number;
   delay?: number;
+  mediaHitTime?: number;
   keyCodes?: number[];
   device?: string;
+  deprecatedVersion?: boolean;
 }
 
 export interface ReactionActionInfo {
@@ -343,6 +372,16 @@ export interface ReactionActionInfo {
   direction?: string;
   matchLayers?: boolean;
   url?: string;
+  openInNewTab?: boolean;
+  variableId?: string;
+  variableCollectionId?: string;
+  variableModeId?: string;
+  mediaAction?: string;
+  /** Milliseconds. */
+  amountToSkip?: number;
+  /** Milliseconds. */
+  newTimestamp?: number;
+  preserveScrollPosition?: boolean;
 }
 
 export interface NodeReactionInfo {
@@ -366,8 +405,12 @@ function describeTrigger(trigger: RawTrigger | null): ReactionTriggerInfo | null
   const info: ReactionTriggerInfo = { type: trigger.type };
   if (typeof trigger.timeout === "number") info.timeout = secondsToMs(trigger.timeout);
   if (typeof trigger.delay === "number") info.delay = secondsToMs(trigger.delay);
+  // Written in seconds (normalizeTrigger), so it must come back in ms too —
+  // otherwise a get -> edit -> set round trip silently resets it to the default.
+  if (typeof trigger.mediaHitTime === "number") info.mediaHitTime = secondsToMs(trigger.mediaHitTime);
   if (Array.isArray(trigger.keyCodes)) info.keyCodes = trigger.keyCodes;
   if (trigger.device) info.device = trigger.device;
+  if (typeof trigger.deprecatedVersion === "boolean") info.deprecatedVersion = trigger.deprecatedVersion;
   return info;
 }
 
@@ -381,6 +424,17 @@ async function describeAction(action: RawAction): Promise<ReactionActionInfo> {
   }
   if (action.navigation) info.navigation = action.navigation;
   if (action.url) info.url = action.url;
+  if (typeof action.openInNewTab === "boolean") info.openInNewTab = action.openInNewTab;
+  if (action.variableId) info.variableId = action.variableId;
+  if (action.variableCollectionId) info.variableCollectionId = action.variableCollectionId;
+  if (action.variableModeId) info.variableModeId = action.variableModeId;
+  if (action.mediaAction) info.mediaAction = action.mediaAction;
+  // Both persisted in seconds by normalizeAction — report them in ms.
+  if (typeof action.amountToSkip === "number") info.amountToSkip = secondsToMs(action.amountToSkip);
+  if (typeof action.newTimestamp === "number") info.newTimestamp = secondsToMs(action.newTimestamp);
+  if (typeof action.preserveScrollPosition === "boolean") {
+    info.preserveScrollPosition = action.preserveScrollPosition;
+  }
 
   const transition = action.transition;
   if (transition && transition.type) {
@@ -452,6 +506,8 @@ export interface FrameAnimationInfo {
   trigger: string;
   /** Milliseconds. */
   triggerTimeout?: number;
+  /** Milliseconds. */
+  triggerDelay?: number;
   action: string;
   navigation?: string;
   destinationId?: string;
@@ -507,6 +563,9 @@ export async function getFrameAnimations(params: Record<string, unknown>): Promi
 
           if (reaction.trigger && typeof reaction.trigger.timeout === "number") {
             info.triggerTimeout = secondsToMs(reaction.trigger.timeout);
+          }
+          if (reaction.trigger && typeof reaction.trigger.delay === "number") {
+            info.triggerDelay = secondsToMs(reaction.trigger.delay);
           }
           if (action.navigation) info.navigation = action.navigation;
           if (action.destinationId) {
@@ -680,6 +739,25 @@ export async function setReactions(params: Record<string, unknown>): Promise<Set
       actions: actions.map(normalizeAction),
     };
   });
+
+  // Verify every NODE destination exists BEFORE writing. add_prototype_link has
+  // always done this; without it set_reactions happily wrote links pointing at
+  // ids that are not in the file and reported success, leaving a dead link in
+  // the prototype.
+  for (let i = 0; i < normalized.length; i++) {
+    for (const action of normalized[i].actions) {
+      if (action["type"] !== "NODE") continue;
+      const destinationId = action["destinationId"];
+      if (typeof destinationId !== "string" || destinationId.length === 0) continue;
+      const dest = await figma.getNodeByIdAsync(destinationId);
+      if (!dest) {
+        throw new Error(
+          `reactions[${i}]: destination node not found: ${destinationId}. ` +
+            "Node ids from a Figma URL use a dash (3082-47270); the API needs a colon (3082:47270).",
+        );
+      }
+    }
+  }
 
   await writeReactions(node, normalized);
 

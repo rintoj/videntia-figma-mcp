@@ -114,6 +114,22 @@ describe("normalizeKeyframeValue", () => {
     expect(normalizeKeyframeValue({ type: "BOOL", value: true }, "x")).toEqual({ type: "BOOL", value: true });
   });
 
+  it("infers COLOR_POINT from {x,y,color} instead of dropping the colour", () => {
+    // Previously fell through to VECTOR and discarded `color` silently — a
+    // gradient-stop keyframe would lose its colour with no error.
+    expect(normalizeKeyframeValue({ x: 0.5, y: 0.5, color: { r: 1, g: 0, b: 0, a: 1 } }, "x")).toEqual({
+      type: "COLOR_POINT",
+      value: { x: 0.5, y: 0.5, color: { r: 1, g: 0, b: 0, a: 1 } },
+    });
+  });
+
+  it("strips stray keys from shape values", () => {
+    expect(normalizeKeyframeValue({ x: 1, y: 2, radius: 3, bogus: 9 }, "x")).toEqual({
+      type: "CIRCLE",
+      value: { x: 1, y: 2, radius: 3 },
+    });
+  });
+
   it("rejects an uninterpretable value", () => {
     expect(() => normalizeKeyframeValue({ nope: 1 }, "x")).toThrow("could not interpret");
   });
@@ -296,6 +312,30 @@ describe("animateNode", () => {
     const result = await animateNode({ nodeId: "1:2", preset: "fade-in" });
     expect(node.setTimelineDuration).not.toHaveBeenCalled();
     expect(String(result.applied["timelineDuration"])).toContain("unchanged");
+  });
+
+  it("throws rather than reporting success when EVERY track fails", async () => {
+    const node = motionNode();
+    node.applyManualKeyframeTrack = jest.fn(() => {
+      throw new Error("unsupported");
+    });
+    nodes.set("1:2", node);
+
+    // Reporting success: true with an empty `applied` told the caller the
+    // animation had been applied when nothing was written at all.
+    await expect(animateNode({ nodeId: "1:2", preset: "slide-up" })).rejects.toThrow(/every keyframe track/);
+  });
+
+  it("counts applied and failed tracks on a partial failure", async () => {
+    const node = motionNode();
+    node.applyManualKeyframeTrack = jest.fn((field: any) => {
+      if (field.name === "OPACITY") throw new Error("nope");
+    });
+    nodes.set("1:2", node);
+
+    const result = await animateNode({ nodeId: "1:2", preset: "slide-up" });
+    expect(result.appliedCount).toBe(1);
+    expect(result.failedCount).toBe(1);
   });
 
   it("rejects an unknown preset and lists the valid ones", async () => {
