@@ -12,19 +12,34 @@
 // transition while `get_frame_animations` reported the value back in seconds —
 // reads and writes disagreed about what the number meant.
 
-/** Round to 6dp so 0.1 + 0.2 style float noise never reaches Figma or a diff. */
-function tidy(value: number): number {
-  return Math.round(value * 1e6) / 1e6;
+/** Round to `places` decimals, so float noise never reaches Figma or a diff. */
+function tidy(value: number, places: number): number {
+  const factor = Math.pow(10, places);
+  return Math.round(value * factor) / factor;
 }
 
-/** MCP milliseconds -> Figma seconds. */
+/**
+ * MCP milliseconds -> Figma seconds.
+ *
+ * 6dp keeps microsecond resolution (1e-6s = 0.001ms), which is the finest
+ * distinction the ms side can express.
+ */
 export function msToSeconds(ms: number): number {
-  return tidy(ms / 1000);
+  return tidy(ms / 1000, 6);
 }
 
-/** Figma seconds -> MCP milliseconds. */
+/**
+ * Figma seconds -> MCP milliseconds.
+ *
+ * Rounded to 3dp (microseconds). Figma stores these as 32-bit floats, so a
+ * duration written as 300ms comes back as 0.30000001192092896s and a naive
+ * conversion reports `300.000012ms` — noise that makes a written value look
+ * different from the value read back, which is exactly the confusion this
+ * module exists to prevent. float32's relative error (~1e-7) stays far below
+ * 0.001ms for any realistic animation duration.
+ */
 export function secondsToMs(seconds: number): number {
-  return tidy(seconds * 1000);
+  return tidy(seconds * 1000, 3);
 }
 
 /**

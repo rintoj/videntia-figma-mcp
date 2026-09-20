@@ -248,7 +248,7 @@ describe("prototype tools integration", () => {
   });
 
   describe("set_reactions", () => {
-    it("forwards a multi-action reaction", async () => {
+    it("forwards a single-action reaction with its transition", async () => {
       mockSendCommand.mockResolvedValue({ nodeName: "Submit", reactionCount: 1, replacedCount: 2 });
 
       const response = await callTool("set_reactions", {
@@ -257,7 +257,6 @@ describe("prototype tools integration", () => {
           {
             trigger: { type: "ON_CLICK" },
             actions: [
-              { type: "SET_VARIABLE", variableId: "var-1" },
               {
                 type: "NODE",
                 destinationId: "frame-2",
@@ -270,8 +269,7 @@ describe("prototype tools integration", () => {
       });
 
       const [, params] = mockSendCommand.mock.calls[0];
-      expect(params.reactions[0].actions).toHaveLength(2);
-      expect(params.reactions[0].actions[1].transition.duration).toBe(200);
+      expect(params.reactions[0].actions[0].transition.duration).toBe(200);
       expect(response.content[0].text).toContain("replaced 2");
     });
 
@@ -279,6 +277,19 @@ describe("prototype tools integration", () => {
       mockSendCommand.mockResolvedValue({ nodeName: "Btn", reactionCount: 0, replacedCount: 3 });
       await callTool("set_reactions", { nodeId: "btn-1", reactions: [] });
       expect(mockSendCommand).toHaveBeenCalledWith("set_reactions", { nodeId: "btn-1", reactions: [] });
+    });
+
+    it("rejects a multi-action reaction rather than hanging Figma", async () => {
+      // Verified against Figma 2026-09-20: setReactionsAsync never resolves on a
+      // reaction with more than one action, even a trivial [BACK, CLOSE]. It
+      // hangs rather than throwing, so we refuse it before the round trip.
+      await expect(
+        callTool("set_reactions", {
+          nodeId: "btn-1",
+          reactions: [{ trigger: { type: "ON_CLICK" }, actions: [{ type: "BACK" }, { type: "CLOSE" }] }],
+        }),
+      ).rejects.toThrow();
+      expect(mockSendCommand).not.toHaveBeenCalled();
     });
 
     it("rejects a reaction with no actions", async () => {

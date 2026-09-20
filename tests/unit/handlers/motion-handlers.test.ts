@@ -79,6 +79,15 @@ describe("duration conversion", () => {
     expect(secondsToMs(0.1 + 0.2)).toBe(300);
   });
 
+  it("absorbs float32 noise coming back from Figma", () => {
+    // Figma stores durations as 32-bit floats: 300ms written comes back as
+    // 0.30000001192092896s. A naive conversion reported "300.000012ms", making
+    // a written value look different from the value read back.
+    expect(secondsToMs(0.30000001192092896)).toBe(300);
+    expect(secondsToMs(0.20000000298023224)).toBe(200);
+    expect(secondsToMs(2.0000000298023224)).toBe(2000);
+  });
+
   it("rejects negative and non-finite durations", () => {
     expect(() => assertValidMs(-1, "duration")).toThrow("must be >= 0");
     expect(() => assertValidMs(NaN, "duration")).toThrow("finite");

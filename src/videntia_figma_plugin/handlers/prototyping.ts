@@ -663,6 +663,18 @@ export async function setReactions(params: Record<string, unknown>): Promise<Set
     if (actions.length === 0) {
       throw new Error(`reactions[${index}] has no actions; every reaction needs at least one action`);
     }
+    if (actions.length > 1) {
+      // Verified against Figma 2026-09-20: setReactionsAsync never resolves when
+      // a reaction carries more than one action — reproducible even with a
+      // trivial [BACK, CLOSE] pair. It HANGS rather than throwing, so without
+      // this guard the command blocks until the socket times out.
+      throw new Error(
+        `reactions[${index}] has ${actions.length} actions. Figma's setReactionsAsync hangs (never ` +
+          "resolves) on a reaction with more than one action, so this server refuses it rather than " +
+          "blocking until the socket times out. Use one action per reaction — several reactions on the " +
+          "same trigger is the working equivalent. Build multi-action interactions in Figma's UI instead.",
+      );
+    }
     return {
       trigger: normalizeTrigger(reaction.trigger),
       actions: actions.map(normalizeAction),

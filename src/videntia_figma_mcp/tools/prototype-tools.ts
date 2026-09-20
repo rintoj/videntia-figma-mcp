@@ -318,9 +318,10 @@ export function registerPrototypeTools(server: McpServer): void {
   server.tool(
     "set_reactions",
     "REPLACE a node's entire reaction array — the full-fidelity authoring path. Use when add_prototype_link " +
-      "is not enough: multiple actions per trigger, or non-navigation actions (URL, BACK, CLOSE, SET_VARIABLE, " +
+      "is not enough: non-navigation actions (URL, BACK, CLOSE, SET_VARIABLE, " +
       "SET_VARIABLE_MODE, UPDATE_MEDIA_RUNTIME), or the triggers add_prototype_link does not reach. " +
       "Pass reactions: [] to clear every reaction. All durations are in MILLISECONDS. " +
+      "EXACTLY ONE action per reaction — Figma hangs on multi-action reactions. " +
       "CONDITIONAL actions are not yet supported.",
     {
       nodeId: z.string().describe("ID of the node whose reactions are replaced"),
@@ -375,7 +376,12 @@ export function registerPrototypeTools(server: McpServer): void {
                 }),
               )
               .min(1)
-              .describe("One or more actions fired by this trigger"),
+              .max(1)
+              .describe(
+                "The action fired by this trigger. EXACTLY ONE: Figma's setReactionsAsync hangs " +
+                  "(never resolves) on a reaction with more than one action, so this server refuses it. " +
+                  "Several reactions sharing a trigger is the working equivalent.",
+              ),
           }),
         )
         .describe("The complete reaction array. Replaces what is already on the node."),

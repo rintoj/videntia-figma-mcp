@@ -451,7 +451,7 @@ a value written reads back identically.
 
 ### Figma Motion (Beta)
 
-Motion is a **second, independent animation system**: prototyping navigates BETWEEN
+Verified working against a live file on 2026-09-20. Motion is a **second, independent animation system**: prototyping navigates BETWEEN
 frames, Motion animates a node's own properties ALONG a timeline. `MotionNodeMixin` is on
 every `SceneNode`. Tools: `src/videntia_figma_mcp/tools/motion-tools.ts`, plugin:
 `handlers/motion.ts`.
@@ -467,9 +467,10 @@ every `SceneNode`. Tools: `src/videntia_figma_mcp/tools/motion-tools.ts`, plugin
 
 Platform limits that cannot be worked around, so do not try:
 
-- **No `createTimeline`** — only `setTimelineDuration`. A node can carry keyframes and
-  still report no timeline; `animate_node` / `set_keyframe_track` return a `warnings`
-  entry naming this instead of failing opaquely.
+- **No `createTimeline`** — only `setTimelineDuration`. In practice every node observed so
+  far already carries a timeline (a fresh FRAME reports one at 2000ms, id equal to the
+  node id), so this has not bitten yet; `animate_node` / `set_keyframe_track` still return
+  a `warnings` entry if `timelines` comes back empty rather than failing opaquely.
 - `figma.motion.playheadPosition` is **read-only** — playback cannot be driven or scrubbed.
 - **No Motion data in the REST API.** Everything must go through the plugin.
 - No rotation-origin field.
@@ -493,9 +494,14 @@ Tools live in `src/videntia_figma_mcp/tools/prototype-tools.ts` (plugin:
   `MOVE_IN`/`MOVE_OUT`/`PUSH`/`SLIDE_IN`/`SLIDE_OUT`), `matchLayers`,
   `easingFunctionCubicBezier`, `easingFunctionSpring`, the `reset*` flags and
   `overlayRelativePosition`.
-- `set_reactions` **replaces** a node's whole reaction array — the path for multi-action
-  reactions and non-`NODE` actions (`URL`, `BACK`, `CLOSE`, `SET_VARIABLE`,
-  `SET_VARIABLE_MODE`, `UPDATE_MEDIA_RUNTIME`). `CONDITIONAL` is not yet supported.
+- `set_reactions` **replaces** a node's whole reaction array — the path for non-`NODE`
+  actions (`URL`, `BACK`, `CLOSE`, `SET_VARIABLE`, `SET_VARIABLE_MODE`,
+  `UPDATE_MEDIA_RUNTIME`). `CONDITIONAL` is not yet supported.
+- **One action per reaction.** Verified 2026-09-20: `setReactionsAsync` **never resolves**
+  when a reaction carries more than one action — reproducible even with a trivial
+  `[BACK, CLOSE]`. It hangs rather than throwing, so the schema caps `actions` at 1 and
+  the plugin guards too; otherwise the command blocks until the socket times out. Several
+  reactions sharing a trigger is the working equivalent.
 - `set_default_connector` **throws** — the Plugin API genuinely cannot set it. It used to
   return `success: false`, which read as a completed call.
 
