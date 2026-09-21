@@ -51,6 +51,7 @@ const CONTROL_PARAMS: Record<string, true> = {
   checkpoint: true,
   stopOnError: true,
   __expectedFile: true,
+  __expectedChannel: true,
 };
 
 /**

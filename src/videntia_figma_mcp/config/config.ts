@@ -67,10 +67,25 @@ Call \`join_channel\` with the resolved channel ID.
   - Ensure the WebSocket server is running
   - Ensure the Claude MCP Plugin is open in Figma
 
+## Step 4: Address Every Call To That Channel
+
+EVERY Figma tool accepts a \`channel\` parameter. It names the channel the call is
+addressed to and is the ONLY thing that keeps parallel agents out of each other's files.
+
+- One channel joined in this process: \`channel\` may be omitted.
+- More than one channel joined (you are one of several agents sharing this MCP server,
+  or you switched files): you MUST pass \`channel: "<name>"\` on every call. Without it
+  the command is REFUSED with an "Ambiguous Figma channel" error rather than guessed at —
+  node IDs are not unique across Figma files, so a guess corrupts the wrong document.
+- Safest habit: once \`join_channel\` succeeds, pass that same \`channel\` on every
+  subsequent Figma call for the rest of the session.
+
 ## Notes
 
 - Channel IDs are resolved dynamically each time via \`get_open_channels\`
 - This resolution should happen once per session, not before every tool call
+- A command is delivered ONLY to the plugin on the channel it names. There is no
+  "last active" fallback.
 
 ## Name-Based Lookups
 

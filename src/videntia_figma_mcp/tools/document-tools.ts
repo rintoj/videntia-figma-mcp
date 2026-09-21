@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { sendCommandToFigma, joinChannel, getOpenChannels } from "../utils/websocket.js";
+import { sendCommandToFigma, joinChannel, getOpenChannels, getJoinedChannels } from "../utils/websocket.js";
 import { coerceArray } from "../utils/coerce-array.js";
+
 import { mcpBooleanSchema } from "../utils/mcp-boolean.js";
 import {
   outputFormatSchema,
@@ -51,6 +52,22 @@ import {
   sanitizeCell,
   truncate,
 } from "../utils/format-helpers.js";
+
+/**
+ * After a join, tell the caller how to address its commands.
+ *
+ * With several channels joined in one MCP process (parallel agents sharing this server)
+ * an unaddressed command is refused rather than guessed at, so the agent needs to know
+ * to carry `channel` from here on.
+ */
+function channelReminder(channel: string): string {
+  const joined = getJoinedChannels();
+  if (joined.length <= 1) return "";
+  return (
+    ` ${joined.length} channels are joined in this MCP process (${joined.join(", ")}), so every Figma call must now` +
+    ` name its target: pass \`channel: "${channel}"\` on each one.`
+  );
+}
 
 /**
  * Purpose descriptions for known design tokens.
@@ -1916,7 +1933,7 @@ export function registerDocumentTools(server: McpServer): void {
       try {
         if (channelId) {
           await joinChannel(channelId);
-          return text(`Connected to Figma channel: ${channelId}`);
+          return text(`Connected to Figma channel: ${channelId}.${channelReminder(channelId)}`);
         }
 
         const channels = await getOpenChannels();
@@ -1934,7 +1951,9 @@ export function registerDocumentTools(server: McpServer): void {
         if (live.length === 1) {
           const only = live[0];
           await joinChannel(only.channel);
-          return text(`Connected to Figma channel: ${only.channel} (${only.fileName || "unknown file"})`);
+          return text(
+            `Connected to Figma channel: ${only.channel} (${only.fileName || "unknown file"}).${channelReminder(only.channel)}`,
+          );
         }
 
         const list = live.map((ch) => `  - ${ch.channel} (${ch.fileName || "unknown file"})`).join("\n");
@@ -1981,7 +2000,7 @@ export function registerDocumentTools(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: `Successfully joined channel: ${channelId}`,
+              text: `Successfully joined channel: ${channelId}.${channelReminder(channelId)}`,
             },
           ],
         };

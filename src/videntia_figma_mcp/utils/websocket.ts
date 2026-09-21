@@ -1,16 +1,10 @@
 import WebSocket from "ws";
 import { v4 as uuidv4 } from "uuid";
 import { logger } from "./logger";
-import { serverUrl, defaultPort, WS_URL, reconnectInterval } from "../config/config";
-import {
-  FigmaCommand,
-  FigmaResponse,
-  CommandProgressUpdate,
-  PendingRequest,
-  ProgressMessage,
-  BrowserCommand,
-} from "../types";
+import { serverUrl, defaultPort, WS_URL } from "../config/config";
+import { FigmaCommand, FigmaResponse, CommandProgressUpdate, PendingRequest, BrowserCommand } from "../types";
 import { interceptForCapture } from "./tool-capture";
+import { getRequestChannel, getRequestSessionId, setRequestChannel } from "./channel-context";
 
 class ChannelValidationError extends Error {
   constructor(message: string) {
@@ -31,11 +25,23 @@ export class ChannelIdentityMismatchError extends Error {
   }
 }
 
+/**
+ * A command arrived with no channel to address it to, and this process is joined to
+ * more than one. Guessing is what used to deliver commands into the wrong Figma file,
+ * so the command is refused and the caller is told to name its channel.
+ */
+export class AmbiguousChannelError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "AmbiguousChannelError";
+  }
+}
+
 export type FileIdentity = { fileKey: string | null; rootId: string | null; fileName: string | null };
 
 /**
- * Why the active channel is (or is not) pinned to a document identity:
- * - "none"        no channel has been joined
+ * Why a channel is (or is not) pinned to a document identity:
+ * - "none"        the channel has not been joined
  * - "pending"     a join is in flight; the identity handshake itself is allowed through
  * - "verified"    the responding plugin's identity matched the channel's advertised identity
  * - "unverified"  identity could not be established on one or both sides (older plugin build,
@@ -45,251 +51,317 @@ export type FileIdentity = { fileKey: string | null; rootId: string | null; file
  */
 type ChannelVerification = "none" | "pending" | "verified" | "unverified" | "failed";
 
-// WebSocket connection and request tracking
-let ws: WebSocket | null = null;
-// The channel this SINGLE relay connection is actually joined to right now,
-// server-confirmed. The server allows a socket to be a member of only one
-// channel at a time — joining a new one silently evicts it from the previous
-// one (see socket.ts's join handler) — so this must be one shared variable,
-// not independent trackers per "kind" of channel (Figma file vs. "browser").
-let currentChannel: string | null = null;
-// The last Figma channel we successfully joined, kept across reconnects/across
-// switches to the "browser" channel so we know what to silently rejoin before
-// the next Figma command.
-let lastChannelName: string | null = null;
-// Identity of the Figma document behind `lastChannelName`, captured at join time.
-// Figma node ids are unique only WITHIN a file — the same "3082:47270" resolves in
-// every open document — so a session that joined the wrong channel and then wrote to
-// a remembered node id would silently mutate an unrelated file. Every command carries
-// this identity as `__expectedFile`; the plugin refuses commands addressed to a file
-// it is not attached to (see assertExpectedDocument in the plugin entry point).
-let expectedFile: FileIdentity | null = null;
-// Distinguishes "we could not determine identity" (unpinned is acceptable) from
-// "identity verification FAILED" (every command must be refused). Overloading
-// `expectedFile === null` for both is what let a mismatch pass silently.
-let channelVerification: ChannelVerification = "none";
-let lastVerificationFailure: string | null = null;
-let heartbeatInterval: ReturnType<typeof setInterval> | null = null;
+/**
+ * ONE WEBSOCKET PER CHANNEL.
+ *
+ * The relay lets a socket be a member of exactly one channel at a time — joining a
+ * second silently evicts it from the first. The old transport therefore shared a single
+ * socket across every channel and juggled re-joins around the eviction, which meant the
+ * destination of a command was whatever channel that shared socket happened to be in
+ * when `send` ran. Two agents (or a browser command interleaved with a Figma command)
+ * raced on it, and commands landed in the wrong Figma file.
+ *
+ * Giving each channel its own connection removes the race by construction: a connection
+ * joins its channel once and stays there, so a command for channel X is physically
+ * incapable of being delivered to a peer on channel Y.
+ */
+interface ChannelConnection {
+  channel: string;
+  /** "figma" connections carry document identity and are subject to join verification. */
+  kind: "figma" | "other";
+  ws: WebSocket | null;
+  /** In-flight connect, so concurrent commands do not open duplicate sockets. */
+  connecting: Promise<void> | null;
+  /** In-flight join/verify, for the same reason. */
+  joining: Promise<void> | null;
+  joined: boolean;
+  /** True once this channel has completed a join at least once in this process. */
+  everJoined: boolean;
+  expectedFile: FileIdentity | null;
+  verification: ChannelVerification;
+  lastVerificationFailure: string | null;
+  pending: Map<string, PendingRequest>;
+  heartbeat: ReturnType<typeof setInterval> | null;
+}
 
-// Map of pending requests for promise tracking
-const pendingRequests = new Map<string, PendingRequest>();
+const connections = new Map<string, ChannelConnection>();
 
 /**
- * Connects to the Figma server via WebSocket.
- * @param port - Optional port for the connection (defaults to defaultPort from config)
+ * The last Figma channel joined in this process. Used ONLY as the resolution fallback
+ * when no channel is bound to the request and exactly one Figma channel is live; it is
+ * never used to break a tie between two live channels (see `resolveFigmaChannel`).
  */
-export function connectToFigma(port: number = defaultPort) {
-  // If already connected, do nothing
-  if (ws && ws.readyState === WebSocket.OPEN) {
-    logger.info("Already connected to Figma");
-    return;
+let lastJoinedFigmaChannel: string | null = null;
+
+/**
+ * The last Figma channel a join was ATTEMPTED on, successful or not. Diagnostics only:
+ * it is what lets `getChannelVerification()` report a failure after a mismatch, which by
+ * definition leaves no joined channel behind.
+ */
+let lastAttemptedFigmaChannel: string | null = null;
+
+/**
+ * Channels each MCP session has joined.
+ *
+ * The socket server runs ONE process serving every Claude session over SSE, so a
+ * process-wide "channel joined" is shared by clients that have nothing to do with each
+ * other. Keyed by session, one client's join can never re-point another's commands.
+ * A session that joined two channels is recorded as such deliberately: from then on it
+ * must name its channel, because within a session (parallel subagents) there is nothing
+ * left to tell its callers apart.
+ */
+const sessionJoins = new Map<string, Set<string>>();
+
+function forgetChannelEverywhere(channel: string): void {
+  for (const [sessionId, joined] of sessionJoins) {
+    joined.delete(channel);
+    if (joined.size === 0) sessionJoins.delete(sessionId);
   }
+}
 
-  // If connection is in progress (CONNECTING state), wait
-  if (ws && ws.readyState === WebSocket.CONNECTING) {
-    logger.info("Connection to Figma is already in progress");
-    return;
+/** Port override supplied by `connectToFigma`. */
+let activePort: number = defaultPort;
+
+function socketUrl(): string {
+  return serverUrl === "localhost" ? `${WS_URL}:${activePort}` : WS_URL;
+}
+
+function getConnection(channel: string, kind: "figma" | "other"): ChannelConnection {
+  let conn = connections.get(channel);
+  if (!conn) {
+    conn = {
+      channel,
+      kind,
+      ws: null,
+      connecting: null,
+      joining: null,
+      joined: false,
+      everJoined: false,
+      expectedFile: null,
+      verification: "none",
+      lastVerificationFailure: null,
+      pending: new Map(),
+      heartbeat: null,
+    };
+    connections.set(channel, conn);
   }
+  return conn;
+}
 
-  // If there's an existing socket in a closing state, clean it up
-  if (ws && (ws.readyState === WebSocket.CLOSING || ws.readyState === WebSocket.CLOSED)) {
-    ws.removeAllListeners();
-    ws = null;
+/** Figma channels this process has joined and not since seen torn down. */
+function liveFigmaChannels(): ChannelConnection[] {
+  return [...connections.values()].filter((c) => c.kind === "figma" && c.everJoined && c.verification !== "failed");
+}
+
+function rejectAllPending(conn: ChannelConnection, reason: string): void {
+  for (const [id, request] of conn.pending.entries()) {
+    clearTimeout(request.timeout);
+    request.reject(new Error(reason));
+    conn.pending.delete(id);
   }
+}
 
-  const wsUrl = serverUrl === "localhost" ? `${WS_URL}:${port}` : WS_URL;
-  logger.info(`Connecting to Figma socket server at ${wsUrl}...`);
+function teardown(conn: ChannelConnection, reason: string): void {
+  if (conn.heartbeat) {
+    clearInterval(conn.heartbeat);
+    conn.heartbeat = null;
+  }
+  if (conn.ws) {
+    conn.ws.removeAllListeners();
+    try {
+      conn.ws.terminate();
+    } catch {
+      /* already gone */
+    }
+    conn.ws = null;
+  }
+  conn.joined = false;
+  conn.joining = null;
+  conn.connecting = null;
+  rejectAllPending(conn, reason);
+}
 
+function handleMessage(conn: ChannelConnection, raw: WebSocket.RawData): void {
+  let json: any;
   try {
-    ws = new WebSocket(wsUrl);
+    json = JSON.parse(raw.toString());
+  } catch (error) {
+    logger.error(`Error parsing message: ${error instanceof Error ? error.message : String(error)}`);
+    return;
+  }
 
-    // Add connection timeout
+  // Relay-level errors (e.g. "You must join the channel first") carry no request id to
+  // correlate against; this connection only ever has commands for ONE channel in flight,
+  // so reject the oldest rather than letting it sit until its timeout fires.
+  if (json.type === "error") {
+    const message = typeof json.message === "string" ? json.message : JSON.stringify(json);
+    logger.error(`Relay error on channel "${conn.channel}": ${message}`);
+    const oldest = conn.pending.entries().next();
+    if (!oldest.done) {
+      const [id, request] = oldest.value;
+      clearTimeout(request.timeout);
+      conn.pending.delete(id);
+      request.reject(new Error(message));
+    }
+    return;
+  }
+
+  if (json.type === "channel_peer_disconnected") {
+    if (json.remainingClients <= 1) {
+      logger.warn(`Peer disconnected from channel "${conn.channel}". Dropping its connection state.`);
+      // Forget the channel entirely: it is no longer a candidate for implicit
+      // resolution, and a reconnecting plugin must be re-joined (and re-verified).
+      teardown(conn, `The plugin on channel "${conn.channel}" disconnected.`);
+      conn.everJoined = false;
+      conn.verification = "none";
+      conn.expectedFile = null;
+      connections.delete(conn.channel);
+      forgetChannelEverywhere(conn.channel);
+      if (lastJoinedFigmaChannel === conn.channel) lastJoinedFigmaChannel = null;
+    }
+    return;
+  }
+
+  if (json.type === "progress_update") {
+    const progressData = json.message?.data as CommandProgressUpdate;
+    const requestId = json.id || "";
+    const request = requestId ? conn.pending.get(requestId) : undefined;
+    if (request) {
+      request.lastActivity = Date.now();
+      clearTimeout(request.timeout);
+      request.timeout = setTimeout(() => {
+        if (conn.pending.has(requestId)) {
+          logger.error(`Request ${requestId} timed out after extended period of inactivity`);
+          conn.pending.delete(requestId);
+          request.reject(new Error("Request to Figma timed out"));
+        }
+      }, 60000);
+      logger.info(
+        `Progress update for ${progressData?.commandType}: ${progressData?.progress}% - ${progressData?.message}`,
+      );
+    }
+    return;
+  }
+
+  const response = json.message as FigmaResponse | undefined;
+  if (!response) return;
+  logger.debug(`Received message on "${conn.channel}": ${JSON.stringify(response)}`);
+
+  const request = response.id ? conn.pending.get(response.id) : undefined;
+  if (!request) {
+    logger.info(`Received broadcast message on "${conn.channel}": ${JSON.stringify(response)}`);
+    return;
+  }
+
+  clearTimeout(request.timeout);
+  conn.pending.delete(response.id!);
+  if ((response as any).error) {
+    logger.error(`Error from Figma: ${(response as any).error}`);
+    request.reject(new Error(String((response as any).error)));
+  } else if ((response as any).result !== undefined) {
+    request.resolve((response as any).result);
+  } else {
+    request.reject(new Error("Received invalid response from Figma plugin (no result or error field)"));
+  }
+}
+
+/** Open (or reuse) this channel's socket and resolve once it is OPEN. */
+function ensureSocket(conn: ChannelConnection, timeoutMs = 10000): Promise<void> {
+  if (conn.ws && conn.ws.readyState === WebSocket.OPEN) return Promise.resolve();
+  if (conn.connecting) return conn.connecting;
+
+  conn.connecting = new Promise<void>((resolve, reject) => {
+    const url = socketUrl();
+    logger.info(`Opening socket for channel "${conn.channel}" at ${url}`);
+
+    let ws: WebSocket;
+    try {
+      ws = new WebSocket(url);
+    } catch (error) {
+      conn.connecting = null;
+      reject(new Error(`Failed to open socket: ${error instanceof Error ? error.message : String(error)}`));
+      return;
+    }
+    conn.ws = ws;
+
     const connectionTimeout = setTimeout(() => {
-      if (ws && ws.readyState === WebSocket.CONNECTING) {
-        logger.error("Connection to Figma timed out");
+      if (ws.readyState === WebSocket.CONNECTING) {
+        logger.error(`Connection for channel "${conn.channel}" timed out`);
         ws.terminate();
       }
-    }, 10000); // 10 second connection timeout
+    }, timeoutMs);
 
-    ws.on("open", () => {
+    let opened = false;
+    const onOpen = () => {
+      if (opened) return;
+      opened = true;
       clearTimeout(connectionTimeout);
-      logger.info("Connected to Figma socket server");
-      // Reset channel on new connection
-      currentChannel = null;
+      conn.connecting = null;
+      conn.joined = false;
+      logger.info(`Socket open for channel "${conn.channel}"`);
 
-      // Heartbeat: without this, a half-dead loopback connection (peer gone but
-      // no FIN/RST received) can sit in readyState OPEN indefinitely, so
-      // in-flight commands silently time out instead of failing fast/reconnecting.
+      // Heartbeat: a half-dead loopback connection (peer gone, no FIN/RST) can sit in
+      // readyState OPEN indefinitely, so in-flight commands silently time out instead
+      // of failing fast. Unref'd so an idle channel never keeps the process alive.
       let isAlive = true;
-      ws!.on("pong", () => {
+      ws.on("pong", () => {
         isAlive = true;
       });
-      heartbeatInterval = setInterval(() => {
-        if (!ws || ws.readyState !== WebSocket.OPEN) return;
+      const beat = setInterval(() => {
+        if (ws.readyState !== WebSocket.OPEN) return;
         if (!isAlive) {
-          logger.warn("Relay connection heartbeat missed; terminating stale socket");
+          logger.warn(`Channel "${conn.channel}" heartbeat missed; terminating stale socket`);
           ws.terminate();
           return;
         }
         isAlive = false;
         ws.ping();
       }, 15000);
-    });
+      (beat as unknown as { unref?: () => void }).unref?.();
+      conn.heartbeat = beat;
 
-    ws.on("message", (data: any) => {
-      try {
-        const json = JSON.parse(data) as ProgressMessage;
+      resolve();
+    };
 
-        // Handle relay-level errors (e.g. "You must join the channel first"). These carry
-        // no request id to correlate against, so — since this connection only ever has one
-        // command in flight at a time — reject the oldest pending request instead of letting
-        // it silently sit until its 30s timeout fires.
-        if ((json as any).type === "error") {
-          const message = typeof (json as any).message === "string" ? (json as any).message : JSON.stringify(json);
-          logger.error(`Relay error: ${message}`);
-          const oldest = pendingRequests.entries().next();
-          if (!oldest.done) {
-            const [id, request] = oldest.value;
-            clearTimeout(request.timeout);
-            pendingRequests.delete(id);
-            request.reject(new Error(message));
-          }
-          return;
-        }
+    ws.on("open", onOpen);
+    // A socket that is ALREADY open never fires "open" (a reused/fake transport, or a
+    // connection that completed between construction and listener attachment).
+    if (ws.readyState === WebSocket.OPEN) queueMicrotask(onOpen);
 
-        // Handle peer disconnect notifications
-        if (json.type === "channel_peer_disconnected") {
-          if (json.remainingClients <= 1) {
-            logger.warn(`Figma plugin disconnected from channel "${json.channel}". Clearing channel state.`);
-            currentChannel = null;
-          }
-          return;
-        }
-
-        // Handle progress updates
-        if (json.type === "progress_update") {
-          const progressData = json.message.data as CommandProgressUpdate;
-          const requestId = json.id || "";
-
-          if (requestId && pendingRequests.has(requestId)) {
-            const request = pendingRequests.get(requestId)!;
-
-            // Update last activity timestamp
-            request.lastActivity = Date.now();
-
-            // Reset the timeout to prevent timeouts during long-running operations
-            clearTimeout(request.timeout);
-
-            // Create a new timeout
-            request.timeout = setTimeout(() => {
-              if (pendingRequests.has(requestId)) {
-                logger.error(`Request ${requestId} timed out after extended period of inactivity`);
-                pendingRequests.delete(requestId);
-                request.reject(new Error("Request to Figma timed out"));
-              }
-            }, 60000); // 60 second timeout for inactivity
-
-            // Log progress
-            logger.info(
-              `Progress update for ${progressData.commandType}: ${progressData.progress}% - ${progressData.message}`,
-            );
-
-            // For completed updates, we could resolve the request early if desired
-            if (progressData.status === "completed" && progressData.progress === 100) {
-              // Optionally resolve early with partial data
-              // request.resolve(progressData.payload);
-              // pendingRequests.delete(requestId);
-
-              // Instead, just log the completion, wait for final result from Figma
-              logger.info(`Operation ${progressData.commandType} completed, waiting for final result`);
-            }
-          }
-          return;
-        }
-
-        // Handle regular responses
-        const myResponse = json.message;
-        logger.debug(`Received message: ${JSON.stringify(myResponse)}`);
-        logger.log("myResponse" + JSON.stringify(myResponse));
-
-        // Handle response to a request
-        if (myResponse.id && pendingRequests.has(myResponse.id)) {
-          const request = pendingRequests.get(myResponse.id)!;
-          clearTimeout(request.timeout);
-
-          if (myResponse.error) {
-            logger.error(`Error from Figma: ${myResponse.error}`);
-            request.reject(new Error(myResponse.error));
-          } else if (myResponse.result) {
-            request.resolve(myResponse.result);
-          } else {
-            logger.warn(`Received response without result or error for request ${myResponse.id}`);
-            request.reject(new Error("Received invalid response from Figma plugin (no result or error field)"));
-          }
-
-          pendingRequests.delete(myResponse.id);
-        } else {
-          // Handle broadcast messages or events
-          logger.info(`Received broadcast message: ${JSON.stringify(myResponse)}`);
-        }
-      } catch (error) {
-        logger.error(`Error parsing message: ${error instanceof Error ? error.message : String(error)}`);
-      }
-    });
+    ws.on("message", (data: WebSocket.RawData) => handleMessage(conn, data));
 
     ws.on("error", (error: Error) => {
-      logger.error(`Socket error: ${error}`);
-      // Don't attempt to reconnect here, let the close handler do it
+      logger.error(`Socket error on channel "${conn.channel}": ${error}`);
     });
 
-    ws.on("close", (code: number, reason: Buffer) => {
+    ws.on("close", (code: number, reasonBuf: Buffer) => {
       clearTimeout(connectionTimeout);
-      if (heartbeatInterval) {
-        clearInterval(heartbeatInterval);
-        heartbeatInterval = null;
+      const reason = reasonBuf?.toString() || "No reason provided";
+      if (conn.heartbeat) {
+        clearInterval(conn.heartbeat);
+        conn.heartbeat = null;
       }
-      logger.info(
-        `Disconnected from Figma socket server with code ${code} and reason: ${reason || "No reason provided"}`,
-      );
-      ws = null;
-
-      // Reject all pending requests
-      for (const [id, request] of pendingRequests.entries()) {
-        clearTimeout(request.timeout);
-        request.reject(new Error(`Connection closed with code ${code}: ${reason || "No reason provided"}`));
-        pendingRequests.delete(id);
+      if (conn.ws === ws) {
+        conn.ws = null;
+        conn.joined = false;
+        conn.joining = null;
       }
-
-      // Attempt to reconnect with exponential backoff
-      const backoff = Math.min(30000, reconnectInterval * Math.pow(1.5, Math.floor(Math.random() * 5))); // Max 30s
-      logger.info(`Attempting to reconnect in ${backoff / 1000} seconds...`);
-      setTimeout(() => connectToFigma(port), backoff);
+      const stillConnecting = conn.connecting;
+      conn.connecting = null;
+      logger.info(`Channel "${conn.channel}" socket closed (${code}): ${reason}`);
+      rejectAllPending(conn, `Connection closed with code ${code}: ${reason}`);
+      if (stillConnecting) reject(new Error(`Connection closed with code ${code}: ${reason}`));
+      // No background reconnect loop: the next command for this channel reconnects and
+      // re-joins (and, for Figma channels, RE-VERIFIES) lazily.
     });
-  } catch (error) {
-    logger.error(`Failed to create WebSocket connection: ${error instanceof Error ? error.message : String(error)}`);
-    // Attempt to reconnect after a delay
-    setTimeout(() => connectToFigma(port), reconnectInterval);
-  }
-}
+  });
 
-/**
- * Waits until the WebSocket is OPEN, initiating a connection if needed.
- */
-async function waitForConnection(timeoutMs = 10000): Promise<void> {
-  if (ws?.readyState === WebSocket.OPEN) return;
-  connectToFigma();
-  const start = Date.now();
-  while (Date.now() - start < timeoutMs) {
-    if ((ws as WebSocket | null)?.readyState === WebSocket.OPEN) return;
-    await new Promise((r) => setTimeout(r, 100));
-  }
-  throw new Error("Not connected to Figma");
+  return conn.connecting;
 }
 
 /**
  * The identity a channel ADVERTISES on the relay, as reported by `/channels`.
- * Null when the relay could not be reached or knows nothing about the channel —
- * in that case there is nothing to verify against.
+ * Null when the relay could not be reached or knows nothing about the channel.
  */
 async function getAdvertisedIdentity(
   channelName: string,
@@ -352,41 +424,38 @@ function buildMismatchMessage(
   return (
     `Channel "${channelName}" is registered to "${describeFile(advertised)}" but the plugin answering on it ` +
     `is attached to "${describeFile(responder)}". Node IDs are not unique across files, so this session was NOT ` +
-    `joined. Close and re-run the Videntia plugin in the intended Figma file (Plugins \u203a Claude MCP Plugin), ` +
+    `joined. Close and re-run the Videntia plugin in the intended Figma file (Plugins › Claude MCP Plugin), ` +
     `then re-run get_open_channels and join_channel.`
   );
 }
 
 /**
- * THE one verified join path. Every code path that changes the active Figma channel
- * must go through this — a re-point that skips verification reintroduces the
+ * THE one verified join path for a Figma channel. Every code path that brings a Figma
+ * channel online must go through this — a join that skips verification reintroduces the
  * cross-file bug it exists to prevent.
- *
- * Joins the channel, asks the plugin that answers who it is, and compares that against
- * the identity the relay advertises for the channel. On mismatch nothing is retained:
- * no currentChannel, no lastChannelName, no expectedFile — and the caller gets an
- * actionable error instead of a session silently bound to the wrong document.
  */
-async function joinAndVerify(channelName: string): Promise<void> {
+async function joinAndVerify(conn: ChannelConnection): Promise<void> {
+  const channelName = conn.channel;
   const advertised = await getAdvertisedIdentity(channelName);
 
-  await _sendCommandToFigma("join", { channel: channelName });
-  currentChannel = channelName;
-  lastChannelName = channelName;
-  // Cleared first so a failed capture can never leave the previous file's identity
-  // stamped on the new channel's commands.
-  expectedFile = null;
-  channelVerification = "pending";
-  lastVerificationFailure = null;
+  await sendOnConnection(conn, "join", { channel: channelName }, 10000, { join: true });
+  conn.joined = true;
+  conn.everJoined = true;
+  // Cleared first so a failed capture can never leave a previous identity stamped on
+  // this channel's commands.
+  conn.expectedFile = null;
+  conn.verification = "pending";
+  conn.lastVerificationFailure = null;
 
   let responder: FileIdentity | null = null;
   try {
     const identity =
-      (await _sendCommandToFigma<{
-        fileKey?: string | null;
-        rootId?: string | null;
-        fileName?: string | null;
-      }>("get_file_key", {}, 10000)) ?? {};
+      (await sendOnConnection<{ fileKey?: string | null; rootId?: string | null; fileName?: string | null }>(
+        conn,
+        "get_file_key",
+        {},
+        10000,
+      )) ?? {};
     responder = {
       fileKey: identity.fileKey ?? null,
       rootId: identity.rootId ?? null,
@@ -399,48 +468,113 @@ async function joinAndVerify(channelName: string): Promise<void> {
     logger.warn(
       `Could not capture file identity for channel "${channelName}": ${error instanceof Error ? error.message : String(error)}`,
     );
-    channelVerification = "unverified";
+    conn.verification = "unverified";
     logger.info(`Joined channel: ${channelName}`);
     return;
   }
 
   const verdict = compareChannelIdentity(advertised, responder);
   if (verdict.status === "mismatch") {
-    currentChannel = null;
-    lastChannelName = null;
-    expectedFile = null;
-    channelVerification = "failed";
     const message = buildMismatchMessage(channelName, advertised, responder);
-    lastVerificationFailure = message;
+    conn.verification = "failed";
+    conn.lastVerificationFailure = message;
+    conn.expectedFile = null;
+    conn.joined = false;
+    conn.everJoined = false;
+    forgetChannelEverywhere(channelName);
+    if (lastJoinedFigmaChannel === channelName) lastJoinedFigmaChannel = null;
+    teardown(conn, message);
     logger.error(message);
     throw new ChannelIdentityMismatchError(message);
   }
 
   if (verdict.status === "indeterminate") {
-    // Never block a session we cannot reason about (same principle as the plugin's
-    // document-guard): pin what the plugin told us and carry on, loudly.
     logger.warn(
       `Could not verify that channel "${channelName}" belongs to the file answering on it (${verdict.reason}). Proceeding unverified.`,
     );
   }
 
-  expectedFile = responder;
-  channelVerification = verdict.status === "match" ? "verified" : "unverified";
+  conn.expectedFile = responder;
+  conn.verification = verdict.status === "match" ? "verified" : "unverified";
   logger.info(
-    `Channel ${channelName} is file "${expectedFile.fileName}" (fileKey=${expectedFile.fileKey}), verified by ${verdict.discriminator ?? "nothing"}`,
+    `Channel ${channelName} is file "${responder.fileName}" (fileKey=${responder.fileKey}), verified by ${verdict.discriminator ?? "nothing"}`,
   );
   logger.info(`Joined channel: ${channelName}`);
 }
 
+/** Bring a Figma channel's connection up and joined, at most once concurrently. */
+function ensureFigmaChannelReady(conn: ChannelConnection): Promise<void> {
+  if (conn.verification === "failed") {
+    return Promise.reject(
+      new Error(
+        conn.lastVerificationFailure ??
+          `Channel "${conn.channel}" failed document-identity verification. Re-run get_open_channels and join_channel.`,
+      ),
+    );
+  }
+  if (conn.ws?.readyState === WebSocket.OPEN && conn.joined) return Promise.resolve();
+  if (conn.joining) return conn.joining;
+
+  conn.joining = (async () => {
+    await ensureSocket(conn);
+    await joinAndVerify(conn);
+  })().finally(() => {
+    conn.joining = null;
+  });
+  return conn.joining;
+}
+
+/** Bring a non-Figma channel (the Chrome extension's "browser" channel) up and joined. */
+function ensureOtherChannelReady(conn: ChannelConnection): Promise<void> {
+  if (conn.ws?.readyState === WebSocket.OPEN && conn.joined) return Promise.resolve();
+  if (conn.joining) return conn.joining;
+
+  conn.joining = (async () => {
+    await ensureSocket(conn);
+    await new Promise<void>((resolve, reject) => {
+      const ws = conn.ws!;
+      const onMsg = (raw: WebSocket.RawData) => {
+        try {
+          const data = JSON.parse(raw.toString());
+          if (data.type === "system" && data.channel === conn.channel && data.message?.result) {
+            clearTimeout(timer);
+            ws.off("message", onMsg);
+            conn.joined = true;
+            conn.everJoined = true;
+            resolve();
+          }
+        } catch {
+          /* not our message */
+        }
+      };
+      const timer = setTimeout(() => {
+        ws.off("message", onMsg);
+        reject(new Error(`Timed out joining channel "${conn.channel}"`));
+      }, 5000);
+      ws.on("message", onMsg);
+      ws.send(JSON.stringify({ type: "join", channel: conn.channel }));
+    });
+  })().finally(() => {
+    conn.joining = null;
+  });
+  return conn.joining;
+}
+
 /**
- * Join a specific channel in Figma.
+ * Kept for the server entry point. Connections are now opened lazily, per channel, so
+ * there is nothing to dial before a channel is known; this only records a port override.
+ */
+export function connectToFigma(port: number = defaultPort) {
+  activePort = port;
+  logger.info(`Figma socket transport configured for port ${activePort} (connections open per channel on demand)`);
+}
+
+/**
+ * Join a specific Figma channel and bind the current tool invocation to it.
  * @param channelName - Name of the channel to join
- * @returns Promise that resolves when successfully joined the channel
  */
 export async function joinChannel(channelName: string): Promise<void> {
-  await waitForConnection();
-
-  // Validate the channel exists and has a Figma plugin connected
+  // Validate the channel exists and has a Figma plugin connected.
   try {
     const openChannels = await getOpenChannels();
     const match = openChannels.find((ch) => ch.channel === channelName);
@@ -467,51 +601,147 @@ export async function joinChannel(channelName: string): Promise<void> {
       );
     }
   } catch (error) {
-    // If the error is our own validation error, re-throw it
-    if (error instanceof ChannelValidationError) {
-      throw error;
-    }
-    // If we can't reach the channels endpoint, log a warning but proceed with the join
+    if (error instanceof ChannelValidationError) throw error;
     logger.warn(`Could not validate channel before joining: ${error instanceof Error ? error.message : String(error)}`);
   }
 
+  lastAttemptedFigmaChannel = channelName;
+  const conn = getConnection(channelName, "figma");
+  // A previous failure must not permanently poison an explicit re-join attempt.
+  if (conn.verification === "failed") {
+    conn.verification = "none";
+    conn.lastVerificationFailure = null;
+  }
+
   try {
-    await joinAndVerify(channelName);
+    await ensureFigmaChannelReady(conn);
   } catch (error) {
     if (error instanceof ChannelIdentityMismatchError) throw error;
     logger.error(`Failed to join channel: ${error instanceof Error ? error.message : String(error)}`);
     throw error;
   }
+
+  lastJoinedFigmaChannel = channelName;
+  const sessionId = getRequestSessionId();
+  if (sessionId) {
+    const joined = sessionJoins.get(sessionId) ?? new Set<string>();
+    joined.add(channelName);
+    sessionJoins.set(sessionId, joined);
+  }
+  // Bind the REST of this tool invocation to the channel it just joined, so a caller
+  // that joins and then acts in the same call cannot be re-pointed by a parallel agent.
+  setRequestChannel(channelName);
 }
 
 /**
- * Get the current channel the connection is joined to.
- * @returns The current channel name or null if not connected to any channel
+ * Resolve which channel THIS command is addressed to.
+ *
+ * Order: the channel bound to the request (an explicit `channel` argument, or the one
+ * `join_channel` bound during this same invocation) → the only live Figma channel →
+ * refusal. It never picks a winner between two live channels: that guess is exactly how
+ * commands used to land in the wrong document.
+ */
+async function resolveFigmaChannel(): Promise<string> {
+  const explicit = getRequestChannel();
+  if (explicit) return explicit;
+
+  const describe = (channels: string[]) =>
+    channels
+      .map((name) => `  - ${name} (${connections.get(name)?.expectedFile?.fileName ?? "unknown file"})`)
+      .join("\n");
+  const ambiguous = (channels: string[], scope: string) =>
+    new AmbiguousChannelError(
+      `Ambiguous Figma channel: ${scope} is joined to ${channels.length} channels, and this command named none of them.\n` +
+        `Node IDs are not unique across Figma files, so the command was NOT sent rather than guessed at.\n` +
+        `Joined channels:\n${describe(channels)}\n\n` +
+        `Pass \`channel: "<name>"\` on this tool call — every Figma tool accepts it.`,
+    );
+
+  // A session's OWN joins come first: another client of this shared server joining a
+  // different file must never re-point this one's commands.
+  const sessionId = getRequestSessionId();
+  const mine = sessionId ? [...(sessionJoins.get(sessionId) ?? [])] : [];
+  if (mine.length === 1) return mine[0];
+  if (mine.length > 1) throw ambiguous(mine, "this MCP session");
+
+  const live = liveFigmaChannels();
+  if (live.length === 1) return live[0].channel;
+  if (live.length > 1)
+    throw ambiguous(
+      live.map((c) => c.channel),
+      "this MCP process",
+    );
+
+  if (lastJoinedFigmaChannel) return lastJoinedFigmaChannel;
+
+  // Nothing joined: report what is out there.
+  try {
+    const channels = await getOpenChannels();
+    if (channels.length > 0) {
+      const channelList = channels.map((ch) => `  - ${ch.channel} (${ch.fileName || "unknown file"})`).join("\n");
+      throw new Error(
+        `No active Figma connection.\nAvailable channels:\n${channelList}\n\nUse join_channel with one of the above channel IDs to connect.`,
+      );
+    }
+    throw new Error(
+      "No active Figma connection. No open channels found.\n" +
+        "Ensure the Claude MCP Plugin is running in Figma, then use get_open_channels and join_channel.",
+    );
+  } catch (error) {
+    if (error instanceof Error && error.message.startsWith("No active Figma connection")) throw error;
+    throw new Error(
+      "No active Figma connection. Could not fetch available channels.\n" +
+        "Ensure the Claude MCP Plugin is running in Figma and use join_channel to reconnect.",
+    );
+  }
+}
+
+/**
+ * Get the channel the current request would be routed to, without sending anything.
+ * Null when nothing is joined; when several channels are joined and the request named
+ * none, it reports null rather than guessing.
  */
 export function getCurrentChannel(): string | null {
-  return currentChannel;
+  const explicit = getRequestChannel();
+  if (explicit) return explicit;
+  const sessionId = getRequestSessionId();
+  const mine = sessionId ? [...(sessionJoins.get(sessionId) ?? [])] : [];
+  if (mine.length === 1) return mine[0];
+  if (mine.length > 1) return null;
+  const live = liveFigmaChannels();
+  if (live.length === 1) return live[0].channel;
+  if (live.length > 1) return null;
+  return lastJoinedFigmaChannel;
+}
+
+/** Every Figma channel this process currently holds a joined connection to. */
+export function getJoinedChannels(): string[] {
+  return liveFigmaChannels().map((c) => c.channel);
 }
 
 /**
- * Identity of the Figma document the current channel's plugin is attached to,
- * captured at join time. Null when no channel has been joined or the plugin did
- * not report one.
+ * Identity of the Figma document behind the channel this request resolves to.
+ * Null when no channel is resolvable or the plugin did not report one.
  */
 export function getExpectedFile(): FileIdentity | null {
-  return expectedFile;
+  const channel = getCurrentChannel();
+  if (!channel) return null;
+  return connections.get(channel)?.expectedFile ?? null;
 }
 
 /**
- * Whether the active channel's document identity was verified against the identity the
- * relay advertises for that channel. Exposed for tests and diagnostics.
+ * Whether the resolved channel's document identity was verified against the identity the
+ * relay advertises for it. Exposed for tests and diagnostics.
  */
 export function getChannelVerification(): { state: ChannelVerification; failure: string | null } {
-  return { state: channelVerification, failure: lastVerificationFailure };
+  const channel = getRequestChannel() ?? getCurrentChannel() ?? lastAttemptedFigmaChannel;
+  const conn = channel ? connections.get(channel) : undefined;
+  if (!conn) return { state: "none", failure: null };
+  return { state: conn.verification, failure: conn.lastVerificationFailure };
 }
 
 /**
  * Get all open channels from the socket server via HTTP.
- * @returns A promise that resolves with an array of channel objects
  */
 export async function getOpenChannels(): Promise<
   Array<{
@@ -527,7 +757,7 @@ export async function getOpenChannels(): Promise<
     browsers?: { id: string; label: string; joinedAt: number }[];
   }>
 > {
-  const httpUrl = serverUrl === "localhost" ? `http://localhost:${defaultPort}` : `https://${serverUrl}`;
+  const httpUrl = serverUrl === "localhost" ? `http://localhost:${activePort}` : `https://${serverUrl}`;
   let response: Response;
   try {
     response = await fetch(`${httpUrl}/channels`, { signal: AbortSignal.timeout(10000) });
@@ -557,11 +787,7 @@ export async function getOpenChannels(): Promise<
 }
 
 /**
- * Send a command to Figma via WebSocket.
- * @param command - The command to send
- * @param params - Additional parameters for the command
- * @param timeoutMs - Timeout in milliseconds before failing
- * @returns A promise that resolves with the Figma response
+ * Send a command to the Figma plugin on the channel THIS request is addressed to.
  */
 export async function sendCommandToFigma<T = unknown>(
   command: FigmaCommand,
@@ -569,204 +795,115 @@ export async function sendCommandToFigma<T = unknown>(
   timeoutMs: number = 30000,
 ): Promise<T> {
   // Capture mode (batch_actions): record what this handler WOULD send and hand back a
-  // placeholder instead of touching the socket. This is what lets a batched action BE
-  // the standalone handler, so the two can never drift. See utils/tool-capture.ts.
+  // placeholder instead of touching the socket. See utils/tool-capture.ts.
   const captured = interceptForCapture(command, params);
   if (captured) return captured.value as T;
 
-  await waitForConnection();
-
-  // This connection can only be a member of one channel at a time — a browser
-  // command (e.g. inject_figma_overlay) run in between may have switched it to
-  // "browser", evicting it from our Figma channel. Rejoin transparently rather
-  // than sending into a channel this socket is no longer actually a member of.
-  // Re-pointing the active channel MUST go through the same verified join — an
-  // unverified re-point would silently re-bind the session to whichever plugin now
-  // answers on that channel name, which is exactly the bug the guard exists to stop.
-  if (command !== "join" && lastChannelName && currentChannel !== lastChannelName) {
-    await joinAndVerify(lastChannelName);
-  }
+  const channel = await resolveFigmaChannel();
+  const conn = getConnection(channel, "figma");
+  await ensureFigmaChannelReady(conn);
 
   try {
-    return await _sendCommandToFigma<T>(command, params, timeoutMs);
+    return await sendOnConnection<T>(conn, command, params, timeoutMs);
   } catch (error) {
     // A drop mid-command rejects every pending request with "Connection closed ...".
-    // "You must join the channel first" means we got evicted from this channel by an
-    // interleaved command on the shared connection. Either way, if we know which channel
-    // we were on, silently reconnect/rejoin + retry once instead of surfacing this to the
-    // caller as a one-off failure.
+    // Reconnect + re-join (which RE-VERIFIES the document identity) and retry once.
     const recoverable =
       error instanceof Error &&
       (error.message.startsWith("Connection closed") || error.message === "You must join the channel first");
-    if (recoverable && command !== "join" && lastChannelName) {
-      logger.warn(`Relay connection dropped during "${command}"; reconnecting and retrying once.`);
-      await waitForConnection();
-      await joinAndVerify(lastChannelName);
-      return await _sendCommandToFigma<T>(command, params, timeoutMs);
+    if (recoverable) {
+      logger.warn(`Channel "${channel}" dropped during "${command}"; reconnecting and retrying once.`);
+      teardown(conn, "reconnecting");
+      await ensureFigmaChannelReady(conn);
+      return await sendOnConnection<T>(conn, command, params, timeoutMs);
     }
     throw error;
   }
 }
 
-function _sendCommandToFigma<T = unknown>(
-  command: FigmaCommand,
+/**
+ * Put one command on a channel's own socket.
+ *
+ * The envelope's `channel` is always this connection's channel — there is no shared
+ * "current channel" left for it to drift from.
+ */
+function sendOnConnection<T = unknown>(
+  conn: ChannelConnection,
+  command: FigmaCommand | BrowserCommand | "join",
   params: unknown = {},
   timeoutMs: number = 30000,
+  options: { join?: boolean; target?: string } = {},
 ): Promise<T> {
-  return new Promise((resolve, reject) => {
+  return new Promise<T>((resolve, reject) => {
+    const ws = conn.ws;
     if (!ws || ws.readyState !== WebSocket.OPEN) {
       reject(new Error("Not connected to Figma"));
       return;
     }
 
-    // Check if we need a channel for this command
-    const requiresChannel = command !== "join";
-
     // Defence in depth: a channel whose identity verification FAILED must never be
-    // talked to, pinned or unpinned. `expectedFile === null` alone cannot express this
-    // (it also means "identity unavailable", which is legitimately allowed to proceed),
-    // so the refusal keys off the explicit verification state.
-    if (requiresChannel && channelVerification === "failed") {
+    // talked to, pinned or unpinned.
+    if (!options.join && conn.kind === "figma" && conn.verification === "failed") {
       reject(
         new Error(
-          lastVerificationFailure ??
+          conn.lastVerificationFailure ??
             "The last channel join failed document-identity verification. Re-run get_open_channels and join_channel.",
         ),
       );
       return;
     }
 
-    if (requiresChannel && currentChannel && channelVerification === "none") {
-      reject(
-        new Error(
-          `Channel "${currentChannel}" was never verified against a Figma document. ` +
-            "Re-run join_channel before sending commands.",
-        ),
-      );
-      return;
-    }
-
-    if (requiresChannel && !currentChannel) {
-      getOpenChannels()
-        .then((channels) => {
-          if (channels.length > 0) {
-            const channelList = channels.map((ch) => `  - ${ch.channel} (${ch.fileName || "unknown file"})`).join("\n");
-            reject(
-              new Error(
-                `No active Figma connection.\nAvailable channels:\n${channelList}\n\nUse join_channel with one of the above channel IDs to connect.`,
-              ),
-            );
-          } else {
-            reject(
-              new Error(
-                "No active Figma connection. No open channels found.\n" +
-                  "Ensure the Claude MCP Plugin is running in Figma, then use get_open_channels and join_channel.",
-              ),
-            );
-          }
-        })
-        .catch(() => {
-          reject(
-            new Error(
-              "No active Figma connection. Could not fetch available channels.\n" +
-                "Ensure the Claude MCP Plugin is running in Figma and use join_channel to reconnect.",
-            ),
-          );
-        });
-      return;
-    }
-
     const id = uuidv4();
+    const stamped = conn.kind === "figma" && !options.join && command !== "get_file_key";
     const request = {
       id,
-      type: command === "join" ? "join" : "message",
-      ...(command === "join" ? { channel: (params as any).channel } : { channel: currentChannel }),
+      type: options.join ? "join" : "message",
+      channel: conn.channel,
+      ...(options.target ? { target: options.target } : {}),
       message: {
         id,
         command,
         params: {
           ...(params as any),
-          commandId: id, // Include the command ID in params
-          // Pin this command to the document we believe we are talking to. The
-          // plugin rejects it outright on mismatch instead of applying it to a
-          // same-numbered node in a different file.
-          ...(command !== "join" && command !== "get_file_key" && expectedFile ? { __expectedFile: expectedFile } : {}),
+          commandId: id,
+          // Pin this command to the channel AND document it was addressed to. The plugin
+          // refuses it outright on mismatch instead of applying it to a same-numbered
+          // node in a different file (see the plugin's document-guard).
+          ...(stamped ? { __expectedChannel: conn.channel } : {}),
+          ...(stamped && conn.expectedFile ? { __expectedFile: conn.expectedFile } : {}),
         },
       },
     };
 
-    // Set timeout for request
     const timeout = setTimeout(() => {
-      if (pendingRequests.has(id)) {
-        pendingRequests.delete(id);
+      if (conn.pending.has(id)) {
+        conn.pending.delete(id);
         logger.error(`Request ${id} to Figma timed out after ${timeoutMs / 1000} seconds`);
         reject(new Error("Request to Figma timed out"));
       }
     }, timeoutMs);
 
-    // Store the promise callbacks to resolve/reject later
-    pendingRequests.set(id, {
+    conn.pending.set(id, {
       resolve: resolve as (value: unknown) => void,
       reject,
       timeout,
       lastActivity: Date.now(),
     });
 
-    // Send the request
-    logger.info(`Sending command to Figma: ${command}`);
+    logger.info(`Sending "${command}" on channel "${conn.channel}"`);
     logger.debug(`Request details: ${JSON.stringify(request)}`);
     ws.send(JSON.stringify(request));
-  }) as Promise<T>;
-}
-
-/**
- * Ensures the current WS connection has joined the given channel.
- * Used for non-Figma channels (e.g. "browser"). Idempotent per connection.
- *
- * The relay server allows a socket to be a member of only one channel at a
- * time (joining a new one silently evicts it from the previous one), so this
- * MUST check against the single shared `currentChannel`, not an independent
- * per-channel cache — otherwise a Figma-channel command in between two browser
- * commands leaves this connection evicted from "browser" while still
- * believing it's joined, and every subsequent browser command is rejected
- * server-side with "You must join the channel first" until it times out.
- */
-async function ensureBrowserChannelJoined(channel: string): Promise<void> {
-  if (!ws || ws.readyState !== WebSocket.OPEN) {
-    throw new Error("Not connected to WebSocket server. Ensure the socket server is running.");
-  }
-  if (currentChannel === channel) return;
-
-  await new Promise<void>((resolve, reject) => {
-    const onMsg = (raw: WebSocket.RawData) => {
-      try {
-        const data = JSON.parse(raw.toString());
-        if (data.type === "system" && data.channel === channel && data.message?.result) {
-          clearTimeout(timer);
-          ws!.off("message", onMsg);
-          currentChannel = channel;
-          resolve();
-        }
-      } catch {}
-    };
-    const timer = setTimeout(() => {
-      ws!.off("message", onMsg);
-      reject(new Error(`Timed out joining channel "${channel}"`));
-    }, 5000);
-    ws!.on("message", onMsg);
-    ws!.send(JSON.stringify({ type: "join", channel }));
   });
 }
 
 /**
- * Send a command to an explicit channel (not currentChannel).
- * Used for non-Figma channels such as "browser".
+ * Send a command to an explicit channel (not a Figma document channel).
+ * Used for the Chrome extension's "browser" channel.
  *
  * @param browserId - Optional routing target. May also be supplied as
  * `params.browserId`. When set it is emitted as an envelope-level `target`
  * sibling of `channel`; the relay routes to that client and rejects unknown or
- * ambiguous targets itself. When unset the envelope is unchanged from a
- * single-client send.
+ * ambiguous targets itself.
  */
 export async function sendCommandToChannel<T = unknown>(
   targetChannel: string,
@@ -775,73 +912,45 @@ export async function sendCommandToChannel<T = unknown>(
   timeoutMs: number = 30000,
   browserId?: string,
 ): Promise<T> {
-  await waitForConnection();
-  await ensureBrowserChannelJoined(targetChannel);
+  const conn = getConnection(targetChannel, "other");
+  await ensureOtherChannelReady(conn);
+
+  // `browserId` is a ROUTING hint, not a command param: it is lifted out of params into
+  // an envelope-level `target` so the extension's command handler never sees it.
+  const { browserId: paramsBrowserId, ...restParams } = (params ?? {}) as Record<string, unknown>;
+  const target = browserId ?? (typeof paramsBrowserId === "string" ? paramsBrowserId : undefined);
+
+  const send = () =>
+    sendOnConnection<T>(conn, command, restParams, timeoutMs, { target }).catch((error) => {
+      if (error instanceof Error && error.message === "Request to Figma timed out") {
+        throw new Error(
+          `Browser command "${command}" timed out after ${timeoutMs / 1000}s. Is the Chrome extension connected?`,
+        );
+      }
+      throw error;
+    });
 
   try {
-    return await _sendCommandToChannel<T>(targetChannel, command, params, timeoutMs, browserId);
+    return await send();
   } catch (error) {
     const recoverable =
       error instanceof Error &&
       (error.message.startsWith("Connection closed") || error.message === "You must join the channel first");
     if (recoverable) {
-      logger.warn(`Relay connection dropped during browser command "${command}"; reconnecting and retrying once.`);
-      await waitForConnection();
-      await ensureBrowserChannelJoined(targetChannel);
-      return await _sendCommandToChannel<T>(targetChannel, command, params, timeoutMs, browserId);
+      logger.warn(`Channel "${targetChannel}" dropped during browser command "${command}"; retrying once.`);
+      teardown(conn, "reconnecting");
+      await ensureOtherChannelReady(conn);
+      return await send();
     }
     throw error;
   }
 }
 
-function _sendCommandToChannel<T = unknown>(
-  targetChannel: string,
-  command: BrowserCommand,
-  params: unknown,
-  timeoutMs: number,
-  browserId?: string,
-): Promise<T> {
-  if (!ws || ws.readyState !== WebSocket.OPEN) {
-    return Promise.reject(new Error("Not connected to WebSocket server."));
-  }
-
-  return new Promise<T>((resolve, reject) => {
-    const id = uuidv4();
-
-    const timeout = setTimeout(() => {
-      if (pendingRequests.has(id)) {
-        pendingRequests.delete(id);
-        reject(
-          new Error(
-            `Browser command "${command}" timed out after ${timeoutMs / 1000}s. Is the Chrome extension connected?`,
-          ),
-        );
-      }
-    }, timeoutMs);
-
-    pendingRequests.set(id, {
-      resolve: resolve as (value: unknown) => void,
-      reject,
-      timeout,
-      lastActivity: Date.now(),
-    });
-
-    // `browserId` is a ROUTING hint, not a command param: it is lifted out of
-    // params into an envelope-level `target` so the extension's command handler
-    // never sees it. With no target the envelope is byte-identical to a
-    // single-client send (no `target` key at all).
-    const { browserId: paramsBrowserId, ...restParams } = (params ?? {}) as Record<string, unknown>;
-    const target = browserId ?? (typeof paramsBrowserId === "string" ? paramsBrowserId : undefined);
-
-    const request = {
-      id,
-      type: "message",
-      channel: targetChannel,
-      ...(target ? { target } : {}),
-      message: { id, command, params: { ...restParams, commandId: id } },
-    };
-
-    logger.info(`Sending browser command: ${command}${target ? ` → browser ${target}` : ""}`);
-    ws!.send(JSON.stringify(request));
-  }) as Promise<T>;
+/** Test helper: drop every connection and all channel state. */
+export function resetChannelConnections(): void {
+  for (const conn of connections.values()) teardown(conn, "reset");
+  connections.clear();
+  lastJoinedFigmaChannel = null;
+  lastAttemptedFigmaChannel = null;
+  sessionJoins.clear();
 }

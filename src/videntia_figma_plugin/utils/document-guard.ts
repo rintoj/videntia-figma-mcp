@@ -47,6 +47,11 @@ export function assertExpectedDocument(
     matches = expected.fileKey === actual.fileKey;
   } else if (expected.rootId && actual.rootId) {
     matches = expected.rootId === actual.rootId;
+  } else if (expected.fileName && actual.fileName) {
+    // Last resort. Two files CAN share a name, so this is weaker than fileKey/rootId —
+    // but a client that could only report a name is still telling us which document it
+    // meant, and letting that through unchecked is how a write lands in the wrong file.
+    matches = expected.fileName === actual.fileName;
   } else {
     return;
   }
