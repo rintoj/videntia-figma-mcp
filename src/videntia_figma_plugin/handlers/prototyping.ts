@@ -109,7 +109,35 @@ async function writeReactions(node: ReactiveNodeLike, reactions: unknown[]): Pro
         "This Figma build is too old for prototype authoring under dynamic-page document access.",
     );
   }
+  for (let i = 0; i < reactions.length; i++) {
+    const count = actionsOf(reactions[i] as RawReaction).length;
+    if (count > 1) {
+      // setReactionsAsync never resolves on a multi-action reaction. add/remove
+      // re-write the node's EXISTING reactions, which may have been authored in
+      // Figma's UI with several actions — refuse instead of hanging.
+      throw new Error(
+        `Node "${node.name}" reaction[${i}] has ${count} actions. Figma's setReactionsAsync hangs on ` +
+          "multi-action reactions, so this server cannot rewrite this node's reactions. Split it into " +
+          "single-action reactions in Figma's UI (or replace them all with set_reactions) first.",
+      );
+    }
+  }
   await node.setReactionsAsync(reactions);
+}
+
+/**
+ * Re-shape a reaction READ from Figma so it can be written back.
+ *
+ * The read shape carries keys the runtime validator rejects on write: the
+ * deprecated singular `action`, and `deprecatedVersion` on MOUSE_ENTER/LEAVE.
+ */
+function toWritableReaction(reaction: RawReaction): Record<string, unknown> {
+  let trigger: Record<string, unknown> | null = null;
+  if (reaction.trigger) {
+    trigger = { ...(reaction.trigger as unknown as Record<string, unknown>) };
+    delete trigger["deprecatedVersion"];
+  }
+  return { trigger, actions: actionsOf(reaction) };
 }
 
 // ---------------------------------------------------------------------------
@@ -694,8 +722,8 @@ export async function addPrototypeLink(params: Record<string, unknown>): Promise
     overlayRelativePosition: params["overlayRelativePosition"] as { x: number; y: number } | undefined,
   });
 
-  const existing = Array.isArray(node.reactions) ? node.reactions.slice() : [];
-  const next = existing.concat([{ trigger, actions: [action] } as unknown as RawReaction]);
+  const existing = Array.isArray(node.reactions) ? node.reactions.map(toWritableReaction) : [];
+  const next = existing.concat([{ trigger, actions: [action] }]);
   await writeReactions(node, next);
 
   return {
@@ -818,7 +846,7 @@ export async function removePrototypeLink(params: Record<string, unknown>): Prom
     next = [];
   }
 
-  await writeReactions(node, next);
+  await writeReactions(node, next.map(toWritableReaction));
 
   return {
     nodeId: node.id,
