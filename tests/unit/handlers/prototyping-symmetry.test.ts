@@ -1,4 +1,8 @@
-import { getReactions, setReactions } from "../../../src/videntia_figma_plugin/handlers/prototyping";
+import {
+  getReactions,
+  removePrototypeLink,
+  setReactions,
+} from "../../../src/videntia_figma_plugin/handlers/prototyping";
 
 type MockNode = {
   id: string;
@@ -201,5 +205,79 @@ describe("multi-action guard", () => {
         reactions: [{ trigger: { type: "ON_CLICK" }, actions: [{ type: "BACK" }, { type: "CLOSE" }] }],
       }),
     ).rejects.toThrow(/hangs/);
+  });
+});
+
+describe("transition params that the transition type does not carry", () => {
+  // DISSOLVE / SMART_ANIMATE / SCROLL_ANIMATE have neither direction nor
+  // matchLayers. Previously only SMART_ANIMATE + matchLayers was refused; the
+  // rest reported success for a value that was never written.
+  it.each([
+    ["DISSOLVE", { direction: "RIGHT" }],
+    ["DISSOLVE", { matchLayers: true }],
+    ["SCROLL_ANIMATE", { direction: "LEFT" }],
+    ["SCROLL_ANIMATE", { matchLayers: false }],
+    ["SMART_ANIMATE", { direction: "TOP" }],
+    ["SMART_ANIMATE", { matchLayers: true }],
+  ])("refuses %s with %j", async (type, extra) => {
+    nodes.set("1:2", reactiveNode());
+    nodes.set("dest", { id: "dest", name: "Dest", type: "FRAME", reactions: [] });
+
+    await expect(
+      setReactions({
+        nodeId: "1:2",
+        reactions: [
+          {
+            trigger: { type: "ON_CLICK" },
+            actions: [{ type: "NODE", destinationId: "dest", navigation: "NAVIGATE", transition: { type, ...extra } }],
+          },
+        ],
+      }),
+    ).rejects.toThrow(/not valid on a/);
+  });
+
+  it("still accepts direction and matchLayers on a directional transition", async () => {
+    nodes.set("1:2", reactiveNode());
+    nodes.set("dest", { id: "dest", name: "Dest", type: "FRAME", reactions: [] });
+
+    const result = await setReactions({
+      nodeId: "1:2",
+      reactions: [
+        {
+          trigger: { type: "ON_CLICK" },
+          actions: [
+            {
+              type: "NODE",
+              destinationId: "dest",
+              navigation: "NAVIGATE",
+              transition: { type: "PUSH", direction: "RIGHT", matchLayers: true },
+            },
+          ],
+        },
+      ],
+    });
+    expect(result.success).toBe(true);
+  });
+});
+
+describe("remove_prototype_link with an empty destinationId", () => {
+  it("refuses instead of clearing every reaction", async () => {
+    const node = reactiveNode({ reactions: [{ trigger: { type: "ON_CLICK" }, actions: [{ type: "BACK" }] }] });
+    nodes.set("1:2", node);
+
+    // An empty destination used to be coerced to "omitted", which means
+    // "clear everything" — a destination that resolved to "" wiped the node.
+    await expect(removePrototypeLink({ nodeId: "1:2", destinationId: "" })).rejects.toThrow(/destinationId is empty/);
+    expect(node.setReactionsAsync).not.toHaveBeenCalled();
+    expect(node.reactions).toHaveLength(1);
+  });
+
+  it("still clears everything when destinationId is omitted", async () => {
+    const node = reactiveNode({ reactions: [{ trigger: { type: "ON_CLICK" }, actions: [{ type: "BACK" }] }] });
+    nodes.set("1:2", node);
+
+    const result = await removePrototypeLink({ nodeId: "1:2" });
+    expect(result.removedCount).toBe(1);
+    expect(result.remainingCount).toBe(0);
   });
 });

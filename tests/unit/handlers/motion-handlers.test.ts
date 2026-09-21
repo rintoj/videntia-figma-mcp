@@ -367,11 +367,39 @@ describe("animateNode", () => {
     await animateNode({ nodeId: "1:2", preset: "slide-up", duration: 200, delay: 100, distance: 16 });
 
     const [, track] = node.applyManualKeyframeTrack!.mock.calls[0];
-    // First keyframe starts at the delay (100ms -> 0.1s) and travels `distance`.
-    expect(track.keyframes[0].timelinePosition).toBe(0.1);
+    // A pinned keyframe at 0 holds the start value through the delay...
+    expect(track.keyframes[0].timelinePosition).toBe(0);
     expect(track.keyframes[0].value).toEqual({ type: "FLOAT", value: 16 });
-    // Last keyframe lands at delay + duration = 300ms.
-    expect(track.keyframes[1].timelinePosition).toBe(0.3);
+    // ...the animation itself starts at the delay (100ms -> 0.1s), from `distance`...
+    expect(track.keyframes[1].timelinePosition).toBe(0.1);
+    expect(track.keyframes[1].value).toEqual({ type: "FLOAT", value: 16 });
+    // ...and lands at delay + duration = 300ms.
+    expect(track.keyframes[2].timelinePosition).toBe(0.3);
+  });
+
+  it("holds the start value through a delay instead of flashing the resting value", async () => {
+    const node = motionNode();
+    nodes.set("1:2", node);
+
+    await animateNode({ nodeId: "1:2", preset: "fade-in", delay: 500 });
+
+    const [, track] = node.applyManualKeyframeTrack!.mock.calls[0];
+    // baseValue is the RESTING value (opacity 1). Without the pinned keyframe,
+    // a renderer that shows baseValue before the first keyframe would display
+    // the node fully visible for 500ms, then snap to 0 and fade in.
+    expect(track.baseValue).toEqual({ type: "FLOAT", value: 1 });
+    expect(track.keyframes[0]).toMatchObject({ timelinePosition: 0, value: { type: "FLOAT", value: 0 } });
+    expect(track.keyframes[1]).toMatchObject({ timelinePosition: 0.5, value: { type: "FLOAT", value: 0 } });
+  });
+
+  it("adds no pinned keyframe when there is no delay", async () => {
+    const node = motionNode();
+    nodes.set("1:2", node);
+
+    await animateNode({ nodeId: "1:2", preset: "fade-in" });
+
+    const [, track] = node.applyManualKeyframeTrack!.mock.calls[0];
+    expect(track.keyframes).toHaveLength(2);
   });
 
   it("grows the timeline to fit the effect", async () => {

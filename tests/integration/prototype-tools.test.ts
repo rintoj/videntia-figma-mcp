@@ -313,6 +313,17 @@ describe("prototype tools integration", () => {
       });
     });
 
+    it("refuses an empty destinationId rather than clearing every reaction", async () => {
+      // Rejected by the schema, so it never reaches Figma and nothing can be wiped.
+      await expect(callTool("remove_prototype_link", { nodeId: "btn-1", destinationId: "" })).rejects.toThrow(
+        /destinationId is empty/,
+      );
+      await expect(callTool("remove_prototype_link", { nodeId: "btn-1", destinationId: "   " })).rejects.toThrow(
+        /destinationId is empty/,
+      );
+      expect(mockSendCommand).not.toHaveBeenCalled();
+    });
+
     it("omits the filter when clearing every reaction", async () => {
       mockSendCommand.mockResolvedValue({ nodeName: "CTA", removedCount: 3, remainingCount: 0 });
       await callTool("remove_prototype_link", { nodeId: "btn-1" });

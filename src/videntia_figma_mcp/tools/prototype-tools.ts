@@ -240,8 +240,11 @@ export function registerPrototypeTools(server: McpServer): void {
   server.tool(
     "add_prototype_link",
     "Add ONE prototype navigation link (reaction) from a node to a destination. Appends to the node's " +
-      "existing reactions. All durations are in MILLISECONDS. Use set_reactions instead when you need " +
-      "multiple actions per trigger, or a non-navigation action (URL, BACK, CLOSE, SET_VARIABLE…).",
+      "existing reactions. All durations are in MILLISECONDS. Use set_reactions instead for a " +
+      "non-navigation action (URL, BACK, CLOSE, SET_VARIABLE…). Multiple actions on ONE reaction are " +
+      "not possible through the plugin API (Figma hangs on them). Figma does accept several " +
+      "single-action reactions sharing one trigger — check in prototype playback that they fire as " +
+      "intended — or build the multi-action interaction in Figma's UI.",
     {
       nodeId: z
         .string()
@@ -396,7 +399,7 @@ export function registerPrototypeTools(server: McpServer): void {
               .describe(
                 "The action fired by this trigger. EXACTLY ONE: Figma's setReactionsAsync hangs " +
                   "(never resolves) on a reaction with more than one action, so this server refuses it. " +
-                  "Several reactions sharing a trigger is the working equivalent.",
+                  "Figma accepts several single-action reactions sharing one trigger instead.",
               ),
           }),
         )
@@ -442,13 +445,23 @@ export function registerPrototypeTools(server: McpServer): void {
       nodeId: z.string().describe("ID of the source node"),
       destinationId: z
         .string()
+        // Omitting destinationId clears every reaction; an EMPTY one must not. A
+        // destination that resolved to "" (e.g. a $result reference) used to be
+        // coerced to "omitted" and silently wiped the whole node. Enforced in the
+        // schema, not the handler, so the batch path reports it too — a handler
+        // that returns early issues no Figma command, which batch misreports as
+        // "cannot run inside a batch".
+        .refine((value) => value.trim().length > 0, {
+          message:
+            "destinationId is empty. Pass the destination node id to remove one link, or omit " +
+            "destinationId entirely to clear every reaction on the node.",
+        })
         .optional()
         .describe("ID of the destination to remove (omit to remove ALL reactions from the node)"),
     },
     async ({ nodeId, destinationId }) => {
       const normalizedNodeId = normalizeNodeId(nodeId);
-      const normalizedDestination =
-        destinationId && destinationId.length > 0 ? normalizeNodeId(destinationId) : undefined;
+      const normalizedDestination = destinationId !== undefined ? normalizeNodeId(destinationId) : undefined;
       try {
         const result = await sendCommandToFigma("remove_prototype_link", {
           nodeId: normalizedNodeId,

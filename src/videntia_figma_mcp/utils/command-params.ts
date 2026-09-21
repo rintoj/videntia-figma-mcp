@@ -287,10 +287,6 @@ const COMMAND_NORMALIZERS: Record<string, Normalizer> = {
   set_instance_overrides: (p) => {
     p.targetNodeIds = p.targetNodeIds || [];
   },
-  remove_prototype_link: (p) => {
-    if (typeof p.destinationId === "string" && p.destinationId.length === 0) delete p.destinationId;
-  },
-
   // ── Document & reading ──────────────────────────────────────────────────
   get_selection: resolveDepthParam,
   get_node_info: (p) => {

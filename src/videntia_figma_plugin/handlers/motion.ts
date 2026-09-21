@@ -1055,6 +1055,20 @@ export async function animateNode(params: Record<string, unknown>): Promise<Anim
       return entry;
     });
 
+    // With a delay, the first keyframe lands at `delayMs`, not 0. What the node
+    // shows between 0 and the delay then depends on how Motion treats
+    // `baseValue` (the RESTING value — opacity 1 for fade-in): if it renders the
+    // base value before the first keyframe, the node sits fully visible, then
+    // snaps to opacity 0 and animates in. That is exactly wrong for the
+    // staggered-entrance case `delay` exists for.
+    //
+    // The playhead is read-only, so the rendered value in that window cannot be
+    // observed through the API. Rather than bet on one reading of baseValue,
+    // pin the start value at 0 explicitly: correct under either semantics.
+    if (delayMs > 0 && keyframes.length > 0) {
+      keyframes.unshift({ timelinePosition: 0, value: keyframes[0]["value"] });
+    }
+
     const trackInput: Record<string, unknown> = { keyframes };
     if (track.baseValue !== undefined) {
       trackInput["baseValue"] = asKeyframeValue(track.baseValue);

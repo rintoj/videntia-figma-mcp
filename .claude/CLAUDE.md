@@ -500,8 +500,12 @@ Tools live in `src/videntia_figma_mcp/tools/prototype-tools.ts` (plugin:
 - **One action per reaction.** Verified 2026-09-20: `setReactionsAsync` **never resolves**
   when a reaction carries more than one action — reproducible even with a trivial
   `[BACK, CLOSE]`. It hangs rather than throwing, so the schema caps `actions` at 1 and
-  the plugin guards too; otherwise the command blocks until the socket times out. Several
-  reactions sharing a trigger is the working equivalent.
+  the plugin guards too; otherwise the command blocks until the socket times out. Figma
+  **does accept and store** several single-action reactions on the same trigger (verified
+  2026-09-21). Whether prototype playback fires all of them on one interaction has NOT been
+  verified — check it before relying on it as a multi-action substitute.
+  `add_prototype_link` / `remove_prototype_link` rewrite a node's EXISTING reactions, so
+  they also refuse a node carrying a UI-authored multi-action reaction.
 - `set_default_connector` **throws** — the Plugin API genuinely cannot set it. It used to
   return `success: false`, which read as a completed call.
 

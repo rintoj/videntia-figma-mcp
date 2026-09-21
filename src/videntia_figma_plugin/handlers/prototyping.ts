@@ -204,14 +204,23 @@ function normalizeTransition(transition: RawTransition | null | undefined): Reco
       `Unknown transition type "${type}". Expected one of ` +
         `${SIMPLE_TRANSITIONS.concat(DIRECTIONAL_TRANSITIONS).join(", ")}.`,
     );
-  } else if (type === "SMART_ANIMATE" && transition.matchLayers !== undefined) {
-    // SMART_ANIMATE is a SimpleTransition in the API — it has no matchLayers
-    // field, and layer matching is implicit. Silently dropping the param would
-    // be the sort of no-op this server exists to surface.
-    throw new Error(
-      "matchLayers is only valid on directional transitions (MOVE_IN, MOVE_OUT, PUSH, SLIDE_IN, SLIDE_OUT). " +
-        "SMART_ANIMATE matches layers by name automatically.",
-    );
+  } else {
+    // DISSOLVE / SMART_ANIMATE / SCROLL_ANIMATE are SimpleTransitions in the API:
+    // they carry neither `direction` nor `matchLayers`. Silently dropping either
+    // reported success for a value that was never written — the no-op class this
+    // server exists to surface. Previously only SMART_ANIMATE + matchLayers was
+    // caught; `direction` on any of them, and matchLayers on the other two, still
+    // slipped through.
+    const dropped: string[] = [];
+    if (transition.direction !== undefined) dropped.push("direction");
+    if (transition.matchLayers !== undefined) dropped.push("matchLayers");
+    if (dropped.length > 0) {
+      const hint = type === "SMART_ANIMATE" ? " SMART_ANIMATE matches layers by name automatically." : "";
+      throw new Error(
+        `${dropped.join(" and ")} ${dropped.length > 1 ? "are" : "is"} not valid on a ${type} transition; ` +
+          `only the directional transitions (${DIRECTIONAL_TRANSITIONS.join(", ")}) take them.${hint}`,
+      );
+    }
   }
 
   return base;
@@ -774,8 +783,9 @@ export async function setReactions(params: Record<string, unknown>): Promise<Set
       throw new Error(
         `reactions[${index}] has ${actions.length} actions. Figma's setReactionsAsync hangs (never ` +
           "resolves) on a reaction with more than one action, so this server refuses it rather than " +
-          "blocking until the socket times out. Use one action per reaction — several reactions on the " +
-          "same trigger is the working equivalent. Build multi-action interactions in Figma's UI instead.",
+          "blocking until the socket times out. Use one action per reaction: Figma accepts several " +
+          "single-action reactions on the same trigger (check they fire as intended in prototype " +
+          "playback), or build the multi-action interaction in Figma's UI.",
       );
     }
     return {
@@ -829,6 +839,13 @@ export interface RemovePrototypeLinkResult {
 export async function removePrototypeLink(params: Record<string, unknown>): Promise<RemovePrototypeLinkResult> {
   const nodeId = params["nodeId"] as string;
   const destinationId = params["destinationId"] as string | undefined;
+
+  if (typeof destinationId === "string" && destinationId.trim().length === 0) {
+    throw new Error(
+      "remove_prototype_link: destinationId is empty. Omit it to clear every reaction, " +
+        "or pass a node id to remove one link.",
+    );
+  }
 
   const node = await loadReactiveNode(nodeId);
   const existing = Array.isArray(node.reactions) ? node.reactions : [];
