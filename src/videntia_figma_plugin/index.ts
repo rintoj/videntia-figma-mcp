@@ -26,7 +26,21 @@ import {
   createConnections,
   addPrototypeLink,
   removePrototypeLink,
+  setReactions,
+  mapPrototypeFlows,
 } from "./handlers/prototyping";
+
+// Handlers — motion (Figma Motion timelines / keyframes, Beta API)
+import {
+  getMotionInfo,
+  listAnimationStyles,
+  applyAnimationStyle,
+  removeAnimationStyle,
+  setKeyframeTrack,
+  removeKeyframeTrack,
+  setTimelineDuration,
+  animateNode,
+} from "./handlers/motion";
 
 // Handlers — node creation & modification
 import {
@@ -237,13 +251,7 @@ import {
 import { batchActions } from "./handlers/batch";
 
 // Handlers — documentation
-import {
-  enumerateAllFrames,
-  mapPrototypeFlows,
-  bulkExportFrames,
-  getContentTree,
-  getFrameDocumentation,
-} from "./handlers/documentation";
+import { enumerateAllFrames, bulkExportFrames, getContentTree, getFrameDocumentation } from "./handlers/documentation";
 
 // Handlers — comments
 import { getComments } from "./handlers/comments";
@@ -302,6 +310,8 @@ var READONLY_COMMANDS = new Set([
   "get_annotation_categories",
   "get_reactions",
   "get_frame_animations",
+  "get_motion_info",
+  "list_animation_styles",
   "get_design_system",
   "lint_frame",
   "contrast_check_frame",
@@ -355,6 +365,7 @@ var FOCUS_BEFORE_COMMANDS = new Set([
   "get_annotations",
   "get_reactions",
   "get_frame_animations",
+  "get_motion_info",
   "export_node_as_image",
   "lint_frame",
   "contrast_check_frame",
@@ -1089,6 +1100,24 @@ async function _executeCommand(command: string, params: Record<string, unknown>)
       return await addPrototypeLink(params);
     case "remove_prototype_link":
       return await removePrototypeLink(params);
+    case "set_reactions":
+      return await setReactions(params);
+    case "get_motion_info":
+      return await getMotionInfo(params);
+    case "list_animation_styles":
+      return await listAnimationStyles();
+    case "apply_animation_style":
+      return await applyAnimationStyle(params);
+    case "remove_animation_style":
+      return await removeAnimationStyle(params);
+    case "set_keyframe_track":
+      return await setKeyframeTrack(params);
+    case "remove_keyframe_track":
+      return await removeKeyframeTrack(params);
+    case "set_timeline_duration":
+      return await setTimelineDuration(params);
+    case "animate_node":
+      return await animateNode(params);
     case "set_default_connector":
       return await setDefaultConnector(params);
     case "create_connections":
@@ -1241,6 +1270,44 @@ function extractNodeIds(result: unknown): string[] {
 // ---------------------------------------------------------------------------
 
 // Installed by startPanel, never at module scope.
+/**
+ * Describe a thrown value for the wire.
+ *
+ * The Figma API does not always throw an `Error` — it can throw a plain string
+ * or a bare object, and the old handler collapsed all of those to the useless
+ * "Error executing command", hiding the actual reason a write was rejected.
+ *
+ * Deliberately does NOT JSON.stringify an unknown throw: a Figma error can
+ * carry live node proxies, and serializing those walks the document and hangs
+ * the command until the socket times out. Only cheap, bounded reads here.
+ */
+function describeThrown(error: unknown, command?: string): string {
+  const prefix = command ? `${command}: ` : "";
+
+  // Handlers already prefix their own command name; adding a second produced
+  // "remove_animation_style: remove_animation_style: id is required".
+  const withPrefix = (message: string): string =>
+    command && message.indexOf(`${command}:`) === 0 ? message : `${prefix}${message}`;
+
+  if (error instanceof Error && error.message) return withPrefix(error.message);
+  if (typeof error === "string" && error.length > 0) return withPrefix(error);
+
+  if (error !== null && typeof error === "object") {
+    try {
+      const message = (error as { message?: unknown }).message;
+      if (typeof message === "string" && message.length > 0) return withPrefix(message);
+    } catch {
+      // A hostile getter — fall through.
+    }
+  }
+
+  return (
+    prefix +
+    "the Figma API rejected this command without an error message " +
+    `(threw ${Object.prototype.toString.call(error)})`
+  );
+}
+
 async function handlePanelMessage(msg: Record<string, unknown>): Promise<void> {
   switch (msg["type"]) {
     case "update-settings":
@@ -1673,7 +1740,7 @@ async function handlePanelMessage(msg: Record<string, unknown>): Promise<void> {
           type: "command-error",
           id: msg["id"],
           command: msg["command"],
-          error: error instanceof Error ? error.message : "Error executing command",
+          error: describeThrown(error, msg["command"] as string),
         });
       }
       break;

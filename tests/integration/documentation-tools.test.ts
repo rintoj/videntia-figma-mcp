@@ -84,32 +84,6 @@ describe("documentation tools integration", () => {
     });
   });
 
-  describe("map_prototype_flows", () => {
-    it("forwards optional pageId", async () => {
-      mockSendCommand.mockResolvedValue({ nodes: [], edges: [], entryPoints: [] });
-
-      await callTool("map_prototype_flows", { pageId: "page-1" });
-
-      expect(mockSendCommand).toHaveBeenCalledWith("map_prototype_flows", { pageId: "page-1" });
-    });
-
-    it("works without pageId", async () => {
-      mockSendCommand.mockResolvedValue({ nodes: [], edges: [], entryPoints: [] });
-
-      await callTool("map_prototype_flows", {});
-
-      expect(mockSendCommand).toHaveBeenCalledWith("map_prototype_flows", { pageId: undefined });
-    });
-
-    it("handles errors gracefully", async () => {
-      mockSendCommand.mockRejectedValue(new Error("boom"));
-
-      const response = await callTool("map_prototype_flows", {});
-
-      expect(response.content[0].text).toContain("Error mapping prototype flows");
-    });
-  });
-
   describe("bulk_export_frames", () => {
     it("applies default format and scale", async () => {
       mockSendCommand.mockResolvedValue({ exports: [] });

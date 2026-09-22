@@ -434,6 +434,88 @@ fill with their own children.
   the component, still typed SLOT but with no slot binding (not the FRAME the typings promise). JSX renders slots
   as `<Slot>`, and `<Slot>` inside a component becomes a real slot on the way back.
 
+## Motion & Prototyping
+
+### Durations are MILLISECONDS, everywhere
+
+`src/videntia_figma_plugin/utils/duration.ts` owns the only dialect. **Every duration
+crossing the MCP boundary is in milliseconds** — transition durations, `AFTER_TIMEOUT`
+timeouts, `MOUSE_*` delays, Motion timeline positions and timeline durations. The plugin
+converts to the seconds Figma wants immediately before the API call, and back on read, so
+a value written reads back identically.
+
+> Before this, `add_prototype_link` documented `transitionDuration` as ms and passed it
+> through untouched to an API that wants seconds — writing `300` meant a **300-second**
+> transition, and `get_frame_animations` reported seconds back. The default
+> `triggerTimeout: 800` meant 800 seconds.
+
+### Figma Motion (Beta)
+
+Verified working against a live file on 2026-09-20. Motion is a **second, independent animation system**: prototyping navigates BETWEEN
+frames, Motion animates a node's own properties ALONG a timeline. `MotionNodeMixin` is on
+every `SceneNode`. Tools: `src/videntia_figma_mcp/tools/motion-tools.ts`, plugin:
+`handlers/motion.ts`.
+
+| Tool | Notes |
+|------|-------|
+| `animate_node` | **Prefer this.** One round trip, house `MOTION_PRESETS` (`fade-in`, `fade-out`, `slide-*`, `scale-in`, `pulse`, `press-feedback`) |
+| `get_motion_info` | Timelines, applied styles, keyframe tracks. `output_format: compact` = one line per track |
+| `list_animation_styles` | Call before `apply_animation_style` — that tool takes a style **name** or id |
+| `apply_animation_style` / `remove_animation_style` | Remove takes the **applied** id, not the styleId |
+| `set_keyframe_track` / `remove_keyframe_track` | **`set_keyframe_track` REPLACES the whole track** — the API has no append-a-keyframe call |
+| `set_timeline_duration` | Defaults to the node's first timeline |
+
+Platform limits that cannot be worked around, so do not try:
+
+- **No `createTimeline`** — only `setTimelineDuration`. In practice every node observed so
+  far already carries a timeline (a fresh FRAME reports one at 2000ms, id equal to the
+  node id), so this has not bitten yet; `animate_node` / `set_keyframe_track` still return
+  a `warnings` entry if `timelines` comes back empty rather than failing opaquely.
+- `figma.motion.playheadPosition` is **read-only** — playback cannot be driven or scrubbed.
+- **No Motion data in the REST API.** Everything must go through the plugin.
+- No rotation-origin field.
+- Motion's spring is a normalized `{bounce}`, **not** prototyping's four-field physical
+  spring. A physical spring is accepted and converted via `physicalSpringToNormalized`.
+
+The API is Beta ("subject to change") and may be absent. Every motion command goes through
+the gate in `utils/motion-support.ts`; reads degrade to `motionSupported: false` with a
+reason, writes throw an actionable message rather than a raw `TypeError`.
+
+### Prototyping
+
+Tools live in `src/videntia_figma_mcp/tools/prototype-tools.ts` (plugin:
+`handlers/prototyping.ts`) — `get_reactions`, `get_frame_animations`,
+`map_prototype_flows`, `add_prototype_link`, `set_reactions`, `remove_prototype_link`.
+
+- **Writes must use `setReactionsAsync`.** This plugin's manifest sets
+  `documentAccess: "dynamic-page"`, under which `node.reactions` is read-only and a direct
+  assignment is silently discarded.
+- `add_prototype_link` covers the full `Transition` surface: `direction` (required for
+  `MOVE_IN`/`MOVE_OUT`/`PUSH`/`SLIDE_IN`/`SLIDE_OUT`), `matchLayers`,
+  `easingFunctionCubicBezier`, `easingFunctionSpring`, the `reset*` flags and
+  `overlayRelativePosition`.
+- `set_reactions` **replaces** a node's whole reaction array — the path for non-`NODE`
+  actions (`URL`, `BACK`, `CLOSE`, `SET_VARIABLE`, `SET_VARIABLE_MODE`,
+  `UPDATE_MEDIA_RUNTIME`). `CONDITIONAL` is not yet supported.
+- **One action per reaction.** Verified 2026-09-20: `setReactionsAsync` **never resolves**
+  when a reaction carries more than one action — reproducible even with a trivial
+  `[BACK, CLOSE]`. It hangs rather than throwing, so the schema caps `actions` at 1 and
+  the plugin guards too; otherwise the command blocks until the socket times out. Figma
+  **does accept and store** several single-action reactions on the same trigger (verified
+  2026-09-21). Whether prototype playback fires all of them on one interaction has NOT been
+  verified — check it before relying on it as a multi-action substitute.
+  `add_prototype_link` / `remove_prototype_link` rewrite a node's EXISTING reactions, so
+  they also refuse a node carrying a UI-authored multi-action reaction.
+- `set_default_connector` **throws** — the Plugin API genuinely cannot set it. It used to
+  return `success: false`, which read as a completed call.
+
+### Discoverability
+
+`get_node_info` / `get_content_tree` now print `reactions=<n>` and `motion=yes` in compact
+and summary output (`utils/compact-node.ts`, serializer emits `_reactionCount` /
+`_hasMotion`). Reactions and keyframes are still **not** carried through the JSX
+round-trip (`figma-to-jsx` / `jsx-to-figma`).
+
 ## New Primitives
 
 - `set_page_background` — pages use `backgrounds`, not `fills`, so `set_fill_color` fails

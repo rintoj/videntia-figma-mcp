@@ -43,7 +43,13 @@ const registry = new Map<string, RegisteredToolEntry>();
  * file somewhere else entirely. For tools where a dropped parameter changes where
  * real side effects land, the call must fail loudly instead.
  */
-export const STRICT_PARAM_TOOLS = new Set<string>(["export_node_as_image", "set_auto_layout"]);
+export const STRICT_PARAM_TOOLS = new Set<string>([
+  "export_node_as_image",
+  "set_auto_layout",
+  // Large nested schemas: a silently stripped param here is very hard to debug.
+  "set_keyframe_track",
+  "set_reactions",
+]);
 
 /** Swap the SDK's own parsed schema for the strict one, for allowlisted tools. */
 function enforceStrictSchema(server: McpServer, name: string, strict: z.ZodObject<ZodRawShape>): void {
@@ -178,6 +184,10 @@ export function instrumentToolRegistry(server: McpServer): McpServer {
         // `nodeId`. Declaring them keeps zod from stripping the value before the
         // wrapper can salvage it — again, identically in both call paths.
         const hasNodeId = "nodeId" in rawShape;
+        // A tool may own `id`/`node` as real parameters alongside `nodeId`; the salvage
+        // below must not consume them.
+        const declaresId = "id" in rawShape;
+        const declaresNode = "node" in rawShape;
         if (hasNodeId) {
           const nodeIdType = shape.nodeId as { isOptional?: () => boolean; optional?: () => unknown };
           if (typeof nodeIdType?.isOptional === "function" && !nodeIdType.isOptional() && nodeIdType.optional) {
@@ -205,7 +215,12 @@ export function instrumentToolRegistry(server: McpServer): McpServer {
         // wrapped handler, so neither path can see a different parameter contract.
         const wrapped: RegisteredToolEntry["handler"] = (parsedArgs, extra) =>
           handler(
-            applyParamAliases(name, (parsedArgs ?? {}) as Record<string, unknown>, { hasNodeId, coerceField }),
+            applyParamAliases(name, (parsedArgs ?? {}) as Record<string, unknown>, {
+              hasNodeId,
+              declaresId,
+              declaresNode,
+              coerceField,
+            }),
             extra,
           );
 
