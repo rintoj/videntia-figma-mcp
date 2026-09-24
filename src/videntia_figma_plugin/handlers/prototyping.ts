@@ -1,3 +1,17 @@
+
+/**
+ * Write reactions back to a node. Figma's dynamic-page document access rejects the
+ * synchronous `node.reactions = ...` setter, so prefer `setReactionsAsync` when present.
+ */
+async function writeReactions(node: unknown, reactions: unknown[]): Promise<void> {
+  const target = node as { setReactionsAsync?: (r: unknown[]) => Promise<void>; reactions?: unknown[] };
+  if (typeof target.setReactionsAsync === "function") {
+    await target.setReactionsAsync(reactions);
+    return;
+  }
+  target.reactions = reactions;
+}
+
 export interface GetReactionsParams {
   nodeIds: string[];
 }
@@ -326,7 +340,7 @@ export async function addPrototypeLink(params: Record<string, unknown>): Promise
   };
 
   const existing = Array.isArray(reactiveNode.reactions) ? reactiveNode.reactions.slice() : [];
-  reactiveNode.reactions = existing.concat([newReaction]) as typeof reactiveNode.reactions;
+  await writeReactions(node, existing.concat([newReaction]));
 
   return {
     nodeId: node.id,
@@ -370,16 +384,16 @@ export async function removePrototypeLink(params: Record<string, unknown>): Prom
 
   const before = Array.isArray(reactiveNode.reactions) ? reactiveNode.reactions.length : 0;
 
-  if (destinationId !== undefined && destinationId !== null) {
-    reactiveNode.reactions = reactiveNode.reactions.filter((r) => {
-      const action = r.actions && r.actions[0];
-      return !(action && action.type === "NODE" && action.destinationId === destinationId);
-    }) as typeof reactiveNode.reactions;
-  } else {
-    reactiveNode.reactions = [] as typeof reactiveNode.reactions;
-  }
+  const kept =
+    destinationId !== undefined && destinationId !== null
+      ? (Array.isArray(reactiveNode.reactions) ? reactiveNode.reactions : []).filter((r) => {
+          const action = r.actions && r.actions[0];
+          return !(action && action.type === "NODE" && action.destinationId === destinationId);
+        })
+      : [];
+  await writeReactions(node, kept);
 
-  const after = reactiveNode.reactions.length;
+  const after = kept.length;
 
   return {
     nodeId: node.id,
