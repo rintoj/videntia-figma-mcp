@@ -42,7 +42,17 @@ describe("assertExpectedDocument", () => {
   it("stays out of the way when it cannot discriminate", () => {
     // No expectation sent (older MCP build), or no usable discriminator on either side.
     expect(() => assertExpectedDocument("move_node", undefined, FILE_A)).not.toThrow();
-    expect(() => assertExpectedDocument("move_node", { fileName: "x" }, { fileName: "y" })).not.toThrow();
+    expect(() => assertExpectedDocument("move_node", { fileKey: "keyA" }, { rootId: "0:9" })).not.toThrow();
+    expect(() => assertExpectedDocument("move_node", { fileName: "x" }, { fileName: "x" })).not.toThrow();
+  });
+
+  it("falls back to fileName when neither side offers a fileKey or rootId", () => {
+    // Weaker than fileKey/rootId (two files CAN share a name), but differing names are
+    // still the client naming a document this plugin is not attached to — and letting
+    // that through is how a write lands in the wrong file.
+    expect(() => assertExpectedDocument("move_node", { fileName: "x" }, { fileName: "y" })).toThrow(
+      /Wrong Figma document/,
+    );
   });
 
   it("refuses when only one side has a fileKey but root ids differ", () => {

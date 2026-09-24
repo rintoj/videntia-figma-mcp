@@ -203,6 +203,26 @@ export function useConnection() {
         return;
       }
 
+      // Refuse a command addressed to a DIFFERENT channel than the one this plugin
+      // instance joined. The MCP client stamps the channel it believes it is talking
+      // to; a mismatch means the command was misrouted (a relay-side rename, or a
+      // client that resolved the wrong channel) and applying it would read or write
+      // the wrong Figma file. Node ids are not unique across files, so this must fail
+      // loudly rather than run. Commands with no stamp (older client) pass through.
+      var addressedChannel = data.params && data.params.__expectedChannel;
+      if (typeof addressedChannel === "string" && channelRef.current && addressedChannel !== channelRef.current) {
+        console.error("Blocked cross-channel command:", addressedChannel, "!=", channelRef.current);
+        sendErrorResponse(
+          data.id,
+          'Wrong Figma channel: this command was addressed to channel "' +
+            addressedChannel +
+            '" but reached the plugin on channel "' +
+            channelRef.current +
+            '", which is a different Figma file. The command was REFUSED. Re-run get_open_channels and join_channel.',
+        );
+        return;
+      }
+
       progressStartTimesRef.current.set(data.id, Date.now());
       commandMetaRef.current.set(data.id, { command: data.command, params: data.params });
 
