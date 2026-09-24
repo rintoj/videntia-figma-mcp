@@ -97,7 +97,7 @@ describe("getFrameAnimations", () => {
       trigger: "ON_CLICK",
       transitionType: "SMART_ANIMATE",
       matchLayers: true,
-      duration: 0.3,
+      duration: 300, // 0.3s from Figma, reported in ms
       destinationId: "dest",
       destinationName: "Screen 2",
       preserveScrollPosition: true,
@@ -133,7 +133,7 @@ describe("getFrameAnimations", () => {
     const result = await getFrameAnimations({ nodeId: "frame" });
     const anim = result.animations[0];
     expect(anim.trigger).toBe("AFTER_TIMEOUT");
-    expect(anim.triggerTimeout).toBe(2);
+    expect(anim.triggerTimeout).toBe(2000); // 2s from Figma, reported in ms
     expect(anim.transitionType).toBe("DISSOLVE");
     expect(anim.easing?.cubicBezier).toEqual({ x1: 0.1, y1: 0.2, x2: 0.3, y2: 0.4 });
   });

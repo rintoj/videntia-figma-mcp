@@ -986,6 +986,13 @@ export async function cloneNode(params: Record<string, unknown>): Promise<Record
     y: "y" in clone ? (clone as FrameNode).y : undefined,
     width: "width" in clone ? (clone as FrameNode).width : undefined,
     height: "height" in clone ? (clone as FrameNode).height : undefined,
+    ...(node.type === "SLOT"
+      ? {
+          warnings: [
+            "Source is a SLOT — Figma places a cloned slot on the page, outside its component, with no slot property binding. Delete the clone and use create_slot to add another slot.",
+          ],
+        }
+      : {}),
   };
 }
 

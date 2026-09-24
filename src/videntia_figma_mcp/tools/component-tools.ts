@@ -12,6 +12,7 @@ import {
   fieldsSchema,
 } from "../utils/output-format.js";
 import { mcpBooleanSchema } from "../utils/mcp-boolean.js";
+import { expandPadding, paddingShorthandSchema, PADDING_SHORTHAND_DESCRIPTION } from "../utils/frame-layout.js";
 import { CreateComponentInstanceResult, GetReactionsResult, GetComponentPropertiesResult } from "../types";
 
 /**
@@ -247,49 +248,6 @@ export function registerComponentTools(server: McpServer): void {
     },
   );
 
-  // Get Reactions Tool
-  server.tool(
-    "get_reactions",
-    "Get Figma Prototyping Reactions from multiple nodes",
-    {
-      nodeIds: coerceArray(z.array(z.string())).describe("Array of node IDs to get reactions from"),
-    },
-    async ({ nodeIds }) => {
-      nodeIds = nodeIds.map(normalizeNodeId);
-      try {
-        const result = await sendCommandToFigma<GetReactionsResult>("get_reactions", { nodeIds });
-        const nodes = Array.isArray(result) ? result : (result?.nodes ?? []);
-        const total = nodes.reduce((sum, n) => sum + (n.reactions?.length || 0), 0);
-        const lines: string[] = [`Found ${total} reaction(s) across ${nodes.length} node(s)`];
-        for (const n of nodes) {
-          if (!n.reactions?.length) continue;
-          lines.push(
-            `\n**${n.nodeName || n.nodeId}** (${n.reactions.length} reaction${n.reactions.length > 1 ? "s" : ""}):`,
-          );
-          for (const r of n.reactions) {
-            const trigger = r.trigger?.type || "unknown";
-            const action = r.action?.type || "unknown";
-            const dest = r.action?.destinationId || "-";
-            lines.push(`- ${trigger} → ${action} (dest: ${dest})`);
-          }
-        }
-        lines.push("", "Use 'reaction_to_connector_strategy' prompt to prepare parameters");
-        return {
-          content: [{ type: "text", text: lines.join("\n") }],
-        };
-      } catch (error) {
-        return {
-          content: [
-            {
-              type: "text",
-              text: `Error getting reactions for nodes [${nodeIds.join(", ")}]: ${error instanceof Error ? error.message : String(error)}`,
-            },
-          ],
-        };
-      }
-    },
-  );
-
   // Set Default Connector Tool
   server.tool(
     "set_default_connector",
@@ -316,123 +274,6 @@ export function registerComponentTools(server: McpServer): void {
             {
               type: "text",
               text: `Error setting default connector: ${error instanceof Error ? error.message : String(error)}`,
-            },
-          ],
-        };
-      }
-    },
-  );
-
-  // Add Prototype Link Tool
-  server.tool(
-    "add_prototype_link",
-    "Add a prototype navigation link (reaction) from one node to another",
-    {
-      nodeId: z
-        .string()
-        .describe("ID of the source node (must support reactions: frames, components, instances, etc.)"),
-      destinationId: z.string().describe("ID of the destination frame to navigate to"),
-      trigger: z
-        .enum(["ON_CLICK", "ON_HOVER", "ON_PRESS", "ON_DRAG", "AFTER_TIMEOUT", "MOUSE_ENTER", "MOUSE_LEAVE"])
-        .optional()
-        .describe("Trigger type (default: ON_CLICK)"),
-      navigation: z
-        .enum(["NAVIGATE", "OVERLAY", "SWAP", "SCROLL_TO", "CHANGE_TO"])
-        .optional()
-        .describe("Navigation type (default: NAVIGATE)"),
-      transitionType: z
-        .string()
-        .optional()
-        .describe(
-          "Transition animation type e.g. MOVE_IN, MOVE_OUT, PUSH, SLIDE_IN, SLIDE_OUT, DISSOLVE, SMART_ANIMATE (omit for no animation)",
-        ),
-      transitionDuration: z.number().optional().describe("Transition duration in ms (default: 300)"),
-      transitionEasing: z
-        .string()
-        .optional()
-        .describe("Easing type e.g. EASE_IN, EASE_OUT, EASE_IN_AND_OUT, LINEAR (default: EASE_OUT)"),
-      preserveScrollPosition: z.boolean().optional().describe("Preserve scroll position on navigate (default: false)"),
-      triggerTimeout: z.number().optional().describe("Timeout in ms for AFTER_TIMEOUT trigger (default: 800)"),
-    },
-    async ({
-      nodeId,
-      destinationId,
-      trigger,
-      navigation,
-      transitionType,
-      transitionDuration,
-      transitionEasing,
-      preserveScrollPosition,
-      triggerTimeout,
-    }) => {
-      nodeId = normalizeNodeId(nodeId);
-      destinationId = normalizeNodeId(destinationId);
-      try {
-        const result = await sendCommandToFigma("add_prototype_link", {
-          nodeId,
-          destinationId,
-          trigger,
-          navigation,
-          transitionType,
-          transitionDuration,
-          transitionEasing,
-          preserveScrollPosition,
-          triggerTimeout,
-        });
-        const r = result as { nodeName: string; destinationName: string; trigger: string; navigation: string };
-        return {
-          content: [
-            {
-              type: "text",
-              text: `Added prototype link: "${r.nodeName}" → "${r.destinationName}" (${r.trigger} / ${r.navigation})`,
-            },
-          ],
-        };
-      } catch (error) {
-        return {
-          content: [
-            {
-              type: "text",
-              text: `Error adding prototype link: ${error instanceof Error ? error.message : String(error)}`,
-            },
-          ],
-        };
-      }
-    },
-  );
-
-  // Remove Prototype Link Tool
-  server.tool(
-    "remove_prototype_link",
-    "Remove prototype navigation link(s) from a node. Optionally filter by destination to remove a specific link.",
-    {
-      nodeId: z.string().describe("ID of the source node"),
-      destinationId: z
-        .string()
-        .optional()
-        .describe("ID of the destination to remove (omit to remove ALL reactions from the node)"),
-    },
-    async ({ nodeId, destinationId }) => {
-      nodeId = normalizeNodeId(nodeId);
-      if (destinationId && destinationId.length > 0) destinationId = normalizeNodeId(destinationId);
-      else destinationId = undefined as any;
-      try {
-        const result = await sendCommandToFigma("remove_prototype_link", { nodeId, destinationId });
-        const r = result as { nodeName: string; removedCount: number; remainingCount: number };
-        return {
-          content: [
-            {
-              type: "text",
-              text: `Removed ${r.removedCount} reaction(s) from "${r.nodeName}". ${r.remainingCount} remaining.`,
-            },
-          ],
-        };
-      } catch (error) {
-        return {
-          content: [
-            {
-              type: "text",
-              text: `Error removing prototype link: ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };
@@ -772,6 +613,101 @@ export function registerComponentTools(server: McpServer): void {
             {
               type: "text",
               text: `Error deleting component property: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  // Create Slot Tool
+  server.tool(
+    "create_slot",
+    "Create a SLOT node inside a COMPONENT (component.createSlot()). A slot is a frame-like content area that instances fill with their own children; Figma creates the backing SLOT component property. Configure its limits afterwards with edit_component_property (slotSettings). Fill a slot on an instance by inserting children into the instance's SLOT node; reset it with reset_slot.",
+    {
+      componentId: z.string().describe("ID of the COMPONENT to add the slot to (a variant inside a set is fine)"),
+      name: z.string().optional().describe("Layer name for the slot"),
+      parentId: z
+        .string()
+        .optional()
+        .describe("Frame inside the component to place the slot in (default: the component itself)"),
+      index: z.coerce.number().int().nonnegative().optional().describe("Child index within the parent"),
+      width: z.coerce.number().positive().optional().describe("Slot width"),
+      height: z.coerce.number().positive().optional().describe("Slot height"),
+      layoutMode: z
+        .enum(["NONE", "HORIZONTAL", "VERTICAL"])
+        .optional()
+        .describe("Auto layout direction. GRID is not supported on slots."),
+      itemSpacing: z.coerce.number().optional().describe("Gap between children (requires layoutMode)"),
+      gap: z.coerce.number().optional().describe("Alias for itemSpacing"),
+      padding: paddingShorthandSchema.optional().describe(`${PADDING_SHORTHAND_DESCRIPTION} (requires layoutMode)`),
+    },
+    async ({ componentId, name, parentId, index, width, height, layoutMode, itemSpacing, gap, padding }) => {
+      try {
+        const sides = expandPadding(padding);
+        const result = await sendCommandToFigma("create_slot", {
+          componentId: normalizeNodeId(componentId),
+          name,
+          parentId: parentId !== undefined ? normalizeNodeId(parentId) : undefined,
+          index,
+          width,
+          height,
+          layoutMode,
+          itemSpacing: itemSpacing ?? gap,
+          padding:
+            sides !== undefined
+              ? { top: sides.top ?? 0, right: sides.right ?? 0, bottom: sides.bottom ?? 0, left: sides.left ?? 0 }
+              : undefined,
+        });
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      } catch (error) {
+        return {
+          content: [
+            { type: "text", text: `Error creating slot: ${error instanceof Error ? error.message : String(error)}` },
+          ],
+        };
+      }
+    },
+  );
+
+  // Reset Slot Tool
+  server.tool(
+    "reset_slot",
+    "Reset a SLOT node on an instance back to the main component's slot content (SlotNode.resetSlot()). Use get_slot_info on the instance to find slot ids.",
+    {
+      nodeId: z.string().describe("ID of the SLOT node (inside an instance)"),
+    },
+    async ({ nodeId }) => {
+      try {
+        const result = await sendCommandToFigma("reset_slot", { nodeId: normalizeNodeId(nodeId) });
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      } catch (error) {
+        return {
+          content: [
+            { type: "text", text: `Error resetting slot: ${error instanceof Error ? error.message : String(error)}` },
+          ],
+        };
+      }
+    },
+  );
+
+  // Get Slot Info Tool
+  server.tool(
+    "get_slot_info",
+    "List every SLOT node under a node (a component, component set, instance, or a slot itself) with its property name, child count, slotSettings and limitViolations (BELOW_MIN / ABOVE_MAX / HAS_NON_PREFERRED). Use to check an instance's slot content against its limits.",
+    {
+      nodeId: z.string().describe("ID of a SLOT, COMPONENT, COMPONENT_SET or INSTANCE"),
+    },
+    async ({ nodeId }) => {
+      try {
+        const result = await sendCommandToFigma("get_slot_info", { nodeId: normalizeNodeId(nodeId) });
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error getting slot info: ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };

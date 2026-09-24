@@ -98,7 +98,7 @@ export const ROLE_NAMES = Object.keys(ROLE_PRESETS);
 // Shared helpers
 // ---------------------------------------------------------------------------
 
-type LayoutNode = FrameNode | ComponentNode | InstanceNode;
+type LayoutNode = FrameNode | ComponentNode | InstanceNode | SlotNode;
 
 /** Resolve a variable by id, then by exact name, then by dash→slash name. */
 async function resolveVariable(nameOrId: string): Promise<Variable> {
@@ -227,7 +227,9 @@ const PADDING_FIELDS: Record<string, string> = {
 };
 
 /** Normalise number | CSS-style array | {top,right,bottom,left} | {vertical,horizontal} padding. */
-function normalizePadding(padding: unknown): { top: number; right: number; bottom: number; left: number } | undefined {
+export function normalizePadding(
+  padding: unknown,
+): { top: number; right: number; bottom: number; left: number } | undefined {
   if (padding === undefined || padding === null) return undefined;
   if (typeof padding === "number") {
     return { top: padding, right: padding, bottom: padding, left: padding };
@@ -255,7 +257,7 @@ function normalizePadding(padding: unknown): { top: number; right: number; botto
 }
 
 function isLayoutNode(node: BaseNode): node is LayoutNode {
-  return node.type === "FRAME" || node.type === "COMPONENT" || node.type === "INSTANCE";
+  return node.type === "FRAME" || node.type === "COMPONENT" || node.type === "INSTANCE" || node.type === "SLOT";
 }
 
 /**
@@ -821,6 +823,11 @@ export async function cloneAndPlace(params: Record<string, unknown>): Promise<Re
   }
 
   const warnings: string[] = [];
+  if (node.type === "SLOT") {
+    warnings.push(
+      "Source is a SLOT — Figma places a cloned slot on the page, outside its component, with no slot property binding. Delete the clone and use create_slot to add another slot.",
+    );
+  }
   if (x !== undefined || y !== undefined) {
     const cloneParent = clone.parent;
     const parentIsAutoLayout =

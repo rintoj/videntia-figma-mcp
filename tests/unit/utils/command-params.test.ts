@@ -47,7 +47,10 @@ const CASES: Case[] = [
   ],
   ["get_instance_overrides", { nodeId: "1-2" }, { instanceNodeId: "1:2" }],
   ["set_instance_overrides", { sourceInstanceId: "1-2" }, { sourceInstanceId: "1:2", targetNodeIds: [] }],
-  ["remove_prototype_link", { nodeId: "1-2", destinationId: "" }, { nodeId: "1:2" }],
+  // An empty destinationId is NOT erased: erasing it meant "clear every reaction",
+  // so a destination that resolved to "" silently wiped the node. It now reaches
+  // the tool, which rejects it.
+  ["remove_prototype_link", { nodeId: "1-2", destinationId: "" }, { nodeId: "1:2", destinationId: "" }],
   ["get_selection", {}, { depth: 1 }],
   ["get_node_info", { nodeId: "1-2" }, { nodeIds: ["1:2"], depth: 1 }],
   ["get_nodes_info", { nodeIds: '["1-2","3-4"]', depth: "2" }, { nodeIds: ["1:2", "3:4"], depth: 2 }],

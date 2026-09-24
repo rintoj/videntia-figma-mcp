@@ -17,6 +17,7 @@ const ANNOTATION_SUPPORTED_TYPES = [
   "ELLIPSE",
   "FRAME",
   "INSTANCE",
+  "SLOT",
   "LINE",
   "POLYGON",
   "RECTANGLE",

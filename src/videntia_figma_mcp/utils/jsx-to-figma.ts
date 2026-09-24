@@ -612,6 +612,7 @@ function tagToNodeType(tag: string, attrs?: Record<string, string>, parentType?:
   if (HTML_TEXT_TAGS.has(tag)) return "TEXT";
   if (tag === "svg") return "SVG";
   if (HTML_FRAME_TAGS.has(tag)) return "FRAME";
+  if (tag === "Slot") return "SLOT";
 
   // Primary signal: componentName attr is only emitted by figma-to-jsx for component types.
   // This avoids false positives from PascalCase tags that happen to match (e.g. <DataSet>).

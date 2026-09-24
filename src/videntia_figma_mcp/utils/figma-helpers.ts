@@ -204,6 +204,12 @@ export function filterFigmaNode(node: any, fields?: NodeField[]): any {
   if (fieldSet.has("componentProperties") && node.componentProperties) {
     filtered.componentProperties = node.componentProperties;
   }
+  if (fieldSet.has("componentProperties") && node.slotProperty !== undefined) {
+    filtered.slotProperty = node.slotProperty;
+  }
+  if (fieldSet.has("componentProperties") && node.limitViolations !== undefined) {
+    filtered.limitViolations = node.limitViolations;
+  }
 
   // Children is special - recursively filter with the same fields
   if (fieldSet.has("children") && node.children) {
@@ -282,6 +288,8 @@ const FIELD_PROPERTY_MAP: Record<NodeField, string[]> = {
     "componentSetName",
     "componentProperties",
     "mainComponentName",
+    "slotProperty",
+    "limitViolations",
   ],
   textStyleId: ["textStyleId"],
   effectStyleId: ["effectStyleId"],

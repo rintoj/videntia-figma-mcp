@@ -87,6 +87,15 @@ Rename a property with \`edit_component_property\` (\`newName\`); remove an unwa
 6. **Set constraints on layered parts.** Anything absolutely positioned inside the component (or inside a frame without auto layout) follows its constraints when an instance is resized, and new rectangles default to MIN/MIN — they stay put while the instance grows. Use \`set_constraints\`: \`STRETCH\` for image slots, scrims and backgrounds that must cover the component; \`CENTER\` (or \`MIN\`/\`MAX\` to pin an edge) for fixed-size icons, badges and close buttons; \`SCALE\` for illustrations that should grow. Flow children of auto layout ignore constraints — use FILL/HUG sizing there. Confirm with \`get_node_info\` (\`output_format: "json"\`) and by resizing a test instance.
 7. \`export_node_as_image\` on the set and look at it. Check for overlapping variants, stragglers outside the grid, and values that render identically when they should differ.
 
+### Slots: open content areas
+
+- Use a slot when instances need their own free-form content (a card body, a list, a modal's content), rather than a fixed set of INSTANCE_SWAP options.
+- Create it with \`create_slot\` on the COMPONENT (pass \`layoutMode\`, \`gap\` and \`padding\` up front). Figma creates the backing SLOT property, so do not also call \`add_component_property\` with type SLOT.
+- Set limits with \`edit_component_property\` \`slotSettings\`: \`minChildren\`, \`maxChildren\`, \`allowPreferredValuesOnly\` (with \`preferredValues\`), \`stretchChildOnInsert\`, \`displayEmptyByDefault\`.
+- Fill a slot on an instance by inserting children into the instance's SLOT node (\`get_slot_info\` lists slot ids). \`set_instance_property\` cannot set a slot. \`reset_slot\` restores the component's content.
+- Check limits with \`get_slot_info\`: \`limitViolations\` reports \`BELOW_MIN\`, \`ABOVE_MAX\` and \`HAS_NON_PREFERRED\`.
+- Slots accept HORIZONTAL or VERTICAL auto layout, never GRID. Don't clone a slot: the clone lands on the page with no slot binding. Call \`create_slot\` again instead.
+
 ## 7. Interactive States
 
 - Model states as a single \`State\` variant axis: \`Default\`, \`Hover\`, \`Pressed\`, \`Focus\`, \`Disabled\`. Add \`Loading\` or \`Selected\` only when the component actually has them.
