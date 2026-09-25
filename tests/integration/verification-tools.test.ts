@@ -109,6 +109,94 @@ describe("verification tools", () => {
       );
     });
 
+    const onImage = {
+      nodeId: "3:3",
+      nodeName: "HeroTitle",
+      characters: "Welcome",
+      fontSize: 32,
+      bounds: { x: 10, y: 10, width: 100, height: 40 },
+      fills: [solid(1, 1, 1)],
+      stack: {
+        nodeId: "0:1",
+        nodeName: "Page",
+        fills: [WHITE],
+        children: [
+          {
+            nodeId: "4:4",
+            nodeName: "Photo",
+            bounds: { x: 0, y: 0, width: 400, height: 400 },
+            fills: [{ type: "IMAGE", imageHash: "img1", scaleMode: "FILL" }],
+          },
+          { nodeId: "3:3", nodeName: "HeroTitle", bounds: { x: 10, y: 10, width: 100, height: 40 }, target: true },
+        ],
+      },
+    };
+
+    it("reports text over an unfetchable image as indeterminate with the reason, not as a failure", async () => {
+      const base = payload([solid(0, 0, 0)]);
+      mockSendCommand.mockResolvedValue({
+        ...base,
+        samples: [...base.samples, onImage],
+        images: { img1: { error: "image not found in this file" } },
+      });
+      const text = (await callTool("contrast_check_frame", { nodeId: "1:1" })).content[0].text;
+      expect(text).toContain("**Indeterminate:** 1");
+      expect(text).toContain("**Images sampled:** 0/1");
+      expect(text).toContain("**Verdict:** PASS (1 indeterminate — verify visually)");
+      expect(text).toContain("## Indeterminate (1) — verify with export_node_as_image");
+      expect(text).toContain(
+        'HeroTitle (3:3): IMAGE paint on "Photo" (4:4) (image not found in this file) sits behind the text',
+      );
+      expect(text).not.toMatch(/\| HeroTitle/);
+    });
+
+    it("samples the image pixels behind text when the plugin ships the bytes", async () => {
+      const sharp = (await import("sharp")).default;
+      const png = await sharp({
+        create: { width: 8, height: 8, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 1 } },
+      })
+        .png()
+        .toBuffer();
+      const base = payload([solid(0, 0, 0)]);
+      mockSendCommand.mockResolvedValue({
+        ...base,
+        samples: [...base.samples, onImage],
+        images: { img1: { base64: png.toString("base64"), bytes: png.length } },
+      });
+      const text = (await callTool("contrast_check_frame", { nodeId: "1:1" })).content[0].text;
+      expect(text).toContain("**Indeterminate:** 0");
+      expect(text).toContain("**Images sampled:** 1/1");
+      expect(text).toMatch(/\| HeroTitle \(3:3\) \| Welcome \| 32 lg \| #FFFFFF \| #000000 \| 21:1 \| 3:1 \| PASS \|/i);
+      expect(text).toContain('backdrop includes image on "Photo" (4:4) (sampled)');
+    });
+
+    it("keeps listing indeterminate nodes under failures_only", async () => {
+      const base = payload([solid(0.58, 0.58, 0.58)]);
+      mockSendCommand.mockResolvedValue({ ...base, samples: [...base.samples, onImage] });
+      const text = (await callTool("contrast_check_frame", { nodeId: "1:1", failures_only: true })).content[0].text;
+      expect(text).toContain("**Verdict:** FAIL (1 indeterminate");
+      expect(text).toContain("Do not drive while dosed");
+      expect(text).toContain("## Indeterminate (1)");
+    });
+
+    it("lists failing segments of mixed-style text compactly", async () => {
+      const base = payload([]);
+      const mixed = {
+        ...base.samples[0],
+        characters: "Price $10",
+        segments: [
+          { start: 0, end: 6, characters: "Price ", fontSize: 14, fills: [solid(0, 0, 0)] },
+          { start: 6, end: 9, characters: "$10", fontSize: 14, fills: [solid(0.8, 0.8, 0.8)] },
+        ],
+      };
+      mockSendCommand.mockResolvedValue({ ...base, samples: [mixed] });
+      const text = (await callTool("contrast_check_frame", { nodeId: "1:1" })).content[0].text;
+      expect(text).toContain("**Verdict:** FAIL");
+      expect(text).toContain("[2 segs]");
+      expect(text).toContain("## Segments");
+      expect(text).toMatch(/0-6 #000000\/#ffffff 21:1 ok · 6-9 #cccccc\/#ffffff [\d.]+:1 FAIL/i);
+    });
+
     it("surfaces transport errors", async () => {
       mockSendCommand.mockRejectedValue(new Error("no channel"));
       const res = await callTool("contrast_check_frame", { nodeId: "1:1" });

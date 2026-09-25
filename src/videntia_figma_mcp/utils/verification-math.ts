@@ -11,6 +11,11 @@
  */
 
 import { calculateContrastRatio, rgbaToHex, type RGBAColor } from "./color-calculations.js";
+import { isLargeText } from "./font-weight.js";
+import { sampleImagePaint, type ImageRasterMap } from "./image-backdrop.js";
+
+export { isLargeText, fontWeightFromStyle } from "./font-weight.js";
+export type { ImageRasterMap } from "./image-backdrop.js";
 
 // ───────────────────────────────────────────────────────────── shared shapes ──
 
@@ -34,6 +39,15 @@ export interface PaintLike {
   gradientStops?: GradientStop[];
   /** Figma's 3 handles, normalised to the node's bounding box. */
   gradientHandlePositions?: Array<{ x: number; y: number }>;
+  blendMode?: string;
+  /** IMAGE paints: which image and how it is laid out on the node. */
+  imageHash?: string;
+  scaleMode?: string;
+  scalingFactor?: number;
+  imageTransform?: number[][];
+  rotation?: number;
+  /** Non-zero image adjustments (exposure, contrast, …) — not simulated. */
+  filters?: Record<string, number>;
 }
 
 export interface BackdropLayer {
@@ -42,6 +56,39 @@ export interface BackdropLayer {
   nodeType?: string;
   opacity?: number;
   bounds: Bounds;
+  fills: PaintLike[];
+}
+
+/**
+ * One node of the paint stack under a text node, as the plugin serialises it.
+ * `children` are in PAINT order (bottom first). Exactly one leaf carries
+ * `target: true` — the text node itself, whose colour is supplied at render
+ * time. A node without `bounds` is unbounded (the PAGE root).
+ */
+export interface StackNode {
+  nodeId: string;
+  nodeName: string;
+  nodeType?: string;
+  opacity?: number;
+  blendMode?: string;
+  bounds?: Bounds | null;
+  /** Node rotation in degrees; `bounds` is then the axis-aligned box. */
+  rotation?: number;
+  fills?: PaintLike[];
+  /** clipsContent — children are only painted inside `bounds`. */
+  clips?: boolean;
+  children?: StackNode[];
+  target?: boolean;
+}
+
+/** A styled range of a mixed-style text node (getStyledTextSegments). */
+export interface TextSegmentSample {
+  start: number;
+  end: number;
+  characters?: string;
+  fontSize: number;
+  fontWeight?: number;
+  fontStyle?: string;
   fills: PaintLike[];
 }
 
@@ -56,8 +103,14 @@ export interface TextSample {
   opacity?: number;
   bounds: Bounds;
   fills: PaintLike[];
-  /** Ancestors, OUTERMOST first, innermost last. */
-  backdrop: BackdropLayer[];
+  /** Present when fills / fontSize / fontName are mixed: evaluated one by one. */
+  segments?: TextSegmentSample[];
+  /** Full paint stack (page → ancestors → siblings below → text). Preferred. */
+  stack?: StackNode;
+  /** Legacy: ancestors only, OUTERMOST first. Used when `stack` is absent. */
+  backdrop?: BackdropLayer[];
+  /** Set by the plugin when the stack walk hit its node cap. */
+  stackPartial?: boolean;
 }
 
 // ───────────────────────────────────────────────────────── alpha compositing ──
@@ -164,7 +217,7 @@ export interface ResolvedBackdrop {
   /** Node whose paint contributed the final (innermost opaque) layer. */
   sourceNodeId: string | null;
   sourceNodeName: string | null;
-  /** True when an IMAGE/VIDEO paint sat between the text and the resolved colour. */
+  /** True when an IMAGE/VIDEO/PATTERN paint sat between the text and the resolved colour. */
   unresolvedPaint: boolean;
 }
 
@@ -189,7 +242,7 @@ export function resolveBackdrop(
     for (const paint of layer.fills || []) {
       if (paint.visible === false) continue;
       if (paint.type !== "SOLID" && String(paint.type).indexOf("GRADIENT_") !== 0) {
-        if (paint.type === "IMAGE" || paint.type === "VIDEO") unresolvedPaint = true;
+        unresolvedPaint = true;
         continue;
       }
       const resolved = resolvePaint(paint, point);
@@ -206,6 +259,23 @@ export function resolveBackdrop(
 
 // ─────────────────────────────────────────────────────────── WCAG evaluation ──
 
+export interface ContrastSegmentFinding {
+  start: number;
+  end: number;
+  text: string;
+  fontSize: number;
+  isLargeText: boolean;
+  foreground: string;
+  background: string;
+  ratio: number;
+  requiredAA: number;
+  requiredAAA: number;
+  passAA: boolean;
+  passAAA: boolean;
+  /** Why this segment could not be scored (image backdrop, image text fill, …). */
+  indeterminate?: string;
+}
+
 export interface ContrastFinding {
   nodeId: string;
   nodeName: string;
@@ -219,70 +289,352 @@ export interface ContrastFinding {
   ratio: number;
   requiredAA: number;
   requiredAAA: number;
+  /** Over the DETERMINATE segments only — an indeterminate node is not a failure. */
   passAA: boolean;
   passAAA: boolean;
-  /** "error" when AA fails, "warn" when AA passes but AAA fails. */
-  severity: "error" | "warn" | "pass";
+  /**
+   * "error" when AA fails, "warn" when AA passes but AAA fails, "indeterminate"
+   * when nothing fails but part of the node could not be resolved.
+   */
+  severity: "error" | "warn" | "pass" | "indeterminate";
+  /** Reason the node (or one of its segments) could not be scored. */
+  indeterminate?: string;
+  /** Per-range results for mixed-style text; the node reports the worst one. */
+  segments?: ContrastSegmentFinding[];
   note?: string;
 }
 
-/** WCAG 1.4.3: ≥18pt, or ≥14pt bold, counts as large text. */
-export function isLargeText(fontSize: number, fontWeight?: number, fontStyle?: string): boolean {
-  const bold = (fontWeight !== undefined && fontWeight >= 700) || /bold|black|heavy/i.test(fontStyle || "");
-  if (fontSize >= 18) return true;
-  return bold && fontSize >= 14;
+/** Premultiplied RGBA plus provenance, for stack rendering. */
+export interface PremulColor {
+  r: number;
+  g: number;
+  b: number;
+  a: number;
+  /** Set while an unresolvable paint (image/video/pattern) shows through. */
+  unknown: string | null;
+  source: string | null;
 }
 
-export function evaluateTextSample(sample: TextSample): ContrastFinding {
-  const centre = {
-    x: sample.bounds.x + sample.bounds.width / 2,
-    y: sample.bounds.y + sample.bounds.height / 2,
+const CLEAR: PremulColor = { r: 0, g: 0, b: 0, a: 0, unknown: null, source: null };
+const NORMAL_BLENDS = ["NORMAL", "PASS_THROUGH"];
+
+function isResolvablePaint(paint: PaintLike): boolean {
+  return paint.type === "SOLID" || String(paint.type).indexOf("GRADIENT_") === 0;
+}
+
+function toPremul(c: RGBAColor, source: string | null): PremulColor {
+  const a = Math.max(0, Math.min(1, c.a === undefined ? 1 : c.a));
+  return { r: c.r * a, g: c.g * a, b: c.b * a, a, unknown: null, source };
+}
+
+function over(src: PremulColor, dst: PremulColor): PremulColor {
+  const k = 1 - src.a;
+  return {
+    r: src.r + dst.r * k,
+    g: src.g + dst.g * k,
+    b: src.b + dst.b * k,
+    a: src.a + dst.a * k,
+    unknown: src.a >= 0.999 ? src.unknown : src.unknown || dst.unknown,
+    source: src.a > 0 ? src.source || dst.source : dst.source,
   };
-  const backdrop = resolveBackdrop(sample.backdrop || [], centre);
+}
 
-  const fillPoint = normalisedPointIn(sample.bounds, centre);
-  const nodeOpacity = sample.opacity === undefined ? 1 : sample.opacity;
-  let effectiveFg: RGBAColor = backdrop.color;
-  let sawFill = false;
-  for (const paint of sample.fills || []) {
-    const resolved = resolvePaint(paint, fillPoint);
-    if (!resolved) continue;
-    sawFill = true;
-    effectiveFg = compositeOver(
-      { ...resolved, a: (resolved.a === undefined ? 1 : resolved.a) * nodeOpacity },
-      effectiveFg,
-    );
+function scalePremul(p: PremulColor, k: number): PremulColor {
+  if (k >= 1) return p;
+  if (k <= 0) return CLEAR;
+  return { ...p, r: p.r * k, g: p.g * k, b: p.b * k, a: p.a * k };
+}
+
+function containsPoint(b: Bounds, p: { x: number; y: number }): boolean {
+  return p.x >= b.x && p.x <= b.x + b.width && p.y >= b.y && p.y <= b.y + b.height;
+}
+
+function labelOf(node: { nodeName: string; nodeId: string }): string {
+  return `"${node.nodeName}" (${node.nodeId})`;
+}
+
+type ImagePaintResult = { color: RGBAColor | null } | { unknown: string };
+
+/** Sample an IMAGE paint at `point`, or say why it cannot be sampled. */
+function resolveImagePaint(
+  paint: PaintLike,
+  bounds: Bounds,
+  point: { x: number; y: number },
+  owner: string,
+  images: ImageRasterMap | undefined,
+  approx: Set<string> | undefined,
+  nodeRotation?: number,
+): ImagePaintResult {
+  const raster = paint.imageHash && images ? images.get(paint.imageHash) : undefined;
+  if (!raster || typeof raster === "string") {
+    const why = typeof raster === "string" ? raster : paint.imageHash ? "image bytes unavailable" : "image has no hash";
+    return { unknown: `IMAGE paint on ${owner} (${why})` };
   }
-  if (!sawFill) effectiveFg = { r: 0, g: 0, b: 0, a: 1 };
+  const sampled = sampleImagePaint(paint, raster, bounds, point);
+  if (approx) {
+    approx.add(`backdrop includes image on ${owner} (sampled)`);
+    if (sampled.approx) approx.add(`${sampled.approx} on ${owner}`);
+    const filters = Object.keys(paint.filters || {});
+    if (filters.length > 0) approx.add(`image filters (${filters.join(", ")}) on ${owner} not simulated — approximate`);
+    if (nodeRotation) approx.add(`${owner} is rotated ${Math.round(nodeRotation)}° — image mapping approximate`);
+  }
+  if (!sampled.color) return { color: null };
+  const paintAlpha = paint.opacity === undefined ? 1 : paint.opacity;
+  return { color: { ...sampled.color, a: sampled.color.a * paintAlpha } };
+}
 
-  const ratio = calculateContrastRatio(effectiveFg, backdrop.color);
-  const large = isLargeText(sample.fontSize, sample.fontWeight, sample.fontStyle);
+/**
+ * Render the paint stack at `point` over transparent. `fg` is the text
+ * colour painted by the `target` leaf; pass null to render the backdrop
+ * alone. Group/ancestor opacity applies to everything beneath it, exactly as
+ * Figma composites an isolated group, so rendering with and without the text
+ * gives the two colours the eye actually compares.
+ */
+export function renderStackAt(
+  node: StackNode,
+  point: { x: number; y: number },
+  fg: PremulColor | null,
+  approx?: Set<string>,
+  images?: ImageRasterMap,
+): { color: PremulColor; hit: boolean } {
+  const inside = !node.bounds || containsPoint(node.bounds, point);
+  let acc: PremulColor = CLEAR;
+  let hit = false;
+
+  if (node.target) {
+    if (!inside) return { color: CLEAR, hit: false };
+    hit = true;
+    if (fg) acc = fg;
+  } else {
+    if (inside) {
+      const local = node.bounds ? normalisedPointIn(node.bounds, point) : { x: 0.5, y: 0.5 };
+      for (const paint of node.fills || []) {
+        if (paint.visible === false || paint.opacity === 0) continue;
+        if (paint.type === "IMAGE" && node.bounds) {
+          const img = resolveImagePaint(paint, node.bounds, point, labelOf(node), images, approx, node.rotation);
+          if ("unknown" in img) {
+            acc = { ...acc, unknown: img.unknown };
+          } else if (img.color) {
+            acc = over(toPremul(img.color, node.nodeName), acc);
+          }
+          continue;
+        }
+        if (!isResolvablePaint(paint)) {
+          acc = { ...acc, unknown: `${paint.type} paint on ${labelOf(node)}` };
+          continue;
+        }
+        const resolved = resolvePaint(paint, local);
+        if (!resolved) continue;
+        if (approx && paint.blendMode && NORMAL_BLENDS.indexOf(paint.blendMode) === -1) {
+          approx.add(`${paint.blendMode} paint blend on ${labelOf(node)} treated as NORMAL`);
+        }
+        acc = over(toPremul(resolved, node.nodeName), acc);
+      }
+    }
+    if (!node.clips || inside) {
+      for (const child of node.children || []) {
+        const out = renderStackAt(child, point, fg, approx, images);
+        if (out.hit) hit = true;
+        if (out.color.a > 0 || out.color.unknown) acc = over(out.color, acc);
+      }
+    }
+  }
+
+  const opacity = node.opacity === undefined ? 1 : node.opacity;
+  acc = scalePremul(acc, opacity);
+  if (approx && node.blendMode && NORMAL_BLENDS.indexOf(node.blendMode) === -1 && (acc.a > 0 || hit)) {
+    approx.add(`${node.blendMode} layer blend on ${labelOf(node)} treated as NORMAL`);
+  }
+  return { color: acc, hit };
+}
+
+/** The sample's paint stack; a legacy flat ancestor list paints beneath the text. */
+function stackOf(sample: TextSample): StackNode {
+  if (sample.stack) return sample.stack;
+  const layers: StackNode[] = (sample.backdrop || []).map((l) => ({
+    nodeId: l.nodeId,
+    nodeName: l.nodeName,
+    nodeType: l.nodeType,
+    opacity: l.opacity,
+    bounds: l.bounds,
+    fills: l.fills,
+  }));
+  const target: StackNode = {
+    nodeId: sample.nodeId,
+    nodeName: sample.nodeName,
+    bounds: sample.bounds,
+    opacity: sample.opacity,
+    target: true,
+  };
+  return { nodeId: "page", nodeName: "Page", children: [...layers, target] };
+}
+
+/**
+ * Centre plus four inset points across the text box. `dense` adds a 5×3 grid,
+ * used when an image is involved so a busy photo is probed across the whole
+ * text box (the worst point wins).
+ */
+export function textSamplePoints(b: Bounds, dense = false): Array<{ x: number; y: number }> {
+  const at = (fx: number, fy: number) => ({ x: b.x + b.width * fx, y: b.y + b.height * fy });
+  const points = [at(0.5, 0.5), at(0.15, 0.5), at(0.85, 0.5), at(0.5, 0.25), at(0.5, 0.75)];
+  if (dense) {
+    for (const fy of [0.2, 0.5, 0.8]) for (const fx of [0.05, 0.3, 0.7, 0.95]) points.push(at(fx, fy));
+  }
+  return points;
+}
+
+function hasImagePaint(paints: PaintLike[] | undefined): boolean {
+  return (paints || []).some((p) => p.type === "IMAGE" && p.visible !== false && p.opacity !== 0);
+}
+
+function stackHasImage(node: StackNode): boolean {
+  return hasImagePaint(node.fills) || (node.children || []).some(stackHasImage);
+}
+
+function textFillAt(
+  fills: PaintLike[],
+  bounds: Bounds,
+  point: { x: number; y: number },
+  images?: ImageRasterMap,
+  approx?: Set<string>,
+): PremulColor | string {
+  const local = normalisedPointIn(bounds, point);
+  let acc: PremulColor = CLEAR;
+  for (const paint of fills || []) {
+    if (paint.visible === false || paint.opacity === 0) continue;
+    if (paint.type === "IMAGE") {
+      const img = resolveImagePaint(paint, bounds, point, "the text fill", images, approx);
+      if ("unknown" in img) return img.unknown.replace("IMAGE paint on the text fill", "IMAGE fill on the text");
+      if (img.color) acc = over(toPremul(img.color, null), acc);
+      continue;
+    }
+    if (!isResolvablePaint(paint)) return `${paint.type} fill on the text`;
+    const resolved = resolvePaint(paint, local);
+    if (resolved) acc = over(toPremul(resolved, null), acc);
+  }
+  if (acc.a <= 0) return "no visible text fill";
+  return acc;
+}
+
+/** The render result sits on an opaque white canvas when the page paints nothing. */
+function flatten(p: PremulColor): RGBAColor {
+  const k = 1 - p.a;
+  return { r: p.r + k, g: p.g + k, b: p.b + k, a: 1 };
+}
+
+interface SegmentEval extends ContrastSegmentFinding {
+  source: string | null;
+}
+
+function evaluateSegment(
+  stack: StackNode,
+  bounds: Bounds,
+  seg: TextSegmentSample,
+  approx: Set<string>,
+  images: ImageRasterMap | undefined,
+  dense: boolean,
+): SegmentEval {
+  const large = isLargeText(seg.fontSize, seg.fontWeight, seg.fontStyle);
   const requiredAA = large ? 3 : 4.5;
   const requiredAAA = large ? 4.5 : 7;
-  const passAA = ratio >= requiredAA;
-  const passAAA = ratio >= requiredAAA;
+  let worst: { ratio: number; fg: RGBAColor; bg: RGBAColor; source: string | null } | null = null;
+  let indeterminate: string | undefined;
+
+  for (const point of textSamplePoints(bounds, dense || hasImagePaint(seg.fills))) {
+    const fill = textFillAt(seg.fills, bounds, point, images, approx);
+    if (typeof fill === "string") {
+      indeterminate = fill;
+      break;
+    }
+    const withText = renderStackAt(stack, point, fill, approx, images);
+    if (!withText.hit) continue;
+    const backdrop = renderStackAt(stack, point, null, undefined, images);
+    if (backdrop.color.unknown && !indeterminate) indeterminate = `${backdrop.color.unknown} sits behind the text`;
+    const fg = flatten(withText.color);
+    const bg = flatten(backdrop.color);
+    const ratio = calculateContrastRatio(fg, bg);
+    if (!worst || ratio < worst.ratio) worst = { ratio, fg, bg, source: backdrop.color.source };
+  }
+  if (!worst && !indeterminate) indeterminate = "text is clipped out of view at every sample point";
+
+  const ratio = worst ? worst.ratio : 0;
+  return {
+    start: seg.start,
+    end: seg.end,
+    text: (seg.characters || "").slice(0, 40),
+    fontSize: seg.fontSize,
+    isLargeText: large,
+    foreground: worst ? rgbaToHex(worst.fg) : "—",
+    background: worst ? rgbaToHex(worst.bg) : "—",
+    ratio: Math.round(ratio * 100) / 100,
+    requiredAA,
+    requiredAAA,
+    passAA: ratio >= requiredAA,
+    passAAA: ratio >= requiredAAA,
+    indeterminate,
+    source: worst ? worst.source : null,
+  };
+}
+
+/**
+ * Score one text node. Mixed-style text is evaluated per styled segment and
+ * the node reports its worst segment. Several points across the text box are
+ * sampled against the full paint stack (page background, ancestors and the
+ * siblings painted beneath) and the worst point wins. A node whose backdrop or
+ * fill cannot be resolved is `indeterminate` rather than pass/fail — unless a
+ * resolvable segment definitely fails.
+ */
+export function evaluateTextSample(sample: TextSample, images?: ImageRasterMap): ContrastFinding {
+  const stack = stackOf(sample);
+  const dense = stackHasImage(stack);
+  const approx = new Set<string>();
+  const segmentsIn: TextSegmentSample[] =
+    sample.segments && sample.segments.length > 0
+      ? sample.segments
+      : [
+          {
+            start: 0,
+            end: (sample.characters || "").length,
+            characters: sample.characters,
+            fontSize: sample.fontSize,
+            fontWeight: sample.fontWeight,
+            fontStyle: sample.fontStyle,
+            fills: sample.fills,
+          },
+        ];
+  const segs = segmentsIn.map((s) => evaluateSegment(stack, sample.bounds, s, approx, images, dense));
+
+  const determinate = segs.filter((s) => !s.indeterminate);
+  const pool = determinate.length > 0 ? determinate : segs;
+  const worst = pool.reduce((a, b) => (b.ratio / b.requiredAA < a.ratio / a.requiredAA ? b : a));
+  const passAA = determinate.every((s) => s.passAA);
+  const passAAA = determinate.every((s) => s.passAAA);
+  const indeterminate = segs.find((s) => s.indeterminate)?.indeterminate;
 
   const finding: ContrastFinding = {
     nodeId: sample.nodeId,
     nodeName: sample.nodeName,
     text: (sample.characters || "").slice(0, 80),
-    fontSize: sample.fontSize,
-    fontWeight: sample.fontWeight,
-    isLargeText: large,
-    foreground: rgbaToHex({ ...effectiveFg, a: 1 }),
-    background: backdrop.hex,
-    backgroundSource: backdrop.sourceNodeName,
-    ratio: Math.round(ratio * 100) / 100,
-    requiredAA,
-    requiredAAA,
+    fontSize: worst.fontSize,
+    fontWeight: segmentsIn.length === 1 ? segmentsIn[0].fontWeight : undefined,
+    isLargeText: worst.isLargeText,
+    foreground: worst.foreground,
+    background: worst.background,
+    backgroundSource: worst.source,
+    ratio: worst.ratio,
+    requiredAA: worst.requiredAA,
+    requiredAAA: worst.requiredAAA,
     passAA,
     passAAA,
-    severity: !passAA ? "error" : !passAAA ? "warn" : "pass",
+    severity: !passAA ? "error" : indeterminate ? "indeterminate" : !passAAA ? "warn" : "pass",
   };
-  if (backdrop.unresolvedPaint) {
-    finding.note = "An image/video paint sits behind this text — the resolved backdrop is approximate.";
-  }
-  if (!sawFill) finding.note = (finding.note ? finding.note + " " : "") + "No resolvable text fill; assumed black.";
+  if (indeterminate) finding.indeterminate = indeterminate;
+  if (segs.length > 1) finding.segments = segs.map(({ source: _source, ...rest }) => rest);
+
+  const notes: string[] = [];
+  if (sample.stackPartial) notes.push("backdrop stack hit its node cap — partially resolved");
+  for (const a of approx) notes.push(a);
+  if (notes.length > 0) finding.note = notes.join("; ");
   return finding;
 }
 
@@ -290,15 +642,19 @@ export interface ContrastSweepReport {
   total: number;
   failingAA: number;
   failingAAA: number;
+  /** Nodes with no definite AA failure but an unresolvable backdrop or fill. */
+  indeterminate: number;
   findings: ContrastFinding[];
 }
 
-export function sweepContrast(samples: TextSample[]): ContrastSweepReport {
-  const findings = (samples || []).map(evaluateTextSample);
+/** `images` holds the decoded rasters (see decodeBackdropImages) for IMAGE paints. */
+export function sweepContrast(samples: TextSample[], images?: ImageRasterMap): ContrastSweepReport {
+  const findings = (samples || []).map((s) => evaluateTextSample(s, images));
   return {
     total: findings.length,
     failingAA: findings.filter((f) => !f.passAA).length,
     failingAAA: findings.filter((f) => !f.passAAA).length,
+    indeterminate: findings.filter((f) => f.severity === "indeterminate").length,
     findings,
   };
 }

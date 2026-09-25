@@ -4,7 +4,8 @@
 // chaining the individual command handlers, so a single failing sub-command
 // cannot silently no-op part of the composite.
 
-import { getFontStyle, parseNum } from "../utils/helpers";
+import { absolutePosition, parseNum } from "../utils/helpers";
+import { resolveAndLoadFontWeight } from "../utils/font-style";
 import { selectAndFocusNode } from "../utils/plugin-state";
 import { resolveColor } from "./fills";
 import { createSvg } from "./shapes";
@@ -446,6 +447,7 @@ export async function createAutolayoutFrame(params: Record<string, unknown>): Pr
     name: frame.name,
     x: frame.x,
     y: frame.y,
+    ...absolutePosition(frame),
     width: frame.width,
     height: frame.height,
     parentId: frame.parent ? frame.parent.id : undefined,
@@ -479,6 +481,7 @@ export async function createStyledText(params: Record<string, unknown>): Promise
   // Resolve the text style up front so its font is loaded BEFORE any text is
   // written — the single most common trip-up when doing this in separate calls.
   let resolvedStyle: TextStyle | undefined;
+  let resolvedFontStyle = "Regular";
   if (textStyle) {
     let style: BaseStyle | null = null;
     try {
@@ -511,7 +514,7 @@ export async function createStyledText(params: Record<string, unknown>): Promise
     resolvedStyle = style as TextStyle;
     await figma.loadFontAsync(resolvedStyle.fontName);
   } else {
-    await figma.loadFontAsync({ family: fontFamily, style: getFontStyle(fontWeight) });
+    resolvedFontStyle = await resolveAndLoadFontWeight(fontFamily, fontWeight, "create_styled_text");
   }
 
   const node = figma.createText();
@@ -520,7 +523,7 @@ export async function createStyledText(params: Record<string, unknown>): Promise
   node.name = name !== undefined ? name : text.slice(0, 40) || "Text";
 
   if (!resolvedStyle) {
-    node.fontName = { family: fontFamily, style: getFontStyle(fontWeight) };
+    node.fontName = { family: fontFamily, style: resolvedFontStyle };
     if (fontSize !== undefined) node.fontSize = fontSize;
     applied["fontName"] = node.fontName;
   }
@@ -572,6 +575,7 @@ export async function createStyledText(params: Record<string, unknown>): Promise
     characters: node.characters,
     x: node.x,
     y: node.y,
+    ...absolutePosition(node),
     width: node.width,
     height: node.height,
     parentId: node.parent ? node.parent.id : undefined,

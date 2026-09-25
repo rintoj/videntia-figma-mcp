@@ -92,7 +92,7 @@ export const BATCH_ACTION_SCHEMA_DOC = {
   resultReferences: {
     syntax: "$result[N] | $result[N].field | $result[N].children[0].name",
     indexing:
-      "N is the index of the action as YOU listed it in `actions` — unaffected by actions that expand internally (create_icon) or by automatic chunking of long batches.",
+      "N is the 0-based index of the action as YOU listed it in `actions` (the first action is $result[0]) — unaffected by actions that expand internally (create_icon) or by automatic chunking of long batches. Result rows use the same numbering. A reference to a later or failed action, or to a field the result does not have, fails that action with an explicit error.",
   },
   example: {
     actions: [

@@ -23,13 +23,15 @@ import { formatCompact, formatSummary, extractGeometry, violationId } from "../u
 import { filterNodeData, normalizeNodeId } from "../utils/figma-helpers.js";
 import { normalizeCommandParams } from "../utils/command-params.js";
 import { recordLintRun, getLintRun } from "../utils/lint-runs.js";
-import { postProcessExport, writeExportToPath, resolveExportDestination } from "../utils/export-image-post.js";
-import { exportCacheKey, getCachedExport, setCachedExport, approximateImageTokens } from "../utils/export-cache.js";
-import { ColorInputSchema, colorParam, toRgba } from "../utils/color-input.js";
+import { finalizeNodeExport, writeImageFillExport } from "../utils/export-finalize.js";
+import { isCapturing } from "../utils/tool-capture.js";
+import { ColorInputSchema, colorParam, toRgba, resolveColorWithAlpha } from "../utils/color-input.js";
+import { formatAnnotationsResult, resolveAnnotationIndex } from "../utils/annotation-format.js";
 import type {
   DocumentInfoResult,
   AnnotationsResult,
   SetAnnotationResult,
+  RemoveAnnotationResult,
   AnnotationCategoriesResult,
   CreateAnnotationCategoryResult,
   UpdateAnnotationCategoryResult,
@@ -396,41 +398,36 @@ export function registerDocumentTools(server: McpServer): void {
   // Get Annotations Tool
   server.tool(
     "get_annotations",
-    "Get all annotations in the current document or specific node",
+    "Read Dev Mode annotations on ONE node, or on a node and its descendants with include_children. Output is grouped by node (name, type, id); each annotation carries its 0-based index (what set_annotation / remove_annotation take), its category label AND categoryId, and its properties. GROUP, SECTION and BOOLEAN_OPERATION nodes can't hold annotations themselves, but include_children still walks into them. Visibility (the Dev Mode show/hide annotations toggle) is not exposed to plugins and can't be read.",
     {
-      nodeId: z.string().describe("Node ID to get annotations for specific node"),
-      includeCategories: mcpBooleanSchema.optional().default(true).describe("Whether to include category information"),
+      nodeId: z.string().describe("Node to read annotations from (the root of the walk when include_children is true)"),
+      includeCategories: mcpBooleanSchema
+        .optional()
+        .default(true)
+        .describe("Resolve each annotation's category label/color (the categoryId is always returned)"),
+      include_children: mcpBooleanSchema
+        .optional()
+        .default(false)
+        .describe("Also collect annotations from descendants. Default false = this node only"),
+      depth: z.coerce
+        .number()
+        .int()
+        .min(0)
+        .optional()
+        .describe(
+          "With include_children: max levels below nodeId to walk (1 = direct children). Omit for the whole subtree",
+        ),
     },
-    async ({ nodeId, includeCategories }) => {
+    async ({ nodeId, includeCategories, include_children, depth }) => {
       nodeId = normalizeNodeId(nodeId);
       try {
-        const result = await sendCommandToFigma<AnnotationsResult>("get_annotations", {
-          nodeId,
-          includeCategories,
-        });
-        const annotations = result.annotations || (Array.isArray(result) ? result : []);
-        if (annotations.length === 0) {
-          return { content: [{ type: "text", text: "No annotations found." }] };
+        const payload: Record<string, unknown> = { nodeId, includeCategories };
+        if (include_children) {
+          payload.includeChildren = true;
+          if (depth !== undefined) payload.depth = depth;
         }
-        const lines: string[] = [
-          `Found ${annotations.length} annotation(s) on node "${(result as any).nodeName || (result as any).nodeId || nodeId}"`,
-          "",
-          "| Index | Label | Category |",
-          "|-------|-------|----------|",
-        ];
-        for (const a of annotations) {
-          const label = truncate(((a as any).labelMarkdown || (a as any).label || "-").replace(/\n/g, " "), 60);
-          const cat = (a as any).category?.label || (a as any).categoryId || "-";
-          lines.push(`| ${(a as any).index ?? "-"} | ${label} | ${cat} |`);
-        }
-        return {
-          content: [
-            {
-              type: "text",
-              text: lines.join("\n"),
-            },
-          ],
-        };
+        const result = await sendCommandToFigma<AnnotationsResult>("get_annotations", payload);
+        return { content: [{ type: "text", text: formatAnnotationsResult(result, nodeId, include_children) }] };
       } catch (error) {
         return {
           content: [
@@ -444,38 +441,67 @@ export function registerDocumentTools(server: McpServer): void {
     },
   );
 
+  const propertiesSchema = coerceArray(z.array(z.object({ type: z.string() })))
+    .optional()
+    .describe("Annotation properties to pin (e.g. [{type:'fills'}]). On update, replaces the list; [] clears it");
+  const indexSchema = z.coerce
+    .number()
+    .int()
+    .min(0)
+    .optional()
+    .describe("0-based index of an existing annotation on the node (from get_annotations) to update. Omit to append");
+  const annotationIdSchema = z
+    .union([z.string(), z.number()])
+    .optional()
+    .describe("DEPRECATED alias of index — it was always a 0-based index, never an id");
+  const categorySchema = z
+    .string()
+    .optional()
+    .describe('Category by label (case-insensitive, e.g. "Development") or id. "" clears the category on update');
+  const categoryIdSchema = z
+    .string()
+    .optional()
+    .describe("Category id (see get_annotation_categories). Wins over category");
+
   // Set Annotation Tool
   server.tool(
     "set_annotation",
-    "Create or update an annotation",
+    "Append a Dev Mode annotation to a node, or update one by its 0-based index. Updates MERGE: only the fields you pass change (labelMarkdown, category/categoryId, properties); everything else on that annotation is kept. labelMarkdown is required only when appending. GROUP/SECTION/BOOLEAN_OPERATION nodes can't hold annotations — annotate a child or wrap the group in a frame.",
     {
       nodeId: z.string().describe("The ID of the node to annotate"),
-      annotationId: z
+      index: indexSchema,
+      annotationId: annotationIdSchema,
+      labelMarkdown: z
         .string()
         .optional()
-        .describe("The index of the annotation to update (0-based). Omit to append a new annotation."),
-      labelMarkdown: z.string().describe("The annotation text in markdown format"),
-      categoryId: z.string().optional().describe("The ID of the annotation category"),
-      properties: coerceArray(z.array(z.object({ type: z.string() })))
-        .optional()
-        .describe("Additional properties for the annotation"),
+        .describe("Annotation text in markdown. Required when appending; optional when updating by index"),
+      category: categorySchema,
+      categoryId: categoryIdSchema,
+      properties: propertiesSchema,
     },
-    async ({ nodeId, annotationId, labelMarkdown, categoryId, properties }) => {
+    async ({ nodeId, index, annotationId, labelMarkdown, category, categoryId, properties }) => {
       nodeId = normalizeNodeId(nodeId);
       try {
+        const resolvedIndex = resolveAnnotationIndex(index, annotationId);
+        if (resolvedIndex === undefined && labelMarkdown === undefined) {
+          throw new Error("labelMarkdown is required when appending a new annotation (pass index to update one)");
+        }
         const result = await sendCommandToFigma<SetAnnotationResult>("set_annotation", {
           nodeId,
-          annotationId,
+          index: resolvedIndex,
           labelMarkdown,
+          category,
           categoryId,
           properties,
         });
-        const action = annotationId != null ? "Updated" : "Created";
+        const action = resolvedIndex !== undefined ? "Updated" : "Created";
+        const name = result.name || result.nodeName || nodeId;
+        const catId = (result.annotation as { categoryId?: string } | undefined)?.categoryId;
         return {
           content: [
             {
               type: "text",
-              text: `${action} annotation on node "${result.nodeName || nodeId}" (index: ${result.annotationIndex ?? annotationId ?? 0})`,
+              text: `${action} annotation on node "${name}" (index: ${result.annotationIndex ?? resolvedIndex ?? 0}${catId ? `, categoryId: ${catId}` : ""})`,
             },
           ],
         };
@@ -492,22 +518,67 @@ export function registerDocumentTools(server: McpServer): void {
     },
   );
 
+  // Remove Annotation Tool
+  server.tool(
+    "remove_annotation",
+    "Remove a Dev Mode annotation from a node by its 0-based index (from get_annotations), or every annotation on the node with all: true. Pass exactly one of index / all. Later annotations shift down one index after a single removal.",
+    {
+      nodeId: z.string().describe("The node whose annotation(s) to remove"),
+      index: z.coerce.number().int().min(0).optional().describe("0-based index of the annotation to remove"),
+      all: mcpBooleanSchema.optional().describe("Remove every annotation on the node"),
+    },
+    async ({ nodeId, index, all }) => {
+      nodeId = normalizeNodeId(nodeId);
+      try {
+        if ((index === undefined) === !all) {
+          throw new Error("Pass exactly one of index (a 0-based annotation index) or all: true");
+        }
+        const result = await sendCommandToFigma<RemoveAnnotationResult>("remove_annotation", {
+          nodeId,
+          ...(all ? { all: true } : { index }),
+        });
+        const name = result.name || result.nodeName || nodeId;
+        const what = all ? `${result.removedCount ?? 0} annotation(s)` : `annotation at index ${index}`;
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Removed ${what} from node "${name}" (${result.remainingAnnotations ?? 0} remaining)`,
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error removing annotation on node "${nodeId}": ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
   // Set Multiple Annotations Tool
   server.tool(
     "set_multiple_annotations",
-    "Set multiple annotations parallelly in a node",
+    "Append or update several annotations in one call, sequentially. Each entry follows set_annotation semantics (index to update + merge, otherwise append). An entry without its own nodeId uses the top-level nodeId.",
     {
-      nodeId: z.string().describe("The ID of the node containing elements to annotate"),
+      nodeId: z.string().describe("Default node for entries that omit their own nodeId"),
       annotations: coerceArray(
         z.array(
           z.object({
-            nodeId: z.string().describe("The ID of the node to annotate"),
-            labelMarkdown: z.string().describe("The annotation text in markdown format"),
-            categoryId: z.string().optional().describe("The ID of the annotation category"),
-            annotationId: z.string().optional().describe("The ID of the annotation to update"),
-            properties: coerceArray(z.array(z.object({ type: z.string() })))
+            nodeId: z.string().optional().describe("The node to annotate. Defaults to the top-level nodeId"),
+            labelMarkdown: z
+              .string()
               .optional()
-              .describe("Additional properties for the annotation"),
+              .describe("Annotation text in markdown. Required when appending; optional when updating by index"),
+            category: categorySchema,
+            categoryId: categoryIdSchema,
+            index: indexSchema,
+            annotationId: annotationIdSchema,
+            properties: propertiesSchema,
           }),
         ),
       ).describe("Array of annotations to apply"),
@@ -526,9 +597,18 @@ export function registerDocumentTools(server: McpServer): void {
           };
         }
 
+        const entries = annotations.map((a) => {
+          const { annotationId, index, ...rest } = a;
+          return {
+            ...rest,
+            nodeId: normalizeNodeId(a.nodeId || nodeId),
+            index: resolveAnnotationIndex(index, annotationId),
+          };
+        });
+
         const result = await sendCommandToFigma("set_multiple_annotations", {
           nodeId,
-          annotations,
+          annotations: entries,
         });
 
         interface AnnotationResult {
@@ -2196,7 +2276,6 @@ export function registerDocumentTools(server: McpServer): void {
       force_refresh,
     }) => {
       nodeId = normalizeNodeId(nodeId);
-      const isVideo = format === "MP4" || format === "GIF" || format === "WEBM";
       try {
         const result = await sendCommandToFigma("export_node_as_image", {
           nodeId,
@@ -2209,246 +2288,46 @@ export function registerDocumentTools(server: McpServer): void {
           constraintValue,
         });
 
-        if (isVideo) {
-          const typedResult = result as {
-            videoData: string;
-            mimeType: string;
-            format: string;
-            byteLength: number;
-            name?: string;
-          };
-          if (save_to_path || output_directory || filename) {
-            const destination = await resolveExportDestination({
-              saveToPath: save_to_path,
-              outputDirectory: output_directory,
-              filename,
-              nodeId,
-              nodeName: typedResult.name,
-              scale: scale || 1,
-              format: typedResult.format,
-            });
-            const written = await writeExportToPath(destination.path, typedResult.videoData);
-            return {
-              content: [
-                {
-                  type: "text" as const,
-                  text: JSON.stringify(
-                    {
-                      path: written.path,
-                      bytes: written.bytes,
-                      format: typedResult.format,
-                      ...(destination.warnings.length ? { warnings: destination.warnings } : {}),
-                    },
-                    null,
-                    2,
-                  ),
-                },
-              ],
-            };
-          }
-          return {
-            content: [
-              {
-                type: "text",
-                text: `Exported "${nodeId}" as ${typedResult.format} (${(typedResult.byteLength / 1024).toFixed(0)} KB).`,
-              },
-              {
-                type: "resource",
-                resource: {
-                  uri: `figma-export://${nodeId}.${typedResult.format.toLowerCase()}`,
-                  mimeType: typedResult.mimeType,
-                  blob: typedResult.videoData,
-                },
-              },
-            ],
-          };
-        }
+        // batch_actions runs the file write itself, on the real plugin result
+        // (see BATCH_POST_PROCESSORS in tools/batch-tools.ts).
+        if (isCapturing()) return { content: [] };
 
-        const typedResult = result as {
-          imageData: string;
-          mimeType: string;
-          requestedScale: number;
-          actualScale: number;
-          originalWidth: number;
-          originalHeight: number;
-          exportedWidth: number;
-          exportedHeight: number;
-          subtreeHash?: string | null;
-          name?: string;
-        };
-
-        const resolvedFormat = format || "PNG";
-        const resolvedScale = scale || 1;
-        const wantsInline = inline === true;
-
-        // Where the file goes. Resolved even for inline renders so an explicit
-        // destination still participates in the cache key.
-        const destination = wantsInline
-          ? { path: "", warnings: [] as string[] }
-          : await resolveExportDestination({
-              saveToPath: save_to_path,
-              outputDirectory: output_directory,
-              filename,
-              nodeId,
-              nodeName: typedResult.name,
-              scale: resolvedScale,
-              format: resolvedFormat,
-            });
-
-        // Session render cache. Keyed on the plugin-computed subtree version
-        // hash — when that is missing we simply never cache (a false miss costs
-        // one render; a false hit silently shows a stale design).
-        const cacheKey = exportCacheKey({
+        const outcome = await finalizeNodeExport(result, {
           nodeId,
-          scale: resolvedScale,
-          format: resolvedFormat,
-          subtreeHash: typedResult.subtreeHash,
+          format,
+          scale,
+          save_to_path,
+          output_directory,
+          filename,
+          max_width,
+          max_height,
+          allow_full_resolution,
           region,
-          maxWidth: max_width,
-          maxHeight: max_height,
-          jpegQuality: jpeg_quality,
-          allowFullResolution: allow_full_resolution === true,
-          inline: wantsInline,
-          destination: destination.path || null,
+          jpeg_quality,
+          inline,
+          force_refresh,
         });
-        const cached = force_refresh === true ? undefined : getCachedExport(cacheKey);
 
-        if (cached) {
-          const savedNote =
-            `Cache HIT — "${nodeId}" is unchanged since the last export at this scale (subtree hash ${typedResult.subtreeHash}); ` +
-            `reusing that render and skipping ~${cached.approxTokens} result tokens. Pass force_refresh: true to re-render.`;
-          if (cached.path) {
-            return {
-              content: [
-                {
-                  type: "text" as const,
-                  text: JSON.stringify(
-                    {
-                      path: cached.path,
-                      width: cached.width,
-                      height: cached.height,
-                      bytes: cached.bytes,
-                      format: cached.format,
-                      cached: true,
-                      note: savedNote,
-                    },
-                    null,
-                    2,
-                  ),
-                },
-              ],
-            };
-          }
+        if (outcome.kind === "file") {
+          return { content: [{ type: "text" as const, text: JSON.stringify(outcome.payload, null, 2) }] };
+        }
+        if (outcome.kind === "inline-video") {
           return {
             content: [
-              { type: "text" as const, text: savedNote },
+              { type: "text" as const, text: outcome.text },
               {
-                type: "image" as const,
-                data: cached.base64 as string,
-                mimeType: cached.mimeType || "image/png",
+                type: "resource" as const,
+                resource: { uri: outcome.uri, mimeType: outcome.mimeType, blob: outcome.blob },
               },
             ],
           };
         }
-
-        // Server-side crop / downscale / re-encode. Saving to disk keeps full
-        // resolution — the 1200px cap only guards inline (token-costly)
-        // returns — but a fractional `scale` is enforced on BOTH paths.
-        const longestSourceEdge = Math.max(typedResult.originalWidth || 0, typedResult.originalHeight || 0);
-        const hardMaxEdge =
-          resolvedScale < 1 && longestSourceEdge > 0
-            ? Math.max(1, Math.round(longestSourceEdge * resolvedScale))
-            : undefined;
-
-        const processed = await postProcessExport({
-          base64: typedResult.imageData,
-          format: resolvedFormat,
-          maxWidth: max_width,
-          maxHeight: max_height,
-          allowFullResolution: allow_full_resolution === true || !wantsInline,
-          region,
-          jpegQuality: jpeg_quality,
-          hardMaxEdge,
-        });
-
-        const width = processed.width ?? typedResult.exportedWidth;
-        const height = processed.height ?? typedResult.exportedHeight;
-        const approxTokens = approximateImageTokens(width, height);
-
-        // A2: writing a file is the DEFAULT. Pixels come back inline only when
-        // the caller explicitly asks for them.
-        if (!wantsInline) {
-          const written = await writeExportToPath(destination.path, processed.base64);
-          setCachedExport(cacheKey, {
-            path: written.path,
-            width,
-            height,
-            bytes: written.bytes,
-            format: resolvedFormat,
-            approxTokens,
-          });
-          return {
-            content: [
-              {
-                type: "text" as const,
-                text: JSON.stringify(
-                  {
-                    path: written.path,
-                    width,
-                    height,
-                    bytes: written.bytes,
-                    format: resolvedFormat,
-                    cached: false,
-                    ...(destination.warnings.length ? { warnings: destination.warnings } : {}),
-                    note: [
-                      ...processed.notes,
-                      ...destination.warnings,
-                      "Pass inline: true if you need to see the pixels in the conversation.",
-                    ].join(" "),
-                  },
-                  null,
-                  2,
-                ),
-              },
-            ],
-          };
-        }
-
-        const content: Array<{ type: "text"; text: string } | { type: "image"; data: string; mimeType: string }> = [];
-
-        // Add warning if scale was auto-reduced or image is large
-        const wasScaleReduced = typedResult.actualScale < typedResult.requestedScale;
-
-        const summary = [
-          `Exported "${nodeId}" as ${resolvedFormat} — ${width}x${height}px, ${(processed.bytes / 1024).toFixed(0)} KB (original node ${typedResult.originalWidth}x${typedResult.originalHeight}px).`,
-          wasScaleReduced
-            ? `⚠️ Scale auto-reduced from ${typedResult.requestedScale}x to ${typedResult.actualScale.toFixed(2)}x to fit Figma export limits.`
-            : "",
-          ...processed.notes,
-          `Cache MISS (~${approxTokens} result tokens). Omit inline to get a file path instead of an inline image (far cheaper).`,
-        ]
-          .filter(Boolean)
-          .join(" ");
-
-        content.push({ type: "text", text: summary });
-
-        content.push({
-          type: "image",
-          data: processed.base64,
-          mimeType: typedResult.mimeType || "image/png",
-        });
-
-        setCachedExport(cacheKey, {
-          base64: processed.base64,
-          mimeType: typedResult.mimeType || "image/png",
-          width,
-          height,
-          bytes: processed.bytes,
-          format: resolvedFormat,
-          approxTokens,
-        });
-
-        return { content };
+        return {
+          content: [
+            { type: "text" as const, text: outcome.text },
+            { type: "image" as const, data: outcome.data, mimeType: outcome.mimeType },
+          ],
+        };
       } catch (error) {
         return {
           content: [
@@ -2507,25 +2386,15 @@ export function registerDocumentTools(server: McpServer): void {
           },
           120000,
         );
-        const typedResult = result as {
-          imageData: string;
-          mimeType: string;
-          width: number;
-          height: number;
-          imageHash: string;
-          scaleMode: string;
-          fillIndex: number;
-        };
+        if (isCapturing()) return { content: [] };
 
-        // Write base64 image data to file
-        const buffer = Buffer.from(typedResult.imageData, "base64");
-        fs.writeFileSync(exportPath, buffer);
+        const written = await writeImageFillExport(exportPath, result);
 
         return {
           content: [
             {
               type: "text" as const,
-              text: `Image fill exported to ${exportPath} (${typedResult.width}x${typedResult.height}px, ${buffer.length} bytes, scaleMode: ${typedResult.scaleMode})`,
+              text: `Image fill exported to ${written.path} (${written.width}x${written.height}px, ${written.bytes} bytes, scaleMode: ${written.scaleMode})`,
             },
           ],
         };
@@ -3045,15 +2914,19 @@ export function registerDocumentTools(server: McpServer): void {
       r: z.coerce.number().min(0).max(255).optional().describe("Red channel (0–1 normalized, or 0–255)"),
       g: z.coerce.number().min(0).max(255).optional().describe("Green channel (0–1 normalized, or 0–255)"),
       b: z.coerce.number().min(0).max(255).optional().describe("Blue channel (0–1 normalized, or 0–255)"),
-      a: z.coerce.number().min(0).max(255).optional().describe("Alpha (0–1 normalized, or 0–255; default 1)"),
+      a: z.coerce
+        .number()
+        .min(0)
+        .max(255)
+        .optional()
+        .describe("Alpha (0–1 normalized, or 0–255; default 1). Overrides the alpha of `color` when both are given."),
     },
     async ({ pageId, color, r, g, b, a }) => {
       try {
         const params: Record<string, unknown> = {};
         if (pageId) params.pageId = pageId;
         if (color !== undefined) {
-          const normalized = toRgba(color);
-          params.color = typeof color === "string" ? color : normalized;
+          params.color = resolveColorWithAlpha(color, a);
         } else {
           if (r === undefined || g === undefined || b === undefined) {
             throw new Error("Provide either 'color' or r, g, b components");
@@ -3070,7 +2943,7 @@ export function registerDocumentTools(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: `Set background of page "${typed.name}" (ID: ${typed.id}) to ${color ?? `rgba(${r}, ${g}, ${b}, ${a ?? 1})`}`,
+              text: `Set background of page "${typed.name}" (ID: ${typed.id}) to ${params.color !== undefined ? (typeof params.color === "string" ? params.color : JSON.stringify(params.color)) : `rgba(${r}, ${g}, ${b}, ${a ?? 1})`}`,
             },
           ],
         };

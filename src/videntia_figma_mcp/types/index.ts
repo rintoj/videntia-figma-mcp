@@ -108,6 +108,7 @@ export type FigmaCommand =
   | "set_text_decoration"
   | "set_text_range_style"
   | "get_styled_text_segments"
+  | "get_text_opentype_features"
   | "load_font_async"
   | "create_text_style"
   | "create_text_style_from_properties"
@@ -145,6 +146,7 @@ export type FigmaCommand =
   | "get_annotations"
   | "set_annotation"
   | "set_multiple_annotations"
+  | "remove_annotation"
   | "get_annotation_categories"
   | "create_annotation_category"
   | "update_annotation_category"
@@ -238,7 +240,10 @@ export type FigmaCommand =
   | "get_content_tree"
   | "get_frame_documentation"
   | "get_comments"
-  | "export_selection_as_image";
+  | "export_selection_as_image"
+  | "create_ellipse"
+  | "set_rotation"
+  | "set_layer_order";
 
 export type BrowserCommand =
   | "get_dom_nodes"
@@ -353,12 +358,22 @@ export interface FigmaNodeFill {
     type: string;
     stops: Array<{ color: string; position: number }>;
     direction?: string;
+    /** LINEAR only: CSS linear-gradient angle (0 = to top, 90 = to right, 180 = to bottom). */
+    angle?: number;
   };
   isImage?: boolean;
   imageRef?: string;
   /** Figma API name for imageRef — same value, emitted for IMAGE paints. */
   imageHash?: string;
   scaleMode?: string;
+  /** TILE only: tile size as a multiple of the image's natural size. */
+  scalingFactor?: number;
+  /** Image rotation in degrees (emitted only when non-zero). */
+  rotation?: number;
+  /** CROP only: the 2x3 image transform. */
+  imageTransform?: number[][];
+  /** Non-default image filters (exposure, contrast, saturation, …). */
+  filters?: Record<string, number>;
 }
 
 export interface FigmaNodeStroke {
@@ -371,6 +386,10 @@ export interface FigmaNodeStroke {
   imageRef?: string;
   imageHash?: string;
   scaleMode?: string;
+  scalingFactor?: number;
+  rotation?: number;
+  imageTransform?: number[][];
+  filters?: Record<string, number>;
 }
 
 export interface FigmaNodeEffect {
@@ -509,7 +528,22 @@ export interface AnnotationsResult {
 export interface SetAnnotationResult {
   success?: boolean;
   nodeId?: string;
+  name?: string;
+  nodeName?: string;
+  action?: "created" | "updated";
+  annotationIndex?: number;
+  totalAnnotations?: number;
   label?: string;
+  [key: string]: unknown;
+}
+
+export interface RemoveAnnotationResult {
+  success?: boolean;
+  nodeId?: string;
+  name?: string;
+  nodeName?: string;
+  removedCount?: number;
+  remainingAnnotations?: number;
   [key: string]: unknown;
 }
 

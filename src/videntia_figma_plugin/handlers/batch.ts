@@ -11,6 +11,40 @@ const RESOLVE_MAX_PATH_DEPTH = 10;
 
 export type HandleCommandFn = (command: string, params: Record<string, unknown>) => Promise<unknown>;
 
+// One step of a $result[N] field path. A missing segment is an ERROR, never undefined:
+// an unresolved parentId silently dropped from a create call lands the node on the page.
+function stepInto(value: unknown, segment: string, ref: string): unknown {
+  if (value === null || value === undefined) {
+    throw new Error("Cannot access '" + segment + "' on null/undefined in " + ref);
+  }
+  if (segment.charAt(0) === "[") {
+    const arrIndex = parseInt(segment.slice(1, -1), 10);
+    if (!Array.isArray(value)) {
+      throw new Error("Cannot index '" + segment + "' in " + ref + ": the value there is not an array");
+    }
+    if (arrIndex >= value.length) {
+      throw new Error(
+        "Index " + segment + " is out of range in " + ref + ": the array has " + value.length + " item(s)",
+      );
+    }
+    return value[arrIndex];
+  }
+  const key = segment.slice(1);
+  if (typeof value !== "object" || !Object.prototype.hasOwnProperty.call(value, key)) {
+    const available = typeof value === "object" ? Object.keys(value as object) : [];
+    throw new Error(
+      ref +
+        ": the referenced result has no '" +
+        key +
+        "' field. " +
+        (available.length
+          ? "Available keys: " + available.slice(0, 20).join(", ") + (available.length > 20 ? ", …" : "") + "."
+          : "The value there is " + (typeof value === "object" ? "an empty object" : "a " + typeof value) + "."),
+    );
+  }
+  return (value as Record<string, unknown>)[key];
+}
+
 // Resolves $result[N].field references in action params against previous results.
 function resolveResultReferences(params: unknown, results: BatchActionResult[]): unknown {
   if (params === null || params === undefined) return params;
@@ -57,19 +91,7 @@ function resolveResultReferences(params: unknown, results: BatchActionResult[]):
             );
           }
           for (let s = 0; s < segments.length; s++) {
-            const segment = segments[s];
-            if (value === null || value === undefined) {
-              throw new Error(
-                "Cannot access '" + segment + "' on null/undefined in $result[" + refIndex + "]" + fieldPath,
-              );
-            }
-            if (segment.startsWith("[")) {
-              const arrIndex = parseInt(segment.slice(1, -1), 10);
-              value = (value as unknown[])[arrIndex];
-            } else {
-              // Remove leading dot
-              value = (value as Record<string, unknown>)[segment.slice(1)];
-            }
+            value = stepInto(value, segments[s], "$result[" + refIndex + "]" + fieldPath);
           }
         }
       }
@@ -266,7 +288,7 @@ export async function batchActions(
           (error instanceof Error ? error.message : String(error)) +
           " [action #" +
           i +
-          " of " +
+          " (0-based) of " +
           totalActions +
           "; " +
           describeCommitted(committedIndices) +
@@ -284,7 +306,7 @@ export async function batchActions(
           progress,
           totalActions,
           i + 1,
-          `Action ${i + 1} (${action}) failed. Processed ${i + 1}/${totalActions} (${succeeded} succeeded, ${failed} failed)`,
+          `Action #${i} (${action}, 0-based) failed. Processed ${i + 1}/${totalActions} (${succeeded} succeeded, ${failed} failed)`,
         );
       }
 

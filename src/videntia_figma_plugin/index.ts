@@ -19,6 +19,7 @@ import { assertExpectedDocument } from "./utils/document-guard";
 import { serializeNodes } from "./handlers/node-serializer";
 import { createPage, renamePage, deletePage, setPageBackground } from "./handlers/pages";
 import { createSection, setSectionStatus } from "./handlers/sections";
+import { setLayerOrder, setRotation } from "./handlers/arrange";
 import {
   getReactions,
   getFrameAnimations,
@@ -227,6 +228,7 @@ import {
   getAnnotations,
   setAnnotation,
   setMultipleAnnotations,
+  removeAnnotation,
   getAnnotationCategories,
   createAnnotationCategory,
   updateAnnotationCategory,
@@ -255,6 +257,7 @@ import { enumerateAllFrames, bulkExportFrames, getContentTree, getFrameDocumenta
 
 // Handlers — comments
 import { getComments } from "./handlers/comments";
+import { getTextOpenTypeFeatures } from "./handlers/opentype";
 
 // ---------------------------------------------------------------------------
 // Plugin state
@@ -293,6 +296,7 @@ var READONLY_COMMANDS = new Set([
   "get_slot_info",
   "get_instance_overrides",
   "get_styled_text_segments",
+  "get_text_opentype_features",
   "get_text_styles",
   "get_variables",
   "get_bound_variables",
@@ -362,6 +366,7 @@ var FOCUS_BEFORE_COMMANDS = new Set([
   "get_component_properties",
   "get_instance_overrides",
   "get_styled_text_segments",
+  "get_text_opentype_features",
   "get_annotations",
   "get_reactions",
   "get_frame_animations",
@@ -380,6 +385,8 @@ var FOCUS_BEFORE_COMMANDS = new Set([
   "set_gradient_fill",
   "move_node",
   "move_node_absolute",
+  "set_rotation",
+  "set_layer_order",
   "resize_node",
   "delete_node",
   "clone_node",
@@ -419,6 +426,7 @@ var FOCUS_BEFORE_COMMANDS = new Set([
   "set_layout_sizing",
   "set_annotation",
   "set_multiple_annotations",
+  "remove_annotation",
   "detach_instance",
   "set_instance_overrides",
   "set_component_property_references",
@@ -808,6 +816,10 @@ async function _executeCommand(command: string, params: Record<string, unknown>)
       return await moveNode(params);
     case "move_node_absolute":
       return await moveNodeAbsolute(params);
+    case "set_rotation":
+      return await setRotation(params);
+    case "set_layer_order":
+      return await setLayerOrder(params);
     case "resize_node":
       return await resizeNode(params);
     case "delete_node":
@@ -912,6 +924,8 @@ async function _executeCommand(command: string, params: Record<string, unknown>)
       return await setTextDecoration(params);
     case "set_text_range_style":
       return await setTextRangeStyle(params);
+    case "get_text_opentype_features":
+      return await getTextOpenTypeFeatures(params);
     case "get_styled_text_segments":
       return await getStyledTextSegments(params);
     case "load_font_async":
@@ -1082,6 +1096,8 @@ async function _executeCommand(command: string, params: Record<string, unknown>)
       return await setAnnotation(params);
     case "set_multiple_annotations":
       return await setMultipleAnnotations(params);
+    case "remove_annotation":
+      return await removeAnnotation(params);
     case "get_annotation_categories":
       return await getAnnotationCategories();
     case "create_annotation_category":

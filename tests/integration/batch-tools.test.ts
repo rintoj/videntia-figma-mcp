@@ -397,7 +397,7 @@ describe("batch_actions tool", () => {
       });
       const params = dispatched()[0].params;
       expect(params.gradientType).toBe("LINEAR");
-      expect(params.angle).toBe(0);
+      expect(params.angle).toBe(180);
       expect(params.opacity).toBe(1);
       expect(params.type).toBeUndefined();
     });

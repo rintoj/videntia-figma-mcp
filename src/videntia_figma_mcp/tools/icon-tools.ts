@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { searchIcons, getIcon, listIcons } from "../utils/icon-search.js";
+import { searchIcons, getIcon, listIcons, iconNotFoundMessage, iconNameCandidates } from "../utils/icon-search.js";
 import { sendCommandToFigma } from "../utils/websocket.js";
 import { normalizeNodeId } from "../utils/figma-helpers.js";
 import { svgConstraintsSchema } from "../utils/constraints-schema.js";
@@ -237,7 +237,7 @@ function buildIconSvg(svg: string, color: string, size: number): string {
 export function resolveCreateIconParams(params: {
   parentId: string;
   index?: number;
-  name: string;
+  name?: string;
   color?: string;
   colorVariable?: string;
   size: number;
@@ -248,10 +248,9 @@ export function resolveCreateIconParams(params: {
   iconName: string;
 } {
   const { parentId, index, name: iconName, color, colorVariable, size, constraints } = params;
-  const icon = getIcon(iconName);
+  const icon = getIcon(iconName ?? "");
   if (!icon) {
-    const suggestions = searchIcons(iconName, 5);
-    throw new Error(`Icon "${iconName}" not found. Suggestions: ${suggestions.map((s) => s.name).join(", ")}`);
+    throw new Error(iconNotFoundMessage(iconName ?? ""));
   }
 
   const effectiveColorVar =
@@ -286,16 +285,15 @@ export function resolveCreateIconParams(params: {
  */
 export function resolveUpdateIconParams(params: {
   nodeId: string;
-  name: string;
+  name?: string;
   color?: string;
   colorVariable?: string;
   size: number;
 }): Record<string, unknown> {
   const { nodeId, name: iconName, color, colorVariable, size } = params;
-  const icon = getIcon(iconName);
+  const icon = getIcon(iconName ?? "");
   if (!icon) {
-    const suggestions = searchIcons(iconName, 5);
-    throw new Error(`Icon "${iconName}" not found. Suggestions: ${suggestions.map((s) => s.name).join(", ")}`);
+    throw new Error(iconNotFoundMessage(iconName ?? ""));
   }
 
   const effectiveColorVar =
@@ -368,11 +366,15 @@ export function registerIconTools(server: McpServer): void {
     "get_icon",
     "Get a Lucide icon SVG by exact name. Returns the SVG markup directly. If not found, suggests similar icons.",
     {
-      name: z.string().describe('Exact icon name (e.g. "arrow-left", "bell", "check")'),
+      name: z
+        .string()
+        .describe(
+          'Icon name (e.g. "arrow-left", "bell", "check"). Also accepts "lucide:check", "CheckIcon", "CircleCheck".',
+        ),
     },
     async ({ name }) => {
       try {
-        const result = getIcon(name);
+        const result = getIcon(name ?? "");
 
         if (result) {
           return {
@@ -386,14 +388,15 @@ export function registerIconTools(server: McpServer): void {
         }
 
         // Not found — provide suggestions
-        const suggestions = searchIcons(name, 5);
+        const candidates = iconNameCandidates(name ?? "");
+        const suggestions = candidates.length ? searchIcons(candidates[candidates.length - 1], 5) : [];
         return {
           content: [
             {
               type: "text" as const,
               text: JSON.stringify(
                 {
-                  error: `Icon "${name}" not found`,
+                  error: iconNotFoundMessage(name ?? ""),
                   suggestions: suggestions.map(({ name, matchType }) => ({ name, matchType })),
                 },
                 null,
@@ -479,7 +482,11 @@ export function registerIconTools(server: McpServer): void {
         .min(0)
         .optional()
         .describe("Zero-based position within the parent's children array (omit to append at the end)"),
-      name: z.string().describe('Lucide icon name (e.g. "arrow-left", "bell", "check")'),
+      name: z
+        .string()
+        .describe(
+          'Lucide icon name (e.g. "arrow-left", "bell", "check"). Also accepts "lucide:check", "CheckIcon", "CircleCheck". Aliases: icon, iconName. Brand logos (github, figma, …) are not in Lucide — use create_svg for those.',
+        ),
       color: z
         .string()
         .optional()
@@ -497,16 +504,17 @@ export function registerIconTools(server: McpServer): void {
     },
     async ({ parentId, index, name: iconName, color, colorVariable, size, constraints }) => {
       parentId = normalizeNodeId(parentId);
-      const icon = getIcon(iconName);
+      const icon = getIcon(iconName ?? "");
       if (!icon) {
-        const suggestions = searchIcons(iconName, 5);
+        const candidates = iconNameCandidates(iconName ?? "");
+        const suggestions = candidates.length ? searchIcons(candidates[candidates.length - 1], 5) : [];
         return {
           content: [
             {
               type: "text" as const,
               text: JSON.stringify(
                 {
-                  error: `Icon "${iconName}" not found`,
+                  error: iconNotFoundMessage(iconName ?? ""),
                   suggestions: suggestions.map(({ name, matchType }) => ({ name, matchType })),
                 },
                 null,
@@ -620,7 +628,11 @@ export function registerIconTools(server: McpServer): void {
     "Replace an existing icon node in Figma with a new Lucide icon. The replacement is inserted at the same parent and position as the original node.",
     {
       nodeId: z.string().describe("ID of the existing icon node to replace"),
-      name: z.string().describe('New Lucide icon name (e.g. "arrow-left", "bell", "check")'),
+      name: z
+        .string()
+        .describe(
+          'New Lucide icon name (e.g. "arrow-left", "bell", "check"). Also accepts "lucide:check", "CheckIcon", "CircleCheck". Aliases: icon, iconName.',
+        ),
       color: z
         .string()
         .optional()
@@ -637,16 +649,17 @@ export function registerIconTools(server: McpServer): void {
     },
     async ({ nodeId, name: iconName, color, colorVariable, size }) => {
       nodeId = normalizeNodeId(nodeId);
-      const icon = getIcon(iconName);
+      const icon = getIcon(iconName ?? "");
       if (!icon) {
-        const suggestions = searchIcons(iconName, 5);
+        const candidates = iconNameCandidates(iconName ?? "");
+        const suggestions = candidates.length ? searchIcons(candidates[candidates.length - 1], 5) : [];
         return {
           content: [
             {
               type: "text" as const,
               text: JSON.stringify(
                 {
-                  error: `Icon "${iconName}" not found`,
+                  error: iconNotFoundMessage(iconName ?? ""),
                   suggestions: suggestions.map(({ name, matchType }) => ({ name, matchType })),
                 },
                 null,

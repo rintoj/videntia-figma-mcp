@@ -265,7 +265,7 @@ describe("MCP capability gap fixes", () => {
       expect(params.layoutPositioning).toBe("ABSOLUTE");
     });
 
-    it.skip("passes layoutPositioning ABSOLUTE to create_ellipse", async () => {
+    it("passes layoutPositioning ABSOLUTE to create_ellipse", async () => {
       mockSendCommand.mockResolvedValue({
         id: "ellipse-001",
         name: "Blob",
@@ -402,7 +402,7 @@ describe("MCP capability gap fixes", () => {
       expect(params.layoutPositioning).toBe("ABSOLUTE");
     });
 
-    it.skip("passes x, y, and layoutPositioning together to create_ellipse", async () => {
+    it("passes x, y, and layoutPositioning together to create_ellipse", async () => {
       mockSendCommand.mockResolvedValue({
         id: "abs-ellipse-001",
         name: "Blob",

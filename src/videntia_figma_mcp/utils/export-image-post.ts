@@ -160,10 +160,19 @@ export async function postProcessExport(options: PostProcessOptions): Promise<Po
 /**
  * Write a base64 export payload to an absolute path.
  * Parent directory must already exist; existing files are overwritten.
+ *
+ * Atomic: the bytes go to a temp file in the same directory which is then renamed over
+ * the target, so a reader (or the export cache) never observes a half-written file.
+ * `sha256` is the digest of what was written, used by the export cache to detect a
+ * file that has since been overwritten by another export.
  */
-export async function writeExportToPath(exportPath: string, base64: string): Promise<{ path: string; bytes: number }> {
+export async function writeExportToPath(
+  exportPath: string,
+  base64: string,
+): Promise<{ path: string; bytes: number; sha256: string }> {
   const path = await import("path");
   const fs = await import("fs");
+  const crypto = await import("crypto");
 
   if (!path.isAbsolute(exportPath)) {
     throw new Error(`save_to_path must be an absolute path, got: ${exportPath}`);
@@ -173,8 +182,26 @@ export async function writeExportToPath(exportPath: string, base64: string): Pro
     throw new Error(`Directory does not exist: ${dir}`);
   }
   const buffer = Buffer.from(base64, "base64");
-  fs.writeFileSync(exportPath, buffer);
-  return { path: exportPath, bytes: buffer.length };
+  const tmpPath = path.join(
+    dir,
+    `.${path.basename(exportPath)}.${process.pid}.${crypto.randomBytes(6).toString("hex")}.tmp`,
+  );
+  try {
+    fs.writeFileSync(tmpPath, buffer);
+    fs.renameSync(tmpPath, exportPath);
+  } catch (error) {
+    try {
+      fs.unlinkSync(tmpPath);
+    } catch {
+      // Temp file was never created or is already gone.
+    }
+    throw error;
+  }
+  return {
+    path: exportPath,
+    bytes: buffer.length,
+    sha256: crypto.createHash("sha256").update(buffer).digest("hex"),
+  };
 }
 
 /**

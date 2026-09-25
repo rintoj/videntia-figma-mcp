@@ -240,22 +240,109 @@ function fuzzyMatch(name: string, pattern: string): number {
 }
 
 /**
+ * Candidate Lucide names for whatever spelling a caller used: `lucide:check`,
+ * `lucide-check`, `CheckIcon`, `CircleCheck`, `circleCheck`, `circle_check`,
+ * `check-icon`, `ArrowUp01`. Ordered most-literal first.
+ */
+export function iconNameCandidates(name: string): string[] {
+  const raw = name.trim().replace(/^lucide[:/]/i, "");
+  const stripped = raw.replace(/^lucide-(?=.)/i, "");
+  const seen = new Set<string>();
+  const out: string[] = [];
+  const push = (value: string) => {
+    const v = value.replace(/-{2,}/g, "-").replace(/^-+|-+$/g, "");
+    if (v && !seen.has(v)) {
+      seen.add(v);
+      out.push(v);
+    }
+  };
+
+  for (const base of [raw, stripped]) {
+    const lower = base.toLowerCase();
+    push(lower);
+    const kebab = base
+      .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
+      .replace(/([A-Z])([A-Z][a-z])/g, "$1-$2")
+      .replace(/[\s_.]+/g, "-")
+      .toLowerCase();
+    // `CheckIcon` / `check-icon` / `check_icon` — a component-style suffix, not part of the name.
+    const noSuffix = kebab.replace(/-icon$/, "");
+    for (const v of [kebab, noSuffix]) {
+      push(v);
+      // Lucide separates digits: `arrow-up-0-1`, `trash-2`.
+      push(v.replace(/([a-z])(\d)/g, "$1-$2").replace(/(\d)([a-z])/g, "$1-$2"));
+    }
+  }
+  return out;
+}
+
+/**
  * Get a single icon by exact name or alias.
- * Tries exact lookup first, then alias resolution.
+ * Tries every normalised spelling (see `iconNameCandidates`) exactly, then as an alias.
  */
 export function getIcon(name: string): { name: string; svg: string } | null {
-  const normalised = name.toLowerCase().trim();
-  const svg = LUCIDE_ICONS.get(normalised);
-  if (svg) return { name: normalised, svg };
-
-  // Fallback: resolve alias
-  const aliasTarget = ICON_ALIASES.get(normalised);
-  if (aliasTarget) {
-    const aliasSvg = LUCIDE_ICONS.get(aliasTarget);
-    if (aliasSvg) return { name: aliasTarget, svg: aliasSvg };
+  const candidates = iconNameCandidates(name);
+  for (const candidate of candidates) {
+    const svg = LUCIDE_ICONS.get(candidate);
+    if (svg) return { name: candidate, svg };
   }
-
+  for (const candidate of candidates) {
+    const aliasTarget = ICON_ALIASES.get(candidate);
+    const aliasSvg = aliasTarget ? LUCIDE_ICONS.get(aliasTarget) : undefined;
+    if (aliasTarget && aliasSvg) return { name: aliasTarget, svg: aliasSvg };
+  }
   return null;
+}
+
+/** Brand/logo icons Lucide removed (lucide-static v1 ships none of them). */
+const REMOVED_BRAND_ICONS = new Set([
+  "chrome",
+  "codepen",
+  "codesandbox",
+  "dribbble",
+  "facebook",
+  "figma",
+  "framer",
+  "github",
+  "gitlab",
+  "instagram",
+  "linkedin",
+  "pocket",
+  "slack",
+  "trello",
+  "twitch",
+  "twitter",
+  "x-twitter",
+  "youtube",
+]);
+
+/**
+ * The error for an icon name that does not resolve: close matches, plus the brand-icon
+ * explanation (Lucide dropped every brand logo, so no spelling will ever find them).
+ */
+export function iconNotFoundMessage(name: string): string {
+  const candidates = iconNameCandidates(name);
+  if (candidates.length === 0) {
+    return `No icon name given — pass the Lucide icon name as \`name\` (aliases: \`icon\`, \`iconName\`), e.g. "check".`;
+  }
+  const query = candidates[candidates.length - 1];
+  const suggestions = searchIcons(query, 5).map((s) => s.name);
+  const isBrand = candidates.some((c) => REMOVED_BRAND_ICONS.has(c.replace(/-(logo|icon)$/, "")));
+  const parts = [`Icon "${name}" not found.`];
+  if (isBrand) {
+    parts.push(
+      "Brand/logo icons were removed from Lucide and are not available here — use create_svg with the brand's official SVG instead.",
+    );
+  }
+  parts.push(
+    suggestions.length
+      ? `Close matches: ${suggestions.join(", ")}.`
+      : "No close matches — try search_icon with a keyword.",
+  );
+  if (!isBrand) {
+    parts.push("If this is a brand logo, Lucide no longer ships brand icons — use create_svg with the brand's SVG.");
+  }
+  return parts.join(" ");
 }
 
 export interface ListIconsResult {
