@@ -314,3 +314,89 @@ describe("browser_emulate / browser_clear_emulation tools", () => {
     expect(result.content[0].text).toMatch(/All emulation overrides cleared/);
   });
 });
+
+describe("get_browser_page_screenshot saving to disk", () => {
+  const fs = require("fs");
+  const os = require("os");
+  const path = require("path");
+
+  // 1×1 PNG — IHDR width/height are readable from the first 24 bytes.
+  const PNG_1X1 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
+
+  let mockSendToChannel: jest.Mock;
+  let toolHandlers: Map<string, Function>;
+  let toolSchemas: Map<string, z.ZodObject<any>>;
+  let tmpDir: string;
+
+  beforeEach(() => {
+    const server = new McpServer({ name: "test-server", version: "1.0.0" }, { capabilities: { tools: {} } });
+    const ws = require("../../src/videntia_figma_mcp/utils/websocket");
+    mockSendToChannel = ws.sendCommandToChannel;
+    mockSendToChannel.mockReset();
+    mockSendToChannel.mockResolvedValue({ imageData: PNG_1X1, mimeType: "image/png" });
+
+    toolHandlers = new Map();
+    toolSchemas = new Map();
+    const originalTool = server.tool.bind(server);
+    jest.spyOn(server, "tool").mockImplementation((...args: any[]) => {
+      if (args.length === 4) {
+        const [name, , schema, handler] = args;
+        toolHandlers.set(name, handler);
+        toolSchemas.set(name, z.object(schema));
+      }
+      return (originalTool as any)(...args);
+    });
+    registerBrowserTools(server);
+
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "browser-shot-"));
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  async function callTool(toolName: string, args: any = {}) {
+    const schema = toolSchemas.get(toolName)!;
+    const handler = toolHandlers.get(toolName)!;
+    return await handler(schema.parse(args), { meta: {} });
+  }
+
+  it("still returns the image inline when no destination is given", async () => {
+    const result = await callTool("get_browser_page_screenshot", { full_page: true });
+    expect(result.content[0]).toEqual({ type: "image", data: PNG_1X1, mimeType: "image/png" });
+    expect(mockSendToChannel).toHaveBeenCalledWith(
+      "browser",
+      "get_page_screenshot",
+      expect.objectContaining({ fullPage: true }),
+    );
+  });
+
+  it("writes to save_to_path and returns only metadata", async () => {
+    const target = path.join(tmpDir, "page.png");
+    const result = await callTool("get_browser_page_screenshot", { full_page: true, save_to_path: target });
+
+    expect(result.content[0].type).toBe("text");
+    const meta = JSON.parse(result.content[0].text);
+    expect(meta).toEqual({ path: target, width: 1, height: 1, bytes: fs.statSync(target).size, format: "PNG" });
+    expect(fs.readFileSync(target).toString("base64")).toBe(PNG_1X1);
+  });
+
+  it("creates output_directory and derives a file name", async () => {
+    const dir = path.join(tmpDir, "nested", "shots");
+    const result = await callTool("get_browser_page_screenshot", { output_directory: dir, tab_id: 42 });
+
+    const meta = JSON.parse(result.content[0].text);
+    expect(path.dirname(meta.path)).toBe(dir);
+    expect(path.basename(meta.path)).toMatch(/^browser-screenshot-42-.+\.png$/);
+    expect(fs.existsSync(meta.path)).toBe(true);
+  });
+
+  it("appends .png to a bare filename", async () => {
+    const result = await callTool("get_browser_page_screenshot", { output_directory: tmpDir, filename: "home" });
+    expect(JSON.parse(result.content[0].text).path).toBe(path.join(tmpDir, "home.png"));
+  });
+
+  it("rejects a relative save_to_path", async () => {
+    await expect(callTool("get_browser_page_screenshot", { save_to_path: "page.png" })).rejects.toThrow(/absolute/);
+  });
+});

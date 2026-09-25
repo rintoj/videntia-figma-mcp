@@ -3,6 +3,11 @@
 import { debugLog } from "../utils/helpers";
 import { customBase64Decode } from "../utils/base64";
 import { resolveColorVariable } from "./icons";
+import {
+  linearGradientTransform,
+  resolveCssAngle,
+  sortGradientStops,
+} from "../../videntia_figma_mcp/utils/gradient-geometry";
 
 // ---------------------------------------------------------------------------
 // Hex color parsing
@@ -352,6 +357,7 @@ export async function setImageFill(params: Record<string, unknown>): Promise<unk
   const imageBytes = paramsObj["imageBytes"] as string | undefined;
   const scaleMode = paramsObj["scaleMode"] !== undefined ? (paramsObj["scaleMode"] as string) : "FILL";
   const rotation = paramsObj["rotation"] as number | undefined;
+  const scalingFactor = paramsObj["scalingFactor"] !== undefined ? Number(paramsObj["scalingFactor"]) : undefined;
   const exposure = paramsObj["exposure"] as number | undefined;
   const contrast = paramsObj["contrast"] as number | undefined;
   const saturation = paramsObj["saturation"] as number | undefined;
@@ -400,6 +406,14 @@ export async function setImageFill(params: Record<string, unknown>): Promise<unk
   const validScaleModes = ["FILL", "FIT", "CROP", "TILE"];
   if (!validScaleModes.includes(scaleMode)) {
     throw new Error(`Invalid scaleMode: ${scaleMode}. Must be one of: ${validScaleModes.join(", ")}`);
+  }
+  if (scalingFactor !== undefined) {
+    if (!isFinite(scalingFactor) || scalingFactor <= 0) {
+      throw new Error(`scalingFactor must be a positive number, got ${paramsObj["scalingFactor"]}`);
+    }
+    if (scaleMode !== "TILE") {
+      throw new Error(`scalingFactor only applies to scaleMode TILE (got ${scaleMode}).`);
+    }
   }
 
   debugLog(`setImageFill: Starting with nodeId=${nodeId}, source=${imageUrl ? "url" : "bytes"} (redacted)`);
@@ -498,6 +512,7 @@ export async function setImageFill(params: Record<string, unknown>): Promise<unk
     scaleMode: scaleMode as ImagePaint["scaleMode"],
     // rotation is only valid for TILE, FILL, FIT scale modes
     ...(rotation !== undefined && ["TILE", "FILL", "FIT"].includes(scaleMode) ? { rotation } : {}),
+    ...(scalingFactor !== undefined ? { scalingFactor } : {}),
     ...(imageFilters !== undefined ? { filters: imageFilters } : {}),
   };
 
@@ -518,6 +533,7 @@ export async function setImageFill(params: Record<string, unknown>): Promise<unk
     imageHash: image.hash,
     imageSize: { width, height },
     scaleMode: scaleMode,
+    ...(scalingFactor !== undefined ? { scalingFactor } : {}),
     fills: [imagePaint],
   };
 }
@@ -529,23 +545,15 @@ export async function setImageFill(params: Record<string, unknown>): Promise<unk
 /**
  * Build the 2x3 `gradientTransform` for a LINEAR gradient.
  *
- * CONVENTION: `angle` is in degrees; 0 = top-to-bottom, 90 = left-to-right,
- * 180 = bottom-to-top, 270 = right-to-left. Rotation is clockwise.
+ * CONVENTION: CSS `linear-gradient` angles — 0 = to top, 90 = to right,
+ * 180 = to bottom, 270 = to left, clockwise. The geometry lives in
+ * `utils/gradient-geometry.ts` (shared with paint styles and the JSX round-trip).
  *
- * WHY aspect correction: Figma's gradientTransform operates in the node's
- * NORMALISED [0,1] space, so on a non-square node an un-corrected rotation both
- * skews the visual angle AND compresses the 0..1 stop range into a sub-window of
- * the node's real extent (a 100x300 node at 90° showed only ~[0.66,1.0] of the
- * ramp). We therefore project in PIXEL space: for the unit direction
- * u = (sin a, cos a), the node's extent along u is L = |w*sin a| + |h*cos a|, and
- * the gradient parameter is t = ((P - centre) . u)/L + 0.5. Expanded back into
- * normalised coordinates that is t = a1*x + b1*y + c1 with
- * a1 = w*sin a / L, b1 = h*cos a / L. The full 0..1 stop range then spans the
- * node's actual extent for any aspect ratio.
- *
- * Pass `aspectCorrect: false` (width/height are then ignored) for the legacy
- * un-corrected square-space rotation, so callers that already hand-remapped
- * their stop positions are not silently re-distorted.
+ * With `aspectCorrect` (default) the gradient line is projected in PIXEL space, so the
+ * visual angle is the requested one and the 0..1 stop range spans the node's real
+ * extent for any aspect ratio. `aspectCorrect: false` measures the angle in the node's
+ * normalised unit square instead (the angle then stretches with the node), still
+ * centred and still spanning 0..1 corner-to-corner.
  */
 export function computeGradientTransform(
   angle: number,
@@ -553,46 +561,7 @@ export function computeGradientTransform(
   height: number,
   aspectCorrect: boolean = true,
 ): Transform {
-  const angleRad = (Number(angle) || 0) * (Math.PI / 180);
-  const sin = Math.sin(angleRad);
-  const cos = Math.cos(angleRad);
-
-  if (!aspectCorrect) {
-    // Legacy behaviour: rotate in normalised square space, 0 = left-to-right.
-    const lCos = Math.cos(angleRad);
-    const lSin = Math.sin(angleRad);
-    return [
-      [lCos, lSin, 0.5 - lCos * 0.5],
-      [-lSin, lCos, 0.5 - lSin * 0.5],
-    ];
-  }
-
-  const w = isFinite(width) && width > 0 ? width : 1;
-  const h = isFinite(height) && height > 0 ? height : 1;
-
-  // Extent of the w x h rectangle projected onto the gradient direction.
-  const length = Math.abs(w * sin) + Math.abs(h * cos);
-  const safeLength = length > 1e-9 ? length : 1;
-
-  const a1 = (w * sin) / safeLength;
-  const b1 = (h * cos) / safeLength;
-  const c1 = 0.5 - 0.5 * a1 - 0.5 * b1;
-
-  // Second row is the perpendicular axis (only observable for RADIAL/DIAMOND/
-  // ANGULAR, but must stay a well-formed affine basis).
-  const a2 = -b1;
-  const b2 = a1;
-  const c2 = 0.5 - 0.5 * a2 - 0.5 * b2;
-
-  return [
-    [round6(a1), round6(b1), round6(c1)],
-    [round6(a2), round6(b2), round6(c2)],
-  ];
-}
-
-function round6(value: number): number {
-  const r = Math.round(value * 1e6) / 1e6;
-  return r === 0 ? 0 : r;
+  return (aspectCorrect ? linearGradientTransform(angle, width, height) : linearGradientTransform(angle)) as Transform;
 }
 
 /**
@@ -625,7 +594,6 @@ export async function setGradientFill(params: Record<string, unknown>): Promise<
   const nodeId = paramsObj["nodeId"] as string | undefined;
   const gradientType = paramsObj["gradientType"] as string | undefined;
   const stops = paramsObj["stops"] as Array<Record<string, unknown>> | undefined;
-  const angle = paramsObj["angle"] !== undefined ? (paramsObj["angle"] as number) : 0;
   const opacity = paramsObj["opacity"] !== undefined ? (paramsObj["opacity"] as number) : 1;
 
   if (!nodeId) {
@@ -748,6 +716,15 @@ export async function setGradientFill(params: Record<string, unknown>): Promise<
   const nodeWidth = Number((node as unknown as { width?: number }).width);
   const nodeHeight = Number((node as unknown as { height?: number }).height);
 
+  const angle =
+    gradientType === "LINEAR"
+      ? resolveCssAngle(
+          { angle: paramsObj["angle"], direction: paramsObj["direction"] },
+          aspectCorrect ? nodeWidth : undefined,
+          aspectCorrect ? nodeHeight : undefined,
+        )
+      : 0;
+
   const gradientTransform =
     gradientType === "LINEAR"
       ? computeGradientTransform(
@@ -761,9 +738,11 @@ export async function setGradientFill(params: Record<string, unknown>): Promise<
           [0, 1, 0],
         ] as Transform);
 
+  const sortedStops = sortGradientStops(figmaStops);
+
   const gradientPaint: GradientPaint = {
     type: `GRADIENT_${gradientType}` as GradientPaint["type"],
-    gradientStops: figmaStops,
+    gradientStops: sortedStops,
     gradientTransform,
     opacity,
   };
@@ -779,6 +758,7 @@ export async function setGradientFill(params: Record<string, unknown>): Promise<
       return (st as { boundVariables?: unknown }).boundVariables !== undefined;
     }).length,
     aspectCorrect: gradientType === "LINEAR" ? aspectCorrect : false,
+    ...(gradientType === "LINEAR" ? { angle } : {}),
     gradientTransform,
   };
 }

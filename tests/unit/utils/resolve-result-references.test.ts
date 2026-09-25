@@ -182,12 +182,10 @@ describe("resolveResultReferences", () => {
       );
     });
 
-    it("throws when accessing field on undefined", () => {
+    it("throws at the first missing segment of a deeper path", () => {
       const results = [successResult(0, { data: {} })];
 
-      expect(() => resolveResultReferences("$result[0].data.missing.deep", results)).toThrow(
-        "Cannot access '.deep' on null/undefined",
-      );
+      expect(() => resolveResultReferences("$result[0].data.missing.deep", results)).toThrow("has no 'missing' field");
     });
   });
 
@@ -239,9 +237,16 @@ describe("resolveResultReferences", () => {
       expect(resolveResultReferences("$result[0].visible", results)).toBe(false);
     });
 
-    it("returns undefined for missing field without throwing", () => {
-      const results = [successResult(0, { id: "node-1" })];
-      expect(resolveResultReferences("$result[0].nonexistent", results)).toBeUndefined();
+    it("throws for a missing field, naming it and listing the available keys", () => {
+      const results = [successResult(0, { id: "node-1", name: "Card" })];
+      expect(() => resolveResultReferences("$result[0].nonexistent", results)).toThrow(
+        "$result[0].nonexistent: the referenced result has no 'nonexistent' field. Available keys: id, name.",
+      );
+    });
+
+    it("throws for an out-of-range array index", () => {
+      const results = [successResult(0, { ids: ["a"] })];
+      expect(() => resolveResultReferences("$result[0].ids[3]", results)).toThrow("out of range");
     });
 
     it("handles array result at top level", () => {

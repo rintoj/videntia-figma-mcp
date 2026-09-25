@@ -10,7 +10,9 @@ import { constraintTypeSchema } from "../utils/constraints-schema.js";
 import { formatState, returnStateParam } from "../utils/return-state.js";
 import { allowSideEffectsParam, expectSideEffectsParam } from "../utils/side-effects.js";
 import { readImageFileAsBase64 } from "../utils/image-file-input.js";
-import { colorParam, toRgba, COLOR_INPUT_DESCRIPTION } from "../utils/color-input.js";
+import { colorParam, toRgba, resolveColorWithAlpha, COLOR_INPUT_DESCRIPTION } from "../utils/color-input.js";
+import { formatPlacement, parentRelativePositionDescription } from "../utils/position-docs.js";
+import { isGradientDirection, sortGradientStops } from "../utils/gradient-geometry.js";
 import { expandPadding, paddingShorthandSchema, PADDING_SHORTHAND_DESCRIPTION } from "../utils/frame-layout.js";
 
 /** Normalize the `color` on each effect entry to 0-1 {r,g,b,a}. */
@@ -89,6 +91,42 @@ function normalizeGradientStops(value: unknown): unknown {
   });
 }
 
+const imageScalingFactorParam = z.coerce
+  .number()
+  .positive()
+  .optional()
+  .describe(
+    "TILE only: tile size as a multiple of the image's natural size (0.5 = half-size tiles, 2 = double). Implies scaleMode TILE when scaleMode is omitted; an error with any other scaleMode. Aliases: `tileScale`, `scale`.",
+  );
+
+/** scaleMode + scalingFactor for the plugin; scalingFactor only means something for TILE. */
+export function resolveImageScale(
+  scaleMode: string | undefined,
+  scalingFactor: number | undefined,
+): { scaleMode: string; scalingFactor?: number } {
+  if (scalingFactor === undefined) return { scaleMode: scaleMode || "FILL" };
+  if (scaleMode !== undefined && scaleMode !== "TILE") {
+    throw new Error(
+      `scalingFactor only applies to scaleMode TILE (got ${scaleMode}). Drop scalingFactor, or use scaleMode "TILE".`,
+    );
+  }
+  return { scaleMode: "TILE", scalingFactor };
+}
+
+const GRADIENT_ANGLE_DESCRIPTION =
+  "LINEAR gradient angle in degrees, CSS linear-gradient convention (0 = to top, 90 = to right, 180 = to bottom, 270 = to left, clockwise; default 180). Wins over `direction`.";
+
+const gradientDirectionParam = z
+  .string()
+  .refine(isGradientDirection, {
+    message:
+      'direction must be a side/corner keyword: "to top", "to right", "to bottom", "to left", "to top right", "to bottom right", … or Tailwind "t", "r", "b", "l", "tr", "br", "bl", "tl".',
+  })
+  .optional()
+  .describe(
+    'LINEAR direction keyword instead of `angle`: "to top" | "to right" | "to bottom" | "to left" | "to top right" | "to bottom right" | "to bottom left" | "to top left", or Tailwind "t" | "r" | "b" | "l" | "tr" | "br" | "bl" | "tl". Corners follow CSS: the angle depends on the aspect ratio so the ramp runs corner to corner.',
+  );
+
 export function registerModificationTools(server: McpServer): void {
   // Strict Mode Tool
   server.tool(
@@ -147,7 +185,11 @@ export function registerModificationTools(server: McpServer): void {
       r: channelParam.optional().describe("Red channel (0–1 normalized, or 0–255)"),
       g: channelParam.optional().describe("Green channel (0–1 normalized, or 0–255)"),
       b: channelParam.optional().describe("Blue channel (0–1 normalized, or 0–255)"),
-      a: channelParam.optional().describe("Alpha/opacity (0–1 normalized, or 0–255; default: 1 = fully opaque)"),
+      a: channelParam
+        .optional()
+        .describe(
+          "Alpha/opacity (0–1 normalized, or 0–255; default: 1 = fully opaque). Also accepted as `alpha` or `opacity`. When given alongside `color` it OVERRIDES the colour's own alpha.",
+        ),
       return_state: returnStateParam,
     },
     async ({ nodeId, color, r, g, b, a, return_state }) => {
@@ -159,8 +201,7 @@ export function registerModificationTools(server: McpServer): void {
           // Validate every accepted form here so a bad value never reaches the
           // plugin. Hex strings go through verbatim (the plugin parses them);
           // objects/arrays are normalized to 0–1 {r,g,b,a}.
-          const normalized = toRgba(color);
-          params.color = typeof color === "string" ? color : normalized;
+          params.color = resolveColorWithAlpha(color, a);
         } else {
           if (r === undefined || g === undefined || b === undefined) {
             throw new Error("Provide either 'color' (hex string) or r, g, b components");
@@ -172,8 +213,8 @@ export function registerModificationTools(server: McpServer): void {
         const typedResult = result as { name: string };
         const colorDesc =
           color !== undefined
-            ? typeof color === "string"
-              ? color
+            ? typeof params.color === "string"
+              ? params.color
               : JSON.stringify(params.color)
             : `RGBA(${r}, ${g}, ${b}, ${a ?? 1})`;
         return {
@@ -207,7 +248,11 @@ export function registerModificationTools(server: McpServer): void {
       r: channelParam.optional().describe("Red channel (0–1 normalized, or 0–255)"),
       g: channelParam.optional().describe("Green channel (0–1 normalized, or 0–255)"),
       b: channelParam.optional().describe("Blue channel (0–1 normalized, or 0–255)"),
-      a: channelParam.optional().describe("Alpha/opacity (0–1 normalized, or 0–255; default: 1 = fully opaque)"),
+      a: channelParam
+        .optional()
+        .describe(
+          "Alpha/opacity (0–1 normalized, or 0–255; default: 1 = fully opaque). Also accepted as `alpha` or `opacity`. When given alongside `color` it OVERRIDES the colour's own alpha.",
+        ),
       weight: z.coerce
         .number()
         .min(0)
@@ -230,8 +275,7 @@ export function registerModificationTools(server: McpServer): void {
           // Validate every accepted form here so a bad value never reaches the
           // plugin. Hex strings go through verbatim (the plugin parses them);
           // objects/arrays are normalized to 0–1 {r,g,b,a}.
-          const normalized = toRgba(color);
-          params.color = typeof color === "string" ? color : normalized;
+          params.color = resolveColorWithAlpha(color, a);
         } else {
           if (r === undefined || g === undefined || b === undefined) {
             throw new Error("Provide either 'color' (hex string) or r, g, b components");
@@ -254,8 +298,8 @@ export function registerModificationTools(server: McpServer): void {
         const typedResult = result as { name: string; strokeWeight?: number };
         const colorDesc =
           color !== undefined
-            ? typeof color === "string"
-              ? color
+            ? typeof params.color === "string"
+              ? params.color
               : JSON.stringify(params.color)
             : `RGBA(${r}, ${g}, ${b}, ${a ?? 1})`;
         // Report the weight the plugin actually ended up with, never a locally
@@ -401,19 +445,18 @@ export function registerModificationTools(server: McpServer): void {
   // Move Node Tool
   server.tool(
     "move_node",
-    "Move a node to a position relative to its PARENT (for absolute canvas coordinates use move_node_absolute instead), and/or reparent it. Note that after changing parentId, x/y are interpreted against the NEW parent.",
+    "Move a node to a position relative to its PARENT (for absolute canvas coordinates use move_node_absolute instead), and/or reparent it. Note that after changing parentId, x/y are interpreted against the NEW parent. To change stacking order without moving, use set_layer_order.",
     {
       nodeId: z.string().describe("Node ID to move — get from get_selection or get_node_info"),
-      x: z.coerce
-        .number()
-        .optional()
-        .describe("New X position in pixels, relative to the canvas (or parent frame if nested)"),
-      y: z.coerce
-        .number()
-        .optional()
-        .describe("New Y position in pixels, relative to the canvas (or parent frame if nested)"),
+      x: z.coerce.number().optional().describe(parentRelativePositionDescription("X")),
+      y: z.coerce.number().optional().describe(parentRelativePositionDescription("Y")),
       parentId: z.string().optional().describe("ID of the new parent node to move the node into"),
-      index: z.coerce.number().optional().describe("Index position within the new parent's children"),
+      index: z.coerce
+        .number()
+        .optional()
+        .describe(
+          "Layer index within the new parent's children: 0 = bottom/back of the z-stack (first in auto-layout flow); omit to append on top",
+        ),
     },
     async ({ nodeId, x, y, parentId, index }) => {
       nodeId = normalizeNodeId(nodeId);
@@ -442,6 +485,103 @@ export function registerModificationTools(server: McpServer): void {
             {
               type: "text",
               text: `Error moving node: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  // Set Rotation Tool
+  server.tool(
+    "set_rotation",
+    "Rotate a node (degrees, positive = counter-clockwise, the same sign as the Figma inspector). Figma's own rotation pivots on the node's top-left corner; this tool defaults to origin 'center', which keeps the node's centre where it is (what designers expect). Inside an auto-layout parent (non-ABSOLUTE child) the layout owns the position, so only the angle changes.",
+    {
+      nodeId: z.string().describe("Node ID to rotate — get from get_selection or get_node_info"),
+      rotation: z.coerce
+        .number()
+        .describe("Angle in degrees. Absolute by default; with relative: true it is added to the current rotation"),
+      relative: mcpBooleanSchema
+        .optional()
+        .describe("true = rotate BY this many degrees from the current angle; false (default) = rotate TO it"),
+      origin: z
+        .enum(["center", "top-left"])
+        .optional()
+        .describe("Pivot point: 'center' (default) keeps the centre fixed; 'top-left' is Figma's native pivot"),
+    },
+    async ({ nodeId, rotation, relative, origin }) => {
+      nodeId = normalizeNodeId(nodeId);
+      try {
+        const result = (await sendCommandToFigma("set_rotation", { nodeId, rotation, relative, origin })) as {
+          name: string;
+          rotation: number;
+          origin: string;
+          x?: number;
+          y?: number;
+          absoluteX?: number;
+          absoluteY?: number;
+          warnings?: string[];
+        };
+        const warnings = result.warnings && result.warnings.length > 0 ? `\nWarning: ${result.warnings.join(" ")}` : "";
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: `Rotated "${result.name}" to ${result.rotation}° about its ${result.origin}${formatPlacement(result)}${warnings}`,
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: `Error rotating node: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  // Set Layer Order Tool
+  server.tool(
+    "set_layer_order",
+    "Reorder a node among its siblings (z-order / layer order) without reparenting. 'front' = top of the stack (drawn above every sibling, last in Figma's children array), 'back' = bottom (index 0), 'forward'/'backward' = one step. A number is the exact target index (0 = back). In an auto-layout parent this also changes flow order (back = first, front = last).",
+    {
+      nodeId: z.string().describe("Node ID to reorder"),
+      position: z
+        .union([z.enum(["front", "back", "forward", "backward"]), z.coerce.number().int().min(0)])
+        .describe("'front' | 'back' | 'forward' | 'backward', or a zero-based target index (0 = back)"),
+    },
+    async ({ nodeId, position }) => {
+      nodeId = normalizeNodeId(nodeId);
+      try {
+        const result = (await sendCommandToFigma("set_layer_order", { nodeId, position })) as {
+          name: string;
+          previousIndex: number;
+          index: number;
+          childCount: number;
+          parentId: string;
+        };
+        const change =
+          result.previousIndex === result.index
+            ? `already at index ${result.index}`
+            : `moved from index ${result.previousIndex} to ${result.index}`;
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: `Layer "${result.name}" ${change} of ${result.childCount} in parent ${result.parentId} (0 = back, ${result.childCount - 1} = front)`,
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: `Error reordering layer: ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };
@@ -1975,9 +2115,23 @@ export function registerModificationTools(server: McpServer): void {
 
   const gradientSchema = z.object({
     type: z.enum(["LINEAR", "RADIAL", "ANGULAR", "DIAMOND"]).describe("Gradient type"),
-    stops: coerceArray(z.array(gradientStopSchema).min(2)).describe("Array of color stops (min 2)"),
-    angle: z.coerce.number().optional().describe("Direction in degrees 0–360 (LINEAR only, default 0)"),
+    stops: z
+      .preprocess(normalizeGradientStops, coerceArray(z.array(gradientStopSchema).min(2)))
+      .describe("Array of color stops (min 2); stop colors accept hex or {r,g,b,a}") as unknown as z.ZodType<
+      Array<{ color: unknown; position: number }>
+    >,
+    angle: z.coerce
+      .number()
+      .optional()
+      .describe(`${GRADIENT_ANGLE_DESCRIPTION} Measured in the unit square (styles have no size).`),
+    direction: gradientDirectionParam,
     opacity: z.coerce.number().min(0).max(1).optional().describe("Overall opacity 0–1 (default 1)"),
+  });
+
+  /** Stops → {color: 0–1 RGBA, position}, sorted, so hex AND {r,g,b,a} stops both reach the plugin intact. */
+  const normalizeStyleGradient = (gradient: z.infer<typeof gradientSchema>) => ({
+    ...gradient,
+    stops: sortGradientStops(gradient.stops.map((stop) => ({ ...stop, color: toRgba(stop.color) }))),
   });
 
   // Create Color Style Tool
@@ -1995,7 +2149,7 @@ export function registerModificationTools(server: McpServer): void {
         const result = await sendCommandToFigma("create_color_style", {
           name,
           ...(color !== undefined && { color }),
-          ...(gradient !== undefined && { gradient }),
+          ...(gradient !== undefined && { gradient: normalizeStyleGradient(gradient) }),
           ...(description !== undefined && { description }),
         });
         const typedResult = result as { name?: string; id?: string };
@@ -2103,7 +2257,7 @@ export function registerModificationTools(server: McpServer): void {
           styleId,
           ...(name !== undefined && { name }),
           ...(color !== undefined && { color }),
-          ...(gradient !== undefined && { gradient }),
+          ...(gradient !== undefined && { gradient: normalizeStyleGradient(gradient) }),
           ...(description !== undefined && { description }),
         });
         const typedResult = result as { name?: string; id?: string };
@@ -2434,6 +2588,7 @@ export function registerModificationTools(server: McpServer): void {
         .describe(
           "Image rotation in degrees — must be a multiple of 90 (0, 90, 180, 270). Only applies to FILL, FIT, and TILE modes; ignored for CROP.",
         ),
+      scalingFactor: imageScalingFactorParam,
       exposure: z.coerce.number().min(-1).max(1).optional().describe("Exposure adjustment (-1 to 1, default: 0)"),
       contrast: z.coerce.number().min(-1).max(1).optional().describe("Contrast adjustment (-1 to 1, default: 0)"),
       saturation: z.coerce.number().min(-1).max(1).optional().describe("Saturation adjustment (-1 to 1, default: 0)"),
@@ -2451,6 +2606,7 @@ export function registerModificationTools(server: McpServer): void {
       load_from_path,
       scaleMode,
       rotation,
+      scalingFactor,
       exposure,
       contrast,
       saturation,
@@ -2488,7 +2644,7 @@ export function registerModificationTools(server: McpServer): void {
             nodeId,
             imageUrl,
             imageBytes,
-            scaleMode: scaleMode || "FILL",
+            ...resolveImageScale(scaleMode, scalingFactor),
             rotation,
             exposure,
             contrast,
@@ -2553,6 +2709,7 @@ export function registerModificationTools(server: McpServer): void {
         .describe(
           "Image rotation in degrees — must be a multiple of 90 (0, 90, 180, 270). Only applies to FILL, FIT, and TILE modes; ignored for CROP.",
         ),
+      scalingFactor: imageScalingFactorParam,
       exposure: z.coerce.number().min(-1).max(1).optional().describe("Exposure adjustment (-1 to 1, default: 0)"),
       contrast: z.coerce.number().min(-1).max(1).optional().describe("Contrast adjustment (-1 to 1, default: 0)"),
       saturation: z.coerce.number().min(-1).max(1).optional().describe("Saturation adjustment (-1 to 1, default: 0)"),
@@ -2566,6 +2723,7 @@ export function registerModificationTools(server: McpServer): void {
       path: imagePath,
       scaleMode,
       rotation,
+      scalingFactor,
       exposure,
       contrast,
       saturation,
@@ -2583,7 +2741,7 @@ export function registerModificationTools(server: McpServer): void {
           {
             nodeId,
             imageBytes: base64,
-            scaleMode: scaleMode || "FILL",
+            ...resolveImageScale(scaleMode, scalingFactor),
             rotation,
             exposure,
             contrast,
@@ -2626,7 +2784,7 @@ export function registerModificationTools(server: McpServer): void {
   // Set Gradient Fill Tool
   server.tool(
     "set_gradient_fill",
-    "Set a gradient fill on a node. Supports LINEAR, RADIAL, ANGULAR, and DIAMOND gradient types. LINEAR angles are aspect-corrected: 0 = top-to-bottom, 90 = left-to-right, 180 = bottom-to-top, 270 = right-to-left, and stop positions 0..1 always span the node's FULL extent along that direction regardless of the node's width:height ratio. Author stop positions in plain 0..1 — never pre-distort them. Pass aspect_correct: false for the legacy un-corrected behaviour (angle 0 = left-to-right, ramp compressed on non-square nodes). TOKENS: each stop accepts `colorVariable` (a COLOR variable name or id) and the stop is bound to it via ColorStop.boundVariables — this is the ONLY way to make a gradient token-driven, because bind_variable/setBoundVariableForPaint accept SolidPaint only and cannot bind an existing gradient after the fact. An unresolvable colorVariable is an ERROR, never a silent raw-colour fallback.",
+    "Set a gradient fill on a node. Supports LINEAR, RADIAL, ANGULAR, and DIAMOND gradient types. LINEAR angles use the CSS linear-gradient convention (0 = to top, 90 = to right, 180 = to bottom, 270 = to left, clockwise; default 180), or pass `direction` (e.g. 'to bottom right' or 'r'). Aspect-corrected exactly like CSS: stop positions 0..1 always span the node's FULL extent along that direction regardless of the node's width:height ratio. Author stop positions in plain 0..1 — never pre-distort them. Stops are sorted by position. TOKENS: each stop accepts `colorVariable` (a COLOR variable name or id) and the stop is bound to it via ColorStop.boundVariables — this is the ONLY way to make a gradient token-driven, because bind_variable/setBoundVariableForPaint accept SolidPaint only and cannot bind an existing gradient after the fact. An unresolvable colorVariable is an ERROR, never a silent raw-colour fallback.",
     {
       nodeId: z.string().describe("Node ID to apply the gradient fill to"),
       type: z
@@ -2668,12 +2826,13 @@ export function registerModificationTools(server: McpServer): void {
         .number()
         .optional()
         .describe(
-          "Gradient direction in degrees 0–360, clockwise, where 0 = top-to-bottom, 90 = left-to-right, 180 = bottom-to-top, 270 = right-to-left (LINEAR only; default: 0). Aspect-corrected — the full 0..1 stop range spans the node's actual extent.",
+          `${GRADIENT_ANGLE_DESCRIPTION} Aspect-corrected — the full 0..1 stop range spans the node's actual extent.`,
         ),
+      direction: gradientDirectionParam,
       aspect_correct: mcpBooleanSchema
         .optional()
         .describe(
-          "false = legacy un-corrected gradientTransform (angle 0 = left-to-right, ramp compressed on non-square nodes). Only set this for existing callers whose stop positions were hand-remapped for the old behaviour (default: true)",
+          "false = measure the angle in the node's normalised unit square instead of pixels (the visual angle then stretches with the node's aspect ratio; still centred, still spanning 0..1). Default: true (CSS behaviour).",
         ),
       opacity: z.coerce
         .number()
@@ -2682,7 +2841,7 @@ export function registerModificationTools(server: McpServer): void {
         .optional()
         .describe("Overall fill opacity 0–1 applied on top of individual stop alphas (default: 1)"),
     },
-    async ({ nodeId, type, stops, colors, angle, opacity, aspect_correct }) => {
+    async ({ nodeId, type, stops, colors, angle, direction, opacity, aspect_correct }) => {
       nodeId = normalizeNodeId(nodeId);
       try {
         // `colors: ["#a", "#b"]` is the shorthand callers reach for; it used to work only
@@ -2699,15 +2858,17 @@ export function registerModificationTools(server: McpServer): void {
         const result = await sendCommandToFigma("set_gradient_fill", {
           nodeId,
           gradientType: type ?? "LINEAR",
-          stops: resolvedStops.map((stop) => {
-            if (stop.color === undefined && stop.colorVariable === undefined) {
-              throw new Error("Each gradient stop needs a `color`, a `colorVariable`, or both.");
-            }
-            // A stop with only a colorVariable carries no literal colour: the plugin
-            // resolves the variable's own value rather than writing a NaN paint.
-            return stop.color === undefined ? stop : { ...stop, color: toRgba(stop.color) };
-          }),
-          angle: angle ?? 0,
+          stops: sortGradientStops(
+            resolvedStops.map((stop) => {
+              if (stop.color === undefined && stop.colorVariable === undefined) {
+                throw new Error("Each gradient stop needs a `color`, a `colorVariable`, or both.");
+              }
+              // A stop with only a colorVariable carries no literal colour: the plugin
+              // resolves the variable's own value rather than writing a NaN paint.
+              return stop.color === undefined ? stop : { ...stop, color: toRgba(stop.color) };
+            }),
+          ),
+          ...(angle === undefined && direction !== undefined ? { direction } : { angle: angle ?? 180 }),
           opacity: opacity ?? 1,
           aspect_correct: aspect_correct ?? true,
         });
@@ -2854,6 +3015,49 @@ export function registerModificationTools(server: McpServer): void {
             {
               type: "text",
               text: `Error setting section status: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  // OpenType features (read-only — Figma cannot set them from a plugin)
+  server.tool(
+    "get_text_opentype_features",
+    "Read the OpenType features (ligatures LIGA/CLIG/DLIG, tabular figures TNUM, slashed zero ZERO, stylistic sets SS01…, etc.) of a TEXT node, node-wide and per character range. Only features that differ from the font's defaults are listed. PLATFORM LIMIT: Figma's Plugin API exposes OpenType features READ-ONLY (TextNode.openTypeFeatures has no setter and there is no setRange… call), so no tool can turn ligatures off or tabular figures on. Workarounds: pick a font family/style that already renders the way you need (verify by reading it back with this tool), or set the features manually in Figma's Type details panel.",
+    {
+      nodeId: z.string().describe("TEXT node ID"),
+    },
+    async ({ nodeId }) => {
+      nodeId = normalizeNodeId(nodeId);
+      try {
+        const result = (await sendCommandToFigma("get_text_opentype_features", { nodeId })) as {
+          name: string;
+          features: Record<string, boolean> | "mixed";
+          ranges: Array<{ start: number; end: number; features: Record<string, boolean> }>;
+          note: string;
+        };
+        const fmt = (f: Record<string, boolean>) =>
+          Object.keys(f).length === 0
+            ? "(font defaults)"
+            : Object.entries(f)
+                .map(([k, v]) => `${k}=${v ? "on" : "off"}`)
+                .join(" ");
+        const lines = [
+          `"${result.name}" OpenType features: ${result.features === "mixed" ? "mixed across ranges" : fmt(result.features)}`,
+        ];
+        if (result.features === "mixed" || result.ranges.length > 1) {
+          for (const r of result.ranges) lines.push(`  [${r.start}-${r.end}) ${fmt(r.features)}`);
+        }
+        lines.push(result.note);
+        return { content: [{ type: "text", text: lines.join("\n") }] };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error reading OpenType features: ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };

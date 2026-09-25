@@ -56,14 +56,19 @@ export const PARAM_ALIASES: Record<string, Record<string, string>> = {
     imagePath: "image_path",
     url: "imageUrl",
     bytes: "imageBytes",
+    tileScale: "scalingFactor",
+    scale: "scalingFactor",
   },
+  set_image_fill_from_path: { tileScale: "scalingFactor", scale: "scalingFactor" },
   set_gradient_fill: { aspectCorrect: "aspect_correct" },
+  create_icon: { icon: "name", iconName: "name" },
+  update_icon: { icon: "name", iconName: "name" },
   create_text: { characters: "text", content: "text" },
   create_rectangle: { fill: "fillColor", color: "fillColor", radius: "cornerRadius" },
   create_frame: { fill: "fillColor", mode: "layoutMode" },
   set_text_content: { characters: "text", content: "text" },
-  set_fill_color: { fill: "color", hex: "color" },
-  set_stroke_color: { stroke: "color", hex: "color" },
+  set_fill_color: { fill: "color", hex: "color", alpha: "a", opacity: "a" },
+  set_stroke_color: { stroke: "color", hex: "color", alpha: "a", opacity: "a" },
   set_paragraph_spacing: { value: "spacing" },
   set_text_decoration: { textDecoration: "decoration" },
   set_text_case: { case: "textCase" },
@@ -89,6 +94,10 @@ export const PARAM_ALIASES: Record<string, Record<string, string>> = {
   set_strict_mode: { allowSideEffects: "allow_side_effects", returnState: "return_state" },
   set_axis_align: { primary: "primaryAxisAlignItems", counter: "counterAxisAlignItems" },
   set_opacity: { alpha: "opacity" },
+  set_rotation: { angle: "rotation", degrees: "rotation" },
+  set_layer_order: { order: "position", index: "position" },
+  create_ellipse: { fill: "fillColor", color: "fillColor", stroke: "strokeColor" },
+  set_page_background: { alpha: "a", opacity: "a" },
   // `variableId` is what the other variable tools call this parameter, and it is the
   // first spelling a caller reaches for. Accepting it here means the caller never sees a
   // schema error that reads as if the VARIABLE were the problem.
@@ -96,6 +105,10 @@ export const PARAM_ALIASES: Record<string, Record<string, string>> = {
   delete_variables_batch: { variableIds: "ids", variables: "ids", names: "ids", variableId: "ids" },
   update_variable_value: { variable: "variableId", variableName: "variableId", id: "variableId" },
   delete_variable_collection: { collection: "id" },
+  // `annotationId` was always a 0-based index, never an id.
+  set_annotation: { annotationId: "index" },
+  remove_annotation: { annotationId: "index" },
+  get_annotations: { includeChildren: "include_children" },
 };
 
 /** Keys whose values are Figma node ids and therefore accept the URL "12-34" form. */

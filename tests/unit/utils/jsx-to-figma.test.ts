@@ -1023,6 +1023,19 @@ describe("parseJsx - component tags", () => {
     expect(nodes[0].children![0].componentSetName).toBe("Button");
   });
 
+  it("does not treat image-paint metadata attrs as component or variant props", () => {
+    const standalone = parseJsx('<Hero id="1:1" imageScaleMode="TILE" imageScalingFactor="0.5" />');
+    expect(standalone[0].type).toBe("COMPONENT");
+    expect(standalone[0].componentProperties).toBeUndefined();
+
+    const set = parseJsx(`<CardSet id="1:1">
+  <Card id="1:2" size="md" imageScaleMode="FIT" />
+</CardSet>`);
+    const child = set[0].children![0];
+    expect(child.variantProperties).toEqual({ size: "md" });
+    expect(child.name).toBe("size=md");
+  });
+
   it("should detect standalone COMPONENT from bare PascalCase tag", () => {
     const nodes = parseJsx('<IconClose id="1:1" />');
     expect(nodes[0].type).toBe("COMPONENT");

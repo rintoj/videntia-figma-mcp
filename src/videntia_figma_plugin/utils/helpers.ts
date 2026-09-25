@@ -124,35 +124,6 @@ export async function loadTextNodeFonts(node: TextNode): Promise<void> {
   await Promise.all(fonts.map((font) => figma.loadFontAsync(font)));
 }
 
-// ---------------------------------------------------------------------------
-// Font weight → Figma font style name mapping
-// ---------------------------------------------------------------------------
-
-export function getFontStyle(weight: number): string {
-  switch (weight) {
-    case 100:
-      return "Thin";
-    case 200:
-      return "Extra Light";
-    case 300:
-      return "Light";
-    case 400:
-      return "Regular";
-    case 500:
-      return "Medium";
-    case 600:
-      return "Semi Bold";
-    case 700:
-      return "Bold";
-    case 800:
-      return "Extra Bold";
-    case 900:
-      return "Black";
-    default:
-      return "Regular";
-  }
-}
-
 /**
  * Extracts a human-readable reason from an unknown thrown value.
  *
@@ -173,4 +144,14 @@ export function describeError(error: unknown): string {
   } catch (_e) {
     return String(error);
   }
+}
+
+/**
+ * Canvas coordinates of a node's bounding box, for create results. x/y are
+ * parent-relative, so agents need these to verify placement without a re-read.
+ */
+export function absolutePosition(node: BaseNode): { absoluteX?: number; absoluteY?: number } {
+  const box = (node as { absoluteBoundingBox?: Rect | null }).absoluteBoundingBox;
+  if (box === null || box === undefined || typeof box.x !== "number" || typeof box.y !== "number") return {};
+  return { absoluteX: box.x, absoluteY: box.y };
 }

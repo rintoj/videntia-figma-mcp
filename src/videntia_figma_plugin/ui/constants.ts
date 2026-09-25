@@ -73,6 +73,7 @@ export const ALLOWED_COMMANDS = new Set([
   "set_text_decoration",
   "set_text_range_style",
   "get_styled_text_segments",
+  "get_text_opentype_features",
   "load_font_async",
   "create_text_style",
   "create_text_style_from_properties",
@@ -143,6 +144,7 @@ export const ALLOWED_COMMANDS = new Set([
   "get_annotations",
   "set_annotation",
   "set_multiple_annotations",
+  "remove_annotation",
   "get_annotation_categories",
   "create_annotation_category",
   "update_annotation_category",
@@ -200,6 +202,8 @@ export const ALLOWED_COMMANDS = new Set([
   "get_content_tree",
   "get_frame_documentation",
   "get_comments",
+  "set_rotation",
+  "set_layer_order",
 ]);
 
 export const MIN_PROGRESS_DISPLAY_MS = 600;

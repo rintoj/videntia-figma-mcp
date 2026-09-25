@@ -185,6 +185,42 @@ describe("batch_actions tool", () => {
 
       expect(response.content[0].text).toContain(`${count}/${count} succeeded`);
     });
+
+    it("fails only the action whose cross-chunk reference cannot resolve, keeping the rest", async () => {
+      const sentChunks: any[][] = [];
+      mockSendCommand.mockImplementation(async (command: string, params: any) => {
+        if (command !== "batch_actions") return {};
+        sentChunks.push(params.actions);
+        const results = params.actions.map((a: any, i: number) =>
+          a.params.nodeIds?.[0] === "bad"
+            ? { index: i, action: a.action, success: false, error: "Node not found" }
+            : { index: i, action: a.action, success: true, result: { id: `node-${i}` } },
+        );
+        const failed = results.filter((r: any) => !r.success).length;
+        return {
+          success: failed === 0,
+          totalActions: results.length,
+          succeeded: results.length - failed,
+          failed,
+          results,
+        };
+      });
+
+      const actions: any[] = Array.from({ length: 45 }, (_, i) => ({
+        action: "get_node_info",
+        params: { nodeId: i === 0 ? "bad" : `n-${i}` },
+      }));
+      actions[42] = { action: "get_node_info", params: { nodeId: "$result[0].id" } };
+
+      const response = await callTool("batch_actions", { actions });
+      const text = response.content[0].text as string;
+
+      expect(text).not.toContain("Error executing batch actions");
+      expect(text).toContain("43/45 succeeded");
+      expect(text).toContain("references a failed action");
+      // Every other action was still dispatched.
+      expect(sentChunks.flat()).toHaveLength(44);
+    });
   });
 
   describe("dynamic timeout", () => {
@@ -397,7 +433,7 @@ describe("batch_actions tool", () => {
       });
       const params = dispatched()[0].params;
       expect(params.gradientType).toBe("LINEAR");
-      expect(params.angle).toBe(0);
+      expect(params.angle).toBe(180);
       expect(params.opacity).toBe(1);
       expect(params.type).toBeUndefined();
     });

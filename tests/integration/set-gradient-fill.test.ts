@@ -136,10 +136,10 @@ describe("set_gradient_fill tool integration", () => {
   });
 
   describe("optional parameters", () => {
-    it("defaults angle to 0", async () => {
+    it("defaults angle to 180 (CSS: to bottom)", async () => {
       mockSendCommand.mockResolvedValue({ id: "1:2", name: "Rect", gradientType: "LINEAR", stopsCount: 2 });
       await callTool("set_gradient_fill", { nodeId: "1:2", type: "LINEAR", stops: twoStops });
-      expect(mockSendCommand.mock.calls[0][1].angle).toBe(0);
+      expect(mockSendCommand.mock.calls[0][1].angle).toBe(180);
     });
 
     it("passes custom angle", async () => {

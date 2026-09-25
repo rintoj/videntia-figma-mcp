@@ -1,4 +1,44 @@
-import { searchIcons, getIcon, listIcons } from "../../../src/videntia_figma_mcp/utils/icon-search";
+import {
+  searchIcons,
+  getIcon,
+  listIcons,
+  iconNotFoundMessage,
+} from "../../../src/videntia_figma_mcp/utils/icon-search";
+
+describe("icon name normalisation", () => {
+  it.each([
+    ["lucide:check", "check"],
+    ["lucide-check", "check"],
+    ["CheckIcon", "check"],
+    ["check-icon", "check"],
+    ["CircleCheck", "circle-check"],
+    ["circleCheck", "circle-check"],
+    ["circle_check", "circle-check"],
+    ["lucide:CircleCheck", "circle-check"],
+    ["Trash2", "trash-2"],
+    ["ChevronDownIcon", "chevron-down"],
+    ["  Bell  ", "bell"],
+  ])("%s resolves to %s", (input, expected) => {
+    expect(getIcon(input)?.name).toBe(expected);
+  });
+
+  it("explains that brand icons were removed and points at create_svg", () => {
+    for (const name of ["github", "GithubIcon", "lucide:figma"]) {
+      expect(getIcon(name)).toBeNull();
+      const message = iconNotFoundMessage(name);
+      expect(message).toContain("removed from Lucide");
+      expect(message).toContain("create_svg");
+    }
+  });
+
+  it("suggests close matches for an unknown icon", () => {
+    expect(iconNotFoundMessage("chek-circle")).toMatch(/Close matches: .*check/);
+  });
+
+  it("names the parameter when no icon name was given", () => {
+    expect(iconNotFoundMessage("")).toContain("aliases: `icon`, `iconName`");
+  });
+});
 
 describe("icon-search", () => {
   describe("searchIcons", () => {

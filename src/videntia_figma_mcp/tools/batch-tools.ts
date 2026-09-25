@@ -12,6 +12,28 @@ import { computePureAction, isPureAction, nonBatchableReason } from "../utils/pu
 import { getRegisteredTool } from "../utils/tool-registry";
 import { captureWireCommands } from "../utils/tool-capture";
 import { parseWithResultRefs, restoreResultRefs } from "../utils/result-ref-parse";
+import { applyParamAliases } from "../utils/param-aliases";
+import {
+  batchPostPlan,
+  NON_MUTATING_BATCH_ACTIONS,
+  SERVER_POST_WORK_REASONS,
+  type BatchPostProcessor,
+} from "../utils/batch-post-process";
+
+/** Pull a readable message out of a handler's MCP result (its first text block). */
+function handlerResultText(returned: unknown): string | undefined {
+  const content = (returned as { content?: Array<{ type?: string; text?: unknown }> } | undefined)?.content;
+  if (!Array.isArray(content)) return undefined;
+  const text = content.find((c) => c?.type === "text" && typeof c.text === "string")?.text as string | undefined;
+  if (!text) return undefined;
+  try {
+    const parsed = JSON.parse(text) as { error?: unknown };
+    if (typeof parsed?.error === "string") return parsed.error;
+  } catch {
+    // Plain-text result.
+  }
+  return text.length > 400 ? `${text.slice(0, 399)}…` : text;
+}
 
 /**
  * Build the wire payload(s) for ONE batched action by running its STANDALONE tool.
@@ -24,7 +46,10 @@ import { parseWithResultRefs, restoreResultRefs } from "../utils/result-ref-pars
 async function buildActionCommands(
   action: string,
   params: Record<string, unknown>,
-): Promise<{ commands: { action: string; params: Record<string, unknown> }[] } | { error: string }> {
+): Promise<
+  | { commands: { action: string; params: Record<string, unknown> }[]; parsed: Record<string, unknown> }
+  | { error: string }
+> {
   const entry = getRegisteredTool(action);
   if (!entry) {
     return {
@@ -50,13 +75,28 @@ async function buildActionCommands(
     return { error: error instanceof Error ? error.message : String(error) };
   }
 
-  const { captured, error } = await captureWireCommands(() => entry.handler(parsed, { meta: {} }));
+  const { captured, error, returned } = await captureWireCommands(() => entry.handler(parsed, { meta: {} }));
   if (captured.length === 0) {
+    // The handler returned before dispatch — almost always its own validation error
+    // (unknown icon, bad path), which is exactly what the caller needs to read.
+    const handlerMessage = handlerResultText(returned);
     return {
       error:
         error !== undefined
           ? `'${action}' failed while building its batch payload: ${error}`
-          : `'${action}' issued no Figma command, so it cannot run inside a batch.`,
+          : handlerMessage
+            ? `'${action}' was rejected before reaching Figma: ${handlerMessage}`
+            : `'${action}' issued no Figma command, so it cannot run inside a batch.`,
+    };
+  }
+
+  // A later command built after reading an earlier command's result was built from a
+  // capture-mode placeholder, not real data — sending it would act on garbage.
+  if (captured.slice(1).some((c) => c.resultReadsBefore > 0)) {
+    return {
+      error:
+        `'${action}' chains several Figma commands where later ones depend on the result of earlier ones ` +
+        `(${captured.map((c) => c.command).join(" → ")}), which a batch cannot reproduce. Call it standalone.`,
     };
   }
 
@@ -65,113 +105,141 @@ async function buildActionCommands(
       action: c.command,
       params: restoreResultRefs(c.params, sentinels) as Record<string, unknown>,
     })),
+    parsed: restoreResultRefs(parsed, sentinels) as Record<string, unknown>,
   };
 }
 
 const RESULT_REF_PATTERN = /^\$result\[(\d+)\](.*)$/;
 
 /**
- * Rewrites `$result[N]...` references in action params from the caller's original
- * (1-per-action) indices to their actual position in `expandedActions`. Needed
- * because some actions (e.g. create_icon) expand into more than one Figma-native
- * action, which shifts every subsequent action's index out from under any
- * $result[N] reference the caller wrote against their own action list.
+ * Where one CALLER action (an entry of `actions`, as the caller indexed it) ended up.
+ *  - `server`: never reached the plugin — a pure computation evaluated here, or an
+ *    action rejected before dispatch.
+ *  - `plugin`: dispatched as expandedActions[start..end) (create_icon expands to more
+ *    than one command); `primary` holds the result `$result[N]` means. `post` is
+ *    server-side work to run on that result once the plugin returns (exports).
  */
-function remapResultIndices(value: unknown, indexMap: number[]): unknown {
-  if (typeof value === "string") {
-    const match = value.match(RESULT_REF_PATTERN);
-    if (match) {
-      const originalIndex = parseInt(match[1], 10);
-      const mapped = indexMap[originalIndex];
-      if (mapped === undefined) return value;
-      return `$result[${mapped}]${match[2]}`;
-    }
-    return value;
-  }
-  if (Array.isArray(value)) {
-    return value.map((item) => remapResultIndices(item, indexMap));
-  }
-  if (value !== null && typeof value === "object") {
-    const remapped: Record<string, unknown> = {};
-    for (const key of Object.keys(value as Record<string, unknown>)) {
-      remapped[key] = remapResultIndices((value as Record<string, unknown>)[key], indexMap);
-    }
-    return remapped;
-  }
-  return value;
-}
+export type CallerSlot =
+  | { action: string; kind: "server"; success: boolean; result?: unknown; error?: string }
+  | { action: string; kind: "plugin"; start: number; end: number; primary: number; post?: BatchPostProcessor };
 
 /**
- * A batch entry that never reaches the plugin: a pure server-side computation
- * (#16) evaluated here, or a server-side-only tool that cannot be batched at all.
- * `expandedPos` is the number of Figma-native actions queued BEFORE it, i.e. where
- * its result has to be spliced back into the plugin's result list so the caller
- * sees one row per action in their original order.
+ * Rewrites `$result[N]...` references from the caller's indices to what the plugin
+ * will see. A reference to a PURE action is substituted with its computed value; a
+ * reference to a dispatched action is rewritten to that action's primary expanded
+ * position. A reference the plugin could only resolve wrongly — a later action, or one
+ * that failed or never reached Figma — throws instead of being passed through.
  */
-interface ServerSideEntry {
-  expandedPos: number;
-  action: string;
-  success: boolean;
-  result?: unknown;
-  error?: string;
-}
-
-/**
- * Substitutes `$result[N]...` references that point at a PURE action, using the
- * value computed server-side. Done before dispatch, so the plugin never has to know
- * the pure action existed — this is what makes "compute a colour, then apply it"
- * chain cleanly inside one batch.
- */
-function substitutePureRefs(value: unknown, computed: Map<number, unknown>): unknown {
+function remapResultIndices(value: unknown, slots: CallerSlot[], current: number): unknown {
   if (typeof value === "string") {
     const match = value.match(RESULT_REF_PATTERN);
     if (!match) return value;
     const index = parseInt(match[1], 10);
-    if (!computed.has(index)) return value;
-    return resolveResultReferences(value, [
+    if (index >= current) {
+      throw new Error(
+        `${value} refers to action #${index}, which has not run yet — this is action #${current}. ` +
+          `$result[N] may only reference an EARLIER action; N is 0-based, in the order you listed the actions.`,
+      );
+    }
+    const slot = slots[index];
+    if (!slot) throw new Error(`${value} refers to action #${index}, which did not run.`);
+    if (slot.kind === "server") {
+      if (!slot.success) {
+        throw new Error(`${value} refers to action #${index} (${slot.action}), which failed: ${slot.error}`);
+      }
       // resolveResultReferences walks by array position, so pad up to `index`.
-      ...Array.from({ length: index }, () => ({ index: 0, action: "", success: true, result: {} })),
-      { index, action: "", success: true, result: computed.get(index) },
-    ] as BatchActionResult[]);
+      return resolveResultReferences(value, [
+        ...Array.from({ length: index }, () => ({ index: 0, action: "", success: true, result: {} })),
+        { index, action: slot.action, success: true, result: slot.result },
+      ] as BatchActionResult[]);
+    }
+    return `$result[${slot.primary}]${match[2]}`;
   }
-  if (Array.isArray(value)) return value.map((item) => substitutePureRefs(item, computed));
+  if (Array.isArray(value)) return value.map((item) => remapResultIndices(item, slots, current));
   if (value !== null && typeof value === "object") {
     const out: Record<string, unknown> = {};
     for (const key of Object.keys(value as Record<string, unknown>)) {
-      out[key] = substitutePureRefs((value as Record<string, unknown>)[key], computed);
+      out[key] = remapResultIndices((value as Record<string, unknown>)[key], slots, current);
     }
     return out;
   }
   return value;
 }
 
+/** The plugin tags errors with its own (expanded, chunk-local) action index — drop it. */
+const PLUGIN_INDEX_SUFFIX = / \[action #\d+ (?:\(0-based\) )?of \d+; [^\]]*\]$/;
+
 /**
- * Splices the server-side entries back into the plugin's per-action results, so the
- * returned list is one row per dispatched-or-computed action, re-indexed in order.
+ * Folds the plugin's per-command results back into ONE row per caller action, indexed
+ * by the caller's own 0-based position — the same N a `$result[N]` reference uses —
+ * and named by the action the caller wrote (create_icon, not create_svg). Actions that
+ * never ran (a stopOnError abort) have no row.
  */
-export function mergeServerSideResults(
-  pluginResults: BatchActionResult[],
-  entries: ServerSideEntry[],
-): BatchActionResult[] {
-  const merged: BatchActionResult[] = [];
-  const inserts = [...entries].sort((a, b) => a.expandedPos - b.expandedPos);
-  let consumed = 0;
-  let ins = 0;
-  while (consumed < pluginResults.length || ins < inserts.length) {
-    if (ins < inserts.length && (inserts[ins].expandedPos <= consumed || consumed >= pluginResults.length)) {
-      const e = inserts[ins++];
-      merged.push({
-        index: merged.length,
-        action: e.action,
-        success: e.success,
-        ...(e.success ? { result: e.result } : { error: e.error }),
+export function assembleCallerRows(slots: CallerSlot[], pluginResults: BatchActionResult[]): BatchActionResult[] {
+  const byPos = new Map<number, BatchActionResult>();
+  for (const r of pluginResults) byPos.set(r.index, r);
+
+  const rows: BatchActionResult[] = [];
+  slots.forEach((slot, index) => {
+    if (!slot) return;
+    if (slot.kind === "server") {
+      rows.push({
+        index,
+        action: slot.action,
+        success: slot.success,
+        ...(slot.success ? { result: slot.result } : { error: slot.error }),
       } as BatchActionResult);
-    } else {
-      merged.push({ ...pluginResults[consumed], index: merged.length });
-      consumed++;
+      return;
+    }
+    const parts: BatchActionResult[] = [];
+    for (let pos = slot.start; pos < slot.end; pos++) {
+      const r = byPos.get(pos);
+      if (r) parts.push(r);
+    }
+    if (parts.length === 0) return;
+    const primary = byPos.get(slot.primary);
+    const failed = parts.find((r) => !r.success);
+    if (failed) {
+      let error = (failed.error || "unknown error").replace(PLUGIN_INDEX_SUFFIX, "");
+      let partiallyCommitted: BatchActionResult["partiallyCommitted"];
+      if (primary?.success && failed !== primary) {
+        const nodeId = extractNodeId(primary.result);
+        error += ` — its ${primary.action} step succeeded${nodeId ? ` (node ${nodeId} exists)` : ""} before ${failed.action} failed`;
+        partiallyCommitted = nodeId ? { nodeId } : {};
+      }
+      rows.push({
+        index,
+        action: slot.action,
+        success: false,
+        error,
+        ...(partiallyCommitted ? { partiallyCommitted } : {}),
+      });
+      return;
+    }
+    rows.push({ ...(primary ?? parts[0]), index, action: slot.action, success: true });
+  });
+  return rows;
+}
+
+/**
+ * Runs each dispatched action's server-side post step (see utils/batch-post-process.ts)
+ * on its real plugin result, replacing the row's result with what the standalone tool
+ * would have returned. A post step that throws turns the row into a failure.
+ */
+async function applyPostProcessors(rows: BatchActionResult[], slots: CallerSlot[]): Promise<void> {
+  for (const row of rows) {
+    const slot = slots[row.index];
+    if (!row.success || !slot || slot.kind !== "plugin" || !slot.post) continue;
+    try {
+      row.result = await slot.post(row.result);
+    } catch (error) {
+      row.success = false;
+      delete row.result;
+      row.error =
+        `Figma returned the export, but the server-side step (write/crop/cache) failed: ` +
+        (error instanceof Error ? error.message : String(error));
     }
   }
-  return merged;
 }
 
 /**
@@ -239,11 +307,33 @@ async function dispatchInChunks(
   let succeeded = 0;
   let failed = 0;
 
-  for (let offset = 0; offset < actions.length; offset += BATCH_CHUNK_SIZE) {
-    const chunk = actions.slice(offset, offset + BATCH_CHUNK_SIZE).map((a) => ({
-      action: a.action,
-      params: rebaseResultRefs(a.params, offset, results) as Record<string, unknown>,
-    }));
+  let offset = 0;
+  while (offset < actions.length) {
+    // Rebase one action at a time. A reference into an EARLIER chunk that cannot
+    // resolve (failed action, missing field) must fail only THAT action — as it would
+    // inside one plugin batch — not throw away every committed chunk's results. So the
+    // chunk is cut just before it and the action gets a failure row of its own.
+    const chunk: { action: string; params: Record<string, unknown> }[] = [];
+    let refError: { action: string; error: string } | undefined;
+    for (let pos = offset; pos < actions.length && chunk.length < BATCH_CHUNK_SIZE; pos++) {
+      try {
+        chunk.push({
+          action: actions[pos].action,
+          params: rebaseResultRefs(actions[pos].params, offset, results) as Record<string, unknown>,
+        });
+      } catch (error) {
+        refError = { action: actions[pos].action, error: error instanceof Error ? error.message : String(error) };
+        break;
+      }
+    }
+
+    if (chunk.length === 0 && refError) {
+      results.push({ index: offset, action: refError.action, success: false, error: refError.error });
+      failed++;
+      offset++;
+      if (stopOnError) break;
+      continue;
+    }
 
     const timeoutMs = 30000 + chunk.length * 2000;
     const chunkResult = (await sendCommandToFigma(
@@ -261,6 +351,7 @@ async function dispatchInChunks(
     // stopOnError must hold ACROSS chunks too, or a failure in chunk 1 would still
     // let chunk 2 mutate the document.
     if (stopOnError && failed > 0) break;
+    offset += chunk.length;
   }
 
   return { success: failed === 0, totalActions: results.length, succeeded, failed, results } as BatchActionsResult;
@@ -288,7 +379,7 @@ function extractNodeId(result: unknown): string | undefined {
 export function registerBatchTools(server: McpServer): void {
   server.tool(
     "batch_actions",
-    'Execute multiple Figma commands in a single batch call. SHAPE: {actions: [{action: "<command_name>", params: {...}}, ...]} — `action` is the command name string and `params` its object (`type` is accepted as an alias for `action`; params written flat next to `action` are folded in). EXAMPLE: {"actions": [{"action": "clone_node", "params": {"nodeId": "1:23"}}, {"action": "rename_node", "params": {"nodeId": "$result[0].id", "name": "Copy"}}, {"action": "apply_text_style", "params": {"nodeId": "1:24", "styleName": "body/md"}}]}. Every batched action accepts EXACTLY the same parameters as the equivalent standalone tool, names included — pass styleName/variableName/icon name and they are resolved server-side, exactly as standalone. Call get_schema_definition with target:"batch_actions" for the full action schema. Supports $result[N].field references to use results from earlier actions (e.g., clone then rename using new ID) — N is the index of the action as YOU listed it in `actions`, regardless of how any action (e.g. create_icon) expands internally; references are preserved even when a long batch is auto-chunked. Set stopOnError to true to abort remaining actions after the first failure. An undo checkpoint is committed before the batch runs by default, so one undo in Figma reverts exactly this batch (set checkpoint:false to opt out). The response ALWAYS carries one compact row per action (index, action, OK/FAIL, and a short digest of what it returned — new node id, or a read command\'s natural value), so no follow-up read is needed just to see what happened; set return_state:true for the verbose post-write state of every node touched.',
+    'Execute multiple Figma commands in a single batch call. SHAPE: {actions: [{action: "<command_name>", params: {...}}, ...]} — `action` is the command name string and `params` its object (`type` is accepted as an alias for `action`; params written flat next to `action` are folded in). EXAMPLE: {"actions": [{"action": "clone_node", "params": {"nodeId": "1:23"}}, {"action": "rename_node", "params": {"nodeId": "$result[0].id", "name": "Copy"}}, {"action": "apply_text_style", "params": {"nodeId": "1:24", "styleName": "body/md"}}]}. Every batched action accepts EXACTLY the same parameters as the equivalent standalone tool, names included — pass styleName/variableName/icon name and they are resolved server-side, exactly as standalone. Call get_schema_definition with target:"batch_actions" for the full action schema. Supports $result[N].field references to use results from earlier actions (e.g., clone then rename using new ID) — N is the 0-based index of the action as YOU listed it in `actions` (the first action is $result[0]), regardless of how any action (e.g. create_icon) expands internally; references are preserved even when a long batch is auto-chunked. A reference to a later, failed or missing action, or to a field the result does not have, fails that action with an error listing the available fields — it never resolves to undefined. Result rows and error messages use the same 0-based numbering. export_node_as_image / export_image_fill inside a batch write their files exactly as standalone (the row reports {path,width,height,bytes,format}); inline: true is rejected in a batch. Set stopOnError to true to abort remaining actions after the first failure. An undo checkpoint is committed before the batch runs by default, so one undo in Figma reverts exactly this batch (set checkpoint:false to opt out). The response ALWAYS carries one compact row per action (index, action, OK/FAIL, and a short digest of what it returned — new node id, or a read command\'s natural value), so no follow-up read is needed just to see what happened; set return_state:true for the verbose post-write state of every node touched.',
     {
       actions: z
         .array(batchActionSchema)
@@ -331,72 +422,57 @@ export function registerBatchTools(server: McpServer): void {
             // Nothing to checkpoint yet (e.g. fresh session) — proceed with the batch.
           }
         }
-        // Pre-process: expand server-side-only commands (create_icon) into Figma-native commands.
-        // create_icon → create_svg + optional insert_child (icon SVG resolved server-side).
-        // indexMap[originalActionIndex] = index in expandedActions holding that
-        // action's primary result (the node create_icon expands to, not its
-        // secondary insert_child step) — used to rewrite $result[N] references
-        // the caller wrote against their own (pre-expansion) action list.
-        const indexMap: number[] = [];
-        // Entries that never reach the plugin: pure computations evaluated here, and
-        // server-side-only tools rejected with a reason instead of "Unknown command".
-        const serverSideEntries: ServerSideEntry[] = [];
-        // originalActionIndex -> value, for $result[N] references to a pure action.
-        const pureValues = new Map<number, unknown>();
+        // One slot per CALLER action (see CallerSlot). create_icon is expanded here into
+        // create_svg (+ insert_child); pure computations are evaluated here; everything
+        // else is built by its standalone handler in capture mode.
+        const slots: CallerSlot[] = [];
+        const fail = (i: number, action: string, error: unknown) => {
+          slots[i] = {
+            action,
+            kind: "server",
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+          };
+        };
 
         for (let i = 0; i < actions.length; i++) {
           const { action, params: rawParams } = actions[i];
-          const actionParams = remapResultIndices(substitutePureRefs(rawParams, pureValues), indexMap) as Record<
-            string,
-            unknown
-          >;
+          let actionParams: Record<string, unknown>;
+          try {
+            actionParams = remapResultIndices(rawParams, slots, i) as Record<string, unknown>;
+          } catch (error) {
+            fail(i, action, error);
+            if (stopOnError) break;
+            continue;
+          }
 
           if (isPureAction(action)) {
             // Computed server-side, right now: the value is available to every later
             // action in this same batch via $result[i].
             try {
-              const value = computePureAction(action, actionParams);
-              pureValues.set(i, value);
-              serverSideEntries.push({
-                expandedPos: expandedActions.length,
-                action,
-                success: true,
-                result: value,
-              });
+              slots[i] = { action, kind: "server", success: true, result: computePureAction(action, actionParams) };
             } catch (error) {
-              serverSideEntries.push({
-                expandedPos: expandedActions.length,
-                action,
-                success: false,
-                error: error instanceof Error ? error.message : String(error),
-              });
+              fail(i, action, error);
               if (stopOnError) break;
             }
-            indexMap[i] = -1;
             continue;
           }
 
-          const blocked = nonBatchableReason(action);
+          const blocked = nonBatchableReason(action) ?? SERVER_POST_WORK_REASONS[action];
           if (blocked) {
-            serverSideEntries.push({
-              expandedPos: expandedActions.length,
-              action,
-              success: false,
-              error: blocked,
-            });
-            indexMap[i] = -1;
+            fail(i, action, blocked);
             if (stopOnError) break;
             continue;
           }
 
           if (action === "create_icon") {
             try {
-              const p = actionParams as Record<string, unknown>;
+              const p = applyParamAliases("create_icon", actionParams);
               const parentId = normalizeNodeId(String(p.parentId ?? ""));
               const resolved = resolveCreateIconParams({
                 parentId,
                 index: p.index !== undefined ? Number(p.index) : undefined,
-                name: String(p.name ?? ""),
+                name: typeof p.name === "string" ? p.name : "",
                 color: p.color !== undefined ? String(p.color) : undefined,
                 colorVariable: p.colorVariable !== undefined ? String(p.colorVariable) : undefined,
                 size: Number(p.size ?? 24),
@@ -406,58 +482,56 @@ export function registerBatchTools(server: McpServer): void {
                     : undefined,
               });
 
+              // The icon node itself — created by create_svg — is what a caller's
+              // $result[i] reference means, whether or not an insert_child follows.
+              const start = expandedActions.length;
               expandedActions.push({
                 action: "create_svg",
                 params: resolved.createSvgParams as Record<string, unknown>,
               });
-              // The icon node itself — created by create_svg — is what a caller's
-              // $result[i] reference means, regardless of whether an insert_child
-              // step follows it.
-              indexMap[i] = expandedActions.length - 1;
-
               if (resolved.insertChildIndex !== undefined) {
                 expandedActions.push({
                   action: "insert_child",
                   params: {
                     parentId,
-                    childId: `$result[${expandedActions.length - 1}].id`,
+                    childId: `$result[${start}].id`,
                     index: resolved.insertChildIndex,
                   },
                 });
               }
+              slots[i] = { action, kind: "plugin", start, end: expandedActions.length, primary: start };
             } catch (error) {
-              // Icon resolution failed — push a no-op that will surface the error clearly
-              // Use a non-existent action that will fail in the plugin with a clear message
-              expandedActions.push({
-                action: "create_icon",
-                params: {
-                  _error: error instanceof Error ? error.message : String(error),
-                },
-              });
-              indexMap[i] = expandedActions.length - 1;
-            }
-          } else {
-            // EVERY other action: parsed by its standalone tool's own zod schema and
-            // built by its standalone handler, so the payload is identical to the
-            // standalone call by construction (utils/tool-capture.ts).
-            const built = await buildActionCommands(action, actionParams);
-            if ("error" in built) {
-              serverSideEntries.push({
-                expandedPos: expandedActions.length,
-                action,
-                success: false,
-                error: built.error,
-              });
-              indexMap[i] = -1;
+              fail(i, action, error);
               if (stopOnError) break;
-              continue;
             }
-            // A tool that expands to several Figma commands (none currently do outside
-            // create_icon) queues them all; $result[i] means its FIRST command, which is
-            // the one that creates or identifies the node the caller is referring to.
-            indexMap[i] = expandedActions.length;
-            for (const cmd of built.commands) expandedActions.push(cmd);
+            continue;
           }
+
+          // EVERY other action: parsed by its standalone tool's own zod schema and
+          // built by its standalone handler, so the payload is identical to the
+          // standalone call by construction (utils/tool-capture.ts).
+          const built = await buildActionCommands(action, actionParams);
+          const followsMutation = actions
+            .slice(0, i)
+            .some((a) => !NON_MUTATING_BATCH_ACTIONS.has(a.action) && !isPureAction(a.action));
+          const plan = "error" in built ? built : batchPostPlan(action, built.parsed, { followsMutation });
+          if ("error" in built || "error" in plan) {
+            fail(i, action, "error" in built ? built.error : (plan as { error: string }).error);
+            if (stopOnError) break;
+            continue;
+          }
+          // A tool that expands to several Figma commands queues them all; $result[i]
+          // means its FIRST command, the one that creates or identifies the node.
+          const start = expandedActions.length;
+          for (const cmd of built.commands) expandedActions.push(cmd);
+          slots[i] = {
+            action,
+            kind: "plugin",
+            start,
+            end: expandedActions.length,
+            primary: start,
+            post: (plan as { post?: BatchPostProcessor }).post,
+          };
         }
 
         const dispatched =
@@ -465,9 +539,10 @@ export function registerBatchTools(server: McpServer): void {
             ? await dispatchInChunks(expandedActions, stopOnError, return_state)
             : ({ success: true, totalActions: 0, succeeded: 0, failed: 0, results: [] } as BatchActionsResult);
 
-        // Fold the server-side entries back in so the caller sees one row per action,
-        // in their original order, whether it ran in Figma or in the MCP server.
-        const mergedResults = mergeServerSideResults(dispatched.results ?? [], serverSideEntries);
+        // One row per caller action, numbered by the caller's own index, whether it ran
+        // in Figma or in the MCP server; then the server-side post steps (exports).
+        const mergedResults = assembleCallerRows(slots, dispatched.results ?? []);
+        await applyPostProcessors(mergedResults, slots);
         const result: BatchActionsResult = {
           success: mergedResults.every((r) => r.success),
           totalActions: mergedResults.length,
@@ -487,13 +562,17 @@ export function registerBatchTools(server: McpServer): void {
             const firstFailure = failedResults[0];
             // Only actions that SUCCEEDED mutated the document. When the very first
             // action failed, nothing was committed — saying otherwise sends the caller
-            // hunting for a node that was never created.
-            const committedBefore = (result.results ?? []).filter((r) => r.success && r.index < firstFailure.index);
+            // hunting for a node that was never created. A partially committed row (create_icon whose SVG landed before insert_child
+            // failed) wrote to the document too, including the first failure itself.
+            const committedBefore = (result.results ?? []).filter(
+              (r) =>
+                (r.success && r.index < firstFailure.index) || (r.partiallyCommitted && r.index <= firstFailure.index),
+            );
             lines.push(
               "",
               committedBefore.length === 0
                 ? `First failure: action #${firstFailure.index} (${firstFailure.action}). No actions were committed to the document.`
-                : `First failure: action #${firstFailure.index} (${firstFailure.action}). ${committedBefore.length} earlier action(s) succeeded and ARE committed in the document (${committedBefore.map((r) => `#${r.index}`).join(", ")}).`,
+                : `First failure: action #${firstFailure.index} (${firstFailure.action}). ${committedBefore.length} earlier action(s) succeeded and ARE committed in the document (${committedBefore.map((r) => `#${r.index}${r.partiallyCommitted ? " (partially)" : ""}`).join(", ")}).`,
             );
             if (committedBefore.length > 0) {
               lines.push(
@@ -517,8 +596,9 @@ export function registerBatchTools(server: McpServer): void {
             action: r.action,
             success: r.success,
             // Only a successful action mutated the document; a failed one wrote nothing.
-            committed: r.success,
-            nodeId: r.success ? extractNodeId(r.result) : undefined,
+            committed: r.success || r.partiallyCommitted !== undefined,
+            nodeId: r.success ? extractNodeId(r.result) : r.partiallyCommitted?.nodeId,
+            ...(r.partiallyCommitted ? { partial: true } : {}),
             ...(r.success ? {} : { error: r.error || "unknown error" }),
           }));
           lines.push(

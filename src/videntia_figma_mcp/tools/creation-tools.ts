@@ -8,6 +8,7 @@ import { normalizeCommandParams } from "../utils/command-params.js";
 import { svgConstraintsSchema } from "../utils/constraints-schema.js";
 import { resolveFrameLayout, paddingShorthandSchema, PADDING_SHORTHAND_DESCRIPTION } from "../utils/frame-layout.js";
 import { colorParam, toRgba } from "../utils/color-input.js";
+import { CREATE_POSITION_NOTE, formatPlacement, parentRelativePositionDescription } from "../utils/position-docs.js";
 
 /**
  * Register creation tools to the MCP server
@@ -18,14 +19,10 @@ export function registerCreationTools(server: McpServer): void {
   // Create Rectangle Tool
   server.tool(
     "create_rectangle",
-    "Create a new rectangle in Figma",
+    `Create a new rectangle in Figma. ${CREATE_POSITION_NOTE}`,
     {
-      x: z.coerce
-        .number()
-        .describe("X position in pixels on the canvas (or relative to parent frame if parentId is set)"),
-      y: z.coerce
-        .number()
-        .describe("Y position in pixels on the canvas (or relative to parent frame if parentId is set)"),
+      x: z.coerce.number().describe(parentRelativePositionDescription("X")),
+      y: z.coerce.number().describe(parentRelativePositionDescription("Y")),
       width: z.coerce.number().describe("Width in pixels (must be > 0)"),
       height: z.coerce.number().describe("Height in pixels (must be > 0)"),
       name: z.string().optional().describe("Layer name for the rectangle (default: 'Rectangle')"),
@@ -78,19 +75,80 @@ export function registerCreationTools(server: McpServer): void {
     },
   );
 
+  // Create Ellipse Tool
+  server.tool(
+    "create_ellipse",
+    `Create an ellipse (circle when width == height) in Figma. ${CREATE_POSITION_NOTE}`,
+    {
+      x: z.coerce.number().describe(parentRelativePositionDescription("X")),
+      y: z.coerce.number().describe(parentRelativePositionDescription("Y")),
+      width: z.coerce.number().positive().describe("Width in pixels (must be > 0)"),
+      height: z.coerce.number().positive().describe("Height in pixels (must be > 0; equal to width for a circle)"),
+      name: z.string().optional().describe("Layer name for the ellipse (default: 'Ellipse')"),
+      parentId: z.string().optional().describe("ID of the parent frame or group to insert the ellipse into"),
+      fillColor: colorParam("Solid fill (default: light grey).").optional(),
+      strokeColor: colorParam("Stroke color — omit for no stroke.").optional(),
+      strokeWeight: z.coerce
+        .number()
+        .positive()
+        .optional()
+        .describe("Stroke thickness in pixels (requires strokeColor to be visible)"),
+      layoutPositioning: z
+        .enum(["ABSOLUTE", "RELATIVE"])
+        .optional()
+        .describe(
+          "How this node positions inside an auto-layout parent: ABSOLUTE = uses x/y coordinates ignoring auto-layout flow, RELATIVE = participates in auto-layout flow (default when inside auto-layout)",
+        ),
+    },
+    async ({ x, y, width, height, name, parentId, fillColor, strokeColor, strokeWeight, layoutPositioning }) => {
+      if (parentId) parentId = normalizeNodeId(parentId);
+      try {
+        const result = await sendCommandToFigma("create_ellipse", {
+          x,
+          y,
+          width,
+          height,
+          name: name || "Ellipse",
+          parentId,
+          fillColor: fillColor === undefined ? undefined : toRgba(fillColor),
+          strokeColor: strokeColor === undefined ? undefined : toRgba(strokeColor),
+          strokeWeight,
+          layoutPositioning,
+        });
+        const typedResult = result as { id: string; name: string; width?: number; height?: number };
+        const size =
+          typedResult.width !== undefined && typedResult.height !== undefined
+            ? ` ${typedResult.width}x${typedResult.height}`
+            : "";
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Created ellipse "${typedResult.name}" with ID: ${typedResult.id}${size}${formatPlacement(result)}`,
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error creating ellipse: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
   // Create Frame Tool
   server.tool(
     "create_frame",
-    "Create a frame AND finish it in ONE call. Pass `layout` and `size` and this tool applies auto-layout, padding, gap, alignment, wrap and sizing in the order Figma actually requires (layoutMode before padding/gap, parenting before FILL sizing) — so you should NEVER follow a create_frame with set_auto_layout, set_layout_sizing, set_padding, set_item_spacing or resize_node. Preferred form: create_frame({ name, parentId, size: { width, height }, layout: { mode: 'VERTICAL', sizing: { horizontal: 'FILL', vertical: 'HUG' }, padding: 16, gap: 8, align: { primary: 'MIN', counter: 'CENTER' } } }). The flat spellings (layoutMode, padding, gap, horizontal/vertical, width/height, ...) are still accepted; `create_autolayout_frame` is an alias of this same one-call form.",
+    "Create a frame AND finish it in ONE call. Pass `layout` and `size` and this tool applies auto-layout, padding, gap, alignment, wrap and sizing in the order Figma actually requires (layoutMode before padding/gap, parenting before FILL sizing) — so you should NEVER follow a create_frame with set_auto_layout, set_layout_sizing, set_padding, set_item_spacing or resize_node. Preferred form: create_frame({ name, parentId, size: { width, height }, layout: { mode: 'VERTICAL', sizing: { horizontal: 'FILL', vertical: 'HUG' }, padding: 16, gap: 8, align: { primary: 'MIN', counter: 'CENTER' } } }). The flat spellings (layoutMode, padding, gap, horizontal/vertical, width/height, ...) are still accepted; `create_autolayout_frame` is an alias of this same one-call form. " +
+      CREATE_POSITION_NOTE,
     {
-      x: z.coerce
-        .number()
-        .optional()
-        .describe("X position in pixels on the canvas (default 0; ignored inside an auto-layout parent)"),
-      y: z.coerce
-        .number()
-        .optional()
-        .describe("Y position in pixels on the canvas (default 0; ignored inside an auto-layout parent)"),
+      x: z.coerce.number().optional().describe(parentRelativePositionDescription("X", "default 0")),
+      y: z.coerce.number().optional().describe(parentRelativePositionDescription("Y", "default 0")),
       width: z.coerce.number().optional().describe("Width in pixels (default 100). Or pass size.width."),
       height: z.coerce.number().optional().describe("Height in pixels (default 100). Or pass size.height."),
       size: z
@@ -311,7 +369,7 @@ export function registerCreationTools(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: `Created frame "${typedResult.name}" with ID: ${typedResult.id}. Use the ID as the parentId to appendChild inside this frame.`,
+              text: `Created frame "${typedResult.name}" with ID: ${typedResult.id}${formatPlacement(result)}. Use the ID as the parentId to appendChild inside this frame.`,
             },
           ],
         };
@@ -336,8 +394,8 @@ export function registerCreationTools(server: McpServer): void {
       "Pass `textAutoResize` to override (NONE = fixed box that can overflow; WIDTH_AND_HEIGHT ignores `width`). " +
       'Alignment: `textAlignHorizontal` only visibly matters when the text box is wider than its content (a `width` / textAutoResize HEIGHT or NONE, or FILL sizing) — WIDTH_AND_HEIGHT text hugs its content, so for centred text pass `textAlignHorizontal: "CENTER"` together with `width`.',
     {
-      x: z.coerce.number().describe("X position in pixels on the canvas (or relative to parent if parentId is set)"),
-      y: z.coerce.number().describe("Y position in pixels on the canvas (or relative to parent if parentId is set)"),
+      x: z.coerce.number().describe(parentRelativePositionDescription("X")),
+      y: z.coerce.number().describe(parentRelativePositionDescription("Y")),
       text: z.string().describe("Text content to display"),
       fontSize: z.coerce.number().optional().describe("Font size in pixels (default: 14)"),
       fontFamily: z
@@ -348,7 +406,13 @@ export function registerCreationTools(server: McpServer): void {
         .number()
         .optional()
         .describe(
-          "Font weight as a number: 100=Thin, 200=ExtraLight, 300=Light, 400=Regular, 500=Medium, 600=SemiBold, 700=Bold, 800=ExtraBold, 900=Black (default: 400)",
+          "Font weight as a number: 100=Thin, 200=ExtraLight, 300=Light, 400=Regular, 500=Medium, 600=SemiBold, 700=Bold, 800=ExtraBold, 900=Black (default: 400). Matched against the family's real style names, so 600 finds 'Semi Bold', 'SemiBold', 'Semibold' or 'DemiBold'",
+        ),
+      fontStyle: z
+        .string()
+        .optional()
+        .describe(
+          "Exact Figma style name (e.g. 'Semibold Italic', 'Condensed Bold'); wins over fontWeight. Case/spacing differences are tolerated",
         ),
       fontColor: colorParam("Text color (default: black).").optional(),
       name: z.string().optional().describe("Layer name for the text node (default: the text content itself)"),
@@ -386,6 +450,7 @@ export function registerCreationTools(server: McpServer): void {
       fontSize,
       fontFamily,
       fontWeight,
+      fontStyle,
       fontColor,
       name,
       parentId,
@@ -403,6 +468,7 @@ export function registerCreationTools(server: McpServer): void {
           fontSize: fontSize || 14,
           fontFamily: fontFamily || "Inter",
           fontWeight: fontWeight || 400,
+          fontStyle,
           fontColor: fontColor === undefined ? { r: 0, g: 0, b: 0, a: 1 } : toRgba(fontColor),
           name: name || "Text",
           parentId,
@@ -435,7 +501,7 @@ export function registerCreationTools(server: McpServer): void {
           content: [
             {
               type: "text",
-              text: `Created text "${typedResult.name}" with ID: ${typedResult.id}${sizingText}`,
+              text: `Created text "${typedResult.name}" with ID: ${typedResult.id}${formatPlacement(result)}${sizingText}`,
             },
           ],
         };
@@ -584,7 +650,7 @@ export function registerCreationTools(server: McpServer): void {
   // Insert Child Tool
   server.tool(
     "insert_child",
-    "Insert a child node inside a parent node in Figma",
+    "Insert (reparent) a node into a parent at a given layer index — also the way to reorder layers / change z-order within the same parent. Figma's children array runs BACK to FRONT: index 0 is the bottom of the stack (behind every sibling), the last index is the top. In an auto-layout parent the index is also the flow order (0 = first). For front/back/forward/backward moves prefer set_layer_order.",
     {
       parentId: z.string().describe("ID of the parent node where the child will be inserted"),
       childId: z.string().describe("ID of the child node to insert"),
@@ -592,7 +658,7 @@ export function registerCreationTools(server: McpServer): void {
         .number()
         .optional()
         .describe(
-          "Zero-based position to insert the child at within the parent's children array (0 = front/first; omit to append at the end)",
+          "Zero-based position in the parent's children array: 0 = bottom/back of the z-stack (first in auto-layout flow); omit to append, which puts it on top/front (last in flow)",
         ),
     },
     async ({ parentId, childId, index }) => {
@@ -639,8 +705,8 @@ export function registerCreationTools(server: McpServer): void {
     "Create a node from an SVG string in Figma. Useful for inserting SVG icons. The SVG is parsed and converted to Figma vector nodes.",
     {
       svgString: z.string().describe("The SVG markup string (must start with <svg or <?xml)"),
-      x: z.coerce.number().optional().describe("X position (default: 0)"),
-      y: z.coerce.number().optional().describe("Y position (default: 0)"),
+      x: z.coerce.number().optional().describe(parentRelativePositionDescription("X", "default 0")),
+      y: z.coerce.number().optional().describe(parentRelativePositionDescription("Y", "default 0")),
       name: z.string().optional().describe("Name for the created node"),
       parentId: z.string().optional().describe("Parent node ID to insert the SVG into"),
       flatten: mcpBooleanSchema
@@ -748,8 +814,18 @@ export function registerCreationTools(server: McpServer): void {
     "Create a Figma Section (figma.createSection) — a chrome-free, collapsible, deep-linkable container used for file organisation. Sections can only be parented to a PAGE or another SECTION.",
     {
       name: z.string().optional().describe("Section name (shown as the section title on canvas)"),
-      x: z.coerce.number().optional().describe("X position on canvas"),
-      y: z.coerce.number().optional().describe("Y position on canvas"),
+      x: z.coerce
+        .number()
+        .optional()
+        .describe(
+          "X position relative to the parent: canvas coordinates on a PAGE, the offset from the parent section's top-left inside a SECTION. Use move_node_absolute for canvas coordinates",
+        ),
+      y: z.coerce
+        .number()
+        .optional()
+        .describe(
+          "Y position relative to the parent: canvas coordinates on a PAGE, the offset from the parent section's top-left inside a SECTION. Use move_node_absolute for canvas coordinates",
+        ),
       width: z.coerce.number().optional().describe("Section width (applied via resizeWithoutConstraints)"),
       height: z.coerce.number().optional().describe("Section height"),
       color: colorParam("Section background color.").optional(),

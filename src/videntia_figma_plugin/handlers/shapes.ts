@@ -1,7 +1,7 @@
 // Figma MCP plugin.
 
 import { parseSvgRootStroke, propagateStrokeToShapes } from "../utils/svg";
-import { debugLog, parseNum } from "../utils/helpers";
+import { absolutePosition, debugLog, parseNum } from "../utils/helpers";
 import { resolveColorVariable, bindVariableToStrokes } from "./icons";
 import { applyConstraints, parseConstraintsParam } from "./layout";
 
@@ -108,8 +108,10 @@ export async function createEllipse(params: Record<string, unknown>): Promise<un
     type: ellipse.type,
     x: ellipse.x,
     y: ellipse.y,
+    ...absolutePosition(ellipse),
     width: ellipse.width,
     height: ellipse.height,
+    parentId: ellipse.parent ? ellipse.parent.id : undefined,
   };
 }
 

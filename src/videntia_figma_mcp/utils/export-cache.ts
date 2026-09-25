@@ -1,4 +1,5 @@
 import * as fs from "fs";
+import { createHash } from "crypto";
 
 /**
  * In-process, per-session cache for `export_node_as_image` renders.
@@ -31,6 +32,11 @@ export interface ExportCacheKeyInput {
 export interface ExportCacheEntry {
   /** Absolute path of the written file, when the render went to disk. */
   path?: string;
+  /**
+   * sha256 of the bytes written to `path`. A hit is only served while the file still
+   * holds exactly these bytes — another export (or anything else) may have overwritten it.
+   */
+  contentHash?: string;
   /** Base64 payload, only retained for inline renders. */
   base64?: string;
   mimeType?: string;
@@ -75,9 +81,9 @@ export function getCachedExport(key: string | null): ExportCacheEntry | undefine
   if (!key) return undefined;
   const entry = cache.get(key);
   if (!entry) return undefined;
-  // A path entry is only valid while the file is still there.
+  // A path entry is only valid while the file still holds the bytes this render wrote.
   if (entry.path) {
-    if (!fs.existsSync(entry.path)) {
+    if (!fileStillMatches(entry)) {
       cache.delete(key);
       return undefined;
     }
@@ -88,7 +94,30 @@ export function getCachedExport(key: string | null): ExportCacheEntry | undefine
   return entry;
 }
 
+function fileStillMatches(entry: ExportCacheEntry): boolean {
+  const filePath = entry.path as string;
+  try {
+    const stat = fs.statSync(filePath);
+    if (!stat.isFile() || stat.size !== entry.bytes) return false;
+    if (!entry.contentHash) return false;
+    return createHash("sha256").update(fs.readFileSync(filePath)).digest("hex") === entry.contentHash;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Drop every entry that points at `filePath`. Called on every file write, so a path
+ * written by node B no longer answers a cache lookup for node A.
+ */
+export function invalidateExportPath(filePath: string): void {
+  for (const [key, entry] of cache) {
+    if (entry.path === filePath) cache.delete(key);
+  }
+}
+
 export function setCachedExport(key: string | null, entry: ExportCacheEntry): void {
+  if (entry.path) invalidateExportPath(entry.path);
   if (!key) return;
   cache.set(key, entry);
 }

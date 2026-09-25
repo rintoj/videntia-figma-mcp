@@ -28,10 +28,17 @@ import { AsyncLocalStorage } from "node:async_hooks";
 export interface CapturedCommand {
   command: string;
   params: Record<string, unknown>;
+  /**
+   * How many fields of an EARLIER command's (placeholder) result the handler had read
+   * before issuing this one. Non-zero on a later command means its params may be
+   * derived from a result that does not exist in capture mode.
+   */
+  resultReadsBefore: number;
 }
 
 interface CaptureContext {
   captured: CapturedCommand[];
+  resultReads: number;
 }
 
 const captureStorage = new AsyncLocalStorage<CaptureContext>();
@@ -43,12 +50,13 @@ const captureStorage = new AsyncLocalStorage<CaptureContext>();
  * Handlers format it into text nobody reads; what matters is that they do not throw
  * before any LATER `sendCommandToFigma` call they still have to make.
  */
-function makePlaceholder(): unknown {
+function makePlaceholder(ctx: CaptureContext): unknown {
   const target = function placeholder() {} as unknown as object;
   return new Proxy(target, {
     get(_target, prop) {
       // `then` MUST be undefined: a thenable would hang or re-enter `await`.
       if (prop === "then" || prop === "catch" || prop === "finally") return undefined;
+      if (typeof prop === "string" && prop !== "toJSON") ctx.resultReads++;
       if (prop === Symbol.toPrimitive) return () => "";
       if (prop === Symbol.toStringTag) return "Object";
       if (prop === Symbol.iterator) return function* () {};
@@ -57,13 +65,13 @@ function makePlaceholder(): unknown {
       if (prop === "valueOf") return () => "";
       if (prop === "length" || prop === "size") return 0;
       if (prop === "constructor") return Object;
-      return makePlaceholder();
+      return makePlaceholder(ctx);
     },
     has() {
       return true;
     },
     apply() {
-      return makePlaceholder();
+      return makePlaceholder(ctx);
     },
     ownKeys() {
       return [];
@@ -78,8 +86,8 @@ function makePlaceholder(): unknown {
 export function interceptForCapture(command: string, params: unknown): { value: unknown } | undefined {
   const ctx = captureStorage.getStore();
   if (!ctx) return undefined;
-  ctx.captured.push({ command, params: dropUndefined(params) });
-  return { value: makePlaceholder() };
+  ctx.captured.push({ command, params: dropUndefined(params), resultReadsBefore: ctx.resultReads });
+  return { value: makePlaceholder(ctx) };
 }
 
 /**
@@ -112,11 +120,11 @@ export function isCapturing(): boolean {
  */
 export async function captureWireCommands(
   fn: () => Promise<unknown>,
-): Promise<{ captured: CapturedCommand[]; error?: string }> {
-  const ctx: CaptureContext = { captured: [] };
+): Promise<{ captured: CapturedCommand[]; error?: string; returned?: unknown }> {
+  const ctx: CaptureContext = { captured: [], resultReads: 0 };
   try {
-    await captureStorage.run(ctx, fn);
-    return { captured: ctx.captured };
+    const returned = await captureStorage.run(ctx, fn);
+    return { captured: ctx.captured, returned };
   } catch (error) {
     return {
       captured: ctx.captured,
