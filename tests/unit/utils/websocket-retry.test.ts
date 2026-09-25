@@ -9,7 +9,7 @@ import { logger } from "../../../src/videntia_figma_mcp/utils/logger";
  */
 
 type Listener = (...args: unknown[]) => void;
-type Fault = "close" | "join-first";
+type Fault = "close" | "join-first" | "hold";
 
 /** Faults to inject, consumed in order, per command name. */
 let faults: Record<string, Fault[]> = {};
@@ -67,6 +67,7 @@ class FakeSocket {
         this.emit("close", 1006, Buffer.from("abnormal"));
         return;
       }
+      if (fault === "hold") return; // in flight, never answered: only a close settles it
       if (fault === "join-first") {
         this.emit("message", JSON.stringify({ type: "error", message: "You must join the channel first" }));
         return;
@@ -180,6 +181,23 @@ describe("sendCommandToFigma retry policy", () => {
     await expect(ws.sendCommandToFigma("create_frame", {})).rejects.toThrow(/may already have been applied/);
     await expect(ws.sendCommandToFigma("get_node_info", {})).resolves.toEqual({ ok: "get_node_info" });
     expect(sends).toEqual(["create_frame", "get_node_info"]);
+  });
+});
+
+describe("concurrent commands on one dropped connection", () => {
+  it("a write's drop does not tear down a concurrent read's reconnect", async () => {
+    const ws = await joinedFigma();
+    faults = { get_node_info: ["hold"], create_frame: ["close"] };
+
+    // The read is pending first, so its catch reconnects first; the write's catch must
+    // not then kill that fresh connection (and any command already sent on it).
+    const read = ws.sendCommandToFigma("get_node_info", {});
+    await new Promise((r) => setTimeout(r, 0));
+    const write = ws.sendCommandToFigma("create_frame", {});
+
+    await expect(write).rejects.toThrow(/may already have been applied/);
+    await expect(read).resolves.toEqual({ ok: "get_node_info" });
+    expect(sends).toEqual(["get_node_info", "create_frame", "get_node_info"]);
   });
 });
 
