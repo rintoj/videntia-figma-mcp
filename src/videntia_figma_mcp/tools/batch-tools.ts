@@ -299,11 +299,33 @@ async function dispatchInChunks(
   let succeeded = 0;
   let failed = 0;
 
-  for (let offset = 0; offset < actions.length; offset += BATCH_CHUNK_SIZE) {
-    const chunk = actions.slice(offset, offset + BATCH_CHUNK_SIZE).map((a) => ({
-      action: a.action,
-      params: rebaseResultRefs(a.params, offset, results) as Record<string, unknown>,
-    }));
+  let offset = 0;
+  while (offset < actions.length) {
+    // Rebase one action at a time. A reference into an EARLIER chunk that cannot
+    // resolve (failed action, missing field) must fail only THAT action — as it would
+    // inside one plugin batch — not throw away every committed chunk's results. So the
+    // chunk is cut just before it and the action gets a failure row of its own.
+    const chunk: { action: string; params: Record<string, unknown> }[] = [];
+    let refError: { action: string; error: string } | undefined;
+    for (let pos = offset; pos < actions.length && chunk.length < BATCH_CHUNK_SIZE; pos++) {
+      try {
+        chunk.push({
+          action: actions[pos].action,
+          params: rebaseResultRefs(actions[pos].params, offset, results) as Record<string, unknown>,
+        });
+      } catch (error) {
+        refError = { action: actions[pos].action, error: error instanceof Error ? error.message : String(error) };
+        break;
+      }
+    }
+
+    if (chunk.length === 0 && refError) {
+      results.push({ index: offset, action: refError.action, success: false, error: refError.error });
+      failed++;
+      offset++;
+      if (stopOnError) break;
+      continue;
+    }
 
     const timeoutMs = 30000 + chunk.length * 2000;
     const chunkResult = (await sendCommandToFigma(
@@ -321,6 +343,7 @@ async function dispatchInChunks(
     // stopOnError must hold ACROSS chunks too, or a failure in chunk 1 would still
     // let chunk 2 mutate the document.
     if (stopOnError && failed > 0) break;
+    offset += chunk.length;
   }
 
   return { success: failed === 0, totalActions: results.length, succeeded, failed, results } as BatchActionsResult;
