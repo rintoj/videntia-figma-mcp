@@ -293,6 +293,12 @@ export interface BatchActionResult {
   success: boolean;
   result?: any;
   error?: string;
+  /**
+   * Set on a FAILED row whose action expanded into several plugin commands (create_icon)
+   * when an earlier step already mutated the document — e.g. the SVG node exists but
+   * insert_child failed. The row is not a success, but it is not "nothing written" either.
+   */
+  partiallyCommitted?: { nodeId?: string };
 }
 
 export interface BatchActionsResult {

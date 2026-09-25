@@ -283,6 +283,26 @@ describe("batch_actions: exports, $result references and icons", () => {
     expect(text).toContain("Batch completed: 3/3 succeeded");
   });
 
+  it("reports create_icon as partially committed when only its insert_child step fails", async () => {
+    const handle = plugin.handle;
+    plugin.handle = async (command: string, params: Record<string, unknown>) => {
+      if (command === "insert_child") throw new Error("Index out of range");
+      return handle(command, params);
+    };
+    mockSend.mockImplementation(async (command: string, params: any) => {
+      if (command === "batch_actions") return batchActions(params, plugin.handle);
+      return {};
+    });
+    const text = await callBatch({
+      actions: [{ action: "create_icon", params: { parentId: "1:1", icon: "check", size: 16, index: 99 } }],
+    });
+    expect(text).toContain("| 0 | create_icon | FAIL |");
+    expect(text).not.toContain("No actions were committed");
+    expect(text).toContain("#0 (partially)");
+    const manifest = JSON.parse(text.split("```json\n")[1].split("\n```")[0]);
+    expect(manifest[0]).toMatchObject({ committed: true, partial: true, nodeId: "9:100", success: false });
+  });
+
   it("explains an unknown brand icon instead of 'Icon \"\" not found'", async () => {
     const text = await callBatch({
       actions: [{ action: "create_icon", params: { parentId: "1:1", icon: "github", size: 16 } }],

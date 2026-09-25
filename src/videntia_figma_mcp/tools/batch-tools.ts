@@ -201,11 +201,19 @@ export function assembleCallerRows(slots: CallerSlot[], pluginResults: BatchActi
     const failed = parts.find((r) => !r.success);
     if (failed) {
       let error = (failed.error || "unknown error").replace(PLUGIN_INDEX_SUFFIX, "");
+      let partiallyCommitted: BatchActionResult["partiallyCommitted"];
       if (primary?.success && failed !== primary) {
         const nodeId = extractNodeId(primary.result);
         error += ` — its ${primary.action} step succeeded${nodeId ? ` (node ${nodeId} exists)` : ""} before ${failed.action} failed`;
+        partiallyCommitted = nodeId ? { nodeId } : {};
       }
-      rows.push({ index, action: slot.action, success: false, error });
+      rows.push({
+        index,
+        action: slot.action,
+        success: false,
+        error,
+        ...(partiallyCommitted ? { partiallyCommitted } : {}),
+      });
       return;
     }
     rows.push({ ...(primary ?? parts[0]), index, action: slot.action, success: true });
@@ -554,13 +562,17 @@ export function registerBatchTools(server: McpServer): void {
             const firstFailure = failedResults[0];
             // Only actions that SUCCEEDED mutated the document. When the very first
             // action failed, nothing was committed — saying otherwise sends the caller
-            // hunting for a node that was never created.
-            const committedBefore = (result.results ?? []).filter((r) => r.success && r.index < firstFailure.index);
+            // hunting for a node that was never created. A partially committed row (create_icon whose SVG landed before insert_child
+            // failed) wrote to the document too, including the first failure itself.
+            const committedBefore = (result.results ?? []).filter(
+              (r) =>
+                (r.success && r.index < firstFailure.index) || (r.partiallyCommitted && r.index <= firstFailure.index),
+            );
             lines.push(
               "",
               committedBefore.length === 0
                 ? `First failure: action #${firstFailure.index} (${firstFailure.action}). No actions were committed to the document.`
-                : `First failure: action #${firstFailure.index} (${firstFailure.action}). ${committedBefore.length} earlier action(s) succeeded and ARE committed in the document (${committedBefore.map((r) => `#${r.index}`).join(", ")}).`,
+                : `First failure: action #${firstFailure.index} (${firstFailure.action}). ${committedBefore.length} earlier action(s) succeeded and ARE committed in the document (${committedBefore.map((r) => `#${r.index}${r.partiallyCommitted ? " (partially)" : ""}`).join(", ")}).`,
             );
             if (committedBefore.length > 0) {
               lines.push(
@@ -584,8 +596,9 @@ export function registerBatchTools(server: McpServer): void {
             action: r.action,
             success: r.success,
             // Only a successful action mutated the document; a failed one wrote nothing.
-            committed: r.success,
-            nodeId: r.success ? extractNodeId(r.result) : undefined,
+            committed: r.success || r.partiallyCommitted !== undefined,
+            nodeId: r.success ? extractNodeId(r.result) : r.partiallyCommitted?.nodeId,
+            ...(r.partiallyCommitted ? { partial: true } : {}),
             ...(r.success ? {} : { error: r.error || "unknown error" }),
           }));
           lines.push(
