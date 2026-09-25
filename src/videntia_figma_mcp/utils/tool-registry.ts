@@ -20,6 +20,7 @@
 import { z, ZodRawShape } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { aliasKeysFor, applyParamAliases, PARAM_ALIASES, widenEnumCasing } from "./param-aliases.js";
+import { runWithChannel } from "./channel-context.js";
 
 export interface RegisteredToolEntry {
   name: string;
@@ -211,18 +212,35 @@ export function instrumentToolRegistry(server: McpServer): McpServer {
           return result.success ? result.data : value;
         };
 
+        // Every tool accepts `channel`: the Figma channel this ONE call is addressed to.
+        // One MCP process serves every agent sharing a client session, so a
+        // module-level "current channel" is shared mutable state that parallel agents
+        // clobber — and a clobbered channel delivers reads and writes into the wrong
+        // Figma file. Declaring it here means no per-tool edits and no way for a tool to
+        // opt out. It is stripped before the handler runs (handlers never see it) and is
+        // instead bound to the async context the transport reads (see channel-context.ts).
+        if (!("channel" in shape)) {
+          shape.channel = z
+            .string()
+            .optional()
+            .describe(
+              "Figma channel to address this call to. Defaults to the session's joined channel. REQUIRED when more than one channel is joined in this process.",
+            ) as unknown as ZodRawShape[string];
+        }
+
         // Fold aliases in, then run the tool's real handler. Batch runs this SAME
         // wrapped handler, so neither path can see a different parameter contract.
-        const wrapped: RegisteredToolEntry["handler"] = (parsedArgs, extra) =>
-          handler(
-            applyParamAliases(name, (parsedArgs ?? {}) as Record<string, unknown>, {
-              hasNodeId,
-              declaresId,
-              declaresNode,
-              coerceField,
-            }),
-            extra,
+        const wrapped: RegisteredToolEntry["handler"] = (parsedArgs, extra) => {
+          const { channel, ...rest } = (parsedArgs ?? {}) as Record<string, unknown>;
+          const target = typeof channel === "string" && channel.length > 0 ? channel : undefined;
+          // The socket server hosts one MCP server per SSE/HTTP session inside a SINGLE
+          // process, so the session id is what separates one client's joined channel
+          // from another's. Absent (stdio) it falls back to process-wide resolution.
+          const sessionId = (extra as { sessionId?: unknown } | undefined)?.sessionId;
+          return runWithChannel(target, typeof sessionId === "string" ? sessionId : undefined, () =>
+            handler(applyParamAliases(name, rest, { hasNodeId, declaresId, declaresNode, coerceField }), extra),
           );
+        };
 
         const category = currentCategory;
         const schema = STRICT_PARAM_TOOLS.has(name) ? z.object(shape).strict() : z.object(shape);
