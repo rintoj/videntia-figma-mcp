@@ -4,6 +4,7 @@ import { logger } from "./logger";
 import { serverUrl, defaultPort, WS_URL } from "../config/config";
 import { FigmaCommand, FigmaResponse, CommandProgressUpdate, PendingRequest, BrowserCommand } from "../types";
 import { interceptForCapture } from "./tool-capture";
+import { BROWSER_READONLY_COMMANDS, READONLY_COMMANDS } from "./readonly-commands";
 import { getRequestChannel, getRequestSessionId, setRequestChannel } from "./channel-context";
 
 class ChannelValidationError extends Error {
@@ -787,6 +788,21 @@ export async function getOpenChannels(): Promise<
 }
 
 /**
+ * What to do after a send failed:
+ * - "retry": the command never reached the peer (the relay refused it), or it is a read,
+ *   so resending is harmless.
+ * - "unsafe": the connection dropped mid-flight on a write — the peer may already have
+ *   applied it, and resending would apply it twice.
+ * - "rethrow": any other error.
+ */
+function classifyDrop(error: unknown, readOnly: boolean): "retry" | "unsafe" | "rethrow" {
+  if (!(error instanceof Error)) return "rethrow";
+  if (error.message === "You must join the channel first") return "retry";
+  if (error.message.startsWith("Connection closed")) return readOnly ? "retry" : "unsafe";
+  return "rethrow";
+}
+
+/**
  * Send a command to the Figma plugin on the channel THIS request is addressed to.
  */
 export async function sendCommandToFigma<T = unknown>(
@@ -806,16 +822,20 @@ export async function sendCommandToFigma<T = unknown>(
   try {
     return await sendOnConnection<T>(conn, command, params, timeoutMs);
   } catch (error) {
-    // A drop mid-command rejects every pending request with "Connection closed ...".
-    // Reconnect + re-join (which RE-VERIFIES the document identity) and retry once.
-    const recoverable =
-      error instanceof Error &&
-      (error.message.startsWith("Connection closed") || error.message === "You must join the channel first");
-    if (recoverable) {
+    const drop = classifyDrop(error, READONLY_COMMANDS.has(command));
+    if (drop === "retry") {
+      // Reconnect + re-join (which RE-VERIFIES the document identity) and retry once.
       logger.warn(`Channel "${channel}" dropped during "${command}"; reconnecting and retrying once.`);
       teardown(conn, "reconnecting");
       await ensureFigmaChannelReady(conn);
       return await sendOnConnection<T>(conn, command, params, timeoutMs);
+    }
+    if (drop === "unsafe") {
+      teardown(conn, "reconnecting");
+      throw new Error(
+        `Connection to the Figma plugin dropped during "${command}". It may already have been applied — ` +
+          `verify the file state (e.g. get_node_info) before retrying.`,
+      );
     }
     throw error;
   }
@@ -933,14 +953,19 @@ export async function sendCommandToChannel<T = unknown>(
   try {
     return await send();
   } catch (error) {
-    const recoverable =
-      error instanceof Error &&
-      (error.message.startsWith("Connection closed") || error.message === "You must join the channel first");
-    if (recoverable) {
+    const drop = classifyDrop(error, BROWSER_READONLY_COMMANDS.has(command));
+    if (drop === "retry") {
       logger.warn(`Channel "${targetChannel}" dropped during browser command "${command}"; retrying once.`);
       teardown(conn, "reconnecting");
       await ensureOtherChannelReady(conn);
       return await send();
+    }
+    if (drop === "unsafe") {
+      teardown(conn, "reconnecting");
+      throw new Error(
+        `Connection to the Chrome extension dropped during browser command "${command}". It may already have ` +
+          `been applied — check the page state before retrying.`,
+      );
     }
     throw error;
   }
