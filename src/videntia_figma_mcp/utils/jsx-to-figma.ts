@@ -412,6 +412,9 @@ const STANDARD_ATTRS = new Set([
   "componentProperties",
   "componentSetName",
   "mainComponentName",
+  // Emitted by figma-to-jsx for image paints; read-only metadata, never a component prop.
+  "imageScaleMode",
+  "imageScalingFactor",
 ]);
 
 function isPascalCase(tag: string): boolean {
