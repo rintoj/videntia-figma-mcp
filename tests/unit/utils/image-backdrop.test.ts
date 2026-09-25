@@ -239,6 +239,19 @@ describe("contrast over sampled images", () => {
     expect(f.indeterminate).toContain("budget exceeded");
   });
 
+  it("degrades to indeterminate when the sharp module cannot be loaded", async () => {
+    const noDecoder = await decodeBackdropImages(
+      { h: { base64: await halfAndHalfPng() }, x: { error: "image not found in this file" } },
+      1024,
+      () => Promise.reject(new Error("Could not load the sharp module")),
+    );
+    expect(noDecoder.get("h")).toContain("image decoder unavailable");
+    expect(noDecoder.get("x")).toBe("image not found in this file");
+    const f = evaluateTextSample(textOver({}, LEFT), noDecoder);
+    expect(f.severity).toBe("indeterminate");
+    expect(f.indeterminate).toContain("image decoder unavailable");
+  });
+
   it("stays indeterminate without any image data", () => {
     const f = evaluateTextSample(textOver({}, LEFT));
     expect(f.severity).toBe("indeterminate");

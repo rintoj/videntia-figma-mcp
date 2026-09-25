@@ -189,14 +189,23 @@ export function sampleImagePaint(
 export async function decodeBackdropImages(
   images: Record<string, { base64?: string; error?: string }> | undefined,
   maxEdge = IMAGE_SAMPLE_MAX_EDGE,
+  loadSharp: () => Promise<unknown> = () => import("sharp"),
 ): Promise<ImageRasterMap> {
   const out: ImageRasterMap = new Map();
   if (!images) return out;
   const hashes = Object.keys(images);
   if (hashes.length === 0) return out;
 
-  const sharpModule = await import("sharp");
-  const sharp = (sharpModule as unknown as { default: typeof import("sharp") }).default ?? sharpModule;
+  let sharp: typeof import("sharp");
+  try {
+    const sharpModule = (await loadSharp()) as typeof import("sharp");
+    sharp = (sharpModule as unknown as { default: typeof import("sharp") }).default ?? sharpModule;
+  } catch (e) {
+    // A missing/broken native sharp must degrade to indeterminate, not fail the whole sweep.
+    const reason = `image decoder unavailable: ${e instanceof Error ? e.message : String(e)}`.slice(0, 160);
+    for (const hash of hashes) out.set(hash, images[hash]?.error || reason);
+    return out;
+  }
 
   for (const hash of hashes) {
     const entry = images[hash] || {};
