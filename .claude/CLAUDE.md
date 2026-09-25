@@ -58,7 +58,10 @@ src/
 │   │   ├── figma-helpers.ts         # Helper functions
 │   │   ├── compact-node.ts          # Compact/summary/geometry formatting
 │   │   ├── export-image-post.ts     # Crop/downscale/save-to-disk exports
-│   │   ├── normalize-batch-params.ts# Batch ↔ standalone param aliasing
+│   │   ├── param-aliases.ts         # Batch ↔ standalone param aliasing
+│   │   ├── export-finalize.ts       # Shared export post-step (standalone + batch)
+│   │   ├── batch-post-process.ts    # Server-side post-steps replayed after a batch
+│   │   ├── gradient-geometry.ts     # CSS-convention gradient transforms + parsing
 │   │   └── verification-math.ts     # Contrast/overlap/diff math
 │   └── types/
 │       └── index.ts                 # TypeScript definitions
@@ -68,8 +71,11 @@ src/
 │   │   ├── composites.ts
 │   │   ├── verification.ts
 │   │   ├── sections.ts
+│   │   ├── arrange.ts               # set_rotation / set_layer_order
+│   │   ├── annotations.ts
 │   │   └── lint/suppress.ts         # ignore_rules + per-node roles
 │   ├── utils/
+│   │   ├── font-style.ts            # Weight/style → available font face resolver
 │   │   ├── write-verify.ts          # Strict mode / silent no-op detection
 │   │   └── document-guard.ts        # __expectedFile cross-file guard
 │   └── code.js                      # Generated plugin bundle (bun run build)
@@ -159,6 +165,36 @@ All color tools (`set_fill_color`, `set_stroke_color`) accept colors in two form
    - `{ r: 1, g: 0, b: 0, a: 1 }`
 
 Both formats work with `batch_actions` — pass `{ color: "#ff0000" }` or `{ r: 1, g: 0, b: 0, a: 1 }`.
+
+On `set_fill_color`, `set_stroke_color` and `set_page_background`, a top-level `a`
+(aliases `alpha`, `opacity`) **overrides** the colour's own alpha, so
+`{ color: "#fff", a: 0.1 }` renders at 10%. It used to be dropped silently.
+
+### Gradients (CSS convention)
+
+`utils/gradient-geometry.ts` is the single source for every gradient writer and reader.
+Angles follow CSS `linear-gradient`: 0 = to top, 90 = to right, 180 = to bottom
+(the default), clockwise. `direction` accepts `"to bottom right"` or Tailwind
+`t/r/b/l/tr/br/bl/tl`; corner keywords depend on aspect ratio, as in CSS.
+`aspect_correct: false` measures the angle in the unit square. Stops are sorted by
+position. Color-style gradients accept `{r,g,b,a}` stops plus `angle` / `direction`.
+Serialized linear gradients carry `angle`, and the JSX round-trip keeps it.
+
+> Before this, 0 meant top-to-bottom (every CSS angle but 90/270 came out flipped),
+> and the `aspect_correct: false` / color-style paths had an offset bug that put a
+> hard edge at the midpoint.
+
+### Fonts
+
+`src/videntia_figma_plugin/utils/font-style.ts` is the only weight/style → font-face
+resolver. It matches against the family's real styles from
+`figma.listAvailableFontsAsync()`, case- and space-insensitively and via synonyms
+(Semi/Demi Bold, Extra/Ultra Bold, Regular/Normal/Book, …), so a family that spells it
+"Semibold" resolves for weight 600. `create_text` also takes an exact `fontStyle`.
+Weights that aren't multiples of 100 round to the nearest one.
+
+OpenType features are **read-only** in the Plugin API; `get_text_opentype_features`
+reads them (per range). Ligatures and `tnum` cannot be set by a plugin.
 
 The `export_node_as_image` format parameter accepts both lowercase and uppercase (e.g. `"png"` or `"PNG"`).
 
@@ -265,7 +301,10 @@ are auto-handled (beforeunload accepted, alerts/confirms dismissed) and logged t
 console buffer.
 
 `get_browser_page_screenshot` also accepts `full_page: true` for beyond-viewport
-capture. The debugger session is shared: screenshots detach afterwards only when no
+capture, and the same `save_to_path` / `output_directory` / `filename` trio as
+`export_node_as_image`. When any of those is given, the PNG goes to disk and only
+`{path,width,height,bytes,format}` comes back. Default name:
+`browser-screenshot-<tab>-<timestamp>.png`. The debugger session is shared: screenshots detach afterwards only when no
 emulation or monitoring needs the attachment to persist.
 
 ## Token-Efficient Exports
@@ -293,7 +332,23 @@ emulation or monitoring needs the attachment to persist.
   `allow_full_resolution`, `max_width` or `max_height` is set. `save_to_path` always
   keeps full resolution — the cap only guards token-costly inline returns.
 
-Post-processing lives in `src/videntia_figma_mcp/utils/export-image-post.ts`.
+Post-processing lives in `src/videntia_figma_mcp/utils/export-image-post.ts`; the
+shared destination/cache/write step is `utils/export-finalize.ts`.
+
+- **Batched exports write files.** `export_node_as_image` / `export_image_fill` inside
+  `batch_actions` honour `save_to_path` / `output_directory` / `filename` and the row
+  returns the file digest. `inline: true` is rejected in batches.
+- **Writes are atomic** (temp file + rename). A cache hit is served only if the file's
+  size and sha256 still match; writing a path invalidates other cache entries for it.
+  (A generic shared filename used to return a sibling node's image.)
+- **Batched exports never read the cache**, and don't record into it after a mutation
+  earlier in the same batch. Every export first awaits the subtree's images
+  (`plugin utils/image-readiness.ts`) — an export straight after an image fill used to
+  render blank and then get cached. The subtree hash signs paints field by field,
+  image identity included.
+- Node reads return image paint `scalingFactor` (TILE), `rotation`, `imageTransform`
+  (CROP) and non-zero filters; compact prints `IMAGE(TILE×0.5)`. `assert_node_state`
+  can assert them (`{ fill: { type: "IMAGE", scalingFactor: 0.5 } }`).
 
 ## Token-Efficient Reads
 
@@ -349,9 +404,21 @@ reported in `warnings`.
 math: `utils/verification-math.ts`). Use these instead of eyeballing dumps.
 
 - `contrast_check_frame` — sweeps EVERY text node in a frame for WCAG contrast against
-  its *resolved* backdrop (walks ancestors, composites translucent paints, interpolates
-  gradients at the text node's position). `failures_only`, `standard: AA | AAA`,
-  `include_hidden`.
+  its *resolved* backdrop. The plugin builds the full paint stack (page `backgrounds`,
+  ancestors with opacity and clipping, and **siblings drawn beneath the text**, recursing
+  into frames/groups); the server renders five points across the text box and keeps the
+  worst. Mixed-style text is scored per styled segment. Image/video/pattern backdrops
+  **Image backdrops and image text fills are sampled from real pixels**: the plugin sends
+  raw image bytes (deduped by hash; ≤24 images / 20MB per sweep), the server decodes with
+  sharp at ≤1024px and maps per scaleMode FILL/FIT/CROP/TILE incl. 90° rotations
+  (`utils/image-backdrop.ts`), sampling up to 17 points per text box. Image filters and
+  rotated nodes are noted as approximate. `indeterminate` (never counted as a failure,
+  always listed, even with `failures_only`) is reserved for VIDEO/PATTERN paints and
+  missing, undecodable or over-budget images, always with the reason. Non-NORMAL blend
+  modes are approximate. `failures_only`, `standard: AA | AAA`, `include_hidden`.
+  - **Large text** = ≥24px at any weight, or ≥18.67px at weight ≥700 (WCAG's 18pt/14pt
+    converted to Figma's px; SemiBold 600 is NOT bold). Judged per mixed segment.
+    Weight parsing lives in `utils/font-weight.ts`, shared with the plugin.
 - `find_overlaps` — sibling bounding boxes that intersect. `tolerance`,
   `min_overlap_ratio`, `ignore_hidden`, `limit`.
 - `assert_node_state` — reads a node back and diffs `expected` against actual, tolerating
@@ -531,6 +598,30 @@ round-trip (`figma-to-jsx` / `jsx-to-figma`).
 - `move_node_absolute` — move to ABSOLUTE canvas coordinates (the frame of reference of
   `absoluteBoundingBox` and the Figma inspector). `move_node`'s x/y are PARENT-relative,
   so use this whenever you have canvas coordinates or have just reparented a node.
+  All `create_*` x/y are parent-relative too (sections included); results now carry
+  `absoluteX` / `absoluteY`. Shared wording: `utils/position-docs.ts`.
+- `set_rotation { nodeId, rotation, relative?, origin?: "center" | "top-left" }` — degrees,
+  positive = counter-clockwise (Figma's convention), default pivot is the centre.
+- `set_layer_order { nodeId, position: front | back | forward | backward | <index> }` —
+  z-order within the current parent. In Figma's `children` array **index 0 is the
+  back** of the stack (the old `insert_child` description said "front").
+- `create_ellipse` — restored as an MCP tool (removed in #40).
+- `scalingFactor` on `set_image_fill` / `set_image_fill_from_path` — tile scale; implies
+  `TILE`, errors with any other `scaleMode`. Aliases `tileScale`, `scale`.
+
+## Annotations
+
+Tools in `tools/document-tools.ts`, plugin `handlers/annotations.ts`.
+
+- `get_annotations { nodeId, include_children?, depth? }` — grouped by node, each
+  annotation with its 0-based `index`; category shown as `Label (categoryId)`.
+- `set_annotation` / `set_multiple_annotations` — `index` edits an existing entry
+  (`annotationId` is a deprecated alias — it was always an index; Figma annotations
+  have no ids). Updates **merge**; `category` accepts a label or id; `""` / `[]` clear.
+- `remove_annotation { nodeId, index | all }`.
+- Platform limits: GROUP, SECTION, BOOLEAN_OPERATION can't hold annotations (reads now
+  say so instead of "No annotations found"); TEXT_PATH can. Plugins cannot read the
+  Dev Mode annotation show/hide state.
 
 ## Safety Guards
 
@@ -561,6 +652,13 @@ it effectively write-only.
   Never a full node dump.
 - The failure report (first-failure line, committed-actions note, machine-readable JSON
   recovery manifest) is unchanged and still only printed when something failed.
+- Rows and `$result[N]` are **0-based by the caller's action index**, even when an
+  action (e.g. `create_icon`) expands server-side. References to a later, failed, or
+  missing field fail loudly with the available keys listed — they used to resolve to
+  `undefined` and drop the node onto the page.
+- Tools doing server-side work after the plugin call register a post-step in
+  `utils/batch-post-process.ts` (replayed on the real result) or a refusal in
+  `SERVER_POST_WORK_REASONS` (e.g. `bulk_export_frames`).
 - `return_state: true` remains the **verbose opt-in**: on top of those rows, each action
   reports the node's ACTUAL post-write state (summary line + touched properties) and any
   silently discarded writes under `noops` (`utils/return-state.ts`).
@@ -575,7 +673,10 @@ dispatch, so **a batched action accepts the same param names and value formats a
 equivalent standalone tool**. Aliases are accepted (e.g. `mode` → `layoutMode`); the
 canonical plugin-facing name wins when both are present. Normalisation is idempotent and
 never throws — unknown commands pass through untouched. Node-id keys accept the URL
-`12-34` form. `create_icon` / `update_icon` are also expanded server-side inside batches.
+`12-34` form. `create_icon` / `update_icon` are also expanded server-side inside batches,
+and accept `icon` / `iconName` for `name`. Icon lookup normalises `lucide:` prefixes,
+PascalCase/camelCase and an `Icon` suffix. Lucide v1 has no brand icons (github,
+figma, …) — use `create_svg`; the not-found error says so and suggests close matches.
 
 ## Padding Shorthand (one dialect everywhere)
 
@@ -608,6 +709,10 @@ an error, never a silent strip.
 >   the TypeScript is correct.
 > - A registrar that is imported into `src/videntia_figma_mcp/tools/index.ts` but never
 >   **called** in `registerAllTools` is silently dead — the tools simply never appear.
+>
+> - A handler that does real work AFTER `sendCommandToFigma` (file I/O, post-processing)
+>   silently does nothing inside `batch_actions`: return early when `isCapturing()` and
+>   register a post-step in `utils/batch-post-process.ts`.
 >
 > After adding a tool, verify all of: the `server.tool` registration, the registrar call
 > in `tools/index.ts`, the plugin `case`, `FigmaCommand` in `types/index.ts`,
