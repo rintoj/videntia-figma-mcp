@@ -4,7 +4,7 @@ import { logger } from "./logger";
 import { serverUrl, defaultPort, WS_URL } from "../config/config";
 import { FigmaCommand, FigmaResponse, CommandProgressUpdate, PendingRequest, BrowserCommand } from "../types";
 import { interceptForCapture } from "./tool-capture";
-import { BROWSER_READONLY_COMMANDS, isReadOnlyCall } from "./readonly-commands";
+import { isBrowserReadOnlyCall, isReadOnlyCall } from "./readonly-commands";
 import { getRequestChannel, getRequestSessionId, setRequestChannel } from "./channel-context";
 
 class ChannelValidationError extends Error {
@@ -957,7 +957,7 @@ export async function sendCommandToChannel<T = unknown>(
   try {
     return await send();
   } catch (error) {
-    const drop = classifyDrop(error, BROWSER_READONLY_COMMANDS.has(command));
+    const drop = classifyDrop(error, isBrowserReadOnlyCall(command, restParams));
     if (drop === "rejoin" || drop === "retry") {
       logger.warn(`Channel "${targetChannel}" dropped during browser command "${command}"; retrying once.`);
       if (drop === "rejoin") teardown(conn, "reconnecting");

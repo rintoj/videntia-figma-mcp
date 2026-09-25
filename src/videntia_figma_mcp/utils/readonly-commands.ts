@@ -92,3 +92,15 @@ export function isReadOnlyCall(command: string, params: unknown): boolean {
   if (command === "lint_frame" && (params as { fix?: unknown } | null)?.fix) return false;
   return true;
 }
+
+/**
+ * Browser counterpart of isReadOnlyCall. read_console / read_network with clear:true
+ * empty the buffer they read, so a resend would silently return an empty buffer.
+ */
+export function isBrowserReadOnlyCall(command: string, params: unknown): boolean {
+  if (!BROWSER_READONLY_COMMANDS.has(command as BrowserCommand)) return false;
+  if ((command === "read_console" || command === "read_network") && (params as { clear?: unknown } | null)?.clear) {
+    return false;
+  }
+  return true;
+}

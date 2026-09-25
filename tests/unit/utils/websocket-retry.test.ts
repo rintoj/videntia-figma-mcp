@@ -228,6 +228,26 @@ describe("sendCommandToChannel (browser) retry policy", () => {
     expect(sends).toEqual(["read_console", "read_console"]);
   });
 
+  it("never resends read_console with clear:true, which empties the buffer", async () => {
+    const ws = await freshWebsocketModule();
+    faults = { read_console: ["close"] };
+
+    await expect(ws.sendCommandToChannel("browser", "read_console", { clear: true })).rejects.toThrow(
+      /Chrome extension dropped during browser command "read_console"/,
+    );
+    expect(sends).toEqual(["read_console"]);
+  });
+
+  it("never resends read_network with clear:true", async () => {
+    const ws = await freshWebsocketModule();
+    faults = { read_network: ["close"] };
+
+    await expect(ws.sendCommandToChannel("browser", "read_network", { clear: true })).rejects.toThrow(
+      /Chrome extension dropped during browser command "read_network"/,
+    );
+    expect(sends).toEqual(["read_network"]);
+  });
+
   it("never resends a browser write after a mid-flight drop", async () => {
     const ws = await freshWebsocketModule();
     faults = { type_text: ["close"] };
