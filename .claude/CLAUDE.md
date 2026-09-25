@@ -66,7 +66,7 @@ src/
 │   └── types/
 │       └── index.ts                 # TypeScript definitions
 ├── videntia_figma_plugin/
-│   ├── index.ts                     # Command dispatch + READONLY_COMMANDS
+│   ├── index.ts                     # Command dispatch
 │   ├── handlers/                    # Per-domain command handlers
 │   │   ├── composites.ts
 │   │   ├── verification.ts
@@ -759,7 +759,7 @@ export type FigmaCommand =
 
 4. **Add to `ALLOWED_COMMANDS`** (`src/videntia_figma_plugin/ui/constants.ts`) — the UI allowlist that gates which commands can be sent to the plugin. Without this, the command is blocked with "Command not permitted".
 
-5. **Add to `READONLY_COMMANDS`** (`src/videntia_figma_plugin/index.ts`) — if the tool is read-only (does not modify design data). Without this, the command is blocked when readonly mode is active.
+5. **Add to `READONLY_COMMANDS`** (`src/videntia_figma_mcp/utils/readonly-commands.ts`, shared by plugin and server) — if the tool is read-only (does not modify design data). Without this, the command is blocked when readonly mode is active, and it is not resent after a dropped connection.
 
 6. **Progressive tool discovery** — nothing to do. `registerTools` tags the tool with its
    registrar category and records its schema + description in the registry, so
