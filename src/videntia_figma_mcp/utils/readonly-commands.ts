@@ -81,3 +81,14 @@ export const BROWSER_READONLY_COMMANDS: ReadonlySet<BrowserCommand> = new Set<Br
   "list_pending_requests",
   "capture_mhtml",
 ]);
+
+/**
+ * Whether resending this exact call after a mid-flight drop is harmless. Some reads
+ * write under a param (lint_frame fix:true applies its auto-fixes), so the name alone
+ * is not enough.
+ */
+export function isReadOnlyCall(command: string, params: unknown): boolean {
+  if (!READONLY_COMMANDS.has(command)) return false;
+  if (command === "lint_frame" && (params as { fix?: unknown } | null)?.fix) return false;
+  return true;
+}

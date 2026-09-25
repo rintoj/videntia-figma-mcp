@@ -166,6 +166,24 @@ describe("sendCommandToFigma retry policy", () => {
     expect(sends).toEqual(["create_frame", "create_frame"]);
   });
 
+  it("never resends lint_frame with fix:true, which writes", async () => {
+    const ws = await joinedFigma();
+    faults = { lint_frame: ["close"] };
+
+    await expect(ws.sendCommandToFigma("lint_frame", { nodeId: "1:2", fix: true })).rejects.toThrow(
+      /may already have been applied/,
+    );
+    expect(sends).toEqual(["lint_frame"]);
+  });
+
+  it("still resends a plain lint_frame read", async () => {
+    const ws = await joinedFigma();
+    faults = { lint_frame: ["close"] };
+
+    await expect(ws.sendCommandToFigma("lint_frame", { nodeId: "1:2" })).resolves.toEqual({ ok: "lint_frame" });
+    expect(sends).toEqual(["lint_frame", "lint_frame"]);
+  });
+
   it("gives up after one retry when a read drops twice", async () => {
     const ws = await joinedFigma();
     faults = { get_node_info: ["close", "close"] };

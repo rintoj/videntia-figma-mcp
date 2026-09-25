@@ -4,7 +4,7 @@ import { logger } from "./logger";
 import { serverUrl, defaultPort, WS_URL } from "../config/config";
 import { FigmaCommand, FigmaResponse, CommandProgressUpdate, PendingRequest, BrowserCommand } from "../types";
 import { interceptForCapture } from "./tool-capture";
-import { BROWSER_READONLY_COMMANDS, READONLY_COMMANDS } from "./readonly-commands";
+import { BROWSER_READONLY_COMMANDS, isReadOnlyCall } from "./readonly-commands";
 import { getRequestChannel, getRequestSessionId, setRequestChannel } from "./channel-context";
 
 class ChannelValidationError extends Error {
@@ -827,7 +827,7 @@ export async function sendCommandToFigma<T = unknown>(
   try {
     return await sendOnConnection<T>(conn, command, params, timeoutMs);
   } catch (error) {
-    const drop = classifyDrop(error, READONLY_COMMANDS.has(command));
+    const drop = classifyDrop(error, isReadOnlyCall(command, params));
     if (drop === "rejoin" || drop === "retry") {
       // Reconnect + re-join (which RE-VERIFIES the document identity) and retry once.
       logger.warn(`Channel "${channel}" dropped during "${command}"; reconnecting and retrying once.`);
