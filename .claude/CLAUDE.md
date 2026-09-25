@@ -625,6 +625,12 @@ Tools in `tools/document-tools.ts`, plugin `handlers/annotations.ts`.
 
 ## Safety Guards
 
+- **No replay of writes after a dropped connection** (`utils/websocket.ts`, `classifyDrop`):
+  when the socket closes mid-command, only read-only commands are resent (Figma:
+  `READONLY_COMMANDS`, browser: `BROWSER_READONLY_COMMANDS`, both in
+  `utils/readonly-commands.ts`, shared with the plugin). A write fails with "may already
+  have been applied — verify before retrying" instead of running twice. A relay "You must
+  join the channel first" refusal still retries anything — it was never delivered.
 - **Stale channel hard-fail** (`src/socket-channel-guard.ts`): a command sent to a channel
   with no plugin (or extension) peer is rejected immediately with a reopen-the-plugin
   message, instead of being broadcast into a dead channel where it times out or, mid-batch,
