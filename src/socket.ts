@@ -15,6 +15,7 @@ import { createToken, listTokens, revokeToken, validateKey } from "./auth/tokens
 import { signJwt, verifyJwt, parseCookies } from "./auth/session";
 import { sendVerificationEmail } from "./auth/email";
 import { isSameFile } from "./socket-channel-identity";
+import { createSessionRegistry, openSseSession, parseIdleMs, trackRequest } from "./socket-mcp-sessions";
 import { isStaleChannelSend, staleChannelError, decideChannelSend } from "./socket-channel-guard";
 import {
   applyJoinMetadata,
@@ -465,11 +466,18 @@ function createMcpServer() {
 
 const PORT = 3055;
 
-// Map sessionId → SSEServerTransport for routing POST /message requests
-const sseTransports = new Map<string, SSEServerTransport>();
+const logSessionCloseError = (sessionId: string, err: unknown) =>
+  logger.error(`Error closing MCP session ${sessionId}:`, err);
 
-// Map sessionId → StreamableHTTPServerTransport for /mcp endpoint
-const streamableTransports = new Map<string, StreamableHTTPServerTransport>();
+// sessionId → SSEServerTransport for routing POST /message requests
+const sseTransports = createSessionRegistry<SSEServerTransport>({ onCloseError: logSessionCloseError });
+
+// sessionId → StreamableHTTPServerTransport for /mcp endpoint
+const streamableTransports = createSessionRegistry<StreamableHTTPServerTransport>({
+  onCloseError: logSessionCloseError,
+});
+
+const MCP_SESSION_IDLE_MS = parseIdleMs(process.env.MCP_SESSION_IDLE_MS);
 
 const httpServer = http.createServer(async (reqOrig, res) => {
   let req: typeof reqOrig = reqOrig;
@@ -700,7 +708,7 @@ const httpServer = http.createServer(async (reqOrig, res) => {
             transport.onclose = () => {
               // Delay cleanup so follow-up requests (e.g. notifications/initialized) can still route here
               const sid = transport.sessionId;
-              if (sid) setTimeout(() => streamableTransports.delete(sid), 60_000);
+              if (sid) setTimeout(() => streamableTransports.forget(sid), 60_000);
             };
             await mcpServer.connect(transport);
           } else {
@@ -710,6 +718,7 @@ const httpServer = http.createServer(async (reqOrig, res) => {
           }
 
           logger.info(`/mcp body method="${parsedBody?.method}" id="${parsedBody?.id}"`);
+          if (sessionId) trackRequest(streamableTransports, sessionId, req, res);
           await transport.handleRequest(req, res, parsedBody);
 
           // sessionId is set by handleRequest after processing initialize
@@ -718,7 +727,7 @@ const httpServer = http.createServer(async (reqOrig, res) => {
             transport.sessionId &&
             !streamableTransports.has(transport.sessionId)
           ) {
-            streamableTransports.set(transport.sessionId, transport);
+            streamableTransports.add(transport.sessionId, transport);
             logger.info(`Streamable MCP session stored: ${transport.sessionId}`);
           }
         } catch (err) {
@@ -738,6 +747,7 @@ const httpServer = http.createServer(async (reqOrig, res) => {
         res.end(JSON.stringify({ error: "Session not found" }));
         return;
       }
+      trackRequest(streamableTransports, sessionId!, req, res);
       await transport.handleRequest(req, res);
       return;
     }
@@ -746,8 +756,9 @@ const httpServer = http.createServer(async (reqOrig, res) => {
       const sessionId = req.headers["mcp-session-id"] as string | undefined;
       const transport = sessionId ? streamableTransports.get(sessionId) : undefined;
       if (transport) {
+        trackRequest(streamableTransports, sessionId!, req, res);
         await transport.handleRequest(req, res);
-        streamableTransports.delete(sessionId!);
+        streamableTransports.forget(sessionId!);
       } else {
         res.writeHead(404);
         res.end();
@@ -758,14 +769,9 @@ const httpServer = http.createServer(async (reqOrig, res) => {
 
   // MCP SSE: GET /sse → open SSE stream
   if (url.pathname === "/sse" && req.method === "GET") {
-    const transport = new SSEServerTransport("/message", res);
-    const mcpServer = createMcpServer();
-    sseTransports.set(transport.sessionId, transport);
-    transport.onclose = () => {
-      sseTransports.delete(transport.sessionId);
-      logger.info(`MCP session closed: ${transport.sessionId}`);
-    };
-    await mcpServer.connect(transport);
+    const transport = await openSseSession(req, res, sseTransports, createMcpServer, (sessionId) =>
+      logger.info(`MCP session closed: ${sessionId}`),
+    );
     logger.info(`MCP session started: ${transport.sessionId}`);
     return;
   }
@@ -870,11 +876,23 @@ httpServer.listen(PORT, () => {
 const CLEANUP_INTERVAL_MS = 30_000;
 const STATS_LOG_INTERVAL_MS = 5 * 60_000;
 let lastStatsLog = Date.now();
-setInterval(() => {
+setInterval(async () => {
   const removed = cleanupDeadConnections();
+  let evicted = 0;
+  try {
+    evicted = await streamableTransports.sweepIdle(MCP_SESSION_IDLE_MS);
+  } catch (err) {
+    logger.error("Idle MCP session sweep failed:", err);
+  }
+  if (evicted > 0) logger.info(`Evicted ${evicted} idle streamable MCP session(s)`);
   const now = Date.now();
-  if (removed > 0 || now - lastStatsLog >= STATS_LOG_INTERVAL_MS) {
-    logger.info("Server stats:", { channels: channels.size, ...stats });
+  if (removed > 0 || evicted > 0 || now - lastStatsLog >= STATS_LOG_INTERVAL_MS) {
+    logger.info("Server stats:", {
+      channels: channels.size,
+      sseSessions: sseTransports.size,
+      streamableSessions: streamableTransports.size,
+      ...stats,
+    });
     lastStatsLog = now;
   }
 }, CLEANUP_INTERVAL_MS);
@@ -901,3 +919,12 @@ setInterval(() => {
     }
   }
 }, HEARTBEAT_INTERVAL_MS);
+
+async function shutdown(signal: string) {
+  logger.info(`${signal} received, closing ${sseTransports.size + streamableTransports.size} MCP session(s)`);
+  await Promise.all([sseTransports.closeAll(), streamableTransports.closeAll()]);
+  httpServer.close();
+  process.exit(0);
+}
+process.once("SIGTERM", () => void shutdown("SIGTERM"));
+process.once("SIGINT", () => void shutdown("SIGINT"));

@@ -10,7 +10,7 @@ This project provides a Model Context Protocol (MCP) server that enables Claude 
 - **Language**: TypeScript 5.8+
 - **Build Tool**: tsup
 - **Testing**: Jest
-- **MCP SDK**: @modelcontextprotocol/sdk v1.9.0
+- **MCP SDK**: @modelcontextprotocol/sdk v1.22.0
 
 ## Build Commands
 
