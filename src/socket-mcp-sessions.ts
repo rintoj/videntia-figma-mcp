@@ -139,6 +139,9 @@ export function trackRequest(
   const end = () => {
     if (done) return;
     done = true;
+    res.off("finish", end);
+    res.off("close", end);
+    req.socket?.off("close", end);
     registry.end(sessionId);
   };
   res.once("finish", end);

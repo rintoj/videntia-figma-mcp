@@ -878,7 +878,12 @@ const STATS_LOG_INTERVAL_MS = 5 * 60_000;
 let lastStatsLog = Date.now();
 setInterval(async () => {
   const removed = cleanupDeadConnections();
-  const evicted = await streamableTransports.sweepIdle(MCP_SESSION_IDLE_MS);
+  let evicted = 0;
+  try {
+    evicted = await streamableTransports.sweepIdle(MCP_SESSION_IDLE_MS);
+  } catch (err) {
+    logger.error("Idle MCP session sweep failed:", err);
+  }
   if (evicted > 0) logger.info(`Evicted ${evicted} idle streamable MCP session(s)`);
   const now = Date.now();
   if (removed > 0 || evicted > 0 || now - lastStatsLog >= STATS_LOG_INTERVAL_MS) {
