@@ -75,7 +75,6 @@
     "pixelmatch": "^7.2.0",
     "playwright": "^1.59.1",
     "pngjs": "^7.0.0",
-    "puppeteer-core": "^23.0.0",
     "resend": "^6.12.2",
     "sharp": "^0.34.5",
     "uuid": "^9.0.1",
