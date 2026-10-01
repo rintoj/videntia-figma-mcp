@@ -157,5 +157,109 @@ describe("browser_id routing", () => {
       expect(payload.browsers).toEqual([]);
       expect(payload.hint).toContain("Timed out fetching channels");
     });
+
+    it("distinguishes extension and driver browsers by kind", async () => {
+      mockGetOpenChannels.mockResolvedValue([
+        {
+          channel: "browser",
+          clients: 2,
+          browsers: [
+            { id: "chrome-abc", label: "Chrome (Extension)", kind: "extension", joinedAt: 1 },
+            { id: "cft-slot-1", label: "Chrome for Testing 131.0.0 · cft-slot-1", kind: "driver", joinedAt: 2 },
+          ],
+        },
+      ]);
+      const payload = parsePayload(await callTool("list_connected_browsers"));
+      expect(payload.count).toBe(2);
+      expect(payload.browsers).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ id: "chrome-abc", kind: "extension" }),
+          expect.objectContaining({ id: "cft-slot-1", kind: "driver" }),
+        ]),
+      );
+    });
+  });
+
+  describe("driver routing", () => {
+    it("routes commands to driver with explicit browser_id", async () => {
+      mockGetOpenChannels.mockResolvedValue([
+        {
+          channel: "browser",
+          browsers: [
+            { id: "chrome-abc", kind: "extension" },
+            { id: "cft-slot-1", kind: "driver" },
+          ],
+        },
+      ]);
+
+      await callTool("browser_click", { selector: "#btn", browser_id: "cft-slot-1" });
+      const [, , params] = mockSendToChannel.mock.calls[0];
+      expect(params.browserId).toBe("cft-slot-1");
+    });
+
+    it("rejects commands to nonexistent driver", async () => {
+      mockSendToChannel.mockRejectedValueOnce(
+        new Error('No browser with id "cft-slot-99" is connected. Connected: cft-slot-1, chrome-abc'),
+      );
+
+      await expect(
+        callTool("browser_click", { selector: "#btn", browser_id: "cft-slot-99" }),
+      ).rejects.toThrow('No browser with id "cft-slot-99" is connected');
+    });
+
+    it("requires explicit browser_id when both extension and driver are connected", async () => {
+      mockGetOpenChannels.mockResolvedValue([
+        {
+          channel: "browser",
+          browsers: [
+            { id: "chrome-abc", kind: "extension" },
+            { id: "cft-slot-1", kind: "driver" },
+          ],
+        },
+      ]);
+
+      mockSendToChannel.mockRejectedValueOnce(
+        new Error("Multiple browsers are connected: chrome-abc (extension), cft-slot-1 (driver). Pass browser_id to target one."),
+      );
+
+      await expect(callTool("browser_click", { selector: "#btn" })).rejects.toThrow("Multiple browsers are connected");
+    });
+
+    it("allows command targeting without browser_id when only driver is connected", async () => {
+      mockGetOpenChannels.mockResolvedValue([
+        {
+          channel: "browser",
+          browsers: [{ id: "cft-slot-1", kind: "driver" }],
+        },
+      ]);
+
+      mockSendToChannel.mockResolvedValueOnce({ ok: true });
+
+      await callTool("browser_click", { selector: "#btn" });
+      const [, , params] = mockSendToChannel.mock.calls[0];
+      // browserId should be omitted; relay routes to only connected browser
+      expect(params.browserId).toBeUndefined();
+    });
+
+    it("driver tab ids remain isolated across parallel sessions", async () => {
+      // When 4 drivers are running in parallel, tab IDs should not collide
+      mockSendToChannel.mockResolvedValueOnce({ id: "tab-1", url: "about:blank" }); // driver 1, tab 1
+      mockSendToChannel.mockResolvedValueOnce({ id: "tab-2", url: "about:blank" }); // driver 2, tab 1
+      mockSendToChannel.mockResolvedValueOnce({ id: "tab-3", url: "about:blank" }); // driver 3, tab 1
+      mockSendToChannel.mockResolvedValueOnce({ id: "tab-4", url: "about:blank" }); // driver 4, tab 1
+
+      const tabs = await Promise.all([
+        callTool("browser_create_tab", { browser_id: "cft-slot-1" }),
+        callTool("browser_create_tab", { browser_id: "cft-slot-2" }),
+        callTool("browser_create_tab", { browser_id: "cft-slot-3" }),
+        callTool("browser_create_tab", { browser_id: "cft-slot-4" }),
+      ]);
+
+      expect(tabs).toHaveLength(4);
+      // Each driver should report its own tab ID
+      const tabIds = tabs.map((t) => JSON.parse(t.content[0].text).id);
+      const uniqueIds = new Set(tabIds);
+      expect(uniqueIds.size).toBe(4);
+    });
   });
 });

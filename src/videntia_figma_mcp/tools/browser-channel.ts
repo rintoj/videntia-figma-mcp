@@ -30,6 +30,7 @@ export const tabIdSchema = z
 export interface ConnectedBrowser {
   id: string;
   label: string;
+  kind: "extension" | "driver";
   joinedAt: number;
 }
 

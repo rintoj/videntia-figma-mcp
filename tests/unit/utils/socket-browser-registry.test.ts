@@ -21,12 +21,12 @@ function browser(overrides: Partial<BrowserClientLike> = {}): BrowserClientLike 
 describe("listBrowsers", () => {
   it("returns one entry per eligible browser", () => {
     const clients = [browser({ _browserId: "a", _browserLabel: "User A", _joinedAt: 10 })];
-    expect(listBrowsers(clients)).toEqual([{ id: "a", label: "User A", joinedAt: 10 }]);
+    expect(listBrowsers(clients)).toEqual([{ id: "a", label: "User A", kind: "extension", joinedAt: 10 }]);
   });
 
   it("falls back to the id as label and 0 as joinedAt", () => {
     const clients = [browser({ _browserId: "a", _browserLabel: undefined, _joinedAt: undefined })];
-    expect(listBrowsers(clients)).toEqual([{ id: "a", label: "a", joinedAt: 0 }]);
+    expect(listBrowsers(clients)).toEqual([{ id: "a", label: "a", kind: "extension", joinedAt: 0 }]);
   });
 
   it("treats a blank label as absent", () => {
@@ -84,7 +84,7 @@ describe("resolveTarget", () => {
     const a = browser({ _browserId: "a", _browserLabel: "User A", _joinedAt: 1 });
     expect(resolveTarget([a], "nope")).toEqual({
       kind: "not-found",
-      available: [{ id: "a", label: "User A", joinedAt: 1 }],
+      available: [{ id: "a", label: "User A", kind: "extension", joinedAt: 1 }],
     });
   });
 
@@ -104,8 +104,8 @@ describe("resolveTarget", () => {
     expect(result.kind === "ambiguous" && result.available.map((e) => e.id)).toEqual(["a", "b"]);
   });
 
-  it("ignores a non-extension socket sharing the channel", () => {
-    const mcp = browser({ _isExtension: false, _browserId: undefined });
+  it("ignores a non-browser socket sharing the channel", () => {
+    const mcp = browser({ _isExtension: false, _clientType: undefined, _browserId: undefined });
     const only = browser({ _browserId: "a" });
     expect(resolveTarget([mcp, only])).toEqual({ kind: "single", client: only });
   });
@@ -136,6 +136,29 @@ describe("resolveTarget on a channel shared with a Figma plugin", () => {
   it("ignores a plugin whose socket is already closed", () => {
     const only = browser({ _browserId: "a" });
     expect(resolveTarget([{ _isPlugin: true, readyState: CLOSED }, only])).toEqual({ kind: "single", client: only });
+  });
+});
+
+describe("driver client support", () => {
+  it("recognizes _clientType: 'driver' as an eligible browser", () => {
+    const driver = browser({ _browserId: "cft-slot-3", _clientType: "driver", _isExtension: false });
+    expect(listBrowsers([driver]).map((e) => e.kind)).toEqual(["driver"]);
+  });
+
+  it("includes kind in listBrowsers output", () => {
+    const extension = browser({ _browserId: "ext-1", _clientType: "extension" });
+    const driver = browser({ _browserId: "driver-1", _clientType: "driver", _isExtension: false });
+    const entries = listBrowsers([extension, driver]);
+    expect(entries).toHaveLength(2);
+    expect(entries.map((e) => ({ id: e.id, kind: e.kind }))).toEqual([
+      { id: "driver-1", kind: "driver" },
+      { id: "ext-1", kind: "extension" },
+    ]);
+  });
+
+  it("defaults to 'extension' kind when _clientType is not set but _isExtension is true", () => {
+    const legacy = browser({ _browserId: "legacy", _clientType: undefined });
+    expect(listBrowsers([legacy]).map((e) => e.kind)).toEqual(["extension"]);
   });
 });
 
@@ -186,8 +209,8 @@ describe("formatBrowserList", () => {
   it("renders id and label pairs", () => {
     expect(
       formatBrowserList([
-        { id: "8f3a12", label: "User A", joinedAt: 1 },
-        { id: "c1d0ff", label: "User B", joinedAt: 2 },
+        { id: "8f3a12", label: "User A", kind: "extension", joinedAt: 1 },
+        { id: "c1d0ff", label: "User B", kind: "extension", joinedAt: 2 },
       ]),
     ).toBe("8f3a12 (User A), c1d0ff (User B)");
   });

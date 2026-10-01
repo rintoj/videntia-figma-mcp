@@ -9,32 +9,38 @@ export type BrowserClientLike = {
   _browserId?: string;
   _browserLabel?: string;
   _isExtension?: boolean;
+  _clientType?: "extension" | "driver";
   _isPlugin?: boolean;
   _joinedAt?: number;
   readyState: number;
 };
 
 /** A connected browser profile as reported to callers (`/channels`, errors). */
-export type BrowserEntry = { id: string; label: string; joinedAt: number };
+export type BrowserEntry = { id: string; label: string; kind: "extension" | "driver"; joinedAt: number };
 
 /** `WebSocket.OPEN`, inlined so this module stays dependency-free. */
 const OPEN = 1;
 
 function isEligible(client: BrowserClientLike): boolean {
-  return client._isExtension === true && !!client._browserId && client.readyState === OPEN;
+  const isExtensionClient = client._isExtension === true;
+  const isDriverClient = client._clientType === "driver";
+  return (isExtensionClient || isDriverClient) && !!client._browserId && client.readyState === OPEN;
 }
 
 /**
  * Lists the browser profiles eligible for routing, in a stable order (oldest
  * join first, ties broken by id) so error text and API output never churn.
  * `label` falls back to the id and `joinedAt` to 0 when the join omitted them.
+ * `kind` is inferred from `_clientType` or `_isExtension`; defaults to "extension"
+ * for backward compat when neither is set.
  */
 export function listBrowsers(clients: Iterable<BrowserClientLike>): BrowserEntry[] {
   const entries: BrowserEntry[] = [];
   for (const client of clients) {
     if (!isEligible(client)) continue;
     const id = client._browserId!;
-    entries.push({ id, label: client._browserLabel || id, joinedAt: client._joinedAt ?? 0 });
+    const kind: "extension" | "driver" = client._clientType === "driver" ? "driver" : "extension";
+    entries.push({ id, label: client._browserLabel || id, kind, joinedAt: client._joinedAt ?? 0 });
   }
   return entries.sort((a, b) => a.joinedAt - b.joinedAt || a.id.localeCompare(b.id));
 }

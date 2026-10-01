@@ -6,7 +6,8 @@
   "main": "dist/videntia_figma_mcp/server.js",
   "bin": {
     "videntia-figma-mcp": "dist/videntia_figma_mcp/server.js",
-    "figma-mcp-socket": "dist/socket.js"
+    "figma-mcp-socket": "dist/socket.js",
+    "videntia-browser-driver": "dist/index.js"
   },
   "files": [
     "dist",
@@ -23,7 +24,8 @@
     "prebuild": "bun scripts/generate-icon-data.ts",
     "build:ui": "vite build --config vite.ui.config.ts",
     "build:portal": "vite build --config vite.portal.config.ts",
-    "build": "bun run build:ui && tsup && chmod +x dist/videntia_figma_mcp/server.js dist/socket.js && bun run build:portal",
+    "build": "bun run build:ui && tsup && bun run build:driver && chmod +x dist/videntia_figma_mcp/server.js dist/socket.js dist/index.js && bun run build:portal",
+    "build:driver": "bun build src/browser_driver/index.ts --target=node --outdir=dist --entry-naming=[dir]/[name].js",
     "build:win": "tsup",
     "build:watch": "tsup --watch",
     "dev": "bun run build:watch",
@@ -68,10 +70,12 @@
     "@babel/parser": "^7.29.0",
     "@babel/types": "^7.29.0",
     "@modelcontextprotocol/sdk": "^1.22.0",
+    "@puppeteer/browsers": "^2.4.0",
     "bcryptjs": "^3.0.3",
     "pixelmatch": "^7.2.0",
     "playwright": "^1.59.1",
     "pngjs": "^7.0.0",
+    "puppeteer-core": "^23.0.0",
     "resend": "^6.12.2",
     "sharp": "^0.34.5",
     "uuid": "^9.0.1",

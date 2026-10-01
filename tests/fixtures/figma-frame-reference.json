@@ -1,0 +1,227 @@
+{
+  "fileId": "test-parity-file",
+  "pageName": "Test Page",
+  "frames": [
+    {
+      "id": "100:1",
+      "name": "SingleDiv",
+      "type": "FRAME",
+      "x": 0,
+      "y": 0,
+      "width": 400,
+      "height": 300,
+      "backgroundColor": {
+        "r": 1,
+        "g": 1,
+        "b": 1
+      },
+      "children": [
+        {
+          "id": "100:2",
+          "name": "Text",
+          "type": "TEXT",
+          "x": 100,
+          "y": 120,
+          "width": 200,
+          "height": 60,
+          "characters": "Hello World",
+          "fontSize": 24,
+          "fontWeight": 500,
+          "fontFamily": "Inter",
+          "lineHeight": 32,
+          "textAlignHorizontal": "CENTER",
+          "color": {
+            "r": 0.2,
+            "g": 0.2,
+            "b": 0.2
+          }
+        }
+      ]
+    },
+    {
+      "id": "200:1",
+      "name": "FlexContainer",
+      "type": "FRAME",
+      "x": 0,
+      "y": 340,
+      "width": 300,
+      "height": 400,
+      "layoutMode": "VERTICAL",
+      "itemSpacing": 16,
+      "paddingLeft": 20,
+      "paddingRight": 20,
+      "paddingTop": 20,
+      "paddingBottom": 20,
+      "backgroundColor": {
+        "r": 1,
+        "g": 1,
+        "b": 1
+      },
+      "children": [
+        {
+          "id": "200:2",
+          "name": "Item1",
+          "type": "FRAME",
+          "width": 260,
+          "height": 80,
+          "color": {
+            "r": 0.9,
+            "g": 0.9,
+            "b": 0.9
+          }
+        },
+        {
+          "id": "200:3",
+          "name": "Item2",
+          "type": "FRAME",
+          "width": 260,
+          "height": 80,
+          "color": {
+            "r": 0.85,
+            "g": 0.85,
+            "b": 0.85
+          }
+        }
+      ]
+    },
+    {
+      "id": "300:1",
+      "name": "GridContainer",
+      "type": "FRAME",
+      "x": 0,
+      "y": 760,
+      "width": 324,
+      "height": 324,
+      "layoutMode": "GRID",
+      "layoutGridColumns": [
+        {
+          "pattern": "FIXED_SIZE",
+          "size": 100
+        },
+        {
+          "pattern": "FIXED_SIZE",
+          "size": 100
+        },
+        {
+          "pattern": "FIXED_SIZE",
+          "size": 100
+        }
+      ],
+      "layoutGridGap": 12,
+      "backgroundColor": {
+        "r": 1,
+        "g": 1,
+        "b": 1
+      },
+      "children": [
+        {
+          "id": "300:2",
+          "name": "Cell1",
+          "type": "FRAME",
+          "width": 100,
+          "height": 100,
+          "color": {
+            "r": 0.5,
+            "g": 0.7,
+            "b": 0.9
+          }
+        }
+      ]
+    },
+    {
+      "id": "400:1",
+      "name": "PositionTest",
+      "type": "FRAME",
+      "x": 100,
+      "y": 200,
+      "width": 150,
+      "height": 100,
+      "backgroundColor": {
+        "r": 0.91,
+        "g": 0.91,
+        "b": 0.91
+      }
+    },
+    {
+      "id": "500:1",
+      "name": "TextRegular",
+      "type": "TEXT",
+      "fontSize": 16,
+      "fontWeight": 400,
+      "fontFamily": "Inter",
+      "lineHeight": 24,
+      "color": {
+        "r": 0,
+        "g": 0,
+        "b": 0
+      }
+    },
+    {
+      "id": "500:2",
+      "name": "TextBold",
+      "type": "TEXT",
+      "fontSize": 20,
+      "fontWeight": 700,
+      "fontFamily": "Inter",
+      "lineHeight": 28,
+      "color": {
+        "r": 0,
+        "g": 0,
+        "b": 0
+      }
+    },
+    {
+      "id": "500:3",
+      "name": "TextMismatch",
+      "type": "TEXT",
+      "fontSize": 14,
+      "fontWeight": 600,
+      "fontFamily": "Inter",
+      "color": {
+        "r": 0.4,
+        "g": 0.4,
+        "b": 0.4
+      }
+    },
+    {
+      "id": "600:1",
+      "name": "BoxPadded",
+      "type": "FRAME",
+      "width": 150,
+      "height": 100,
+      "paddingLeft": 16,
+      "paddingRight": 16,
+      "paddingTop": 16,
+      "paddingBottom": 16,
+      "cornerRadius": 8,
+      "backgroundColor": {
+        "r": 0.94,
+        "g": 0.94,
+        "b": 0.94
+      }
+    },
+    {
+      "id": "600:2",
+      "name": "BoxDark",
+      "type": "FRAME",
+      "width": 150,
+      "height": 100,
+      "paddingLeft": 16,
+      "paddingRight": 16,
+      "paddingTop": 16,
+      "paddingBottom": 16,
+      "cornerRadius": 8,
+      "backgroundColor": {
+        "r": 0.2,
+        "g": 0.2,
+        "b": 0.2
+      }
+    }
+  ],
+  "tolerances": {
+    "positionPx": 1,
+    "colorRgb": 0,
+    "fontMetricsExact": true
+  },
+  "notes": "Reference frame structure for parity test fixture. Node IDs must match simple-page.html data-fig-id attributes."
+}

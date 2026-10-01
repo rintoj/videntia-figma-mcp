@@ -165,18 +165,32 @@ function handleWebSocketMessage(ws: WebSocket, raw: string) {
       return;
     }
 
-    // Chrome extensions must identify their profile: without a browserId the
-    // relay cannot route a command to one specific browser, and two profiles
-    // would silently race on every reply. Reject the join outright rather than
-    // degrade to non-deterministic broadcast.
-    const isExtensionJoin = data.clientType === "extension";
-    const browserId = sanitizeIdentityValue(data.browserId, BROWSER_ID_MAX_LENGTH);
-    if (isExtensionJoin && !browserId) {
-      const reason =
-        "Extension build is out of date: browserId is required in the join payload. Reload the unpacked extension.";
+    // Both Chrome extensions and headless browser drivers must identify their
+    // profile: without a browserId the relay cannot route a command to one
+    // specific browser, and two profiles would silently race on every reply.
+    // Reject the join outright rather than degrade to non-deterministic broadcast.
+    const clientType = sanitizeIdentityValue(data.clientType, 64);
+    const isValidClientType = !clientType || clientType === "extension" || clientType === "driver";
+    if (!isValidClientType) {
+      const reason = `Invalid clientType: ${data.clientType}. Must be 'extension', 'driver', or omitted.`;
       ws.send(JSON.stringify({ type: "error", message: reason }));
       stats.messagesSent++;
-      logger.warn(`Rejected extension join from client ${clientId}: missing browserId`);
+      logger.warn(`Rejected client join from client ${clientId}: ${reason}`);
+      ws.close(1000, reason);
+      return;
+    }
+
+    const isBrowserJoin = clientType === "extension" || clientType === "driver";
+    const browserId = sanitizeIdentityValue(data.browserId, BROWSER_ID_MAX_LENGTH);
+    if (isBrowserJoin && !browserId) {
+      const kind = clientType || "extension";
+      const reason =
+        kind === "extension"
+          ? "Extension build is out of date: browserId is required in the join payload. Reload the unpacked extension."
+          : "Browser driver requires browserId in the join payload.";
+      ws.send(JSON.stringify({ type: "error", message: reason }));
+      stats.messagesSent++;
+      logger.warn(`Rejected ${kind} join from client ${clientId}: missing browserId`);
       ws.close(1000, reason);
       return;
     }
@@ -188,7 +202,7 @@ function handleWebSocketMessage(ws: WebSocket, raw: string) {
     // "Command not permitted" under the same message id (beating the extension's
     // real reply), and Figma traffic is routed away or duplicated. The dedup pass
     // below resolves any collision on the reassigned name.
-    const isPluginJoin = !isExtensionJoin && !!(data.fileName || data.fileKey);
+    const isPluginJoin = !isBrowserJoin && !!(data.fileName || data.fileKey);
     channelName = reserveBrowserChannel(channelName, isPluginJoin);
 
     // Remove stale plugin connections for the same file (reconnect from the same
@@ -241,9 +255,9 @@ function handleWebSocketMessage(ws: WebSocket, raw: string) {
     const channelClients = channels.get(channelName)!;
 
     // Same profile reconnecting (the extension retries on a 3s timer and a ~24s
-    // keep-alive alarm): drop its previous socket so a single browserId never
-    // resolves to two live connections.
-    if (isExtensionJoin && browserId) {
+    // keep-alive alarm, or a driver reconnects after a transient failure): drop
+    // its previous socket so a single browserId never resolves to two live connections.
+    if (isBrowserJoin && browserId) {
       const supersedeMeta = channelMetadata.get(channelName);
       const superseded = [...channelClients].filter((c) => (c as any)._browserId === browserId && c !== ws);
       superseded.forEach((c) => {
@@ -273,16 +287,21 @@ function handleWebSocketMessage(ws: WebSocket, raw: string) {
       if (data.fileName) (ws as any)._fileName = data.fileName;
       if (data.fileKey) (ws as any)._fileKey = data.fileKey;
     }
-    // Mark the Chrome extension's connection to the "browser" channel; it has no
-    // fileName (it's not a Figma file) so it needs its own identifying flag.
-    if (isExtensionJoin) {
-      (ws as any)._isExtension = true;
+    // Mark browser connections (extension or driver) on the "browser" channel;
+    // they have no fileName (not Figma files) so they need their own identifying
+    // flags. Both extension and driver are treated as browser peers for routing.
+    if (isBrowserJoin) {
+      // Store the explicit clientType for later inspection; also set _isExtension
+      // for backward compat with code that checks it directly.
+      (ws as any)._clientType = clientType || "extension";
+      (ws as any)._isExtension = (ws as any)._clientType !== "driver";
       (ws as any)._browserId = browserId;
       (ws as any)._browserLabel = browserLabel;
       (ws as any)._joinedAt = Date.now();
     }
+    const browserKind = (ws as any)._clientType || "unknown";
     logger.info(
-      `Client ${clientId} joined channel: ${channelName} (plugin=${!!(ws as any)._isPlugin}, extension=${!!(ws as any)._isExtension})`,
+      `Client ${clientId} joined channel: ${channelName} (plugin=${!!(ws as any)._isPlugin}, browser=${isBrowserJoin}, kind=${isBrowserJoin ? browserKind : "n/a"})`,
     );
 
     const { meta: channelMeta, repointRejected } = applyJoinMetadata(channelMetadata, channelName, data);
