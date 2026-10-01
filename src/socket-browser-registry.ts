@@ -22,17 +22,14 @@ export type BrowserEntry = { id: string; label: string; kind: "extension" | "dri
 const OPEN = 1;
 
 function isEligible(client: BrowserClientLike): boolean {
-  const isExtensionClient = client._isExtension === true;
-  const isDriverClient = client._clientType === "driver";
-  return (isExtensionClient || isDriverClient) && !!client._browserId && client.readyState === OPEN;
+  return client._isExtension === true && !!client._browserId && client.readyState === OPEN;
 }
 
 /**
  * Lists the browser profiles eligible for routing, in a stable order (oldest
  * join first, ties broken by id) so error text and API output never churn.
  * `label` falls back to the id and `joinedAt` to 0 when the join omitted them.
- * `kind` is inferred from `_clientType` or `_isExtension`; defaults to "extension"
- * for backward compat when neither is set.
+ * `kind` is "driver" only when `_clientType` says so; otherwise "extension".
  */
 export function listBrowsers(clients: Iterable<BrowserClientLike>): BrowserEntry[] {
   const entries: BrowserEntry[] = [];

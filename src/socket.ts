@@ -183,7 +183,7 @@ function handleWebSocketMessage(ws: WebSocket, raw: string) {
     const isBrowserJoin = clientType === "extension" || clientType === "driver";
     const browserId = sanitizeIdentityValue(data.browserId, BROWSER_ID_MAX_LENGTH);
     if (isBrowserJoin && !browserId) {
-      const kind = clientType || "extension";
+      const kind = clientType;
       const reason =
         kind === "extension"
           ? "Extension build is out of date: browserId is required in the join payload. Reload the unpacked extension."
@@ -287,14 +287,12 @@ function handleWebSocketMessage(ws: WebSocket, raw: string) {
       if (data.fileName) (ws as any)._fileName = data.fileName;
       if (data.fileKey) (ws as any)._fileKey = data.fileKey;
     }
-    // Mark browser connections (extension or driver) on the "browser" channel;
-    // they have no fileName (not Figma files) so they need their own identifying
-    // flags. Both extension and driver are treated as browser peers for routing.
+    // Mark browser peers (extension or driver) on the "browser" channel. `_isExtension`
+    // means "browser peer" everywhere (reply routing, channel guard, stats);
+    // `_clientType` carries the kind.
     if (isBrowserJoin) {
-      // Store the explicit clientType for later inspection; also set _isExtension
-      // for backward compat with code that checks it directly.
-      (ws as any)._clientType = clientType || "extension";
-      (ws as any)._isExtension = (ws as any)._clientType !== "driver";
+      (ws as any)._clientType = clientType;
+      (ws as any)._isExtension = true;
       (ws as any)._browserId = browserId;
       (ws as any)._browserLabel = browserLabel;
       (ws as any)._joinedAt = Date.now();

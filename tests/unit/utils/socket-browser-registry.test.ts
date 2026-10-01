@@ -141,13 +141,13 @@ describe("resolveTarget on a channel shared with a Figma plugin", () => {
 
 describe("driver client support", () => {
   it("recognizes _clientType: 'driver' as an eligible browser", () => {
-    const driver = browser({ _browserId: "cft-slot-3", _clientType: "driver", _isExtension: false });
+    const driver = browser({ _browserId: "cft-slot-3", _clientType: "driver", _isExtension: true });
     expect(listBrowsers([driver]).map((e) => e.kind)).toEqual(["driver"]);
   });
 
   it("includes kind in listBrowsers output", () => {
     const extension = browser({ _browserId: "ext-1", _clientType: "extension" });
-    const driver = browser({ _browserId: "driver-1", _clientType: "driver", _isExtension: false });
+    const driver = browser({ _browserId: "driver-1", _clientType: "driver", _isExtension: true });
     const entries = listBrowsers([extension, driver]);
     expect(entries).toHaveLength(2);
     expect(entries.map((e) => ({ id: e.id, kind: e.kind }))).toEqual([

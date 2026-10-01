@@ -41,7 +41,10 @@ export interface ConnectedBrowser {
 export async function listConnectedBrowsers(): Promise<ConnectedBrowser[]> {
   const channels = await getOpenChannels();
   const entry = channels.find((ch) => ch.channel === BROWSER_CHANNEL);
-  return entry?.browsers ?? [];
+  return (entry?.browsers ?? []).map((b) => ({
+    ...b,
+    kind: (b as { kind?: string }).kind === "driver" ? "driver" : "extension",
+  }));
 }
 
 /**
