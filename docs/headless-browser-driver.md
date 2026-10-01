@@ -2,7 +2,7 @@
 
 > **In plain words:** today every browser tool (`browser_*`, `diff_figma_frame_to_page`, the overlay) runs through the Videntia Browser Connect extension inside a person's own Chrome. This doc adds a second way to answer the same commands: a small Node process that drives a pinned **Chrome for Testing** directly over the DevTools Protocol and joins the relay as just another browser. Nothing above the relay changes. The extension stays for hand-run reviews; automated pipelines (the agent-tools factory) use the driver.
 
-Status: proposed · 2026-10-01
+Status: in progress · 2026-10-01 — relay `clientType: "driver"` + `kind` and the driver (`src/browser_driver/`, own command router) have landed. Step 1 (shared `commands.js`/adapter extraction from `background.js`) is NOT done: a first attempt broke the MV3 worker (duplicate top-level `const`s across `importScripts` files, stubbed helpers shadowing `cdp.js`) and was reverted. Redo it behind a VM smoke test that loads `background.js` with a mocked `chrome`.
 
 ## 1. Why
 
