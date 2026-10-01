@@ -202,9 +202,9 @@ describe("browser_id routing", () => {
         new Error('No browser with id "cft-slot-99" is connected. Connected: cft-slot-1, chrome-abc'),
       );
 
-      await expect(
-        callTool("browser_click", { selector: "#btn", browser_id: "cft-slot-99" }),
-      ).rejects.toThrow('No browser with id "cft-slot-99" is connected');
+      await expect(callTool("browser_click", { selector: "#btn", browser_id: "cft-slot-99" })).rejects.toThrow(
+        'No browser with id "cft-slot-99" is connected',
+      );
     });
 
     it("requires explicit browser_id when both extension and driver are connected", async () => {
@@ -219,7 +219,9 @@ describe("browser_id routing", () => {
       ]);
 
       mockSendToChannel.mockRejectedValueOnce(
-        new Error("Multiple browsers are connected: chrome-abc (extension), cft-slot-1 (driver). Pass browser_id to target one."),
+        new Error(
+          "Multiple browsers are connected: chrome-abc (extension), cft-slot-1 (driver). Pass browser_id to target one.",
+        ),
       );
 
       await expect(callTool("browser_click", { selector: "#btn" })).rejects.toThrow("Multiple browsers are connected");
