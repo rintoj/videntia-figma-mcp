@@ -79,6 +79,15 @@ async function start(args: ParsedArgs, stateDir: string): Promise<number> {
   process.once("SIGINT", () => void shutdown(0, "SIGINT"));
   process.once("SIGTERM", () => void shutdown(0, "SIGTERM"));
   process.once("SIGHUP", () => void shutdown(0, "SIGHUP"));
+  // Without these a stray async error exits Node without closing Chrome or removing its temp profile.
+  process.on("unhandledRejection", (err) => {
+    log("unhandled rejection:", err);
+    void shutdown(1, "unhandled rejection");
+  });
+  process.on("uncaughtException", (err) => {
+    log("uncaught exception:", err);
+    void shutdown(1, "uncaught exception");
+  });
 
   const resetIdle = () => {
     if (!idleTimeoutMs) return;
