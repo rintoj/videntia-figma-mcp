@@ -1,189 +1,191 @@
-import { WebSocket } from "ws";
+import { createWebSocket } from "./cdp-connection.js";
+
+export const BROWSER_CHANNEL = "browser";
+
+export type RelayStatus = "connecting" | "connected" | "disconnected";
 
 export interface RelayClientOptions {
-  cdpUrl: string;
   relayUrl: string;
   browserId: string;
   browserLabel: string;
+  onCommand(command: string, params: Record<string, unknown>): Promise<unknown>;
+  onStatus?(status: RelayStatus): void;
+  /** Called once reconnecting has failed `maxAttempts` times in a row. */
+  onGiveUp?(error: Error): void;
+  maxAttempts?: number;
+  backoffMs?: number[];
+  connectTimeoutMs?: number;
 }
-
-export interface CommandMessage {
-  id: string;
-  command: string;
-  params?: any;
-}
-
-type CommandHandler = (cmd: CommandMessage) => Promise<any>;
 
 export interface RelayClient {
-  connect(): Promise<void>;
-  disconnect(): Promise<void>;
-  onCommand(handler: CommandHandler): void;
-  sendResponse(id: string, result?: any, error?: string): void;
+  /** Connects and joins; rejects if the relay refuses the join or every attempt fails. */
+  start(): Promise<void>;
+  stop(): void;
+  readonly status: RelayStatus;
 }
 
-/**
- * Creates a relay client that connects to the WebSocket relay and listens for
- * browser commands addressed to this driver's browserId.
- */
+export class JoinRefusedError extends Error {}
+
+const DEFAULT_BACKOFF_MS = [500, 1000, 2000, 4000, 8000, 15000, 30000];
+
+/** Same envelope background.js `respond()` sends back to the relay. */
+export function responseEnvelope(id: string, payload: { result?: unknown } | { error: string }) {
+  return { id, type: "message", channel: BROWSER_CHANNEL, message: { id, ...payload } };
+}
+
+export function isJoinConfirmation(data: any): boolean {
+  return data?.type === "system" && typeof data.message === "object" && data.message !== null && !!data.message.result;
+}
+
+export function extractCommand(data: any): { id: string; command: string; params: Record<string, unknown> } | null {
+  if (data?.type !== "message" && data?.type !== "broadcast") return null;
+  const msg = data.message;
+  if (!msg || typeof msg.command !== "string" || msg.id === undefined) return null;
+  return { id: msg.id, command: msg.command, params: msg.params ?? {} };
+}
+
 export function createRelayClient(options: RelayClientOptions): RelayClient {
-  const { cdpUrl, relayUrl, browserId, browserLabel } = options;
+  const maxAttempts = options.maxAttempts ?? 10;
+  const backoff = options.backoffMs ?? DEFAULT_BACKOFF_MS;
+  const connectTimeoutMs = options.connectTimeoutMs ?? 10000;
+  let ws: Awaited<ReturnType<typeof createWebSocket>> | null = null;
+  let status: RelayStatus = "disconnected";
+  let stopped = false;
+  let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
-  let ws: WebSocket | null = null;
-  let commandHandler: CommandHandler | null = null;
-  let reconnectAttempts = 0;
-  const MAX_RECONNECT_ATTEMPTS = 10;
-  const BACKOFF_TIMES = [1000, 2000, 4000, 8000, 30000]; // ms, capped at 30s
+  const setStatus = (s: RelayStatus) => {
+    if (status === s) return;
+    status = s;
+    options.onStatus?.(s);
+  };
 
-  function getBackoffDelay(): number {
-    if (reconnectAttempts >= BACKOFF_TIMES.length) {
-      return BACKOFF_TIMES[BACKOFF_TIMES.length - 1];
-    }
-    return BACKOFF_TIMES[reconnectAttempts];
+  function send(payload: unknown) {
+    if (ws && ws.readyState === 1) ws.send(JSON.stringify(payload));
   }
 
-  async function connect(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      try {
-        console.log(`[relay] Connecting to ${relayUrl}...`);
-        ws = new WebSocket(relayUrl);
-
-        const timeout = setTimeout(() => {
-          reject(new Error("Connection timeout"));
-        }, 5000);
-
-        ws.on("open", () => {
-          clearTimeout(timeout);
-          console.log("[relay] Connected to relay");
-          reconnectAttempts = 0;
-
-          // Send join message
-          const joinMsg = {
-            type: "join",
-            channel: "browser",
-            clientType: "driver",
-            browserId,
-            browserLabel,
-          };
-
-          console.log("[relay] Sending join message...");
-          ws!.send(JSON.stringify(joinMsg));
-        });
-
-        ws.on("message", async (data) => {
-          try {
-            const msg = JSON.parse(data.toString());
-
-            if (msg.type === "system") {
-              // Join confirmation
-              if (msg.message?.result) {
-                console.log(`[relay] ${msg.message.result}`);
-                resolve();
-              } else if (msg.message?.error) {
-                reject(new Error(`Join failed: ${msg.message.error}`));
-              }
-              return;
-            }
-
-            if (msg.type === "message" && msg.channel === "browser") {
-              const command = msg.message;
-              if (!command || !command.id) return;
-
-              console.log(`[relay] Received command: ${command.command}`);
-
-              try {
-                if (!commandHandler) {
-                  throw new Error("No command handler registered");
-                }
-
-                const result = await commandHandler(command);
-                sendResponse(command.id, result);
-              } catch (error) {
-                const errorMsg = error instanceof Error ? error.message : String(error);
-                sendResponse(command.id, undefined, errorMsg);
-              }
-            }
-          } catch (error) {
-            console.error("[relay] Message parsing error:", error);
-          }
-        });
-
-        ws.on("error", (error) => {
-          clearTimeout(timeout);
-          console.error("[relay] WebSocket error:", error);
-          reject(error);
-        });
-
-        ws.on("close", () => {
-          console.log("[relay] Connection closed, attempting reconnect...");
-          handleDisconnect();
-        });
-      } catch (error) {
-        reject(error);
-      }
-    });
-  }
-
-  async function handleDisconnect(): Promise<void> {
-    reconnectAttempts++;
-
-    if (reconnectAttempts > MAX_RECONNECT_ATTEMPTS) {
-      console.error(
-        `[relay] Maximum reconnection attempts (${MAX_RECONNECT_ATTEMPTS}) exceeded. Exiting.`,
-      );
-      process.exit(1);
-    }
-
-    const delay = getBackoffDelay();
-    console.log(`[relay] Reconnecting in ${delay}ms (attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})`);
-
-    await new Promise((resolve) => setTimeout(resolve, delay));
-
+  async function runCommand(id: string, command: string, params: Record<string, unknown>) {
     try {
-      await connect();
-    } catch (error) {
-      console.error("[relay] Reconnection failed:", error);
-      await handleDisconnect();
+      const result = await options.onCommand(command, params);
+      send(responseEnvelope(id, { result }));
+    } catch (e) {
+      send(responseEnvelope(id, { error: e instanceof Error ? e.message : String(e) }));
     }
   }
 
-  function disconnect(): Promise<void> {
-    return new Promise((resolve) => {
-      if (ws) {
-        ws.close();
-        ws = null;
-      }
-      resolve();
+  /** Resolves once joined; afterwards `onClosed` fires when that connection drops. */
+  async function connectOnce(onClosed: () => void): Promise<void> {
+    const socket = await createWebSocket(options.relayUrl);
+    ws = socket;
+    return new Promise<void>((resolve, reject) => {
+      let joined = false;
+      let settled = false;
+      const fail = (e: Error) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        try {
+          socket.close();
+        } catch {}
+        reject(e);
+      };
+      const timer = setTimeout(
+        () => fail(new Error(`Timed out joining relay at ${options.relayUrl}`)),
+        connectTimeoutMs,
+      );
+
+      socket.addEventListener("open", () => {
+        socket.send(
+          JSON.stringify({
+            type: "join",
+            channel: BROWSER_CHANNEL,
+            clientType: "driver",
+            browserId: options.browserId,
+            browserLabel: options.browserLabel,
+          }),
+        );
+      });
+      socket.addEventListener("message", (event: any) => {
+        let data: any;
+        try {
+          data = JSON.parse(typeof event.data === "string" ? event.data : String(event.data));
+        } catch {
+          return;
+        }
+        if (!joined) {
+          if (data?.type === "error") {
+            fail(new JoinRefusedError(`Relay refused the join: ${data.message}`));
+            return;
+          }
+          if (isJoinConfirmation(data)) {
+            joined = true;
+            settled = true;
+            clearTimeout(timer);
+            resolve();
+          }
+          return;
+        }
+        const cmd = extractCommand(data);
+        if (cmd) void runCommand(cmd.id, cmd.command, cmd.params);
+      });
+      socket.addEventListener("error", () => {
+        if (!joined) fail(new Error(`Could not connect to relay at ${options.relayUrl}`));
+      });
+      socket.addEventListener("close", () => {
+        if (ws === socket) ws = null;
+        if (!joined) fail(new Error(`Relay at ${options.relayUrl} closed the connection before the join completed`));
+        else onClosed();
+      });
     });
   }
 
-  function onCommand(handler: CommandHandler): void {
-    commandHandler = handler;
+  async function connectWithRetry(): Promise<void> {
+    let lastError: Error = new Error("not attempted");
+    for (let attempt = 0; attempt < maxAttempts && !stopped; attempt++) {
+      if (attempt > 0) {
+        const delay = backoff[Math.min(attempt - 1, backoff.length - 1)]!;
+        await new Promise<void>((r) => {
+          reconnectTimer = setTimeout(r, delay);
+        });
+        if (stopped) break;
+      }
+      setStatus("connecting");
+      try {
+        await connectOnce(onConnectionLost);
+        setStatus("connected");
+        return;
+      } catch (e) {
+        lastError = e instanceof Error ? e : new Error(String(e));
+        if (lastError instanceof JoinRefusedError) throw lastError;
+        console.error(`[relay] attempt ${attempt + 1}/${maxAttempts} failed: ${lastError.message}`);
+      }
+    }
+    setStatus("disconnected");
+    throw stopped ? new Error("Relay client stopped") : lastError;
   }
 
-  function sendResponse(id: string, result?: any, error?: string): void {
-    if (!ws || ws.readyState !== WebSocket.OPEN) {
-      console.error("[relay] Cannot send response: WebSocket not connected");
-      return;
-    }
-
-    const message = {
-      type: "message",
-      channel: "browser",
-      message: {
-        id,
-        ...(result !== undefined ? { result } : {}),
-        ...(error ? { error } : {}),
-      },
-    };
-
-    ws.send(JSON.stringify(message));
+  function onConnectionLost() {
+    if (stopped) return;
+    setStatus("connecting");
+    console.error("[relay] connection lost, reconnecting");
+    connectWithRetry().catch((e) => {
+      if (!stopped) options.onGiveUp?.(e);
+    });
   }
 
   return {
-    connect,
-    disconnect,
-    onCommand,
-    sendResponse,
+    start: () => connectWithRetry(),
+    stop() {
+      stopped = true;
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      const socket = ws;
+      ws = null;
+      try {
+        socket?.close();
+      } catch {}
+      setStatus("disconnected");
+    },
+    get status() {
+      return status;
+    },
   };
 }

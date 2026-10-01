@@ -7,7 +7,7 @@
   "bin": {
     "videntia-figma-mcp": "dist/videntia_figma_mcp/server.js",
     "figma-mcp-socket": "dist/socket.js",
-    "videntia-browser-driver": "dist/index.js"
+    "videntia-browser-driver": "dist/browser-driver.js"
   },
   "files": [
     "dist",
@@ -24,8 +24,8 @@
     "prebuild": "bun scripts/generate-icon-data.ts",
     "build:ui": "vite build --config vite.ui.config.ts",
     "build:portal": "vite build --config vite.portal.config.ts",
-    "build": "bun run build:ui && tsup && bun run build:driver && chmod +x dist/videntia_figma_mcp/server.js dist/socket.js dist/index.js && bun run build:portal",
-    "build:driver": "bun build src/browser_driver/index.ts --target=node --outdir=dist --entry-naming=[dir]/[name].js",
+    "build": "bun run build:ui && tsup && bun run build:driver && chmod +x dist/videntia_figma_mcp/server.js dist/socket.js dist/browser-driver.js && bun run build:portal",
+    "build:driver": "bun build src/browser_driver/index.ts --target=node --outfile=dist/browser-driver.js && mkdir -p dist/browser-driver-scripts && cp src/chrome_extension/background.js src/chrome_extension/cdp.js src/chrome_extension/config.js src/chrome_extension/content.js dist/browser-driver-scripts/",
     "build:win": "tsup",
     "build:watch": "tsup --watch",
     "dev": "bun run build:watch",

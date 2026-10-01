@@ -1,217 +1,154 @@
-import type { CdpAdapter, BrowserTab } from "./cdp-adapter.js";
+import vm from "node:vm";
+import type { CdpTransport } from "./cdp-connection.js";
+import { createChromeShim, type ChromeShim } from "./chrome-shim.js";
+import { loadExtensionSources, type ExtensionSources } from "./extension-sources.js";
 
-export interface CommandMessage {
-  id: string;
-  command: string;
-  params?: any;
+export interface CommandRouter {
+  handle(command: string, params?: Record<string, unknown>): Promise<unknown>;
+  shim: ChromeShim;
+  dispose(): void;
+}
+
+export interface CommandRouterOptions {
+  platform?: NodeJS.Platform;
+  sources?: ExtensionSources;
+}
+
+const WINDOW_MIN_W = 500;
+
+/** background.js opens its own relay socket at load; the driver owns the relay link, so it never connects. */
+class InertWebSocket {
+  static CONNECTING = 0;
+  static OPEN = 1;
+  static CLOSING = 2;
+  static CLOSED = 3;
+  readyState = InertWebSocket.CONNECTING;
+  send() {}
+  close() {
+    this.readyState = InertWebSocket.CLOSED;
+  }
+}
+
+function toError(e: unknown): Error {
+  if (e && typeof e === "object" && "message" in e) return new Error(String((e as Error).message));
+  return new Error(String(e));
 }
 
 /**
- * Maps browser commands to CDP adapter calls.
- * Implements the same command interface as the Chrome extension's background.js
+ * Runs the extension's background.js (with the cdp.js/config.js it imports) in a VM
+ * context whose `chrome` global is backed by CDP, and dispatches commands through its
+ * own `handleBrowserCommand`. Results therefore have the extension's exact shapes.
  */
-export function createCommandRouter(adapter: CdpAdapter) {
-  const tabGroups = new Map<string, Set<number>>(); // groupId -> Set<tabId>
+export async function createCommandRouter(
+  transport: CdpTransport,
+  options: CommandRouterOptions = {},
+): Promise<CommandRouter> {
+  const sources = options.sources ?? loadExtensionSources();
+  const shim = createChromeShim(transport, { contentScript: sources.content });
+  await shim.ready;
 
-  async function handle(msg: CommandMessage): Promise<any> {
-    const { command, params } = msg;
+  const platform = options.platform ?? process.platform;
+  const userAgent = platform === "darwin" ? "Mozilla/5.0 (Macintosh; Intel Mac OS X)" : "Mozilla/5.0 (X11; Linux)";
 
-    console.log(`[router] Handling command: ${command}`);
-
-    try {
-      switch (command) {
-        // Tab management
-        case "list_tabs":
-          return { tabs: await adapter.tabs.list() };
-
-        case "create_tab":
-          return await adapter.tabs.create(params?.url || "about:blank");
-
-        case "close_tab":
-          await adapter.tabs.close(params.tabId);
-          return { success: true };
-
-        case "get_tab":
-          return await adapter.tabs.get(params.tabId);
-
-        case "query_tabs":
-          return { tabs: await adapter.tabs.query(params?.filter || {}) };
-
-        // Tab groups
-        case "close_group":
-          if (params?.groupId) {
-            const tabs = tabGroups.get(params.groupId);
-            if (tabs) {
-              for (const tabId of tabs) {
-                await adapter.tabs.close(tabId);
-              }
-              tabGroups.delete(params.groupId);
-            }
-          }
-          return { success: true };
-
-        // Screenshots
-        case "get_page_screenshot":
-          return await adapter.screenshot(params.tabId, params?.fullPage);
-
-        // Page interactions
-        case "click":
-          return await adapter.scripting.executeScript(
-            params.tabId,
-            `
-            (async () => {
-              const el = document.elementFromPoint(${params.x || 0}, ${params.y || 0});
-              if (el) el.click();
-              return { success: true };
-            })()
-            `,
-          );
-
-        case "hover":
-          return await adapter.scripting.executeScript(
-            params.tabId,
-            `
-            (async () => {
-              const el = document.elementFromPoint(${params.x || 0}, ${params.y || 0});
-              if (el) {
-                const event = new MouseEvent('mouseover', { bubbles: true });
-                el.dispatchEvent(event);
-              }
-              return { success: true };
-            })()
-            `,
-          );
-
-        case "type_text":
-          return await adapter.scripting.executeScript(
-            params.tabId,
-            `
-            (async () => {
-              const el = document.activeElement;
-              if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) {
-                el.value = ${JSON.stringify(params.text || "")};
-                el.dispatchEvent(new Event('input', { bubbles: true }));
-                el.dispatchEvent(new Event('change', { bubbles: true }));
-              }
-              return { success: true };
-            })()
-            `,
-          );
-
-        case "press_key":
-          return await adapter.scripting.executeScript(
-            params.tabId,
-            `
-            (async () => {
-              const key = ${JSON.stringify(params.key || "")};
-              const event = new KeyboardEvent('keydown', { key, bubbles: true });
-              document.activeElement?.dispatchEvent(event);
-              return { success: true };
-            })()
-            `,
-          );
-
-        case "scroll":
-          return await adapter.scripting.executeScript(
-            params.tabId,
-            `
-            window.scrollBy(${params.x || 0}, ${params.y || 0});
-            { success: true }
-            `,
-          );
-
-        // Page navigation
-        case "navigate":
-          const tab = await adapter.tabs.create(params.url);
-          return tab;
-
-        case "evaluate_js":
-          return await adapter.scripting.executeScript(params.tabId, params.code || "");
-
-        case "get_computed_styles":
-          return await adapter.scripting.executeScript(
-            params.tabId,
-            `
-            (async () => {
-              const selector = ${JSON.stringify(params.selector || "")};
-              const el = document.querySelector(selector);
-              if (!el) return null;
-              return window.getComputedStyle(el);
-            })()
-            `,
-          );
-
-        case "get_dom_nodes":
-          return await adapter.scripting.executeScript(
-            params.tabId,
-            `
-            (async () => {
-              const selector = ${JSON.stringify(params.selector || "body")};
-              const elements = document.querySelectorAll(selector);
-              return Array.from(elements).map(el => ({
-                tagName: el.tagName,
-                id: el.id,
-                className: el.className,
-                text: el.textContent?.substring(0, 100),
-              }));
-            })()
-            `,
-          );
-
-        // Storage
-        case "clear_storage":
-          return await adapter.scripting.executeScript(
-            params.tabId,
-            `
-            (async () => {
-              localStorage.clear();
-              sessionStorage.clear();
-              return { success: true };
-            })()
-            `,
-          );
-
-        // Viewport/Emulation
-        case "set_viewport":
-          // Note: This is limited in CDP; it's a placeholder
-          return { success: true, warning: "Viewport control limited in CDP mode" };
-
-        case "emulate":
-          // Note: This is limited in CDP; it's a placeholder
-          return { success: true, warning: "Emulation limited in CDP mode" };
-
-        // Not yet implemented but return success for compatibility
-        case "get_page_info":
-          return { title: "", url: "" };
-
-        case "get_ax_tree":
-          return { tree: [] };
-
-        case "read_console":
-          return { messages: [] };
-
-        case "read_network":
-          return { requests: [] };
-
-        case "inject_figma_overlay":
-          return { success: true };
-
-        case "clear_figma_overlay":
-          return { success: true };
-
-        case "capture_mhtml":
-          return { mhtml: "" };
-
-        default:
-          console.warn(`[router] Unknown command: ${command}`);
-          return { error: `Unknown command: ${command}` };
+  const context: vm.Context = vm.createContext({
+    chrome: shim.chrome,
+    console,
+    setTimeout,
+    clearTimeout,
+    setInterval,
+    clearInterval,
+    queueMicrotask,
+    TextEncoder,
+    TextDecoder,
+    URL,
+    btoa,
+    atob,
+    structuredClone,
+    navigator: { userAgent },
+    WebSocket: InertWebSocket,
+    importScripts: (...names: string[]) => {
+      for (const name of names) {
+        const source = sources.importable[name];
+        if (source === undefined) throw new Error(`importScripts: the driver does not bundle "${name}"`);
+        vm.runInContext(source, context, { filename: name });
       }
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : String(error);
-      console.error(`[router] Command failed: ${errorMsg}`);
-      return { error: errorMsg };
-    }
+    },
+  });
+  vm.runInContext(sources.background, context, { filename: "background.js" });
+
+  const lookup = (name: string) => vm.runInContext(`typeof ${name} === "function" ? ${name} : undefined`, context);
+  const dispatch = lookup("handleBrowserCommand");
+  if (!dispatch) throw new Error("background.js does not define handleBrowserCommand; the driver cannot dispatch");
+
+  const cdpApplyEmulation = lookup("cdpApplyEmulation");
+  const cdpClearEmulation = lookup("cdpClearEmulation");
+  const cdpMaybeDetach = lookup("cdpMaybeDetach");
+
+  async function innerSize(tabId: number): Promise<{ w: number; h: number }> {
+    const res = await shim.sendToTab(tabId, "Runtime.evaluate", {
+      expression: "({ w: innerWidth, h: innerHeight })",
+      returnByValue: true,
+    });
+    return res.result.value;
   }
 
-  return { handle };
+  /**
+   * The extension's resizeOrEmulate sizes the OS window from outerWidth - innerWidth;
+   * headless Chrome reports outerWidth = 0, so the driver measures the window bounds over
+   * CDP instead. Same rule as the extension: below 500px (or forceEmulation) use device
+   * emulation, otherwise size the window so the viewport equals the frame.
+   */
+  async function resizeOrEmulate(tab: { id: number }, frameWidth: number, frameHeight: number, opts: any = {}) {
+    const needsEmulation = opts?.forceEmulation === true || frameWidth < WINDOW_MIN_W;
+    if (needsEmulation) {
+      await cdpApplyEmulation(tab.id, {
+        width: frameWidth,
+        height: frameHeight,
+        deviceScaleFactor: opts?.deviceScaleFactor ?? 2,
+      });
+      const { bounds } = await shim.getWindowBounds(tab.id);
+      return { emulated: true, windowWidth: bounds.width, windowHeight: bounds.height };
+    }
+    await cdpClearEmulation(tab.id);
+    await cdpMaybeDetach(tab.id);
+    let windowWidth = 0;
+    let windowHeight = 0;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const { windowId, bounds } = await shim.getWindowBounds(tab.id);
+      const inner = await innerSize(tab.id);
+      if (inner.w === frameWidth && inner.h === frameHeight) {
+        windowWidth = bounds.width;
+        windowHeight = bounds.height;
+        break;
+      }
+      windowWidth = Math.floor(frameWidth + (bounds.width - inner.w));
+      windowHeight = Math.floor(frameHeight + (bounds.height - inner.h));
+      await shim.chrome.windows.update(windowId, { width: windowWidth, height: windowHeight });
+    }
+    const inner = await innerSize(tab.id);
+    if (inner.w !== frameWidth || inner.h !== frameHeight) {
+      throw new Error(
+        `Could not size the viewport to ${frameWidth}x${frameHeight} (got ${inner.w}x${inner.h}); ` +
+          "pass forceEmulation: true to emulate it instead",
+      );
+    }
+    return { emulated: false, windowWidth, windowHeight };
+  }
+  context.__driverResizeOrEmulate = resizeOrEmulate;
+  vm.runInContext("resizeOrEmulate = __driverResizeOrEmulate;", context);
+  if (lookup("resizeOrEmulate") !== resizeOrEmulate) throw new Error("Could not install the driver's resizeOrEmulate");
+
+  return {
+    shim,
+    async handle(command, params = {}) {
+      try {
+        return await dispatch(command, params);
+      } catch (e) {
+        throw toError(e);
+      }
+    },
+    dispose() {
+      shim.dispose();
+    },
+  };
 }
