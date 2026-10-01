@@ -1,342 +1,267 @@
-import { z } from "zod";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { registerBrowserControlTools } from "../../src/videntia_figma_mcp/tools/browser-control-tools";
+import { afterAll, beforeAll, describe, expect, it } from "bun:test";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { connectCdp, type CdpTransport } from "../../src/browser_driver/cdp-connection";
+import { createCommandRouter, type CommandRouter } from "../../src/browser_driver/command-router";
+import {
+  DEFAULT_CHROME_BUILD,
+  launchChrome,
+  resolveChromeExecutable,
+  type LaunchedBrowser,
+} from "../../src/browser_driver/launcher";
+import { createRelayClient } from "../../src/browser_driver/relay-client";
 
 /**
- * Driver Smoke Tests (Phase 4)
- *
- * Basic smoke tests for driver CLI and relay integration.
- * Verifies that drivers are discoverable and managed correctly.
+ * Real end-to-end run: launches headless Chrome for Testing, loads the extension's own
+ * background.js/cdp.js/content.js through the driver, and drives a served fixture page.
+ * Skipped (never faked) when Chrome for Testing is not installed and cannot be fetched.
  */
+const chromePath = await resolveChromeExecutable(process.env.VIDENTIA_DRIVER_CHROME_BUILD ?? DEFAULT_CHROME_BUILD, {
+  offline: true,
+}).catch(() => null);
+const skipReason = chromePath
+  ? ""
+  : `Chrome for Testing ${DEFAULT_CHROME_BUILD} is not installed (npx @puppeteer/browsers install chrome@${DEFAULT_CHROME_BUILD})`;
+if (skipReason) console.warn(`[driver-smoke] skipped: ${skipReason}`);
 
-jest.mock("../../src/videntia_figma_mcp/utils/websocket", () => ({
-  sendCommandToFigma: jest.fn(),
-  sendCommandToChannel: jest.fn(),
-  joinChannel: jest.fn(),
-  getOpenChannels: jest.fn().mockResolvedValue([]),
-}));
+const fixtureHtml = readFileSync(join(import.meta.dir, "../fixtures/simple-page.html"), "utf-8");
 
-describe("driver smoke tests", () => {
-  let server: McpServer;
-  let mockSendToChannel: jest.Mock;
-  let mockGetOpenChannels: jest.Mock;
-  let toolHandlers: Map<string, Function>;
-  let toolSchemas: Map<string, z.ZodObject<any>>;
+function pngSize(base64: string): { width: number; height: number } {
+  const buf = Buffer.from(base64, "base64");
+  expect(buf.subarray(1, 4).toString("ascii")).toBe("PNG");
+  return { width: buf.readUInt32BE(16), height: buf.readUInt32BE(20) };
+}
 
-  beforeEach(() => {
-    server = new McpServer({ name: "test-driver-smoke", version: "1.0.0" }, { capabilities: { tools: {} } });
+describe.skipIf(!chromePath)("browser driver end-to-end (headless Chrome for Testing)", () => {
+  let server: ReturnType<typeof Bun.serve>;
+  let browser: LaunchedBrowser;
+  let transport: CdpTransport;
+  let router: CommandRouter;
+  let pageUrl: string;
+  let tabId: number;
 
-    const ws = require("../../src/videntia_figma_mcp/utils/websocket");
-    mockSendToChannel = ws.sendCommandToChannel;
-    mockGetOpenChannels = ws.getOpenChannels;
-    mockSendToChannel.mockClear();
-    mockGetOpenChannels.mockClear();
-
-    toolHandlers = new Map();
-    toolSchemas = new Map();
-
-    const original = server.tool.bind(server);
-    jest.spyOn(server, "tool").mockImplementation((...args: any[]) => {
-      if (args.length === 4) {
-        const [name, , schema, handler] = args;
-        toolHandlers.set(name, handler);
-        toolSchemas.set(name, z.object(schema));
-      }
-      return (original as any)(...args);
+  beforeAll(async () => {
+    server = Bun.serve({
+      port: 0,
+      fetch: (req) =>
+        new URL(req.url).pathname === "/other"
+          ? new Response('<meta name="viewport" content="width=device-width"><title>Other</title><p>other</p>', {
+              headers: { "content-type": "text/html" },
+            })
+          : new Response(fixtureHtml, { headers: { "content-type": "text/html" } }),
     });
+    pageUrl = `http://127.0.0.1:${server.port}/`;
+    browser = await launchChrome({ executablePath: chromePath! });
+    transport = await connectCdp(browser.cdpUrl);
+    router = await createCommandRouter(transport);
+  }, 60000);
 
-    registerBrowserControlTools(server);
+  afterAll(async () => {
+    router?.dispose();
+    transport?.close();
+    await browser?.close();
+    server?.stop(true);
   });
 
-  async function callTool(toolName: string, args: any = {}) {
-    const schema = toolSchemas.get(toolName);
-    const handler = toolHandlers.get(toolName);
-    if (!schema || !handler) throw new Error(`Tool ${toolName} not found`);
-    const validatedArgs = schema.parse(args);
-    return await handler(validatedArgs, { meta: {} });
-  }
+  it("create_tab returns a small integer tab id and the loaded page", async () => {
+    const res: any = await router.handle("create_tab", { url: pageUrl });
+    expect(res.success).toBe(true);
+    expect(Number.isInteger(res.tabId)).toBe(true);
+    expect(res.tabId).toBeLessThan(10);
+    expect(res.url).toBe(pageUrl);
+    expect(res.title).toBe("Driver Fixture");
+    expect(typeof res.groupId).toBe("number");
+    tabId = res.tabId;
 
-  describe("driver discovery", () => {
-    it("list_connected_browsers shows driver with kind: 'driver'", async () => {
-      mockGetOpenChannels.mockResolvedValueOnce({
-        channels: [
-          {
-            id: "browser-cft-slot-3",
-            name: "Browser (Chrome for Testing)",
-            type: "browser",
-            clientType: "driver",
-          },
-        ],
-      });
-
-      // Mock the browser list response with driver info
-      mockSendToChannel.mockResolvedValueOnce({
-        browsers: [
-          {
-            id: "cft-slot-3",
-            label: "Chrome for Testing 131.0.0 · cft-slot-3",
-            kind: "driver",
-            connected: true,
-          },
-        ],
-      });
-
-      const result = await callTool("browser_list_tabs", {});
-      expect(result).toBeDefined();
-      // The response should come from the relay indicating a driver is connected
-    });
-
-    it("list_connected_browsers distinguishes driver from extension", async () => {
-      mockGetOpenChannels.mockResolvedValueOnce({
-        channels: [
-          {
-            id: "browser-ext",
-            name: "Browser (Extension)",
-            clientType: "extension",
-          },
-          {
-            id: "browser-driver",
-            name: "Browser (Driver)",
-            clientType: "driver",
-          },
-        ],
-      });
-
-      mockSendToChannel.mockResolvedValueOnce({
-        browsers: [
-          {
-            id: "chrome-ab12xyz",
-            label: "Chrome 131 · User Profile",
-            kind: "extension",
-          },
-          {
-            id: "cft-slot-3",
-            label: "Chrome for Testing 131.0.0 · cft-slot-3",
-            kind: "driver",
-          },
-        ],
-      });
-
-      const result = await callTool("browser_list_tabs", {});
-      expect(result).toBeDefined();
-    });
+    const list: any = await router.handle("list_tabs", {});
+    const entry = list.tabs.find((t: any) => t.tabId === tabId);
+    expect(entry).toMatchObject({ url: pageUrl, active: true, inAgentGroup: true });
   });
 
-  describe("driver lifecycle", () => {
-    it("driver can be started and joins relay as 'driver' client type", async () => {
-      // When relay receives join from driver with clientType: "driver"
-      const joinMessage = {
-        type: "join",
-        channel: "browser",
-        clientType: "driver",
-        browserId: "cft-slot-3",
-        browserLabel: "Chrome for Testing 131.0.0 · cft-slot-3",
-      };
-
-      expect(joinMessage.clientType).toBe("driver");
-      expect(joinMessage.browserId).toBe("cft-slot-3");
+  it("evaluate_js runs in the page", async () => {
+    expect(await router.handle("evaluate_js", { tabId, expression: "1 + 1" })).toEqual({
+      tabId,
+      type: "number",
+      value: 2,
     });
-
-    it("driver can be stopped and removed from relay", async () => {
-      // Simulate relay receiving disconnect from driver
-      const disconnectMessage = {
-        type: "disconnect",
-        channel: "browser",
-        browserId: "cft-slot-3",
-      };
-
-      expect(disconnectMessage.browserId).toBe("cft-slot-3");
-    });
+    await expect(router.handle("evaluate_js", { tabId, expression: "throw new Error('boom')" })).rejects.toThrow(
+      /boom/,
+    );
   });
 
-  describe("driver command routing", () => {
-    it("relay routes commands to driver with explicit target", async () => {
-      const command = {
-        id: "cmd-123",
-        command: "create_tab",
-        params: {
-          browser_id: "cft-slot-3", // Explicit driver target
+  it("get_computed_styles uses the extension's content script", async () => {
+    const res: any = await router.handle("get_computed_styles", { tabId, selector: '[data-fig-id="1:4"]' });
+    expect(res).toMatchObject({ selector: '[data-fig-id="1:4"]', tag: "button", className: "cta" });
+    expect(res.styles["background-color"]).toBe("rgb(37, 99, 235)");
+    expect(res.styles["border-radius"]).toBe("8px");
+
+    const batch: any = await router.handle("get_computed_styles_batch", {
+      tabId,
+      selectors: ['[data-fig-id="1:3"]', ".missing"],
+      properties: ["font-size", "font-weight"],
+    });
+    expect(batch.results[0]).toMatchObject({ found: true, styles: { "font-size": "24px", "font-weight": "700" } });
+    expect(batch.results[1]).toMatchObject({ found: false });
+
+    await expect(router.handle("get_computed_styles", { tabId, selector: ".missing" })).rejects.toThrow(
+      /No element matches/,
+    );
+  });
+
+  it("get_dom_nodes, collect_all_element_rects and resolve_selector_at_point return page data", async () => {
+    const rects: any = await router.handle("collect_all_element_rects", { tabId });
+    expect(rects.nodes.length).toBeGreaterThan(3);
+    const at: any = await router.handle("resolve_selector_at_point", { tabId, x: 60, y: 40 });
+    expect(at.selector).toBeTruthy();
+    const dom: any = await router.handle("get_dom_nodes", { tabId, selector: ".card", depth: 1 });
+    expect(JSON.stringify(dom)).toContain("data-fig-id");
+  });
+
+  it("click and type_text dispatch real input events", async () => {
+    const click: any = await router.handle("click", { tabId, selector: '[data-fig-id="1:4"]' });
+    expect(click.success).toBe(true);
+    expect(((await router.handle("evaluate_js", { tabId, expression: "document.title" })) as any).value).toBe(
+      "clicked",
+    );
+    await router.handle("type_text", { tabId, selector: "#name", text: "Ada" });
+    expect(
+      ((await router.handle("evaluate_js", { tabId, expression: "document.getElementById('name').value" })) as any)
+        .value,
+    ).toBe("Ada");
+  });
+
+  it("set_viewport sizes a desktop viewport and emulates a mobile one", async () => {
+    const desktop: any = await router.handle("set_viewport", { tabId, width: 1280, height: 800 });
+    expect(desktop).toMatchObject({ success: true, tabId, width: 1280, height: 800, emulated: false });
+    expect(
+      ((await router.handle("evaluate_js", { tabId, expression: "[innerWidth, innerHeight]" })) as any).value,
+    ).toEqual([1280, 800]);
+
+    const mobile: any = await router.handle("set_viewport", { tabId, width: 375, height: 667 });
+    expect(mobile).toMatchObject({ success: true, emulated: true });
+    expect(
+      ((await router.handle("evaluate_js", { tabId, expression: "[innerWidth, devicePixelRatio]" })) as any).value,
+    ).toEqual([375, 2]);
+  });
+
+  it("navigate, go_back and go_forward keep the emulated viewport", async () => {
+    const nav: any = await router.handle("navigate", { tabId, url: `${pageUrl}other` });
+    expect(nav).toMatchObject({ success: true, tabId, url: `${pageUrl}other`, title: "Other" });
+    expect(((await router.handle("evaluate_js", { tabId, expression: "innerWidth" })) as any).value).toBe(375);
+    const back: any = await router.handle("go_back", { tabId });
+    expect(back).toMatchObject({ success: true, tabId, url: pageUrl });
+    expect(["clicked", "Driver Fixture"]).toContain(back.title);
+    expect(((await router.handle("evaluate_js", { tabId, expression: "innerWidth" })) as any).value).toBe(375);
+    const fwd: any = await router.handle("go_forward", { tabId });
+    expect(fwd.url).toBe(`${pageUrl}other`);
+    await router.handle("go_back", { tabId });
+  });
+
+  it("get_page_screenshot captures the emulated viewport at its device scale", async () => {
+    const shot: any = await router.handle("get_page_screenshot", { tabId });
+    expect(shot.mimeType).toBe("image/png");
+    expect(pngSize(shot.imageData)).toEqual({ width: 750, height: 1334 });
+  });
+
+  it("get_page_info, get_ax_tree and read_console return live data", async () => {
+    const info: any = await router.handle("get_page_info", { tabId });
+    expect(info).toEqual({ url: pageUrl, title: info.title, tabId });
+    expect(["clicked", "Driver Fixture"]).toContain(info.title);
+    const ax: any = await router.handle("get_ax_tree", { tabId });
+    expect(ax.count).toBeGreaterThan(0);
+    expect(JSON.stringify(ax.nodes)).toContain("Continue");
+
+    await router.handle("read_console", { tabId });
+    await router.handle("evaluate_js", { tabId, expression: "console.warn('driver-smoke-marker')" });
+    await new Promise((r) => setTimeout(r, 200));
+    const logs: any = await router.handle("read_console", { tabId, pattern: "driver-smoke-marker" });
+    expect(logs.entries[0]).toMatchObject({ kind: "console", level: "warn", text: "driver-smoke-marker" });
+  });
+
+  it("inject_figma_overlay and clear_figma_overlay run the content script overlay", async () => {
+    const pixel = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+    const injected: any = await router.handle("inject_figma_overlay", {
+      tabId,
+      imageData: pixel,
+      width: 375,
+      height: 667,
+    });
+    expect(injected).toMatchObject({ success: true, width: 375, height: 667 });
+    expect(
+      (
+        (await router.handle("evaluate_js", {
+          tabId,
+          expression: "!!document.getElementById('__figma_overlay__')",
+        })) as any
+      ).value,
+    ).toBe(true);
+    expect(await router.handle("clear_figma_overlay", { tabId })).toEqual({ success: true });
+    expect(
+      (
+        (await router.handle("evaluate_js", {
+          tabId,
+          expression: "!!document.getElementById('__figma_overlay__')",
+        })) as any
+      ).value,
+    ).toBe(false);
+  });
+
+  it("answers a command that arrives through the relay with the extension's envelope", async () => {
+    const replies: any[] = [];
+    let driverSocket: any = null;
+    const relay = Bun.serve({
+      port: 0,
+      fetch: (req, srv) => (srv.upgrade(req) ? undefined : new Response("no")),
+      websocket: {
+        message(ws, raw) {
+          const data = JSON.parse(String(raw));
+          if (data.type === "join") {
+            driverSocket = ws;
+            ws.send(
+              JSON.stringify({ type: "system", message: `Joined channel: ${data.channel}`, channel: data.channel }),
+            );
+            ws.send(
+              JSON.stringify({
+                type: "system",
+                message: { result: `Connected to channel: ${data.channel}` },
+                channel: data.channel,
+              }),
+            );
+          } else replies.push(data);
         },
-      };
-
-      mockSendToChannel.mockResolvedValueOnce({
-        id: "tab-001",
-        url: "about:blank",
+      },
+    });
+    const client = createRelayClient({
+      relayUrl: `ws://127.0.0.1:${relay.port}`,
+      browserId: "smoke",
+      browserLabel: "smoke",
+      onCommand: (command, params) => router.handle(command, params),
+    });
+    try {
+      await client.start();
+      driverSocket.send(
+        JSON.stringify({
+          type: "broadcast",
+          sender: "User",
+          channel: "browser",
+          message: { id: "r1", command: "evaluate_js", params: { tabId, expression: "6 * 7" } },
+        }),
+      );
+      for (let i = 0; i < 50 && !replies.length; i++) await new Promise((r) => setTimeout(r, 50));
+      expect(replies[0]).toEqual({
+        id: "r1",
+        type: "message",
+        channel: "browser",
+        message: { id: "r1", result: { tabId, type: "number", value: 42 } },
       });
-
-      // When explicit browser_id is provided, relay should target only that driver
-      expect(command.params.browser_id).toBe("cft-slot-3");
-    });
-
-    it("relay rejects command with invalid browserId", async () => {
-      const command = {
-        id: "cmd-456",
-        command: "create_tab",
-        params: {
-          browser_id: "invalid-driver-id",
-        },
-      };
-
-      expect(command.params.browser_id).toBe("invalid-driver-id");
-      // Relay would reject this with a "Browser not found" error
-    });
-
-    it("relay requires explicit browser_id when multiple connected", () => {
-      // When multiple browsers (extension + driver) are connected
-      // and no explicit target is given, relay should error
-      // This is expected behavior - callers must be explicit
-      expect(true).toBe(true);
-    });
+    } finally {
+      client.stop();
+      relay.stop(true);
+    }
   });
 
-  describe("driver tab management", () => {
-    it("driver tab ids remain isolated across instances", async () => {
-      // Each driver maintains its own tab namespace
-      // Tab IDs from different drivers should not collide
-      const driver1TabIds = ["tab-1", "tab-2"];
-      const driver2TabIds = ["tab-3", "tab-4"];
-      const allTabIds = [...driver1TabIds, ...driver2TabIds];
-
-      const uniqueIds = new Set(allTabIds);
-      expect(uniqueIds.size).toBe(4);
-
-      // Verify each driver's tabs are distinct
-      expect(new Set(driver1TabIds).size).toBe(2);
-      expect(new Set(driver2TabIds).size).toBe(2);
-    });
-
-    it("close_tab targets the specified driver correctly", async () => {
-      mockSendToChannel.mockResolvedValueOnce({ ok: true });
-
-      // When closing tab 1 on driver cft-slot-3
-      const result = await callTool("browser_close_tab", { tab_id: 1, browser_id: "cft-slot-3" });
-
-      // The call should include the browser_id for targeting
-      expect(result).toBeDefined();
-      expect(mockSendToChannel).toHaveBeenCalled();
-
-      // Verify the target browser_id was sent
-      const [, , params] = mockSendToChannel.mock.calls[0];
-      expect(params.browserId).toBe("cft-slot-3");
-    });
-  });
-
-  describe("driver state file management", () => {
-    it("driver state persists at ~/.cache/videntia/drivers/<id>.json", () => {
-      const driverId = "cft-slot-3";
-      const expectedPath = `~/.cache/videntia/drivers/${driverId}.json`;
-
-      // The state file should contain:
-      // { pid, cdpPort, relayStatus, startTime, lastActivityTime }
-      expect(expectedPath).toMatch(/\.cache\/videntia\/drivers\/cft-slot-3\.json/);
-    });
-
-    it("stop command removes driver state file", () => {
-      // When driver is stopped, its state file should be removed
-      // This allows list command to only report active drivers
-      const driverId = "cft-slot-3";
-      const stateFile = `~/.cache/videntia/drivers/${driverId}.json`;
-
-      // Simulate: file exists before stop, removed after stop
-      expect(stateFile).toMatch(/cft-slot-3\.json$/);
-    });
-
-    it("list command reads active drivers from state files", () => {
-      // Only drivers with active state files should be listed
-      // Multiple drivers can be running simultaneously
-      // Expected output:
-      // cft-slot-1  127.0.0.1:9222  connected
-      // cft-slot-2  127.0.0.1:9223  connected
-      // cft-slot-3  127.0.0.1:9224  reconnecting
-    });
-  });
-
-  describe("driver idempotency and cleanup", () => {
-    it("driver start is idempotent (restart with same id)", () => {
-      // Starting a driver with an id that's already running should:
-      // 1. Detect the existing driver
-      // 2. Either reconnect or exit gracefully with a message
-      const driverId = "cft-slot-3";
-
-      expect(driverId).toBe("cft-slot-3");
-    });
-
-    it("driver cleanup on exit removes temporary profile", () => {
-      // When driver exits (SIGINT/SIGTERM):
-      // 1. Close WebSocket to relay
-      // 2. Close Chrome browser
-      // 3. Remove temp profile directory
-      // 4. Remove state file
-    });
-
-    it("driver reconnection after relay disconnection", () => {
-      // Driver implements backoff reconnection:
-      // Attempt 1: immediate
-      // Attempt 2: +1000ms
-      // Attempt 3: +2000ms
-      // Attempt 4: +4000ms
-      // Attempt 5+: +30000ms (capped)
-      // After 10 failed attempts, exit with error
-
-      const backoffTimes = [1000, 2000, 4000, 8000, 30000];
-      expect(backoffTimes.length).toBeGreaterThan(0);
-    });
-  });
-
-  describe("driver-specific relay behavior", () => {
-    it("relay avoids 'multiple browsers' error when driver browserId is explicit", () => {
-      // Scenario: extension + driver both connected
-      // Command with explicit browser_id should route only to that target
-      // No ambiguity error
-
-      mockSendToChannel.mockResolvedValueOnce({ success: true });
-
-      const command = {
-        browser_id: "cft-slot-3", // Explicit - no ambiguity
-      };
-
-      expect(command.browser_id).toBe("cft-slot-3");
-    });
-
-    it("relay driver targets integer tab ids", () => {
-      // Driver may map target ids to small integers for compatibility
-      // e.g., UUID-like CDP target id → integer 1, 2, 3, ...
-      const tabId = 1;
-      expect(typeof tabId).toBe("number");
-    });
-  });
-
-  describe("driver integration with preflight", () => {
-    it("preflight detects connected driver with kind: 'driver'", async () => {
-      mockGetOpenChannels.mockResolvedValueOnce({
-        channels: [
-          {
-            id: "browser-driver",
-            name: "Browser (Driver)",
-            clientType: "driver",
-          },
-        ],
-      });
-
-      mockSendToChannel.mockResolvedValueOnce({
-        browsers: [
-          {
-            id: "cft-slot-3",
-            label: "Chrome for Testing 131.0.0 · cft-slot-3",
-            kind: "driver",
-            connected: true,
-          },
-        ],
-      });
-
-      // Preflight should see the driver and run smoke command
-      mockSendToChannel.mockResolvedValueOnce({ id: "tab-smoke-001" });
-      mockSendToChannel.mockResolvedValueOnce({ result: 2 });
-      mockSendToChannel.mockResolvedValueOnce({ success: true });
-
-      // Simulate preflight check: create_tab → evaluate_js "1+1" → close_tab
-      const tabCreate = await callTool("browser_create_tab", {});
-      expect(tabCreate).toBeDefined();
-    });
+  it("close_tab closes the tab and later commands on it fail", async () => {
+    expect(await router.handle("close_tab", { tabId })).toEqual({ success: true, tabId });
+    await expect(router.handle("evaluate_js", { tabId, expression: "1" })).rejects.toThrow(/not found/);
   });
 });
