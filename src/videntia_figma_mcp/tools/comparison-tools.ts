@@ -672,6 +672,20 @@ export function registerComparisonTools(server: McpServer): void {
         .describe(
           "For mismatching color rows, look up the nearest Figma color variable to the browser value and annotate the row (e.g. 'browser ≈ neutral-300'). Adds one variables fetch.",
         ),
+      viewport: z
+        .union([
+          z.literal("match_frame"),
+          z.object({
+            width: z.number().int().min(1),
+            height: z.number().int().min(1),
+            device_scale_factor: z.number().min(1).max(4).optional(),
+            force_emulation: z.boolean().optional(),
+          }),
+        ])
+        .optional()
+        .describe(
+          "Set the browser viewport before diffing (same mechanics as set_browser_viewport). 'match_frame' uses the Figma frame's width and its height minus crop_top/crop_bottom. Omit to diff at whatever viewport the tab already has.",
+        ),
       browser_id: browserIdSchema,
     },
     async ({
@@ -688,6 +702,7 @@ export function registerComparisonTools(server: McpServer): void {
       properties,
       annotation_map,
       include_token_suggestions,
+      viewport,
       browser_id,
     }) => {
       const warnings: string[] = [];
@@ -699,6 +714,42 @@ export function registerComparisonTools(server: McpServer): void {
             { type: "text", text: JSON.stringify({ error: `No Figma node found for id ${frame_node_id}` }, null, 2) },
           ],
         };
+      }
+
+      let viewportApplied: { width: number; height: number; emulated: boolean } | undefined;
+      if (viewport) {
+        const bbox = frameNode.absoluteBoundingBox;
+        const target =
+          viewport === "match_frame"
+            ? bbox
+              ? {
+                  width: Math.round(bbox.width),
+                  height: Math.max(1, Math.round(bbox.height - crop_top - crop_bottom)),
+                }
+              : undefined
+            : viewport;
+        if (!target) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: JSON.stringify(
+                  { error: `viewport "match_frame": frame ${frame_node_id} has no absoluteBoundingBox` },
+                  null,
+                  2,
+                ),
+              },
+            ],
+          };
+        }
+        const res = (await sendBrowserCommand("set_viewport", {
+          browserId: browser_id,
+          width: target.width,
+          height: target.height,
+          deviceScaleFactor: "device_scale_factor" in target ? target.device_scale_factor : undefined,
+          forceEmulation: "force_emulation" in target ? target.force_emulation : undefined,
+        })) as { emulated: boolean };
+        viewportApplied = { width: target.width, height: target.height, emulated: !!res?.emulated };
       }
 
       let rootSelectorResolved = root_selector;
@@ -991,6 +1042,7 @@ export function registerComparisonTools(server: McpServer): void {
                 frameNodeId: frame_node_id,
                 rootSelector: rootSelectorResolved,
                 matchedVia,
+                ...(viewportApplied ? { viewport: viewportApplied } : {}),
                 summary: {
                   matched: audit.matched.length,
                   unmatchedFigma: audit.unmatchedFigma.length,
