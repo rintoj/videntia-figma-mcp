@@ -26,6 +26,8 @@ export interface RelayClient {
 
 export class JoinRefusedError extends Error {}
 
+/** Close reason the relay sends when a newer socket joins with the same browserId. */
+const REPLACED_REASON = "Replaced by new connection";
 const DEFAULT_BACKOFF_MS = [500, 1000, 2000, 4000, 8000, 15000, 30000];
 
 /** Same envelope background.js `respond()` sends back to the relay. */
@@ -130,10 +132,24 @@ export function createRelayClient(options: RelayClientOptions): RelayClient {
       socket.addEventListener("error", () => {
         if (!joined) fail(new Error(`Could not connect to relay at ${options.relayUrl}`));
       });
-      socket.addEventListener("close", () => {
-        if (ws === socket) ws = null;
-        if (!joined) fail(new Error(`Relay at ${options.relayUrl} closed the connection before the join completed`));
-        else onClosed();
+      socket.addEventListener("close", (event: any) => {
+        const wasCurrent = ws === socket;
+        if (wasCurrent) ws = null;
+        if (!joined) {
+          fail(new Error(`Relay at ${options.relayUrl} closed the connection before the join completed`));
+          return;
+        }
+        // A superseded socket (we already reconnected on a newer one) must not start a second reconnect loop.
+        if (!wasCurrent || stopped) return;
+        // The relay evicts an older socket when another process joins with the same browserId. Reconnecting
+        // would evict that process in turn and the two drivers would flip-flop, mis-routing commands.
+        if (event?.reason === REPLACED_REASON) {
+          stopped = true;
+          setStatus("disconnected");
+          options.onGiveUp?.(new Error(`Another driver joined the relay as "${options.browserId}"`));
+          return;
+        }
+        onClosed();
       });
     });
   }

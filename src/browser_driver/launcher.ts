@@ -132,10 +132,20 @@ export async function launchChrome(options: LauncherOptions = {}): Promise<Launc
   const proc = spawn(executablePath, chromeLaunchArgs(userDataDir, options), {
     stdio: ["ignore", "ignore", "pipe"],
   });
+  // process.exit() (signal handlers, fatal errors) can fire while Chrome is still starting, before
+  // anything holds a close() handle; kill the child synchronously so it is never orphaned.
+  const killOnExit = () => {
+    try {
+      proc.kill("SIGKILL");
+    } catch {}
+    removeProfile();
+  };
+  process.on("exit", killOnExit);
   let cdpUrl: string;
   try {
     cdpUrl = await waitForDevToolsUrl(proc, 20000);
   } catch (e) {
+    process.off("exit", killOnExit);
     proc.kill("SIGKILL");
     removeProfile();
     throw e;
@@ -166,6 +176,7 @@ export async function launchChrome(options: LauncherOptions = {}): Promise<Launc
           await exited;
         }
       }
+      process.off("exit", killOnExit);
       removeProfile();
     },
   };
