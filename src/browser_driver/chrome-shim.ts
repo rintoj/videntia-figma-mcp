@@ -272,11 +272,9 @@ export function createChromeShim(transport: CdpTransport, options: { contentScri
         void refreshInfo(rec).then(() => setStatus(rec, "complete"));
         break;
       case "Page.javascriptDialogOpening":
-        if (!rec.debuggerSessionId) {
-          transport
-            .send("Page.handleJavaScriptDialog", { accept: params.type === "beforeunload" }, rec.sessionId)
-            .catch(() => {});
-        }
+        transport
+          .send("Page.handleJavaScriptDialog", { accept: params.type === "beforeunload" }, rec.sessionId)
+          .catch(() => {});
         break;
     }
   });
