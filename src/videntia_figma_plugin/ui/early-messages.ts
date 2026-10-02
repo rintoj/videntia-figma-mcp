@@ -4,12 +4,14 @@
 var earlyMessages: MessageEvent[] = [];
 var capturing = true;
 
-window.addEventListener("message", function (e) {
+function capture(e: MessageEvent) {
   if (capturing) earlyMessages.push(e);
-});
+}
+window.addEventListener("message", capture);
 
 export function consumeEarlyMessages(): MessageEvent[] {
   capturing = false;
+  window.removeEventListener("message", capture);
   var msgs = earlyMessages;
   earlyMessages = [];
   return msgs;

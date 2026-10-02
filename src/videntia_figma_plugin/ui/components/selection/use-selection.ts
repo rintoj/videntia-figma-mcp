@@ -8,7 +8,8 @@ import {
   isMacPlatform,
 } from "../../../shared/copy-ids";
 
-var MAX_HISTORY = 500;
+var MAX_HISTORY = 200;
+var SAVE_DEBOUNCE_MS = 1000;
 
 // The hook is instantiated ONCE, in App, so the selection list and the bottom
 // bar never drift apart. This is the shape App hands down to its children.
@@ -39,6 +40,7 @@ export function useSelection(channelName?: string) {
   var channelNameRef = useRef<string | undefined>(channelName);
   var checkedIdsRef = useRef<Record<string, boolean>>({});
   var displayNodesRef = useRef<NodeInfo[]>([]);
+  var saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(function () {
     function handleMessage(event: MessageEvent) {
@@ -67,7 +69,13 @@ export function useSelection(channelName?: string) {
         if (newList.length > MAX_HISTORY) newList = newList.slice(0, MAX_HISTORY);
         nodesRef.current = newList;
         setNodes(newList);
-        parent.postMessage({ pluginMessage: { type: "save-selection-history", nodes: newList } }, "*");
+        // Debounced: agents change the selection many times a second, and each save
+        // copies the whole history across the bridge into clientStorage.
+        if (saveTimerRef.current !== null) clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = setTimeout(function () {
+          saveTimerRef.current = null;
+          parent.postMessage({ pluginMessage: { type: "save-selection-history", nodes: nodesRef.current } }, "*");
+        }, SAVE_DEBOUNCE_MS);
         setNavIndex(-1);
         var autoChecked: Record<string, boolean> = {};
         for (var j = 0; j < incoming.length; j++) {
@@ -103,6 +111,7 @@ export function useSelection(channelName?: string) {
     parent.postMessage({ pluginMessage: { type: "get-selection" } }, "*");
     return function () {
       window.removeEventListener("message", handleMessage);
+      if (saveTimerRef.current !== null) clearTimeout(saveTimerRef.current);
     };
   }, []);
 
@@ -308,6 +317,10 @@ export function useSelection(channelName?: string) {
     setCheckedIds({});
     setNodes([]);
     nodesRef.current = [];
+    if (saveTimerRef.current !== null) {
+      clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
+    }
     parent.postMessage({ pluginMessage: { type: "clear-selection-history" } }, "*");
   }
 

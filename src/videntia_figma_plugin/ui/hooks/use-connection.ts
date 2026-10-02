@@ -2,6 +2,10 @@ import { useState, useRef, useCallback } from "preact/hooks";
 import { ALLOWED_COMMANDS, RECONNECT_BASE_DELAY, RECONNECT_MAX_DELAY, MIN_PROGRESS_DISPLAY_MS } from "../constants";
 import { ActionEntry } from "../types";
 import { socketUrlFrom } from "../../shared/socket-url";
+import { MAX_ACTIONS, appendCapped, compactPayload } from "../compact";
+
+// Verbose per-message logging retains every payload in the DevTools console buffer.
+var DEBUG_LOG = false;
 
 function generateId(): string {
   var bytes = new Uint8Array(6);
@@ -74,21 +78,30 @@ export function useConnection() {
   var serverSecureRef = useRef(false);
   var progressStartTimesRef = useRef<Map<string, number>>(new Map());
   var connectedRef = useRef(false);
-  // Track command metadata for action entries
-  var commandMetaRef = useRef<Map<string, { command: string; params: any }>>(new Map());
 
   function addAction(entry: ActionEntry) {
+    if (entry.params !== null && entry.params !== undefined) entry.params = compactPayload(entry.params);
+    if (entry.result !== null && entry.result !== undefined) entry.result = compactPayload(entry.result);
     setActions(function (prev) {
-      return prev.concat([entry]);
+      return appendCapped(prev, entry, MAX_ACTIONS);
     });
   }
 
   function updateAction(id: string, updates: Partial<ActionEntry>) {
+    if (updates.result !== null && updates.result !== undefined) updates.result = compactPayload(updates.result);
+    if (updates.nodeIds && updates.nodeIds.length > 500) updates.nodeIds = updates.nodeIds.slice(0, 500);
     setActions(function (prev) {
-      return prev.map(function (a) {
-        if (a.id === id) return Object.assign({}, a, updates);
-        return a;
-      });
+      var idx = -1;
+      for (var i = prev.length - 1; i >= 0; i--) {
+        if (prev[i].id === id) {
+          idx = i;
+          break;
+        }
+      }
+      if (idx === -1) return prev;
+      var next = prev.slice();
+      next[idx] = Object.assign({}, prev[idx], updates);
+      return next;
     });
   }
 
@@ -181,7 +194,7 @@ export function useConnection() {
 
   function handleSocketMessage(payload: any) {
     var data = payload.message;
-    console.log("handleSocketMessage", data);
+    if (DEBUG_LOG) console.log("handleSocketMessage", data);
 
     // Response to a previous request
     if (data.id && pendingRequestsRef.current.has(data.id)) {
@@ -224,7 +237,6 @@ export function useConnection() {
       }
 
       progressStartTimesRef.current.set(data.id, Date.now());
-      commandMetaRef.current.set(data.id, { command: data.command, params: data.params });
 
       addAction({
         id: data.id,
@@ -310,7 +322,7 @@ export function useConnection() {
     ws.onmessage = function (event) {
       try {
         var data = JSON.parse(event.data);
-        console.log("Received message:", data);
+        if (DEBUG_LOG) console.log("Received message:", data);
 
         if (data.type === "system") {
           if (data.message && data.message.result) {
