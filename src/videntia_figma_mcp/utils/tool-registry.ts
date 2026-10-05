@@ -52,6 +52,36 @@ export const STRICT_PARAM_TOOLS = new Set<string>([
   "set_reactions",
 ]);
 
+/**
+ * Tools that never address a Figma plugin (pure math, browser control, discovery).
+ * They still ACCEPT `channel` (it is stripped before the handler runs) so a client that
+ * passes it everywhere keeps working; it is just not advertised on them.
+ */
+const NON_FIGMA_TOOL =
+  /^(browser_|calculate_|get_browser_|set_browser_viewport$|reset_browser_viewport$|clear_browser_overlay$|list_connected_browsers$|convert_color_format$|find_figma_tools$|describe_figma_tools$|load_figma_tools$|search_icon$|get_icon$|list_icons$)/;
+
+/** Shared, one-line description of the injected `channel` param. */
+export const CHANNEL_PARAM_DESCRIPTION = "Figma channel; required when several are joined.";
+
+/**
+ * Params accepted at runtime but left out of the advertised JSON-Schema (alias
+ * spellings, `id`/`node` salvage, `channel` on non-Figma tools). Advertising them cost
+ * ~15k tokens of `tools/list` for no information: the aliases are a convenience, not
+ * something an agent needs to be told about.
+ */
+const advertiseHidden = new Map<string, Set<string>>();
+
+/** Remove the hidden params from a tool's JSON-Schema (in place) and return it. */
+export function stripHiddenParams<T>(name: string, jsonSchema: T): T {
+  const hidden = advertiseHidden.get(name);
+  const props = (jsonSchema as { properties?: Record<string, unknown> } | undefined)?.properties;
+  if (!hidden || !props) return jsonSchema;
+  for (const key of hidden) delete props[key];
+  const req = (jsonSchema as { required?: string[] }).required;
+  if (Array.isArray(req)) (jsonSchema as { required?: string[] }).required = req.filter((k) => !hidden.has(k));
+  return jsonSchema;
+}
+
 /** Swap the SDK's own parsed schema for the strict one, for allowlisted tools. */
 function enforceStrictSchema(server: McpServer, name: string, strict: z.ZodObject<ZodRawShape>): void {
   if (!STRICT_PARAM_TOOLS.has(name)) return;
@@ -128,6 +158,7 @@ export function listCapturedToolNames(): string[] {
 /** Test/bootstrap helper — drop everything captured so far. */
 export function clearToolRegistry(): void {
   registry.clear();
+  advertiseHidden.clear();
   deferred.clear();
   sdkRegistered.clear();
   registrationGate = () => true;
@@ -144,6 +175,23 @@ export function instrumentToolRegistry(server: McpServer): McpServer {
   if (marked.__videntiaToolRegistryInstrumented) return server;
   marked.__videntiaToolRegistryInstrumented = true;
 
+  // Post-process the SDK's tools/list response so hidden params are not advertised.
+  const lowServer = (server as unknown as { server?: { setRequestHandler?: (...a: unknown[]) => unknown } }).server;
+  if (lowServer && typeof lowServer.setRequestHandler === "function") {
+    const originalSet = lowServer.setRequestHandler.bind(lowServer);
+    lowServer.setRequestHandler = (schema: unknown, handler: unknown) => {
+      const method = (schema as { shape?: { method?: { value?: unknown } } })?.shape?.method?.value;
+      if (method !== "tools/list" || typeof handler !== "function") return originalSet(schema, handler);
+      return originalSet(schema, async (...a: unknown[]) => {
+        const res = (await (handler as (...x: unknown[]) => unknown)(...a)) as {
+          tools?: Array<{ name: string; inputSchema?: unknown }>;
+        };
+        for (const t of res?.tools ?? []) stripHiddenParams(t.name, t.inputSchema);
+        return res;
+      });
+    };
+  }
+
   const original = server.tool.bind(server);
   (server as unknown as { tool: (...args: unknown[]) => unknown }).tool = (...args: unknown[]) => {
     // The only registration form this codebase uses that carries a param schema is
@@ -158,6 +206,7 @@ export function instrumentToolRegistry(server: McpServer): McpServer {
         // wrapper can fold them in. Doing it HERE means standalone and batch accept
         // exactly the same input — the widening is not a batch-only concession.
         const shape: ZodRawShape = {};
+        const hidden = new Set<string>();
         for (const key of Object.keys(rawShape)) {
           shape[key] = widenEnumCasing(rawShape[key]);
         }
@@ -168,6 +217,7 @@ export function instrumentToolRegistry(server: McpServer): McpServer {
               .unknown()
               .optional()
               .describe(`Alias for \`${canonical}\`.`) as unknown as ZodRawShape[string];
+            hidden.add(alias);
           }
           // A caller who spells the alias supplies the canonical parameter by proxy, but
           // the fold happens AFTER zod (the SDK owns the parse). So the canonical key is
@@ -197,6 +247,7 @@ export function instrumentToolRegistry(server: McpServer): McpServer {
           for (const salvage of ["id", "node"]) {
             if (salvage in shape) continue;
             shape[salvage] = z.unknown().optional().describe("Alias for `nodeId`.") as unknown as ZodRawShape[string];
+            hidden.add(salvage);
           }
         }
 
@@ -220,13 +271,10 @@ export function instrumentToolRegistry(server: McpServer): McpServer {
         // opt out. It is stripped before the handler runs (handlers never see it) and is
         // instead bound to the async context the transport reads (see channel-context.ts).
         if (!("channel" in shape)) {
-          shape.channel = z
-            .string()
-            .optional()
-            .describe(
-              "Figma channel to address this call to. Defaults to the session's joined channel. REQUIRED when more than one channel is joined in this process.",
-            ) as unknown as ZodRawShape[string];
+          shape.channel = z.string().optional().describe(CHANNEL_PARAM_DESCRIPTION) as unknown as ZodRawShape[string];
+          if (NON_FIGMA_TOOL.test(name)) hidden.add("channel");
         }
+        if (hidden.size > 0) advertiseHidden.set(name, hidden);
 
         // Fold aliases in, then run the tool's real handler. Batch runs this SAME
         // wrapped handler, so neither path can see a different parameter contract.

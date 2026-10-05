@@ -188,9 +188,11 @@ describe("describe_figma_tools", () => {
     const json = JSON.parse(body.slice(body.indexOf("```json") + 7, body.lastIndexOf("```")).trim());
     expect(json.type).toBe("object");
     const entry = getRegisteredTool("set_corner_radius")!;
-    for (const key of Object.keys(entry.schema.shape)) {
+    // `id` / `node` are accepted at runtime (nodeId salvage) but not advertised.
+    for (const key of Object.keys(entry.schema.shape).filter((k) => k !== "id" && k !== "node")) {
       expect(Object.keys(json.properties)).toContain(key);
     }
+    expect(Object.keys(json.properties)).not.toContain("id");
   });
 
   it("promotes the described tool into the MCP tool list", async () => {

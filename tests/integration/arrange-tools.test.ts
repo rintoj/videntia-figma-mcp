@@ -101,7 +101,7 @@ describe("rotation, layer order, ellipse and position docs", () => {
       "move_node",
     ]) {
       const shape = schemas.get(tool)!.shape as Record<string, z.ZodTypeAny>;
-      expect(shape.x.description).toContain("RELATIVE TO THE PARENT");
+      expect(shape.x.description).toContain("relative to the parent");
       expect(shape.x.description).toContain("move_node_absolute");
       expect(shape.x.description).not.toMatch(/on the canvas \(or/);
     }

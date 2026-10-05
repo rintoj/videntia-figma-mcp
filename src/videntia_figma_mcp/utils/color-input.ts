@@ -172,19 +172,16 @@ const channelSchema = z.preprocess(
 );
 
 export const ColorObjectSchema = z.object({
-  r: channelSchema.describe("Red channel — 0–1 normalized, or 0–255"),
-  g: channelSchema.describe("Green channel — 0–1 normalized, or 0–255"),
-  b: channelSchema.describe("Blue channel — 0–1 normalized, or 0–255"),
-  a: channelSchema.optional().describe("Alpha — 0–1 normalized, or 0–255 (default: opaque)"),
+  r: channelSchema,
+  g: channelSchema,
+  b: channelSchema,
+  a: channelSchema.optional().describe("Alpha (default opaque)"),
 });
 
 export const ColorInputSchema = z.union([z.string(), ColorObjectSchema, z.array(z.coerce.number()).min(3).max(4)]);
 
 export const COLOR_INPUT_DESCRIPTION =
-  'Color in any accepted form: hex string ("#ff0000", "#f00", "#ff000080"), ' +
-  "{r,g,b,a} object (channels 0–1 or 0–255), or [r,g,b(,a)] array. " +
-  "If any channel is > 1 the value is read as 0–255; otherwise as 0–1 " +
-  "(so {r:1,g:1,b:1} is white).";
+  'Hex ("#f00", "#ff000080"), {r,g,b,a} or [r,g,b,a]; channels 0–1, or 0–255 if any is > 1.';
 
 /** Schema + description in one, for use as a tool parameter. */
 export function colorParam(extra?: string) {

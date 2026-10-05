@@ -13,18 +13,14 @@ export const BROWSER_CHANNEL = "browser";
 export const browserIdSchema = z
   .string()
   .optional()
-  .describe(
-    "ID of the specific connected browser (Chrome profile) to target. Obtain IDs from list_connected_browsers. Required only when more than one browser is connected — with a single browser connected it can be omitted. When two or more browsers are connected and this is omitted, the relay rejects the command as ambiguous.",
-  );
+  .describe("Target browser id (see list_connected_browsers); needed when several are connected.");
 
 /** Optional Chrome tab to target within the selected browser. */
 export const tabIdSchema = z
   .number()
   .int()
   .optional()
-  .describe(
-    "Optional Chrome tab ID to target. The tab does NOT need to be focused or visible — all browser tools work on background tabs via CDP. When omitted, the extension uses its pinned tab (set via the popup) or falls back to the active tab in the focused window; pass an explicit tab ID for any multi-step workflow so commands never leak onto whichever tab the user has focused. Use browser_list_tabs to discover tab IDs.",
-  );
+  .describe("Chrome tab id (see browser_list_tabs); defaults to the pinned or active tab.");
 
 /** One connected browser (Chrome profile) as reported by the relay. */
 export interface ConnectedBrowser {

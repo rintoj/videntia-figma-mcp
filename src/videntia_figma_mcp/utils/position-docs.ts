@@ -4,12 +4,9 @@
  */
 export function parentRelativePositionDescription(axis: "X" | "Y", defaultNote?: string): string {
   return (
-    `${axis} position in pixels, RELATIVE TO THE PARENT${defaultNote ? ` (${defaultNote})` : ""}. ` +
-    "With no parentId the parent is the current page, whose coordinates are canvas coordinates; inside a FRAME, " +
-    "COMPONENT or SECTION it is the offset from that parent's top-left, not a canvas coordinate (inside a GROUP, " +
-    "from the group's nearest frame/page ancestor). " +
-    "Use move_node_absolute to place a node at canvas coordinates. Ignored inside an auto-layout parent unless " +
-    "layoutPositioning is ABSOLUTE."
+    `${axis} px, relative to the parent${defaultNote ? ` (${defaultNote})` : ""}: the page (canvas coords) ` +
+    "without parentId, else offset from the FRAME/COMPONENT/SECTION parent's top-left (a GROUP uses its nearest frame/page). " +
+    "Canvas coords: move_node_absolute. Ignored in auto-layout unless layoutPositioning is ABSOLUTE."
   );
 }
 
