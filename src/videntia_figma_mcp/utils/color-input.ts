@@ -190,3 +190,17 @@ export const COLOR_INPUT_DESCRIPTION =
 export function colorParam(extra?: string) {
   return ColorInputSchema.describe(extra ? `${extra} ${COLOR_INPUT_DESCRIPTION}` : COLOR_INPUT_DESCRIPTION);
 }
+
+/**
+ * Resolve a colour plus an optional top-level alpha (`a` / `alpha` / `opacity`).
+ *
+ * An explicit top-level alpha OVERRIDES the colour's own alpha — `{color:"#fff", a:0.1}`
+ * is white at 10%, not opaque white. Alpha > 1 is read as 0–255, matching `toRgba`.
+ * With no override the colour is returned as-is (hex strings stay verbatim).
+ */
+export function resolveColorWithAlpha(color: unknown, alpha?: number | null): string | NormalizedRgba {
+  const normalized = toRgba(color);
+  if (alpha === undefined || alpha === null) return typeof color === "string" ? color : normalized;
+  if (!Number.isFinite(alpha) || alpha < 0 || alpha > 255) fail(alpha, "alpha must be 0–1 (or 0–255)");
+  return { ...normalized, a: clamp01(alpha > 1 ? alpha / 255 : alpha) };
+}

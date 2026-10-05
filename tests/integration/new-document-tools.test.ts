@@ -188,6 +188,103 @@ describe("new document tools integration", () => {
 
       expect(response.content[0].text).toContain("Error getting annotations");
     });
+
+    it("prints the categoryId alongside the category label", async () => {
+      mockSendCommand.mockResolvedValue({
+        nodeId: "1:1",
+        nodeName: "Card",
+        nodeType: "FRAME",
+        annotations: [
+          {
+            index: 0,
+            labelMarkdown: "Spec",
+            categoryId: "cat-dev",
+            category: { id: "cat-dev", label: "Development" },
+            properties: [{ type: "fills" }],
+          },
+        ],
+      });
+      const response = await callTool("get_annotations", { nodeId: "1:1" });
+      expect(response.content[0].text).toContain("| 0 | Spec | Development (cat-dev) | fills |");
+    });
+
+    it("sends includeChildren + depth and groups the output by node", async () => {
+      mockSendCommand.mockResolvedValue({
+        nodeId: "1:1",
+        nodeName: "Screen",
+        nodeType: "GROUP",
+        supported: false,
+        message: "GROUP nodes can't hold annotations in Figma; annotate a child or wrap the group in a frame",
+        nodesScanned: 7,
+        annotations: [],
+        nodes: [
+          { nodeId: "1:2", nodeName: "Title", nodeType: "TEXT", annotations: [{ index: 0, labelMarkdown: "A" }] },
+          {
+            nodeId: "1:3",
+            nodeName: "Button",
+            nodeType: "INSTANCE",
+            annotations: [
+              { index: 0, labelMarkdown: "B", categoryId: "cat-x" },
+              { index: 1, labelMarkdown: "C" },
+            ],
+          },
+        ],
+      });
+      const response = await callTool("get_annotations", { nodeId: "1:1", include_children: true, depth: 3 });
+      expect(mockSendCommand).toHaveBeenCalledWith("get_annotations", {
+        nodeId: "1:1",
+        includeCategories: true,
+        includeChildren: true,
+        depth: 3,
+      });
+      const text = response.content[0].text;
+      expect(text).toContain('Found 3 annotation(s) on 2 node(s) under "Screen" (7 nodes scanned)');
+      expect(text).toContain("### Title (TEXT, 1:2)");
+      expect(text).toContain("### Button (INSTANCE, 1:3)");
+      expect(text).toContain("| 1 | C | - | - |");
+      expect(text).toContain("| 0 | B | cat-x | - |");
+    });
+
+    it("surfaces the unsupported-type guidance instead of 'No annotations found'", async () => {
+      mockSendCommand.mockResolvedValue({
+        nodeId: "1:1",
+        nodeName: "Grp",
+        nodeType: "GROUP",
+        supported: false,
+        message: "GROUP nodes can't hold annotations in Figma; annotate a child or wrap the group in a frame",
+        annotationCount: 0,
+        annotations: [],
+        nodes: [],
+      });
+      const response = await callTool("get_annotations", { nodeId: "1:1" });
+      expect(response.content[0].text).toBe(
+        "GROUP nodes can't hold annotations in Figma; annotate a child or wrap the group in a frame",
+      );
+    });
+  });
+
+  describe("remove_annotation", () => {
+    it("removes by index", async () => {
+      mockSendCommand.mockResolvedValue({ name: "Card", removedCount: 1, remainingAnnotations: 2 });
+      const response = await callTool("remove_annotation", { nodeId: "1-1", index: 0 });
+      expect(mockSendCommand).toHaveBeenCalledWith("remove_annotation", { nodeId: "1:1", index: 0 });
+      expect(response.content[0].text).toBe('Removed annotation at index 0 from node "Card" (2 remaining)');
+    });
+
+    it("removes all", async () => {
+      mockSendCommand.mockResolvedValue({ name: "Card", removedCount: 3, remainingAnnotations: 0 });
+      const response = await callTool("remove_annotation", { nodeId: "1:1", all: true });
+      expect(mockSendCommand).toHaveBeenCalledWith("remove_annotation", { nodeId: "1:1", all: true });
+      expect(response.content[0].text).toContain("Removed 3 annotation(s)");
+    });
+
+    it("rejects neither / both of index and all", async () => {
+      const none = await callTool("remove_annotation", { nodeId: "1:1" });
+      const both = await callTool("remove_annotation", { nodeId: "1:1", index: 0, all: true });
+      expect(none.content[0].text).toContain("exactly one of index");
+      expect(both.content[0].text).toContain("exactly one of index");
+      expect(mockSendCommand).not.toHaveBeenCalled();
+    });
   });
 
   describe("set_annotation", () => {
@@ -211,12 +308,27 @@ describe("new document tools integration", () => {
       expect(mockSendCommand).toHaveBeenCalledTimes(1);
       expect(mockSendCommand).toHaveBeenCalledWith("set_annotation", {
         nodeId: "frame-123",
-        annotationId: undefined,
+        index: undefined,
         labelMarkdown: "Test annotation",
+        category: undefined,
         categoryId: undefined,
         properties: undefined,
       });
-      expect(response.content[0].text).toContain("Created annotation");
+      expect(response.content[0].text).toContain('Created annotation on node "Test Frame"');
+    });
+
+    it("reads the plugin's `name` field for the success message", async () => {
+      mockSendCommand.mockResolvedValue({ success: true, nodeId: "1:1", name: "Hero", annotationIndex: 2 });
+      const response = await callTool("set_annotation", { nodeId: "1:1", labelMarkdown: "x" });
+      expect(response.content[0].text).toBe('Created annotation on node "Hero" (index: 2)');
+    });
+
+    it("updates by index without labelMarkdown and passes a category name through", async () => {
+      await callTool("set_annotation", { nodeId: "frame-123", index: 1, category: "Development" });
+      expect(mockSendCommand).toHaveBeenCalledWith(
+        "set_annotation",
+        expect.objectContaining({ index: 1, category: "Development", labelMarkdown: undefined }),
+      );
     });
 
     it("accepts optional parameters", async () => {
@@ -230,19 +342,22 @@ describe("new document tools integration", () => {
 
       expect(mockSendCommand).toHaveBeenCalledWith("set_annotation", {
         nodeId: "frame-123",
-        annotationId: "0",
+        index: 0,
         labelMarkdown: "Updated annotation",
+        category: undefined,
         categoryId: "cat-1",
         properties: [{ type: "status" }],
       });
     });
 
-    it("requires nodeId and labelMarkdown parameters", async () => {
-      await expect(
-        callTool("set_annotation", {
-          nodeId: "frame-123",
-        }),
-      ).rejects.toThrow();
+    it("requires labelMarkdown when appending", async () => {
+      const response = await callTool("set_annotation", { nodeId: "frame-123" });
+      expect(response.content[0].text).toContain("labelMarkdown is required when appending");
+      expect(mockSendCommand).not.toHaveBeenCalled();
+    });
+
+    it("requires nodeId", async () => {
+      await expect(callTool("set_annotation", { labelMarkdown: "x" })).rejects.toThrow();
       expect(mockSendCommand).not.toHaveBeenCalled();
     });
 
@@ -284,6 +399,21 @@ describe("new document tools integration", () => {
       expect(mockSendCommand).toHaveBeenCalledTimes(1);
       expect(response.content[0].text).toContain("2 successfully applied");
       expect(response.content[0].text).toContain("0 failed");
+    });
+
+    it("defaults entry nodeIds to the top-level nodeId and folds annotationId into index", async () => {
+      await callTool("set_multiple_annotations", {
+        nodeId: "9-9",
+        annotations: [
+          { labelMarkdown: "A", category: "Development" },
+          { nodeId: "1:2", annotationId: "1", categoryId: "cat-1" },
+        ],
+      });
+      const sent = mockSendCommand.mock.calls[0][1];
+      expect(sent.nodeId).toBe("9:9");
+      expect(sent.annotations[0]).toMatchObject({ nodeId: "9:9", labelMarkdown: "A", category: "Development" });
+      expect(sent.annotations[1]).toMatchObject({ nodeId: "1:2", index: 1, categoryId: "cat-1" });
+      expect(sent.annotations[1]).not.toHaveProperty("annotationId");
     });
 
     it("returns early if no annotations provided", async () => {

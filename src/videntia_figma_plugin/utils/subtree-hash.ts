@@ -28,6 +28,47 @@ function num(value: unknown): string {
   return typeof value === "number" && isFinite(value) ? Math.round(value * 100) / 100 + "" : "";
 }
 
+function field(obj: Record<string, unknown>, key: string): string {
+  const value = obj[key];
+  if (value === undefined) return "";
+  return key + ":" + (typeof value === "number" ? num(value) : JSON.stringify(value)) + ";";
+}
+
+/**
+ * Field-by-field signature of a paint list. Reads every visible property by name
+ * (so it does not depend on the paint object's fields being enumerable) — in
+ * particular the whole IMAGE identity: imageHash, scaleMode, scalingFactor,
+ * imageTransform, rotation and filters.
+ */
+export function paintsSignature(paints: unknown): string {
+  if (!Array.isArray(paints)) return "";
+  const out: string[] = [];
+  for (const raw of paints) {
+    const p = (raw ?? {}) as Record<string, unknown>;
+    let sig = "[" + String(p.type) + ";";
+    for (const key of [
+      "visible",
+      "opacity",
+      "blendMode",
+      "color",
+      "gradientStops",
+      "gradientTransform",
+      "imageHash",
+      "scaleMode",
+      "scalingFactor",
+      "imageTransform",
+      "rotation",
+      "filters",
+      "videoHash",
+      "boundVariables",
+    ]) {
+      sig += field(p, key);
+    }
+    out.push(sig + "]");
+  }
+  return out.join("");
+}
+
 function serializeNode(node: BaseNode, parts: string[]): void {
   const anyNode = node as unknown as Record<string, unknown>;
   parts.push(node.id, node.type, String(anyNode.name ?? ""));
@@ -54,6 +95,25 @@ function serializeNode(node: BaseNode, parts: string[]): void {
     "paddingBottom",
     "paddingLeft",
     "clipsContent",
+    "topLeftRadius",
+    "topRightRadius",
+    "bottomLeftRadius",
+    "bottomRightRadius",
+    "cornerSmoothing",
+    "layoutWrap",
+    "layoutPositioning",
+    "layoutSizingHorizontal",
+    "layoutSizingVertical",
+    "counterAxisSpacing",
+    "isMask",
+    "strokeTopWeight",
+    "strokeRightWeight",
+    "strokeBottomWeight",
+    "strokeLeftWeight",
+    "strokeCap",
+    "strokeJoin",
+    "pointCount",
+    "innerRadius",
   ];
   for (const key of geometryKeys) {
     const value = anyNode[key];
@@ -61,9 +121,21 @@ function serializeNode(node: BaseNode, parts: string[]): void {
     parts.push(key + "=" + (typeof value === "number" ? num(value) : String(value)));
   }
 
-  // Paint / effects — JSON is stable for these plain Figma structures.
-  const paintKeys = ["fills", "strokes", "effects", "strokeWeight", "strokeAlign", "dashPattern"];
-  for (const key of paintKeys) {
+  // Paints: an explicit, field-by-field signature (so image identity — imageHash,
+  // scaleMode, scalingFactor, imageTransform, rotation, filters — is covered even if a
+  // paint's fields are not enumerable) PLUS the raw JSON for anything not named here.
+  // `backgrounds` is only read on pages — on frames it is a deprecated mirror of fills.
+  for (const key of node.type === "PAGE" ? ["backgrounds"] : ["fills", "strokes"]) {
+    const value = anyNode[key];
+    if (value === undefined) continue;
+    if (value === figma.mixed) {
+      parts.push(key + "=mixed");
+      continue;
+    }
+    parts.push(key + "=" + paintsSignature(value) + JSON.stringify(value));
+  }
+  const otherKeys = ["effects", "strokeWeight", "strokeAlign", "dashPattern", "arcData", "vectorPaths"];
+  for (const key of otherKeys) {
     const value = anyNode[key];
     if (value === undefined || value === figma.mixed) continue;
     parts.push(key + "=" + JSON.stringify(value));
@@ -79,6 +151,31 @@ function serializeNode(node: BaseNode, parts: string[]): void {
     parts.push("letterSpacing=" + JSON.stringify(text.letterSpacing as unknown));
     parts.push("textAlignHorizontal=" + text.textAlignHorizontal);
     parts.push("textCase=" + String(text.textCase as unknown));
+    parts.push("textDecoration=" + String(text.textDecoration as unknown));
+    parts.push("textAlignVertical=" + text.textAlignVertical);
+    parts.push("textAutoResize=" + text.textAutoResize);
+    parts.push("paragraphSpacing=" + String(text.paragraphSpacing as unknown));
+    // Mixed styling hides per-range changes behind figma.mixed — hash the segments.
+    const anyMixed = [text.fontSize, text.fontName, text.fills, text.lineHeight, text.letterSpacing].some(
+      (v) => v === figma.mixed,
+    );
+    if (anyMixed && typeof text.getStyledTextSegments === "function") {
+      const segments = text.getStyledTextSegments(["fontSize", "fontName", "fills", "lineHeight", "letterSpacing"]);
+      for (const seg of segments) {
+        parts.push(
+          "seg=" +
+            seg.start +
+            "-" +
+            seg.end +
+            ":" +
+            String(seg.fontSize) +
+            JSON.stringify(seg.fontName) +
+            paintsSignature(seg.fills) +
+            JSON.stringify(seg.lineHeight) +
+            JSON.stringify(seg.letterSpacing),
+        );
+      }
+    }
   }
 
   // Instances: the main component's version matters even if the instance

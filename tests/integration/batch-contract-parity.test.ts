@@ -10,6 +10,9 @@ import {
 import { PARAM_ALIASES } from "../../src/videntia_figma_mcp/utils/param-aliases";
 import { nonBatchableReason, isPureAction } from "../../src/videntia_figma_mcp/utils/pure-batch-actions";
 
+const PARITY_PNG = require("path").join(require("os").tmpdir(), "videntia-parity-tile.png");
+require("fs").writeFileSync(PARITY_PNG, Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0]));
+
 jest.mock("../../src/videntia_figma_mcp/utils/websocket", () => {
   // `require`, not jest.requireActual — this suite runs under `bun test`, which has no
   // requireActual.
@@ -145,9 +148,14 @@ describe("batch_actions ↔ standalone parameter parity", () => {
    */
   const PARITY_FIXTURES: [string, Record<string, unknown>][] = [
     ["rename_node", { nodeId: "65-7554", newName: "Card" }],
+    ["create_icon", { parentId: "1:2", icon: "lucide:check", size: 16, color: "#111111" }],
+    ["update_icon", { nodeId: "1:3", iconName: "CircleCheck", size: 16 }],
     ["set_fill_color", { nodeId: "1:2", fill: "#ff0000" }],
     ["set_stroke_color", { nodeId: "1:2", stroke: "#00ff00", weight: 2 }],
     ["set_opacity", { node: "1:9", alpha: 0.2 }],
+    ["set_rotation", { node: "1:9", angle: 45 }],
+    ["set_layer_order", { nodeId: "1:9", order: "front" }],
+    ["create_ellipse", { x: 0, y: 0, width: 20, height: 20, fill: "#ff0000" }],
     ["set_corner_radius", { nodeId: "1:2", radius: 8 }],
     ["set_layout_mode", { nodeId: "1:2", mode: "vertical" }],
     ["set_axis_align", { nodeId: "1:2", primary: "center", counter: "center" }],
@@ -190,7 +198,15 @@ describe("batch_actions ↔ standalone parameter parity", () => {
     ["rename_mode", { id: "c1", oldName: "Light", newName: "Day" }],
     ["rename_page", { pageId: "0:1", newName: "Home" }],
     ["delete_variable_collection", { collection: "c1" }],
+    ["set_annotation", { nodeId: "1:2", annotationId: "1", labelMarkdown: "Spec" }],
+    ["remove_annotation", { nodeId: "1:2", annotationId: 0 }],
+    ["get_annotations", { nodeId: "1:2", includeChildren: true, depth: 2 }],
     ["set_image_fill", { nodeId: "1:2", url: "https://example.com/a.png" }],
+    ["set_image_fill", { nodeId: "1:2", url: "https://example.com/a.png", tileScale: 0.5 }],
+    ["set_image_fill_from_path", { nodeId: "1:2", path: PARITY_PNG, scale: 2 }],
+    ["set_fill_color", { nodeId: "1:2", color: "#ffffff", opacity: 0.1 }],
+    ["set_stroke_color", { nodeId: "1:2", color: "#ffffff", alpha: 0.25 }],
+    ["set_page_background", { color: "#101010", opacity: 0.5 }],
     [
       "set_gradient_fill",
       {

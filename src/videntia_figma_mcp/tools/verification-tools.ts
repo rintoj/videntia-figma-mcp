@@ -19,9 +19,12 @@ import {
   diffNodeState,
   findTokenCollisions,
   type TextSample,
+  type ContrastFinding,
+  type ContrastSegmentFinding,
   type OverlapNode,
   type VariableRecord,
 } from "../utils/verification-math.js";
+import { decodeBackdropImages } from "../utils/image-backdrop.js";
 
 function text(body: string) {
   return { content: [{ type: "text" as const, text: body }] };
@@ -35,11 +38,15 @@ export function registerVerificationTools(server: McpServer): void {
   // ── contrast_check_frame ───────────────────────────────────────────────────
   server.tool(
     "contrast_check_frame",
-    "Sweep EVERY text node in a frame for WCAG contrast against its RESOLVED backdrop. Walks each text node's ancestors to find the effective background, composites translucent paints correctly, and interpolates gradients at the text node's own position. Returns the contrast ratio plus AA/AAA pass/fail per node. Use this instead of eyeballing colours or checking a handful of nodes by hand.",
+    "Sweep EVERY text node in a frame for WCAG contrast against its RESOLVED backdrop: the page background, every ancestor (opacity, clipping) and the sibling shapes painted beneath the text (e.g. a button's rectangle), composited in paint order with gradients sampled at several points across the text box — the worst point wins. Mixed-style text is scored per styled segment, each against its own large-text threshold (WCAG: ≥24px, or ≥18.67px at weight ≥700). IMAGE backdrops and image text fills are SAMPLED from the image pixels (scaleMode FILL/FIT/CROP/TILE, worst of a grid of points across the text box); image filters are not simulated and are noted as approximate. VIDEO/pattern paints, or images that could not be fetched/decoded or exceed the byte budget, are reported as INDETERMINATE (not pass, not fail) with the reason. Use this instead of eyeballing colours.",
     {
       nodeId: z.string().describe("Frame (or any container) to sweep"),
       include_hidden: mcpBooleanSchema.optional().describe("Include invisible nodes (default: false)"),
-      failures_only: mcpBooleanSchema.optional().describe("Report only nodes failing WCAG AA (default: false)"),
+      failures_only: mcpBooleanSchema
+        .optional()
+        .describe(
+          "Report only nodes failing the standard in the table (default: false). Indeterminate nodes are always listed in their own section.",
+        ),
       standard: z.enum(["AA", "AAA"]).optional().describe("Standard used for the pass/fail verdict (default: AA)"),
     },
     async ({ nodeId, include_hidden, failures_only, standard }) => {
@@ -50,21 +57,31 @@ export function registerVerificationTools(server: McpServer): void {
           nodesScanned: number;
           truncated: boolean;
           samples: TextSample[];
+          images?: Record<string, { base64?: string; error?: string }>;
         }>("contrast_check_frame", { nodeId: normalizeNodeId(nodeId), include_hidden: include_hidden === true }, 60000);
 
-        const report = sweepContrast(raw.samples || []);
+        const images = await decodeBackdropImages(raw.images);
+        const report = sweepContrast(raw.samples || [], images);
+        const imageTotal = images.size;
+        const imageFailed = Array.from(images.values()).filter((v) => typeof v === "string").length;
         const useAAA = standard === "AAA";
-        const failing = report.findings.filter((f) => (useAAA ? !f.passAAA : !f.passAA));
-        const shown = failures_only ? failing : report.findings;
+        const fails = (f: ContrastFinding | ContrastSegmentFinding) => (useAAA ? !f.passAAA : !f.passAA);
+        const failing = report.findings.filter(fails);
+        const unresolved = report.findings.filter((f) => f.indeterminate && !fails(f));
+        const scored = report.findings.filter((f) => !unresolved.includes(f));
+        const shown = failures_only ? failing : scored;
 
         const lines: string[] = [];
         lines.push(`# Contrast Sweep: ${raw.nodeName}`);
         lines.push(
-          `**Text nodes:** ${report.total} | **Failing ${useAAA ? "AAA" : "AA"}:** ${failing.length} | **Nodes scanned:** ${raw.nodesScanned}`,
+          `**Text nodes:** ${report.total} | **Failing ${useAAA ? "AAA" : "AA"}:** ${failing.length} | **Indeterminate:** ${unresolved.length} | **Nodes scanned:** ${raw.nodesScanned}${imageTotal > 0 ? ` | **Images sampled:** ${imageTotal - imageFailed}/${imageTotal}` : ""}`,
         );
         if (raw.truncated) lines.push("> Traversal was truncated — the frame exceeds the scan cap.");
         lines.push("");
-        lines.push(`**Verdict:** ${failing.length === 0 ? "PASS" : "FAIL"}`);
+        const verdict = failing.length === 0 ? "PASS" : "FAIL";
+        lines.push(
+          `**Verdict:** ${verdict}${unresolved.length > 0 ? ` (${unresolved.length} indeterminate — verify visually)` : ""}`,
+        );
         lines.push("");
 
         if (shown.length === 0) {
@@ -74,14 +91,39 @@ export function registerVerificationTools(server: McpServer): void {
           lines.push("|------|------|------|----|----|-------|-----|--------|");
           for (const f of shown) {
             const req = useAAA ? f.requiredAAA : f.requiredAA;
-            const ok = useAAA ? f.passAAA : f.passAA;
             const preview = f.text.replace(/\|/g, "\\|").replace(/\n/g, " ").slice(0, 32);
+            const seg = f.segments ? ` [${f.segments.length} segs]` : "";
             lines.push(
-              `| ${f.nodeName} (${f.nodeId}) | ${preview} | ${f.fontSize}${f.isLargeText ? " lg" : ""} | ${f.foreground} | ${f.background} | ${f.ratio}:1 | ${req}:1 | ${ok ? "PASS" : "**FAIL**"} |`,
+              `| ${f.nodeName} (${f.nodeId}) | ${preview}${seg} | ${f.fontSize}${f.isLargeText ? " lg" : ""} | ${f.foreground} | ${f.background} | ${f.ratio}:1 | ${req}:1 | ${fails(f) ? "**FAIL**" : "PASS"} |`,
             );
           }
         }
-        const noted = shown.filter((f) => f.note);
+
+        const segmented = [...shown, ...unresolved].filter((f) => f.segments && (fails(f) || f.indeterminate));
+        if (segmented.length > 0) {
+          lines.push("");
+          lines.push("## Segments (chars start-end fg/bg ratio)");
+          for (const f of segmented) {
+            const segs = f.segments || [];
+            const parts = segs.slice(0, 8).map((s) => {
+              const status = s.indeterminate ? "?" : fails(s) ? "FAIL" : "ok";
+              return `${s.start}-${s.end} ${s.foreground}/${s.background} ${s.ratio}:1 ${status}`;
+            });
+            if (segs.length > 8) parts.push(`…${segs.length - 8} more`);
+            lines.push(`- ${f.nodeName} (${f.nodeId}): ${parts.join(" · ")}`);
+          }
+        }
+
+        if (unresolved.length > 0) {
+          lines.push("");
+          lines.push(`## Indeterminate (${unresolved.length}) — verify with export_node_as_image`);
+          for (const f of unresolved) {
+            const est = f.foreground !== "—" ? `; est. ${f.ratio}:1 ignoring it` : "";
+            lines.push(`- ${f.nodeName} (${f.nodeId}): ${f.indeterminate}${est}`);
+          }
+        }
+
+        const noted = [...shown, ...unresolved].filter((f) => f.note);
         if (noted.length > 0) {
           lines.push("");
           lines.push("## Notes");

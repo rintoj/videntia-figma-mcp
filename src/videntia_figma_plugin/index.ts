@@ -3,6 +3,7 @@
 
 // Utils
 import { debugLog } from "./utils/helpers";
+import { READONLY_COMMANDS } from "../videntia_figma_mcp/utils/readonly-commands";
 import { setAutoFocus } from "./utils/plugin-state";
 
 // Handlers — document & navigation
@@ -19,6 +20,7 @@ import { assertExpectedDocument } from "./utils/document-guard";
 import { serializeNodes } from "./handlers/node-serializer";
 import { createPage, renamePage, deletePage, setPageBackground } from "./handlers/pages";
 import { createSection, setSectionStatus } from "./handlers/sections";
+import { setLayerOrder, setRotation } from "./handlers/arrange";
 import {
   getReactions,
   getFrameAnimations,
@@ -227,6 +229,7 @@ import {
   getAnnotations,
   setAnnotation,
   setMultipleAnnotations,
+  removeAnnotation,
   getAnnotationCategories,
   createAnnotationCategory,
   updateAnnotationCategory,
@@ -255,6 +258,7 @@ import { enumerateAllFrames, bulkExportFrames, getContentTree, getFrameDocumenta
 
 // Handlers — comments
 import { getComments } from "./handlers/comments";
+import { getTextOpenTypeFeatures } from "./handlers/opentype";
 
 // ---------------------------------------------------------------------------
 // Plugin state
@@ -270,69 +274,6 @@ const state = {
   actionsExpanded: true,
   activeTab: "actions" as string,
 };
-
-// ---------------------------------------------------------------------------
-// Readonly commands — these don't modify design data
-// ---------------------------------------------------------------------------
-
-var READONLY_COMMANDS = new Set([
-  // Session-level toggle, not a design-data write.
-  "set_strict_mode",
-  "get_document_info",
-  "get_file_key",
-  "get_selection",
-  "get_node_info",
-  "get_nodes_info",
-  "search_nodes",
-  "get_color_style",
-  "get_color_styles",
-  "get_styles",
-  "get_local_components",
-  "get_remote_components",
-  "get_component_properties",
-  "get_slot_info",
-  "get_instance_overrides",
-  "get_styled_text_segments",
-  "get_text_styles",
-  "get_variables",
-  "get_bound_variables",
-  "scan_bound_variables",
-  "get_variable_collections",
-  "get_collection_info",
-  "audit_collection",
-  "validate_color_contrast",
-  "suggest_missing_variables",
-  "generate_audit_report",
-  "export_collection_schema",
-  "get_schema_definition",
-  "scan_nodes_by_types",
-  "get_annotations",
-  "get_annotation_categories",
-  "get_reactions",
-  "get_frame_animations",
-  "get_motion_info",
-  "list_animation_styles",
-  "get_design_system",
-  "lint_frame",
-  "contrast_check_frame",
-  "find_overlaps",
-  "assert_node_state",
-  "find_unbound",
-  "check_token_collisions",
-  "set_focus",
-  "set_selections",
-  "export_node_as_image",
-  "export_selection_as_image",
-  "export_image_fill",
-  "load_font_async",
-  "read_my_design",
-  "enumerate_all_frames",
-  "map_prototype_flows",
-  "bulk_export_frames",
-  "get_content_tree",
-  "get_frame_documentation",
-  "get_comments",
-]);
 
 // Handlers — composites (one round trip for multi-call sequences)
 import {
@@ -362,6 +303,7 @@ var FOCUS_BEFORE_COMMANDS = new Set([
   "get_component_properties",
   "get_instance_overrides",
   "get_styled_text_segments",
+  "get_text_opentype_features",
   "get_annotations",
   "get_reactions",
   "get_frame_animations",
@@ -380,6 +322,8 @@ var FOCUS_BEFORE_COMMANDS = new Set([
   "set_gradient_fill",
   "move_node",
   "move_node_absolute",
+  "set_rotation",
+  "set_layer_order",
   "resize_node",
   "delete_node",
   "clone_node",
@@ -419,6 +363,7 @@ var FOCUS_BEFORE_COMMANDS = new Set([
   "set_layout_sizing",
   "set_annotation",
   "set_multiple_annotations",
+  "remove_annotation",
   "detach_instance",
   "set_instance_overrides",
   "set_component_property_references",
@@ -808,6 +753,10 @@ async function _executeCommand(command: string, params: Record<string, unknown>)
       return await moveNode(params);
     case "move_node_absolute":
       return await moveNodeAbsolute(params);
+    case "set_rotation":
+      return await setRotation(params);
+    case "set_layer_order":
+      return await setLayerOrder(params);
     case "resize_node":
       return await resizeNode(params);
     case "delete_node":
@@ -912,6 +861,8 @@ async function _executeCommand(command: string, params: Record<string, unknown>)
       return await setTextDecoration(params);
     case "set_text_range_style":
       return await setTextRangeStyle(params);
+    case "get_text_opentype_features":
+      return await getTextOpenTypeFeatures(params);
     case "get_styled_text_segments":
       return await getStyledTextSegments(params);
     case "load_font_async":
@@ -1082,6 +1033,8 @@ async function _executeCommand(command: string, params: Record<string, unknown>)
       return await setAnnotation(params);
     case "set_multiple_annotations":
       return await setMultipleAnnotations(params);
+    case "remove_annotation":
+      return await removeAnnotation(params);
     case "get_annotation_categories":
       return await getAnnotationCategories();
     case "create_annotation_category":

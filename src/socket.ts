@@ -15,6 +15,7 @@ import { createToken, listTokens, revokeToken, validateKey } from "./auth/tokens
 import { signJwt, verifyJwt, parseCookies } from "./auth/session";
 import { sendVerificationEmail } from "./auth/email";
 import { isSameFile } from "./socket-channel-identity";
+import { createSessionRegistry, openSseSession, parseIdleMs, trackRequest } from "./socket-mcp-sessions";
 import { isStaleChannelSend, staleChannelError, decideChannelSend } from "./socket-channel-guard";
 import {
   applyJoinMetadata,
@@ -164,18 +165,32 @@ function handleWebSocketMessage(ws: WebSocket, raw: string) {
       return;
     }
 
-    // Chrome extensions must identify their profile: without a browserId the
-    // relay cannot route a command to one specific browser, and two profiles
-    // would silently race on every reply. Reject the join outright rather than
-    // degrade to non-deterministic broadcast.
-    const isExtensionJoin = data.clientType === "extension";
-    const browserId = sanitizeIdentityValue(data.browserId, BROWSER_ID_MAX_LENGTH);
-    if (isExtensionJoin && !browserId) {
-      const reason =
-        "Extension build is out of date: browserId is required in the join payload. Reload the unpacked extension.";
+    // Both Chrome extensions and headless browser drivers must identify their
+    // profile: without a browserId the relay cannot route a command to one
+    // specific browser, and two profiles would silently race on every reply.
+    // Reject the join outright rather than degrade to non-deterministic broadcast.
+    const clientType = sanitizeIdentityValue(data.clientType, 64);
+    const isValidClientType = !clientType || clientType === "extension" || clientType === "driver";
+    if (!isValidClientType) {
+      const reason = `Invalid clientType: ${data.clientType}. Must be 'extension', 'driver', or omitted.`;
       ws.send(JSON.stringify({ type: "error", message: reason }));
       stats.messagesSent++;
-      logger.warn(`Rejected extension join from client ${clientId}: missing browserId`);
+      logger.warn(`Rejected client join from client ${clientId}: ${reason}`);
+      ws.close(1000, reason);
+      return;
+    }
+
+    const isBrowserJoin = clientType === "extension" || clientType === "driver";
+    const browserId = sanitizeIdentityValue(data.browserId, BROWSER_ID_MAX_LENGTH);
+    if (isBrowserJoin && !browserId) {
+      const kind = clientType;
+      const reason =
+        kind === "extension"
+          ? "Extension build is out of date: browserId is required in the join payload. Reload the unpacked extension."
+          : "Browser driver requires browserId in the join payload.";
+      ws.send(JSON.stringify({ type: "error", message: reason }));
+      stats.messagesSent++;
+      logger.warn(`Rejected ${kind} join from client ${clientId}: missing browserId`);
       ws.close(1000, reason);
       return;
     }
@@ -187,7 +202,7 @@ function handleWebSocketMessage(ws: WebSocket, raw: string) {
     // "Command not permitted" under the same message id (beating the extension's
     // real reply), and Figma traffic is routed away or duplicated. The dedup pass
     // below resolves any collision on the reassigned name.
-    const isPluginJoin = !isExtensionJoin && !!(data.fileName || data.fileKey);
+    const isPluginJoin = !isBrowserJoin && !!(data.fileName || data.fileKey);
     channelName = reserveBrowserChannel(channelName, isPluginJoin);
 
     // Remove stale plugin connections for the same file (reconnect from the same
@@ -240,9 +255,9 @@ function handleWebSocketMessage(ws: WebSocket, raw: string) {
     const channelClients = channels.get(channelName)!;
 
     // Same profile reconnecting (the extension retries on a 3s timer and a ~24s
-    // keep-alive alarm): drop its previous socket so a single browserId never
-    // resolves to two live connections.
-    if (isExtensionJoin && browserId) {
+    // keep-alive alarm, or a driver reconnects after a transient failure): drop
+    // its previous socket so a single browserId never resolves to two live connections.
+    if (isBrowserJoin && browserId) {
       const supersedeMeta = channelMetadata.get(channelName);
       const superseded = [...channelClients].filter((c) => (c as any)._browserId === browserId && c !== ws);
       superseded.forEach((c) => {
@@ -272,16 +287,19 @@ function handleWebSocketMessage(ws: WebSocket, raw: string) {
       if (data.fileName) (ws as any)._fileName = data.fileName;
       if (data.fileKey) (ws as any)._fileKey = data.fileKey;
     }
-    // Mark the Chrome extension's connection to the "browser" channel; it has no
-    // fileName (it's not a Figma file) so it needs its own identifying flag.
-    if (isExtensionJoin) {
+    // Mark browser peers (extension or driver) on the "browser" channel. `_isExtension`
+    // means "browser peer" everywhere (reply routing, channel guard, stats);
+    // `_clientType` carries the kind.
+    if (isBrowserJoin) {
+      (ws as any)._clientType = clientType;
       (ws as any)._isExtension = true;
       (ws as any)._browserId = browserId;
       (ws as any)._browserLabel = browserLabel;
       (ws as any)._joinedAt = Date.now();
     }
+    const browserKind = (ws as any)._clientType || "unknown";
     logger.info(
-      `Client ${clientId} joined channel: ${channelName} (plugin=${!!(ws as any)._isPlugin}, extension=${!!(ws as any)._isExtension})`,
+      `Client ${clientId} joined channel: ${channelName} (plugin=${!!(ws as any)._isPlugin}, browser=${isBrowserJoin}, kind=${isBrowserJoin ? browserKind : "n/a"})`,
     );
 
     const { meta: channelMeta, repointRejected } = applyJoinMetadata(channelMetadata, channelName, data);
@@ -465,11 +483,18 @@ function createMcpServer() {
 
 const PORT = 3055;
 
-// Map sessionId → SSEServerTransport for routing POST /message requests
-const sseTransports = new Map<string, SSEServerTransport>();
+const logSessionCloseError = (sessionId: string, err: unknown) =>
+  logger.error(`Error closing MCP session ${sessionId}:`, err);
 
-// Map sessionId → StreamableHTTPServerTransport for /mcp endpoint
-const streamableTransports = new Map<string, StreamableHTTPServerTransport>();
+// sessionId → SSEServerTransport for routing POST /message requests
+const sseTransports = createSessionRegistry<SSEServerTransport>({ onCloseError: logSessionCloseError });
+
+// sessionId → StreamableHTTPServerTransport for /mcp endpoint
+const streamableTransports = createSessionRegistry<StreamableHTTPServerTransport>({
+  onCloseError: logSessionCloseError,
+});
+
+const MCP_SESSION_IDLE_MS = parseIdleMs(process.env.MCP_SESSION_IDLE_MS);
 
 const httpServer = http.createServer(async (reqOrig, res) => {
   let req: typeof reqOrig = reqOrig;
@@ -700,7 +725,7 @@ const httpServer = http.createServer(async (reqOrig, res) => {
             transport.onclose = () => {
               // Delay cleanup so follow-up requests (e.g. notifications/initialized) can still route here
               const sid = transport.sessionId;
-              if (sid) setTimeout(() => streamableTransports.delete(sid), 60_000);
+              if (sid) setTimeout(() => streamableTransports.forget(sid), 60_000);
             };
             await mcpServer.connect(transport);
           } else {
@@ -710,6 +735,7 @@ const httpServer = http.createServer(async (reqOrig, res) => {
           }
 
           logger.info(`/mcp body method="${parsedBody?.method}" id="${parsedBody?.id}"`);
+          if (sessionId) trackRequest(streamableTransports, sessionId, req, res);
           await transport.handleRequest(req, res, parsedBody);
 
           // sessionId is set by handleRequest after processing initialize
@@ -718,7 +744,7 @@ const httpServer = http.createServer(async (reqOrig, res) => {
             transport.sessionId &&
             !streamableTransports.has(transport.sessionId)
           ) {
-            streamableTransports.set(transport.sessionId, transport);
+            streamableTransports.add(transport.sessionId, transport);
             logger.info(`Streamable MCP session stored: ${transport.sessionId}`);
           }
         } catch (err) {
@@ -738,6 +764,7 @@ const httpServer = http.createServer(async (reqOrig, res) => {
         res.end(JSON.stringify({ error: "Session not found" }));
         return;
       }
+      trackRequest(streamableTransports, sessionId!, req, res);
       await transport.handleRequest(req, res);
       return;
     }
@@ -746,8 +773,9 @@ const httpServer = http.createServer(async (reqOrig, res) => {
       const sessionId = req.headers["mcp-session-id"] as string | undefined;
       const transport = sessionId ? streamableTransports.get(sessionId) : undefined;
       if (transport) {
+        trackRequest(streamableTransports, sessionId!, req, res);
         await transport.handleRequest(req, res);
-        streamableTransports.delete(sessionId!);
+        streamableTransports.forget(sessionId!);
       } else {
         res.writeHead(404);
         res.end();
@@ -758,14 +786,9 @@ const httpServer = http.createServer(async (reqOrig, res) => {
 
   // MCP SSE: GET /sse → open SSE stream
   if (url.pathname === "/sse" && req.method === "GET") {
-    const transport = new SSEServerTransport("/message", res);
-    const mcpServer = createMcpServer();
-    sseTransports.set(transport.sessionId, transport);
-    transport.onclose = () => {
-      sseTransports.delete(transport.sessionId);
-      logger.info(`MCP session closed: ${transport.sessionId}`);
-    };
-    await mcpServer.connect(transport);
+    const transport = await openSseSession(req, res, sseTransports, createMcpServer, (sessionId) =>
+      logger.info(`MCP session closed: ${sessionId}`),
+    );
     logger.info(`MCP session started: ${transport.sessionId}`);
     return;
   }
@@ -870,11 +893,23 @@ httpServer.listen(PORT, () => {
 const CLEANUP_INTERVAL_MS = 30_000;
 const STATS_LOG_INTERVAL_MS = 5 * 60_000;
 let lastStatsLog = Date.now();
-setInterval(() => {
+setInterval(async () => {
   const removed = cleanupDeadConnections();
+  let evicted = 0;
+  try {
+    evicted = await streamableTransports.sweepIdle(MCP_SESSION_IDLE_MS);
+  } catch (err) {
+    logger.error("Idle MCP session sweep failed:", err);
+  }
+  if (evicted > 0) logger.info(`Evicted ${evicted} idle streamable MCP session(s)`);
   const now = Date.now();
-  if (removed > 0 || now - lastStatsLog >= STATS_LOG_INTERVAL_MS) {
-    logger.info("Server stats:", { channels: channels.size, ...stats });
+  if (removed > 0 || evicted > 0 || now - lastStatsLog >= STATS_LOG_INTERVAL_MS) {
+    logger.info("Server stats:", {
+      channels: channels.size,
+      sseSessions: sseTransports.size,
+      streamableSessions: streamableTransports.size,
+      ...stats,
+    });
     lastStatsLog = now;
   }
 }, CLEANUP_INTERVAL_MS);
@@ -901,3 +936,12 @@ setInterval(() => {
     }
   }
 }, HEARTBEAT_INTERVAL_MS);
+
+async function shutdown(signal: string) {
+  logger.info(`${signal} received, closing ${sseTransports.size + streamableTransports.size} MCP session(s)`);
+  await Promise.all([sseTransports.closeAll(), streamableTransports.closeAll()]);
+  httpServer.close();
+  process.exit(0);
+}
+process.once("SIGTERM", () => void shutdown("SIGTERM"));
+process.once("SIGINT", () => void shutdown("SIGINT"));

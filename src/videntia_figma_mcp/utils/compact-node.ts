@@ -55,11 +55,20 @@ export function extractGeometry(node: AnyNode, includeChildren: boolean, depth: 
 /**
  * Terse one-token rendering of a paint list.
  *
- * `#ffffff` for a solid, `IMAGE(FILL)` for an image paint, `GRADIENT_LINEAR` for a
+ * `#ffffff` for a solid, `IMAGE(FILL)` / `IMAGE(TILE×0.5)` for an image paint, `GRADIENT_LINEAR` for a
  * gradient, a variable name when the paint is bound, `none` for an explicitly empty
  * paint list, and `MIXED` when the serializer reported mixed paints. Returns
  * undefined when the node does not support paints at all (nothing to say).
  */
+function imagePaintToken(p: AnyNode): string {
+  const mode = p.scaleMode ?? "FILL";
+  const scale = mode === "TILE" && typeof p.scalingFactor === "number" ? `×${num(p.scalingFactor)}` : "";
+  const extras: string[] = [];
+  if (typeof p.rotation === "number" && p.rotation !== 0) extras.push(`rot=${num(p.rotation)}`);
+  if (p.filters && typeof p.filters === "object") extras.push("filters");
+  return `IMAGE(${mode}${scale}${extras.length ? "," + extras.join(",") : ""})`;
+}
+
 function paintToken(paints: unknown, boundName: string | undefined): string | undefined {
   if (!Array.isArray(paints)) return undefined;
   if (paints.length === 0) return "none";
@@ -67,8 +76,7 @@ function paintToken(paints: unknown, boundName: string | undefined): string | un
   const visible = paints.filter((p: AnyNode) => p?.visible !== false);
   if (visible.length === 0) return "hidden";
   const p = visible[0] as AnyNode;
-  const base =
-    boundName ?? (p?.isImage || p?.type === "IMAGE" ? `IMAGE(${p.scaleMode ?? "FILL"})` : (p?.color ?? p?.type ?? "?"));
+  const base = boundName ?? (p?.isImage || p?.type === "IMAGE" ? imagePaintToken(p) : (p?.color ?? p?.type ?? "?"));
   const extra = visible.length > 1 ? `+${visible.length - 1}` : "";
   return `${base}${extra}`;
 }

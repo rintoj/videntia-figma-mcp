@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Driver Fixture</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: sans-serif;
+        background: #ffffff;
+      }
+      .card {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        box-sizing: border-box;
+        max-width: 320px;
+        padding: 24px;
+        margin: 20px;
+        border-radius: 12px;
+        background-color: rgb(240, 244, 255);
+      }
+      .title {
+        font-size: 24px;
+        font-weight: 700;
+        line-height: 32px;
+        color: rgb(17, 24, 39);
+      }
+      .cta {
+        height: 44px;
+        border: 0;
+        border-radius: 8px;
+        background-color: rgb(37, 99, 235);
+        color: rgb(255, 255, 255);
+      }
+    </style>
+  </head>
+  <body>
+    <section class="card" data-fig-id="1:2">
+      <h1 class="title" data-fig-id="1:3">Hello driver</h1>
+      <input id="name" data-testid="name-input" placeholder="Name" />
+      <button class="cta" data-fig-id="1:4" onclick="document.title = 'clicked'">Continue</button>
+    </section>
+  </body>
+</html>

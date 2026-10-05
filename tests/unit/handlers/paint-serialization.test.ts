@@ -288,3 +288,64 @@ describe("jsx output still works with the richer paint payload (bug #13)", () =>
     expect(jsx).not.toContain("boxShadow");
   });
 });
+
+describe("IMAGE paint scale reads back (tile scale / rotation / crop / filters)", () => {
+  it("serializes scalingFactor for TILE, rotation, CROP imageTransform and non-default filters", () => {
+    const [tile] = extractFills(
+      node({ fills: [imagePaint({ scaleMode: "TILE", scalingFactor: 0.5, rotation: 90 })] }),
+    ) as any[];
+    expect(tile).toMatchObject({ scaleMode: "TILE", scalingFactor: 0.5, rotation: 90, imageHash: "abc123" });
+
+    const [crop] = extractFills(
+      node({
+        fills: [
+          imagePaint({
+            scaleMode: "CROP",
+            imageTransform: [
+              [0.5, 0, 0.25],
+              [0, 0.5, 0.25],
+            ],
+            filters: { exposure: 0.3, contrast: 0, saturation: -0.2 },
+          }),
+        ],
+      }),
+    ) as any[];
+    expect(crop.imageTransform).toEqual([
+      [0.5, 0, 0.25],
+      [0, 0.5, 0.25],
+    ]);
+    expect(crop.filters).toEqual({ exposure: 0.3, saturation: -0.2 });
+  });
+
+  it("omits defaults: no scalingFactor outside TILE, no zero rotation, no all-zero filters", () => {
+    const [fill] = extractFills(
+      node({ fills: [imagePaint({ scalingFactor: 2, rotation: 0, filters: { exposure: 0 } })] }),
+    ) as any[];
+    expect(fill).not.toHaveProperty("scalingFactor");
+    expect(fill).not.toHaveProperty("rotation");
+    expect(fill).not.toHaveProperty("filters");
+  });
+
+  it("serializes the same fields on image strokes", () => {
+    const [stroke] = extractStrokes(node({ strokes: [imagePaint({ scaleMode: "TILE", scalingFactor: 3 })] })) as any[];
+    expect(stroke).toMatchObject({ scaleMode: "TILE", scalingFactor: 3 });
+  });
+
+  it("surfaces the tile scale in compact output", () => {
+    const base = { id: "1:1", name: "Card", type: "FRAME", x: 0, y: 0, width: 10, height: 10 };
+    const fills = extractFills(node({ fills: [imagePaint({ scaleMode: "TILE", scalingFactor: 0.5 })] }));
+    expect(formatCompact([{ ...base, fills }])).toContain("fill=IMAGE(TILE×0.5)");
+    expect(
+      formatCompact([{ ...base, fills: [{ type: "IMAGE", isImage: true, scaleMode: "FIT", rotation: 90 }] }]),
+    ).toContain("fill=IMAGE(FIT,rot=90)");
+  });
+
+  it("carries the tile scale into JSX", () => {
+    const base = { id: "1:1", name: "Card", type: "FRAME", visible: true, width: 10, height: 10 };
+    const fills = extractFills(node({ fills: [imagePaint({ scaleMode: "TILE", scalingFactor: 0.5 })] }));
+    const jsx = convertToJsx([{ ...base, fills } as any]);
+    expect(jsx).toContain('imageScaleMode="TILE"');
+    expect(jsx).toContain('imageScalingFactor="0.5"');
+    expect(jsx).toContain("backgroundRepeat");
+  });
+});

@@ -2,6 +2,8 @@
 // Node Serializer — serialize Figma nodes to enriched FigmaNodeData format
 // ---------------------------------------------------------------------------
 
+import { gradientTransformToCssAngle } from "../../videntia_figma_mcp/utils/gradient-geometry";
+
 // Build lookup maps for variables, text styles, and effect styles in parallel.
 async function buildLookupMaps(): Promise<{
   variableMap: Map<string, string>;
@@ -88,6 +90,48 @@ function resolveBindings(
   return bindings;
 }
 
+const IMAGE_FILTER_KEYS = [
+  "exposure",
+  "contrast",
+  "saturation",
+  "temperature",
+  "tint",
+  "highlights",
+  "shadows",
+] as const;
+
+/**
+ * Copy an IMAGE paint's identity onto its serialized form: imageHash (+ legacy
+ * imageRef), scaleMode, scalingFactor (TILE only), rotation (when non-zero),
+ * imageTransform (CROP only) and the non-default image filters. Everything
+ * set_image_fill writes therefore reads back.
+ */
+export function extractImagePaintFields(paint: ImagePaint, out: Record<string, unknown>): void {
+  if (paint.imageHash) {
+    out["imageRef"] = paint.imageHash;
+    out["imageHash"] = paint.imageHash;
+  }
+  if (paint.scaleMode) out["scaleMode"] = paint.scaleMode;
+  if (paint.scaleMode === "TILE" && typeof paint.scalingFactor === "number") {
+    out["scalingFactor"] = paint.scalingFactor;
+  }
+  if (typeof paint.rotation === "number" && paint.rotation !== 0) out["rotation"] = paint.rotation;
+  if (paint.scaleMode === "CROP" && Array.isArray(paint.imageTransform)) {
+    out["imageTransform"] = paint.imageTransform.map(function (row) {
+      return row.slice();
+    });
+  }
+  if (paint.filters) {
+    const filters: Record<string, number> = {};
+    const source = paint.filters as Record<string, number | undefined>;
+    for (const key of IMAGE_FILTER_KEYS) {
+      const value = source[key];
+      if (typeof value === "number" && value !== 0) filters[key] = value;
+    }
+    if (Object.keys(filters).length > 0) out["filters"] = filters;
+  }
+}
+
 // Extract simplified fills.
 // Returns a single [{type:"MIXED"}] entry when the node has mixed fills, an array
 // (possibly empty) when the node supports fills, and undefined only when the node has
@@ -118,7 +162,7 @@ export function extractFills(node: SceneNode): Record<string, unknown>[] | undef
     ) {
       const gradFill = fill as GradientPaint;
       if (gradFill.gradientStops) {
-        f["gradient"] = {
+        const gradient: Record<string, unknown> = {
           type: fill.type,
           stops: gradFill.gradientStops.map(function (s) {
             return {
@@ -127,17 +171,19 @@ export function extractFills(node: SceneNode): Record<string, unknown>[] | undef
             };
           }),
         };
+        if (fill.type === "GRADIENT_LINEAR") {
+          const size = node as unknown as { width?: number; height?: number };
+          const angle = gradientTransformToCssAngle(gradFill.gradientTransform, size.width, size.height);
+          if (angle !== null) gradient["angle"] = angle;
+        }
+        f["gradient"] = gradient;
       }
     } else if (fill.type === "IMAGE") {
       f["isImage"] = true;
       const imgFill = fill as ImagePaint;
       // imageRef is the legacy key (consumed by figma-to-jsx); imageHash is the
       // Figma API name and is what set_image_fill round-trips on.
-      if (imgFill.imageHash) {
-        f["imageRef"] = imgFill.imageHash;
-        f["imageHash"] = imgFill.imageHash;
-      }
-      if (imgFill.scaleMode) f["scaleMode"] = imgFill.scaleMode;
+      extractImagePaintFields(imgFill, f);
     }
     result.push(f);
   }
@@ -164,11 +210,7 @@ export function extractStrokes(node: SceneNode): Record<string, unknown>[] | und
     } else if (stroke.type === "IMAGE") {
       s["isImage"] = true;
       const imgStroke = stroke as ImagePaint;
-      if (imgStroke.imageHash) {
-        s["imageRef"] = imgStroke.imageHash;
-        s["imageHash"] = imgStroke.imageHash;
-      }
-      if (imgStroke.scaleMode) s["scaleMode"] = imgStroke.scaleMode;
+      extractImagePaintFields(imgStroke, s);
     }
     result.push(s);
   }

@@ -5,8 +5,11 @@ import {
   resolvePaint,
   resolveBackdrop,
   isLargeText,
+  fontWeightFromStyle,
   evaluateTextSample,
   sweepContrast,
+  renderStackAt,
+  textSamplePoints,
   intersectRects,
   findOverlappingSiblings,
   valuesMatch,
@@ -14,6 +17,7 @@ import {
   tokenKeyOf,
   findTokenCollisions,
   type TextSample,
+  type StackNode,
   type OverlapNode,
   type VariableRecord,
 } from "../../../src/videntia_figma_mcp/utils/verification-math";
@@ -180,11 +184,52 @@ describe("resolveBackdrop", () => {
   });
 });
 
-describe("isLargeText", () => {
-  it("counts >=18pt as large", () => expect(isLargeText(18)).toBe(true));
-  it("counts >=14pt bold as large", () => expect(isLargeText(14, 700)).toBe(true));
-  it("does not count 14pt regular as large", () => expect(isLargeText(14, 400)).toBe(false));
-  it("reads boldness from the style name", () => expect(isLargeText(16, undefined, "Bold")).toBe(true));
+describe("isLargeText (Figma sizes are px: 18pt = 24px, 14pt ≈ 18.67px)", () => {
+  it("20px Regular is NOT large", () => expect(isLargeText(20, 400, "Regular")).toBe(false));
+  it("20px with unknown weight is NOT large", () => expect(isLargeText(20)).toBe(false));
+  it("20px Bold is large", () => expect(isLargeText(20, 700, "Bold")).toBe(true));
+  it("24px Regular is large", () => expect(isLargeText(24, 400, "Regular")).toBe(true));
+  it("18px Bold is NOT large", () => expect(isLargeText(18, 700, "Bold")).toBe(false));
+  it("19px Bold is large", () => expect(isLargeText(19, 700, "Bold")).toBe(true));
+  it("18.67px Bold is large", () => expect(isLargeText(18.67, 700)).toBe(true));
+  it("20px SemiBold (600) is NOT large", () => expect(isLargeText(20, undefined, "SemiBold")).toBe(false));
+  it("20px Semi Bold Italic is NOT large", () => expect(isLargeText(20, undefined, "Semi Bold Italic")).toBe(false));
+  it("20px Bold Italic from the style name is large", () =>
+    expect(isLargeText(20, undefined, "Bold Italic")).toBe(true));
+  it("an explicit weight wins over the style name", () => expect(isLargeText(20, 600, "Bold")).toBe(false));
+  it("14px Bold is NOT large", () => expect(isLargeText(14, 700)).toBe(false));
+});
+
+describe("fontWeightFromStyle", () => {
+  it.each([
+    ["Thin", 100],
+    ["Hairline", 100],
+    ["ExtraLight", 200],
+    ["Extra Light", 200],
+    ["UltraLight", 200],
+    ["Light", 300],
+    ["Light Italic", 300],
+    ["Regular", 400],
+    ["Italic", 400],
+    ["Book", 400],
+    ["Medium", 500],
+    ["Medium Italic", 500],
+    ["SemiBold", 600],
+    ["Semi Bold", 600],
+    ["Semibold", 600],
+    ["DemiBold", 600],
+    ["SemiBold Italic", 600],
+    ["Bold", 700],
+    ["Bold Italic", 700],
+    ["Condensed Bold", 700],
+    ["ExtraBold", 800],
+    ["Extra Bold", 800],
+    ["UltraBold", 800],
+    ["Black", 900],
+    ["Black Italic", 900],
+    ["Heavy", 900],
+  ])("%s → %d", (style, weight) => expect(fontWeightFromStyle(style)).toBe(weight));
+  it("returns undefined for a missing style", () => expect(fontWeightFromStyle(undefined)).toBeUndefined());
 });
 
 function sample(over: Partial<TextSample> = {}): TextSample {
@@ -221,6 +266,35 @@ describe("evaluateTextSample", () => {
     expect(f.requiredAA).toBe(4.5);
   });
 
+  it("requires 4.5:1 for 20px Regular text (not large)", () => {
+    // #949494 on white ≈ 3.0:1 — would pass as large text, must fail as body text.
+    const grey = { r: 0.58, g: 0.58, b: 0.58 };
+    const f = evaluateTextSample(sample({ fills: [solid(grey)], fontSize: 20, fontWeight: 400, fontStyle: "Regular" }));
+    expect(f.isLargeText).toBe(false);
+    expect(f.requiredAA).toBe(4.5);
+    expect(f.passAA).toBe(false);
+    expect(f.severity).toBe("error");
+  });
+
+  it("judges each mixed segment by its own size and weight", () => {
+    const grey = { r: 0.58, g: 0.58, b: 0.58 };
+    const f = evaluateTextSample(
+      sample({
+        characters: "AAAABBBBCCCC",
+        fills: [],
+        segments: [
+          { start: 0, end: 4, fontSize: 20, fontStyle: "Regular", fills: [solid(grey)] },
+          { start: 4, end: 8, fontSize: 20, fontStyle: "Bold", fills: [solid(grey)] },
+          { start: 8, end: 12, fontSize: 20, fontStyle: "SemiBold", fills: [solid(grey)] },
+        ],
+      }),
+    );
+    expect(f.segments!.map((s) => s.isLargeText)).toEqual([false, true, false]);
+    expect(f.segments!.map((s) => s.requiredAA)).toEqual([4.5, 3, 4.5]);
+    expect(f.segments!.map((s) => s.passAA)).toEqual([false, true, false]);
+    expect(f.severity).toBe("error");
+  });
+
   it("applies the relaxed large-text threshold", () => {
     const grey = { r: 0.58, g: 0.58, b: 0.58 };
     const f = evaluateTextSample(sample({ fills: [solid(grey)], fontSize: 24 }));
@@ -236,7 +310,7 @@ describe("evaluateTextSample", () => {
     expect(faded.ratio).toBeLessThan(opaque.ratio);
   });
 
-  it("resolves the backdrop through the ancestor stack, not the page", () => {
+  it("resolves the backdrop through the legacy ancestor list (innermost ancestor wins)", () => {
     const f = evaluateTextSample(
       sample({
         fills: [solid(WHITE)],
@@ -250,9 +324,293 @@ describe("evaluateTextSample", () => {
     expect(f.passAA).toBe(true);
   });
 
-  it("notes a missing text fill instead of silently scoring it", () => {
+  it("marks a text node with no visible fill indeterminate instead of assuming black", () => {
     const f = evaluateTextSample(sample({ fills: [] }));
-    expect(f.note).toContain("No resolvable text fill");
+    expect(f.severity).toBe("indeterminate");
+    expect(f.indeterminate).toContain("no visible text fill");
+    expect(f.passAA).toBe(true);
+  });
+
+  it("marks an IMAGE fill on the text indeterminate", () => {
+    const f = evaluateTextSample(sample({ fills: [{ type: "IMAGE" }] }));
+    expect(f.severity).toBe("indeterminate");
+    expect(f.indeterminate).toContain("IMAGE fill on the text");
+  });
+});
+
+// ─────────────────────────────────────────────── full paint-stack rendering ──
+
+const TEXT_BOX = { x: 10, y: 10, width: 80, height: 20 };
+
+function textLeaf(over: Partial<StackNode> = {}): StackNode {
+  return { nodeId: "t", nodeName: "Label", bounds: TEXT_BOX, target: true, ...over };
+}
+
+function page(children: StackNode[], fills = [solid(WHITE)]): StackNode {
+  return { nodeId: "0:1", nodeName: "Page", nodeType: "PAGE", fills, children };
+}
+
+function stackSample(stack: StackNode, over: Partial<TextSample> = {}): TextSample {
+  return {
+    nodeId: "t",
+    nodeName: "Label",
+    characters: "Buy now",
+    fontSize: 14,
+    bounds: TEXT_BOX,
+    fills: [solid(WHITE)],
+    stack,
+    ...over,
+  };
+}
+
+describe("evaluateTextSample with a paint stack", () => {
+  it("uses a sibling shape painted beneath the text (button rectangle + label)", () => {
+    const button: StackNode = {
+      nodeId: "b",
+      nodeName: "Button",
+      nodeType: "GROUP",
+      bounds: { x: 0, y: 0, width: 100, height: 40 },
+      children: [
+        {
+          nodeId: "r",
+          nodeName: "Bg",
+          nodeType: "RECTANGLE",
+          bounds: { x: 0, y: 0, width: 100, height: 40 },
+          fills: [solid(BLACK)],
+        },
+        textLeaf(),
+      ],
+    };
+    const f = evaluateTextSample(stackSample(page([button])));
+    expect(f.background.toLowerCase()).toBe("#000000");
+    expect(f.backgroundSource).toBe("Bg");
+    expect(f.ratio).toBeCloseTo(21, 0);
+    expect(f.severity).toBe("pass");
+  });
+
+  it("uses the page background instead of a hard-coded white", () => {
+    const dark = { r: 0.1, g: 0.1, b: 0.1 };
+    const f = evaluateTextSample(stackSample(page([textLeaf()], [solid(dark)])));
+    expect(f.background.toLowerCase()).toBe("#1a1a1a");
+    expect(f.passAA).toBe(true);
+  });
+
+  it("ignores an ancestor fill that does not cover the sample points", () => {
+    const f = evaluateTextSample(
+      stackSample(
+        page([
+          {
+            nodeId: "x",
+            nodeName: "Faraway",
+            bounds: { x: 500, y: 500, width: 50, height: 50 },
+            fills: [solid(WHITE)],
+          },
+          textLeaf(),
+        ]),
+        { fills: [solid(BLACK)] },
+      ),
+    );
+    expect(f.background.toLowerCase()).toBe("#ffffff");
+    expect(f.backgroundSource).toBe("Page");
+  });
+
+  it("reports the worst of several sample points (sibling covering only the left half)", () => {
+    const half: StackNode = {
+      nodeId: "h",
+      nodeName: "HalfBlack",
+      bounds: { x: 0, y: 0, width: 40, height: 40 },
+      fills: [solid(BLACK)],
+    };
+    // Black text: centre + right sit on white (21:1), the left point sits on black (1:1).
+    const f = evaluateTextSample(stackSample(page([half, textLeaf()]), { fills: [solid(BLACK)] }));
+    expect(f.ratio).toBeCloseTo(1, 1);
+    expect(f.passAA).toBe(false);
+  });
+
+  it("applies group opacity to the text and its backdrop together", () => {
+    const group: StackNode = {
+      nodeId: "g",
+      nodeName: "Faded",
+      nodeType: "GROUP",
+      opacity: 0.5,
+      bounds: { x: 0, y: 0, width: 100, height: 40 },
+      children: [
+        { nodeId: "r", nodeName: "Bg", bounds: { x: 0, y: 0, width: 100, height: 40 }, fills: [solid(BLACK)] },
+        textLeaf(),
+      ],
+    };
+    const f = evaluateTextSample(stackSample(page([group])));
+    // Text pixel = white (0.5 white + 0.5 page white), backdrop = 50% black over white.
+    expect(f.foreground.toLowerCase()).toBe("#ffffff");
+    expect(f.background.toLowerCase()).toBe("#808080");
+    expect(f.ratio).toBeLessThan(4.5);
+  });
+
+  it("does not paint children of a clipping ancestor outside its bounds", () => {
+    const clip: StackNode = {
+      nodeId: "c",
+      nodeName: "Clip",
+      clips: true,
+      bounds: { x: 0, y: 0, width: 100, height: 40 },
+      children: [
+        { nodeId: "o", nodeName: "Overflow", bounds: { x: 0, y: 0, width: 400, height: 400 }, fills: [solid(BLACK)] },
+      ],
+    };
+    const outside = { x: 200, y: 200, width: 80, height: 20 };
+    const f = evaluateTextSample(
+      stackSample(page([clip, textLeaf({ bounds: outside })]), { bounds: outside, fills: [solid(BLACK)] }),
+    );
+    expect(f.background.toLowerCase()).toBe("#ffffff");
+    expect(f.passAA).toBe(true);
+  });
+
+  it("marks text clipped out of view at every point indeterminate", () => {
+    const clip: StackNode = {
+      nodeId: "c",
+      nodeName: "Clip",
+      clips: true,
+      bounds: { x: 0, y: 0, width: 5, height: 5 },
+      children: [textLeaf()],
+    };
+    const f = evaluateTextSample(stackSample(page([clip])));
+    expect(f.severity).toBe("indeterminate");
+    expect(f.indeterminate).toContain("clipped");
+  });
+
+  it("is indeterminate when an image sits behind the text", () => {
+    const photo: StackNode = {
+      nodeId: "p",
+      nodeName: "Hero",
+      bounds: { x: 0, y: 0, width: 200, height: 200 },
+      fills: [{ type: "IMAGE" }],
+    };
+    const f = evaluateTextSample(stackSample(page([photo, textLeaf()])));
+    expect(f.severity).toBe("indeterminate");
+    expect(f.passAA).toBe(true);
+    expect(f.indeterminate).toContain('IMAGE paint on "Hero"');
+  });
+
+  it("is determinate when an opaque layer fully covers the image", () => {
+    const photo: StackNode = {
+      nodeId: "p",
+      nodeName: "Hero",
+      bounds: { x: 0, y: 0, width: 200, height: 200 },
+      fills: [{ type: "IMAGE" }, solid(BLACK)],
+    };
+    const f = evaluateTextSample(stackSample(page([photo, textLeaf()])));
+    expect(f.indeterminate).toBeUndefined();
+    expect(f.severity).toBe("pass");
+  });
+
+  it("stays indeterminate under a translucent scrim over an image", () => {
+    const f = evaluateTextSample(
+      stackSample(
+        page([
+          {
+            nodeId: "p",
+            nodeName: "Hero",
+            bounds: { x: 0, y: 0, width: 200, height: 200 },
+            fills: [{ type: "VIDEO" }],
+          },
+          {
+            nodeId: "s",
+            nodeName: "Scrim",
+            bounds: { x: 0, y: 0, width: 200, height: 200 },
+            fills: [solid(BLACK, 0.4)],
+          },
+          textLeaf(),
+        ]),
+      ),
+    );
+    expect(f.severity).toBe("indeterminate");
+  });
+
+  it("notes a non-normal blend mode as approximate", () => {
+    const f = evaluateTextSample(
+      stackSample(
+        page([
+          {
+            nodeId: "m",
+            nodeName: "Tint",
+            blendMode: "MULTIPLY",
+            bounds: { x: 0, y: 0, width: 100, height: 40 },
+            fills: [solid(BLACK)],
+          },
+          textLeaf(),
+        ]),
+      ),
+    );
+    expect(f.note).toContain("MULTIPLY");
+  });
+
+  it("scores mixed-style text per segment and reports the worst one", () => {
+    const grey = { r: 0.7, g: 0.7, b: 0.7 };
+    const f = evaluateTextSample(
+      stackSample(page([textLeaf()]), {
+        characters: "Total: $10",
+        fills: [],
+        segments: [
+          { start: 0, end: 7, characters: "Total: ", fontSize: 14, fills: [solid(BLACK)] },
+          { start: 7, end: 10, characters: "$10", fontSize: 24, fontWeight: 700, fills: [solid(grey)] },
+        ],
+      }),
+    );
+    expect(f.segments).toHaveLength(2);
+    expect(f.segments![0].passAA).toBe(true);
+    // #b3b3b3 on white ≈ 2.1:1 — fails even the large-text threshold.
+    expect(f.segments![1].isLargeText).toBe(true);
+    expect(f.segments![1].passAA).toBe(false);
+    expect(f.ratio).toBe(f.segments![1].ratio);
+    expect(f.fontSize).toBe(24);
+    expect(f.severity).toBe("error");
+  });
+
+  it("does not read mixed text as black when every segment is white on dark", () => {
+    const f = evaluateTextSample(
+      stackSample(page([textLeaf()], [solid(BLACK)]), {
+        fills: [],
+        segments: [
+          { start: 0, end: 3, fontSize: 14, fills: [solid(WHITE)] },
+          { start: 3, end: 6, fontSize: 14, fills: [solid({ r: 0.9, g: 0.9, b: 0.9 })] },
+        ],
+      }),
+    );
+    expect(f.passAA).toBe(true);
+    expect(f.foreground.toLowerCase()).not.toBe("#000000");
+  });
+
+  it("keeps a definite segment failure even when another segment is indeterminate", () => {
+    const f = evaluateTextSample(
+      stackSample(page([textLeaf()]), {
+        fills: [],
+        segments: [
+          { start: 0, end: 3, fontSize: 14, fills: [{ type: "IMAGE" }] },
+          { start: 3, end: 6, fontSize: 14, fills: [solid({ r: 0.8, g: 0.8, b: 0.8 })] },
+        ],
+      }),
+    );
+    expect(f.severity).toBe("error");
+    expect(f.indeterminate).toContain("IMAGE");
+  });
+});
+
+describe("renderStackAt", () => {
+  it("reports whether the target was reached", () => {
+    const stack = page([textLeaf()]);
+    expect(renderStackAt(stack, { x: 50, y: 20 }, null).hit).toBe(true);
+    expect(renderStackAt(stack, { x: 500, y: 20 }, null).hit).toBe(false);
+  });
+});
+
+describe("textSamplePoints", () => {
+  it("samples the centre and four points inside the box", () => {
+    const pts = textSamplePoints({ x: 0, y: 0, width: 100, height: 20 });
+    expect(pts).toHaveLength(5);
+    expect(pts[0]).toEqual({ x: 50, y: 10 });
+    for (const p of pts) {
+      expect(p.x).toBeGreaterThan(0);
+      expect(p.x).toBeLessThan(100);
+    }
   });
 });
 
@@ -265,8 +623,14 @@ describe("sweepContrast", () => {
     expect(report.failingAAA).toBe(1);
   });
 
+  it("counts indeterminate nodes separately from failures", () => {
+    const report = sweepContrast([sample(), sample({ nodeId: "2:2", fills: [{ type: "IMAGE" }] })]);
+    expect(report.failingAA).toBe(0);
+    expect(report.indeterminate).toBe(1);
+  });
+
   it("handles an empty frame", () => {
-    expect(sweepContrast([])).toEqual({ total: 0, failingAA: 0, failingAAA: 0, findings: [] });
+    expect(sweepContrast([])).toEqual({ total: 0, failingAA: 0, failingAAA: 0, indeterminate: 0, findings: [] });
   });
 });
 

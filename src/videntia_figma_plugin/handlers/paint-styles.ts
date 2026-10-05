@@ -1,6 +1,11 @@
 // Figma MCP plugin.
 
-import { resolveColor, parseHexColor } from "./fills";
+import { resolveColor } from "./fills";
+import {
+  linearGradientTransform,
+  resolveCssAngle,
+  sortGradientStops,
+} from "../../videntia_figma_mcp/utils/gradient-geometry";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -9,10 +14,9 @@ import { resolveColor, parseHexColor } from "./fills";
 /**
  * Build a gradient paint from params.gradient object.
  */
-function buildGradientPaint(gradient: Record<string, unknown>): GradientPaint {
+export function buildGradientPaint(gradient: Record<string, unknown>): GradientPaint {
   var gradientType = gradient["type"] as string;
   var stops = gradient["stops"] as Array<Record<string, unknown>>;
-  var angle = gradient["angle"] !== undefined ? (gradient["angle"] as number) : 0;
   var opacity = gradient["opacity"] !== undefined ? (gradient["opacity"] as number) : 1;
 
   var validTypes = ["LINEAR", "RADIAL", "ANGULAR", "DIAMOND"];
@@ -24,43 +28,38 @@ function buildGradientPaint(gradient: Record<string, unknown>): GradientPaint {
     throw new Error("gradient.stops must be an array with at least 2 stops");
   }
 
-  var figmaStops: ColorStop[] = stops.map(function (stop) {
-    var colorStr = stop["color"] as string;
-    var parsed = parseHexColor(colorStr);
-    if (!parsed) {
-      throw new Error("Invalid hex color in gradient stop: " + colorStr);
+  var figmaStops: ColorStop[] = stops.map(function (stop, index) {
+    var raw = stop !== null && typeof stop === "object" ? stop : {};
+    var parsed: { r: number; g: number; b: number; a: number };
+    try {
+      parsed = resolveColor(raw["color"] !== undefined ? { color: raw["color"] } : raw);
+    } catch (e) {
+      throw new Error("gradient.stops[" + index + "].color: " + (e instanceof Error ? e.message : String(e)));
+    }
+    var position = Number(raw["position"]);
+    if (!isFinite(position)) {
+      throw new Error("gradient.stops[" + index + "].position must be a number 0-1");
     }
     return {
       color: { r: parsed.r, g: parsed.g, b: parsed.b, a: parsed.a },
-      position: stop["position"] as number,
+      position: position,
     };
   });
 
-  // Build transform matrix — same logic as setGradientFill in fills.ts
-  var angleRad = (angle * Math.PI) / 180;
-  var cos = Math.cos(angleRad);
-  var sin = Math.sin(angleRad);
-  var cx = 0.5;
-  var cy = 0.5;
-  var startX = cx - cos * 0.5;
-  var startY = cy - sin * 0.5;
-
-  var gradientTransform: Transform;
-  if (gradientType === "LINEAR") {
-    gradientTransform = [
-      [cos, sin, startX],
-      [-sin, cos, startY],
-    ];
-  } else {
-    gradientTransform = [
-      [1, 0, 0],
-      [0, 1, 0],
-    ];
-  }
+  // Styles have no node dimensions: the CSS angle is measured in the unit square.
+  var gradientTransform: Transform =
+    gradientType === "LINEAR"
+      ? (linearGradientTransform(
+          resolveCssAngle({ angle: gradient["angle"], direction: gradient["direction"] }),
+        ) as Transform)
+      : [
+          [1, 0, 0],
+          [0, 1, 0],
+        ];
 
   return {
     type: ("GRADIENT_" + gradientType) as GradientPaint["type"],
-    gradientStops: figmaStops,
+    gradientStops: sortGradientStops(figmaStops),
     gradientTransform: gradientTransform,
     opacity: opacity,
   } as GradientPaint;

@@ -111,7 +111,7 @@ describe("silent write failures", () => {
         ],
       });
       expect(wire().gradientType).toBe("RADIAL");
-      expect(wire().angle).toBe(0);
+      expect(wire().angle).toBe(180);
       expect(wire().opacity).toBe(1);
     });
 
@@ -127,7 +127,7 @@ describe("silent write failures", () => {
       expect(wire()).toMatchObject({
         nodeId: "1:1",
         gradientType: "LINEAR",
-        angle: 0,
+        angle: 180,
         opacity: 1,
         aspect_correct: true,
       });

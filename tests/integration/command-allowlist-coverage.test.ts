@@ -1,5 +1,6 @@
 import { readFileSync } from "fs";
 import { join } from "path";
+import { BROWSER_READONLY_COMMANDS, READONLY_COMMANDS } from "../../src/videntia_figma_mcp/utils/readonly-commands";
 
 /**
  * The plugin's command lists are not tied together, and NOTHING fails at compile
@@ -12,6 +13,7 @@ import { join } from "path";
  *
  * These read the source lists directly (the same technique capabilities-manifest
  * uses) so every future command is covered, not just the ones added today.
+ * READONLY_COMMANDS lives in a module shared with the server, so it is imported.
  */
 const root = join(__dirname, "../../src/videntia_figma_plugin");
 const pluginIndex = readFileSync(join(root, "index.ts"), "utf8");
@@ -55,7 +57,7 @@ function dispatchedCommands(): string[] {
 }
 
 const ALLOWED = setMembers(uiConstants, "ALLOWED_COMMANDS");
-const READONLY = setMembers(pluginIndex, "READONLY_COMMANDS");
+const READONLY = READONLY_COMMANDS;
 
 describe("plugin command allowlist coverage", () => {
   it("parses non-trivial lists", () => {
@@ -63,6 +65,20 @@ describe("plugin command allowlist coverage", () => {
     expect(ALLOWED.size).toBeGreaterThan(100);
     expect(READONLY.size).toBeGreaterThan(20);
     expect(dispatchedCommands().length).toBeGreaterThan(100);
+  });
+
+  it("lists only commands the plugin dispatches as read-only", () => {
+    // A typo here silently drops a read from readonly mode AND from the server's
+    // retry-after-drop allowlist.
+    const dispatched = new Set(dispatchedCommands());
+    expect([...READONLY].filter((command) => !dispatched.has(command))).toEqual([]);
+  });
+
+  it("lists only real browser commands as read-only", () => {
+    const union = figmaCommandTypes.match(/export type BrowserCommand =([\s\S]*?);/);
+    if (!union) throw new Error("Could not locate the BrowserCommand union");
+    const members = new Set(Array.from(union[1].matchAll(/"([a-z0-9_]+)"/g), (m) => m[1]));
+    expect([...BROWSER_READONLY_COMMANDS].filter((command) => !members.has(command))).toEqual([]);
   });
 
   it("allows every command the plugin dispatches", () => {

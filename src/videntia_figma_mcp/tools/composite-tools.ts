@@ -4,6 +4,7 @@ import { sendCommandToFigma } from "../utils/websocket";
 import { normalizeNodeId } from "../utils/figma-helpers.js";
 import { expandPadding, paddingShorthandSchema, PADDING_SHORTHAND_DESCRIPTION } from "../utils/frame-layout.js";
 import { ColorInputSchema } from "../utils/color-input.js";
+import { parentRelativePositionDescription } from "../utils/position-docs.js";
 
 /**
  * Composite tools — single-round-trip versions of the multi-call sequences that
@@ -44,8 +45,8 @@ export function registerCompositeTools(server: McpServer): void {
     "create_autolayout_frame",
     "Alias of the one-call `create_frame` form — both spellings do the same thing, so use whichever you reach for. PREFERRED over create_frame + set_layout_mode + set_padding + set_item_spacing + set_layout_sizing + set_fill_color + set_corner_radius. Creates a frame and applies auto-layout, padding, spacing, sizing, fill and corner radius in ONE round trip, in the order Figma actually requires (layout mode before padding/spacing, parenting before FILL sizing). Fill and radius accept either a design-token name (bound as a variable) or a raw value. Use this for every container you build.",
     {
-      x: z.coerce.number().optional().describe("X position (default 0). Ignored inside an auto-layout parent."),
-      y: z.coerce.number().optional().describe("Y position (default 0). Ignored inside an auto-layout parent."),
+      x: z.coerce.number().optional().describe(parentRelativePositionDescription("X", "default 0")),
+      y: z.coerce.number().optional().describe(parentRelativePositionDescription("Y", "default 0")),
       width: z.coerce.number().optional().describe("Width in pixels (default 100)"),
       height: z.coerce.number().optional().describe("Height in pixels (default 100)"),
       name: z.string().optional().describe("Layer name (default 'Frame')"),
@@ -163,8 +164,8 @@ export function registerCompositeTools(server: McpServer): void {
     "PREFERRED over load_font_async + create_text + apply_text_style + set_fill_color / bind_variable. Creates a text node with its font ALREADY loaded (the usual trip-up), applies a text style by name, and binds or sets the text colour — all in one round trip. Never call load_font_async before this; it is handled internally.",
     {
       text: z.string().describe("The text content"),
-      x: z.coerce.number().optional().describe("X position (default 0)"),
-      y: z.coerce.number().optional().describe("Y position (default 0)"),
+      x: z.coerce.number().optional().describe(parentRelativePositionDescription("X", "default 0")),
+      y: z.coerce.number().optional().describe(parentRelativePositionDescription("Y", "default 0")),
       name: z.string().optional().describe("Layer name (defaults to the text content)"),
       parentId: z.string().optional().describe("Parent frame/group id to append into"),
       textStyle: z
@@ -230,8 +231,8 @@ export function registerCompositeTools(server: McpServer): void {
     "create_card",
     "Create a card — the most repeated shape in any UI file — with the house surface fill, corner radius, shadow and padding already applied, in ONE round trip. PREFERRED over create_frame + fill + radius + effect style + padding. Defaults come from the ROLE_PRESETS 'card' preset; any parameter you pass overrides them. Falls back to literal values when the design tokens are missing from the file.",
     {
-      x: z.coerce.number().optional().describe("X position (default 0)"),
-      y: z.coerce.number().optional().describe("Y position (default 0)"),
+      x: z.coerce.number().optional().describe(parentRelativePositionDescription("X", "default 0")),
+      y: z.coerce.number().optional().describe(parentRelativePositionDescription("Y", "default 0")),
       width: z.coerce.number().optional().describe("Width in pixels (default 320)"),
       height: z.coerce.number().optional().describe("Height in pixels (default 160)"),
       name: z.string().optional().describe("Layer name (default 'Card')"),
@@ -397,8 +398,8 @@ export function registerCompositeTools(server: McpServer): void {
         .array(
           z.object({
             text: z.string().describe("The text content"),
-            x: z.coerce.number().optional().describe("X position (default 0). Ignored inside an auto-layout parent."),
-            y: z.coerce.number().optional().describe("Y position (default 0)"),
+            x: z.coerce.number().optional().describe(parentRelativePositionDescription("X", "default 0")),
+            y: z.coerce.number().optional().describe(parentRelativePositionDescription("Y", "default 0")),
             name: z.string().optional().describe("Layer name (defaults to the text content)"),
             parentId: z.string().optional().describe("Override the shared parentId for this item"),
             textStyle: z
@@ -448,8 +449,8 @@ export function registerCompositeTools(server: McpServer): void {
         .array(
           z.object({
             svgString: z.string().describe("The SVG markup string (must start with <svg or <?xml)"),
-            x: z.coerce.number().optional().describe("X position (default 0)"),
-            y: z.coerce.number().optional().describe("Y position (default 0)"),
+            x: z.coerce.number().optional().describe(parentRelativePositionDescription("X", "default 0")),
+            y: z.coerce.number().optional().describe(parentRelativePositionDescription("Y", "default 0")),
             name: z.string().optional().describe("Name for the created node"),
             parentId: z.string().optional().describe("Override the shared parentId for this item"),
             flatten: z.boolean().optional().describe("Merge all SVG paths into one vector node (default false)"),

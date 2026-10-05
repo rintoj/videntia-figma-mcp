@@ -306,6 +306,7 @@ export function registerDocumentationTools(server: McpServer): void {
             const written = await writeExportToPath(targetPath, processed.base64);
             setCachedExport(cacheKey, {
               path: written.path,
+              contentHash: written.sha256,
               width,
               height,
               bytes: written.bytes,

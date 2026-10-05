@@ -1,7 +1,13 @@
 // Figma MCP plugin.
 
-import { debugLog, sendProgressUpdate, getFontStyle } from "../utils/helpers";
+import { debugLog, sendProgressUpdate } from "../utils/helpers";
+import { resolveAndLoadFontStyle, resolveAndLoadFontWeight } from "../utils/font-style";
 import { parseSvgRootStroke, propagateStrokeToShapes } from "../utils/svg";
+import {
+  linearGradientTransform,
+  resolveCssAngle,
+  sortGradientStops,
+} from "../../videntia_figma_mcp/utils/gradient-geometry";
 
 // ---------------------------------------------------------------------------
 // Internal helpers (shared by createFromData / setupDesignSystem)
@@ -62,8 +68,11 @@ function parseOpacity(colorStr: string | undefined): number {
   return 1;
 }
 
-/** Build a Figma paint from a serialised fill descriptor. */
-function buildFigmaPaint(fillData: Record<string, unknown>): Paint {
+/**
+ * Build a Figma paint from a serialised fill descriptor. `width`/`height` are the
+ * node's size, used to aspect-correct a LINEAR gradient's CSS angle / direction.
+ */
+export function buildFigmaPaint(fillData: Record<string, unknown>, width?: number, height?: number): Paint {
   const gradient = fillData["gradient"] as Record<string, unknown> | undefined;
   if (gradient) {
     const rawStops = (gradient["stops"] as Array<Record<string, unknown>>) || [];
@@ -74,13 +83,22 @@ function buildFigmaPaint(fillData: Record<string, unknown>): Paint {
         position: s["position"] as number,
       };
     });
+    const type = gradient["type"] as GradientPaint["type"];
+    const gradientTransform: Transform =
+      type === "GRADIENT_LINEAR"
+        ? (linearGradientTransform(
+            resolveCssAngle({ angle: gradient["angle"], direction: gradient["direction"] }, width, height),
+            width,
+            height,
+          ) as Transform)
+        : [
+            [1, 0, 0],
+            [0, 1, 0],
+          ];
     return {
-      type: gradient["type"] as GradientPaint["type"],
-      gradientStops: stops,
-      gradientTransform: [
-        [1, 0, 0],
-        [0, 1, 0],
-      ] as Transform,
+      type,
+      gradientStops: sortGradientStops(stops),
+      gradientTransform,
       visible: true,
     } as GradientPaint;
   }
@@ -382,11 +400,8 @@ export async function createFromData(params: Record<string, unknown>): Promise<R
               const family = nodeData["fontFamily"] !== undefined ? (nodeData["fontFamily"] as string) : "Inter";
               const weight = nodeData["fontWeight"] !== undefined ? (nodeData["fontWeight"] as number) : 400;
               try {
-                await figma.loadFontAsync({
-                  family,
-                  style: getFontStyle(weight),
-                });
-                textNode.fontName = { family, style: getFontStyle(weight) };
+                const style = await resolveAndLoadFontWeight(family, weight, "update text node");
+                textNode.fontName = { family, style };
               } catch (e) {
                 try {
                   await figma.loadFontAsync({
@@ -419,8 +434,8 @@ export async function createFromData(params: Record<string, unknown>): Promise<R
       const family = nodeData["fontFamily"] !== undefined ? (nodeData["fontFamily"] as string) : "Inter";
       const weight = nodeData["fontWeight"] !== undefined ? (nodeData["fontWeight"] as number) : 400;
       try {
-        await figma.loadFontAsync({ family, style: getFontStyle(weight) });
-        textNode.fontName = { family, style: getFontStyle(weight) };
+        const style = await resolveAndLoadFontWeight(family, weight, "create text node");
+        textNode.fontName = { family, style };
       } catch (e) {
         try {
           await figma.loadFontAsync({ family: "Inter", style: "Regular" });
@@ -711,13 +726,13 @@ export async function createFromData(params: Record<string, unknown>): Promise<R
     // Fills
     const fills = nodeData["fills"] as Array<Record<string, unknown>> | undefined;
     if (fills && fills.length > 0) {
-      (n as GeometryMixin).fills = fills.map((f) => buildFigmaPaint(f));
+      (n as GeometryMixin).fills = fills.map((f) => buildFigmaPaint(f, nLayout.width, nLayout.height));
     }
 
     // Strokes
     const strokes = nodeData["strokes"] as Array<Record<string, unknown>> | undefined;
     if (strokes && strokes.length > 0) {
-      (n as GeometryMixin).strokes = strokes.map((s) => buildFigmaPaint(s));
+      (n as GeometryMixin).strokes = strokes.map((s) => buildFigmaPaint(s, nLayout.width, nLayout.height));
     }
     if (nodeData["strokeWeight"]) {
       (n as GeometryMixin).strokeWeight = nodeData["strokeWeight"] as number;
@@ -1188,8 +1203,11 @@ export async function setupDesignSystem(params: Record<string, unknown>): Promis
       const tsDef = inputTextStyles[ti];
       try {
         const fontFamily = tsDef["fontFamily"] !== undefined ? (tsDef["fontFamily"] as string) : "Inter";
-        const fontStyle = tsDef["fontStyle"] !== undefined ? (tsDef["fontStyle"] as string) : "Regular";
-        await figma.loadFontAsync({ family: fontFamily, style: fontStyle });
+        const fontStyle = await resolveAndLoadFontStyle(
+          fontFamily,
+          tsDef["fontStyle"] !== undefined ? (tsDef["fontStyle"] as string) : "Regular",
+          `text style "${String(tsDef["name"])}"`,
+        );
 
         const existingTs = tsByName[tsDef["name"] as string];
         if (existingTs) {

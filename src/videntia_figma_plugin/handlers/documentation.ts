@@ -1,6 +1,8 @@
 // Documentation handlers — enumerate frames, map flows, bulk export, content tree
 
 import { computeSubtreeHash } from "../utils/subtree-hash";
+import { awaitSubtreeImagesReady } from "../utils/image-readiness";
+import { collectAnnotationGroups } from "./annotations";
 
 function getParam<T>(params: Record<string, unknown>, key: string, defaultVal: T): T {
   const p = params !== null && params !== undefined ? params[key] : undefined;
@@ -165,6 +167,7 @@ export async function bulkExportFrames(params: Record<string, unknown>): Promise
     };
 
     try {
+      await awaitSubtreeImagesReady(node as unknown as BaseNode);
       const bytes = await exportNode.exportAsync({
         format,
         constraint: scale !== 1 ? { type: "SCALE", value: scale } : undefined,
@@ -359,52 +362,21 @@ interface FigmaWithComments {
   >;
 }
 
-type AnnotatableNode = BaseNode & {
-  readonly annotations: ReadonlyArray<{
-    label?: string;
-    labelMarkdown?: string;
-    categoryId?: string;
-    properties?: unknown[];
-  }>;
-};
-
-function isAnnotatable(node: BaseNode): boolean {
-  return [
-    "FRAME",
-    "COMPONENT",
-    "COMPONENT_SET",
-    "INSTANCE",
-    "SLOT",
-    "RECTANGLE",
-    "ELLIPSE",
-    "VECTOR",
-    "LINE",
-    "POLYGON",
-    "STAR",
-    "TEXT",
-  ].includes(node.type);
-}
-
 async function collectAnnotations(node: BaseNode): Promise<Record<string, unknown>[]> {
+  const { groups } = await collectAnnotationGroups(node, { includeChildren: true });
   const results: Record<string, unknown>[] = [];
-  if (isAnnotatable(node)) {
-    const annotatable = node as unknown as AnnotatableNode;
-    const anns = Array.from(annotatable.annotations || []);
-    for (const ann of anns) {
+  for (const group of groups) {
+    for (const ann of group.annotations) {
       results.push({
-        nodeId: node.id,
-        nodeName: node.name,
-        nodeType: node.type,
-        label: ann.label ?? "",
-        labelMarkdown: ann.labelMarkdown ?? "",
-        categoryId: ann.categoryId,
-        properties: ann.properties,
+        nodeId: group.nodeId,
+        nodeName: group.nodeName,
+        nodeType: group.nodeType,
+        index: ann["index"],
+        label: ann["label"],
+        labelMarkdown: ann["labelMarkdown"],
+        categoryId: ann["categoryId"],
+        properties: ann["properties"],
       });
-    }
-  }
-  if ("children" in node) {
-    for (const child of (node as FrameNode).children) {
-      results.push(...(await collectAnnotations(child)));
     }
   }
   return results;

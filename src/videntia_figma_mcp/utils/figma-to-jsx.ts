@@ -504,9 +504,12 @@ function buildStyleAttribute(node: FigmaNodeData): Record<string, string> | null
   );
   if (gradientFill?.gradient) {
     const g = gradientFill.gradient;
-    const stops = g.stops.map((s) => `${s.color} ${Math.round(s.position * 100)}%`).join(", ");
+    const stops = g.stops.map((s) => `${s.color} ${Math.round(s.position * 10000) / 100}%`).join(", ");
     if (g.type === "GRADIENT_LINEAR") {
-      style.background = `linear-gradient(${stops})`;
+      // CSS default is 180deg (to bottom); only spell out other angles.
+      const angle = typeof g.angle === "number" && isFinite(g.angle) ? g.angle : undefined;
+      const prefix = angle !== undefined && Math.abs(angle - 180) > 0.01 ? `${angle}deg, ` : "";
+      style.background = `linear-gradient(${prefix}${stops})`;
     } else if (g.type === "GRADIENT_RADIAL") {
       style.background = `radial-gradient(${stops})`;
     }
@@ -518,6 +521,8 @@ function buildStyleAttribute(node: FigmaNodeData): Record<string, string> | null
   if (firstImageFill?.imageRef) {
     style.backgroundImage = `url(${firstImageFill.imageRef})`;
   }
+  if (firstImageFill?.scaleMode === "TILE") style.backgroundRepeat = "repeat";
+  else if (firstImageFill?.scaleMode === "FIT") style.backgroundSize = "contain";
 
   // SVG fill → fill CSS property (not bg-)
   if (node.type === "VECTOR" || node.type === "LINE") {
@@ -749,6 +754,16 @@ function nodeToAst(node: FigmaNodeData, parentLayoutMode?: string): t.JSXElement
 
   if (style) {
     attrs.push(buildStyleAstAttr(style));
+  }
+
+  // Image paint scale — CSS has no "multiple of the image's natural size", so the
+  // Figma values are carried as attributes (read-only; not parsed back).
+  const imageFill = visiblePaints(node.fills).find((f) => f.isImage);
+  if (imageFill?.scaleMode && imageFill.scaleMode !== "FILL") {
+    attrs.push(t.jsxAttribute(t.jsxIdentifier("imageScaleMode"), t.stringLiteral(imageFill.scaleMode)));
+  }
+  if (imageFill?.scaleMode === "TILE" && typeof imageFill.scalingFactor === "number") {
+    attrs.push(t.jsxAttribute(t.jsxIdentifier("imageScalingFactor"), t.stringLiteral(String(imageFill.scalingFactor))));
   }
 
   // Text wrapping behaviour (WIDTH_AND_HEIGHT = single line, HEIGHT = wraps, NONE = fixed box)

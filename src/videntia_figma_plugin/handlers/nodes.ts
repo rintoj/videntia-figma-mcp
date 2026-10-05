@@ -1,8 +1,9 @@
 import { customBase64Encode } from "../utils/base64";
 import { resolveStrict } from "../utils/write-verify";
-import { debugLog, describeError, loadTextNodeFonts, parseNum } from "../utils/helpers";
+import { absolutePosition, debugLog, describeError, loadTextNodeFonts, parseNum } from "../utils/helpers";
 import { selectAndFocusNode } from "../utils/plugin-state";
 import { computeSubtreeHash } from "../utils/subtree-hash";
+import { awaitSubtreeImagesReady } from "../utils/image-readiness";
 import { resolveColor } from "./fills";
 
 function getParam<T>(params: Record<string, unknown>, key: string, defaultVal: T): T {
@@ -68,6 +69,7 @@ export async function createRectangle(params: Record<string, unknown>): Promise<
     name: rect.name,
     x: rect.x,
     y: rect.y,
+    ...absolutePosition(rect),
     width: rect.width,
     height: rect.height,
     cornerRadius: typeof rect.cornerRadius === "number" ? rect.cornerRadius : "MIXED",
@@ -240,6 +242,7 @@ export async function createFrame(params: Record<string, unknown>): Promise<Reco
     name: frame.name,
     x: frame.x,
     y: frame.y,
+    ...absolutePosition(frame),
     width: frame.width,
     height: frame.height,
     fills: frame.fills,
@@ -624,6 +627,9 @@ export async function exportNodeAsImage(params: Record<string, unknown>): Promis
       constraint: { type: "SCALE", value: finalScale },
     } as ExportSettings;
 
+    // An image fill assigned moments ago (e.g. earlier in the same batch) can still be
+    // loading — exporting then renders the paint blank.
+    await awaitSubtreeImagesReady(node);
     const bytes = (await (node as FrameNode).exportAsync(settings)) as Uint8Array;
 
     // Use a local string variable so the switch is not narrowed to the literal type 'PNG'

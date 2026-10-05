@@ -38,7 +38,7 @@ function textResult(payload: unknown) {
 export function registerBrowserControlTools(server: McpServer): void {
   server.tool(
     "list_connected_browsers",
-    "List every browser (Chrome profile) currently connected to the relay, with its id, label, and connection time. Call this FIRST in any browser workflow: when more than one browser is connected, every subsequent browser call must pass browser_id to pick one, otherwise the relay rejects the command as ambiguous. Labels default to Chrome-<id6> and can be edited in the extension popup.",
+    "List every browser (Chrome profile) currently connected to the relay, with its id, label, kind, and connection time. Call this FIRST in any browser workflow: when more than one browser is connected, every subsequent browser call must pass browser_id to pick one, otherwise the relay rejects the command as ambiguous. kind is 'extension' (personal browser via the Videntia Browser Connect extension) or 'driver' (headless automation). Labels default to Chrome-<id6> and can be edited in the extension popup.",
     {},
     async () => {
       let browsers: Awaited<ReturnType<typeof listConnectedBrowsers>> = [];

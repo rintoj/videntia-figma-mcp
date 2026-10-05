@@ -2,6 +2,14 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { sendCommandToFigma } from "../utils/websocket.js";
 import { browserIdSchema, sendBrowserCommand, tabIdSchema } from "./browser-channel.js";
+import { resolveExportDestination, writeExportToPath } from "../utils/export-image-post.js";
+
+/** Width/height from a PNG's IHDR chunk, or undefined when the payload is not a PNG. */
+function pngDimensions(base64: string): { width: number; height: number } | undefined {
+  const header = Buffer.from(base64.slice(0, 32), "base64");
+  if (header.length < 24 || header.readUInt32BE(0) !== 0x89504e47) return undefined;
+  return { width: header.readUInt32BE(16), height: header.readUInt32BE(20) };
+}
 
 export function registerBrowserTools(server: McpServer): void {
   server.tool(
@@ -24,22 +32,71 @@ export function registerBrowserTools(server: McpServer): void {
 
   server.tool(
     "get_browser_page_screenshot",
-    "Take a screenshot of a browser tab. Uses debugger-based capture, so the tab does NOT need to be focused — pass tab_id to screenshot a background tab while the user works elsewhere. Targets the pinned/active tab when tab_id is omitted. Set full_page to capture beyond the viewport (entire scrollable page). Returns a PNG image. Requires the Figma Overlay Chrome extension.",
+    "Take a screenshot of a browser tab. Uses debugger-based capture, so the tab does NOT need to be focused — pass tab_id to screenshot a background tab while the user works elsewhere. Targets the pinned/active tab when tab_id is omitted. Set full_page to capture beyond the viewport (entire scrollable page). Returns a PNG image inline, or — with save_to_path / output_directory — writes the PNG to disk and returns only {path,width,height,bytes,format}. Prefer saving for full-page captures, which are too large to inline cheaply. Requires the Figma Overlay Chrome extension.",
     {
       full_page: z
         .boolean()
         .optional()
         .default(false)
         .describe("Capture the full scrollable page instead of just the visible viewport."),
+      save_to_path: z
+        .string()
+        .optional()
+        .describe(
+          "Absolute file path to write the PNG to (parent directory must exist; overwrites). Returns metadata instead of the image.",
+        ),
+      output_directory: z
+        .string()
+        .optional()
+        .describe(
+          "Absolute directory to write the PNG into; created when missing. File name defaults to browser-screenshot-<tab>-<timestamp>.png unless `filename` is given. Ignored (with a warning) when `save_to_path` is also passed.",
+        ),
+      filename: z
+        .string()
+        .optional()
+        .describe(
+          "File name for the PNG (no path separators); `.png` is appended when missing. Used with `output_directory`; falls back to the session temp directory when that is omitted.",
+        ),
       tab_id: tabIdSchema,
       browser_id: browserIdSchema,
     },
-    async ({ full_page, tab_id, browser_id }) => {
+    async ({ full_page, save_to_path, output_directory, filename, tab_id, browser_id }) => {
       const result = await sendBrowserCommand<{ imageData: string; mimeType: string }>("get_page_screenshot", {
         browserId: browser_id,
         tabId: tab_id,
         fullPage: full_page,
       });
+      if (save_to_path || output_directory || filename) {
+        const destination = await resolveExportDestination({
+          saveToPath: save_to_path,
+          outputDirectory: output_directory,
+          filename: save_to_path
+            ? filename
+            : filename || `browser-screenshot-${tab_id ?? "active"}-${new Date().toISOString().replace(/[:.]/g, "-")}`,
+          nodeId: "",
+          scale: 1,
+          format: "PNG",
+        });
+        const written = await writeExportToPath(destination.path, result.imageData);
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify(
+                {
+                  path: written.path,
+                  ...pngDimensions(result.imageData),
+                  bytes: written.bytes,
+                  format: "PNG",
+                  ...(destination.warnings.length ? { warnings: destination.warnings } : {}),
+                },
+                null,
+                2,
+              ),
+            },
+          ],
+        };
+      }
       return {
         content: [{ type: "image", data: result.imageData, mimeType: result.mimeType }],
       };

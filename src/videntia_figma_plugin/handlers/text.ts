@@ -4,11 +4,19 @@ import {
   uniqBy,
   delay,
   generateCommandId,
-  getFontStyle,
   parseNum,
   loadTextNodeFonts,
   describeError,
+  absolutePosition,
 } from "../utils/helpers";
+import {
+  fontStyleCandidates,
+  matchFontStyle,
+  listFontStylesForFamily,
+  resolveAndLoadFontStyle,
+  resolveAndLoadFontWeight,
+  styleNameForWeight,
+} from "../utils/font-style";
 import { guardParentSize, resolveSideEffectAllowance, resolveStrict, snapshotParentSize } from "../utils/write-verify";
 import { resolveColor } from "./fills";
 import { resolveColorVariable } from "./icons";
@@ -34,86 +42,9 @@ function readTextAlign<T extends string>(
   return value as T;
 }
 
-// ---------------------------------------------------------------------------
-// Font style resolution
-// ---------------------------------------------------------------------------
-//
-// Figma font faces are named per-family and the spelling is NOT consistent:
-// some families ship "Semi Bold", others "SemiBold". Normalising to one spelling
-// (as this code used to) makes `set_font_name`/`set_font_weight` fail on every
-// family that uses the other one. Instead, generate BOTH spellings (plus the
-// caller's own) and pick whichever `loadFontAsync` actually accepts.
-
-const FIGMA_STYLE_MAP: Record<string, string> = {
-  thin: "Thin",
-  extralight: "Extra Light",
-  ultralight: "Extra Light",
-  light: "Light",
-  regular: "Regular",
-  normal: "Regular",
-  medium: "Medium",
-  semibold: "Semi Bold",
-  demibold: "Semi Bold",
-  bold: "Bold",
-  extrabold: "Extra Bold",
-  ultrabold: "Extra Bold",
-  black: "Black",
-  heavy: "Black",
-  thinitalic: "Thin Italic",
-  extralightitalic: "Extra Light Italic",
-  lightitalic: "Light Italic",
-  italic: "Italic",
-  mediumitalic: "Medium Italic",
-  semibolditalic: "Semi Bold Italic",
-  bolditalic: "Bold Italic",
-  extrabolditalic: "Extra Bold Italic",
-  blackitalic: "Black Italic",
-};
-
-/**
- * All plausible Figma face names for a requested style, most-likely first.
- * e.g. "SemiBold" -> ["SemiBold", "Semi Bold"]; "Semi Bold" -> ["Semi Bold", "SemiBold"].
- */
-export function fontStyleCandidates(requested: string): string[] {
-  const out: string[] = [];
-  const push = (value: string | undefined): void => {
-    if (value !== undefined && value !== null && value !== "" && out.indexOf(value) === -1) out.push(value);
-  };
-  const raw = String(requested).trim();
-  push(raw);
-  const compact = raw.replace(/\s+/g, "");
-  const mapped = FIGMA_STYLE_MAP[compact.toLowerCase()];
-  push(mapped);
-  push(raw.replace(/([a-z])([A-Z])/g, "$1 $2"));
-  push(compact);
-  if (mapped !== undefined) push(mapped.replace(/\s+/g, ""));
-  return out;
-}
-
-/**
- * Loads the first face of `family` that matches any spelling of `requested`.
- * Returns the face name that actually loaded, or throws naming the real styles.
- */
-export async function resolveAndLoadFontStyle(family: string, requested: string, context: string): Promise<string> {
-  const candidates = fontStyleCandidates(requested);
-  let lastError: unknown;
-  for (let i = 0; i < candidates.length; i++) {
-    try {
-      await figma.loadFontAsync({ family, style: candidates[i] });
-      return candidates[i];
-    } catch (error) {
-      lastError = error;
-    }
-  }
-  const available = await listStylesForFamily(family);
-  throw new Error(
-    `${context}: font "${family}" has no style matching "${requested}" (tried ${candidates.join(", ")}). ` +
-      (available.length > 0
-        ? `Available styles for "${family}": ${available.join(", ")}.`
-        : `No styles could be listed for "${family}" — check the family name.`) +
-      (describeError(lastError) !== "Unknown error" ? ` (Figma said: ${describeError(lastError)})` : ""),
-  );
-}
+// Font style resolution lives in utils/font-style (shared with composites and
+// design-system); re-exported here for existing callers.
+export { fontStyleCandidates, resolveAndLoadFontStyle };
 
 // ---------------------------------------------------------------------------
 // setCharacters helpers
@@ -378,7 +309,11 @@ export async function createText(params: Record<string, unknown>): Promise<Recor
   // stray Figtree/Inter Regular text node behind. The old code swallowed the
   // load error, so a missing 600/700 face silently produced Regular text AND
   // dropped the requested fontSize (it was assigned after the throwing line).
-  const resolvedStyle = await resolveAndLoadFontStyle(fontFamily, getFontStyle(fontWeight), "create_text");
+  const requestedFontStyle =
+    typeof safeParams.fontStyle === "string" && safeParams.fontStyle.trim() !== ""
+      ? safeParams.fontStyle.trim()
+      : styleNameForWeight(fontWeight);
+  const resolvedStyle = await resolveAndLoadFontStyle(fontFamily, requestedFontStyle, "create_text");
 
   const textNode = figma.createText();
   textNode.x = x;
@@ -447,6 +382,7 @@ export async function createText(params: Record<string, unknown>): Promise<Recor
     name: textNode.name,
     x: textNode.x,
     y: textNode.y,
+    ...absolutePosition(textNode),
     width: textNode.width,
     height: textNode.height,
     textAutoResize: textNode.textAutoResize,
@@ -1495,12 +1431,11 @@ export async function setFontWeight(params: Record<string, unknown>): Promise<Re
     const family =
       rawFontName === figma.mixed ? ((node as TextNode).getRangeFontName(0, 1) as FontName) : (rawFontName as FontName);
     const resolvedFamily = (family as FontName).family;
-    // Try both "Semi Bold" and "SemiBold" spellings (and the other compound
-    // variants) — families disagree, and normalising to one of them was the
-    // cause of 9 spurious "font has no style" failures.
-    const style = await resolveAndLoadFontStyle(
+    // Match the weight against the family's real style names ("Semi Bold",
+    // "SemiBold", "Semibold", "DemiBold" all mean 600).
+    const style = await resolveAndLoadFontWeight(
       resolvedFamily,
-      getFontStyle(weight as number),
+      weight as number,
       `set_font_weight (weight ${weight})`,
     );
     (node as TextNode).fontName = { family: resolvedFamily, style };
@@ -1512,22 +1447,6 @@ export async function setFontWeight(params: Record<string, unknown>): Promise<Re
     };
   } catch (error) {
     throw new Error(describeError(error));
-  }
-}
-
-/** Lists the style names available for a font family (best effort). */
-async function listStylesForFamily(family: string): Promise<string[]> {
-  try {
-    const fonts = await figma.listAvailableFontsAsync();
-    const styles: string[] = [];
-    for (let i = 0; i < fonts.length; i++) {
-      if (fonts[i].fontName.family === family && styles.indexOf(fonts[i].fontName.style) === -1) {
-        styles.push(fonts[i].fontName.style);
-      }
-    }
-    return styles;
-  } catch (_e) {
-    return [];
   }
 }
 
@@ -1947,6 +1866,13 @@ function overrideFont(font: FontName, range: PreparedTextRange): FontName {
   };
 }
 
+/** overrideFont, with the style mapped onto the target family's real spelling. */
+async function resolveOverrideFont(font: FontName, range: PreparedTextRange): Promise<FontName> {
+  const target = overrideFont(font, range);
+  const matched = matchFontStyle(target.style, await listFontStylesForFamily(target.family));
+  return matched !== undefined ? { family: target.family, style: matched } : target;
+}
+
 function toFiniteNumber(value: unknown, label: string): number {
   const n = typeof value === "number" ? value : typeof value === "string" && value.trim() !== "" ? Number(value) : NaN;
   if (!isFinite(n)) {
@@ -2092,7 +2018,7 @@ async function prepareTextRange(
     if (RANGE_FONT_WEIGHTS.indexOf(weight) === -1) {
       throw new Error(`${label}.fontWeight must be one of ${RANGE_FONT_WEIGHTS.join(", ")}`);
     }
-    range.fontStyle = getFontStyle(weight);
+    range.fontStyle = styleNameForWeight(weight);
   }
   if (isSet(r.fontSize)) {
     const size = toFiniteNumber(r.fontSize, `${label}.fontSize`);
@@ -2129,7 +2055,7 @@ async function applyTextRange(node: TextNode, range: PreparedTextRange): Promise
   if (range.fontFamily !== undefined || range.fontStyle !== undefined) {
     const appliedFonts: FontName[] = [];
     for (const run of getFontRuns(node, start, end)) {
-      const font = overrideFont(run.font, range);
+      const font = await resolveOverrideFont(run.font, range);
       // Already loaded in the validation pass unless an earlier overlapping range changed this run's font.
       await figma.loadFontAsync(font);
       node.setRangeFontName(run.start, run.end, font);
@@ -2208,7 +2134,7 @@ export async function setTextRangeStyle(params: Record<string, unknown>): Promis
     for (const font of base) {
       fonts.set(fontKey(font), font);
       if (changesFont) {
-        const target = overrideFont(font, range);
+        const target = await resolveOverrideFont(font, range);
         fonts.set(fontKey(target), target);
       }
     }
@@ -2543,31 +2469,13 @@ export async function createTextStyleFromProperties(params: Record<string, unkno
     throw new Error("Missing required parameters: name, fontSize, or fontFamily");
   }
 
-  let actualFontStyle: string;
-  if (fontStyle !== null && fontStyle !== undefined) {
-    actualFontStyle = fontStyle;
-  } else if (fontWeight !== null && fontWeight !== undefined) {
-    if (fontWeight >= 900) actualFontStyle = "Black";
-    else if (fontWeight >= 800) actualFontStyle = "Extra Bold";
-    else if (fontWeight >= 700) actualFontStyle = "Bold";
-    else if (fontWeight >= 600) actualFontStyle = "Semi Bold";
-    else if (fontWeight >= 500) actualFontStyle = "Medium";
-    else if (fontWeight >= 400) actualFontStyle = "Regular";
-    else if (fontWeight >= 300) actualFontStyle = "Light";
-    else if (fontWeight >= 200) actualFontStyle = "Extra Light";
-    else if (fontWeight >= 100) actualFontStyle = "Thin";
-    else actualFontStyle = "Regular";
-  } else {
-    actualFontStyle = "Regular";
-  }
-
-  try {
-    await figma.loadFontAsync({ family: fontFamily, style: actualFontStyle });
-  } catch (error) {
-    throw new Error(
-      `Font "${fontFamily} ${actualFontStyle}" is not available. Please ensure the font is installed or use a different font.`,
-    );
-  }
+  const actualFontStyle = await resolveAndLoadFontStyle(
+    fontFamily,
+    fontStyle !== null && fontStyle !== undefined
+      ? fontStyle
+      : styleNameForWeight(fontWeight !== null && fontWeight !== undefined ? fontWeight : 400),
+    "create_text_style_from_properties",
+  );
 
   try {
     const textStyle = figma.createTextStyle();
@@ -2795,34 +2703,13 @@ export async function updateTextStyle(params: Record<string, unknown>): Promise<
     if (fontFamily !== undefined || fontStyle !== undefined || fontWeight !== undefined) {
       const newFontFamily = fontFamily !== null && fontFamily !== undefined ? fontFamily : textStyle.fontName.family;
 
-      let newFontStyle: string;
-      if (fontStyle !== null && fontStyle !== undefined) {
-        newFontStyle = fontStyle;
-      } else if (fontWeight !== null && fontWeight !== undefined) {
-        if (fontWeight >= 900) newFontStyle = "Black";
-        else if (fontWeight >= 800) newFontStyle = "Extra Bold";
-        else if (fontWeight >= 700) newFontStyle = "Bold";
-        else if (fontWeight >= 600) newFontStyle = "Semi Bold";
-        else if (fontWeight >= 500) newFontStyle = "Medium";
-        else if (fontWeight >= 400) newFontStyle = "Regular";
-        else if (fontWeight >= 300) newFontStyle = "Light";
-        else if (fontWeight >= 200) newFontStyle = "Extra Light";
-        else if (fontWeight >= 100) newFontStyle = "Thin";
-        else newFontStyle = "Regular";
-      } else {
-        newFontStyle = textStyle.fontName.style;
-      }
-
-      try {
-        await figma.loadFontAsync({
-          family: newFontFamily,
-          style: newFontStyle,
-        });
-      } catch (error) {
-        throw new Error(
-          `Font "${newFontFamily} ${newFontStyle}" is not available. Please ensure the font is installed or use a different font.`,
-        );
-      }
+      const requestedStyle =
+        fontStyle !== null && fontStyle !== undefined
+          ? fontStyle
+          : fontWeight !== null && fontWeight !== undefined
+            ? styleNameForWeight(fontWeight)
+            : textStyle.fontName.style;
+      const newFontStyle = await resolveAndLoadFontStyle(newFontFamily, requestedStyle, "update_text_style");
       textStyle.fontName = { family: newFontFamily, style: newFontStyle };
       updatedProperties.push("fontName");
     }

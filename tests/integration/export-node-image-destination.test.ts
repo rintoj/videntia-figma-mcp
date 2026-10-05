@@ -135,6 +135,59 @@ describe("export_node_as_image destination parameters", () => {
     expect(second.path).not.toBe(first.path);
   });
 
+  it("never serves a cached path that another node has since overwritten (A → x, B → x, A → x)", async () => {
+    const pngA = await makePng(200, 100);
+    const pngB = (
+      await sharp({ create: { width: 200, height: 100, channels: 3, background: { r: 250, g: 0, b: 0 } } })
+        .png()
+        .toBuffer()
+    ).toString("base64");
+    const render = (nodeId: string, imageData: string) =>
+      mockSendCommand.mockResolvedValueOnce({
+        subtreeHash: `hash-${nodeId}`,
+        name: nodeId,
+        imageData,
+        mimeType: "image/png",
+        requestedScale: 1,
+        actualScale: 1,
+        originalWidth: 200,
+        originalHeight: 100,
+        exportedWidth: 200,
+        exportedHeight: 100,
+      });
+    const target = path.join(tmpDir, "x.png");
+
+    render("1:1", pngA);
+    await callTool({ nodeId: "1:1", save_to_path: target });
+    render("2:2", pngB);
+    await callTool({ nodeId: "2:2", save_to_path: target });
+    expect(fs.readFileSync(target).toString("base64")).toBe(pngB);
+
+    render("1:1", pngA);
+    const again = JSON.parse((await callTool({ nodeId: "1:1", save_to_path: target })).content[0].text);
+    expect(again.cached).toBe(false);
+    expect(fs.readFileSync(target).toString("base64")).toBe(pngA);
+  });
+
+  it("does not serve a cache hit when the file was rewritten outside the tool", async () => {
+    await mockExport();
+    const target = path.join(tmpDir, "y.png");
+    await callTool({ nodeId: "1:2", save_to_path: target });
+    const again = JSON.parse((await callTool({ nodeId: "1:2", save_to_path: target })).content[0].text);
+    expect(again.cached).toBe(true);
+
+    fs.writeFileSync(target, Buffer.alloc(fs.statSync(target).size, 7));
+    const afterTamper = JSON.parse((await callTool({ nodeId: "1:2", save_to_path: target })).content[0].text);
+    expect(afterTamper.cached).toBe(false);
+    expect(fs.readFileSync(target).toString("base64")).toBe(await makePng(200, 100));
+  });
+
+  it("writes atomically, leaving no temp files behind", async () => {
+    await mockExport();
+    await callTool({ nodeId: "1:2", save_to_path: path.join(tmpDir, "z.png") });
+    expect(fs.readdirSync(tmpDir)).toEqual(["z.png"]);
+  });
+
   it("ERRORS on an unknown parameter instead of silently dropping it", () => {
     expect(() => schema.parse({ nodeId: "1:2", output_dir: "/tmp/x" })).toThrow();
     expect(() => schema.parse({ nodeId: "1:2", output_directory: "/tmp/x" })).not.toThrow();

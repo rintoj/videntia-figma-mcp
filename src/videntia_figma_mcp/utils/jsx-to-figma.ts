@@ -1,6 +1,7 @@
 import { parse } from "@babel/parser";
 import type * as t from "@babel/types";
 import type { FigmaNodeData, FigmaNodeFill, FigmaNodeEffect } from "../types/index.js";
+import { parseCssGradient } from "./gradient-geometry.js";
 import {
   resolveTwSpacing,
   resolveTwColor,
@@ -411,6 +412,9 @@ const STANDARD_ATTRS = new Set([
   "componentProperties",
   "componentSetName",
   "mainComponentName",
+  // Emitted by figma-to-jsx for image paints; read-only metadata, never a component prop.
+  "imageScaleMode",
+  "imageScalingFactor",
 ]);
 
 function isPascalCase(tag: string): boolean {
@@ -1270,7 +1274,7 @@ function applyClassName(node: FigmaNodeData, className: string): void {
       continue;
     }
     // --- Tailwind gradient classes (must come BEFORE catch-all bg-*) ---
-    if ((m = cls.match(/^bg-gradient-to-(r|l|t|b|tr|tl|br|bl)$/))) {
+    if ((m = cls.match(/^bg-(?:gradient|linear)-to-(r|l|t|b|tr|tl|br|bl)$/))) {
       gradientDir = m[1];
       continue;
     }
@@ -1740,7 +1744,7 @@ function applyStyleAttribute(node: FigmaNodeData, styleStr: string): void {
       const effects = parseBoxShadow(value);
       node.effects = node.effects || [];
       node.effects.push(...effects);
-    } else if (key === "background") {
+    } else if (key === "background" || (key === "backgroundImage" && /-gradient\(/i.test(value))) {
       const fill = parseGradient(value);
       if (fill) {
         setStyleFill(node, fill);
@@ -2090,32 +2094,15 @@ function splitByComma(value: string): string[] {
 }
 
 function parseGradient(value: string): FigmaNodeFill | null {
-  let m;
-  if ((m = value.match(/^(linear|radial)-gradient\((.+)\)$/))) {
-    const gradType = m[1] === "linear" ? "GRADIENT_LINEAR" : "GRADIENT_RADIAL";
-    const stopsStr = m[2];
-
-    // Parse stops: "color position%, color position%" (paren-aware split)
-    const stops: Array<{ color: string; position: number }> = [];
-    const stopParts = splitByComma(stopsStr);
-
-    for (const part of stopParts) {
-      const stopMatch = part.match(/^(.+?)\s+(\d+)%$/);
-      if (stopMatch) {
-        stops.push({
-          color: stopMatch[1],
-          position: Number(stopMatch[2]) / 100,
-        });
-      }
-    }
-
-    if (stops.length > 0) {
-      return {
-        type: gradType,
-        gradient: { type: gradType, stops },
-      };
-    }
-  }
-
-  return null;
+  const parsed = parseCssGradient(value);
+  if (!parsed) return null;
+  return {
+    type: parsed.type,
+    gradient: {
+      type: parsed.type,
+      stops: parsed.stops,
+      ...(parsed.angle !== undefined ? { angle: parsed.angle } : {}),
+      ...(parsed.direction !== undefined ? { direction: parsed.direction } : {}),
+    },
+  };
 }

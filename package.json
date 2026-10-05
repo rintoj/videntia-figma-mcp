@@ -6,7 +6,8 @@
   "main": "dist/videntia_figma_mcp/server.js",
   "bin": {
     "videntia-figma-mcp": "dist/videntia_figma_mcp/server.js",
-    "figma-mcp-socket": "dist/socket.js"
+    "figma-mcp-socket": "dist/socket.js",
+    "videntia-browser-driver": "dist/browser-driver.js"
   },
   "files": [
     "dist",
@@ -23,7 +24,8 @@
     "prebuild": "bun scripts/generate-icon-data.ts",
     "build:ui": "vite build --config vite.ui.config.ts",
     "build:portal": "vite build --config vite.portal.config.ts",
-    "build": "bun run build:ui && tsup && chmod +x dist/videntia_figma_mcp/server.js dist/socket.js && bun run build:portal",
+    "build": "bun run build:ui && tsup && bun run build:driver && chmod +x dist/videntia_figma_mcp/server.js dist/socket.js dist/browser-driver.js && bun run build:portal",
+    "build:driver": "bun build src/browser_driver/index.ts --target=node --outfile=dist/browser-driver.js && mkdir -p dist/browser-driver-scripts && cp src/chrome_extension/background.js src/chrome_extension/cdp.js src/chrome_extension/config.js src/chrome_extension/content.js dist/browser-driver-scripts/",
     "build:win": "tsup",
     "build:watch": "tsup --watch",
     "dev": "bun run build:watch",
@@ -67,7 +69,8 @@
   "dependencies": {
     "@babel/parser": "^7.29.0",
     "@babel/types": "^7.29.0",
-    "@modelcontextprotocol/sdk": "^1.9.0",
+    "@modelcontextprotocol/sdk": "^1.22.0",
+    "@puppeteer/browsers": "^2.4.0",
     "bcryptjs": "^3.0.3",
     "pixelmatch": "^7.2.0",
     "playwright": "^1.59.1",
