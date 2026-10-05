@@ -299,6 +299,8 @@ export const TOOL_CATEGORY_MAP: Record<string, ToolCategoryEntry> = {
   assert_node_state: { category: "verify" },
   find_unbound: { category: "verify", secondary: ["tokens"] },
   check_token_collisions: { category: "verify", secondary: ["tokens"] },
+  get_design_context: { category: "read", secondary: ["tokens"] },
+  get_variables_used: { category: "tokens", secondary: ["read"] },
   compare_figma_to_component: { category: "verify", secondary: ["browser"] },
   diff_figma_to_browser: { category: "verify", secondary: ["browser"] },
   diff_figma_frame_to_page: { category: "verify", secondary: ["browser"] },

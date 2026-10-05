@@ -171,6 +171,8 @@ export const ALLOWED_COMMANDS = new Set([
   "assert_node_state",
   "find_unbound",
   "check_token_collisions",
+  "get_design_context",
+  "get_variables_used",
   "get_instance_overrides",
   "set_instance_overrides",
   "save_version_history",

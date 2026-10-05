@@ -431,6 +431,28 @@ math: `utils/verification-math.ts`). Use these instead of eyeballing dumps.
   DIFFERENT values (e.g. `theme/radius/3xl` = 28 vs `Radius/radius/3xl` = 24). Run before
   trusting any binding audit. `include_identical`, `name_filter`.
 
+## Design Context (code-ready reads)
+
+`src/videntia_figma_mcp/tools/design-context-tools.ts` (plugin:
+`handlers/design-context.ts`, rendering: `utils/design-context-format.ts`). Ideas borrowed
+from Figma's Dev Mode MCP, implemented entirely on our own plugin (no dependency on it).
+
+- `get_design_context { nodeId, depth? = 2, format?: css | tailwind | jsx, maxNodes? = 300, includeCss? }`
+  returns, in one call, auto layout as flexbox (direction, justify, align, wrap, gap,
+  padding), sizes and FILL/HUG sizing, typography, fills/strokes, radius, effects and
+  component/instance info (main component, component set, variant props). Every bound
+  variable is resolved to its token name AND value and rendered as `var(--token) /* value */`.
+  `node.getCSSAsync()` runs on the first 40 nodes with a 1.5s timeout each, and only
+  properties we did not derive are listed (`cssUnavailable` counts timeouts).
+- `get_variables_used { nodeId, includeChildren? = true, maxNodes? = 5000 }` lists every
+  variable referenced in the subtree (field bindings, paint and effect bindings, text-range
+  bindings), deduped, with collection, name, value per mode (aliases as `→ name`), usage
+  count, bound fields and example node ids. Paint/text/effect styles are a separate section.
+- Both walk breadth-first with a node cap, yield to Figma every 1000 nodes and return
+  `truncated` (the text output prints a WARNING line). `findAllWithCriteria` is not used
+  because every node type can carry bindings, so there is nothing to filter by type.
+- Registrar category `design-context` (alias `context` in `VIDENTIA_FIGMA_TOOLS`).
+
 ## Lint Ergonomics
 
 Suppression logic: `src/videntia_figma_plugin/handlers/lint/suppress.ts`.

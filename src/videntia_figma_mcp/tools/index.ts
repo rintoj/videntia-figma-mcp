@@ -15,6 +15,7 @@ import { registerBrowserTools } from "./browser-tools.js";
 import { registerBrowserControlTools } from "./browser-control-tools.js";
 import { registerDesignKnowledgeTool } from "./design-knowledge-tools.js";
 import { registerVerificationTools } from "./verification-tools.js";
+import { registerDesignContextTools } from "./design-context-tools.js";
 import { registerCompositeTools } from "./composite-tools.js";
 import { registerCapabilityTools } from "./capability-tools.js";
 import { registerDiscoveryTools } from "./discovery-tools.js";
@@ -66,6 +67,7 @@ export function registerTools(server: McpServer): void {
     ["browser-control", registerBrowserControlTools],
     ["composite", registerCompositeTools],
     ["verification", registerVerificationTools],
+    ["design-context", registerDesignContextTools],
     ["design-knowledge", registerDesignKnowledgeTool],
     // Registered last so the derived tool list in get_capabilities sees every tool.
     ["discovery", registerDiscoveryTools],
@@ -101,6 +103,7 @@ export {
   registerDesignKnowledgeTool,
   registerCompositeTools,
   registerVerificationTools,
+  registerDesignContextTools,
   registerCapabilityTools,
   registerDiscoveryTools,
 };

@@ -52,6 +52,8 @@ export const READONLY_COMMANDS: ReadonlySet<string> = new Set<string>([
   "assert_node_state",
   "find_unbound",
   "check_token_collisions",
+  "get_design_context",
+  "get_variables_used",
   "set_focus",
   "set_selections",
   "export_node_as_image",

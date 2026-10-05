@@ -59,6 +59,7 @@ export const TOOL_CATEGORIES = [
   "browser-control",
   "composite",
   "verification",
+  "design-context",
   "design-knowledge",
   "capability",
   "discovery",
@@ -81,6 +82,7 @@ export const CATEGORY_ALIASES: Record<string, ToolCategory> = {
   browser_control: "browser-control",
   docs: "documentation",
   verify: "verification",
+  context: "design-context",
 };
 
 export type ToolMode = { kind: "all" } | { kind: "progressive" } | { kind: "categories"; categories: ToolCategory[] };
