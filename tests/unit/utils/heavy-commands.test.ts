@@ -34,4 +34,11 @@ describe("isHeavyCommand", () => {
     expect(isHeavyCommand("search_nodes", { query: "x", nodeId: "1:2" })).toBe(false);
     expect(isHeavyCommand("search_nodes", { query: "x", nodeId: [] })).toBe(true);
   });
+
+  it("classifies the design-context tools", () => {
+    expect(isHeavyCommand("get_variables_used", { nodeId: "1:2" })).toBe(true);
+    expect(isHeavyCommand("get_design_context", { nodeId: "1:2" })).toBe(false);
+    expect(isHeavyCommand("get_design_context", { nodeId: "1:2", maxNodes: 2000 })).toBe(true);
+    expect(isHeavyCommand("get_design_context", { nodeId: "1:2", depth: 6 })).toBe(true);
+  });
 });

@@ -32,7 +32,13 @@ export const HEAVY_COMMANDS: ReadonlySet<string> = new Set<string>([
   "enumerate_all_frames",
   "map_prototype_flows",
   "get_frame_documentation",
+  // Walks the subtree (default cap 5000 nodes) and resolves every bound variable.
+  "get_variables_used",
 ]);
+
+/** get_design_context is heavy past this node cap (default 300) or depth (default 2). */
+export const DESIGN_CONTEXT_HEAVY_NODES = 1000;
+export const DESIGN_CONTEXT_HEAVY_DEPTH = 3;
 
 /** get_outline is heavy only when asked for more than this many nodes. */
 export const OUTLINE_HEAVY_NODES = 5000;
@@ -56,6 +62,13 @@ export function isHeavyCommand(command: string, params: unknown): boolean {
     return !Number.isFinite(n) || n > CONTENT_TREE_HEAVY_DEPTH;
   }
   if (command === "search_nodes") return !hasScope(p["nodeId"]);
+  if (command === "get_design_context") {
+    const n = Number(p["maxNodes"]);
+    const d = Number(p["depth"]);
+    return (
+      (Number.isFinite(n) && n > DESIGN_CONTEXT_HEAVY_NODES) || (Number.isFinite(d) && d > DESIGN_CONTEXT_HEAVY_DEPTH)
+    );
+  }
   // The outline is cheap; only an explicitly large one is heavy.
   if (command === "get_outline") {
     const n = Number(p["maxNodes"]);
