@@ -310,6 +310,29 @@ function formatEffectValue(effects: DesignSystemEffect[]): string {
  * @param server - The MCP server instance
  */
 export function registerDocumentTools(server: McpServer): void {
+  // Plugin health: answered by the plugin outside its command queue, so it
+  // reports a stuck command instead of timing out behind it.
+  server.tool(
+    "get_plugin_health",
+    "Report whether the Figma plugin's command queue is healthy: the running command and its age, queue depth, watchdog timeouts. Use when Figma calls time out; get_open_channels only proves the socket is up.",
+    {},
+    async () => {
+      try {
+        const result = await sendCommandToFigma("get_plugin_health", {}, 10000);
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Plugin did not answer a health probe: ${error instanceof Error ? error.message : String(error)}. The plugin main thread is unresponsive; close and reopen the plugin in Figma.`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
   // Document Info Tool
   server.tool("get_document_info", "Get detailed information about the current Figma document", {}, async () => {
     try {

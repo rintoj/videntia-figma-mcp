@@ -890,6 +890,9 @@ function sendOnConnection<T = unknown>(
         params: {
           ...(params as any),
           commandId: id,
+          // The plugin drops the command unexecuted if it is still queued after
+          // this long, since we will have rejected it here by then.
+          ...(conn.kind === "figma" && !options.join ? { __deadlineMs: timeoutMs } : {}),
           // Pin this command to the channel AND document it was addressed to. The plugin
           // refuses it outright on mismatch instead of applying it to a same-numbered
           // node in a different file (see the plugin's document-guard).
@@ -903,7 +906,12 @@ function sendOnConnection<T = unknown>(
       if (conn.pending.has(id)) {
         conn.pending.delete(id);
         logger.error(`Request ${id} to Figma timed out after ${timeoutMs / 1000} seconds`);
-        reject(new Error("Request to Figma timed out"));
+        reject(
+          new Error(
+            `Request to Figma timed out (${command}). The plugin may be stuck on an earlier command; ` +
+              `call get_plugin_health to see what it is running.`,
+          ),
+        );
       }
     }, timeoutMs);
 

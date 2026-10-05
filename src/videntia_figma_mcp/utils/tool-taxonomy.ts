@@ -120,6 +120,7 @@ export const TOOL_CATEGORY_MAP: Record<string, ToolCategoryEntry> = {
 
   // --- read ---
   get_document_info: { category: "read" },
+  get_plugin_health: { category: "read" },
   get_selection: { category: "read" },
   set_focus: { category: "read", secondary: ["modify"] },
   set_selections: { category: "read", secondary: ["modify"] },

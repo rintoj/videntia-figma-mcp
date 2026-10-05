@@ -54,6 +54,7 @@ export type FigmaCommand =
   | "move_nodes"
   | "set_strict_mode"
   | "get_document_info"
+  | "get_plugin_health"
   | "get_file_key"
   | "get_selection"
   | "get_node_info"

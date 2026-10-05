@@ -2,6 +2,7 @@
 // All handler modules are imported and wired to the handleCommand dispatch.
 
 // Utils
+import { CommandScheduler } from "./utils/command-scheduler";
 import { debugLog } from "./utils/helpers";
 import { READONLY_COMMANDS } from "../videntia_figma_mcp/utils/readonly-commands";
 import { setAutoFocus } from "./utils/plugin-state";
@@ -555,18 +556,34 @@ function parseDepth(value: unknown): number | undefined {
 // two inserts computed against the same stale children.length). Queue every
 // command through this promise chain so each one — including its post-hooks
 // (auto-focus, auto-commit-undo) — fully completes before the next starts.
-let commandQueue: Promise<unknown> = Promise.resolve();
+//
+// The bare promise chain that used to live here had no timeout: one await that
+// never settled (setReactionsAsync, loadFontAsync, exportAsync, image readiness
+// on a huge file) wedged every later command until the plugin was reopened.
+// CommandScheduler keeps the serialization but adds a watchdog, drops commands
+// whose caller already timed out, and bounds the queue (utils/command-scheduler).
+const DEFAULT_WATCHDOG_MS = 180000;
+const MAX_QUEUE_DEPTH = 40;
+const scheduler = new CommandScheduler({ watchdogMs: DEFAULT_WATCHDOG_MS, maxQueueDepth: MAX_QUEUE_DEPTH });
 
 function enqueueCommand(command: string, params: Record<string, unknown>): Promise<unknown> {
-  const tail = commandQueue.then(
-    () => handleCommand(command, params),
-    () => handleCommand(command, params),
-  );
-  // Swallow rejections here so one failed command doesn't poison the queue
-  // for everything queued behind it; the real rejection still propagates to
-  // whichever caller awaited `tail` below.
-  commandQueue = tail.catch(() => undefined);
-  return tail;
+  const deadline = Number(params && params["__deadlineMs"]);
+  const deadlineMs = Number.isFinite(deadline) && deadline > 0 ? deadline : undefined;
+  // Never abandon a command before its caller would have; give it a small grace.
+  const watchdogMs = deadlineMs !== undefined ? Math.max(deadlineMs + 5000, 30000) : DEFAULT_WATCHDOG_MS;
+  if (params && "__deadlineMs" in params) delete params["__deadlineMs"];
+  return scheduler.schedule(command, () => handleCommand(command, params), { deadlineMs, watchdogMs });
+}
+
+function getPluginHealth(): Record<string, unknown> {
+  const status = scheduler.getStatus();
+  const busy = status.running !== null && status.running.ageMs > 10000;
+  return {
+    healthy: !busy && status.abandonedStillRunning === 0,
+    state: status.running === null ? "idle" : busy ? "busy" : "running",
+    fileName: figma.root.name,
+    ...status,
+  };
 }
 
 async function handleCommand(command: string, params: Record<string, unknown>): Promise<unknown> {
@@ -688,6 +705,10 @@ async function _executeCommand(command: string, params: Record<string, unknown>)
     }
 
     // Document
+    case "get_plugin_health":
+      // Normally answered before the queue (handlePanelMessage); kept here so
+      // a nested dispatch such as batch_actions can also read it.
+      return getPluginHealth();
     case "get_document_info":
       return await getDocumentInfo();
     case "get_file_key":
@@ -1685,7 +1706,11 @@ async function handlePanelMessage(msg: Record<string, unknown>): Promise<void> {
     }
     case "execute-command":
       try {
-        const result = await enqueueCommand(msg["command"] as string, (msg["params"] as Record<string, unknown>) || {});
+        // Health is answered outside the queue so it works while a command is stuck.
+        const result =
+          msg["command"] === "get_plugin_health"
+            ? getPluginHealth()
+            : await enqueueCommand(msg["command"] as string, (msg["params"] as Record<string, unknown>) || {});
         figma.ui.postMessage({
           type: "command-result",
           id: msg["id"],
