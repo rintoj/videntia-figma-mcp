@@ -441,7 +441,11 @@ function handleWebSocketMessage(ws: WebSocket, raw: string) {
 
     let broadcastCount = 0;
     (decision.recipients as unknown as WebSocket[]).forEach((c) => {
-      c.send(JSON.stringify({ type: "broadcast", message: data.message, sender: "User", channel: channelName }));
+      // Stamp the sending client so the plugin can cancel only ITS commands when it
+      // disconnects (see the `client_gone` notice in the close handler).
+      c.send(
+        JSON.stringify({ type: "broadcast", message: data.message, sender: "User", clientId, channel: channelName }),
+      );
       stats.messagesSent++;
       broadcastCount++;
     });
@@ -856,6 +860,17 @@ wss.on("connection", (ws, req) => {
       const clients = channels.get(channelName);
       if (clients) {
         clients.delete(ws);
+        // A non-plugin client (an MCP session) went away: tell the plugin so it drops
+        // that client's queued commands and aborts its running read. Other clients'
+        // work is untouched. Nothing is resent on reconnect.
+        if (!(ws as any)._isPlugin && !(ws as any)._isExtension) {
+          clients.forEach((c) => {
+            if ((c as any)._isPlugin && c.readyState === WebSocket.OPEN) {
+              c.send(JSON.stringify({ type: "client_gone", clientId, channel: channelName }));
+              stats.messagesSent++;
+            }
+          });
+        }
         clients.forEach((c) => {
           if (c.readyState === WebSocket.OPEN) {
             c.send(

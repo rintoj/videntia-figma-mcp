@@ -5,6 +5,7 @@
 import { gradientTransformToCssAngle } from "../../videntia_figma_mcp/utils/gradient-geometry";
 import { boundedMap } from "../utils/bounded-map";
 import { withTimeout } from "../utils/with-timeout";
+import { type CancelSignal, getCommandSignal, isCancelledError, throwIfCancelled } from "../utils/cancellation";
 
 /** Max concurrent child / node-id lookups per serialize call. */
 const SERIALIZE_CONCURRENCY = 8;
@@ -369,6 +370,8 @@ interface LookupMaps extends BaseLookupMaps {
   mainComponentCache?: Map<string, Promise<ComponentNode | null>>;
   /** Per serialize call: degradations to report on the result. */
   warnings?: string[];
+  /** The command's cancel signal, captured when the serialize call started. */
+  signal?: CancelSignal;
 }
 
 // Main recursive node processor
@@ -378,6 +381,7 @@ async function processNode(
   maxDepth: number | undefined,
   maps: LookupMaps,
 ): Promise<Record<string, unknown> | null> {
+  throwIfCancelled(maps.signal);
   // Hidden descendants are skipped; a hidden node requested directly is still reported (visible: false).
   if (node.visible === false && currentDepth > 0) return null;
 
@@ -681,7 +685,9 @@ async function processNode(
   if ("children" in node && (node as ChildrenMixin).children.length > 0) {
     if (maxDepth === undefined || currentDepth < maxDepth) {
       const childResults = await boundedMap((node as ChildrenMixin).children, SERIALIZE_CONCURRENCY, function (child) {
-        return processNode(child as SceneNode, currentDepth + 1, maxDepth, maps).catch(function () {
+        return processNode(child as SceneNode, currentDepth + 1, maxDepth, maps).catch(function (e) {
+          // A cancelled walk must stop, not degrade to a missing child.
+          if (isCancelledError(e)) throw e;
           return null;
         });
       });
@@ -742,8 +748,11 @@ export async function serializeNodes(params: Record<string, unknown>): Promise<R
   const nodeIds = params !== null && params !== undefined ? (params["nodeIds"] as string[] | undefined) : undefined;
   const nodeId = params !== null && params !== undefined ? (params["nodeId"] as string | undefined) : undefined;
   const depth = params !== null && params !== undefined ? (params["depth"] as number | undefined) : undefined;
+  // Capture now: a later command replaces the module-level signal.
+  const signal = getCommandSignal();
 
   const baseMaps = await getLookupMaps();
+  throwIfCancelled(signal);
   const warnings: string[] = [];
   if (baseMaps.warning) warnings.push(baseMaps.warning);
   const maps: LookupMaps = {
@@ -752,6 +761,7 @@ export async function serializeNodes(params: Record<string, unknown>): Promise<R
     effectStyleMap: baseMaps.effectStyleMap,
     mainComponentCache: new Map(),
     warnings,
+    signal,
   };
 
   // Determine which nodes to process

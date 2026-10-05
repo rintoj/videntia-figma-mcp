@@ -3,6 +3,7 @@
 
 // Utils
 import { CommandScheduler, type CommandKind } from "./utils/command-scheduler";
+import { setCommandSignal } from "./utils/cancellation";
 import { setCommandDeadline } from "./utils/with-timeout";
 import { debugLog } from "./utils/helpers";
 import { READONLY_COMMANDS, isReadOnlyCall } from "../videntia_figma_mcp/utils/readonly-commands";
@@ -579,6 +580,8 @@ function enqueueCommand(
   command: string,
   params: Record<string, unknown>,
   onStart?: (queuedMs: number) => void,
+  id?: string,
+  clientId?: string,
 ): Promise<unknown> {
   const deadline = Number(params && params["__deadlineMs"]);
   const deadlineMs = Number.isFinite(deadline) && deadline > 0 ? deadline : undefined;
@@ -588,12 +591,14 @@ function enqueueCommand(
   const kind = classifyCommand(command, params);
   return scheduler.schedule(
     command,
-    () => {
+    (signal) => {
       // Long walks read this to stop before the caller (or the watchdog) gives up.
       setCommandDeadline(Date.now() + (deadlineMs !== undefined ? Math.min(deadlineMs, watchdogMs) : watchdogMs));
+      // Walks capture this synchronously at their start (utils/cancellation.ts).
+      setCommandSignal(signal);
       return handleCommand(command, params);
     },
-    { deadlineMs, watchdogMs, kind, onStart },
+    { deadlineMs, watchdogMs, kind, onStart, id, clientId },
   );
 }
 
@@ -1733,6 +1738,20 @@ async function handlePanelMessage(msg: Record<string, unknown>): Promise<void> {
       }
       break;
     }
+    case "cancel-command": {
+      if (typeof msg["id"] === "string") scheduler.cancel(msg["id"] as string);
+      break;
+    }
+    case "client-gone": {
+      if (typeof msg["clientId"] === "string") {
+        scheduler.cancelForDisconnect(msg["clientId"] as string, "The MCP client that sent it disconnected");
+      }
+      break;
+    }
+    case "relay-disconnected": {
+      scheduler.cancelForDisconnect(undefined, "The plugin lost its relay connection");
+      break;
+    }
     case "execute-command": {
       // Time spent waiting in the plugin queue, echoed on the response envelope.
       let queuedMs = 0;
@@ -1741,9 +1760,15 @@ async function handlePanelMessage(msg: Record<string, unknown>): Promise<void> {
         const result =
           msg["command"] === "get_plugin_health"
             ? getPluginHealth()
-            : await enqueueCommand(msg["command"] as string, (msg["params"] as Record<string, unknown>) || {}, (ms) => {
-                queuedMs = ms;
-              });
+            : await enqueueCommand(
+                msg["command"] as string,
+                (msg["params"] as Record<string, unknown>) || {},
+                (ms) => {
+                  queuedMs = ms;
+                },
+                typeof msg["id"] === "string" ? (msg["id"] as string) : undefined,
+                typeof msg["clientId"] === "string" ? (msg["clientId"] as string) : undefined,
+              );
         figma.ui.postMessage({
           type: "command-result",
           id: msg["id"],

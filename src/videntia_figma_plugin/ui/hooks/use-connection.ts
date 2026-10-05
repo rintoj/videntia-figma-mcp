@@ -213,6 +213,12 @@ export function useConnection() {
       return;
     }
 
+    // Server-side timeout: cancel that command (dropped if queued, aborted if a running read).
+    if (data && data.type === "cancel" && data.id) {
+      parent.postMessage({ pluginMessage: { type: "cancel-command", id: data.id } }, "*");
+      return;
+    }
+
     // New command from server
     if (data.command) {
       if (!ALLOWED_COMMANDS.has(data.command)) {
@@ -261,6 +267,7 @@ export function useConnection() {
               id: data.id,
               command: data.command,
               params: data.params,
+              clientId: payload.clientId,
             },
           },
           "*",
@@ -373,6 +380,10 @@ export function useConnection() {
               timestamp: Date.now(),
             });
           }
+        } else if (data.type === "client_gone") {
+          // One MCP client left the relay: cancel only its commands.
+          parent.postMessage({ pluginMessage: { type: "client-gone", clientId: data.clientId } }, "*");
+          return;
         } else if (data.type === "error") {
           console.error("Error:", data.message);
           updateConnectionStatus(false, "Error: " + String(data.message));
@@ -386,6 +397,9 @@ export function useConnection() {
     };
 
     ws.onclose = function () {
+      // Nobody can receive results any more: main drops queued commands, aborts a
+      // running read, and lets a running write finish with its result ignored.
+      parent.postMessage({ pluginMessage: { type: "relay-disconnected" } }, "*");
       var wasConnected = connectedRef.current;
       connectedRef.current = false;
       socketRef.current = null;

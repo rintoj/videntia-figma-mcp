@@ -1,6 +1,7 @@
 import type { LintOptions, LintResult, LintCategories, ActiveChecks, LintScope } from "./types";
 import { scanNode } from "./checks";
 import { applyFixes } from "./fix";
+import { getCommandSignal, throwIfCancelled } from "../../utils/cancellation";
 import { buildLookupMaps, normalizeLintNodeId } from "./helpers";
 import { applySuppressions, parseIgnoreRules, resolveInheritedAnnotations, type NodeAnnotations } from "./suppress";
 
@@ -34,8 +35,12 @@ export async function lintFrame(params: Record<string, unknown>): Promise<LintRe
     scope.ignoreNodeIds[normalizeLintNodeId(ignoreIds[ii])] = true;
   }
 
+  // Capture now: a later command replaces the module-level signal. The scan itself
+  // is synchronous, so cancellation is checked between the awaited steps.
+  const signal = getCommandSignal();
   const rootNode = await figma.getNodeByIdAsync(nodeId);
   if (!rootNode) throw new Error("Node not found: " + String(nodeId).substring(0, 50));
+  throwIfCancelled(signal);
 
   // rootFrame check only applies when the node is a direct child of a PAGE
   const isPageChild = rootNode.parent !== null && rootNode.parent !== undefined && rootNode.parent.type === "PAGE";
@@ -79,6 +84,7 @@ export async function lintFrame(params: Record<string, unknown>): Promise<LintRe
 
   // Pre-load all lookup maps (parallel)
   const maps = await buildLookupMaps();
+  throwIfCancelled(signal);
 
   // Category tallies
   const categories: LintCategories = {
@@ -137,6 +143,7 @@ export async function lintFrame(params: Record<string, unknown>): Promise<LintRe
     if (seenNodeIds.indexOf(violations[vi].nodeId) === -1) seenNodeIds.push(violations[vi].nodeId);
   }
   for (let si = 0; si < seenNodeIds.length; si++) {
+    throwIfCancelled(signal);
     try {
       const n = await figma.getNodeByIdAsync(seenNodeIds[si]);
       if (n) annotationsByNodeId[seenNodeIds[si]] = resolveInheritedAnnotations(n);

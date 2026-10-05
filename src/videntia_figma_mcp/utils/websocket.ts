@@ -5,7 +5,7 @@ import { serverUrl, defaultPort, WS_URL } from "../config/config";
 import { FigmaCommand, FigmaResponse, CommandProgressUpdate, PendingRequest, BrowserCommand } from "../types";
 import { interceptForCapture } from "./tool-capture";
 import { isBrowserReadOnlyCall, isReadOnlyCall } from "./readonly-commands";
-import { getRequestChannel, getRequestSessionId, setRequestChannel } from "./channel-context";
+import { addRequestWarning, getRequestChannel, getRequestSessionId, setRequestChannel } from "./channel-context";
 
 class ChannelValidationError extends Error {
   constructor(message: string) {
@@ -807,6 +807,19 @@ function classifyDrop(error: unknown, readOnly: boolean): "rejoin" | "retry" | "
   return "rethrow";
 }
 
+/** Pure: the relay frame that asks the plugin to cancel request `id`. */
+export function buildCancelFrame(channel: string, id: string): Record<string, unknown> {
+  return { id: `cancel-${id}`, type: "message", channel, message: { type: "cancel", id } };
+}
+
+function sendCancel(ws: WebSocket, channel: string, id: string): void {
+  try {
+    if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(buildCancelFrame(channel, id)));
+  } catch (_e) {
+    /* best effort: the plugin watchdog is the backstop */
+  }
+}
+
 /** Queue waits above this (ms) are surfaced to the caller as a warning. */
 export const QUEUE_WARN_THRESHOLD_MS = 5000;
 
@@ -820,18 +833,15 @@ export function queueWaitWarning(queuedMs: unknown): string | null {
 }
 
 /**
- * Pure: attach a queue-wait warning to a result. Plain-object results gain (or extend)
- * a `warnings` array; arrays and primitives are returned untouched (only logged).
+ * Record a queue-wait warning against the current tool invocation and return the
+ * result UNCHANGED. The tool-registry wrapper appends recorded warnings to the MCP
+ * response as a text block, so every result shape (object, array, primitive) carries it.
  */
 export function applyQueueWarning<T>(result: T, queuedMs: unknown): T {
   const warning = queueWaitWarning(queuedMs);
   if (!warning) return result;
   logger.warn(warning);
-  if (result && typeof result === "object" && !Array.isArray(result)) {
-    const r = result as Record<string, unknown>;
-    const existing = Array.isArray(r.warnings) ? r.warnings : r.warnings != null ? [r.warnings] : [];
-    return { ...r, warnings: [...existing, warning] } as T;
-  }
+  addRequestWarning(warning);
   return result;
 }
 
@@ -945,6 +955,10 @@ function sendOnConnection<T = unknown>(
       if (conn.pending.has(id)) {
         conn.pending.delete(id);
         logger.error(`Request ${id} to Figma timed out after ${timeoutMs / 1000} seconds`);
+        // Tell the plugin to stop: a queued command is dropped unstarted and a running
+        // read stops at its next yield point. A running write is left to finish. This
+        // is a cancel, never a resend.
+        if (conn.kind === "figma" && !options.join) sendCancel(ws, conn.channel, id);
         reject(
           new Error(
             `Request to Figma timed out (${command}). The plugin may be stuck on an earlier command; ` +

@@ -67,6 +67,12 @@ export const READONLY_COMMANDS: ReadonlySet<string> = new Set<string>([
   "get_content_tree",
   "get_frame_documentation",
   "get_comments",
+  // Server-side read tools that only ever send `get_node_info` (document-tools.ts).
+  // Listed so batch/readonly classification treats them as reads. Note: with the
+  // plugin's auto-focus on, get_node_info may move the viewport (FOCUS_BEFORE_COMMANDS);
+  // that is UI state, not design data.
+  "get_node_summary",
+  "measure_node",
 ]);
 
 export const BROWSER_READONLY_COMMANDS: ReadonlySet<BrowserCommand> = new Set<BrowserCommand>([

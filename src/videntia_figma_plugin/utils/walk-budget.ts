@@ -3,6 +3,8 @@
  * a node/byte budget tracker and a cooperative yielder.
  */
 
+import { type CancelSignal, getCommandSignal, throwIfCancelled } from "./cancellation";
+
 export const DEFAULT_MAX_NODES = 2000;
 export const DEFAULT_MAX_BYTES = 500 * 1024;
 export const DEFAULT_YIELD_EVERY = 1000;
@@ -62,12 +64,24 @@ export function estimateNodeBytes(node: Record<string, unknown>): number {
   return size;
 }
 
-/** Returns a function that yields to the event loop once every `every` calls. */
-export function createYielder(every = DEFAULT_YIELD_EVERY, sleep: () => Promise<void> = defaultSleep) {
+/**
+ * Returns a function that yields to the event loop once every `every` calls.
+ * It captures the running command's cancel signal at creation and throws a
+ * CancelledError at each yield point (before and after sleeping) once aborted.
+ */
+export function createYielder(
+  every = DEFAULT_YIELD_EVERY,
+  sleep: () => Promise<void> = defaultSleep,
+  signal: CancelSignal = getCommandSignal(),
+) {
   let count = 0;
   return async function tick(): Promise<void> {
     count += 1;
-    if (count % every === 0) await sleep();
+    if (count % every === 0) {
+      throwIfCancelled(signal);
+      await sleep();
+      throwIfCancelled(signal);
+    }
   };
 }
 

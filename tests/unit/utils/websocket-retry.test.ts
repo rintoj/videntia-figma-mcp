@@ -304,9 +304,14 @@ describe("plugin queue wait warning", () => {
   it("adds a warnings entry when queuedMs > 5000", async () => {
     const ws = await joinedFigma();
     faults = { get_node_info: ["slow-queue"] };
-    const result = (await ws.sendCommandToFigma("get_node_info", { nodeId: "1:2" })) as any;
-    expect(result.ok).toBe("get_node_info");
-    expect(result.warnings[0]).toContain("Waited 7.3s in the plugin queue");
+    const { runWithChannel, getRequestWarnings } =
+      await import("../../../src/videntia_figma_mcp/utils/channel-context");
+    await runWithChannel(undefined, undefined, async () => {
+      const result = (await ws.sendCommandToFigma("get_node_info", { nodeId: "1:2" })) as any;
+      expect(result.ok).toBe("get_node_info");
+      expect(result.warnings).toBeUndefined();
+      expect(getRequestWarnings()[0]).toContain("Waited 7.3s in the plugin queue");
+    });
   });
 
   it("pure helpers", async () => {
@@ -314,7 +319,7 @@ describe("plugin queue wait warning", () => {
     expect(ws.queueWaitWarning(5000)).toBeNull();
     expect(ws.queueWaitWarning(undefined)).toBeNull();
     expect(ws.queueWaitWarning(12000)).toContain("Waited 12.0s");
-    expect(ws.applyQueueWarning({ a: 1, warnings: ["x"] }, 6000).warnings).toHaveLength(2);
+    expect(ws.applyQueueWarning({ a: 1, warnings: ["x"] }, 6000)).toEqual({ a: 1, warnings: ["x"] });
     expect(ws.applyQueueWarning("text", 6000)).toBe("text");
     expect(ws.applyQueueWarning({ a: 1 }, 100)).toEqual({ a: 1 });
     expect(ws.isFigmaConnectionError(new Error("Unable to establish connection to Figma"))).toBe(true);
