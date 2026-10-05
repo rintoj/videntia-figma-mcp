@@ -249,6 +249,7 @@ import {
   findUnbound,
   checkTokenCollisions,
 } from "./handlers/verification";
+import { getDesignContext, getVariablesUsed } from "./handlers/design-context";
 
 // Handlers — batch (injected with handleCommand to avoid circular import)
 import { batchActions } from "./handlers/batch";
@@ -1117,6 +1118,10 @@ async function _executeCommand(command: string, params: Record<string, unknown>)
       return await assertNodeState(params);
     case "find_unbound":
       return await findUnbound(params);
+    case "get_design_context":
+      return await getDesignContext(params);
+    case "get_variables_used":
+      return await getVariablesUsed(params);
     case "check_token_collisions":
       return await checkTokenCollisions(params);
 

@@ -209,6 +209,8 @@ export type FigmaCommand =
   | "assert_node_state"
   | "find_unbound"
   | "check_token_collisions"
+  | "get_design_context"
+  | "get_variables_used"
   | "get_design_system"
   | "setup_design_system"
   | "update_icon"
