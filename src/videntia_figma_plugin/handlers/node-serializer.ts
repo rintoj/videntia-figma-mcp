@@ -3,13 +3,58 @@
 // ---------------------------------------------------------------------------
 
 import { gradientTransformToCssAngle } from "../../videntia_figma_mcp/utils/gradient-geometry";
+import { boundedMap } from "../utils/bounded-map";
 
-// Build lookup maps for variables, text styles, and effect styles in parallel.
-async function buildLookupMaps(): Promise<{
+/** Max concurrent child / node-id lookups per serialize call. */
+const SERIALIZE_CONCURRENCY = 8;
+/** Lookup maps are reused for this long, or until the document changes. */
+const LOOKUP_MAPS_TTL_MS = 2000;
+
+type BaseLookupMaps = {
   variableMap: Map<string, string>;
   textStyleMap: Map<string, string>;
   effectStyleMap: Map<string, string>;
-}> {
+};
+
+let lookupMapsCache: { at: number; value: Promise<BaseLookupMaps> } | null = null;
+let documentChangeListenerRegistered = false;
+
+/** Test hook: drop the cached lookup maps and forget the listener registration. */
+export function resetLookupMapsCache(): void {
+  lookupMapsCache = null;
+  documentChangeListenerRegistered = false;
+}
+
+function ensureDocumentChangeListener(): void {
+  if (documentChangeListenerRegistered) return;
+  documentChangeListenerRegistered = true;
+  try {
+    if (typeof figma !== "undefined" && typeof figma.on === "function") {
+      figma.on("documentchange", function () {
+        lookupMapsCache = null;
+      });
+    }
+  } catch (_e) {
+    // documentchange needs loadAllPagesAsync under dynamic-page; TTL still bounds staleness.
+  }
+}
+
+/** Cached buildLookupMaps: invalidated on documentchange or after LOOKUP_MAPS_TTL_MS. */
+export function getLookupMaps(): Promise<BaseLookupMaps> {
+  ensureDocumentChangeListener();
+  const now = Date.now();
+  if (lookupMapsCache && now - lookupMapsCache.at < LOOKUP_MAPS_TTL_MS) return lookupMapsCache.value;
+  const value = buildLookupMaps();
+  const entry = { at: now, value };
+  lookupMapsCache = entry;
+  value.catch(function () {
+    if (lookupMapsCache === entry) lookupMapsCache = null;
+  });
+  return value;
+}
+
+// Build lookup maps for variables, text styles, and effect styles in parallel.
+async function buildLookupMaps(): Promise<BaseLookupMaps> {
   const variableMap = new Map<string, string>();
   const textStyleMap = new Map<string, string>();
   const effectStyleMap = new Map<string, string>();
@@ -267,10 +312,9 @@ function getFontWeight(style: string): number {
   return 400;
 }
 
-interface LookupMaps {
-  variableMap: Map<string, string>;
-  textStyleMap: Map<string, string>;
-  effectStyleMap: Map<string, string>;
+interface LookupMaps extends BaseLookupMaps {
+  /** Per serialize call: instance id -> main component lookup, memoized. */
+  mainComponentCache?: Map<string, Promise<ComponentNode | null>>;
 }
 
 // Main recursive node processor
@@ -532,7 +576,12 @@ async function processNode(
     }
     // Resolve main component
     try {
-      const mainComp = await instanceNode.getMainComponentAsync();
+      let mainCompPromise = maps.mainComponentCache ? maps.mainComponentCache.get(instanceNode.id) : undefined;
+      if (!mainCompPromise) {
+        mainCompPromise = instanceNode.getMainComponentAsync();
+        if (maps.mainComponentCache) maps.mainComponentCache.set(instanceNode.id, mainCompPromise);
+      }
+      const mainComp = await mainCompPromise;
       if (mainComp) {
         info["mainComponentId"] = mainComp.id;
         if (mainComp.parent && mainComp.parent.type === "COMPONENT_SET") {
@@ -561,13 +610,11 @@ async function processNode(
   // Children (respect depth limit)
   if ("children" in node && (node as ChildrenMixin).children.length > 0) {
     if (maxDepth === undefined || currentDepth < maxDepth) {
-      const childResults = await Promise.all(
-        (node as ChildrenMixin).children.map(function (child) {
-          return processNode(child as SceneNode, currentDepth + 1, maxDepth, maps).catch(function () {
-            return null;
-          });
-        }),
-      );
+      const childResults = await boundedMap((node as ChildrenMixin).children, SERIALIZE_CONCURRENCY, function (child) {
+        return processNode(child as SceneNode, currentDepth + 1, maxDepth, maps).catch(function () {
+          return null;
+        });
+      });
       const childInfos = childResults.filter(function (c): c is Record<string, unknown> {
         return c !== null;
       });
@@ -626,17 +673,24 @@ export async function serializeNodes(params: Record<string, unknown>): Promise<R
   const nodeId = params !== null && params !== undefined ? (params["nodeId"] as string | undefined) : undefined;
   const depth = params !== null && params !== undefined ? (params["depth"] as number | undefined) : undefined;
 
-  const maps = await buildLookupMaps();
+  const baseMaps = await getLookupMaps();
+  const maps: LookupMaps = {
+    variableMap: baseMaps.variableMap,
+    textStyleMap: baseMaps.textStyleMap,
+    effectStyleMap: baseMaps.effectStyleMap,
+    mainComponentCache: new Map(),
+  };
 
   // Determine which nodes to process
   let nodesToProcess: SceneNode[];
 
   if (nodeIds && Array.isArray(nodeIds) && nodeIds.length > 0) {
-    nodesToProcess = [];
-    for (const id of nodeIds) {
-      const node = await figma.getNodeByIdAsync(id);
-      if (node) nodesToProcess.push(node as SceneNode);
-    }
+    const found = await boundedMap(nodeIds, SERIALIZE_CONCURRENCY, function (id) {
+      return figma.getNodeByIdAsync(id);
+    });
+    nodesToProcess = found.filter(function (n): n is BaseNode {
+      return n !== null;
+    }) as SceneNode[];
     if (nodesToProcess.length === 0) throw new Error("None of the provided node IDs were found");
   } else if (nodeId) {
     const node = await figma.getNodeByIdAsync(nodeId);

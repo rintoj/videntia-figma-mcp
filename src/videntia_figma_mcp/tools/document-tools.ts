@@ -933,7 +933,7 @@ export function registerDocumentTools(server: McpServer): void {
   // Scan Nodes By Types Tool
   server.tool(
     "scan_nodes_by_types",
-    "Find all descendant nodes of specific types inside a parent node. Use when you have a parent nodeId and want all children matching certain types (e.g. all TEXT or FRAME nodes). Does not match by name — use search_nodes for name-based lookup. Returns JSX+Tailwind markup (default) or JSON.",
+    "Find all descendant nodes of specific types inside a parent node. Returns the matched nodes only by default (depth 0); pass `depth` to include each match's subtree. Use when you have a parent nodeId and want all children matching certain types (e.g. all TEXT or FRAME nodes). Does not match by name — use search_nodes for name-based lookup. Returns JSX+Tailwind markup (default) or JSON.",
     {
       nodeId: z.string().describe("ID of the node to scan"),
       types: coerceArray(z.array(z.string())).describe("Array of node types (e.g. ['COMPONENT', 'FRAME'])"),
@@ -946,7 +946,9 @@ export function registerDocumentTools(server: McpServer): void {
         .describe(
           "When true, only DIRECT children of nodeId are considered (no recursion into descendants). Default: false (full subtree scan).",
         ),
-      depth: depthSchema,
+      depth: depthSchema.describe(
+        'Subtree depth serialized under EACH matched node. Default: 0 (matched nodes only). Pass a number, or "all" for unlimited (slow on large trees).',
+      ),
       output_format: nodeOutputFormatSchema,
       format: nodeFormatAliasSchema,
       cursor: cursorSchema,
@@ -959,7 +961,8 @@ export function registerDocumentTools(server: McpServer): void {
           types,
           limit,
           topLevelOnly: topLevelOnly === true,
-          depth: resolveDepth(depth),
+          // 0 by default; "all" travels as null (JSON drops undefined).
+          depth: depth === undefined ? 0 : depth === "all" ? null : depth,
         });
         const returned = (result?.nodes ?? []).length;
         const totalFound = typeof result?.totalFound === "number" ? result.totalFound : returned;

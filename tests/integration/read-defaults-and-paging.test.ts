@@ -248,7 +248,7 @@ describe("read-tool defaults, paging and lint delta", () => {
 
   it("get_content_tree pages the text inventory", async () => {
     mockSend.mockResolvedValue(treeResult);
-    const out = text(await call("get_content_tree", { nodeId: "8:0" }));
+    const out = text(await call("get_content_tree", { nodeId: "8:0", includeTextInventory: true }));
     const parsed = JSON.parse(out);
     expect(parsed.textInventory).toHaveLength(100);
     expect(parsed.textInventoryTotal).toBe(250);
@@ -256,7 +256,9 @@ describe("read-tool defaults, paging and lint delta", () => {
     expect(JSON.stringify(parsed._notice)).toContain("PARTIAL page");
 
     mockSend.mockResolvedValue(treeResult);
-    const p3 = JSON.parse(text(await call("get_content_tree", { nodeId: "8:0", cursor: "200" })));
+    const p3 = JSON.parse(
+      text(await call("get_content_tree", { nodeId: "8:0", includeTextInventory: true, cursor: "200" })),
+    );
     expect(p3.textInventory).toHaveLength(50);
     expect(p3.next_cursor).toBeUndefined();
   });

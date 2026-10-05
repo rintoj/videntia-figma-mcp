@@ -73,6 +73,33 @@ Proven vs hypothesized:
   names, watchdog timeouts, dropped and rejected counts.
 - Server timeout errors now name the command and point to `get_plugin_health`.
 
+## Heavy reads
+
+A second failure mode looked like the freeze but was caused by a few oversized reads
+starving everything else. With 8 concurrent agents the measured latency was p50 6.8s and
+max 56s, and 84 of 240 commands timed out. One `get_content_tree` response was 2.1 MB,
+and `scan_nodes_by_types` cost about 4.5 KB per node.
+
+What changed:
+
+- `get_content_tree` is capped at `maxNodes` 2000 and a byte budget of about 500 KB. When
+  either limit is hit the response says `truncated` and carries a hint on how to narrow
+  the read. The text inventory is opt-in instead of always included.
+- `scan_nodes_by_types` defaults to depth 0, so a scan no longer walks whole subtrees
+  unless asked.
+- Lookup maps are cached, main components are memoized, and async node resolution runs
+  with bounded concurrency of 8.
+- The plugin scheduler has a heavy lane: only one heavy read runs at a time. Light reads
+  may jump ahead of a queued heavy read, but never ahead of a write, so write ordering is
+  preserved.
+- Long traversals yield every ~1000 nodes so the plugin stays responsive.
+- The plugin reports `queuedMs` on each response envelope. When a command waited more
+  than 5s in the queue, the server adds a `warnings` entry ("Waited Xs in the plugin queue
+  behind other commands; consider fewer concurrent agents or narrower reads").
+- When a command fails with "Unable to establish connection to Figma", the server retries
+  it once, but only if it is read-only (`isReadOnlyCall`). Writes fail as before so they
+  are never applied twice.
+
 ## How to reproduce
 
 Automated: `bun test tests/unit/plugin/command-scheduler.test.ts`. The first test runs

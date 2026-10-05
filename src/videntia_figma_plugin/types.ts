@@ -78,6 +78,8 @@ export interface CommandResultMessage extends BaseMessage {
   id: string;
   command: string;
   result: unknown;
+  /** Ms the command waited in the plugin queue before it started. */
+  queuedMs?: number;
 }
 
 export interface CommandErrorMessage extends BaseMessage {
@@ -85,6 +87,8 @@ export interface CommandErrorMessage extends BaseMessage {
   id: string;
   command: string;
   error: string;
+  /** Ms the command waited in the plugin queue before it started. */
+  queuedMs?: number;
 }
 
 export interface CommandProgressMessage extends BaseMessage {

@@ -137,6 +137,24 @@ describe("documentation tools integration", () => {
   });
 
   describe("get_content_tree", () => {
+    it("forwards budget params and surfaces truncation", async () => {
+      mockSendCommand.mockResolvedValue({
+        tree: [],
+        truncated: true,
+        truncatedBy: "maxNodes",
+        visitedNodes: 5,
+        hint: "narrow nodeId",
+      });
+      const res = await callTool("get_content_tree", { nodeId: "f", maxNodes: 5, maxBytes: 4096, textInventory: true });
+      expect(mockSendCommand).toHaveBeenCalledWith(
+        "get_content_tree",
+        expect.objectContaining({ maxNodes: 5, maxBytes: 4096, includeTextInventory: true }),
+      );
+      const out = JSON.parse(res.content[0].text);
+      expect(out.truncated).toBe(true);
+      expect(out._notice[0]).toContain("WARNING: tree is TRUNCATED");
+    });
+
     // Default lowered 5 -> 2: 186/186 measured calls passed no depth or
     // projection at all, so the shallow tree is now the default.
     it("applies maxDepth default", async () => {
@@ -149,6 +167,9 @@ describe("documentation tools integration", () => {
         pageId: undefined,
         maxDepth: 2,
         includeImages: false,
+        maxNodes: undefined,
+        maxBytes: undefined,
+        includeTextInventory: false,
       });
     });
 
@@ -166,6 +187,9 @@ describe("documentation tools integration", () => {
         pageId: "page-1",
         maxDepth: 10,
         includeImages: true,
+        maxNodes: undefined,
+        maxBytes: undefined,
+        includeTextInventory: false,
       });
     });
 

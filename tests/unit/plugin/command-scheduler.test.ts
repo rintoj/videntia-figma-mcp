@@ -105,3 +105,90 @@ describe("plugin command queue wedge", () => {
     expect(s.getStatus().abandonedStillRunning).toBe(0);
   });
 });
+
+describe("scheduler priority lanes", () => {
+  function gate() {
+    let open!: () => void;
+    const p = new Promise<void>((r) => (open = r));
+    return { p, open };
+  }
+
+  it("lets a light read jump queued heavy commands", async () => {
+    const s = new CommandScheduler({ watchdogMs: 1000, maxQueueDepth: 10 });
+    const order: string[] = [];
+    const g = gate();
+    const first = s.schedule("hold", () => g.p.then(() => order.push("hold")), { kind: "heavy" });
+    const heavy = s.schedule("scan", async () => order.push("scan"), { kind: "heavy" });
+    const light = s.schedule("get_node_info", async () => order.push("read"), { kind: "read" });
+    g.open();
+    await Promise.all([first, heavy, light]);
+    expect(order).toEqual(["hold", "read", "scan"]);
+  });
+
+  it("never lets a light read jump a queued write, and writes stay FIFO", async () => {
+    const s = new CommandScheduler({ watchdogMs: 1000, maxQueueDepth: 10 });
+    const order: string[] = [];
+    const g = gate();
+    const hold = s.schedule("hold", () => g.p.then(() => order.push("hold")), { kind: "heavy" });
+    const w1 = s.schedule("w1", async () => order.push("w1"));
+    const heavy = s.schedule("scan", async () => order.push("scan"), { kind: "heavy" });
+    const w2 = s.schedule("w2", async () => order.push("w2"), { kind: "write" });
+    const r = s.schedule("read", async () => order.push("read"), { kind: "read" });
+    g.open();
+    await Promise.all([hold, w1, heavy, w2, r]);
+    expect(order).toEqual(["hold", "w1", "scan", "w2", "read"]);
+  });
+
+  it("a light read ahead of the first write still jumps heavy work before it", async () => {
+    const s = new CommandScheduler({ watchdogMs: 1000, maxQueueDepth: 10 });
+    const order: string[] = [];
+    const g = gate();
+    const hold = s.schedule("hold", () => g.p.then(() => order.push("hold")), { kind: "write" });
+    const heavy = s.schedule("scan", async () => order.push("scan"), { kind: "heavy" });
+    const r = s.schedule("read", async () => order.push("read"), { kind: "read" });
+    const w = s.schedule("w", async () => order.push("w"));
+    g.open();
+    await Promise.all([hold, heavy, r, w]);
+    expect(order).toEqual(["hold", "read", "scan", "w"]);
+  });
+
+  it("runs at most one heavy command at a time", async () => {
+    const s = new CommandScheduler({ watchdogMs: 1000, maxQueueDepth: 10 });
+    let active = 0;
+    let peak = 0;
+    const job = () => async () => {
+      active++;
+      peak = Math.max(peak, active);
+      await new Promise((r) => setTimeout(r, 5));
+      active--;
+    };
+    await Promise.all([1, 2, 3, 4].map((i) => s.schedule(`h${i}`, job(), { kind: "heavy" })));
+    expect(peak).toBe(1);
+  });
+
+  it("reports queuedMs through onStart", async () => {
+    let t = 0;
+    const s = new CommandScheduler({ watchdogMs: 1000, maxQueueDepth: 10, now: () => t });
+    const g = gate();
+    const seen: number[] = [];
+    const a = s.schedule("a", () => g.p, { onStart: (ms) => seen.push(ms) });
+    const b = s.schedule("b", async () => 1, { onStart: (ms) => seen.push(ms) });
+    t = 250;
+    g.open();
+    await Promise.all([a, b]);
+    expect(seen).toEqual([0, 250]);
+  });
+
+  it("still drops an expired read that jumped the queue", async () => {
+    let t = 0;
+    const s = new CommandScheduler({ watchdogMs: 1000, maxQueueDepth: 10, now: () => t });
+    const g = gate();
+    const hold = s.schedule("hold", () => g.p);
+    const heavy = s.schedule("scan", async () => 1, { kind: "heavy" });
+    const r = s.schedule("read", async () => 1, { kind: "read", deadlineMs: 100 });
+    t = 500;
+    g.open();
+    await expect(r).rejects.toThrow(/dropped/);
+    await Promise.all([hold, heavy]);
+  });
+});

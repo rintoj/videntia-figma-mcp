@@ -383,7 +383,7 @@ export function registerDocumentationTools(server: McpServer): void {
 
   server.tool(
     "get_content_tree",
-    'Extract the content tree from a frame, page, or node — text content with inferred semantic roles (heading, subheading, body, cta, label, hint), component types, and layout containers, plus a flat text inventory for copy auditing. Returns a SHALLOW, PROJECTED tree by default (maxDepth 2, outline view) — pass view:"full" and a larger maxDepth for everything.',
+    'Extract the content tree from a frame, page, or node — text content with inferred semantic roles (heading, subheading, body, cta, label, hint), component types, and layout containers, plus an opt-in flat text inventory (includeTextInventory) for copy auditing. Walks are capped by maxNodes (2000) and maxBytes (~500 KB); a capped result says truncated:true with a hint. Returns a SHALLOW, PROJECTED tree by default (maxDepth 2, outline view) — pass view:"full" and a larger maxDepth for everything.',
     {
       nodeId: z
         .string()
@@ -410,6 +410,23 @@ export function registerDocumentationTools(server: McpServer): void {
         .optional()
         .default(false)
         .describe("Include image fill indicators in the output."),
+      maxNodes: z.coerce
+        .number()
+        .int()
+        .min(1)
+        .optional()
+        .describe("Stop after this many nodes and return truncated:true. Default: 2000."),
+      maxBytes: z.coerce
+        .number()
+        .int()
+        .min(1024)
+        .optional()
+        .describe("Approximate output size budget in bytes. Default: 512000 (500 KB)."),
+      includeTextInventory: mcpBooleanSchema
+        .optional()
+        .default(false)
+        .describe("Also return a flat text inventory (duplicates the tree's text). Default: false."),
+      textInventory: mcpBooleanSchema.optional().describe("Alias for includeTextInventory."),
       text_limit: z.coerce
         .number()
         .int()
@@ -418,13 +435,29 @@ export function registerDocumentationTools(server: McpServer): void {
         .describe("Max text-inventory entries per page. Default: 100. Remaining entries are PAGED via next_cursor."),
       cursor: cursorSchema,
     },
-    async ({ nodeId, pageId, maxDepth, includeImages, view, text_limit, cursor }) => {
+    async ({
+      nodeId,
+      pageId,
+      maxDepth,
+      includeImages,
+      view,
+      text_limit,
+      cursor,
+      maxNodes,
+      maxBytes,
+      includeTextInventory,
+      textInventory,
+    }) => {
       try {
+        const wantInventory = includeTextInventory === true || textInventory === true;
         const result = await sendCommandToFigma<Record<string, unknown>>("get_content_tree", {
           nodeId,
           pageId,
           maxDepth,
           includeImages,
+          maxNodes,
+          maxBytes,
+          includeTextInventory: wantInventory,
         });
 
         const tree = (result?.tree as any[]) ?? [];
@@ -438,8 +471,13 @@ export function registerDocumentationTools(server: McpServer): void {
             ? "Tree is the FULL plugin projection."
             : 'Tree is the OUTLINE projection: id, name, type, role, text and bound variables only. Node geometry (width/height), font size/weight and image-fill markers are OMITTED — pass view:"full" for them.',
           `Nodes deeper than maxDepth=${maxDepth} are NOT included; a node cut off there carries "truncatedChildren": true. Raise maxDepth (max 20) to see them.`,
-          pageNotice("textInventory", page),
+          wantInventory ? pageNotice("textInventory", page) : "textInventory omitted (pass includeTextInventory:true).",
         ];
+        if (result?.truncated === true) {
+          notices.unshift(
+            `WARNING: tree is TRUNCATED (${String(result.truncatedBy)}) after ${String(result.visitedNodes)} node(s). ${String(result.hint ?? "")}`,
+          );
+        }
 
         const payload: Record<string, unknown> = {
           _notice: notices,
@@ -447,10 +485,16 @@ export function registerDocumentationTools(server: McpServer): void {
           view,
           maxDepth,
           tree: projected,
-          textInventory: page.items,
-          textInventoryTotal: page.total,
         };
-        if (page.nextCursor !== undefined) payload.next_cursor = page.nextCursor;
+        if (result?.truncated === true) {
+          payload.truncated = true;
+          payload.hint = result.hint;
+        }
+        if (wantInventory) {
+          payload.textInventory = page.items;
+          payload.textInventoryTotal = page.total;
+          if (page.nextCursor !== undefined) payload.next_cursor = page.nextCursor;
+        }
 
         return {
           content: [{ type: "text", text: JSON.stringify(payload, null, 2) }],

@@ -2,9 +2,10 @@
 // All handler modules are imported and wired to the handleCommand dispatch.
 
 // Utils
-import { CommandScheduler } from "./utils/command-scheduler";
+import { CommandScheduler, type CommandKind } from "./utils/command-scheduler";
 import { debugLog } from "./utils/helpers";
-import { READONLY_COMMANDS } from "../videntia_figma_mcp/utils/readonly-commands";
+import { READONLY_COMMANDS, isReadOnlyCall } from "../videntia_figma_mcp/utils/readonly-commands";
+import { isHeavyCommand } from "../videntia_figma_mcp/utils/heavy-commands";
 import { setAutoFocus } from "./utils/plugin-state";
 
 // Handlers — document & navigation
@@ -566,13 +567,23 @@ const DEFAULT_WATCHDOG_MS = 180000;
 const MAX_QUEUE_DEPTH = 40;
 const scheduler = new CommandScheduler({ watchdogMs: DEFAULT_WATCHDOG_MS, maxQueueDepth: MAX_QUEUE_DEPTH });
 
-function enqueueCommand(command: string, params: Record<string, unknown>): Promise<unknown> {
+function classifyCommand(command: string, params: Record<string, unknown>): CommandKind {
+  if (!isReadOnlyCall(command, params)) return "write";
+  return isHeavyCommand(command, params) ? "heavy" : "read";
+}
+
+function enqueueCommand(
+  command: string,
+  params: Record<string, unknown>,
+  onStart?: (queuedMs: number) => void,
+): Promise<unknown> {
   const deadline = Number(params && params["__deadlineMs"]);
   const deadlineMs = Number.isFinite(deadline) && deadline > 0 ? deadline : undefined;
   // Never abandon a command before its caller would have; give it a small grace.
   const watchdogMs = deadlineMs !== undefined ? Math.max(deadlineMs + 5000, 30000) : DEFAULT_WATCHDOG_MS;
   if (params && "__deadlineMs" in params) delete params["__deadlineMs"];
-  return scheduler.schedule(command, () => handleCommand(command, params), { deadlineMs, watchdogMs });
+  const kind = classifyCommand(command, params);
+  return scheduler.schedule(command, () => handleCommand(command, params), { deadlineMs, watchdogMs, kind, onStart });
 }
 
 function getPluginHealth(): Record<string, unknown> {
@@ -1704,19 +1715,28 @@ async function handlePanelMessage(msg: Record<string, unknown>): Promise<void> {
       }
       break;
     }
-    case "execute-command":
+    case "execute-command": {
+      // Time spent waiting in the plugin queue, echoed on the response envelope.
+      let queuedMs = 0;
       try {
         // Health is answered outside the queue so it works while a command is stuck.
         const result =
           msg["command"] === "get_plugin_health"
             ? getPluginHealth()
-            : await enqueueCommand(msg["command"] as string, (msg["params"] as Record<string, unknown>) || {});
+            : await enqueueCommand(
+                msg["command"] as string,
+                (msg["params"] as Record<string, unknown>) || {},
+                (ms) => {
+                  queuedMs = ms;
+                },
+              );
         figma.ui.postMessage({
           type: "command-result",
           id: msg["id"],
           command: msg["command"],
           result,
           nodeIds: extractNodeIds(result),
+          queuedMs,
         });
       } catch (error) {
         figma.ui.postMessage({
@@ -1724,9 +1744,11 @@ async function handlePanelMessage(msg: Record<string, unknown>): Promise<void> {
           id: msg["id"],
           command: msg["command"],
           error: describeThrown(error, msg["command"] as string),
+          queuedMs,
         });
       }
       break;
+    }
     default:
       break;
   }

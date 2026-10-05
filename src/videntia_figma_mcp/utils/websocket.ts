@@ -260,7 +260,7 @@ function handleMessage(conn: ChannelConnection, raw: WebSocket.RawData): void {
     logger.error(`Error from Figma: ${(response as any).error}`);
     request.reject(new Error(String((response as any).error)));
   } else if ((response as any).result !== undefined) {
-    request.resolve((response as any).result);
+    request.resolve(applyQueueWarning((response as any).result, (response as any).queuedMs));
   } else {
     request.reject(new Error("Received invalid response from Figma plugin (no result or error field)"));
   }
@@ -807,6 +807,39 @@ function classifyDrop(error: unknown, readOnly: boolean): "rejoin" | "retry" | "
   return "rethrow";
 }
 
+/** Queue waits above this (ms) are surfaced to the caller as a warning. */
+export const QUEUE_WARN_THRESHOLD_MS = 5000;
+
+/** Pure: the warning text for a plugin queue wait, or null when it is unremarkable. */
+export function queueWaitWarning(queuedMs: unknown): string | null {
+  if (typeof queuedMs !== "number" || !Number.isFinite(queuedMs) || queuedMs <= QUEUE_WARN_THRESHOLD_MS) return null;
+  return (
+    `Waited ${(queuedMs / 1000).toFixed(1)}s in the plugin queue behind other commands; ` +
+    `consider fewer concurrent agents or narrower reads.`
+  );
+}
+
+/**
+ * Pure: attach a queue-wait warning to a result. Plain-object results gain (or extend)
+ * a `warnings` array; arrays and primitives are returned untouched (only logged).
+ */
+export function applyQueueWarning<T>(result: T, queuedMs: unknown): T {
+  const warning = queueWaitWarning(queuedMs);
+  if (!warning) return result;
+  logger.warn(warning);
+  if (result && typeof result === "object" && !Array.isArray(result)) {
+    const r = result as Record<string, unknown>;
+    const existing = Array.isArray(r.warnings) ? r.warnings : r.warnings != null ? [r.warnings] : [];
+    return { ...r, warnings: [...existing, warning] } as T;
+  }
+  return result;
+}
+
+/** Pure: is this the transient "plugin not reachable" error that a read may retry once? */
+export function isFigmaConnectionError(error: unknown): boolean {
+  return error instanceof Error && error.message.includes("Unable to establish connection to Figma");
+}
+
 /**
  * Send a command to the Figma plugin on the channel THIS request is addressed to.
  */
@@ -827,7 +860,13 @@ export async function sendCommandToFigma<T = unknown>(
   try {
     return await sendOnConnection<T>(conn, command, params, timeoutMs);
   } catch (error) {
-    const drop = classifyDrop(error, isReadOnlyCall(command, params));
+    const readOnly = isReadOnlyCall(command, params);
+    if (readOnly && isFigmaConnectionError(error)) {
+      // Transient plugin-side connection failure: safe to retry a read once. Writes fail as before.
+      logger.warn(`"${command}" hit a Figma connection error; retrying the read once.`);
+      return await sendOnConnection<T>(conn, command, params, timeoutMs);
+    }
+    const drop = classifyDrop(error, readOnly);
     if (drop === "rejoin" || drop === "retry") {
       // Reconnect + re-join (which RE-VERIFIES the document identity) and retry once.
       logger.warn(`Channel "${channel}" dropped during "${command}"; reconnecting and retrying once.`);

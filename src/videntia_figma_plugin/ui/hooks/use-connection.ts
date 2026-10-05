@@ -161,21 +161,26 @@ export function useConnection() {
     }
   }
 
-  function sendSuccessResponse(id: string, result: any) {
+  function withQueuedMs(message: any, queuedMs?: unknown) {
+    if (typeof queuedMs === "number" && isFinite(queuedMs)) message.queuedMs = queuedMs;
+    return message;
+  }
+
+  function sendSuccessResponse(id: string, result: any, queuedMs?: unknown) {
     sendViaSocket({
       id: id,
       type: "message",
       channel: channelRef.current,
-      message: { id: id, result: result },
+      message: withQueuedMs({ id: id, result: result }, queuedMs),
     });
   }
 
-  function sendErrorResponse(id: string, errorMessage: string) {
+  function sendErrorResponse(id: string, errorMessage: string, queuedMs?: unknown) {
     sendViaSocket({
       id: id,
       type: "message",
       channel: channelRef.current,
-      message: { id: id, error: errorMessage },
+      message: withQueuedMs({ id: id, error: errorMessage }, queuedMs),
     });
   }
 
@@ -438,7 +443,7 @@ export function useConnection() {
     setTimeout(function () {
       updateAction(message.id, { status: "success", result: message.result, nodeIds: nodeIds });
     }, resultDelay);
-    sendSuccessResponse(message.id, message.result);
+    sendSuccessResponse(message.id, message.result, message.queuedMs);
   }
 
   function handleCommandError(message: any) {
@@ -448,7 +453,7 @@ export function useConnection() {
     setTimeout(function () {
       updateAction(message.id, { status: "error", error: message.error });
     }, errorDelay);
-    sendErrorResponse(message.id, message.error);
+    sendErrorResponse(message.id, message.error, message.queuedMs);
   }
 
   function handleProgressUpdate(message: any) {

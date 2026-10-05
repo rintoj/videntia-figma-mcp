@@ -3,6 +3,7 @@
 // ---------------------------------------------------------------------------
 
 import { serializeNodes } from "./node-serializer";
+import { createYielder } from "../utils/walk-budget";
 
 function getPage(node: BaseNode): PageNode | null {
   let current: BaseNode | null = node;
@@ -156,7 +157,8 @@ export async function scanNodesByTypes(params: Record<string, unknown>): Promise
   const nodeId = params["nodeId"] as string;
   const types = params["types"] as string[] | undefined;
   const limit = params["limit"] !== undefined && params["limit"] !== null ? (params["limit"] as number) : 50;
-  const depth = params["depth"] as number | undefined;
+  // Default 0: serialize matched nodes only. An explicit depth opts into subtrees.
+  const depth = params["depth"] === undefined ? 0 : (params["depth"] as number | null);
   const topLevelOnly = params["topLevelOnly"] === true;
 
   if (!Array.isArray(types) || types.length === 0) {
@@ -173,7 +175,9 @@ export async function scanNodesByTypes(params: Record<string, unknown>): Promise
   // sweeps silently incomplete.
   const allMatchedIds: string[] = [];
 
-  const scanNode = (n: SceneNode): void => {
+  const tick = createYielder();
+  const scanNode = async (n: SceneNode): Promise<void> => {
+    await tick();
     const isMatch = types.includes(n.type);
     if (isMatch) {
       allMatchedIds.push(n.id);
@@ -182,7 +186,7 @@ export async function scanNodesByTypes(params: Record<string, unknown>): Promise
     }
     if ("children" in n) {
       for (const child of (n as ChildrenMixin).children) {
-        scanNode(child as SceneNode);
+        await scanNode(child as SceneNode);
       }
     }
   };
@@ -195,7 +199,7 @@ export async function scanNodesByTypes(params: Record<string, unknown>): Promise
           allMatchedIds.push(child.id);
         }
       } else {
-        scanNode(child as SceneNode);
+        await scanNode(child as SceneNode);
       }
     }
   }
@@ -208,6 +212,6 @@ export async function scanNodesByTypes(params: Record<string, unknown>): Promise
     return { count: 0, totalFound, truncated: false, limit, topLevelOnly, nodes: [] };
   }
 
-  const serialized = await serializeNodes({ nodeIds: matchedIds, depth: depth });
+  const serialized = await serializeNodes({ nodeIds: matchedIds, depth: depth ?? undefined });
   return { ...serialized, count: matchedIds.length, totalFound, truncated, limit, topLevelOnly };
 }
