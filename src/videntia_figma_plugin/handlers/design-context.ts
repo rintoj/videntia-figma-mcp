@@ -7,6 +7,8 @@
  * yield to Figma every YIELD_EVERY nodes and report `truncated`.
  */
 
+import { getCommandSignal, throwIfCancelled } from "../utils/cancellation";
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 export const YIELD_EVERY = 1000;
@@ -190,6 +192,8 @@ export async function walkBounded(
   opts: { maxNodes: number; maxDepth?: number; includeChildren?: boolean; includeHidden?: boolean },
   visit: (node: AnyNode, depth: number) => void | Promise<void>,
 ): Promise<{ visited: number; truncated: boolean }> {
+  const signal = getCommandSignal();
+  throwIfCancelled(signal);
   const queue: Array<[AnyNode, number]> = [[root, 0]];
   let visited = 0;
   let truncated = false;
@@ -201,7 +205,10 @@ export async function walkBounded(
     }
     await visit(node, depth);
     visited++;
-    if (visited % YIELD_EVERY === 0) await yieldToFigma();
+    if (visited % YIELD_EVERY === 0) {
+      await yieldToFigma();
+      throwIfCancelled(signal);
+    }
     if (opts.includeChildren === false) continue;
     if (!Array.isArray(node.children)) continue;
     if (opts.maxDepth !== undefined && depth >= opts.maxDepth) continue;

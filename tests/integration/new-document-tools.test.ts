@@ -660,7 +660,7 @@ describe("new document tools integration", () => {
         nodeId: "parent-123",
         types: ["FRAME", "COMPONENT"],
         limit: undefined,
-        depth: 1,
+        depth: 0,
         topLevelOnly: false,
       });
       expect(response.content[0].text).toContain("frame-1");
@@ -689,7 +689,7 @@ describe("new document tools integration", () => {
         nodeId: "parent-123",
         types: ["FRAME"],
         limit: undefined,
-        depth: 1,
+        depth: 0,
         topLevelOnly: false,
       });
     });

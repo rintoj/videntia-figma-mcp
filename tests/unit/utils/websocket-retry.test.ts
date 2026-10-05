@@ -9,7 +9,7 @@ import { logger } from "../../../src/videntia_figma_mcp/utils/logger";
  */
 
 type Listener = (...args: unknown[]) => void;
-type Fault = "close" | "join-first" | "hold";
+type Fault = "close" | "join-first" | "hold" | "conn-error" | "slow-queue";
 
 /** Faults to inject, consumed in order, per command name. */
 let faults: Record<string, Fault[]> = {};
@@ -68,6 +68,20 @@ class FakeSocket {
         return;
       }
       if (fault === "hold") return; // in flight, never answered: only a close settles it
+      if (fault === "conn-error") {
+        this.emit(
+          "message",
+          JSON.stringify({ id: msg.id, message: { id: msg.id, error: "Unable to establish connection to Figma" } }),
+        );
+        return;
+      }
+      if (fault === "slow-queue") {
+        this.emit(
+          "message",
+          JSON.stringify({ id: msg.id, message: { id: msg.id, result: { ok: command }, queuedMs: 7300 } }),
+        );
+        return;
+      }
       if (fault === "join-first") {
         this.emit("message", JSON.stringify({ type: "error", message: "You must join the channel first" }));
         return;
@@ -256,5 +270,59 @@ describe("sendCommandToChannel (browser) retry policy", () => {
       /Chrome extension dropped during browser command "type_text"\. It may already have been applied/,
     );
     expect(sends).toEqual(["type_text"]);
+  });
+});
+
+describe("Figma connection error retry", () => {
+  it("retries a read once on 'Unable to establish connection to Figma'", async () => {
+    const ws = await joinedFigma();
+    faults = { get_node_info: ["conn-error"] };
+    await expect(ws.sendCommandToFigma("get_node_info", { nodeId: "1:2" })).resolves.toEqual({ ok: "get_node_info" });
+    expect(sends).toEqual(["get_node_info", "get_node_info"]);
+  });
+
+  it("retries a read only once", async () => {
+    const ws = await joinedFigma();
+    faults = { get_node_info: ["conn-error", "conn-error"] };
+    await expect(ws.sendCommandToFigma("get_node_info", { nodeId: "1:2" })).rejects.toThrow(
+      "Unable to establish connection to Figma",
+    );
+    expect(sends).toEqual(["get_node_info", "get_node_info"]);
+  });
+
+  it("never retries a write", async () => {
+    const ws = await joinedFigma();
+    faults = { set_fill_color: ["conn-error"] };
+    await expect(ws.sendCommandToFigma("set_fill_color", { nodeId: "1:2" })).rejects.toThrow(
+      "Unable to establish connection to Figma",
+    );
+    expect(sends).toEqual(["set_fill_color"]);
+  });
+});
+
+describe("plugin queue wait warning", () => {
+  it("adds a warnings entry when queuedMs > 5000", async () => {
+    const ws = await joinedFigma();
+    faults = { get_node_info: ["slow-queue"] };
+    const { runWithChannel, getRequestWarnings } =
+      await import("../../../src/videntia_figma_mcp/utils/channel-context");
+    await runWithChannel(undefined, undefined, async () => {
+      const result = (await ws.sendCommandToFigma("get_node_info", { nodeId: "1:2" })) as any;
+      expect(result.ok).toBe("get_node_info");
+      expect(result.warnings).toBeUndefined();
+      expect(getRequestWarnings()[0]).toContain("Waited 7.3s in the plugin queue");
+    });
+  });
+
+  it("pure helpers", async () => {
+    const ws = await freshWebsocketModule();
+    expect(ws.queueWaitWarning(5000)).toBeNull();
+    expect(ws.queueWaitWarning(undefined)).toBeNull();
+    expect(ws.queueWaitWarning(12000)).toContain("Waited 12.0s");
+    expect(ws.applyQueueWarning({ a: 1, warnings: ["x"] }, 6000)).toEqual({ a: 1, warnings: ["x"] });
+    expect(ws.applyQueueWarning("text", 6000)).toBe("text");
+    expect(ws.applyQueueWarning({ a: 1 }, 100)).toEqual({ a: 1 });
+    expect(ws.isFigmaConnectionError(new Error("Unable to establish connection to Figma"))).toBe(true);
+    expect(ws.isFigmaConnectionError(new Error("other"))).toBe(false);
   });
 });

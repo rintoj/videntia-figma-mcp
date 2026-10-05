@@ -383,7 +383,7 @@ export function registerDocumentationTools(server: McpServer): void {
 
   server.tool(
     "get_content_tree",
-    'Extract the content tree from a frame, page, or node — text content with inferred semantic roles (heading, subheading, body, cta, label, hint), component types, and layout containers, plus a flat text inventory for copy auditing. Returns a SHALLOW, PROJECTED tree by default (maxDepth 2, outline view) — pass view:"full" and a larger maxDepth for everything.',
+    'Extract the content tree from a frame, page, or node — text content with inferred semantic roles (heading, subheading, body, cta, label, hint), component types, and layout containers, plus an opt-in flat text inventory (includeTextInventory) for copy auditing. Walks are capped by maxNodes (2000) and maxBytes (~500 KB); a capped result says truncated:true with a hint. Returns a SHALLOW, PROJECTED tree by default (maxDepth 2, outline view) — pass view:"full" and a larger maxDepth for everything.',
     {
       nodeId: z
         .string()
@@ -410,6 +410,23 @@ export function registerDocumentationTools(server: McpServer): void {
         .optional()
         .default(false)
         .describe("Include image fill indicators in the output."),
+      maxNodes: z.coerce
+        .number()
+        .int()
+        .min(1)
+        .optional()
+        .describe("Stop after this many nodes and return truncated:true. Default: 2000."),
+      maxBytes: z.coerce
+        .number()
+        .int()
+        .min(1024)
+        .optional()
+        .describe("Approximate output size budget in bytes. Default: 512000 (500 KB)."),
+      includeTextInventory: mcpBooleanSchema
+        .optional()
+        .default(false)
+        .describe("Also return a flat text inventory (duplicates the tree's text). Default: false."),
+      textInventory: mcpBooleanSchema.optional().describe("Alias for includeTextInventory."),
       text_limit: z.coerce
         .number()
         .int()
@@ -418,13 +435,29 @@ export function registerDocumentationTools(server: McpServer): void {
         .describe("Max text-inventory entries per page. Default: 100. Remaining entries are PAGED via next_cursor."),
       cursor: cursorSchema,
     },
-    async ({ nodeId, pageId, maxDepth, includeImages, view, text_limit, cursor }) => {
+    async ({
+      nodeId,
+      pageId,
+      maxDepth,
+      includeImages,
+      view,
+      text_limit,
+      cursor,
+      maxNodes,
+      maxBytes,
+      includeTextInventory,
+      textInventory,
+    }) => {
       try {
+        const wantInventory = includeTextInventory === true || textInventory === true;
         const result = await sendCommandToFigma<Record<string, unknown>>("get_content_tree", {
           nodeId,
           pageId,
           maxDepth,
           includeImages,
+          maxNodes,
+          maxBytes,
+          includeTextInventory: wantInventory,
         });
 
         const tree = (result?.tree as any[]) ?? [];
@@ -438,8 +471,13 @@ export function registerDocumentationTools(server: McpServer): void {
             ? "Tree is the FULL plugin projection."
             : 'Tree is the OUTLINE projection: id, name, type, role, text and bound variables only. Node geometry (width/height), font size/weight and image-fill markers are OMITTED — pass view:"full" for them.',
           `Nodes deeper than maxDepth=${maxDepth} are NOT included; a node cut off there carries "truncatedChildren": true. Raise maxDepth (max 20) to see them.`,
-          pageNotice("textInventory", page),
+          wantInventory ? pageNotice("textInventory", page) : "textInventory omitted (pass includeTextInventory:true).",
         ];
+        if (result?.truncated === true) {
+          notices.unshift(
+            `WARNING: tree is TRUNCATED (${String(result.truncatedBy)}) after ${String(result.visitedNodes)} node(s). ${String(result.hint ?? "")}`,
+          );
+        }
 
         const payload: Record<string, unknown> = {
           _notice: notices,
@@ -447,10 +485,17 @@ export function registerDocumentationTools(server: McpServer): void {
           view,
           maxDepth,
           tree: projected,
-          textInventory: page.items,
-          textInventoryTotal: page.total,
         };
-        if (page.nextCursor !== undefined) payload.next_cursor = page.nextCursor;
+        if (result?.truncated === true) {
+          payload.truncated = true;
+          payload.hint = result.hint;
+          if (Array.isArray(result.topLevelIds)) payload.topLevelIds = result.topLevelIds;
+        }
+        if (wantInventory) {
+          payload.textInventory = page.items;
+          payload.textInventoryTotal = page.total;
+          if (page.nextCursor !== undefined) payload.next_cursor = page.nextCursor;
+        }
 
         return {
           content: [{ type: "text", text: JSON.stringify(payload, null, 2) }],
@@ -462,6 +507,31 @@ export function registerDocumentationTools(server: McpServer): void {
               type: "text",
               text: `Error getting content tree: ${error instanceof Error ? error.message : String(error)}`,
             },
+          ],
+        };
+      }
+    },
+  );
+
+  server.tool(
+    "get_outline",
+    'Cheap sparse outline of a subtree (like Figma get_metadata): one line per node, indented by depth, as `id TYPE "name" x,y wxh c=<children> [hidden]`. No styles, no text content (~50-80 bytes per node). Use it FIRST to orient in a large frame or page, then drill into ids with get_node_info / get_content_tree. Defaults: whole current page when nodeId is omitted, maxDepth 20, maxNodes 5000.',
+    {
+      nodeId: z.string().optional().describe("Root node id. Omit for the current page."),
+      maxDepth: z.coerce.number().int().min(0).max(100).optional().describe("Depth limit. Default 20."),
+      maxNodes: z.coerce.number().int().min(1).optional().describe("Line cap. Default 5000."),
+    },
+    async ({ nodeId, maxDepth, maxNodes }) => {
+      try {
+        const result = await sendCommandToFigma<Record<string, unknown>>("get_outline", { nodeId, maxDepth, maxNodes });
+        const head = [`get_outline: ${String(result?.nodes)} node(s) under ${String(result?.rootId)}.`];
+        if (result?.truncated === true) head.push(`WARNING: TRUNCATED (${String(result.truncatedBy)}).`);
+        if (result?.hint) head.push(String(result.hint));
+        return { content: [{ type: "text", text: `${head.join(" ")}\n${String(result?.outline ?? "")}` }] };
+      } catch (error) {
+        return {
+          content: [
+            { type: "text", text: `Error getting outline: ${error instanceof Error ? error.message : String(error)}` },
           ],
         };
       }

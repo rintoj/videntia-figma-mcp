@@ -12,6 +12,7 @@ export const READONLY_COMMANDS: ReadonlySet<string> = new Set<string>([
   // Session-level toggle, not a design-data write.
   "set_strict_mode",
   "get_document_info",
+  "get_plugin_health",
   "get_file_key",
   "get_selection",
   "get_node_info",
@@ -64,6 +65,7 @@ export const READONLY_COMMANDS: ReadonlySet<string> = new Set<string>([
   "map_prototype_flows",
   "bulk_export_frames",
   "get_content_tree",
+  "get_outline",
   "get_frame_documentation",
   "get_comments",
 ]);

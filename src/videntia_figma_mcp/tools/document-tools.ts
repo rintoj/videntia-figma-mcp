@@ -310,6 +310,29 @@ function formatEffectValue(effects: DesignSystemEffect[]): string {
  * @param server - The MCP server instance
  */
 export function registerDocumentTools(server: McpServer): void {
+  // Plugin health: answered by the plugin outside its command queue, so it
+  // reports a stuck command instead of timing out behind it.
+  server.tool(
+    "get_plugin_health",
+    "Report whether the Figma plugin's command queue is healthy: the running command and its age, queue depth, watchdog timeouts. Use when Figma calls time out; get_open_channels only proves the socket is up.",
+    {},
+    async () => {
+      try {
+        const result = await sendCommandToFigma("get_plugin_health", {}, 10000);
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Plugin did not answer a health probe: ${error instanceof Error ? error.message : String(error)}. The plugin main thread is unresponsive; close and reopen the plugin in Figma.`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
   // Document Info Tool
   server.tool("get_document_info", "Get detailed information about the current Figma document", {}, async () => {
     try {
@@ -910,7 +933,7 @@ export function registerDocumentTools(server: McpServer): void {
   // Scan Nodes By Types Tool
   server.tool(
     "scan_nodes_by_types",
-    "Find all descendant nodes of specific types inside a parent node. Use when you have a parent nodeId and want all children matching certain types (e.g. all TEXT or FRAME nodes). Does not match by name — use search_nodes for name-based lookup. Returns JSX+Tailwind markup (default) or JSON.",
+    "Find all descendant nodes of specific types inside a parent node. Returns the matched nodes only by default (depth 0); pass `depth` to include each match's subtree. Use when you have a parent nodeId and want all children matching certain types (e.g. all TEXT or FRAME nodes). Does not match by name — use search_nodes for name-based lookup. Returns JSX+Tailwind markup (default) or JSON.",
     {
       nodeId: z.string().describe("ID of the node to scan"),
       types: coerceArray(z.array(z.string())).describe("Array of node types (e.g. ['COMPONENT', 'FRAME'])"),
@@ -923,7 +946,9 @@ export function registerDocumentTools(server: McpServer): void {
         .describe(
           "When true, only DIRECT children of nodeId are considered (no recursion into descendants). Default: false (full subtree scan).",
         ),
-      depth: depthSchema,
+      depth: depthSchema.describe(
+        'Subtree depth serialized under EACH matched node. Default: 0 (matched nodes only). Pass a number, or "all" for unlimited (slow on large trees).',
+      ),
       output_format: nodeOutputFormatSchema,
       format: nodeFormatAliasSchema,
       cursor: cursorSchema,
@@ -936,17 +961,23 @@ export function registerDocumentTools(server: McpServer): void {
           types,
           limit,
           topLevelOnly: topLevelOnly === true,
-          depth: resolveDepth(depth),
+          // 0 by default; "all" travels as null (JSON drops undefined).
+          depth: depth === undefined ? 0 : depth === "all" ? null : depth,
         });
         const returned = (result?.nodes ?? []).length;
         const totalFound = typeof result?.totalFound === "number" ? result.totalFound : returned;
         const truncated = result?.truncated === true || totalFound > returned;
+        const lowerBound = result?.totalExact === false;
         const prefix = [
-          `scan_nodes_by_types: ${returned} of ${totalFound} matching node(s) returned` +
+          `scan_nodes_by_types: ${returned} of ${lowerBound ? "at least " : ""}${totalFound} matching node(s) returned` +
             (topLevelOnly === true ? " (topLevelOnly: direct children only)" : " (full subtree)") +
             `; truncated: ${truncated}`,
         ];
-        if (truncated) {
+        if (lowerBound) {
+          prefix.push(
+            `WARNING: the walk stopped early (${result?.stopReason ?? "cap"}) after ${result?.visited ?? "?"} nodes, so totalFound is a LOWER BOUND (totalExact: false). Scan a smaller nodeId for an exact count.`,
+          );
+        } else if (truncated) {
           prefix.push(
             `WARNING: results are INCOMPLETE — ${totalFound - returned} match(es) omitted by limit=${result?.limit ?? limit ?? 50}. Do NOT treat this as a full sweep; raise \`limit\` to see the rest.`,
           );
@@ -1122,6 +1153,12 @@ export function registerDocumentTools(server: McpServer): void {
         });
         const effective = format ?? output_format;
         const prefix = [pageNotice("get_nodes_info", page)];
+        if (page.nextCursor !== undefined) {
+          prefix.push(
+            "More ids remain past this page. For a cheap map first, call get_outline on their parent " +
+              "(one line per node), then fetch only the ids you need.",
+          );
+        }
         if (effective === "compact") prefix.push(COMPACT_DEFAULT_NOTICE);
         return formatNodeResult(result, effective, fields, prefix);
       } catch (error) {

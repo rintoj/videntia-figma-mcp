@@ -7,6 +7,7 @@
  */
 
 import { lintFrame } from "./lint/index";
+import { getCommandSignal, throwIfCancelled } from "../utils/cancellation";
 import { extractImagePaintFields } from "./node-serializer";
 import { customBase64Encode } from "../utils/base64";
 import { fontWeightFromStyle } from "../../videntia_figma_mcp/utils/font-weight";
@@ -320,9 +321,12 @@ export async function contrastCheckFrame(params: Record<string, unknown>): Promi
   const nodeId = params && (params["nodeId"] as string);
   if (!nodeId) throw new Error("nodeId is required");
   const includeHidden = params && params["include_hidden"] === true;
+  // Capture now: a later command replaces the module-level signal.
+  const signal = getCommandSignal();
 
   const root = await figma.getNodeByIdAsync(String(nodeId));
   if (!root) throw new Error("Node not found: " + String(nodeId).substring(0, 50));
+  throwIfCancelled(signal);
 
   const samples: unknown[] = [];
   const stack: SceneNode[] = [root as SceneNode];
@@ -330,6 +334,8 @@ export async function contrastCheckFrame(params: Record<string, unknown>): Promi
   while (stack.length > 0 && scanned < MAX_VERIFY_NODES) {
     const node = stack.pop() as SceneNode;
     scanned++;
+    // The walk is synchronous (bounded by MAX_VERIFY_NODES); the check is cheap.
+    if (scanned % 1000 === 0) throwIfCancelled(signal);
     if (!includeHidden && (node as SceneNode & { visible?: boolean }).visible === false) continue;
     if (node.type === "TEXT") {
       const t = node as TextNode;
@@ -370,7 +376,9 @@ export async function contrastCheckFrame(params: Record<string, unknown>): Promi
   }
 
   const hashes = collectImageHashes(samples as Array<Record<string, unknown>>);
+  throwIfCancelled(signal);
   const images = hashes.length > 0 ? await fetchBackdropImages(hashes) : undefined;
+  throwIfCancelled(signal);
 
   return {
     nodeId: root.id,

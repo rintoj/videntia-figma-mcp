@@ -3,6 +3,15 @@
 import { computeSubtreeHash } from "../utils/subtree-hash";
 import { awaitSubtreeImagesReady } from "../utils/image-readiness";
 import { collectAnnotationGroups } from "./annotations";
+import {
+  createWalkBudget,
+  createYielder,
+  estimateNodeBytes,
+  truncationHint,
+  DEFAULT_MAX_BYTES,
+  DEFAULT_MAX_NODES,
+  type WalkBudget,
+} from "../utils/walk-budget";
 
 function getParam<T>(params: Record<string, unknown>, key: string, defaultVal: T): T {
   const p = params !== null && params !== undefined ? params[key] : undefined;
@@ -233,6 +242,12 @@ export async function getContentTree(params: Record<string, unknown>): Promise<R
   const pageId = getOptParam<string>(params, "pageId");
   const maxDepth = getParam<number>(params, "maxDepth", 5);
   const includeImages = getParam<boolean>(params, "includeImages", false);
+  const maxNodes = getParam<number>(params, "maxNodes", DEFAULT_MAX_NODES);
+  const maxBytes = getParam<number>(params, "maxBytes", DEFAULT_MAX_BYTES);
+  const includeTextInventory =
+    params["includeTextInventory"] === true ||
+    params["textInventory"] === true ||
+    params["include_text_inventory"] === true;
 
   let rootNodes: SceneNode[] = [];
 
@@ -246,17 +261,44 @@ export async function getContentTree(params: Record<string, unknown>): Promise<R
     rootNodes = page.children.filter((n) => n.type === "FRAME") as SceneNode[];
   }
 
-  const tree = rootNodes.map((n) => buildContentNode(n, 0, maxDepth, includeImages));
-  const allText = extractAllText(tree);
+  const budget = createWalkBudget(maxNodes, maxBytes);
+  const tick = createYielder();
+  const tree: ContentNode[] = [];
+  for (const n of rootNodes) {
+    const built = await buildContentNode(n, 0, maxDepth, includeImages, budget, tick);
+    if (built) tree.push(built);
+    if (budget.truncated) break;
+  }
 
-  return {
+  const result: Record<string, unknown> = {
     nodeCount: rootNodes.length,
+    visitedNodes: budget.nodes,
     tree,
-    textInventory: allText,
   };
+  if (includeTextInventory) result.textInventory = extractAllText(tree);
+  if (budget.truncated) {
+    result.truncated = true;
+    result.truncatedBy = budget.reason;
+    // Two-step drill-in: the ids one level below the walked root(s).
+    const topLevelIds: string[] =
+      rootNodes.length === 1 && "children" in rootNodes[0]
+        ? (rootNodes[0] as SceneNode & ChildrenMixin).children.map((c) => c.id)
+        : rootNodes.map((n) => n.id);
+    result.hint = truncationHint(budget.reason, maxNodes, maxBytes, topLevelIds);
+    result.topLevelIds = topLevelIds.slice(0, 30);
+  }
+  return result;
 }
 
-function buildContentNode(node: SceneNode, depth: number, maxDepth: number, includeImages: boolean): ContentNode {
+async function buildContentNode(
+  node: SceneNode,
+  depth: number,
+  maxDepth: number,
+  includeImages: boolean,
+  budget: WalkBudget,
+  tick: () => Promise<void>,
+): Promise<ContentNode | null> {
+  await tick();
   const result: ContentNode = {
     id: node.id,
     name: node.name,
@@ -283,10 +325,16 @@ function buildContentNode(node: SceneNode, depth: number, maxDepth: number, incl
     }
   }
 
+  if (!budget.take(estimateNodeBytes(result as unknown as Record<string, unknown>))) return null;
+
   if (depth < maxDepth && "children" in node) {
-    result.children = (node as FrameNode).children.map((child) =>
-      buildContentNode(child, depth + 1, maxDepth, includeImages),
-    );
+    const children: ContentNode[] = [];
+    for (const child of (node as FrameNode).children) {
+      const built = await buildContentNode(child, depth + 1, maxDepth, includeImages, budget, tick);
+      if (built) children.push(built);
+      if (budget.truncated) break;
+    }
+    result.children = children;
   }
 
   return result;

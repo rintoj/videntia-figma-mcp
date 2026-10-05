@@ -27,6 +27,12 @@ export interface ChannelContext {
    * join" is per session, not per process.
    */
   sessionId?: string;
+  /**
+   * Out-of-band warnings for this tool invocation (e.g. a slow plugin queue). Shared by
+   * reference with nested scopes so `batch_actions` / `figma_call` collect their inner
+   * calls' warnings; only the outermost scope appends them to the MCP response.
+   */
+  warnings?: string[];
 }
 
 const storage = new AsyncLocalStorage<ChannelContext>();
@@ -41,7 +47,41 @@ const storage = new AsyncLocalStorage<ChannelContext>();
  */
 export function runWithChannel<T>(channel: string | undefined, sessionId: string | undefined, fn: () => T): T {
   const outer = storage.getStore();
-  return storage.run({ channel: channel ?? outer?.channel, sessionId: sessionId ?? outer?.sessionId }, fn);
+  return storage.run(
+    { channel: channel ?? outer?.channel, sessionId: sessionId ?? outer?.sessionId, warnings: outer?.warnings ?? [] },
+    fn,
+  );
+}
+
+/** True when the current async context is inside a tool invocation scope. */
+export function hasRequestScope(): boolean {
+  return storage.getStore() !== undefined;
+}
+
+/** Record a warning against the current tool invocation. No-op outside one. */
+export function addRequestWarning(warning: string): void {
+  const store = storage.getStore();
+  if (!store) return;
+  if (!store.warnings) store.warnings = [];
+  if (!store.warnings.includes(warning)) store.warnings.push(warning);
+}
+
+/** The warnings recorded so far for the current tool invocation. */
+export function getRequestWarnings(): string[] {
+  return storage.getStore()?.warnings ?? [];
+}
+
+/**
+ * Pure: append warnings to an MCP tool response as one extra text content block.
+ * Works for every result shape because it never touches the tool's own payload.
+ * Non-MCP-shaped values are returned untouched.
+ */
+export function appendWarningsToResponse<T>(response: T, warnings: string[]): T {
+  if (warnings.length === 0) return response;
+  const r = response as unknown as { content?: unknown } | null;
+  if (!r || typeof r !== "object" || !Array.isArray(r.content)) return response;
+  const text = warnings.map((w) => `Warning: ${w}`).join("\n");
+  return { ...(r as object), content: [...r.content, { type: "text", text }] } as T;
 }
 
 /** The MCP session this tool invocation arrived on, if the transport reported one. */

@@ -161,21 +161,26 @@ export function useConnection() {
     }
   }
 
-  function sendSuccessResponse(id: string, result: any) {
+  function withQueuedMs(message: any, queuedMs?: unknown) {
+    if (typeof queuedMs === "number" && isFinite(queuedMs)) message.queuedMs = queuedMs;
+    return message;
+  }
+
+  function sendSuccessResponse(id: string, result: any, queuedMs?: unknown) {
     sendViaSocket({
       id: id,
       type: "message",
       channel: channelRef.current,
-      message: { id: id, result: result },
+      message: withQueuedMs({ id: id, result: result }, queuedMs),
     });
   }
 
-  function sendErrorResponse(id: string, errorMessage: string) {
+  function sendErrorResponse(id: string, errorMessage: string, queuedMs?: unknown) {
     sendViaSocket({
       id: id,
       type: "message",
       channel: channelRef.current,
-      message: { id: id, error: errorMessage },
+      message: withQueuedMs({ id: id, error: errorMessage }, queuedMs),
     });
   }
 
@@ -205,6 +210,12 @@ export function useConnection() {
       } else {
         pending.resolve(data.result);
       }
+      return;
+    }
+
+    // Server-side timeout: cancel that command (dropped if queued, aborted if a running read).
+    if (data && data.type === "cancel" && data.id) {
+      parent.postMessage({ pluginMessage: { type: "cancel-command", id: data.id } }, "*");
       return;
     }
 
@@ -256,6 +267,7 @@ export function useConnection() {
               id: data.id,
               command: data.command,
               params: data.params,
+              clientId: payload.clientId,
             },
           },
           "*",
@@ -368,6 +380,10 @@ export function useConnection() {
               timestamp: Date.now(),
             });
           }
+        } else if (data.type === "client_gone") {
+          // One MCP client left the relay: cancel only its commands.
+          parent.postMessage({ pluginMessage: { type: "client-gone", clientId: data.clientId } }, "*");
+          return;
         } else if (data.type === "error") {
           console.error("Error:", data.message);
           updateConnectionStatus(false, "Error: " + String(data.message));
@@ -381,6 +397,9 @@ export function useConnection() {
     };
 
     ws.onclose = function () {
+      // Nobody can receive results any more: main drops queued commands, aborts a
+      // running read, and lets a running write finish with its result ignored.
+      parent.postMessage({ pluginMessage: { type: "relay-disconnected" } }, "*");
       var wasConnected = connectedRef.current;
       connectedRef.current = false;
       socketRef.current = null;
@@ -438,7 +457,7 @@ export function useConnection() {
     setTimeout(function () {
       updateAction(message.id, { status: "success", result: message.result, nodeIds: nodeIds });
     }, resultDelay);
-    sendSuccessResponse(message.id, message.result);
+    sendSuccessResponse(message.id, message.result, message.queuedMs);
   }
 
   function handleCommandError(message: any) {
@@ -448,7 +467,7 @@ export function useConnection() {
     setTimeout(function () {
       updateAction(message.id, { status: "error", error: message.error });
     }, errorDelay);
-    sendErrorResponse(message.id, message.error);
+    sendErrorResponse(message.id, message.error, message.queuedMs);
   }
 
   function handleProgressUpdate(message: any) {

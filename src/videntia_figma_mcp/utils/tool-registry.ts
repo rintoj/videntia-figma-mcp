@@ -20,7 +20,7 @@
 import { z, ZodRawShape } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { aliasKeysFor, applyParamAliases, PARAM_ALIASES, widenEnumCasing } from "./param-aliases.js";
-import { runWithChannel } from "./channel-context.js";
+import { appendWarningsToResponse, getRequestWarnings, hasRequestScope, runWithChannel } from "./channel-context.js";
 
 export interface RegisteredToolEntry {
   name: string;
@@ -285,9 +285,16 @@ export function instrumentToolRegistry(server: McpServer): McpServer {
           // process, so the session id is what separates one client's joined channel
           // from another's. Absent (stdio) it falls back to process-wide resolution.
           const sessionId = (extra as { sessionId?: unknown } | undefined)?.sessionId;
-          return runWithChannel(target, typeof sessionId === "string" ? sessionId : undefined, () =>
-            handler(applyParamAliases(name, rest, { hasNodeId, declaresId, declaresNode, coerceField }), extra),
-          );
+          // Only the outermost scope surfaces warnings, so a batch reports its inner
+          // calls' warnings once instead of per nested row.
+          const outermost = !hasRequestScope();
+          return runWithChannel(target, typeof sessionId === "string" ? sessionId : undefined, async () => {
+            const response = await handler(
+              applyParamAliases(name, rest, { hasNodeId, declaresId, declaresNode, coerceField }),
+              extra,
+            );
+            return outermost ? appendWarningsToResponse(response, getRequestWarnings()) : response;
+          });
         };
 
         const category = currentCategory;

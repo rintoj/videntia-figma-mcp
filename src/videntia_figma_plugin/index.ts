@@ -2,8 +2,13 @@
 // All handler modules are imported and wired to the handleCommand dispatch.
 
 // Utils
+import { CommandScheduler, type CommandKind } from "./utils/command-scheduler";
+import { setCommandSignal } from "./utils/cancellation";
+import { wantsSkipInvisible } from "./utils/skip-invisible";
+import { setCommandDeadline } from "./utils/with-timeout";
 import { debugLog } from "./utils/helpers";
-import { READONLY_COMMANDS } from "../videntia_figma_mcp/utils/readonly-commands";
+import { READONLY_COMMANDS, isReadOnlyCall } from "../videntia_figma_mcp/utils/readonly-commands";
+import { isHeavyCommand } from "../videntia_figma_mcp/utils/heavy-commands";
 import { setAutoFocus } from "./utils/plugin-state";
 
 // Handlers — document & navigation
@@ -256,6 +261,7 @@ import { batchActions } from "./handlers/batch";
 
 // Handlers — documentation
 import { enumerateAllFrames, bulkExportFrames, getContentTree, getFrameDocumentation } from "./handlers/documentation";
+import { getOutline } from "./handlers/outline";
 
 // Handlers — comments
 import { getComments } from "./handlers/comments";
@@ -555,18 +561,74 @@ function parseDepth(value: unknown): number | undefined {
 // two inserts computed against the same stale children.length). Queue every
 // command through this promise chain so each one — including its post-hooks
 // (auto-focus, auto-commit-undo) — fully completes before the next starts.
-let commandQueue: Promise<unknown> = Promise.resolve();
+//
+// The bare promise chain that used to live here had no timeout: one await that
+// never settled (setReactionsAsync, loadFontAsync, exportAsync, image readiness
+// on a huge file) wedged every later command until the plugin was reopened.
+// CommandScheduler keeps the serialization but adds a watchdog, drops commands
+// whose caller already timed out, and bounds the queue (utils/command-scheduler).
+// 60s when the caller sent no deadline: long enough for any bounded read, short
+// enough that a hung Figma await frees the slot quickly.
+const DEFAULT_WATCHDOG_MS = 60000;
+const MAX_QUEUE_DEPTH = 40;
+const scheduler = new CommandScheduler({ watchdogMs: DEFAULT_WATCHDOG_MS, maxQueueDepth: MAX_QUEUE_DEPTH });
 
-function enqueueCommand(command: string, params: Record<string, unknown>): Promise<unknown> {
-  const tail = commandQueue.then(
-    () => handleCommand(command, params),
-    () => handleCommand(command, params),
+function setSkipInvisible(on: boolean): void {
+  try {
+    if (figma.skipInvisibleInstanceChildren !== on) figma.skipInvisibleInstanceChildren = on;
+  } catch (_e) {
+    /* older hosts: the flag is an optimisation only */
+  }
+}
+
+function classifyCommand(command: string, params: Record<string, unknown>): CommandKind {
+  if (!isReadOnlyCall(command, params)) return "write";
+  return isHeavyCommand(command, params) ? "heavy" : "read";
+}
+
+function enqueueCommand(
+  command: string,
+  params: Record<string, unknown>,
+  onStart?: (queuedMs: number) => void,
+  id?: string,
+  clientId?: string,
+): Promise<unknown> {
+  const deadline = Number(params && params["__deadlineMs"]);
+  const deadlineMs = Number.isFinite(deadline) && deadline > 0 ? deadline : undefined;
+  // Never abandon a command before its caller would have; give it a small grace.
+  const watchdogMs = deadlineMs !== undefined ? Math.max(deadlineMs + 5000, 30000) : DEFAULT_WATCHDOG_MS;
+  if (params && "__deadlineMs" in params) delete params["__deadlineMs"];
+  const kind = classifyCommand(command, params);
+  return scheduler.schedule(
+    command,
+    (signal) => {
+      // Long walks read this to stop before the caller (or the watchdog) gives up.
+      setCommandDeadline(Date.now() + (deadlineMs !== undefined ? Math.min(deadlineMs, watchdogMs) : watchdogMs));
+      // Walks capture this synchronously at their start (utils/cancellation.ts).
+      setCommandSignal(signal);
+      setSkipInvisible(wantsSkipInvisible(command, kind, params));
+      return handleCommand(command, params);
+    },
+    { deadlineMs, watchdogMs, kind, onStart, id, clientId },
   );
-  // Swallow rejections here so one failed command doesn't poison the queue
-  // for everything queued behind it; the real rejection still propagates to
-  // whichever caller awaited `tail` below.
-  commandQueue = tail.catch(() => undefined);
-  return tail;
+}
+
+function getPluginHealth(): Record<string, unknown> {
+  const status = scheduler.getStatus();
+  const busy = status.running !== null && status.running.ageMs > 10000;
+  // Abandoned commands cannot be cancelled and may stay pending forever. They do
+  // not block the queue, so they only count against health until a command
+  // completes normally after the most recent watchdog (abandonedStillRunning
+  // stays in the report as info).
+  const recovered =
+    status.lastWatchdog === null ||
+    (status.lastCompletedAtMs !== null && status.lastCompletedAtMs > status.lastWatchdog.atMs);
+  return {
+    healthy: !busy && (status.abandonedStillRunning === 0 || recovered),
+    state: status.running === null ? "idle" : busy ? "busy" : "running",
+    fileName: figma.root.name,
+    ...status,
+  };
 }
 
 async function handleCommand(command: string, params: Record<string, unknown>): Promise<unknown> {
@@ -688,6 +750,10 @@ async function _executeCommand(command: string, params: Record<string, unknown>)
     }
 
     // Document
+    case "get_plugin_health":
+      // Normally answered before the queue (handlePanelMessage); kept here so
+      // a nested dispatch such as batch_actions can also read it.
+      return getPluginHealth();
     case "get_document_info":
       return await getDocumentInfo();
     case "get_file_key":
@@ -1160,6 +1226,8 @@ async function _executeCommand(command: string, params: Record<string, unknown>)
       return await bulkExportFrames(params);
     case "get_content_tree":
       return await getContentTree(params);
+    case "get_outline":
+      return await getOutline(params);
     case "get_frame_documentation":
       return await getFrameDocumentation(params);
 
@@ -1683,15 +1751,44 @@ async function handlePanelMessage(msg: Record<string, unknown>): Promise<void> {
       }
       break;
     }
-    case "execute-command":
+    case "cancel-command": {
+      if (typeof msg["id"] === "string") scheduler.cancel(msg["id"] as string);
+      break;
+    }
+    case "client-gone": {
+      if (typeof msg["clientId"] === "string") {
+        scheduler.cancelForDisconnect(msg["clientId"] as string, "The MCP client that sent it disconnected");
+      }
+      break;
+    }
+    case "relay-disconnected": {
+      scheduler.cancelForDisconnect(undefined, "The plugin lost its relay connection");
+      break;
+    }
+    case "execute-command": {
+      // Time spent waiting in the plugin queue, echoed on the response envelope.
+      let queuedMs = 0;
       try {
-        const result = await enqueueCommand(msg["command"] as string, (msg["params"] as Record<string, unknown>) || {});
+        // Health is answered outside the queue so it works while a command is stuck.
+        const result =
+          msg["command"] === "get_plugin_health"
+            ? getPluginHealth()
+            : await enqueueCommand(
+                msg["command"] as string,
+                (msg["params"] as Record<string, unknown>) || {},
+                (ms) => {
+                  queuedMs = ms;
+                },
+                typeof msg["id"] === "string" ? (msg["id"] as string) : undefined,
+                typeof msg["clientId"] === "string" ? (msg["clientId"] as string) : undefined,
+              );
         figma.ui.postMessage({
           type: "command-result",
           id: msg["id"],
           command: msg["command"],
           result,
           nodeIds: extractNodeIds(result),
+          queuedMs,
         });
       } catch (error) {
         figma.ui.postMessage({
@@ -1699,9 +1796,11 @@ async function handlePanelMessage(msg: Record<string, unknown>): Promise<void> {
           id: msg["id"],
           command: msg["command"],
           error: describeThrown(error, msg["command"] as string),
+          queuedMs,
         });
       }
       break;
+    }
     default:
       break;
   }
