@@ -46,3 +46,6 @@ src/claude_mcp_plugin/code.next.js
 src/claude_mcp_plugin/ui.html
 .playwright-mcp
 .claude/commands/
+
+# Local auth database (created at runtime by src/auth/db.ts; holds users and API keys)
+data/auth.db*
