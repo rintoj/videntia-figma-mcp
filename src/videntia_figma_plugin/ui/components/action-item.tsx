@@ -1,4 +1,5 @@
 import { h } from "preact";
+import { memo } from "preact/compat";
 import { useState } from "preact/hooks";
 import {
   CheckCircleIcon,
@@ -41,7 +42,7 @@ function copyToClipboard(text: string) {
   }
 }
 
-export function ActionItem({ action }: ActionItemProps) {
+function ActionItemImpl({ action }: ActionItemProps) {
   var [expanded, setExpanded] = useState(false);
   var [hovered, setHovered] = useState(false);
 
@@ -75,12 +76,15 @@ export function ActionItem({ action }: ActionItemProps) {
     }
   }
 
-  var inputStr = action.params ? truncate(JSON.stringify(action.params), 200) : "none";
-  var outputStr = action.error
-    ? truncate(action.error, 200)
-    : action.result
-      ? truncate(JSON.stringify(action.result), 200)
-      : "none";
+  // Only stringify while expanded: collapsed rows never show these.
+  var inputStr = !expanded ? "" : action.params ? truncate(JSON.stringify(action.params), 200) : "none";
+  var outputStr = !expanded
+    ? ""
+    : action.error
+      ? truncate(action.error, 200)
+      : action.result
+        ? truncate(JSON.stringify(action.result), 200)
+        : "none";
 
   var hasNodeIds = action.nodeIds && action.nodeIds.length > 0;
 
@@ -184,3 +188,6 @@ export function ActionItem({ action }: ActionItemProps) {
     </div>
   );
 }
+
+// Entries are replaced immutably on update, so unchanged rows skip re-rendering.
+export var ActionItem = memo(ActionItemImpl);
