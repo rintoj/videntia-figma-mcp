@@ -52,6 +52,57 @@ const effectVariableParams = {
   offsetYVariable: variableRef("offset.y (FLOAT variable; shadows only)"),
 };
 
+/** One effect entry, shared by set_effects and the effect style tools. */
+const effectStyleEntrySchema = z.object({
+  type: z
+    .enum(["DROP_SHADOW", "INNER_SHADOW", "LAYER_BLUR", "BACKGROUND_BLUR", "NOISE", "TEXTURE", "GLASS"])
+    .describe("Effect type (GLASS: frames only)"),
+  color: colorParam("Effect color (for shadows and NOISE).").optional(),
+  offset: z
+    .object({
+      x: z.coerce.number().describe("X offset"),
+      y: z.coerce.number().describe("Y offset"),
+    })
+    .optional()
+    .describe("Shadow offset px (shadows only)"),
+  radius: z.coerce.number().optional().describe("Blur radius px ≥ 0 (blurs, shadows, TEXTURE, GLASS)"),
+  spread: z.coerce.number().optional().describe("Shadow spread px, negative contracts (shadows only)"),
+  visible: mcpBooleanSchema.optional().describe("Whether the effect is visible"),
+  blendMode: z.string().optional().describe("Blend mode, e.g. NORMAL (default), MULTIPLY, SCREEN"),
+  noiseType: z
+    .enum(["MONOTONE", "DUOTONE", "MULTITONE"])
+    .optional()
+    .describe("NOISE grain colours (default MONOTONE; DUOTONE needs secondaryColor)"),
+  noiseSize: z.coerce.number().optional().describe("Grain size px, ~1–100 (NOISE, TEXTURE)"),
+  density: z.coerce.number().optional().describe("Grain density 0–1 (NOISE)"),
+  secondaryColor: colorParam("Second grain color (NOISE DUOTONE).").optional(),
+  opacity: z.coerce.number().min(0).max(1).optional().describe("Opacity 0–1 (NOISE MULTITONE only)"),
+  clipToShape: mcpBooleanSchema
+    .optional()
+    .describe("Mask texture to the shape, else bounding box (TEXTURE; default true)"),
+  lightIntensity: z.coerce
+    .number()
+    .min(0, "lightIntensity must be between 0 and 1 (Figma normalises this GLASS field; it is NOT a 0-20/0-50 scale)")
+    .max(1, "lightIntensity must be between 0 and 1 (Figma normalises this GLASS field; it is NOT a 0-20/0-50 scale)")
+    .optional()
+    .describe("Highlight intensity 0–1 (GLASS)"),
+  lightAngle: z.coerce.number().optional().describe("Light angle deg, 0 = top (GLASS)"),
+  refraction: z.coerce
+    .number()
+    .min(0, "refraction must be between 0 and 1 (Figma normalises this GLASS field; it is NOT a 0-20/0-50 scale)")
+    .max(1, "refraction must be between 0 and 1 (Figma normalises this GLASS field; it is NOT a 0-20/0-50 scale)")
+    .optional()
+    .describe("Refraction 0–1, not 0–50 (GLASS)"),
+  depth: z.coerce.number().optional().describe("Refraction depth ≥ 1 (GLASS)"),
+  dispersion: z.coerce
+    .number()
+    .min(0, "dispersion must be between 0 and 1 (Figma normalises this GLASS field; it is NOT a 0-20/0-50 scale)")
+    .max(1, "dispersion must be between 0 and 1 (Figma normalises this GLASS field; it is NOT a 0-20/0-50 scale)")
+    .optional()
+    .describe("Chromatic dispersion 0–1, not 0–20 (GLASS)"),
+  ...effectVariableParams,
+});
+
 /**
  * Widen the shapes callers actually write for gradient stops into the canonical
  * `{color, position}` array.
@@ -182,9 +233,9 @@ export function registerModificationTools(server: McpServer): void {
     {
       nodeId: z.string().describe("Node ID (e.g. '123:456') — get from get_selection or get_node_info"),
       color: colorParam("Fill color. Use this OR r,g,b,a — not both.").optional(),
-      r: channelParam.optional().describe("Red channel (0–1 normalized, or 0–255)"),
-      g: channelParam.optional().describe("Green channel (0–1 normalized, or 0–255)"),
-      b: channelParam.optional().describe("Blue channel (0–1 normalized, or 0–255)"),
+      r: channelParam.optional().describe("Red (0–1 or 0–255)"),
+      g: channelParam.optional().describe("Green (0–1 or 0–255)"),
+      b: channelParam.optional().describe("Blue (0–1 or 0–255)"),
       a: channelParam
         .optional()
         .describe(
@@ -245,9 +296,9 @@ export function registerModificationTools(server: McpServer): void {
     {
       nodeId: z.string().describe("Node ID (e.g. '123:456') — get from get_selection or get_node_info"),
       color: colorParam("Stroke color. Use this OR r,g,b,a — not both.").optional(),
-      r: channelParam.optional().describe("Red channel (0–1 normalized, or 0–255)"),
-      g: channelParam.optional().describe("Green channel (0–1 normalized, or 0–255)"),
-      b: channelParam.optional().describe("Blue channel (0–1 normalized, or 0–255)"),
+      r: channelParam.optional().describe("Red (0–1 or 0–255)"),
+      g: channelParam.optional().describe("Green (0–1 or 0–255)"),
+      b: channelParam.optional().describe("Blue (0–1 or 0–255)"),
       a: channelParam
         .optional()
         .describe(
@@ -1701,125 +1752,7 @@ export function registerModificationTools(server: McpServer): void {
     "Set the visual effects of a node in Figma. Supports DROP_SHADOW, INNER_SHADOW, LAYER_BLUR, BACKGROUND_BLUR, and beta types NOISE (grain overlay), TEXTURE (frosted texture), GLASS (frosted glass with refraction, frame-only). Bind effect values to variables per effect with colorVariable/radiusVariable/spreadVariable/offsetXVariable/offsetYVariable (e.g. a focus ring colour bound to 'ring').",
     {
       nodeId: z.string().describe("The ID of the node to modify"),
-      effects: coerceArray(
-        z.array(
-          z.object({
-            type: z
-              .enum(["DROP_SHADOW", "INNER_SHADOW", "LAYER_BLUR", "BACKGROUND_BLUR", "NOISE", "TEXTURE", "GLASS"])
-              .describe(
-                "Effect type: DROP_SHADOW = shadow cast outward, INNER_SHADOW = shadow inside the shape, LAYER_BLUR = blurs the node itself, BACKGROUND_BLUR = blurs content behind the node, NOISE = grain/film grain overlay, TEXTURE = frosted texture surface, GLASS = frosted glass with refraction (frames only)",
-              ),
-            color: colorParam("Effect color (for shadows and NOISE).").optional(),
-            offset: z
-              .object({
-                x: z.coerce.number().describe("X offset"),
-                y: z.coerce.number().describe("Y offset"),
-              })
-              .optional()
-              .describe("Shadow offset in pixels (DROP_SHADOW and INNER_SHADOW only)"),
-            radius: z.coerce
-              .number()
-              .optional()
-              .describe("Blur radius in pixels ≥ 0 (used for all blur types, TEXTURE, and GLASS; higher = more blur)"),
-            spread: z.coerce
-              .number()
-              .optional()
-              .describe(
-                "Shadow expansion in pixels — positive spreads outward, negative contracts (DROP_SHADOW and INNER_SHADOW only)",
-              ),
-            visible: mcpBooleanSchema.optional().describe("Whether this effect layer is visible (default: true)"),
-            blendMode: z
-              .string()
-              .optional()
-              .describe(
-                "CSS-compatible blend mode string, e.g. 'NORMAL', 'MULTIPLY', 'SCREEN', 'OVERLAY' (default: NORMAL)",
-              ),
-            noiseType: z
-              .enum(["MONOTONE", "DUOTONE", "MULTITONE"])
-              .optional()
-              .describe(
-                "Grain color style (NOISE only): MONOTONE = single color grain, DUOTONE = two-color grain (requires secondaryColor), MULTITONE = full color grain (default: MONOTONE)",
-              ),
-            noiseSize: z.coerce
-              .number()
-              .optional()
-              .describe(
-                "Grain particle size in pixels — larger = coarser grain (NOISE and TEXTURE; typical range 1–100)",
-              ),
-            density: z.coerce
-              .number()
-              .optional()
-              .describe(
-                "Grain density 0–1 — higher = more grain particles visible (NOISE only; typical range 0.1–0.9)",
-              ),
-            secondaryColor: colorParam(
-              "Second grain color (NOISE DUOTONE only — ignored for MONOTONE/MULTITONE).",
-            ).optional(),
-            opacity: z.coerce
-              .number()
-              .min(0)
-              .max(1)
-              .optional()
-              .describe("Effect opacity 0–1 (NOISE MULTITONE only — ignored for MONOTONE/DUOTONE)"),
-            clipToShape: mcpBooleanSchema
-              .optional()
-              .describe(
-                "true = texture is masked to the node's shape; false = texture fills bounding box (TEXTURE only; default: true)",
-              ),
-            lightIntensity: z.coerce
-              .number()
-              .min(
-                0,
-                "lightIntensity must be between 0 and 1 (Figma normalises this GLASS field; it is NOT a 0-20/0-50 scale)",
-              )
-              .max(
-                1,
-                "lightIntensity must be between 0 and 1 (Figma normalises this GLASS field; it is NOT a 0-20/0-50 scale)",
-              )
-              .optional()
-              .describe("Specular highlight intensity, 0–1 normalised (GLASS only)"),
-            lightAngle: z.coerce
-              .number()
-              .optional()
-              .describe("Light source direction in degrees 0–360, where 0 = top (GLASS only)"),
-            refraction: z.coerce
-              .number()
-              .min(
-                0,
-                "refraction must be between 0 and 1 (Figma normalises this GLASS field; it is NOT a 0-20/0-50 scale)",
-              )
-              .max(
-                1,
-                "refraction must be between 0 and 1 (Figma normalises this GLASS field; it is NOT a 0-20/0-50 scale)",
-              )
-              .optional()
-              .describe(
-                "Refraction distortion intensity, 0–1 normalised — higher = more bending of the background (GLASS only). NOT 0–50: Figma rejects values outside 0–1.",
-              ),
-            depth: z.coerce
-              .number()
-              .optional()
-              .describe(
-                "Depth of the refraction effect (GLASS only). Figma's typings document this as >= 1; higher = deeper glass.",
-              ),
-            dispersion: z.coerce
-              .number()
-              .min(
-                0,
-                "dispersion must be between 0 and 1 (Figma normalises this GLASS field; it is NOT a 0-20/0-50 scale)",
-              )
-              .max(
-                1,
-                "dispersion must be between 0 and 1 (Figma normalises this GLASS field; it is NOT a 0-20/0-50 scale)",
-              )
-              .optional()
-              .describe(
-                "Chromatic aberration / rainbow fringing, 0–1 normalised (GLASS only). NOT 0–20: Figma rejects values outside 0–1.",
-              ),
-            ...effectVariableParams,
-          }),
-        ),
-      ).describe("Array of effects to apply"),
+      effects: coerceArray(z.array(effectStyleEntrySchema)).describe("Array of effects to apply"),
     },
     async ({ nodeId, effects }) => {
       nodeId = normalizeNodeId(nodeId);
@@ -1900,97 +1833,6 @@ export function registerModificationTools(server: McpServer): void {
       }
     },
   );
-
-  // Shared schema for effect style operations
-  const effectStyleEntrySchema = z.object({
-    type: z
-      .enum(["DROP_SHADOW", "INNER_SHADOW", "LAYER_BLUR", "BACKGROUND_BLUR", "NOISE", "TEXTURE", "GLASS"])
-      .describe(
-        "Effect type: DROP_SHADOW = shadow cast outward, INNER_SHADOW = shadow inside the shape, LAYER_BLUR = blurs the node itself, BACKGROUND_BLUR = blurs content behind the node, NOISE = grain/film grain overlay, TEXTURE = frosted texture surface, GLASS = frosted glass with refraction (frames only)",
-      ),
-    color: colorParam("Effect color (for shadows and NOISE).").optional(),
-    offset: z
-      .object({
-        x: z.coerce.number().describe("X offset"),
-        y: z.coerce.number().describe("Y offset"),
-      })
-      .optional()
-      .describe("Shadow offset in pixels (DROP_SHADOW and INNER_SHADOW only)"),
-    radius: z.coerce
-      .number()
-      .optional()
-      .describe("Blur radius in pixels ≥ 0 (used for all blur types, TEXTURE, and GLASS; higher = more blur)"),
-    spread: z.coerce
-      .number()
-      .optional()
-      .describe(
-        "Shadow expansion in pixels — positive spreads outward, negative contracts (DROP_SHADOW and INNER_SHADOW only)",
-      ),
-    visible: mcpBooleanSchema.optional().describe("Whether the effect is visible"),
-    blendMode: z
-      .string()
-      .optional()
-      .describe("CSS-compatible blend mode string, e.g. 'NORMAL', 'MULTIPLY', 'SCREEN', 'OVERLAY' (default: NORMAL)"),
-    noiseType: z
-      .enum(["MONOTONE", "DUOTONE", "MULTITONE"])
-      .optional()
-      .describe(
-        "Grain color style (NOISE only): MONOTONE = single color grain, DUOTONE = two-color grain (requires secondaryColor), MULTITONE = full color grain (default: MONOTONE)",
-      ),
-    noiseSize: z.coerce
-      .number()
-      .optional()
-      .describe("Grain particle size in pixels — larger = coarser grain (NOISE and TEXTURE; typical range 1–100)"),
-    density: z.coerce
-      .number()
-      .optional()
-      .describe("Grain density 0–1 — higher = more grain particles visible (NOISE only; typical range 0.1–0.9)"),
-    secondaryColor: colorParam("Second grain color (NOISE DUOTONE only — ignored for MONOTONE/MULTITONE).").optional(),
-    opacity: z.coerce
-      .number()
-      .min(0)
-      .max(1)
-      .optional()
-      .describe("Effect opacity 0–1 (NOISE MULTITONE only — ignored for MONOTONE/DUOTONE)"),
-    clipToShape: mcpBooleanSchema
-      .optional()
-      .describe(
-        "true = texture is masked to the node's shape; false = texture fills bounding box (TEXTURE only; default: true)",
-      ),
-    lightIntensity: z.coerce
-      .number()
-      .min(0, "lightIntensity must be between 0 and 1 (Figma normalises this GLASS field; it is NOT a 0-20/0-50 scale)")
-      .max(1, "lightIntensity must be between 0 and 1 (Figma normalises this GLASS field; it is NOT a 0-20/0-50 scale)")
-      .optional()
-      .describe("Specular highlight intensity, 0–1 normalised (GLASS only)"),
-    lightAngle: z.coerce
-      .number()
-      .optional()
-      .describe("Light source direction in degrees 0–360, where 0 = top (GLASS only)"),
-    refraction: z.coerce
-      .number()
-      .min(0, "refraction must be between 0 and 1 (Figma normalises this GLASS field; it is NOT a 0-20/0-50 scale)")
-      .max(1, "refraction must be between 0 and 1 (Figma normalises this GLASS field; it is NOT a 0-20/0-50 scale)")
-      .optional()
-      .describe(
-        "Refraction distortion intensity, 0–1 normalised — higher = more bending of the background (GLASS only). NOT 0–50: Figma rejects values outside 0–1.",
-      ),
-    depth: z.coerce
-      .number()
-      .optional()
-      .describe(
-        "Depth of the refraction effect (GLASS only). Figma's typings document this as >= 1; higher = deeper glass.",
-      ),
-    dispersion: z.coerce
-      .number()
-      .min(0, "dispersion must be between 0 and 1 (Figma normalises this GLASS field; it is NOT a 0-20/0-50 scale)")
-      .max(1, "dispersion must be between 0 and 1 (Figma normalises this GLASS field; it is NOT a 0-20/0-50 scale)")
-      .optional()
-      .describe(
-        "Chromatic aberration / rainbow fringing, 0–1 normalised (GLASS only). NOT 0–20: Figma rejects values outside 0–1.",
-      ),
-    ...effectVariableParams,
-  });
 
   // Create Effect Style Tool
   server.tool(

@@ -22,6 +22,7 @@ import {
   isSdkRegistered,
   listDeferredToolNames,
   listRegistryEntries,
+  stripHiddenParams,
 } from "../utils/tool-registry.js";
 import { oneLineSummary, resetToolIndex, searchTools } from "../utils/tool-search.js";
 import { ENTRY_SURFACE_TOOLS, PROGRESSIVE_HINT, TOOL_CATEGORIES } from "../utils/tool-modes.js";
@@ -128,7 +129,7 @@ export function registerDiscoveryTools(server: McpServer): void {
           continue;
         }
         found.push(name);
-        const schema = zodToJsonSchema(entry.schema, { $refStrategy: "none" });
+        const schema = stripHiddenParams(name, zodToJsonSchema(entry.schema, { $refStrategy: "none" }));
         sections.push(
           [
             `## ${name}  (category: ${entry.category})`,
@@ -138,7 +139,7 @@ export function registerDiscoveryTools(server: McpServer): void {
             `Invoke: ${callHint(name)}`,
             "",
             "```json",
-            JSON.stringify(schema, null, 2),
+            JSON.stringify(schema),
             "```",
           ].join("\n"),
         );

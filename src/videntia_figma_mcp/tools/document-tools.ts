@@ -2930,9 +2930,9 @@ export function registerDocumentTools(server: McpServer): void {
     {
       pageId: z.string().optional().describe("Page ID. Defaults to the current page."),
       color: colorParam("Page background color. Use this OR r,g,b,a.").optional(),
-      r: z.coerce.number().min(0).max(255).optional().describe("Red channel (0–1 normalized, or 0–255)"),
-      g: z.coerce.number().min(0).max(255).optional().describe("Green channel (0–1 normalized, or 0–255)"),
-      b: z.coerce.number().min(0).max(255).optional().describe("Blue channel (0–1 normalized, or 0–255)"),
+      r: z.coerce.number().min(0).max(255).optional().describe("Red (0–1 or 0–255)"),
+      g: z.coerce.number().min(0).max(255).optional().describe("Green (0–1 or 0–255)"),
+      b: z.coerce.number().min(0).max(255).optional().describe("Blue (0–1 or 0–255)"),
       a: z.coerce
         .number()
         .min(0)

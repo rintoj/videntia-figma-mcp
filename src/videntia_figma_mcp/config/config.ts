@@ -39,84 +39,17 @@ export const SERVER_CONFIG = {
 };
 
 // Server instructions sent to clients on initialization
-export const SERVER_INSTRUCTIONS = `# Figma Channel Resolution (Auto-Discovery)
+export const SERVER_INSTRUCTIONS = `# Figma channel (resolve once per session)
+1. User gave a channel id: \`join_channel\` with it, skip discovery.
+2. Else \`get_open_channels\`. Empty: report "No active Figma channels found. Ensure the WebSocket server is running and the Claude MCP Plugin is open in Figma." and stop. One: use it. Several: ask the user to pick by file name.
+3. \`join_channel\`; on failure retry once, then report (socket server running? plugin open in Figma?) and stop.
+4. Every Figma tool takes \`channel\`. One channel joined: optional. Several joined (other agents share this server, or you switched files): pass it on EVERY call, else the call is refused as "Ambiguous Figma channel" (node ids are not unique across files). Safest: always pass your joined channel. Commands go only to the named channel; there is no "last active" fallback.
 
-Before using any Figma tool that requires a channel, you MUST resolve the Figma channel first.
+# Name lookups
+Pass names instead of ids, no lookup needed: \`bind_variable\` (variable name, e.g. "background/primary"); \`set_effect_style_id\`, \`set_color_style_id\`, \`update/delete_effect_style\`, \`update/delete_color_style\`, \`get_color_style\` (style name, e.g. "shadow/md"); \`apply_text_style\`, \`update/delete_text_style\`. Dashes become slashes ("color-primary" = "color/primary"). Prefer names.
 
-## Override: Explicit Channel ID
-
-If the user provides a channel ID explicitly, use it directly with \`join_channel\`. Skip auto-discovery.
-
-## Step 1: Discover Active Channels
-
-Call \`get_open_channels\` with no parameters.
-
-- **Empty list returned:** Report "No active Figma channels found. Ensure the WebSocket server is running and the Claude MCP Plugin is open in Figma." and stop.
-
-## Step 2: Select Channel
-
-- **1 channel available** → use it automatically, go to Step 3
-- **Multiple channels** → ask the user to pick one from the list of file names, then go to Step 3
-
-## Step 3: Join Channel
-
-Call \`join_channel\` with the resolved channel ID.
-
-- If it fails → retry once
-- If still fails → report error with troubleshooting steps and stop:
-  - Ensure the WebSocket server is running
-  - Ensure the Claude MCP Plugin is open in Figma
-
-## Step 4: Address Every Call To That Channel
-
-EVERY Figma tool accepts a \`channel\` parameter. It names the channel the call is
-addressed to and is the ONLY thing that keeps parallel agents out of each other's files.
-
-- One channel joined in this process: \`channel\` may be omitted.
-- More than one channel joined (you are one of several agents sharing this MCP server,
-  or you switched files): you MUST pass \`channel: "<name>"\` on every call. Without it
-  the command is REFUSED with an "Ambiguous Figma channel" error rather than guessed at —
-  node IDs are not unique across Figma files, so a guess corrupts the wrong document.
-- Safest habit: once \`join_channel\` succeeds, pass that same \`channel\` on every
-  subsequent Figma call for the rest of the session.
-
-## Notes
-
-- Channel IDs are resolved dynamically each time via \`get_open_channels\`
-- This resolution should happen once per session, not before every tool call
-- A command is delivered ONLY to the plugin on the channel it names. There is no
-  "last active" fallback.
-
-## Name-Based Lookups
-
-Most tools that accept an ID also accept a **name** as an alternative. You do not need to fetch IDs first — just pass the name directly:
-
-- **Variables**: \`bind_variable\` accepts variable name (e.g. \`"background/primary"\`) or ID
-- **Styles**: \`set_effect_style_id\`, \`set_color_style_id\`, \`update_effect_style\`, \`delete_effect_style\`, \`update_color_style\`, \`delete_color_style\`, \`get_color_style\` all accept style name (e.g. \`"shadow/md"\`, \`"color/primary"\`) or ID
-- **Text styles**: \`apply_text_style\`, \`update_text_style\`, \`delete_text_style\` accept style name or ID
-- **Dash normalization**: Names with dashes are automatically converted to slashes (e.g. \`"color-primary"\` → \`"color/primary"\`)
-
-Prefer using names over IDs — they are human-readable and don't require a prior lookup call.
-
-# Browser Tools: Browser (Profile) Targeting
-
-Several Chrome profiles can be connected to the relay at once, each running its own copy of the extension. Commands are routed per browser, so you MUST know which one you are driving:
-
-1. Call \`list_connected_browsers\` FIRST in any browser workflow. It returns each connected browser's \`id\` and \`label\` (auto-generated \`Chrome-<id6>\`, editable in the extension popup).
-2. When more than one browser is connected, pass \`browser_id\` to EVERY subsequent browser call (\`browser_*\`, \`get_browser_*\`, \`set_browser_viewport\`, overlay and diff tools). Omitting it makes the relay reject the command as ambiguous ("Multiple browsers are connected: … Pass browser_id to target one.").
-3. When exactly one browser is connected, \`browser_id\` may be omitted — the relay delivers to that one browser.
-4. Keep the SAME \`browser_id\` for a whole workflow: tab IDs, pinned tabs, viewport emulation, and debugger sessions are per-browser, so mixing ids mid-run targets a different profile's tabs.
-5. A stale id (the profile disconnected) fails with \`No browser with id "X" is connected\` — re-run \`list_connected_browsers\` to refresh.
-
-# Browser Tools: Tab Targeting
-
-Browser tools (\`browser_*\`, \`get_browser_*\`, \`set_browser_viewport\`, overlay and diff tools) do NOT require the target tab to be focused or visible — screenshots, input, viewport emulation, and style reads all work on background tabs via the Chrome debugger.
-
-For any multi-step browser workflow (visual QA, design diffing, form automation):
-
-1. Call \`browser_list_tabs\` to find the target tab's ID, or \`browser_create_tab\` to open one (it returns the new tab ID and groups it in the "Videntia" tab group). If the workflow will resize the window (\`set_browser_viewport\` at desktop widths), pass \`new_window: true\` so resizes never disturb the user's own window; close such tabs with \`browser_close_tab\` (they are not part of the agent group).
-2. Pass that \`tab_id\` to EVERY subsequent browser call. Never rely on the active-tab fallback — the user may be working in other tabs, and omitting \`tab_id\` routes commands to whichever tab happens to be focused (unless a tab was pinned via the extension popup).
-3. The first debugger attach shows Chrome's "is debugging this browser" infobar — the user should leave it open; dismissing it detaches the session.
-4. CDP viewport emulation (\`set_browser_viewport\` with mobile widths) persists across \`browser_navigate\`/\`browser_back\`/\`browser_forward\` automatically, but not across user-initiated reloads.
-5. Call \`browser_close_group\` for end-of-session cleanup of agent-created tabs.
+# Browser tools (\`browser_*\`, \`get_browser_*\`, \`set_browser_viewport\`, overlay, diff)
+- \`browser_id\`: call \`list_connected_browsers\` first (id + label \`Chrome-<id6>\`). Several connected: pass the same \`browser_id\` on every call for the whole workflow (tabs, pins, emulation, debugger sessions are per browser); omitting it is rejected as ambiguous. One connected: optional. "No browser with id X is connected" means stale: re-list.
+- \`tab_id\`: tabs need not be focused or visible (CDP). Get one from \`browser_list_tabs\` or \`browser_create_tab\` (joins the "Videntia" group; pass \`new_window: true\` if you will resize to desktop widths, close those with \`browser_close_tab\`). Pass it on every call: omitted, commands go to the popup-pinned tab or the focused tab the user may be using.
+- Leave Chrome's "is debugging this browser" infobar open; dismissing it detaches. Viewport emulation survives \`browser_navigate\`/back/forward, not user reloads. Clean up with \`browser_close_group\`.
 `;
