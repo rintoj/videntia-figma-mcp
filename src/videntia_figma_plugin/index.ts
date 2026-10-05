@@ -3,6 +3,7 @@
 
 // Utils
 import { CommandScheduler, type CommandKind } from "./utils/command-scheduler";
+import { setCommandDeadline } from "./utils/with-timeout";
 import { debugLog } from "./utils/helpers";
 import { READONLY_COMMANDS, isReadOnlyCall } from "../videntia_figma_mcp/utils/readonly-commands";
 import { isHeavyCommand } from "../videntia_figma_mcp/utils/heavy-commands";
@@ -563,7 +564,9 @@ function parseDepth(value: unknown): number | undefined {
 // on a huge file) wedged every later command until the plugin was reopened.
 // CommandScheduler keeps the serialization but adds a watchdog, drops commands
 // whose caller already timed out, and bounds the queue (utils/command-scheduler).
-const DEFAULT_WATCHDOG_MS = 180000;
+// 60s when the caller sent no deadline: long enough for any bounded read, short
+// enough that a hung Figma await frees the slot quickly.
+const DEFAULT_WATCHDOG_MS = 60000;
 const MAX_QUEUE_DEPTH = 40;
 const scheduler = new CommandScheduler({ watchdogMs: DEFAULT_WATCHDOG_MS, maxQueueDepth: MAX_QUEUE_DEPTH });
 
@@ -583,14 +586,29 @@ function enqueueCommand(
   const watchdogMs = deadlineMs !== undefined ? Math.max(deadlineMs + 5000, 30000) : DEFAULT_WATCHDOG_MS;
   if (params && "__deadlineMs" in params) delete params["__deadlineMs"];
   const kind = classifyCommand(command, params);
-  return scheduler.schedule(command, () => handleCommand(command, params), { deadlineMs, watchdogMs, kind, onStart });
+  return scheduler.schedule(
+    command,
+    () => {
+      // Long walks read this to stop before the caller (or the watchdog) gives up.
+      setCommandDeadline(Date.now() + (deadlineMs !== undefined ? Math.min(deadlineMs, watchdogMs) : watchdogMs));
+      return handleCommand(command, params);
+    },
+    { deadlineMs, watchdogMs, kind, onStart },
+  );
 }
 
 function getPluginHealth(): Record<string, unknown> {
   const status = scheduler.getStatus();
   const busy = status.running !== null && status.running.ageMs > 10000;
+  // Abandoned commands cannot be cancelled and may stay pending forever. They do
+  // not block the queue, so they only count against health until a command
+  // completes normally after the most recent watchdog (abandonedStillRunning
+  // stays in the report as info).
+  const recovered =
+    status.lastWatchdog === null ||
+    (status.lastCompletedAtMs !== null && status.lastCompletedAtMs > status.lastWatchdog.atMs);
   return {
-    healthy: !busy && status.abandonedStillRunning === 0,
+    healthy: !busy && (status.abandonedStillRunning === 0 || recovered),
     state: status.running === null ? "idle" : busy ? "busy" : "running",
     fileName: figma.root.name,
     ...status,
@@ -1723,13 +1741,9 @@ async function handlePanelMessage(msg: Record<string, unknown>): Promise<void> {
         const result =
           msg["command"] === "get_plugin_health"
             ? getPluginHealth()
-            : await enqueueCommand(
-                msg["command"] as string,
-                (msg["params"] as Record<string, unknown>) || {},
-                (ms) => {
-                  queuedMs = ms;
-                },
-              );
+            : await enqueueCommand(msg["command"] as string, (msg["params"] as Record<string, unknown>) || {}, (ms) => {
+                queuedMs = ms;
+              });
         figma.ui.postMessage({
           type: "command-result",
           id: msg["id"],

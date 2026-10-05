@@ -192,3 +192,18 @@ describe("scheduler priority lanes", () => {
     await Promise.all([hold, heavy]);
   });
 });
+
+describe("scheduler recovery after a watchdog", () => {
+  it("an abandoned heavy command does not block later light reads, and lastCompletedAtMs moves past the watchdog", async () => {
+    const s = new CommandScheduler({ watchdogMs: 30, maxQueueDepth: 10 });
+    const hung = s.schedule("scan_nodes_by_types", never, { kind: "heavy" });
+    await expect(hung).rejects.toThrow(/watchdog/);
+    const wd = s.getStatus().lastWatchdog!.atMs;
+    await new Promise((r) => setTimeout(r, 2));
+    await expect(s.schedule("get_node_info", later("ok"), { kind: "read" })).resolves.toBe("ok");
+    const st = s.getStatus();
+    expect(st.abandonedStillRunning).toBe(1);
+    expect(st.lastCompletedAtMs).not.toBeNull();
+    expect(st.lastCompletedAtMs!).toBeGreaterThan(wd);
+  });
+});

@@ -61,7 +61,7 @@ Proven vs hypothesized:
   execution would race).
 - Each command runs under a watchdog. The server now stamps `__deadlineMs` (its own
   timeout) on every command, and the watchdog is that plus 5s (minimum 30s, default
-  180s when absent). When it fires, the caller gets an error and the queue moves on.
+  60s when absent). When it fires, the caller gets an error and the queue moves on.
   JavaScript cannot cancel a pending await, so the abandoned command may still finish
   in the background; it is counted in `abandonedStillRunning`.
 - A command that waited in the queue longer than its caller's timeout is dropped
@@ -129,3 +129,43 @@ synchronous loop, not a pending await) and only a reopen helps.
   the state of anything the abandoned command touched before retrying it.
 - If health does not answer: close and reopen the plugin in Figma.
 - Keep it at 2 agents per file and batches of 6 actions or fewer on very large files.
+
+## Follow-up: scans that never return (stress test on the Jarvis file)
+
+**Symptom.** `scan_nodes_by_types` with `limit: 1` on three 2000+ node sections never
+returned. The watchdog dropped them, the abandoned promises were still pending 12 minutes
+later with the plugin idle, and after that every scan hung (even a trivial
+`topLevelOnly` page scan), while `get_content_tree` at depth 1 (no `serializeNodes`) kept
+working.
+
+**Cause.** A Figma async API await that never settles (an inference from the live run:
+the variable/style lookup load or `getMainComponentAsync`), combined with code that had no
+timeout on those awaits. This PR's lookup-map cache made it worse: it cached the in-flight
+promise, so every call inside the TTL awaited the same hung load, and a partial load
+(one Figma call rejected) was cached as if it were complete. The bounded pool was not the
+cause: each recursion level gets its own pool, so nested recursion cannot starve (a test
+now proves it). Main had no timeouts either, so a hung Figma await already wedged the
+plugin there; the shared hung promise is new in this PR.
+
+**Fix.**
+
+- `getLookupMaps` caches only a successfully settled, complete load. Concurrent callers
+  share an in-flight load, but each waits at most 10s; on timeout or rejection the
+  in-flight promise is dropped and the call serializes with empty maps plus a `warnings`
+  entry (bindings by id only).
+- Every `getMainComponentAsync` is capped at 5s and every `getNodeByIdAsync` in
+  `serializeNodes` at 10s. A timed-out lookup is evicted from the per-call memo and
+  reported in `warnings`; the node is returned without main-component info.
+- The scan walk is iterative, yields every 1000 nodes, stops after 50000 visited nodes
+  (`maxVisited`) or 5s before the command deadline, and then reports `totalExact: false`,
+  `stopReason`, `visited` and `truncated: true`. `totalFound` is then a lower bound.
+- The default plugin watchdog (no caller deadline) is 60s instead of 180s.
+- `get_plugin_health` reports `healthy: true` again once any command completes normally
+  after the most recent watchdog. `abandonedStillRunning` stays in the report as info,
+  since an abandoned promise can never be cancelled and does not block the queue.
+
+**Tests.** `tests/unit/handlers/serializer-hang.test.ts` reproduces the hung and rejected
+lookup poisoning and the hung main-component lookup (all four fail against the previous
+serializer), proves nested bounded recursion completes, and covers the scan caps.
+`tests/unit/plugin/command-scheduler.test.ts` covers a light read running after a heavy
+command is abandoned.

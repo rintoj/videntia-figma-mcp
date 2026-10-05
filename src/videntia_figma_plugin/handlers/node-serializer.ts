@@ -4,11 +4,30 @@
 
 import { gradientTransformToCssAngle } from "../../videntia_figma_mcp/utils/gradient-geometry";
 import { boundedMap } from "../utils/bounded-map";
+import { withTimeout } from "../utils/with-timeout";
 
 /** Max concurrent child / node-id lookups per serialize call. */
 const SERIALIZE_CONCURRENCY = 8;
 /** Lookup maps are reused for this long, or until the document changes. */
 const LOOKUP_MAPS_TTL_MS = 2000;
+/** Give up on the variable/style lookup load after this long and serialize without names. */
+export const LOOKUP_MAPS_TIMEOUT_MS = 10000;
+/** Give up on one instance's getMainComponentAsync after this long. */
+export const MAIN_COMPONENT_TIMEOUT_MS = 5000;
+/** Give up on one getNodeByIdAsync after this long. */
+const NODE_LOOKUP_TIMEOUT_MS = 10000;
+
+let lookupTimeoutMs = LOOKUP_MAPS_TIMEOUT_MS;
+let mainComponentTimeoutMs = MAIN_COMPONENT_TIMEOUT_MS;
+/** Test hook: shorten the lookup and main-component timeouts. */
+export function setSerializerTimeouts(lookupMs: number, mainComponentMs: number): void {
+  lookupTimeoutMs = lookupMs;
+  mainComponentTimeoutMs = mainComponentMs;
+}
+
+function emptyMaps(): BaseLookupMaps {
+  return { variableMap: new Map(), textStyleMap: new Map(), effectStyleMap: new Map() };
+}
 
 type BaseLookupMaps = {
   variableMap: Map<string, string>;
@@ -16,13 +35,21 @@ type BaseLookupMaps = {
   effectStyleMap: Map<string, string>;
 };
 
-let lookupMapsCache: { at: number; value: Promise<BaseLookupMaps> } | null = null;
+// Only a SUCCESSFULLY loaded value is cached. An in-flight load is shared by
+// concurrent callers but is never cached past its settlement: a load that hangs
+// or rejects must not poison every later call (see
+// docs/troubleshooting/plugin-concurrency-freeze.md).
+let lookupMapsCache: { at: number; value: BaseLookupMaps } | null = null;
+let lookupMapsInFlight: Promise<BaseLookupMaps> | null = null;
 let documentChangeListenerRegistered = false;
 
 /** Test hook: drop the cached lookup maps and forget the listener registration. */
 export function resetLookupMapsCache(): void {
   lookupMapsCache = null;
+  lookupMapsInFlight = null;
   documentChangeListenerRegistered = false;
+  lookupTimeoutMs = LOOKUP_MAPS_TIMEOUT_MS;
+  mainComponentTimeoutMs = MAIN_COMPONENT_TIMEOUT_MS;
 }
 
 function ensureDocumentChangeListener(): void {
@@ -39,21 +66,45 @@ function ensureDocumentChangeListener(): void {
   }
 }
 
-/** Cached buildLookupMaps: invalidated on documentchange or after LOOKUP_MAPS_TTL_MS. */
-export function getLookupMaps(): Promise<BaseLookupMaps> {
+/**
+ * Cached buildLookupMaps: invalidated on documentchange or after LOOKUP_MAPS_TTL_MS.
+ * Never hangs: a load slower than the timeout degrades to empty maps plus a warning.
+ */
+export async function getLookupMaps(): Promise<BaseLookupMaps & { warning?: string }> {
   ensureDocumentChangeListener();
-  const now = Date.now();
-  if (lookupMapsCache && now - lookupMapsCache.at < LOOKUP_MAPS_TTL_MS) return lookupMapsCache.value;
-  const value = buildLookupMaps();
-  const entry = { at: now, value };
-  lookupMapsCache = entry;
-  value.catch(function () {
-    if (lookupMapsCache === entry) lookupMapsCache = null;
-  });
-  return value;
+  if (lookupMapsCache && Date.now() - lookupMapsCache.at < LOOKUP_MAPS_TTL_MS) return lookupMapsCache.value;
+  if (!lookupMapsInFlight) {
+    const inFlight = buildLookupMaps();
+    lookupMapsInFlight = inFlight;
+    inFlight.then(
+      function (value) {
+        if (lookupMapsInFlight === inFlight) lookupMapsInFlight = null;
+        // A partial load (one of the Figma calls rejected) is used but not cached.
+        if (!lastBuildPartial) lookupMapsCache = { at: Date.now(), value };
+      },
+      function () {
+        if (lookupMapsInFlight === inFlight) lookupMapsInFlight = null;
+      },
+    );
+  }
+  const pending = lookupMapsInFlight;
+  try {
+    return await withTimeout(pending, lookupTimeoutMs, "Variable/style lookup load");
+  } catch (e) {
+    // Drop a hung load so the next call starts a fresh one instead of awaiting it.
+    if (lookupMapsInFlight === pending) lookupMapsInFlight = null;
+    return {
+      ...emptyMaps(),
+      warning:
+        "Variable and style names unavailable: " +
+        (e instanceof Error ? e.message : String(e)) +
+        ". Bindings are reported by id only.",
+    };
+  }
 }
 
 // Build lookup maps for variables, text styles, and effect styles in parallel.
+let lastBuildPartial = false;
 async function buildLookupMaps(): Promise<BaseLookupMaps> {
   const variableMap = new Map<string, string>();
   const textStyleMap = new Map<string, string>();
@@ -71,6 +122,7 @@ async function buildLookupMaps(): Promise<BaseLookupMaps> {
     }),
   ]);
 
+  lastBuildPartial = localVarsResult === null || localStylesResult === null || localEffectsResult === null;
   if (localVarsResult !== null) {
     for (const v of localVarsResult) {
       variableMap.set(v.id, v.name);
@@ -313,8 +365,10 @@ function getFontWeight(style: string): number {
 }
 
 interface LookupMaps extends BaseLookupMaps {
-  /** Per serialize call: instance id -> main component lookup, memoized. */
+  /** Per serialize call: instance id -> main component lookup, memoized. Failed lookups are evicted. */
   mainComponentCache?: Map<string, Promise<ComponentNode | null>>;
+  /** Per serialize call: degradations to report on the result. */
+  warnings?: string[];
 }
 
 // Main recursive node processor
@@ -576,10 +630,26 @@ async function processNode(
     }
     // Resolve main component
     try {
-      let mainCompPromise = maps.mainComponentCache ? maps.mainComponentCache.get(instanceNode.id) : undefined;
+      const cache = maps.mainComponentCache;
+      let mainCompPromise = cache ? cache.get(instanceNode.id) : undefined;
       if (!mainCompPromise) {
-        mainCompPromise = instanceNode.getMainComponentAsync();
-        if (maps.mainComponentCache) maps.mainComponentCache.set(instanceNode.id, mainCompPromise);
+        const created = withTimeout(
+          instanceNode.getMainComponentAsync(),
+          mainComponentTimeoutMs,
+          "getMainComponentAsync(" + instanceNode.id + ")",
+        );
+        mainCompPromise = created;
+        if (cache) {
+          cache.set(instanceNode.id, created);
+          created.catch(function (e) {
+            if (cache.get(instanceNode.id) === created) cache.delete(instanceNode.id);
+            if (maps.warnings && e && (e as Error).name === "TimeoutError") {
+              maps.warnings.push(
+                "Main component of " + instanceNode.id + " timed out after " + mainComponentTimeoutMs + "ms; omitted.",
+              );
+            }
+          });
+        }
       }
       const mainComp = await mainCompPromise;
       if (mainComp) {
@@ -674,11 +744,14 @@ export async function serializeNodes(params: Record<string, unknown>): Promise<R
   const depth = params !== null && params !== undefined ? (params["depth"] as number | undefined) : undefined;
 
   const baseMaps = await getLookupMaps();
+  const warnings: string[] = [];
+  if (baseMaps.warning) warnings.push(baseMaps.warning);
   const maps: LookupMaps = {
     variableMap: baseMaps.variableMap,
     textStyleMap: baseMaps.textStyleMap,
     effectStyleMap: baseMaps.effectStyleMap,
     mainComponentCache: new Map(),
+    warnings,
   };
 
   // Determine which nodes to process
@@ -686,7 +759,12 @@ export async function serializeNodes(params: Record<string, unknown>): Promise<R
 
   if (nodeIds && Array.isArray(nodeIds) && nodeIds.length > 0) {
     const found = await boundedMap(nodeIds, SERIALIZE_CONCURRENCY, function (id) {
-      return figma.getNodeByIdAsync(id);
+      return withTimeout(figma.getNodeByIdAsync(id), NODE_LOOKUP_TIMEOUT_MS, "getNodeByIdAsync(" + id + ")").catch(
+        function (e) {
+          warnings.push(e instanceof Error ? e.message : String(e));
+          return null;
+        },
+      );
     });
     nodesToProcess = found.filter(function (n): n is BaseNode {
       return n !== null;
@@ -713,8 +791,10 @@ export async function serializeNodes(params: Record<string, unknown>): Promise<R
     return n !== null;
   }) as Record<string, unknown>[];
 
-  return {
+  const out: Record<string, unknown> = {
     count: result.length,
     nodes: result,
   };
+  if (warnings.length > 0) out["warnings"] = warnings;
+  return out;
 }

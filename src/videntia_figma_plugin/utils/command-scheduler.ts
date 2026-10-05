@@ -60,6 +60,8 @@ export interface SchedulerStatus {
   /** Commands abandoned by the watchdog that have not settled yet. */
   abandonedStillRunning: number;
   lastWatchdog: { command: string; atMs: number } | null;
+  /** When the most recent command settled normally (not via the watchdog). */
+  lastCompletedAtMs: number | null;
 }
 
 interface Job {
@@ -84,6 +86,7 @@ export class CommandScheduler {
     rejectedQueueFull: 0,
     abandonedStillRunning: 0,
     lastWatchdog: null as { command: string; atMs: number } | null,
+    lastCompletedAtMs: null as number | null,
   };
   private readonly now: () => number;
 
@@ -131,6 +134,7 @@ export class CommandScheduler {
       rejectedQueueFull: this.stats.rejectedQueueFull,
       abandonedStillRunning: this.stats.abandonedStillRunning,
       lastWatchdog: this.stats.lastWatchdog,
+      lastCompletedAtMs: this.stats.lastCompletedAtMs,
     };
   }
 
@@ -208,6 +212,7 @@ export class CommandScheduler {
         settled = true;
         clearTimeout(timer);
         this.stats.completed++;
+        this.stats.lastCompletedAtMs = this.now();
         job.resolve(v);
         release();
       },
@@ -219,6 +224,7 @@ export class CommandScheduler {
         settled = true;
         clearTimeout(timer);
         this.stats.completed++;
+        this.stats.lastCompletedAtMs = this.now();
         job.reject(e);
         release();
       },

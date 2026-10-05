@@ -4,6 +4,12 @@
 
 import { serializeNodes } from "./node-serializer";
 import { createYielder } from "../utils/walk-budget";
+import { getCommandDeadline } from "../utils/with-timeout";
+
+/** Max nodes a scan visits before stopping. totalFound becomes a lower bound. */
+export const SCAN_MAX_VISITED = 50000;
+/** Stop the walk this long before the command deadline so serialization still fits. */
+const SCAN_DEADLINE_MARGIN_MS = 5000;
 
 function getPage(node: BaseNode): PageNode | null {
   let current: BaseNode | null = node;
@@ -175,43 +181,69 @@ export async function scanNodesByTypes(params: Record<string, unknown>): Promise
   // sweeps silently incomplete.
   const allMatchedIds: string[] = [];
 
+  const maxVisited =
+    typeof params["maxVisited"] === "number" && (params["maxVisited"] as number) > 0
+      ? (params["maxVisited"] as number)
+      : SCAN_MAX_VISITED;
+  const deadlineAt = getCommandDeadline();
+  const stopAt = deadlineAt !== undefined ? deadlineAt - SCAN_DEADLINE_MARGIN_MS : undefined;
+  let visited = 0;
+  let stopReason: "maxVisited" | "deadline" | undefined;
   const tick = createYielder();
-  const scanNode = async (n: SceneNode): Promise<void> => {
+
+  // Iterative walk (explicit stack): no per-node promise, yields every ~1000 nodes,
+  // and stops on the visit cap or the command deadline.
+  const stack: SceneNode[] = [];
+  if ("children" in node) {
+    const kids = (node as ChildrenMixin).children;
+    if (topLevelOnly) {
+      // Only direct children of the scanned node are considered.
+      for (const child of kids) {
+        if (types.includes((child as SceneNode).type)) allMatchedIds.push(child.id);
+      }
+    } else {
+      for (let i = kids.length - 1; i >= 0; i--) stack.push(kids[i] as SceneNode);
+    }
+  }
+  while (stack.length > 0) {
+    if (visited >= maxVisited) {
+      stopReason = "maxVisited";
+      break;
+    }
+    if (stopAt !== undefined && visited % 200 === 0 && Date.now() >= stopAt) {
+      stopReason = "deadline";
+      break;
+    }
     await tick();
-    const isMatch = types.includes(n.type);
-    if (isMatch) {
+    const n = stack.pop() as SceneNode;
+    visited++;
+    if (types.includes(n.type)) {
       allMatchedIds.push(n.id);
       // A matched node's descendants are nested, not top level.
-      if (topLevelOnly) return;
+      if (topLevelOnly) continue;
     }
     if ("children" in n) {
-      for (const child of (n as ChildrenMixin).children) {
-        await scanNode(child as SceneNode);
-      }
+      const kids = (n as ChildrenMixin).children;
+      for (let i = kids.length - 1; i >= 0; i--) stack.push(kids[i] as SceneNode);
     }
-  };
-
-  if ("children" in node) {
-    for (const child of (node as ChildrenMixin).children) {
-      if (topLevelOnly) {
-        // Only direct children of the scanned node are considered.
-        if (types.includes((child as SceneNode).type)) {
-          allMatchedIds.push(child.id);
-        }
-      } else {
-        await scanNode(child as SceneNode);
-      }
-    }
+  }
+  const totalExact = stopReason === undefined;
+  const walkInfo: Record<string, unknown> = { visited, totalExact };
+  if (!totalExact) {
+    walkInfo["stopReason"] = stopReason;
+    walkInfo["warning"] =
+      `Scan stopped early (${stopReason}) after ${visited} nodes; totalFound is a lower bound. ` +
+      "Scan a smaller nodeId to get an exact count.";
   }
 
   const totalFound = allMatchedIds.length;
   const matchedIds = totalFound > limit ? allMatchedIds.slice(0, limit) : allMatchedIds;
-  const truncated = totalFound > matchedIds.length;
+  const truncated = totalFound > matchedIds.length || !totalExact;
 
   if (matchedIds.length === 0) {
-    return { count: 0, totalFound, truncated: false, limit, topLevelOnly, nodes: [] };
+    return { count: 0, totalFound, truncated, limit, topLevelOnly, ...walkInfo, nodes: [] };
   }
 
   const serialized = await serializeNodes({ nodeIds: matchedIds, depth: depth ?? undefined });
-  return { ...serialized, count: matchedIds.length, totalFound, truncated, limit, topLevelOnly };
+  return { ...serialized, count: matchedIds.length, totalFound, truncated, limit, topLevelOnly, ...walkInfo };
 }

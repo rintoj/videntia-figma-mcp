@@ -967,12 +967,17 @@ export function registerDocumentTools(server: McpServer): void {
         const returned = (result?.nodes ?? []).length;
         const totalFound = typeof result?.totalFound === "number" ? result.totalFound : returned;
         const truncated = result?.truncated === true || totalFound > returned;
+        const lowerBound = result?.totalExact === false;
         const prefix = [
-          `scan_nodes_by_types: ${returned} of ${totalFound} matching node(s) returned` +
+          `scan_nodes_by_types: ${returned} of ${lowerBound ? "at least " : ""}${totalFound} matching node(s) returned` +
             (topLevelOnly === true ? " (topLevelOnly: direct children only)" : " (full subtree)") +
             `; truncated: ${truncated}`,
         ];
-        if (truncated) {
+        if (lowerBound) {
+          prefix.push(
+            `WARNING: the walk stopped early (${result?.stopReason ?? "cap"}) after ${result?.visited ?? "?"} nodes, so totalFound is a LOWER BOUND (totalExact: false). Scan a smaller nodeId for an exact count.`,
+          );
+        } else if (truncated) {
           prefix.push(
             `WARNING: results are INCOMPLETE — ${totalFound - returned} match(es) omitted by limit=${result?.limit ?? limit ?? 50}. Do NOT treat this as a full sweep; raise \`limit\` to see the rest.`,
           );
