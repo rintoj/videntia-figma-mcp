@@ -241,6 +241,7 @@ export type FigmaCommand =
   | "map_prototype_flows"
   | "bulk_export_frames"
   | "get_content_tree"
+  | "get_outline"
   | "get_frame_documentation"
   | "get_comments"
   | "export_selection_as_image"

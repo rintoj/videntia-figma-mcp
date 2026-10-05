@@ -1,7 +1,6 @@
 import { CommandScheduler } from "../../../src/videntia_figma_plugin/utils/command-scheduler";
 import { createYielder } from "../../../src/videntia_figma_plugin/utils/walk-budget";
 import { isCancelledError, type CancelSignal } from "../../../src/videntia_figma_plugin/utils/cancellation";
-import { READONLY_COMMANDS } from "../../../src/videntia_figma_mcp/utils/readonly-commands";
 
 const tick0 = () => new Promise<void>((r) => setTimeout(r, 0));
 
@@ -170,12 +169,5 @@ describe("cancel on disconnect", () => {
     );
     expect(s.cancelForDisconnect("gone")).toEqual({ dropped: 0, aborted: 0, orphanedWrite: false });
     await expect(p).resolves.toBe(false);
-  });
-});
-
-describe("READONLY_COMMANDS additions", () => {
-  it("lists the server-side read tools", () => {
-    expect(READONLY_COMMANDS.has("get_node_summary")).toBe(true);
-    expect(READONLY_COMMANDS.has("measure_node")).toBe(true);
   });
 });

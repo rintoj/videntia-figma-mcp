@@ -135,6 +135,7 @@ export const TOOL_CATEGORY_MAP: Record<string, ToolCategoryEntry> = {
   get_design_system: { category: "read", secondary: ["tokens"] },
   get_design_knowledge: { category: "read" },
   get_content_tree: { category: "read", secondary: ["document"] },
+  get_outline: { category: "read", secondary: ["document"] },
 
   // --- create ---
   create_rectangle: { category: "create" },
@@ -539,7 +540,8 @@ export const TOOL_SYNONYMS: Record<string, string[]> = {
   find: ["search_nodes", "scan_nodes_by_types", "get_content_tree"],
   search: ["search_nodes", "search_icon", "scan_nodes_by_types"],
   inspect: ["get_node_info", "get_node_summary", "get_nodes_info"],
-  tree: ["get_content_tree", "get_node_summary"],
+  tree: ["get_content_tree", "get_outline", "get_node_summary"],
+  metadata: ["get_outline"],
   selection: ["get_selection", "set_selections", "set_focus"],
   measure: ["measure_node"],
   duplicate: ["clone_node", "clone_and_place"],

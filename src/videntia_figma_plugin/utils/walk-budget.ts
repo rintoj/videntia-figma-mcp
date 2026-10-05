@@ -93,7 +93,21 @@ export function truncationHint(
   reason: "maxNodes" | "maxBytes" | undefined,
   maxNodes: number,
   maxBytes: number,
+  topLevelIds: readonly string[] = [],
 ): string {
   const what = reason === "maxBytes" ? `maxBytes=${maxBytes}` : `maxNodes=${maxNodes}`;
-  return `Output stopped at ${what}. Narrow the scope with a deeper nodeId, lower maxDepth, or raise maxNodes/maxBytes.`;
+  let hint = `Output stopped at ${what}. Narrow the scope with a deeper nodeId, lower maxDepth, or raise maxNodes/maxBytes.`;
+  if (topLevelIds.length > 0) {
+    const shown = topLevelIds.slice(0, TOP_LEVEL_HINT_IDS);
+    const more = topLevelIds.length > shown.length ? ` (+${topLevelIds.length - shown.length} more)` : "";
+    hint +=
+      ` Two-step: call get_outline (cheap, one line per node) to orient, then re-run on one top-level child: ` +
+      `${shown.join(", ")}${more}.`;
+  } else {
+    hint += " Call get_outline first for a cheap one-line-per-node map, then drill in.";
+  }
+  return hint;
 }
+
+/** How many top-level child ids a truncation hint lists. */
+export const TOP_LEVEL_HINT_IDS = 30;

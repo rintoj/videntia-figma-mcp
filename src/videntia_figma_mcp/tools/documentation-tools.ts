@@ -489,6 +489,7 @@ export function registerDocumentationTools(server: McpServer): void {
         if (result?.truncated === true) {
           payload.truncated = true;
           payload.hint = result.hint;
+          if (Array.isArray(result.topLevelIds)) payload.topLevelIds = result.topLevelIds;
         }
         if (wantInventory) {
           payload.textInventory = page.items;
@@ -506,6 +507,31 @@ export function registerDocumentationTools(server: McpServer): void {
               type: "text",
               text: `Error getting content tree: ${error instanceof Error ? error.message : String(error)}`,
             },
+          ],
+        };
+      }
+    },
+  );
+
+  server.tool(
+    "get_outline",
+    'Cheap sparse outline of a subtree (like Figma get_metadata): one line per node, indented by depth, as `id TYPE "name" x,y wxh c=<children> [hidden]`. No styles, no text content (~50-80 bytes per node). Use it FIRST to orient in a large frame or page, then drill into ids with get_node_info / get_content_tree. Defaults: whole current page when nodeId is omitted, maxDepth 20, maxNodes 5000.',
+    {
+      nodeId: z.string().optional().describe("Root node id. Omit for the current page."),
+      maxDepth: z.coerce.number().int().min(0).max(100).optional().describe("Depth limit. Default 20."),
+      maxNodes: z.coerce.number().int().min(1).optional().describe("Line cap. Default 5000."),
+    },
+    async ({ nodeId, maxDepth, maxNodes }) => {
+      try {
+        const result = await sendCommandToFigma<Record<string, unknown>>("get_outline", { nodeId, maxDepth, maxNodes });
+        const head = [`get_outline: ${String(result?.nodes)} node(s) under ${String(result?.rootId)}.`];
+        if (result?.truncated === true) head.push(`WARNING: TRUNCATED (${String(result.truncatedBy)}).`);
+        if (result?.hint) head.push(String(result.hint));
+        return { content: [{ type: "text", text: `${head.join(" ")}\n${String(result?.outline ?? "")}` }] };
+      } catch (error) {
+        return {
+          content: [
+            { type: "text", text: `Error getting outline: ${error instanceof Error ? error.message : String(error)}` },
           ],
         };
       }

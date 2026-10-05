@@ -4,6 +4,7 @@
 // Utils
 import { CommandScheduler, type CommandKind } from "./utils/command-scheduler";
 import { setCommandSignal } from "./utils/cancellation";
+import { wantsSkipInvisible } from "./utils/skip-invisible";
 import { setCommandDeadline } from "./utils/with-timeout";
 import { debugLog } from "./utils/helpers";
 import { READONLY_COMMANDS, isReadOnlyCall } from "../videntia_figma_mcp/utils/readonly-commands";
@@ -260,6 +261,7 @@ import { batchActions } from "./handlers/batch";
 
 // Handlers — documentation
 import { enumerateAllFrames, bulkExportFrames, getContentTree, getFrameDocumentation } from "./handlers/documentation";
+import { getOutline } from "./handlers/outline";
 
 // Handlers — comments
 import { getComments } from "./handlers/comments";
@@ -571,6 +573,14 @@ const DEFAULT_WATCHDOG_MS = 60000;
 const MAX_QUEUE_DEPTH = 40;
 const scheduler = new CommandScheduler({ watchdogMs: DEFAULT_WATCHDOG_MS, maxQueueDepth: MAX_QUEUE_DEPTH });
 
+function setSkipInvisible(on: boolean): void {
+  try {
+    if (figma.skipInvisibleInstanceChildren !== on) figma.skipInvisibleInstanceChildren = on;
+  } catch (_e) {
+    /* older hosts: the flag is an optimisation only */
+  }
+}
+
 function classifyCommand(command: string, params: Record<string, unknown>): CommandKind {
   if (!isReadOnlyCall(command, params)) return "write";
   return isHeavyCommand(command, params) ? "heavy" : "read";
@@ -596,6 +606,7 @@ function enqueueCommand(
       setCommandDeadline(Date.now() + (deadlineMs !== undefined ? Math.min(deadlineMs, watchdogMs) : watchdogMs));
       // Walks capture this synchronously at their start (utils/cancellation.ts).
       setCommandSignal(signal);
+      setSkipInvisible(wantsSkipInvisible(command, kind, params));
       return handleCommand(command, params);
     },
     { deadlineMs, watchdogMs, kind, onStart, id, clientId },
@@ -1215,6 +1226,8 @@ async function _executeCommand(command: string, params: Record<string, unknown>)
       return await bulkExportFrames(params);
     case "get_content_tree":
       return await getContentTree(params);
+    case "get_outline":
+      return await getOutline(params);
     case "get_frame_documentation":
       return await getFrameDocumentation(params);
 

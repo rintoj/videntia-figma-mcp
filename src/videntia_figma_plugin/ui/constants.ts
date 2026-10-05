@@ -203,6 +203,7 @@ export const ALLOWED_COMMANDS = new Set([
   "animate_node",
   "bulk_export_frames",
   "get_content_tree",
+  "get_outline",
   "get_frame_documentation",
   "get_comments",
   "set_rotation",

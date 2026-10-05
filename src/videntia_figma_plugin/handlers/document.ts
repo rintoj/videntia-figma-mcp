@@ -1,4 +1,5 @@
 import { serializeNodes } from "./node-serializer";
+import { getCommandSignal, throwIfCancelled } from "../utils/cancellation";
 
 /**
  * Stable identity of the document this plugin instance is attached to.
@@ -113,14 +114,15 @@ export async function searchNodes(options: SearchNodesOptions): Promise<unknown>
     }
     roots = [found];
   } else {
-    await figma.loadAllPagesAsync();
+    // Pages are loaded one at a time below (page.loadAsync), so a search that
+    // fills its limit early never loads the remaining pages.
     roots = figma.root.children;
   }
+  const signal = getCommandSignal();
 
   const matchedIds: string[] = [];
 
-  const walk = (node: BaseNode): void => {
-    if (matchedIds.length >= limit) return;
+  const matches = (node: BaseNode): boolean => {
     const lowerName = node.name.toLowerCase();
     const nameMatch = lowerQueries.some(function (q) {
       return lowerName.indexOf(q) !== -1;
@@ -137,9 +139,12 @@ export async function searchNodes(options: SearchNodesOptions): Promise<unknown>
         leadingTrimMatch = leadingTrimFilter.indexOf(ltStr) !== -1;
       }
     }
-    if ((nameMatch || idMatch) && typeMatch && leadingTrimMatch) {
-      matchedIds.push(node.id);
-    }
+    return (nameMatch || idMatch) && typeMatch && leadingTrimMatch;
+  };
+
+  const walk = (node: BaseNode): void => {
+    if (matchedIds.length >= limit) return;
+    if (matches(node)) matchedIds.push(node.id);
     if ("children" in node) {
       for (const child of (node as ChildrenMixin).children) {
         if (matchedIds.length >= limit) break;
@@ -150,7 +155,23 @@ export async function searchNodes(options: SearchNodesOptions): Promise<unknown>
 
   for (const root of roots) {
     if (matchedIds.length >= limit) break;
-    walk(root);
+    throwIfCancelled(signal);
+    if (root.type === "PAGE") await (root as PageNode).loadAsync();
+    throwIfCancelled(signal);
+    const native = (root as Partial<ChildrenMixin>).findAllWithCriteria;
+    if (types && types.length > 0 && typeof native === "function") {
+      // Native type filter first (no JS callback per node), then name/id match.
+      if (matches(root)) matchedIds.push(root.id);
+      const candidates = (root as unknown as ChildrenMixin).findAllWithCriteria({
+        types: types as NodeType[],
+      } as Parameters<ChildrenMixin["findAllWithCriteria"]>[0]);
+      for (const c of candidates) {
+        if (matchedIds.length >= limit) break;
+        if (matches(c)) matchedIds.push(c.id);
+      }
+    } else {
+      walk(root);
+    }
   }
 
   if (matchedIds.length === 0) {

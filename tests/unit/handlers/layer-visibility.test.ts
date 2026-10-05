@@ -40,6 +40,7 @@ beforeEach(() => {
       page.children.push(child);
     },
     findAll: () => [],
+    findAllWithCriteria: () => [],
   };
   (globalThis as any).figma = {
     mixed: Symbol("mixed"),

@@ -34,6 +34,7 @@ export const ENTRY_SURFACE_TOOLS: readonly string[] = [
   "batch_actions",
   "get_node_info",
   "get_content_tree",
+  "get_outline",
   "export_node_as_image",
 ];
 

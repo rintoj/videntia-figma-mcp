@@ -4,6 +4,7 @@
 
 import { serializeNodes } from "./node-serializer";
 import { createYielder } from "../utils/walk-budget";
+import { getCommandSignal, throwIfCancelled } from "../utils/cancellation";
 import { getCommandDeadline } from "../utils/with-timeout";
 
 /** Max nodes a scan visits before stopping. totalFound becomes a lower bound. */
@@ -189,7 +190,8 @@ export async function scanNodesByTypes(params: Record<string, unknown>): Promise
   const stopAt = deadlineAt !== undefined ? deadlineAt - SCAN_DEADLINE_MARGIN_MS : undefined;
   let visited = 0;
   let stopReason: "maxVisited" | "deadline" | undefined;
-  const tick = createYielder();
+  const signal = getCommandSignal();
+  const tick = createYielder(undefined, undefined, signal);
 
   // Iterative walk (explicit stack): no per-node promise, yields every ~1000 nodes,
   // and stops on the visit cap or the command deadline.
@@ -200,6 +202,30 @@ export async function scanNodesByTypes(params: Record<string, unknown>): Promise
       // Only direct children of the scanned node are considered.
       for (const child of kids) {
         if (types.includes((child as SceneNode).type)) allMatchedIds.push(child.id);
+      }
+    } else if (kids.length > 0 && typeof (kids[0] as Partial<ChildrenMixin>).findAllWithCriteria === "function") {
+      // Fast path: Figma's native type filter (no per-node JS callback), run one
+      // top-level child at a time so the cap, deadline and cancel checks still run
+      // between chunks. A single huge child is one uninterruptible native call.
+      const criteria = { types: types as NodeType[] } as Parameters<ChildrenMixin["findAllWithCriteria"]>[0];
+      for (const child of kids) {
+        if (allMatchedIds.length >= maxVisited) {
+          stopReason = "maxVisited";
+          break;
+        }
+        if (stopAt !== undefined && Date.now() >= stopAt) {
+          stopReason = "deadline";
+          break;
+        }
+        throwIfCancelled(signal);
+        visited++;
+        if (types.includes((child as SceneNode).type)) allMatchedIds.push(child.id);
+        if ("findAllWithCriteria" in child) {
+          const found = (child as unknown as ChildrenMixin).findAllWithCriteria(criteria);
+          for (const f of found) allMatchedIds.push(f.id);
+          visited += found.length;
+        }
+        await tick();
       }
     } else {
       for (let i = kids.length - 1; i >= 0; i--) stack.push(kids[i] as SceneNode);

@@ -169,3 +169,27 @@ lookup poisoning and the hung main-component lookup (all four fail against the p
 serializer), proves nested bounded recursion completes, and covers the scan caps.
 `tests/unit/plugin/command-scheduler.test.ts` covers a light read running after a heavy
 command is abandoned.
+
+## Cooperative cancellation
+
+`utils/cancellation.ts` + `utils/command-scheduler.ts`. Every scheduled command gets a cancel token.
+
+- **What aborts it.** The watchdog firing, a server `cancel {id}` (sent by `sendCommandToFigma` when its own timeout fires; the UI forwards it to main as `cancel-command`), or a disconnect (below).
+- **Reads only.** Only READ tokens are ever aborted. A write that has started always runs to completion. Nothing is resent; the existing read-only resend after a dropped socket is unchanged.
+- **Not started means never started.** A command cancelled while queued, dropped past its deadline, or refused by the queue cap never runs.
+- **Where walks stop.** Walks capture the token when they start (`getCommandSignal()`), because a later command replaces the module slot. They check it at each yield point (`createYielder`, every ~1000 nodes) and between awaited Figma calls, then throw `CancelledError`. That covers get_content_tree, the scan walk, the serializer recursion (a cancelled child is rethrown, not degraded to null), lint_frame (between its awaited steps, because the scan itself is synchronous), contrast_check_frame (every 1000 nodes and around the image fetch), search_nodes (between pages) and get_outline.
+- **Health counters.** A read that stops this way frees its slot at once and is counted as `cancelled`, not `abandonedStillRunning`.
+- **Uncancellable Figma promises.** A pending Figma API promise (getMainComponentAsync, exportAsync, loadFontAsync, getNodeByIdAsync) cannot be cancelled. If a command is cancelled while one is in flight, the promise is abandoned: it settles whenever Figma finishes and its result is ignored. The walk stops at its next check.
+
+## Cancel on disconnect
+
+- **The plugin's relay socket closes.** The UI posts `relay-disconnected` and the scheduler drops every queued command, reads and writes alike, because no one can receive their result. It aborts a running read. A running write finishes and its result is ignored.
+- **One MCP client drops while the plugin stays up.** The relay stamps `clientId` on every command it forwards to the plugin. When that client's socket closes, the relay sends `client_gone {clientId}` and the same rules apply to that client's commands only.
+- **Health counters.** These are `droppedOnDisconnect` (queued, never started) and `cancelledOnDisconnect` (running when the disconnect hit).
+
+## Fast traversal and the two-step read
+
+- **`figma.skipInvisibleInstanceChildren`.** It is ON for the read walks scan_nodes_by_types, get_outline, search_nodes, lint_frame, find_unbound, find_overlaps and contrast_check_frame. It is OFF for writes, for get_content_tree (hidden-node recovery depends on it) and for any call that passes `include_hidden: true` / `includeHidden` / `ignore_hidden: false`. **Behaviour change:** these scans no longer see invisible nodes inside instances.
+- **Native type filtering.** The scan walk and search_nodes (when `types` is given) use `findAllWithCriteria({ types })`, one top-level child at a time, so the cap, deadline and cancel checks run between chunks. A single huge child is one native call and cannot be interrupted. lint_frame and contrast_check_frame keep their custom walks, because they need every node (lint) or ancestor-visibility pruning (contrast).
+- **`loadAllPagesAsync`.** search_nodes now loads pages one at a time and stops loading once its limit is reached. setup_design_system no longer loads pages, because it only needs page names. get_local_components still loads every page, since it is document-wide by contract.
+- **get_outline** gives a cheap, sparse outline at about 50 bytes per node. When get_content_tree truncates, its `hint` names get_outline and lists the top-level child ids (`topLevelIds`) to drill into. A paged get_nodes_info points to get_outline too.

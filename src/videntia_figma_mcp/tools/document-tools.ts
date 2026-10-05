@@ -1153,6 +1153,12 @@ export function registerDocumentTools(server: McpServer): void {
         });
         const effective = format ?? output_format;
         const prefix = [pageNotice("get_nodes_info", page)];
+        if (page.nextCursor !== undefined) {
+          prefix.push(
+            "More ids remain past this page. For a cheap map first, call get_outline on their parent " +
+              "(one line per node), then fetch only the ids you need.",
+          );
+        }
         if (effective === "compact") prefix.push(COMPACT_DEFAULT_NOTICE);
         return formatNodeResult(result, effective, fields, prefix);
       } catch (error) {

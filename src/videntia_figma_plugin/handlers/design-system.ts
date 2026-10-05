@@ -331,7 +331,7 @@ export async function createFromData(params: Record<string, unknown>): Promise<R
 
   // Build component lookup map once for INSTANCE resolution (avoids O(N*M) page scans)
   const componentLookup = new Map<string, ComponentNode>();
-  const allPageComponents = figma.currentPage.findAll((n) => n.type === "COMPONENT") as ComponentNode[];
+  const allPageComponents = figma.currentPage.findAllWithCriteria({ types: ["COMPONENT"] });
   for (const comp of allPageComponents) {
     componentLookup.set(comp.name, comp);
     if (comp.parent && comp.parent.type === "COMPONENT_SET") {
@@ -1313,7 +1313,8 @@ export async function setupDesignSystem(params: Record<string, unknown>): Promis
       ? (params["pages"] as string[])
       : ["Screens", "Components", "Draft"];
 
-  await figma.loadAllPagesAsync();
+  // Only page NAMES are needed: figma.root.children lists every page under
+  // dynamic-page without loading their contents, so loadAllPagesAsync is not.
   const existingPages = figma.root.children;
 
   const existingPageNames: Record<string, PageNode> = {};

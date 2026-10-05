@@ -279,7 +279,13 @@ export async function getContentTree(params: Record<string, unknown>): Promise<R
   if (budget.truncated) {
     result.truncated = true;
     result.truncatedBy = budget.reason;
-    result.hint = truncationHint(budget.reason, maxNodes, maxBytes);
+    // Two-step drill-in: the ids one level below the walked root(s).
+    const topLevelIds: string[] =
+      rootNodes.length === 1 && "children" in rootNodes[0]
+        ? (rootNodes[0] as SceneNode & ChildrenMixin).children.map((c) => c.id)
+        : rootNodes.map((n) => n.id);
+    result.hint = truncationHint(budget.reason, maxNodes, maxBytes, topLevelIds);
+    result.topLevelIds = topLevelIds.slice(0, 30);
   }
   return result;
 }

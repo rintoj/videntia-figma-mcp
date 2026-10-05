@@ -361,6 +361,14 @@ shared destination/cache/write step is `utils/export-finalize.ts`.
   `childCount` + `backgrounds` instead of an empty object, and the plugin serializer
   emits `backgrounds` (`extractBackgrounds`) plus an always-accurate `_childCount`.
   Same fix reaches `get_nodes_info` and `get_node_summary` — they share the renderers.
+- `get_outline { nodeId?, maxDepth?, maxNodes? }` — the cheapest map of a subtree (like
+  Figma's get_metadata): one line per node, `id TYPE "name" x,y wxh c=<n> [hidden]`,
+  indented by depth, no styles (~50 bytes/node, default cap 5000). **Two-step read:**
+  outline first, then drill into ids. A truncated `get_content_tree` now names
+  get_outline in its `hint` and returns `topLevelIds`. Handler: `handlers/outline.ts`.
+- Read walks (scan, search, lint, overlaps, unbound, contrast, outline) run with
+  `figma.skipInvisibleInstanceChildren = true` unless the call asks for hidden nodes
+  (`utils/skip-invisible.ts`); get_content_tree keeps seeing them.
 - `measure_node` — geometry ONLY (x, y, width, height, rotation, absoluteBoundingBox).
   Use instead of `get_node_info` whenever you just need coordinates or sizes.
   `include_children` + `depth`, `output_format: json | compact`.

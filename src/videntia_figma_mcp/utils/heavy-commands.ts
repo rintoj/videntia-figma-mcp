@@ -34,6 +34,9 @@ export const HEAVY_COMMANDS: ReadonlySet<string> = new Set<string>([
   "get_frame_documentation",
 ]);
 
+/** get_outline is heavy only when asked for more than this many nodes. */
+export const OUTLINE_HEAVY_NODES = 5000;
+
 /** get_content_tree is heavy past this depth (its default maxDepth is 5). */
 export const CONTENT_TREE_HEAVY_DEPTH = 3;
 const CONTENT_TREE_DEFAULT_DEPTH = 5;
@@ -53,5 +56,10 @@ export function isHeavyCommand(command: string, params: unknown): boolean {
     return !Number.isFinite(n) || n > CONTENT_TREE_HEAVY_DEPTH;
   }
   if (command === "search_nodes") return !hasScope(p["nodeId"]);
+  // The outline is cheap; only an explicitly large one is heavy.
+  if (command === "get_outline") {
+    const n = Number(p["maxNodes"]);
+    return Number.isFinite(n) && n > OUTLINE_HEAVY_NODES;
+  }
   return false;
 }
