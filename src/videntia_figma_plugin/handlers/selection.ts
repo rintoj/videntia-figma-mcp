@@ -167,6 +167,7 @@ export async function scanNodesByTypes(params: Record<string, unknown>): Promise
   // Default 0: serialize matched nodes only. An explicit depth opts into subtrees.
   const depth = params["depth"] === undefined ? 0 : (params["depth"] as number | null);
   const topLevelOnly = params["topLevelOnly"] === true;
+  const exactTotal = params["exactTotal"] === true;
 
   if (!Array.isArray(types) || types.length === 0) {
     throw new Error("types must be a non-empty array");
@@ -177,9 +178,8 @@ export async function scanNodesByTypes(params: Record<string, unknown>): Promise
     throw new Error(`Node with ID ${nodeId} not found`);
   }
 
-  // Collect ALL matches first so totalFound is accurate even when the result is
-  // truncated by `limit`. Truncating during traversal is what made previous
-  // sweeps silently incomplete.
+  // Stop once `limit` matches are found unless the caller asks for exactTotal;
+  // either way the result says whether totalFound is exact.
   const allMatchedIds: string[] = [];
 
   const maxVisited =
@@ -189,7 +189,7 @@ export async function scanNodesByTypes(params: Record<string, unknown>): Promise
   const deadlineAt = getCommandDeadline();
   const stopAt = deadlineAt !== undefined ? deadlineAt - SCAN_DEADLINE_MARGIN_MS : undefined;
   let visited = 0;
-  let stopReason: "maxVisited" | "deadline" | undefined;
+  let stopReason: "maxVisited" | "deadline" | "limit" | undefined;
   const signal = getCommandSignal();
 
   if ("children" in node) {
@@ -198,24 +198,32 @@ export async function scanNodesByTypes(params: Record<string, unknown>): Promise
       // Only direct children of the scanned node are considered.
       for (const child of kids) {
         visited++;
-        if (types.includes((child as SceneNode).type)) allMatchedIds.push(child.id);
+        if (types.includes((child as SceneNode).type)) {
+          if (!exactTotal && allMatchedIds.length >= limit) {
+            stopReason = "limit";
+            break;
+          }
+          allMatchedIds.push(child.id);
+        }
       }
     } else {
-      // Size-aware hybrid (utils/chunked-find.ts): small subtrees go to one native
-      // findAllWithCriteria call, large containers are descended cooperatively,
-      // yielding every ~1000 nodes to check the cancel token and the deadline.
-      // No single synchronous stretch touches more than a few thousand nodes.
+      // Hybrid walk (utils/chunked-find.ts): narrow nodes go to one native
+      // findAllWithCriteria call, wide ones are descended, with an adaptive
+      // per-call time budget. Yields between calls for cancel and the deadline.
       const res = await chunkedFindByTypes(kids as readonly SceneNode[], {
         types,
         signal,
         stopAt,
         maxVisited,
         onMatch: (n) => {
+          // One past limit proves truncation without walking further.
+          if (!exactTotal && allMatchedIds.length > limit) return false;
           allMatchedIds.push(n.id);
+          return true;
         },
       });
       visited = res.visited;
-      if (res.stopReason === "maxVisited" || res.stopReason === "deadline") stopReason = res.stopReason;
+      if (res.stopReason) stopReason = res.stopReason;
     }
   }
   const totalExact = stopReason === undefined;
@@ -223,8 +231,10 @@ export async function scanNodesByTypes(params: Record<string, unknown>): Promise
   if (!totalExact) {
     walkInfo["stopReason"] = stopReason;
     walkInfo["warning"] =
-      `Scan stopped early (${stopReason}) after ${visited} nodes; totalFound is a lower bound. ` +
-      "Scan a smaller nodeId to get an exact count.";
+      stopReason === "limit"
+        ? `Scan stopped at limit (${limit}); totalFound is a lower bound. Pass exactTotal: true for an exact count.`
+        : `Scan stopped early (${stopReason}) after ${visited} nodes; totalFound is a lower bound. ` +
+          "Scan a smaller nodeId to get an exact count.";
   }
 
   const totalFound = allMatchedIds.length;

@@ -161,7 +161,7 @@ describe("scan_nodes_by_types native fast path", () => {
 
   it("uses findAllWithCriteria per top-level child with the type filter", async () => {
     const calls = setup(3, 4);
-    const res = await scanNodesByTypes({ nodeId: "s1", types: ["TEXT"], limit: 2 });
+    const res = await scanNodesByTypes({ nodeId: "s1", types: ["TEXT"], limit: 2, exactTotal: true });
     expect(calls).toEqual([{ types: ["TEXT"] }, { types: ["TEXT"] }, { types: ["TEXT"] }]);
     expect(res.totalFound).toBe(12);
     expect(res.totalExact).toBe(true);
@@ -169,7 +169,7 @@ describe("scan_nodes_by_types native fast path", () => {
 
   it("checks the cap between chunks", async () => {
     const calls = setup(5, 4);
-    const res = await scanNodesByTypes({ nodeId: "s1", types: ["TEXT"], limit: 2, maxVisited: 6 });
+    const res = await scanNodesByTypes({ nodeId: "s1", types: ["TEXT"], limit: 2, maxVisited: 6, exactTotal: true });
     expect(calls.length).toBe(2);
     expect(res.stopReason).toBe("maxVisited");
     expect(res.totalExact).toBe(false);

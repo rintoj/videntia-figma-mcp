@@ -933,7 +933,7 @@ export function registerDocumentTools(server: McpServer): void {
   // Scan Nodes By Types Tool
   server.tool(
     "scan_nodes_by_types",
-    "Find all descendant nodes of specific types inside a parent node. Returns the matched nodes only by default (depth 0); pass `depth` to include each match's subtree. Use when you have a parent nodeId and want all children matching certain types (e.g. all TEXT or FRAME nodes). Does not match by name — use search_nodes for name-based lookup. Returns JSX+Tailwind markup (default) or JSON.",
+    'Find all descendant nodes of specific types inside a parent node. Returns the matched nodes only by default (depth 0); pass `depth` to include each match\'s subtree. Use when you have a parent nodeId and want all children matching certain types (e.g. all TEXT or FRAME nodes). Does not match by name — use search_nodes for name-based lookup. The walk STOPS once `limit` matches are found, so totalFound is then a lower bound (totalExact: false, stopReason: "limit"); pass exactTotal: true to walk the whole subtree for an exact count (slower on large trees). Returns JSX+Tailwind markup (default) or JSON.',
     {
       nodeId: z.string().describe("ID of the node to scan"),
       types: coerceArray(z.array(z.string())).describe("Array of node types (e.g. ['COMPONENT', 'FRAME'])"),
@@ -949,11 +949,16 @@ export function registerDocumentTools(server: McpServer): void {
       depth: depthSchema.describe(
         'Subtree depth serialized under EACH matched node. Default: 0 (matched nodes only). Pass a number, or "all" for unlimited (slow on large trees).',
       ),
+      exactTotal: mcpBooleanSchema
+        .optional()
+        .describe(
+          "When true, keep walking after `limit` matches so totalFound is exact. Default: false (stop at limit; totalFound is a lower bound).",
+        ),
       output_format: nodeOutputFormatSchema,
       format: nodeFormatAliasSchema,
       cursor: cursorSchema,
     },
-    async ({ nodeId, types, limit, fields, depth, output_format, format, topLevelOnly, cursor }) => {
+    async ({ nodeId, types, limit, fields, depth, output_format, format, topLevelOnly, exactTotal, cursor }) => {
       nodeId = normalizeNodeId(nodeId);
       try {
         const result: any = await sendCommandToFigma("scan_nodes_by_types", {
@@ -961,6 +966,7 @@ export function registerDocumentTools(server: McpServer): void {
           types,
           limit,
           topLevelOnly: topLevelOnly === true,
+          exactTotal: exactTotal === true,
           // 0 by default; "all" travels as null (JSON drops undefined).
           depth: depth === undefined ? 0 : depth === "all" ? null : depth,
         });
@@ -973,7 +979,11 @@ export function registerDocumentTools(server: McpServer): void {
             (topLevelOnly === true ? " (topLevelOnly: direct children only)" : " (full subtree)") +
             `; truncated: ${truncated}`,
         ];
-        if (lowerBound) {
+        if (lowerBound && result?.stopReason === "limit") {
+          prefix.push(
+            `Stopped at limit=${result?.limit ?? limit ?? 50}: totalFound is a LOWER BOUND (totalExact: false). Pass exactTotal: true for an exact count.`,
+          );
+        } else if (lowerBound) {
           prefix.push(
             `WARNING: the walk stopped early (${result?.stopReason ?? "cap"}) after ${result?.visited ?? "?"} nodes, so totalFound is a LOWER BOUND (totalExact: false). Scan a smaller nodeId for an exact count.`,
           );

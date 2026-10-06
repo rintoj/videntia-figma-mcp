@@ -1,9 +1,4 @@
-import {
-  chunkedFindByTypes,
-  countDescendants,
-  DEFAULT_CHUNK_WORK,
-  DEFAULT_SMALL_SUBTREE,
-} from "../../../src/videntia_figma_plugin/utils/chunked-find";
+import { chunkedFindByTypes } from "../../../src/videntia_figma_plugin/utils/chunked-find";
 import { CancelToken, isCancelledError } from "../../../src/videntia_figma_plugin/utils/cancellation";
 import {
   CommandScheduler,
@@ -79,16 +74,75 @@ function preorder(roots: FakeNode[], types: string[]): string[] {
   return out;
 }
 
-describe("chunkedFindByTypes", () => {
-  it("countDescendants stops at the cap", () => {
-    const { root } = giantTree([]);
-    expect(countDescendants(root, 100)).toBe(100);
-    expect(countDescendants(root.children![0], 100)).toBe(2);
-  });
+/**
+ * A tree that charges for every JS `.children` access and for every node a
+ * native findAllWithCriteria call touches, on a fake clock. Models the real
+ * cost: crossing from plugin JS into Figma's node tree per node is what's slow.
+ */
+const JS_ACCESS_MS = 0.05;
+const NATIVE_NODE_MS = 0.002;
+function costedTree(shape: number[][]) {
+  const meter = { clock: 0, jsAccesses: 0, nativeCalls: 0, nativeNodes: 0 };
+  let seq = 0;
+  type CN = { id: string; type: string; name: string; visible: boolean; kids?: CN[] } & Record<string, unknown>;
+  const mk = (type: string, kids?: CN[]): CN => {
+    const n: CN = { id: `c${seq++}`, type, name: type, visible: true };
+    if (kids) {
+      n.kids = kids;
+      Object.defineProperty(n, "children", {
+        get() {
+          meter.jsAccesses++;
+          meter.clock += JS_ACCESS_MS;
+          return kids;
+        },
+      });
+      n.findAllWithCriteria = (c: { types: string[] }) => {
+        meter.nativeCalls++;
+        const out: CN[] = [];
+        const rec = (x: CN) => {
+          for (const k of x.kids ?? []) {
+            meter.nativeNodes++;
+            meter.clock += NATIVE_NODE_MS;
+            if (c.types.includes(k.type)) out.push(k);
+            rec(k);
+          }
+        };
+        rec(n);
+        return out;
+      };
+    }
+    return n;
+  };
+  // shape: one entry per top-level child, [rows, textsPerRow]
+  const top = shape.map(([rows, per]) =>
+    mk(
+      "FRAME",
+      Array.from({ length: rows }, () =>
+        mk(
+          "FRAME",
+          Array.from({ length: per }, () => mk("TEXT")),
+        ),
+      ),
+    ),
+  );
+  return { top: top as unknown as SceneNode[], meter, total: shape.reduce((t, [r, p]) => t + r * (p + 1), 0) };
+}
 
-  it("finds every match in pre-order, never handing a giant subtree to one native call", async () => {
+/** The pre-#161 approach: one native call per top-level child. */
+function oldPerTopLevel(top: SceneNode[], types: string[]): number {
+  let found = 0;
+  for (const c of top) {
+    if (types.includes(c.type)) found++;
+    if ((c as unknown as { children?: unknown }).children) {
+      found += (c as unknown as ChildrenMixin).findAllWithCriteria({ types } as never).length;
+    }
+  }
+  return found;
+}
+
+describe("chunkedFindByTypes", () => {
+  it("finds every match in pre-order with exact counts", async () => {
     const sizes: number[] = [];
-    const chunks: number[] = [];
     const { root } = giantTree(sizes);
     const ids: string[] = [];
     const res = await chunkedFindByTypes(root.children as unknown as SceneNode[], {
@@ -96,42 +150,63 @@ describe("chunkedFindByTypes", () => {
       onMatch: (n) => {
         ids.push(n.id);
       },
-      onChunk: (w) => chunks.push(w),
       sleep: async () => {},
     });
     expect(ids).toEqual(preorder(root.children!, ["TEXT"]));
     expect(ids.length).toBe(20002);
     expect(res.stopReason).toBeUndefined();
-    expect(res.yields).toBeGreaterThan(5);
-    expect(Math.max(...sizes)).toBeLessThan(DEFAULT_SMALL_SUBTREE);
-    expect(Math.max(...chunks)).toBeLessThanOrEqual(DEFAULT_CHUNK_WORK + 2 * DEFAULT_SMALL_SUBTREE);
   });
 
-  it("honours cancel mid-way through the giant child", async () => {
+  it("descends wide nodes and keeps pre-order", async () => {
+    const { mk } = makeTree([]);
+    const wide = mk(
+      "FRAME",
+      Array.from({ length: 300 }, () => mk("FRAME", [mk("TEXT"), mk("TEXT")])),
+    );
+    const ids: string[] = [];
+    const res = await chunkedFindByTypes([wide] as unknown as SceneNode[], {
+      types: ["TEXT"],
+      onMatch: (n) => {
+        ids.push(n.id);
+      },
+      sleep: async () => {},
+      descendAbove: 64,
+    });
+    expect(ids).toEqual(preorder([wide], ["TEXT"]));
+    expect(res.nativeCalls).toBe(300);
+  });
+
+  it("stops early when onMatch returns false", async () => {
     const { root } = giantTree([]);
+    let n = 0;
+    const res = await chunkedFindByTypes(root.children as unknown as SceneNode[], {
+      types: ["TEXT"],
+      onMatch: () => ++n <= 50,
+      sleep: async () => {},
+    });
+    expect(res.stopReason).toBe("limit");
+    expect(n).toBe(51);
+  });
+
+  it("honours cancel between native calls", async () => {
+    const { top } = costedTree(Array.from({ length: 40 }, () => [10, 50] as number[]));
     const token = new CancelToken();
-    let matched = 0;
     let sleeps = 0;
-    const p = chunkedFindByTypes(root.children as unknown as SceneNode[], {
+    const err = await chunkedFindByTypes(top, {
       types: ["TEXT"],
       signal: token,
-      onMatch: () => {
-        matched++;
-      },
+      onMatch: () => {},
       sleep: async () => {
         if (++sleeps === 3) token.abort("cancelled by test");
       },
-    });
-    const err = await p.catch((e) => e);
+    }).catch((e) => e);
     expect(isCancelledError(err)).toBe(true);
-    expect(matched).toBeGreaterThan(0);
-    expect(matched).toBeLessThan(20002);
   });
 
   it("stops at the deadline between chunks", async () => {
-    const { root } = giantTree([]);
+    const { top } = costedTree(Array.from({ length: 40 }, () => [10, 50] as number[]));
     let t = 0;
-    const res = await chunkedFindByTypes(root.children as unknown as SceneNode[], {
+    const res = await chunkedFindByTypes(top, {
       types: ["TEXT"],
       stopAt: 3,
       now: () => t,
@@ -141,6 +216,61 @@ describe("chunkedFindByTypes", () => {
       onMatch: () => {},
     });
     expect(res.stopReason).toBe("deadline");
+  });
+
+  it("adaptive budget: a slow native call makes its siblings descend a level", async () => {
+    const { top, meter } = costedTree(Array.from({ length: 10 }, () => [40, 400] as number[]));
+    const res = await chunkedFindByTypes(top, {
+      types: ["TEXT"],
+      onMatch: () => {},
+      sleep: async () => {},
+      now: () => meter.clock,
+      nativeBudgetMs: 20,
+    });
+    // First top-level child went native whole (~32ms > 20ms); the other 9 were descended.
+    expect(res.nativeCalls).toBe(1 + 9 * 40);
+  });
+});
+
+describe("solo scan benchmark (fake costed tree)", () => {
+  // Typical big section: 30 top-level frames, ~20k nodes, plus one very wide frame.
+  const shape: number[][] = [...Array.from({ length: 30 }, () => [20, 30]), [500, 2]];
+
+  it("JS accesses are O(native calls), not O(nodes), and total cost matches pre-#161", async () => {
+    const old = costedTree(shape);
+    const oldFound = oldPerTopLevel(old.top, ["TEXT"]);
+    const neu = costedTree(shape);
+    let found = 0;
+    const res = await chunkedFindByTypes(neu.top, {
+      types: ["TEXT"],
+      onMatch: () => {
+        found++;
+      },
+      sleep: async () => {},
+      now: () => neu.meter.clock,
+    });
+    expect(found).toBe(oldFound);
+    // eslint-disable-next-line no-console
+    console.log(
+      `nodes=${neu.total} old: js=${old.meter.jsAccesses} native=${old.meter.nativeCalls} cost=${old.meter.clock.toFixed(1)}ms | ` +
+        `new: js=${neu.meter.jsAccesses} native=${neu.meter.nativeCalls} cost=${neu.meter.clock.toFixed(1)}ms`,
+    );
+    expect(neu.meter.jsAccesses).toBeLessThanOrEqual(2 * res.nativeCalls + shape.length + 1);
+    expect(neu.meter.jsAccesses).toBeLessThan(neu.total / 10);
+    expect(neu.meter.clock).toBeLessThanOrEqual(old.meter.clock * 1.25);
+  });
+
+  it("limit 50 touches a tiny fraction of the tree", async () => {
+    const t = costedTree(shape);
+    let found = 0;
+    const res = await chunkedFindByTypes(t.top, {
+      types: ["TEXT"],
+      onMatch: () => ++found <= 50,
+      sleep: async () => {},
+      now: () => t.meter.clock,
+    });
+    expect(res.stopReason).toBe("limit");
+    expect(t.meter.nativeNodes + t.meter.jsAccesses).toBeLessThan(t.total / 20);
   });
 });
 
@@ -170,23 +300,52 @@ describe("scanNodesByTypes over a giant child", () => {
     setCommandSignal(token);
     // Abort from a macrotask: it can only land if the scan yields to the event loop.
     setTimeout(() => token.abort("server cancel"), 0);
-    const err = await scanNodesByTypes({ nodeId: root.id, types: ["TEXT"], limit: 5 }).catch((e) => e);
+    const err = await scanNodesByTypes({ nodeId: root.id, types: ["TEXT"], limit: 5, exactTotal: true }).catch(
+      (e) => e,
+    );
     expect(isCancelledError(err)).toBe(true);
-    expect(Math.max(0, ...sizes)).toBeLessThan(DEFAULT_SMALL_SUBTREE);
   });
 
   it("keeps the exact count contract when not cancelled", async () => {
     const { root, all } = giantTree([]);
     install(all);
-    const res = await scanNodesByTypes({ nodeId: root.id, types: ["TEXT"], limit: 3 });
+    const res = await scanNodesByTypes({ nodeId: root.id, types: ["TEXT"], limit: 3, exactTotal: true });
     expect(res.totalFound).toBe(20002);
     expect(res.totalExact).toBe(true);
     expect(res.truncated).toBe(true);
   });
+
+  it("stops at limit by default and reports a lower bound", async () => {
+    const { root, all } = giantTree([]);
+    install(all);
+    const res = await scanNodesByTypes({ nodeId: root.id, types: ["TEXT"], limit: 3 });
+    expect(res.count).toBe(3);
+    expect(res.totalExact).toBe(false);
+    expect(res.stopReason).toBe("limit");
+    expect(res.truncated).toBe(true);
+    expect(res.totalFound as number).toBeGreaterThan(3);
+  });
+
+  it("a cancelled scan stops serializing", async () => {
+    const { root, all } = giantTree([]);
+    install(all);
+    const token = new CancelToken();
+    setCommandSignal(token);
+    let lookups = 0;
+    const g = (globalThis as unknown as { figma: { getNodeByIdAsync: (id: string) => Promise<unknown> } }).figma;
+    const orig = g.getNodeByIdAsync;
+    g.getNodeByIdAsync = async (id: string) => {
+      if (++lookups === 20) token.abort("server cancel");
+      return orig(id);
+    };
+    const err = await scanNodesByTypes({ nodeId: root.id, types: ["TEXT"], limit: 5000 }).catch((e) => e);
+    expect(isCancelledError(err)).toBe(true);
+    expect(lookups).toBeLessThan(200);
+  });
 });
 
 describe("abandoned command accounting", () => {
-  it("decrements exactly once when a cancelled read later throws CancelledError", async () => {
+  it("a cancelled read drains its slot until it stops, then the next command runs", async () => {
     const s = new CommandScheduler({ watchdogMs: 1000, maxQueueDepth: 10 });
     let release!: () => void;
     const gate = new Promise<void>((r) => (release = r));
@@ -202,28 +361,36 @@ describe("abandoned command accounting", () => {
       },
       { kind: "read", id: "r1" },
     );
+    let nextRan = false;
+    const next = s.schedule("get_selection", async () => (nextRan = true), { kind: "read" });
     expect(s.cancel("r1")).toBe("aborted");
+    // The caller hears back immediately.
     await expect(p).rejects.toThrow(/cancelled/);
     let st = s.getStatus();
-    expect(st.abandonedStillRunning).toBe(1);
-    expect(st.abandoned[0]).toMatchObject({ command: "get_design_context", reason: "cancel" });
-    expect(st.abandonedOldestAgeMs).not.toBeNull();
-    release();
-    await new Promise((r) => setTimeout(r, 0));
-    st = s.getStatus();
+    // Draining: still holds the slot, not abandoned, the next command waits.
+    expect(st.running?.command).toBe("get_design_context");
     expect(st.abandonedStillRunning).toBe(0);
-    expect(st.abandonedOldestAgeMs).toBeNull();
+    expect(nextRan).toBe(false);
+    release();
+    await next;
+    st = s.getStatus();
+    expect(nextRan).toBe(true);
+    expect(st.abandonedStillRunning).toBe(0);
     expect(st.abandoned).toEqual([]);
+    expect(st.cancelled).toBe(1);
   });
 
-  it("decrements when a cancelled command resolves normally after cancellation", async () => {
-    const s = new CommandScheduler({ watchdogMs: 1000, maxQueueDepth: 10 });
+  it("a cancelled read that does not stop is abandoned after the grace period", async () => {
+    const s = new CommandScheduler({ watchdogMs: 1000, maxQueueDepth: 10, cancelGraceMs: 10 });
     let release!: () => void;
     const gate = new Promise<void>((r) => (release = r));
     const p = s.schedule("get_variables_used", () => gate.then(() => 7), { kind: "read", id: "x" });
+    const next = s.schedule("get_selection", async () => "next", { kind: "read" });
     s.cancel("x");
     await p.catch(() => undefined);
+    await expect(next).resolves.toBe("next");
     expect(s.getStatus().abandonedStillRunning).toBe(1);
+    expect(s.getStatus().abandoned[0]).toMatchObject({ command: "get_variables_used", reason: "cancel" });
     release();
     await new Promise((r) => setTimeout(r, 0));
     expect(s.getStatus().abandonedStillRunning).toBe(0);

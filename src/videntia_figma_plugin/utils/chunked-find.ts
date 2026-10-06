@@ -1,23 +1,23 @@
 /**
- * Size-aware, cancellable "find all nodes of these types" walk.
+ * Cancellable "find all nodes of these types" walk that never pre-counts.
  *
- * `findAllWithCriteria` is fast (no per-node JS callback) but it is one
- * synchronous native call: on a 20k-node subtree it blocks the plugin main
- * thread for seconds, during which cancel, the watchdog and health probes are
- * all ignored. This walk is a hybrid:
+ * `findAllWithCriteria` is fast (no per-node JS callback), but it is one
+ * synchronous native call. Every JS `.children` access crosses from plugin JS
+ * into Figma's node tree and is the expensive part, so this walk touches as
+ * few nodes from JS as possible:
  *
- * - it descends depth-first (pre-order, the same order findAllWithCriteria
- *   returns) through the tree with an explicit stack;
- * - for each container it cheaply counts descendants, stopping at
- *   `smallSubtree`; a subtree under that size goes to ONE native call;
- * - a larger container is not handed to the native call, its children are
- *   pushed and walked instead.
+ * - it walks depth-first (pre-order, the same order findAllWithCriteria
+ *   returns) with an explicit stack;
+ * - for each node it reads ONE structural signal, its direct child count;
+ * - a node with more direct children than `descendAbove` is descended (its
+ *   children are pushed), anything smaller goes to ONE native call;
+ * - adaptive budget: each native call is timed; when one takes longer than
+ *   `nativeBudgetMs`, its remaining siblings are descended one level instead
+ *   of handed to the native call whole. No node counting happens in JS.
  *
- * Every unit of work (a visit, a counted descendant, a native-call result)
- * counts toward a budget; once `yieldEvery` units are spent the walk yields to
- * the event loop and checks the cancel token and the deadline. The longest
- * synchronous stretch is therefore bounded by about
- * `yieldEvery + 2 * smallSubtree` node touches, no matter how big the tree is.
+ * JS node accesses are therefore O(native calls + children of descended
+ * containers), not O(nodes). The walk yields between native calls (and every
+ * `yieldEvery` JS visits) to check the cancel token and the deadline.
  *
  * `figma.skipInvisibleInstanceChildren` is honoured implicitly: both
  * `children` and `findAllWithCriteria` already omit what the flag hides.
@@ -25,8 +25,12 @@
 
 import { type CancelSignal, NEVER_CANCELLED, throwIfCancelled } from "./cancellation";
 
-export const DEFAULT_SMALL_SUBTREE = 2000;
-export const DEFAULT_CHUNK_WORK = 1000;
+/** Nodes with more direct children than this are descended, not sent native. */
+export const DEFAULT_DESCEND_ABOVE = 1000;
+/** A native call slower than this makes its remaining siblings descend a level. */
+export const DEFAULT_NATIVE_BUDGET_MS = 200;
+/** JS visits between yields. */
+export const DEFAULT_CHUNK_WORK = 500;
 
 export interface ChunkedFindOptions {
   types: readonly string[];
@@ -35,9 +39,11 @@ export interface ChunkedFindOptions {
   stopAt?: number;
   /** Stop once this many nodes have been visited (stopReason "maxVisited"). */
   maxVisited?: number;
-  /** Subtrees with fewer descendants than this go to one native call. */
-  smallSubtree?: number;
-  /** Work units between yields. */
+  /** Direct-child count above which a node is descended instead of sent native. */
+  descendAbove?: number;
+  /** Time budget per native call (ms) for the adaptive descent. */
+  nativeBudgetMs?: number;
+  /** JS visits between yields. */
   yieldEvery?: number;
   sleep?: () => Promise<void>;
   now?: () => number;
@@ -46,14 +52,15 @@ export interface ChunkedFindOptions {
    * false to stop the walk (stopReason "limit").
    */
   onMatch: (node: SceneNode) => boolean | void;
-  /** Test hook: the work done in each synchronous stretch between yields. */
-  onChunk?: (work: number) => void;
 }
 
 export interface ChunkedFindResult {
+  /** Nodes visited from JS plus nodes returned by native calls (a lower bound). */
   visited: number;
   stopReason?: "maxVisited" | "deadline" | "limit";
   nativeCalls: number;
+  /** Nodes whose `.children` were read from JS. */
+  jsVisits: number;
   yields: number;
 }
 
@@ -64,25 +71,12 @@ function kidsOf(n: unknown): readonly SceneNode[] | undefined {
   return Array.isArray(c) || (c && typeof (c as { length?: unknown }).length === "number") ? c : undefined;
 }
 
-/**
- * Count descendants of `node`, stopping as soon as the count reaches `cap`.
- * Returns the exact count when below cap, else `cap`.
- */
-export function countDescendants(node: unknown, cap: number): number {
-  let count = 0;
-  const stack: unknown[] = [node];
-  while (stack.length > 0) {
-    const kids = kidsOf(stack.pop());
-    if (!kids) continue;
-    for (let i = 0; i < kids.length; i++) {
-      if (++count >= cap) return cap;
-      stack.push(kids[i]);
-    }
-  }
-  return count;
-}
-
 const defaultSleep = () => new Promise<void>((r) => setTimeout(r, 0));
+
+/** Shared by siblings: set when one of them had a slow native call. */
+interface SiblingGroup {
+  slow: boolean;
+}
 
 /**
  * Walk `roots` (and their subtrees) in pre-order, reporting type matches.
@@ -93,7 +87,8 @@ export async function chunkedFindByTypes(
   opts: ChunkedFindOptions,
 ): Promise<ChunkedFindResult> {
   const signal = opts.signal ?? NEVER_CANCELLED;
-  const small = opts.smallSubtree ?? DEFAULT_SMALL_SUBTREE;
+  const descendAbove = opts.descendAbove ?? DEFAULT_DESCEND_ABOVE;
+  const budget = opts.nativeBudgetMs ?? DEFAULT_NATIVE_BUDGET_MS;
   const every = opts.yieldEvery ?? DEFAULT_CHUNK_WORK;
   const sleep = opts.sleep ?? defaultSleep;
   const now = opts.now ?? (() => Date.now());
@@ -102,28 +97,29 @@ export async function chunkedFindByTypes(
   const criteria = { types: types as NodeType[] } as Parameters<ChildrenMixin["findAllWithCriteria"]>[0];
 
   let visited = 0;
-  let work = 0;
+  let jsVisits = 0;
+  let sinceYield = 0;
   let nativeCalls = 0;
   let yields = 0;
   let stopReason: ChunkedFindResult["stopReason"];
 
-  const maybeYield = async (): Promise<boolean> => {
-    if (work < every) return true;
-    if (opts.onChunk) opts.onChunk(work);
-    work = 0;
+  const pastDeadline = () => opts.stopAt !== undefined && now() >= opts.stopAt;
+  const doYield = async (): Promise<boolean> => {
+    sinceYield = 0;
     throwIfCancelled(signal);
     await sleep();
     yields++;
     throwIfCancelled(signal);
-    if (opts.stopAt !== undefined && now() >= opts.stopAt) {
+    if (pastDeadline()) {
       stopReason = "deadline";
       return false;
     }
     return true;
   };
 
-  const stack: SceneNode[] = [];
-  for (let i = roots.length - 1; i >= 0; i--) stack.push(roots[i]);
+  const rootGroup: SiblingGroup = { slow: false };
+  const stack: Array<{ node: SceneNode; group: SiblingGroup }> = [];
+  for (let i = roots.length - 1; i >= 0; i--) stack.push({ node: roots[i], group: rootGroup });
   throwIfCancelled(signal);
 
   outer: while (stack.length > 0) {
@@ -131,42 +127,42 @@ export async function chunkedFindByTypes(
       stopReason = "maxVisited";
       break;
     }
-    if (opts.stopAt !== undefined && now() >= opts.stopAt) {
+    if (pastDeadline()) {
       stopReason = "deadline";
       break;
     }
-    const n = stack.pop() as SceneNode;
+    const { node: n, group } = stack.pop() as { node: SceneNode; group: SiblingGroup };
     visited++;
-    work++;
+    jsVisits++;
+    sinceYield++;
     if (types.includes(n.type) && opts.onMatch(n) === false) {
       stopReason = "limit";
       break;
     }
     const kids = kidsOf(n);
     if (kids && kids.length > 0) {
-      const native = (n as unknown as Kids).findAllWithCriteria;
-      const hasNative = typeof native === "function";
-      const size = hasNative ? countDescendants(n, small) : small;
-      if (hasNative) work += size;
-      if (hasNative && size < small) {
-        // Small enough: one bounded native call.
+      const hasNative = typeof (n as unknown as Kids).findAllWithCriteria === "function";
+      if (hasNative && kids.length <= descendAbove && !group.slow) {
+        // One native call for the whole subtree, timed for the adaptive budget.
         throwIfCancelled(signal);
         nativeCalls++;
+        const t0 = now();
         const found = (n as unknown as ChildrenMixin).findAllWithCriteria(criteria);
-        visited += size;
-        work += found.length;
+        if (now() - t0 > budget) group.slow = true;
+        visited += found.length;
         for (const f of found) {
           if (opts.onMatch(f as SceneNode) === false) {
             stopReason = "limit";
             break outer;
           }
         }
-      } else {
-        for (let i = kids.length - 1; i >= 0; i--) stack.push(kids[i]);
+        if (!(await doYield())) break;
+        continue;
       }
+      const childGroup: SiblingGroup = { slow: false };
+      for (let i = kids.length - 1; i >= 0; i--) stack.push({ node: kids[i], group: childGroup });
     }
-    if (!(await maybeYield())) break;
+    if (sinceYield >= every && !(await doYield())) break;
   }
-  if (opts.onChunk && work > 0) opts.onChunk(work);
-  return { visited, stopReason, nativeCalls, yields };
+  return { visited, stopReason, nativeCalls, jsVisits, yields };
 }

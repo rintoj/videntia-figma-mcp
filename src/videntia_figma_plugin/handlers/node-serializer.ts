@@ -744,6 +744,8 @@ function nodeHasMotion(node: BaseNode): boolean {
  * Serialize Figma nodes into enriched FigmaNodeData format.
  * Accepts nodeIds (specific nodes) or falls back to current selection.
  */
+const SERIALIZE_BATCH = 50;
+
 export async function serializeNodes(params: Record<string, unknown>): Promise<Record<string, unknown>> {
   const nodeIds = params !== null && params !== undefined ? (params["nodeIds"] as string[] | undefined) : undefined;
   const nodeId = params !== null && params !== undefined ? (params["nodeId"] as string | undefined) : undefined;
@@ -769,6 +771,8 @@ export async function serializeNodes(params: Record<string, unknown>): Promise<R
 
   if (nodeIds && Array.isArray(nodeIds) && nodeIds.length > 0) {
     const found = await boundedMap(nodeIds, SERIALIZE_CONCURRENCY, function (id) {
+      // A cancelled scan must stop looking up ids, not finish all of them.
+      throwIfCancelled(signal);
       return withTimeout(figma.getNodeByIdAsync(id), NODE_LOOKUP_TIMEOUT_MS, "getNodeByIdAsync(" + id + ")").catch(
         function (e) {
           warnings.push(e instanceof Error ? e.message : String(e));
@@ -792,11 +796,18 @@ export async function serializeNodes(params: Record<string, unknown>): Promise<R
     nodesToProcess = selection as SceneNode[];
   }
 
-  const processed = await Promise.all(
-    nodesToProcess.map(function (node) {
-      return processNode(node, 0, depth, maps);
-    }),
-  );
+  // Bounded batches with a cancel check between them (processNode checks at
+  // every recursion level too), so a cancelled read stops quickly.
+  const processed: Array<Record<string, unknown> | null> = [];
+  for (let i = 0; i < nodesToProcess.length; i += SERIALIZE_BATCH) {
+    throwIfCancelled(signal);
+    const batch = await Promise.all(
+      nodesToProcess.slice(i, i + SERIALIZE_BATCH).map(function (node) {
+        return processNode(node, 0, depth, maps);
+      }),
+    );
+    for (const b of batch) processed.push(b);
+  }
   const result = processed.filter(function (n) {
     return n !== null;
   }) as Record<string, unknown>[];

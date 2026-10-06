@@ -42,7 +42,15 @@ export interface SchedulerOptions {
   /** Max commands waiting (not counting the running one). */
   maxQueueDepth: number;
   now?: () => number;
+  /**
+   * After a running read is cancelled, how long the slot stays "draining"
+   * (waiting for the handler to actually stop) before it is abandoned and the
+   * next command starts anyway. Default 2000ms.
+   */
+  cancelGraceMs?: number;
 }
+
+export const DEFAULT_CANCEL_GRACE_MS = 2000;
 
 export interface ScheduleOptions {
   /** Per-command watchdog override (ms). */
@@ -203,8 +211,8 @@ export class CommandScheduler {
 
   /**
    * Server-side timeout: cancel one command by request id. A queued job is
-   * removed and never runs. A running READ has its token aborted and its slot
-   * freed now. A running WRITE is left to finish. Returns what happened.
+   * removed and never runs. A running READ has its token aborted and its caller
+   * answered now; its slot drains until the handler stops (or cancelGraceMs). A running WRITE is left to finish. Returns what happened.
    */
   cancel(
     id: string,
@@ -299,16 +307,34 @@ export class CommandScheduler {
     }
 
     let settled = false;
+    let draining = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
+    let graceTimer: ReturnType<typeof setTimeout> | undefined;
     const finish = (_how: "cancel", reason: string) => {
       if (settled) return;
       settled = true;
+      draining = true;
       if (timer) clearTimeout(timer);
       job.token.abort(reason);
-      // The run is still unwinding; it settles at its next check (or an abandoned await).
-      this.abandoned.set(job, { command: job.command, atMs: this.now(), reason: "cancel" });
+      // The caller gets its answer now; the slot stays "draining" until the
+      // handler really stops (its next cancel check), so the next command never
+      // shares the main thread with leftover work. If it does not stop within
+      // the grace period it is abandoned and the queue moves on.
       job.reject(new Error(`Command "${job.command}" cancelled: ${reason}`));
+      graceTimer = setTimeout(() => {
+        if (!draining) return;
+        draining = false;
+        this.abandoned.set(job, { command: job.command, atMs: this.now(), reason: "cancel" });
+        release();
+      }, this.opts.cancelGraceMs ?? DEFAULT_CANCEL_GRACE_MS);
+    };
+    /** The run settled after a cancel: free the slot if still draining. */
+    const drained = () => {
+      if (!draining) return false;
+      draining = false;
+      if (graceTimer) clearTimeout(graceTimer);
       release();
+      return true;
     };
     this.current = { job, startedAt: this.now(), finish };
     this.stats.lastProgressAtMs = this.now();
@@ -351,6 +377,7 @@ export class CommandScheduler {
     p.then(
       (v) => {
         if (settled) {
+          if (drained()) return;
           this.abandoned.delete(job);
           return;
         }
@@ -363,6 +390,7 @@ export class CommandScheduler {
       },
       (e) => {
         if (settled) {
+          if (drained()) return;
           this.abandoned.delete(job);
           // A watchdog-abandoned read that stopped cooperatively counts as cancelled.
           if (isCancelledError(e) && !job.cancelCounted) this.stats.cancelled++;
