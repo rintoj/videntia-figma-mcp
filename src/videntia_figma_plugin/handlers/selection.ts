@@ -3,8 +3,8 @@
 // ---------------------------------------------------------------------------
 
 import { serializeNodes } from "./node-serializer";
-import { createYielder } from "../utils/walk-budget";
-import { getCommandSignal, throwIfCancelled } from "../utils/cancellation";
+import { chunkedFindByTypes } from "../utils/chunked-find";
+import { getCommandSignal } from "../utils/cancellation";
 import { getCommandDeadline } from "../utils/with-timeout";
 
 /** Max nodes a scan visits before stopping. totalFound becomes a lower bound. */
@@ -191,66 +191,31 @@ export async function scanNodesByTypes(params: Record<string, unknown>): Promise
   let visited = 0;
   let stopReason: "maxVisited" | "deadline" | undefined;
   const signal = getCommandSignal();
-  const tick = createYielder(undefined, undefined, signal);
 
-  // Iterative walk (explicit stack): no per-node promise, yields every ~1000 nodes,
-  // and stops on the visit cap or the command deadline.
-  const stack: SceneNode[] = [];
   if ("children" in node) {
     const kids = (node as ChildrenMixin).children;
     if (topLevelOnly) {
       // Only direct children of the scanned node are considered.
       for (const child of kids) {
-        if (types.includes((child as SceneNode).type)) allMatchedIds.push(child.id);
-      }
-    } else if (kids.length > 0 && typeof (kids[0] as Partial<ChildrenMixin>).findAllWithCriteria === "function") {
-      // Fast path: Figma's native type filter (no per-node JS callback), run one
-      // top-level child at a time so the cap, deadline and cancel checks still run
-      // between chunks. A single huge child is one uninterruptible native call.
-      const criteria = { types: types as NodeType[] } as Parameters<ChildrenMixin["findAllWithCriteria"]>[0];
-      for (const child of kids) {
-        if (allMatchedIds.length >= maxVisited) {
-          stopReason = "maxVisited";
-          break;
-        }
-        if (stopAt !== undefined && Date.now() >= stopAt) {
-          stopReason = "deadline";
-          break;
-        }
-        throwIfCancelled(signal);
         visited++;
         if (types.includes((child as SceneNode).type)) allMatchedIds.push(child.id);
-        if ("findAllWithCriteria" in child) {
-          const found = (child as unknown as ChildrenMixin).findAllWithCriteria(criteria);
-          for (const f of found) allMatchedIds.push(f.id);
-          visited += found.length;
-        }
-        await tick();
       }
     } else {
-      for (let i = kids.length - 1; i >= 0; i--) stack.push(kids[i] as SceneNode);
-    }
-  }
-  while (stack.length > 0) {
-    if (visited >= maxVisited) {
-      stopReason = "maxVisited";
-      break;
-    }
-    if (stopAt !== undefined && visited % 200 === 0 && Date.now() >= stopAt) {
-      stopReason = "deadline";
-      break;
-    }
-    await tick();
-    const n = stack.pop() as SceneNode;
-    visited++;
-    if (types.includes(n.type)) {
-      allMatchedIds.push(n.id);
-      // A matched node's descendants are nested, not top level.
-      if (topLevelOnly) continue;
-    }
-    if ("children" in n) {
-      const kids = (n as ChildrenMixin).children;
-      for (let i = kids.length - 1; i >= 0; i--) stack.push(kids[i] as SceneNode);
+      // Size-aware hybrid (utils/chunked-find.ts): small subtrees go to one native
+      // findAllWithCriteria call, large containers are descended cooperatively,
+      // yielding every ~1000 nodes to check the cancel token and the deadline.
+      // No single synchronous stretch touches more than a few thousand nodes.
+      const res = await chunkedFindByTypes(kids as readonly SceneNode[], {
+        types,
+        signal,
+        stopAt,
+        maxVisited,
+        onMatch: (n) => {
+          allMatchedIds.push(n.id);
+        },
+      });
+      visited = res.visited;
+      if (res.stopReason === "maxVisited" || res.stopReason === "deadline") stopReason = res.stopReason;
     }
   }
   const totalExact = stopReason === undefined;

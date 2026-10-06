@@ -1,5 +1,6 @@
 import { serializeNodes } from "./node-serializer";
 import { getCommandSignal, throwIfCancelled } from "../utils/cancellation";
+import { chunkedFindByTypes } from "../utils/chunked-find";
 
 /**
  * Stable identity of the document this plugin instance is attached to.
@@ -160,15 +161,20 @@ export async function searchNodes(options: SearchNodesOptions): Promise<unknown>
     throwIfCancelled(signal);
     const native = (root as Partial<ChildrenMixin>).findAllWithCriteria;
     if (types && types.length > 0 && typeof native === "function") {
-      // Native type filter first (no JS callback per node), then name/id match.
+      // Native type filter on small subtrees, cooperative descent through large
+      // ones (utils/chunked-find.ts), so a 20k-node page never blocks the main
+      // thread in one call and cancel is honoured between chunks.
       if (matches(root)) matchedIds.push(root.id);
-      const candidates = (root as unknown as ChildrenMixin).findAllWithCriteria({
-        types: types as NodeType[],
-      } as Parameters<ChildrenMixin["findAllWithCriteria"]>[0]);
-      for (const c of candidates) {
-        if (matchedIds.length >= limit) break;
-        if (matches(c)) matchedIds.push(c.id);
-      }
+      const kids = "children" in root ? ((root as ChildrenMixin).children as readonly SceneNode[]) : [];
+      await chunkedFindByTypes(kids, {
+        types,
+        signal,
+        onMatch: (c) => {
+          if (matchedIds.length >= limit) return false;
+          if (matches(c)) matchedIds.push(c.id);
+          return matchedIds.length < limit;
+        },
+      });
     } else {
       walk(root);
     }

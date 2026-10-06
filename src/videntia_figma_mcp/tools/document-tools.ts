@@ -314,7 +314,7 @@ export function registerDocumentTools(server: McpServer): void {
   // reports a stuck command instead of timing out behind it.
   server.tool(
     "get_plugin_health",
-    "Report whether the Figma plugin's command queue is healthy: the running command and its age, queue depth, watchdog timeouts. Use when Figma calls time out; get_open_channels only proves the socket is up.",
+    "Report whether the Figma plugin's command queue is making progress. status is idle | busy | degraded | stalled with a reason; healthy is false only when stalled (queued work saw no progress for 30s, or the running command is past its watchdog) or degraded (an abandoned command has been pending over 5 minutes; see abandoned / abandonedOldestAgeMs for names). A long-running command alone is busy, not unhealthy. Use when Figma calls time out; get_open_channels only proves the socket is up.",
     {},
     async () => {
       try {
