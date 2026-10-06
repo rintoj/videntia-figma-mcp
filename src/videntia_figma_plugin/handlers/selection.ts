@@ -3,8 +3,8 @@
 // ---------------------------------------------------------------------------
 
 import { serializeNodes } from "./node-serializer";
-import { createYielder } from "../utils/walk-budget";
-import { getCommandSignal, throwIfCancelled } from "../utils/cancellation";
+import { chunkedFindByTypes } from "../utils/chunked-find";
+import { getCommandSignal } from "../utils/cancellation";
 import { getCommandDeadline } from "../utils/with-timeout";
 
 /** Max nodes a scan visits before stopping. totalFound becomes a lower bound. */
@@ -167,6 +167,7 @@ export async function scanNodesByTypes(params: Record<string, unknown>): Promise
   // Default 0: serialize matched nodes only. An explicit depth opts into subtrees.
   const depth = params["depth"] === undefined ? 0 : (params["depth"] as number | null);
   const topLevelOnly = params["topLevelOnly"] === true;
+  const exactTotal = params["exactTotal"] === true;
 
   if (!Array.isArray(types) || types.length === 0) {
     throw new Error("types must be a non-empty array");
@@ -177,9 +178,8 @@ export async function scanNodesByTypes(params: Record<string, unknown>): Promise
     throw new Error(`Node with ID ${nodeId} not found`);
   }
 
-  // Collect ALL matches first so totalFound is accurate even when the result is
-  // truncated by `limit`. Truncating during traversal is what made previous
-  // sweeps silently incomplete.
+  // Stop once `limit` matches are found unless the caller asks for exactTotal;
+  // either way the result says whether totalFound is exact.
   const allMatchedIds: string[] = [];
 
   const maxVisited =
@@ -189,68 +189,41 @@ export async function scanNodesByTypes(params: Record<string, unknown>): Promise
   const deadlineAt = getCommandDeadline();
   const stopAt = deadlineAt !== undefined ? deadlineAt - SCAN_DEADLINE_MARGIN_MS : undefined;
   let visited = 0;
-  let stopReason: "maxVisited" | "deadline" | undefined;
+  let stopReason: "maxVisited" | "deadline" | "limit" | undefined;
   const signal = getCommandSignal();
-  const tick = createYielder(undefined, undefined, signal);
 
-  // Iterative walk (explicit stack): no per-node promise, yields every ~1000 nodes,
-  // and stops on the visit cap or the command deadline.
-  const stack: SceneNode[] = [];
   if ("children" in node) {
     const kids = (node as ChildrenMixin).children;
     if (topLevelOnly) {
       // Only direct children of the scanned node are considered.
       for (const child of kids) {
-        if (types.includes((child as SceneNode).type)) allMatchedIds.push(child.id);
-      }
-    } else if (kids.length > 0 && typeof (kids[0] as Partial<ChildrenMixin>).findAllWithCriteria === "function") {
-      // Fast path: Figma's native type filter (no per-node JS callback), run one
-      // top-level child at a time so the cap, deadline and cancel checks still run
-      // between chunks. A single huge child is one uninterruptible native call.
-      const criteria = { types: types as NodeType[] } as Parameters<ChildrenMixin["findAllWithCriteria"]>[0];
-      for (const child of kids) {
-        if (allMatchedIds.length >= maxVisited) {
-          stopReason = "maxVisited";
-          break;
-        }
-        if (stopAt !== undefined && Date.now() >= stopAt) {
-          stopReason = "deadline";
-          break;
-        }
-        throwIfCancelled(signal);
         visited++;
-        if (types.includes((child as SceneNode).type)) allMatchedIds.push(child.id);
-        if ("findAllWithCriteria" in child) {
-          const found = (child as unknown as ChildrenMixin).findAllWithCriteria(criteria);
-          for (const f of found) allMatchedIds.push(f.id);
-          visited += found.length;
+        if (types.includes((child as SceneNode).type)) {
+          if (!exactTotal && allMatchedIds.length >= limit) {
+            stopReason = "limit";
+            break;
+          }
+          allMatchedIds.push(child.id);
         }
-        await tick();
       }
     } else {
-      for (let i = kids.length - 1; i >= 0; i--) stack.push(kids[i] as SceneNode);
-    }
-  }
-  while (stack.length > 0) {
-    if (visited >= maxVisited) {
-      stopReason = "maxVisited";
-      break;
-    }
-    if (stopAt !== undefined && visited % 200 === 0 && Date.now() >= stopAt) {
-      stopReason = "deadline";
-      break;
-    }
-    await tick();
-    const n = stack.pop() as SceneNode;
-    visited++;
-    if (types.includes(n.type)) {
-      allMatchedIds.push(n.id);
-      // A matched node's descendants are nested, not top level.
-      if (topLevelOnly) continue;
-    }
-    if ("children" in n) {
-      const kids = (n as ChildrenMixin).children;
-      for (let i = kids.length - 1; i >= 0; i--) stack.push(kids[i] as SceneNode);
+      // Hybrid walk (utils/chunked-find.ts): narrow nodes go to one native
+      // findAllWithCriteria call, wide ones are descended, with an adaptive
+      // per-call time budget. Yields between calls for cancel and the deadline.
+      const res = await chunkedFindByTypes(kids as readonly SceneNode[], {
+        types,
+        signal,
+        stopAt,
+        maxVisited,
+        onMatch: (n) => {
+          // One past limit proves truncation without walking further.
+          if (!exactTotal && allMatchedIds.length > limit) return false;
+          allMatchedIds.push(n.id);
+          return true;
+        },
+      });
+      visited = res.visited;
+      if (res.stopReason) stopReason = res.stopReason;
     }
   }
   const totalExact = stopReason === undefined;
@@ -258,8 +231,10 @@ export async function scanNodesByTypes(params: Record<string, unknown>): Promise
   if (!totalExact) {
     walkInfo["stopReason"] = stopReason;
     walkInfo["warning"] =
-      `Scan stopped early (${stopReason}) after ${visited} nodes; totalFound is a lower bound. ` +
-      "Scan a smaller nodeId to get an exact count.";
+      stopReason === "limit"
+        ? `Scan stopped at limit (${limit}); totalFound is a lower bound. Pass exactTotal: true for an exact count.`
+        : `Scan stopped early (${stopReason}) after ${visited} nodes; totalFound is a lower bound. ` +
+          "Scan a smaller nodeId to get an exact count.";
   }
 
   const totalFound = allMatchedIds.length;

@@ -2,7 +2,7 @@
 // All handler modules are imported and wired to the handleCommand dispatch.
 
 // Utils
-import { CommandScheduler, type CommandKind } from "./utils/command-scheduler";
+import { CommandScheduler, classifyHealth, type CommandKind } from "./utils/command-scheduler";
 import { setCommandSignal } from "./utils/cancellation";
 import { wantsSkipInvisible } from "./utils/skip-invisible";
 import { setCommandDeadline } from "./utils/with-timeout";
@@ -615,17 +615,15 @@ function enqueueCommand(
 
 function getPluginHealth(): Record<string, unknown> {
   const status = scheduler.getStatus();
-  const busy = status.running !== null && status.running.ageMs > 10000;
-  // Abandoned commands cannot be cancelled and may stay pending forever. They do
-  // not block the queue, so they only count against health until a command
-  // completes normally after the most recent watchdog (abandonedStillRunning
-  // stays in the report as info).
-  const recovered =
-    status.lastWatchdog === null ||
-    (status.lastCompletedAtMs !== null && status.lastCompletedAtMs > status.lastWatchdog.atMs);
+  // Unhealthy only when progress has stalled (utils/command-scheduler.ts
+  // classifyHealth): a long-running command alone is "busy", not unhealthy.
+  const health = classifyHealth(status, Date.now());
   return {
-    healthy: !busy && (status.abandonedStillRunning === 0 || recovered),
-    state: status.running === null ? "idle" : busy ? "busy" : "running",
+    healthy: health.healthy,
+    status: health.status,
+    reason: health.reason,
+    // Legacy field kept for compatibility; use `status` instead.
+    state: status.running === null ? "idle" : status.running.ageMs > 10000 ? "busy" : "running",
     fileName: figma.root.name,
     ...status,
   };

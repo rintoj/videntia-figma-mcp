@@ -662,6 +662,7 @@ describe("new document tools integration", () => {
         limit: undefined,
         depth: 0,
         topLevelOnly: false,
+        exactTotal: false,
       });
       expect(response.content[0].text).toContain("frame-1");
       expect(response.content[0].text).toContain("comp-1");
@@ -691,6 +692,7 @@ describe("new document tools integration", () => {
         limit: undefined,
         depth: 0,
         topLevelOnly: false,
+        exactTotal: false,
       });
     });
 

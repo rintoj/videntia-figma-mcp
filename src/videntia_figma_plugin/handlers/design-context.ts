@@ -8,6 +8,18 @@
  */
 
 import { getCommandSignal, throwIfCancelled } from "../utils/cancellation";
+import { withTimeout as withTimeoutOrThrow } from "../utils/with-timeout";
+
+/**
+ * Every Figma async lookup here runs under this timeout. A lookup that never
+ * settles used to keep the whole command pending forever, which is what left
+ * abandoned commands stuck in get_plugin_health's abandonedStillRunning.
+ */
+export const FIGMA_LOOKUP_TIMEOUT_MS = 5000;
+
+function timed<T>(p: Promise<T> | T, label: string): Promise<T> {
+  return withTimeoutOrThrow(Promise.resolve(p), FIGMA_LOOKUP_TIMEOUT_MS, label);
+}
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -84,7 +96,7 @@ export class VariableResolver {
   private async collection(id: string): Promise<any> {
     let p = this.collections.get(id);
     if (!p) {
-      p = Promise.resolve(figma.variables.getVariableCollectionByIdAsync(id)).catch(() => null);
+      p = timed(figma.variables.getVariableCollectionByIdAsync(id), "getVariableCollectionByIdAsync").catch(() => null);
       this.collections.set(id, p);
     }
     return p;
@@ -92,7 +104,7 @@ export class VariableResolver {
 
   private async load(id: string): Promise<ResolvedVariable | null> {
     try {
-      const v: any = await figma.variables.getVariableByIdAsync(id);
+      const v: any = await timed(figma.variables.getVariableByIdAsync(id), "getVariableByIdAsync");
       if (!v) return null;
       const col = await this.collection(v.variableCollectionId);
       const modeNames = new Map<string, string>();
@@ -100,7 +112,9 @@ export class VariableResolver {
       const aliasNames = new Map<string, string>();
       for (const val of Object.values(v.valuesByMode ?? {}) as any[]) {
         if (val && typeof val === "object" && val.type === "VARIABLE_ALIAS") {
-          const target: any = await Promise.resolve(figma.variables.getVariableByIdAsync(val.id)).catch(() => null);
+          const target: any = await timed(figma.variables.getVariableByIdAsync(val.id), "getVariableByIdAsync").catch(
+            () => null,
+          );
           if (target) aliasNames.set(val.id, target.name);
         }
       }
@@ -222,7 +236,7 @@ export async function walkBounded(
 
 async function getNode(nodeId: unknown): Promise<AnyNode> {
   if (typeof nodeId !== "string" || !nodeId) throw new Error("Missing nodeId");
-  const node = await figma.getNodeByIdAsync(nodeId.replace(/-/g, ":"));
+  const node = await timed(figma.getNodeByIdAsync(nodeId.replace(/-/g, ":")), "getNodeByIdAsync");
   if (!node) throw new Error(`Node not found: ${nodeId}`);
   return node;
 }
@@ -280,7 +294,7 @@ export async function getVariablesUsed(params: Record<string, unknown>): Promise
 
   const styleRows = [] as Array<Record<string, unknown>>;
   for (const [id, e] of styles) {
-    const st: any = await Promise.resolve(figma.getStyleByIdAsync(id)).catch(() => null);
+    const st: any = await timed(figma.getStyleByIdAsync(id), "getStyleByIdAsync").catch(() => null);
     styleRows.push({
       id,
       kind: e.kind,
@@ -442,7 +456,7 @@ export function extractNodeContext(node: AnyNode, tokens: Map<string, string>): 
 async function componentInfo(node: AnyNode): Promise<Record<string, unknown> | undefined> {
   try {
     if (node.type === "INSTANCE") {
-      const main: any = await node.getMainComponentAsync();
+      const main: any = await timed(node.getMainComponentAsync(), "getMainComponentAsync");
       const props: Record<string, unknown> = {};
       for (const [k, v] of Object.entries(node.componentProperties ?? {}) as any)
         props[k.replace(/#\d+:\d+$/, "")] = v?.value;

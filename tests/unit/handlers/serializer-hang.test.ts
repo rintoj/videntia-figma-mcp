@@ -133,7 +133,7 @@ describe("scan_nodes_by_types walk caps", () => {
 
   it("returns an exact count when the walk completes", async () => {
     tree(30);
-    const res = await scanNodesByTypes({ nodeId: "s1", types: ["TEXT"], limit: 1 });
+    const res = await scanNodesByTypes({ nodeId: "s1", types: ["TEXT"], limit: 1, exactTotal: true });
     expect(res.totalFound).toBe(30);
     expect(res.totalExact).toBe(true);
     expect(res.count).toBe(1);
@@ -141,7 +141,7 @@ describe("scan_nodes_by_types walk caps", () => {
 
   it("stops at the visit cap and reports totalFound as a lower bound", async () => {
     tree(30);
-    const res = await scanNodesByTypes({ nodeId: "s1", types: ["TEXT"], limit: 1, maxVisited: 10 });
+    const res = await scanNodesByTypes({ nodeId: "s1", types: ["TEXT"], limit: 1, maxVisited: 10, exactTotal: true });
     expect(res.totalFound).toBe(10);
     expect(res.totalExact).toBe(false);
     expect(res.stopReason).toBe("maxVisited");
@@ -151,7 +151,7 @@ describe("scan_nodes_by_types walk caps", () => {
   it("stops on the command deadline", async () => {
     tree(30);
     setCommandDeadline(Date.now() - 1);
-    const res = await scanNodesByTypes({ nodeId: "s1", types: ["TEXT"], limit: 1 });
+    const res = await scanNodesByTypes({ nodeId: "s1", types: ["TEXT"], limit: 1, exactTotal: true });
     expect(res.totalExact).toBe(false);
     expect(res.stopReason).toBe("deadline");
     setCommandDeadline(undefined);

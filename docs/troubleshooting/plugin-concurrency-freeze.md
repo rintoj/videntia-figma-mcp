@@ -160,9 +160,7 @@ plugin there; the shared hung promise is new in this PR.
   (`maxVisited`) or 5s before the command deadline, and then reports `totalExact: false`,
   `stopReason`, `visited` and `truncated: true`. `totalFound` is then a lower bound.
 - The default plugin watchdog (no caller deadline) is 60s instead of 180s.
-- `get_plugin_health` reports `healthy: true` again once any command completes normally
-  after the most recent watchdog. `abandonedStillRunning` stays in the report as info,
-  since an abandoned promise can never be cancelled and does not block the queue.
+- `get_plugin_health` health rules were redefined later; see "Health means progress" below.
 
 **Tests.** `tests/unit/handlers/serializer-hang.test.ts` reproduces the hung and rejected
 lookup poisoning and the hung main-component lookup (all four fail against the previous
@@ -178,7 +176,7 @@ command is abandoned.
 - **Reads only.** Only READ tokens are ever aborted. A write that has started always runs to completion. Nothing is resent; the existing read-only resend after a dropped socket is unchanged.
 - **Not started means never started.** A command cancelled while queued, dropped past its deadline, or refused by the queue cap never runs.
 - **Where walks stop.** Walks capture the token when they start (`getCommandSignal()`), because a later command replaces the module slot. They check it at each yield point (`createYielder`, every ~1000 nodes) and between awaited Figma calls, then throw `CancelledError`. That covers get_content_tree, the scan walk, the serializer recursion (a cancelled child is rethrown, not degraded to null), lint_frame (between its awaited steps, because the scan itself is synchronous), contrast_check_frame (every 1000 nodes and around the image fetch), search_nodes (between pages) and get_outline.
-- **Health counters.** A read that stops this way frees its slot at once and is counted as `cancelled`, not `abandonedStillRunning`.
+- **Health counters.** A read that stops this way frees its slot at once and is counted as `cancelled`. Until its handler actually unwinds it is also listed under `abandoned` / `abandonedStillRunning`, and it leaves that list exactly once, when its promise settles.
 - **Uncancellable Figma promises.** A pending Figma API promise (getMainComponentAsync, exportAsync, loadFontAsync, getNodeByIdAsync) cannot be cancelled. If a command is cancelled while one is in flight, the promise is abandoned: it settles whenever Figma finishes and its result is ignored. The walk stops at its next check.
 
 ## Cancel on disconnect
@@ -190,6 +188,44 @@ command is abandoned.
 ## Fast traversal and the two-step read
 
 - **`figma.skipInvisibleInstanceChildren`.** It is ON for the read walks scan_nodes_by_types, get_outline, search_nodes, lint_frame, find_unbound, find_overlaps and contrast_check_frame. It is OFF for writes, for get_content_tree (hidden-node recovery depends on it) and for any call that passes `include_hidden: true` / `includeHidden` / `ignore_hidden: false`. **Behaviour change:** these scans no longer see invisible nodes inside instances.
-- **Native type filtering.** The scan walk and search_nodes (when `types` is given) use `findAllWithCriteria({ types })`, one top-level child at a time, so the cap, deadline and cancel checks run between chunks. A single huge child is one native call and cannot be interrupted. lint_frame and contrast_check_frame keep their custom walks, because they need every node (lint) or ancestor-visibility pruning (contrast).
+- **Native type filtering, size-aware.** The scan walk and search_nodes (when `types` is given) use `chunkedFindByTypes` (`utils/chunked-find.ts`): it descends large containers cooperatively and calls `findAllWithCriteria({ types })` only on subtrees with fewer than ~2000 descendants (counted cheaply with an early stop). The walk yields after about 1000 units of work and checks the cancel token and the deadline, so no synchronous stretch touches more than a few thousand nodes, however big one child is. Results stay in document pre-order. lint_frame and contrast_check_frame keep their custom walks, because they need every node (lint) or ancestor-visibility pruning (contrast).
 - **`loadAllPagesAsync`.** search_nodes now loads pages one at a time and stops loading once its limit is reached. setup_design_system no longer loads pages, because it only needs page names. get_local_components still loads every page, since it is document-wide by contract.
 - **get_outline** gives a cheap, sparse outline at about 50 bytes per node. When get_content_tree truncates, its `hint` names get_outline and lists the top-level child ids (`topLevelIds`) to drill into. A paged get_nodes_info points to get_outline too.
+
+## Follow-up: scan blocking, stuck abandoned count, strict health (Jarvis stress test 2)
+
+A read-only stress test on Jarvis (sections of about 20k nodes, 8 agents) found three
+problems.
+
+1. **A scan blocked the plugin and ignored cancel.** The scan made one native
+   `findAllWithCriteria` call per top-level child. On a huge child that one call held the
+   main thread for seconds: a 4.3s scan ignored a cancel, health replies took up to 8s, and
+   the light-read fast lane had a p50 of 4.3s. Fixed by the size-aware hybrid walk above,
+   which also covers the typed `search_nodes` path.
+2. **`abandonedStillRunning` stuck at 5.** The scheduler decremented on settle on both the
+   resolve and reject paths, so the counter only stays up when the handler promise really
+   never settles. The #159 tools awaited Figma lookups (`getVariableByIdAsync`,
+   `getVariableCollectionByIdAsync`, `getStyleByIdAsync`, `getMainComponentAsync`,
+   `getNodeByIdAsync`) with no timeout, so one lookup that never settled kept its command
+   pending forever. Those calls now run under `withTimeout` (5s,
+   `FIGMA_LOOKUP_TIMEOUT_MS` in `handlers/design-context.ts`) and degrade to "unknown".
+   The scheduler now tracks abandoned jobs in a map keyed by job, removed exactly once
+   when the promise settles, and reports `abandoned` (command, age, watchdog or cancel)
+   plus `abandonedOldestAgeMs`, so a real hang names itself.
+3. **`healthy` was too strict.** Any command running longer than 10s made it false, which
+   happened in 74% of samples under normal load.
+
+### Health means progress
+
+`get_plugin_health` now returns `status` and `reason` (`classifyHealth` in
+`utils/command-scheduler.ts`):
+
+| status | healthy | when |
+|--------|---------|------|
+| `idle` | true | nothing running or queued |
+| `busy` | true | work running or queued and the slot keeps moving (a long command alone is busy) |
+| `degraded` | false | an abandoned command has been pending for over 5 minutes |
+| `stalled` | false | commands are queued and nothing started or finished for 30s, or the running command is past its watchdog |
+
+`state`, `running`, `abandonedStillRunning`, `lastCompletedAtMs` and the other counters
+are unchanged for compatibility; `lastProgressAtMs` and `running.watchdogMs` are new.

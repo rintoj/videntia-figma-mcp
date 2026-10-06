@@ -42,7 +42,15 @@ export interface SchedulerOptions {
   /** Max commands waiting (not counting the running one). */
   maxQueueDepth: number;
   now?: () => number;
+  /**
+   * After a running read is cancelled, how long the slot stays "draining"
+   * (waiting for the handler to actually stop) before it is abandoned and the
+   * next command starts anyway. Default 2000ms.
+   */
+  cancelGraceMs?: number;
 }
+
+export const DEFAULT_CANCEL_GRACE_MS = 2000;
 
 export interface ScheduleOptions {
   /** Per-command watchdog override (ms). */
@@ -65,15 +73,19 @@ export interface ScheduleOptions {
 export type CommandKind = "write" | "read" | "heavy";
 
 export interface SchedulerStatus {
-  running: { command: string; ageMs: number } | null;
+  running: { command: string; ageMs: number; watchdogMs: number } | null;
   queueDepth: number;
   queued: string[];
   completed: number;
   watchdogTimeouts: number;
   expiredInQueue: number;
   rejectedQueueFull: number;
-  /** Commands abandoned by the watchdog that have not settled yet. */
+  /** Commands abandoned (watchdog or cancel) whose promise has not settled yet. */
   abandonedStillRunning: number;
+  /** Age of the oldest still-pending abandoned command, or null when none. */
+  abandonedOldestAgeMs: number | null;
+  /** Each still-pending abandoned command, oldest first. */
+  abandoned: Array<{ command: string; ageMs: number; reason: "watchdog" | "cancel" }>;
   /** Reads that stopped cooperatively after their token was aborted. */
   cancelled: number;
   /** Running commands aborted (reads) or orphaned (writes) by a disconnect. */
@@ -83,6 +95,8 @@ export interface SchedulerStatus {
   lastWatchdog: { command: string; atMs: number } | null;
   /** When the most recent command settled normally (not via the watchdog). */
   lastCompletedAtMs: number | null;
+  /** When the slot last moved: any command settled, was abandoned, or started. */
+  lastProgressAtMs: number | null;
 }
 
 interface Job {
@@ -110,13 +124,18 @@ export class CommandScheduler {
     watchdogTimeouts: 0,
     expiredInQueue: 0,
     rejectedQueueFull: 0,
-    abandonedStillRunning: 0,
     cancelled: 0,
     cancelledOnDisconnect: 0,
     droppedOnDisconnect: 0,
     lastWatchdog: null as { command: string; atMs: number } | null,
     lastCompletedAtMs: null as number | null,
+    lastProgressAtMs: null as number | null,
   };
+  /**
+   * Abandoned jobs whose run promise is still pending. Keyed by job so the
+   * entry is removed exactly once, when that promise settles.
+   */
+  private abandoned = new Map<Job, { command: string; atMs: number; reason: "watchdog" | "cancel" }>();
   private readonly now: () => number;
 
   constructor(private readonly opts: SchedulerOptions) {
@@ -156,27 +175,44 @@ export class CommandScheduler {
   }
 
   getStatus(): SchedulerStatus {
+    const t = this.now();
+    let oldest: number | null = null;
+    const abandoned: SchedulerStatus["abandoned"] = [];
+    for (const a of this.abandoned.values()) {
+      if (oldest === null || a.atMs < oldest) oldest = a.atMs;
+      abandoned.push({ command: a.command, ageMs: t - a.atMs, reason: a.reason });
+    }
+    abandoned.sort((a, b) => b.ageMs - a.ageMs);
     return {
-      running: this.current ? { command: this.current.job.command, ageMs: this.now() - this.current.startedAt } : null,
+      running: this.current
+        ? {
+            command: this.current.job.command,
+            ageMs: this.now() - this.current.startedAt,
+            watchdogMs: this.current.job.watchdogMs,
+          }
+        : null,
       queueDepth: this.queue.length,
       queued: this.queue.map((j) => j.command),
       completed: this.stats.completed,
       watchdogTimeouts: this.stats.watchdogTimeouts,
       expiredInQueue: this.stats.expiredInQueue,
       rejectedQueueFull: this.stats.rejectedQueueFull,
-      abandonedStillRunning: this.stats.abandonedStillRunning,
+      abandonedStillRunning: this.abandoned.size,
+      abandonedOldestAgeMs: oldest === null ? null : t - oldest,
+      abandoned,
       cancelled: this.stats.cancelled,
       cancelledOnDisconnect: this.stats.cancelledOnDisconnect,
       droppedOnDisconnect: this.stats.droppedOnDisconnect,
       lastWatchdog: this.stats.lastWatchdog,
       lastCompletedAtMs: this.stats.lastCompletedAtMs,
+      lastProgressAtMs: this.stats.lastProgressAtMs,
     };
   }
 
   /**
    * Server-side timeout: cancel one command by request id. A queued job is
-   * removed and never runs. A running READ has its token aborted and its slot
-   * freed now. A running WRITE is left to finish. Returns what happened.
+   * removed and never runs. A running READ has its token aborted and its caller
+   * answered now; its slot drains until the handler stops (or cancelGraceMs). A running WRITE is left to finish. Returns what happened.
    */
   cancel(
     id: string,
@@ -271,18 +307,37 @@ export class CommandScheduler {
     }
 
     let settled = false;
+    let draining = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
+    let graceTimer: ReturnType<typeof setTimeout> | undefined;
     const finish = (_how: "cancel", reason: string) => {
       if (settled) return;
       settled = true;
+      draining = true;
       if (timer) clearTimeout(timer);
       job.token.abort(reason);
-      // The run is still unwinding; it settles at its next check (or an abandoned await).
-      this.stats.abandonedStillRunning++;
+      // The caller gets its answer now; the slot stays "draining" until the
+      // handler really stops (its next cancel check), so the next command never
+      // shares the main thread with leftover work. If it does not stop within
+      // the grace period it is abandoned and the queue moves on.
       job.reject(new Error(`Command "${job.command}" cancelled: ${reason}`));
+      graceTimer = setTimeout(() => {
+        if (!draining) return;
+        draining = false;
+        this.abandoned.set(job, { command: job.command, atMs: this.now(), reason: "cancel" });
+        release();
+      }, this.opts.cancelGraceMs ?? DEFAULT_CANCEL_GRACE_MS);
+    };
+    /** The run settled after a cancel: free the slot if still draining. */
+    const drained = () => {
+      if (!draining) return false;
+      draining = false;
+      if (graceTimer) clearTimeout(graceTimer);
       release();
+      return true;
     };
     this.current = { job, startedAt: this.now(), finish };
+    this.stats.lastProgressAtMs = this.now();
     if (job.onStart) {
       try {
         job.onStart(waited);
@@ -291,6 +346,7 @@ export class CommandScheduler {
       }
     }
     const release = () => {
+      this.stats.lastProgressAtMs = this.now();
       this.current = null;
       this.pump();
     };
@@ -299,7 +355,7 @@ export class CommandScheduler {
       if (settled) return;
       settled = true;
       this.stats.watchdogTimeouts++;
-      this.stats.abandonedStillRunning++;
+      this.abandoned.set(job, { command: job.command, atMs: this.now(), reason: "watchdog" });
       this.stats.lastWatchdog = { command: job.command, atMs: this.now() };
       // Reads stop at their next yield point; writes are never aborted mid-flight.
       if (job.kind !== "write") job.token.abort(`Watchdog (${job.watchdogMs}ms) fired`);
@@ -321,7 +377,8 @@ export class CommandScheduler {
     p.then(
       (v) => {
         if (settled) {
-          this.stats.abandonedStillRunning--;
+          if (drained()) return;
+          this.abandoned.delete(job);
           return;
         }
         settled = true;
@@ -333,7 +390,8 @@ export class CommandScheduler {
       },
       (e) => {
         if (settled) {
-          this.stats.abandonedStillRunning--;
+          if (drained()) return;
+          this.abandoned.delete(job);
           // A watchdog-abandoned read that stopped cooperatively counts as cancelled.
           if (isCancelledError(e) && !job.cancelCounted) this.stats.cancelled++;
           return;
@@ -347,4 +405,68 @@ export class CommandScheduler {
       },
     );
   }
+}
+
+// ---------------------------------------------------------------------------
+// Health: unhealthy only when progress has stalled
+// ---------------------------------------------------------------------------
+
+export type HealthStatus = "idle" | "busy" | "degraded" | "stalled";
+
+export interface HealthThresholds {
+  /** No progress for this long while work waits in the queue = stalled. */
+  stallMs: number;
+  /** An abandoned command pending longer than this = degraded (a real hang). */
+  abandonedMaxAgeMs: number;
+}
+
+export const DEFAULT_HEALTH_THRESHOLDS: HealthThresholds = { stallMs: 30000, abandonedMaxAgeMs: 5 * 60 * 1000 };
+
+/**
+ * Classify scheduler state. A command that simply runs long is NOT unhealthy:
+ * - stalled: the running command is past its own watchdog, or commands are
+ *   queued and the slot has not moved (nothing started or settled) for stallMs;
+ * - degraded: the queue moves, but an abandoned command has been pending for
+ *   longer than abandonedMaxAgeMs (a Figma await that never settles);
+ * - busy: work is running or queued and progressing;
+ * - idle: nothing running or queued.
+ * healthy is true for idle and busy.
+ */
+export function classifyHealth(
+  status: SchedulerStatus,
+  now: number,
+  t: HealthThresholds = DEFAULT_HEALTH_THRESHOLDS,
+): { healthy: boolean; status: HealthStatus; reason: string } {
+  const r = status.running;
+  if (r && r.ageMs >= r.watchdogMs) {
+    return {
+      healthy: false,
+      status: "stalled",
+      reason: `"${r.command}" has run ${r.ageMs}ms, past its ${r.watchdogMs}ms watchdog`,
+    };
+  }
+  const sinceProgress = status.lastProgressAtMs === null ? null : now - status.lastProgressAtMs;
+  if (status.queueDepth > 0 && sinceProgress !== null && sinceProgress >= t.stallMs) {
+    return {
+      healthy: false,
+      status: "stalled",
+      reason: `${status.queueDepth} command(s) queued and no command started or finished for ${sinceProgress}ms`,
+    };
+  }
+  if (status.abandonedOldestAgeMs !== null && status.abandonedOldestAgeMs >= t.abandonedMaxAgeMs) {
+    const names = status.abandoned.map((a) => a.command).join(", ");
+    return {
+      healthy: false,
+      status: "degraded",
+      reason: `${status.abandonedStillRunning} abandoned command(s) never settled, oldest ${status.abandonedOldestAgeMs}ms (${names})`,
+    };
+  }
+  if (r || status.queueDepth > 0) {
+    return {
+      healthy: true,
+      status: "busy",
+      reason: r ? `running "${r.command}" (${r.ageMs}ms), ${status.queueDepth} queued` : `${status.queueDepth} queued`,
+    };
+  }
+  return { healthy: true, status: "idle", reason: "no command running or queued" };
 }
